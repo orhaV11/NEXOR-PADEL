@@ -148,7 +148,7 @@ export default function Hero() {
             variants={itemVariants}
             className="text-[rgba(242,237,223,0.5)] text-lg md:text-xl font-light mt-7 max-w-lg"
           >
-            ציוד פרימיום לשחקנים שלא מתפשרים.
+            חנות פאדל פרימיום בישראל — מחבטים, נעליים, כדורים ואביזרים ממותגים מובילים.
           </motion.p>
 
           {/* CTA row — stacks on mobile */}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Phone, MapPin, Clock, MessageCircle, Send, CheckCircle } from 'lucide-react'
+import { Mail, MapPin, MessageCircle, Send, CheckCircle } from 'lucide-react'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' })
@@ -80,22 +80,10 @@ export default function ContactPage() {
                   sub: 'אנחנו עונים תוך 24 שעות',
                 },
                 {
-                  icon: Phone,
-                  label: 'טלפון',
-                  value: '054-123-4567',
-                  sub: 'ראשון–חמישי, 09:00–18:00',
-                },
-                {
                   icon: MapPin,
                   label: 'מיקום',
                   value: 'ישראל',
                   sub: 'חנות אונליין — משלוח לכל הארץ',
-                },
-                {
-                  icon: Clock,
-                  label: 'שעות פעילות',
-                  value: 'ראשון–חמישי: 09:00–18:00',
-                  sub: 'שישי: 09:00–14:00 | שבת: סגור',
                 },
               ].map(({ icon: Icon, label, value, sub }) => (
                 <div key={label} className="flex items-start gap-4 p-4 bg-[#0d0d10] border border-[rgba(201,165,90,0.08)] hover:border-[rgba(201,165,90,0.18)] transition-all duration-300 group">

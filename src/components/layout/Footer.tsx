@@ -219,8 +219,8 @@ export default function Footer() {
                 </a>
               </p>
               <p className="flex items-center gap-2 text-[rgba(242,237,223,0.25)] text-xs">
-                <span aria-hidden="true" className="text-[rgba(201,165,90,0.5)]">🕐</span>
-                <span>א&apos;-ה&apos;: 09:00–18:00</span>
+                <span aria-hidden="true" className="text-[rgba(201,165,90,0.5)]">📦</span>
+                <span>משלוח לכל הארץ</span>
               </p>
             </address>
           </div>

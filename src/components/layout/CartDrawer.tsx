@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react'
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ShieldCheck, Truck, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useCart } from '@/context/CartContext'
 import ProductImagePlaceholder from '@/components/shop/ProductImagePlaceholder'
@@ -411,6 +411,20 @@ export default function CartDrawer() {
                   >
                     המשך קנייה
                   </button>
+
+                  {/* Trust badges */}
+                  <div className="flex items-center justify-center gap-4 pt-1 border-t border-[rgba(201,165,90,0.06)]">
+                    {[
+                      { icon: ShieldCheck, label: 'תשלום מאובטח' },
+                      { icon: Truck, label: 'משלוח מהיר בישראל' },
+                      { icon: MessageCircle, label: 'תמיכה בוואטסאפ' },
+                    ].map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex flex-col items-center gap-1 text-center">
+                        <Icon className="w-3.5 h-3.5 text-[rgba(201,165,90,0.45)]" />
+                        <span className="text-[rgba(242,237,223,0.2)] text-[9px] leading-tight max-w-[56px]">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { ShoppingBag, Minus, Plus, Trash2, ArrowLeft, ShieldCheck, Truck, RotateCcw } from 'lucide-react'
+import { ShoppingBag, Minus, Plus, Trash2, ArrowLeft, ShieldCheck, Truck, RotateCcw, MessageCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import ProductImagePlaceholder from '@/components/shop/ProductImagePlaceholder'
 import { products } from '@/lib/data'
@@ -27,7 +27,7 @@ export default function CartPage() {
             <div className="flex items-center gap-3 mb-2">
               <ShoppingBag className="w-5 h-5 text-[#c9a55a]" />
               <h1 className="font-display text-4xl md:text-5xl text-[#f2eddf] tracking-wide uppercase">
-                עגלת קניות
+                עגלת הקניות שלך
               </h1>
               {totalItems > 0 && (
                 <span className="badge-gold ltr">
@@ -174,23 +174,29 @@ export default function CartPage() {
                     <span className="text-[#f2eddf] font-bold text-2xl ltr">₪{(totalPrice + (totalPrice >= 280 ? 0 : 29)).toLocaleString()}</span>
                   </div>
 
-                  <button className="btn-gold w-full mb-3 justify-between">
+                  <button className="btn-gold w-full mb-3 justify-center gap-2">
+                    <span>המשך לקופה</span>
                     <ArrowLeft className="w-4 h-4" />
-                    <span>לתשלום</span>
                   </button>
 
-                  <p className="text-[rgba(242,237,223,0.2)] text-xs text-center">מיסים ומשלוח יחושבו בקופה</p>
+                  <Link href="/shop" className="btn-outline w-full mb-4 justify-center text-xs">
+                    המשך קנייה
+                  </Link>
+
+                  <p className="text-[rgba(242,237,223,0.2)] text-xs text-center mb-4">מיסים ומשלוח יחושבו בקופה</p>
                 </div>
 
                 {/* Trust Badges */}
-                <div className="space-y-2">
+                <div className="luxury-card p-4 space-y-3">
+                  <p className="text-[rgba(242,237,223,0.25)] text-[10px] uppercase tracking-widest mb-2">למה לקנות ב-NEXOR</p>
                   {[
                     { icon: ShieldCheck, text: 'תשלום מאובטח ומוצפן' },
-                    { icon: Truck, text: 'משלוח חינם מעל ₪280' },
+                    { icon: Truck, text: 'משלוח מהיר בישראל — חינם מעל ₪280' },
                     { icon: RotateCcw, text: 'החזרה חינם עד 30 יום' },
+                    { icon: MessageCircle, text: 'שירות לקוחות זמין בוואטסאפ' },
                   ].map(({ icon: Icon, text }) => (
-                    <div key={text} className="flex items-center gap-3 text-[rgba(242,237,223,0.3)] text-xs">
-                      <Icon className="w-4 h-4 text-[rgba(201,165,90,0.5)] flex-shrink-0" />
+                    <div key={text} className="flex items-center gap-3 text-[rgba(242,237,223,0.4)] text-xs">
+                      <Icon className="w-4 h-4 text-[rgba(201,165,90,0.6)] flex-shrink-0" />
                       {text}
                     </div>
                   ))}

@@ -18,7 +18,7 @@ const values = [
   {
     icon: Award,
     title: 'רק ציוד מקורי',
-    description: 'NEXOR הוא ספק מורשה רשמי לכל מותג שאנחנו מוכרים. לעולם לא תמצא כאן מוצרים מזויפים. כל מוצר מגיע עם אחריות יצרן.',
+    description: 'NEXOR Padel היא ספקית מורשית רשמית לכל מותג שאנחנו מוכרים. לעולם לא תמצא כאן מוצרים מזויפים. כל מוצר מגיע עם אחריות יצרן מקורית.',
   },
   {
     icon: Zap,
@@ -28,10 +28,10 @@ const values = [
 ]
 
 const milestones = [
-  { year: '2022', title: 'NEXOR נוסדה', description: 'נולדה מתסכול עם קמעונאות פאדל באיכות נמוכה, NEXOR השיקה עם שליחות לעשות זאת טוב יותר.' },
-  { year: '2023', title: 'שותפויות רשמיות', description: 'הובטחו שותפויות ספק רשמי עם Head, Bullpadel, Nox ו-Adidas Padel.' },
-  { year: '2024', title: '10,000 שחקנים', description: 'הגענו לאבן הדרך הראשונה של 10,000 לקוחות. הקהילה גדלה במהירות.' },
-  { year: '2025', title: 'פלטפורמה מלאה', description: 'השקנו את הפלטפורמה הפרימיום המלאה עם מגוון ציוד שלם לכל רמת שחקן.' },
+  { year: '2022', title: 'NEXOR נוסדה', description: 'נולדה מתסכול עם חנויות ספורט בינוניות — NEXOR השיקה עם חזון ברור: חנות פאדל פרימיום אמיתית לישראל.' },
+  { year: '2023', title: 'שותפויות רשמיות', description: 'הבטחנו שותפויות ספק מורשה רשמי עם Head, Bullpadel, Nox, Adidas, Babolat, StarVie ועוד.' },
+  { year: '2024', title: '10,000 שחקנים', description: 'הגענו לאבן הדרך הראשונה של 10,000 לקוחות מרוצים. הקהילה גדלה במהירות.' },
+  { year: '2025', title: '14 מותגים מובילים', description: 'הרחבנו את הקטלוג ל-14 מותגי פאדל וספורט מובילים — הבחירה הגדולה ביותר בישראל.' },
 ]
 
 export default function AboutPage() {
@@ -58,7 +58,7 @@ export default function AboutPage() {
               <span className="text-gold-gradient">NEXOR</span>
             </h1>
             <p className="text-[#f2eddf]/50 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-              בנינו את NEXOR כי נמאס לנו לפשרות. כשחקני פאדל, רצינו חנות שתתאים לרמת הספורט שאנחנו אוהבים.
+              חנות פאדל פרימיום בישראל — ציוד ממותגים מובילים, בחירה מדויקת לפי רמה וסגנון משחק.
             </p>
           </motion.div>
         </div>
@@ -81,10 +81,10 @@ export default function AboutPage() {
                 <span className="text-gold-gradient">מטרה רצינית.</span>
               </h2>
               <p className="text-[#f2eddf]/50 text-base leading-relaxed mb-4">
-                NEXOR Padel נוסדה על ידי שחקנים שהיו מתוסכלים ממצב הקמעונאות בפאדל — בסיסיות יקרות מדי, עצות גרועות, וציוד שלא תאם את האיכות של הספורט.
+                NEXOR Padel נוסדה על ידי שחקני פאדל שנמאס להם מחנויות ספורט כלליות שלא מבינות את הספורט. רצינו חנות פאדל אמיתית — עם ציוד ממותגים מובילים, עצות מקצועיות, ושירות שמגיע לרמת הציוד.
               </p>
               <p className="text-[#f2eddf]/50 text-base leading-relaxed mb-6">
-                יצאנו לבנות משהו אחר. יעד פאדל פרימיום שבו כל מוצר נבחר בקפידה, כל מותג רשמי, וכל לקוח מקבל את השירות שמגיע לו.
+                בנינו חנות פאדל פרימיום שבה כל מוצר נבחר בקפידה ממותגים מובילים בעולם — Head, Bullpadel, Babolat, Adidas, Wilson, StarVie ועוד 8 מותגים נוספים.
               </p>
               <p className="text-[#f2eddf]/50 text-base leading-relaxed">
                 בין אם אתה מרים מחבט פאדל לראשונה או שחקן ברמת תחרות — NEXOR נבנתה בשבילך.
@@ -95,7 +95,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { icon: Users, value: '+10,000', label: 'שחקנים מרוצים' },
-                { icon: Award, value: '+6', label: 'שותפי מותג רשמיים' },
+                { icon: Award, value: '+14', label: 'מותגים מורשים' },
                 { icon: Globe, value: 'ישראל', label: 'חנות אונליין מקומית' },
                 { icon: Heart, value: '4.9★', label: 'דירוג ממוצע' },
               ].map(({ icon: Icon, value, label }, i) => (

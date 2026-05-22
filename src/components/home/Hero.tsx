@@ -1,187 +1,120 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Play, ChevronDown } from 'lucide-react'
+import { ArrowLeft, ChevronDown } from 'lucide-react'
 
 export default function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animationId: number
-    let particles: Array<{
-      x: number; y: number; vx: number; vy: number
-      size: number; opacity: number; life: number; maxLife: number
-    }> = []
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const spawnParticle = () => {
-      const side = Math.random()
-      let x, y, vx, vy
-      if (side < 0.5) {
-        x = Math.random() * canvas.width
-        y = canvas.height + 10
-        vx = (Math.random() - 0.5) * 0.5
-        vy = -Math.random() * 1.5 - 0.5
-      } else {
-        x = -10
-        y = Math.random() * canvas.height
-        vx = Math.random() * 1.5 + 0.5
-        vy = (Math.random() - 0.5) * 0.5
-      }
-      const maxLife = 200 + Math.random() * 200
-      particles.push({ x, y, vx, vy, size: Math.random() * 1.5 + 0.5, opacity: 0, life: 0, maxLife })
-    }
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      if (Math.random() < 0.12) spawnParticle()
-
-      particles = particles.filter(p => p.life < p.maxLife)
-      particles.forEach(p => {
-        p.x += p.vx
-        p.y += p.vy
-        p.life++
-        const progress = p.life / p.maxLife
-        p.opacity = progress < 0.2 ? progress / 0.2 : progress > 0.8 ? (1 - progress) / 0.2 : 1
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(181, 247, 46, ${p.opacity * 0.4})`
-        ctx.fill()
-      })
-
-      // Draw speed lines
-      ctx.strokeStyle = 'rgba(181, 247, 46, 0.04)'
-      ctx.lineWidth = 1
-      for (let i = 0; i < 8; i++) {
-        const x = (canvas.width / 8) * i + ((Date.now() * 0.02 * (i % 2 === 0 ? 1 : -1)) % canvas.width)
-        ctx.beginPath()
-        ctx.moveTo(x % canvas.width, 0)
-        ctx.lineTo((x + 200) % canvas.width, canvas.height)
-        ctx.stroke()
-      }
-
-      animationId = requestAnimationFrame(draw)
-    }
-
-    draw()
-    return () => {
-      cancelAnimationFrame(animationId)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-
   const container = {
     hidden: {},
-    show: { transition: { staggerChildren: 0.12, delayChildren: 0.3 } },
+    show: { transition: { staggerChildren: 0.15, delayChildren: 0.4 } },
   }
 
   const item = {
-    hidden: { opacity: 0, y: 40 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+    hidden: { opacity: 0, y: 50 },
+    show: { opacity: 1, y: 0, transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] } },
   }
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-brand-bg">
-      {/* Canvas background */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
-
-      {/* Background layers */}
-      <div className="absolute inset-0 bg-hero-radial" aria-hidden="true" />
+      {/* Slow cinematic orbs */}
       <div
-        className="absolute inset-0 bg-grid-pattern bg-grid opacity-100"
+        className="absolute top-[20%] left-[15%] w-[700px] h-[500px] pointer-events-none animate-orb-drift-1"
+        style={{
+          background: 'radial-gradient(ellipse, rgba(181,247,46,0.07) 0%, transparent 65%)',
+          filter: 'blur(80px)',
+        }}
         aria-hidden="true"
       />
-
-      {/* Central glow orb */}
       <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] opacity-10 animate-orb-drift pointer-events-none"
+        className="absolute bottom-[10%] right-[10%] w-[500px] h-[400px] pointer-events-none animate-orb-drift-2"
         style={{
-          background: 'radial-gradient(ellipse, #b5f72e 0%, transparent 70%)',
-          filter: 'blur(60px)',
+          background: 'radial-gradient(ellipse, rgba(201,164,85,0.05) 0%, transparent 65%)',
+          filter: 'blur(100px)',
         }}
         aria-hidden="true"
       />
 
+      {/* Grid background */}
+      <div className="absolute inset-0 bg-grid-fine opacity-40" aria-hidden="true" />
+
+      {/* Top & bottom accent lines */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-l from-transparent via-[#b5f72e]/20 to-transparent" aria-hidden="true" />
+
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-28 pb-20 text-center">
         <motion.div variants={container} initial="hidden" animate="show">
+
           {/* Season badge */}
-          <motion.div variants={item} className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 border border-[#b5f72e]/30 bg-[#b5f72e]/5 backdrop-blur-sm">
+          <motion.div variants={item} className="flex justify-center mb-10">
+            <div className="inline-flex items-center gap-2.5 px-5 py-2 border border-[#b5f72e]/25 bg-[#b5f72e]/[0.04] backdrop-blur-sm">
               <div className="w-1.5 h-1.5 bg-[#b5f72e] rounded-full animate-pulse" />
-              <span className="text-[#b5f72e] text-xs font-bold uppercase tracking-[0.25em]">
-                New Season 2025 Collection
+              <span className="text-[#b5f72e] text-[11px] font-bold uppercase tracking-[0.3em]">
+                קולקציית 2025
               </span>
-              <ArrowRight className="w-3 h-3 text-[#b5f72e]" />
+              <ArrowLeft className="w-3 h-3 text-[#b5f72e]" />
             </div>
           </motion.div>
 
-          {/* Main headline */}
+          {/* Main headline — Hebrew cinematic display */}
           <motion.div variants={item}>
-            <h1 className="font-display text-[13vw] sm:text-[11vw] md:text-[9vw] lg:text-[8rem] xl:text-[9rem] leading-[0.9] tracking-wide uppercase text-white mb-2">
-              PLAY NEXT.
+            <h1 className="font-display text-[11vw] sm:text-[9vw] md:text-[7.5vw] lg:text-[7rem] xl:text-[8rem] leading-[0.88] tracking-wide uppercase text-white mb-1">
+              הדור הבא
             </h1>
             <h1
-              className="font-display text-[13vw] sm:text-[11vw] md:text-[9vw] lg:text-[8rem] xl:text-[9rem] leading-[0.9] tracking-wide uppercase text-glow-lime mb-10"
+              className="font-display text-[11vw] sm:text-[9vw] md:text-[7.5vw] lg:text-[7rem] xl:text-[8rem] leading-[0.88] tracking-wide uppercase mb-10"
               style={{ color: '#b5f72e' }}
             >
-              PLAY NEXOR.
+              של הפאדל
             </h1>
+          </motion.div>
+
+          {/* Hebrew brand line */}
+          <motion.div variants={item}>
+            <h2 className="font-display text-[6vw] sm:text-[4.5vw] md:text-[3.5vw] lg:text-5xl xl:text-6xl leading-[1] tracking-[0.3em] uppercase text-white/20 mb-12">
+              בישראל
+            </h2>
           </motion.div>
 
           {/* Subheadline */}
           <motion.p
             variants={item}
-            className="text-white/50 text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-12"
+            className="text-white/45 text-base md:text-lg lg:text-xl font-light tracking-wide max-w-xl mx-auto mb-14 leading-relaxed"
           >
-            Premium padel gear for players who want more.
+            ציוד פאדל פרימיום לשחקנים שרוצים יותר.
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div variants={item} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/shop"
-              className="group inline-flex items-center gap-3 px-8 py-4 bg-[#b5f72e] text-black font-bold text-sm uppercase tracking-widest hover:bg-[#c8ff47] transition-all duration-300 hover:shadow-neon-md"
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-[#b5f72e] text-black font-bold text-sm uppercase tracking-widest hover:bg-[#c8ff47] hover:shadow-neon-md transition-all duration-300"
             >
-              Shop Now
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span>קנה עכשיו</span>
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/shop?category=rackets"
-              className="inline-flex items-center gap-3 px-8 py-4 border border-white/20 text-white font-medium text-sm uppercase tracking-widest hover:border-[#b5f72e]/50 hover:text-[#b5f72e] transition-all duration-300"
+              className="inline-flex items-center gap-3 px-8 py-4 border border-white/15 text-white/70 font-medium text-sm uppercase tracking-widest hover:border-[#b5f72e]/40 hover:text-white transition-all duration-300"
             >
-              <Play className="w-4 h-4 fill-current" />
-              Find Your Racket
+              מצא את המחבט שלך
             </Link>
           </motion.div>
 
           {/* Stats Row */}
           <motion.div
             variants={item}
-            className="flex flex-wrap items-center justify-center gap-12 mt-16 pt-12 border-t border-white/5"
+            className="flex flex-wrap items-center justify-center gap-10 md:gap-16 mt-20 pt-12 border-t border-white/[0.05]"
           >
             {[
-              { value: '500+', label: 'Premium Products' },
-              { value: '10k+', label: 'Happy Players' },
-              { value: '24h', label: 'Fast Delivery' },
-              { value: '30d', label: 'Free Returns' },
+              { value: '+500', label: 'מוצרים פרימיום' },
+              { value: '+10K', label: 'שחקנים מרוצים' },
+              { value: '24ש׳', label: 'משלוח מהיר' },
+              { value: '30 יום', label: 'החזרה חינם' },
             ].map(stat => (
               <div key={stat.label} className="text-center">
-                <p className="text-2xl md:text-3xl font-display text-[#b5f72e] tracking-wide">{stat.value}</p>
-                <p className="text-white/30 text-xs uppercase tracking-widest mt-1">{stat.label}</p>
+                <p className="text-2xl md:text-3xl font-display text-[#b5f72e] tracking-wide ltr-text">{stat.value}</p>
+                <p className="text-white/25 text-[10px] uppercase tracking-[0.2em] mt-1">{stat.label}</p>
               </div>
             ))}
           </motion.div>
@@ -192,13 +125,13 @@ export default function Hero() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/20"
+        transition={{ delay: 2.2, duration: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/15"
       >
-        <span className="text-xs uppercase tracking-[0.3em]">Scroll</span>
+        <span className="text-[10px] uppercase tracking-[0.4em]">גלול</span>
         <motion.div
           animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         >
           <ChevronDown className="w-4 h-4" />
         </motion.div>

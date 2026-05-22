@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, Quote, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, Quote, ChevronRight, ChevronLeft } from 'lucide-react'
 import { reviews } from '@/lib/data'
 
 export default function CustomerReviews() {
@@ -13,29 +13,28 @@ export default function CustomerReviews() {
 
   return (
     <section className="py-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-16"
         >
-          <div className="section-tag mx-auto inline-flex">Reviews</div>
+          <div className="section-tag mx-auto inline-flex">ביקורות</div>
           <h2 className="section-heading mt-2">
-            What Players<br />
-            <span className="text-[#b5f72e]">Are Saying</span>
+            מה השחקנים<br />
+            <span className="text-[#b5f72e]">אומרים</span>
           </h2>
 
-          {/* Aggregate Rating */}
           <div className="flex items-center justify-center gap-3 mt-6">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-5 h-5 text-[#b5f72e] fill-[#b5f72e]" />
               ))}
             </div>
-            <span className="text-white font-bold text-xl">4.9</span>
-            <span className="text-white/30 text-sm">from 1,200+ reviews</span>
+            <span className="text-white font-bold text-xl ltr-text">4.9</span>
+            <span className="text-white/30 text-sm">מתוך +1,200 ביקורות</span>
           </div>
         </motion.div>
 
@@ -44,13 +43,13 @@ export default function CustomerReviews() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex}
-              initial={{ opacity: 0, x: 60 }}
+              initial={{ opacity: 0, x: -60 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -60 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, x: 60 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="relative bg-[#0f0f0f] border border-white/5 p-8 md:p-12"
             >
-              <Quote className="absolute top-8 right-8 w-10 h-10 text-[#b5f72e]/10" />
+              <Quote className="absolute top-8 left-8 w-10 h-10 text-[#b5f72e]/10" />
 
               <div className="flex items-center gap-1 mb-6">
                 {[...Array(reviews[activeIndex].rating)].map((_, i) => (
@@ -73,7 +72,7 @@ export default function CustomerReviews() {
                 </div>
                 {reviews[activeIndex].verified && (
                   <span className="text-[#b5f72e] text-xs uppercase tracking-widest border border-[#b5f72e]/30 px-2 py-1">
-                    ✓ Verified
+                    ✓ מאומת
                   </span>
                 )}
               </div>
@@ -95,16 +94,16 @@ export default function CustomerReviews() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={prev}
-                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
                 onClick={next}
                 className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
               >
                 <ChevronRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={prev}
+                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -118,7 +117,7 @@ export default function CustomerReviews() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-30px' }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
+              transition={{ duration: 0.6, delay: i * 0.09, ease: [0.16, 1, 0.3, 1] }}
               className="p-5 bg-[#0c0c0c] border border-white/5 hover:border-[#b5f72e]/15 transition-all duration-300"
             >
               <div className="flex items-center gap-0.5 mb-3">

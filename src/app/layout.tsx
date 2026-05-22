@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Bebas_Neue } from 'next/font/google'
+import { Heebo, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
@@ -7,9 +7,10 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import CartDrawer from '@/components/layout/CartDrawer'
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+const heebo = Heebo({
+  subsets: ['hebrew', 'latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-heebo',
   display: 'swap',
 })
 
@@ -22,32 +23,25 @@ const bebas = Bebas_Neue({
 
 export const metadata: Metadata = {
   title: {
-    default: 'NEXOR Padel — Premium Padel Gear',
+    default: 'NEXOR Padel — ציוד פאדל פרימיום בישראל',
     template: '%s | NEXOR Padel',
   },
-  description: 'Premium padel rackets, shoes, bags and accessories. Built for players who want more. Play Next. Play NEXOR.',
-  keywords: ['padel', 'padel rackets', 'padel shop', 'padel gear', 'premium padel', 'nexor padel'],
+  description: 'מחבטי פאדל, נעליים, תיקים ואביזרים פרימיום. ציוד פאדל לשחקנים שרוצים יותר. הדור הבא של הפאדל בישראל.',
+  keywords: ['פאדל', 'מחבט פאדל', 'ציוד פאדל', 'חנות פאדל', 'nexor padel', 'פאדל ישראל'],
   openGraph: {
-    title: 'NEXOR Padel — Premium Padel Gear',
-    description: 'Curated premium padel gear for serious players. Play Next. Play NEXOR.',
+    title: 'NEXOR Padel — ציוד פאדל פרימיום בישראל',
+    description: 'ציוד פאדל פרימיום נבחר לשחקנים שרוצים יותר. הדור הבא של הפאדל.',
     type: 'website',
     siteName: 'NEXOR Padel',
+    locale: 'he_IL',
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'NEXOR Padel',
-    description: 'Premium padel gear for players who want more.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${bebas.variable}`}>
-      <body className="bg-brand-bg text-white antialiased">
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${bebas.variable}`}>
+      <body className="bg-brand-bg text-white antialiased font-heebo">
         <div className="noise-overlay" aria-hidden="true" />
         <CartProvider>
           <WishlistProvider>

@@ -24,6 +24,13 @@ type Props = {
   onMobileClose: () => void
 }
 
+const playerLevelLabels: Record<string, string> = {
+  beginner: 'מתחיל',
+  intermediate: 'בינוני',
+  advanced: 'מתקדם',
+  professional: 'מקצועי',
+}
+
 const playerLevels = ['beginner', 'intermediate', 'advanced', 'professional']
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -59,13 +66,11 @@ function FilterCheckbox({
   checked,
   onChange,
   count,
-  accent,
 }: {
   label: string
   checked: boolean
   onChange: (checked: boolean) => void
   count?: number
-  accent?: string
 }) {
   return (
     <label className="flex items-center gap-3 py-1.5 cursor-pointer group">
@@ -81,11 +86,11 @@ function FilterCheckbox({
           </svg>
         )}
       </div>
-      <span className={`text-sm capitalize transition-colors ${checked ? 'text-white' : 'text-white/50 group-hover:text-white/70'}`}>
+      <span className={`text-sm transition-colors ${checked ? 'text-white' : 'text-white/50 group-hover:text-white/70'}`}>
         {label}
       </span>
       {count !== undefined && (
-        <span className="ml-auto text-white/20 text-xs">{count}</span>
+        <span className="mr-auto text-white/20 text-xs ltr-text">{count}</span>
       )}
     </label>
   )
@@ -120,7 +125,7 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
   }
 
   const clearAll = () => {
-    onChange({ categories: [], brands: [], priceRange: [0, 500], playerLevels: [], onSale: false, isNew: false })
+    onChange({ categories: [], brands: [], priceRange: [0, 5000], playerLevels: [], onSale: false, isNew: false })
   }
 
   const activeCount = filters.categories.length + filters.brands.length + filters.playerLevels.length +
@@ -128,19 +133,18 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
 
   const filterContent = (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-[#b5f72e]" />
-          <span className="text-white text-sm font-bold uppercase tracking-widest">Filters</span>
+          <span className="text-white text-sm font-bold uppercase tracking-widest">סינון</span>
           {activeCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-[#b5f72e] text-black text-[10px] font-bold">{activeCount}</span>
+            <span className="px-1.5 py-0.5 bg-[#b5f72e] text-black text-[10px] font-bold ltr-text">{activeCount}</span>
           )}
         </div>
         <div className="flex items-center gap-3">
           {activeCount > 0 && (
             <button onClick={clearAll} className="text-white/30 text-xs uppercase tracking-wider hover:text-white transition-colors">
-              Clear
+              נקה
             </button>
           )}
           <button onClick={onMobileClose} className="lg:hidden text-white/40 hover:text-white transition-colors">
@@ -149,10 +153,9 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
         </div>
       </div>
 
-      <p className="text-white/30 text-xs mb-6">{totalProducts} products</p>
+      <p className="text-white/30 text-xs mb-6">{totalProducts} מוצרים</p>
 
-      {/* Categories */}
-      <FilterSection title="Category">
+      <FilterSection title="קטגוריה">
         {categories.map(cat => (
           <FilterCheckbox
             key={cat.id}
@@ -164,20 +167,18 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
         ))}
       </FilterSection>
 
-      {/* Player Level */}
-      <FilterSection title="Player Level">
+      <FilterSection title="רמת שחקן">
         {playerLevels.map(level => (
           <FilterCheckbox
             key={level}
-            label={level}
+            label={playerLevelLabels[level]}
             checked={filters.playerLevels.includes(level)}
             onChange={() => togglePlayerLevel(level)}
           />
         ))}
       </FilterSection>
 
-      {/* Brand */}
-      <FilterSection title="Brand" defaultOpen={false}>
+      <FilterSection title="מותג" defaultOpen={false}>
         {brands.slice(1).map(brand => (
           <FilterCheckbox
             key={brand}
@@ -188,36 +189,34 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
         ))}
       </FilterSection>
 
-      {/* Price Range */}
-      <FilterSection title="Price" defaultOpen={false}>
+      <FilterSection title="מחיר" defaultOpen={false}>
         <div className="space-y-2">
           {[
-            { label: 'Under €50', min: 0, max: 50 },
-            { label: '€50 – €150', min: 50, max: 150 },
-            { label: '€150 – €300', min: 150, max: 300 },
-            { label: 'Over €300', min: 300, max: 9999 },
+            { label: 'עד ₪200', min: 0, max: 200 },
+            { label: '₪200 – ₪500', min: 200, max: 500 },
+            { label: '₪500 – ₪1,000', min: 500, max: 1000 },
+            { label: 'מעל ₪1,000', min: 1000, max: 9999 },
           ].map(range => (
             <FilterCheckbox
               key={range.label}
               label={range.label}
               checked={filters.priceRange[0] === range.min && filters.priceRange[1] === range.max}
               onChange={checked => {
-                onChange({ ...filters, priceRange: checked ? [range.min, range.max] : [0, 500] })
+                onChange({ ...filters, priceRange: checked ? [range.min, range.max] : [0, 5000] })
               }}
             />
           ))}
         </div>
       </FilterSection>
 
-      {/* Other */}
-      <FilterSection title="Special">
+      <FilterSection title="מיוחד">
         <FilterCheckbox
-          label="On Sale"
+          label="במבצע"
           checked={filters.onSale}
           onChange={checked => onChange({ ...filters, onSale: checked })}
         />
         <FilterCheckbox
-          label="New Arrivals"
+          label="חדש"
           checked={filters.isNew}
           onChange={checked => onChange({ ...filters, isNew: checked })}
         />
@@ -234,7 +233,7 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
         </div>
       </aside>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer — slides from right in RTL */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -246,11 +245,11 @@ export default function Filters({ filters, onChange, sortBy, onSortChange, total
               className="fixed inset-0 bg-black/70 z-40 lg:hidden"
             />
             <motion.div
-              initial={{ x: '-100%' }}
+              initial={{ x: '100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
+              exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-80 bg-[#0a0a0a] border-r border-white/5 z-50 overflow-y-auto p-5 pt-8 lg:hidden"
+              className="fixed right-0 top-0 bottom-0 w-80 bg-[#0a0a0a] border-l border-white/5 z-50 overflow-y-auto p-5 pt-8 lg:hidden"
             >
               {filterContent}
             </motion.div>

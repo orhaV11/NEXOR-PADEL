@@ -3,13 +3,23 @@
 import { notFound } from 'next/navigation'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Heart, Star, Shield, Truck, RotateCcw, ChevronRight, Minus, Plus, Check } from 'lucide-react'
+import { ShoppingCart, Heart, Star, Shield, Truck, RotateCcw, ChevronLeft, Minus, Plus, Check } from 'lucide-react'
 import Link from 'next/link'
-import { products } from '@/lib/data'
+import { products, playerLevelLabels } from '@/lib/data'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 import ProductCard from '@/components/shop/ProductCard'
 import ProductImagePlaceholder from '@/components/shop/ProductImagePlaceholder'
+
+const categoryLabels: Record<string, string> = {
+  rackets: 'מחבטים',
+  balls: 'כדורים',
+  bags: 'תיקים',
+  shoes: 'נעליים',
+  grips: 'גריפים',
+  apparel: 'ביגוד',
+  accessories: 'אביזרים',
+}
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
   const product = products.find(p => p.slug === params.slug)
@@ -33,46 +43,47 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
     ? Math.round(((product.price - product.salePrice) / product.price) * 100)
     : null
 
+  const levels = ['beginner', 'intermediate', 'advanced', 'professional'] as const
+
   return (
     <div className="min-h-screen pt-20">
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-4">
         <nav className="flex items-center gap-2 text-white/30 text-xs uppercase tracking-widest">
-          <Link href="/" className="hover:text-white transition-colors">Home</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link href="/shop" className="hover:text-white transition-colors">Shop</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link href={`/shop?category=${product.category}`} className="hover:text-white transition-colors capitalize">
-            {product.category}
+          <Link href="/" className="hover:text-white transition-colors">בית</Link>
+          <ChevronLeft className="w-3 h-3" />
+          <Link href="/shop" className="hover:text-white transition-colors">חנות</Link>
+          <ChevronLeft className="w-3 h-3" />
+          <Link href={`/shop?category=${product.category}`} className="hover:text-white transition-colors">
+            {categoryLabels[product.category] || product.category}
           </Link>
-          <ChevronRight className="w-3 h-3" />
+          <ChevronLeft className="w-3 h-3" />
           <span className="text-white/60 truncate max-w-xs">{product.name}</span>
         </nav>
       </div>
 
       {/* Product Main */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20">
-          {/* Left: Image Gallery */}
+          {/* Right: Image Gallery (first in RTL) */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
+            initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Main Image */}
             <div className="relative aspect-square border border-white/5 overflow-hidden group">
               <ProductImagePlaceholder product={product} className="w-full h-full" />
 
               {/* Badges */}
-              <div className="absolute top-4 left-4 flex gap-2">
+              <div className="absolute top-4 right-4 flex gap-2">
                 {product.salePrice && (
-                  <span className="px-2 py-1 bg-[#b5f72e] text-black text-xs font-bold uppercase tracking-widest">
-                    -{discount}% OFF
+                  <span className="px-2 py-1 bg-[#b5f72e] text-black text-xs font-bold uppercase tracking-widest ltr-text">
+                    -{discount}%
                   </span>
                 )}
                 {product.isNew && (
                   <span className="px-2 py-1 bg-white text-black text-xs font-bold uppercase tracking-widest">
-                    New
+                    חדש
                   </span>
                 )}
               </div>
@@ -80,7 +91,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               {/* Wishlist */}
               <button
                 onClick={() => toggle(product)}
-                className={`absolute top-4 right-4 w-10 h-10 border flex items-center justify-center transition-all duration-300 ${
+                className={`absolute top-4 left-4 w-10 h-10 border flex items-center justify-center transition-all duration-300 ${
                   wishlisted
                     ? 'border-[#b5f72e]/50 bg-[#b5f72e]/10 text-[#b5f72e]'
                     : 'border-white/10 bg-black/40 text-white/50 hover:text-white hover:border-white/30'
@@ -90,7 +101,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               </button>
             </div>
 
-            {/* Thumbnail Row - placeholder for multiple images */}
+            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-2 mt-2">
               {[...Array(4)].map((_, i) => (
                 <div
@@ -105,11 +116,11 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </div>
           </motion.div>
 
-          {/* Right: Product Details */}
+          {/* Left: Product Details */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
             className="flex flex-col"
           >
             {/* Brand */}
@@ -127,22 +138,22 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                   <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-[#b5f72e] fill-[#b5f72e]' : 'text-white/15'}`} />
                 ))}
               </div>
-              <span className="text-white font-bold">{product.rating}</span>
-              <span className="text-white/30 text-sm">({product.reviewCount} reviews)</span>
+              <span className="text-white font-bold ltr-text">{product.rating}</span>
+              <span className="text-white/30 text-sm ltr-text">({product.reviewCount} ביקורות)</span>
             </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-6 pb-6 border-b border-white/5">
               {product.salePrice ? (
                 <>
-                  <span className="text-4xl font-bold text-[#b5f72e]">€{product.salePrice}</span>
-                  <span className="text-2xl text-white/25 line-through">€{product.price}</span>
+                  <span className="text-4xl font-bold text-[#b5f72e] ltr-text">₪{product.salePrice.toLocaleString()}</span>
+                  <span className="text-2xl text-white/25 line-through ltr-text">₪{product.price.toLocaleString()}</span>
                   <span className="px-2 py-1 bg-[#b5f72e]/10 border border-[#b5f72e]/30 text-[#b5f72e] text-xs font-bold">
-                    Save {discount}%
+                    חסוך {discount}%
                   </span>
                 </>
               ) : (
-                <span className="text-4xl font-bold text-white">€{product.price}</span>
+                <span className="text-4xl font-bold text-white ltr-text">₪{product.price.toLocaleString()}</span>
               )}
             </div>
 
@@ -151,34 +162,36 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
             {/* Specs Grid */}
             {(product.weight || product.balance || product.shape || product.playerLevel || product.material) && (
-              <div className="grid grid-cols-2 gap-2 mb-6 p-4 bg-white/3 border border-white/5">
+              <div className="grid grid-cols-2 gap-2 mb-6 p-4 bg-white/[0.02] border border-white/5">
                 {product.playerLevel && (
                   <div>
-                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">Level</p>
-                    <p className="text-white text-sm font-medium capitalize">{product.playerLevel}</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">רמה</p>
+                    <p className="text-white text-sm font-medium">
+                      {playerLevelLabels[product.playerLevel as keyof typeof playerLevelLabels] || product.playerLevel}
+                    </p>
                   </div>
                 )}
                 {product.weight && (
                   <div>
-                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">Weight</p>
-                    <p className="text-white text-sm font-medium">{product.weight}</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">משקל</p>
+                    <p className="text-white text-sm font-medium ltr-text">{product.weight}</p>
                   </div>
                 )}
                 {product.balance && (
                   <div>
-                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">Balance</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">איזון</p>
                     <p className="text-white text-sm font-medium">{product.balance}</p>
                   </div>
                 )}
                 {product.shape && (
                   <div>
-                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">Shape</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">צורה</p>
                     <p className="text-white text-sm font-medium">{product.shape}</p>
                   </div>
                 )}
                 {product.material && (
                   <div className="col-span-2">
-                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">Material</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest mb-0.5">חומר</p>
                     <p className="text-white text-sm font-medium">{product.material}</p>
                   </div>
                 )}
@@ -188,16 +201,15 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             {/* Player Level Bar */}
             {product.playerLevel && (
               <div className="mb-6">
-                <p className="text-white/30 text-xs uppercase tracking-widest mb-2">Skill Level</p>
+                <p className="text-white/30 text-xs uppercase tracking-widest mb-2">רמת שחקן</p>
                 <div className="flex items-center gap-1">
-                  {['beginner', 'intermediate', 'advanced', 'professional'].map((level, i) => {
-                    const levels = ['beginner', 'intermediate', 'advanced', 'professional']
-                    const currentIdx = levels.indexOf(product.playerLevel!)
+                  {levels.map((level, i) => {
+                    const currentIdx = levels.indexOf(product.playerLevel as typeof levels[number])
                     return (
                       <div key={level} className="flex-1">
                         <div className={`h-1 ${i <= currentIdx ? 'bg-[#b5f72e]' : 'bg-white/10'}`} />
-                        <p className={`text-[9px] mt-1 capitalize text-center ${i === currentIdx ? 'text-[#b5f72e]' : 'text-white/20'}`}>
-                          {i === currentIdx && level}
+                        <p className={`text-[9px] mt-1 text-center ${i === currentIdx ? 'text-[#b5f72e]' : 'text-white/20'}`}>
+                          {i === currentIdx && (playerLevelLabels[level] || level)}
                         </p>
                       </div>
                     )
@@ -237,12 +249,12 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                 {addedToCart ? (
                   <>
                     <Check className="w-4 h-4" />
-                    Added to Cart!
+                    נוסף לעגלה!
                   </>
                 ) : (
                   <>
                     <ShoppingCart className="w-4 h-4" />
-                    Add to Cart
+                    הוסף לעגלה
                   </>
                 )}
               </button>
@@ -258,12 +270,12 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               }`}
             >
               <Heart className={`w-4 h-4 ${wishlisted ? 'fill-[#b5f72e]' : ''}`} />
-              {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+              {wishlisted ? 'ברשימת המשאלות' : 'הוסף לרשימת משאלות'}
             </button>
 
             {/* Features */}
             <div className="mb-8">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Features</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">תכונות</p>
               <ul className="space-y-2">
                 {product.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-white/50">
@@ -279,9 +291,9 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             {/* Shipping, Returns, Security */}
             <div className="space-y-3 border-t border-white/5 pt-6">
               {[
-                { icon: Truck, text: 'Free shipping on orders over €75. Express delivery available.' },
-                { icon: RotateCcw, text: '30-day hassle-free returns. No questions asked.' },
-                { icon: Shield, text: '100% authentic. Official authorised retailer.' },
+                { icon: Truck, text: 'משלוח חינם על הזמנות מעל ₪280. משלוח מהיר זמין.' },
+                { icon: RotateCcw, text: 'החזרה ללא טרחה עד 30 יום. ללא שאלות.' },
+                { icon: Shield, text: 'מקורי 100%. ספק מורשה רשמי.' },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-start gap-3 text-white/40 text-xs">
                   <Icon className="w-4 h-4 text-[#b5f72e] flex-shrink-0 mt-0.5" />
@@ -295,7 +307,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         {/* Long Description */}
         {product.longDescription && (
           <div className="mt-16 pt-16 border-t border-white/5">
-            <h2 className="font-display text-3xl text-white tracking-wide uppercase mb-6">About This Product</h2>
+            <h2 className="font-display text-3xl text-white tracking-wide uppercase mb-6">אודות המוצר</h2>
             <p className="text-white/50 text-base leading-relaxed max-w-3xl">{product.longDescription}</p>
           </div>
         )}
@@ -304,9 +316,9 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       {/* Recommended Products */}
       {recommended.length > 0 && (
         <section className="py-16 bg-[#070707] mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
             <h2 className="font-display text-3xl text-white tracking-wide uppercase mb-8">
-              You May Also <span className="text-[#b5f72e]">Like</span>
+              אולי תאהב גם <span className="text-[#b5f72e]">את אלה</span>
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {recommended.map((p, i) => (

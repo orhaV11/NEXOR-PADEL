@@ -8,6 +8,7 @@ import type { Product } from '@/lib/types'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 import ProductImagePlaceholder from './ProductImagePlaceholder'
+import { playerLevelLabels } from '@/lib/data'
 
 type Props = {
   product: Product
@@ -38,12 +39,14 @@ export default function ProductCard({ product, index = 0 }: Props) {
     ? Math.round(((product.price - product.salePrice) / product.price) * 100)
     : null
 
+  const levels = ['beginner', 'intermediate', 'advanced', 'professional'] as const
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.6, delay: index * 0.07, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link href={`/product/${product.slug}`} className="product-card block">
         {/* Image Container */}
@@ -54,20 +57,20 @@ export default function ProductCard({ product, index = 0 }: Props) {
           />
 
           {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5">
             {product.salePrice && (
-              <span className="px-2 py-0.5 bg-[#b5f72e] text-black text-[10px] font-bold uppercase tracking-widest">
+              <span className="px-2 py-0.5 bg-[#b5f72e] text-black text-[10px] font-bold uppercase tracking-widest ltr-text">
                 -{discount}%
               </span>
             )}
             {product.isNew && (
               <span className="px-2 py-0.5 bg-white text-black text-[10px] font-bold uppercase tracking-widest">
-                New
+                חדש
               </span>
             )}
             {product.isBestSeller && !product.isNew && (
               <span className="px-2 py-0.5 bg-white/10 border border-white/20 text-white text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm">
-                Best Seller
+                פופולרי
               </span>
             )}
           </div>
@@ -75,7 +78,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
           {/* Wishlist Button */}
           <motion.button
             onClick={handleWishlist}
-            className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center backdrop-blur-sm border transition-all duration-300 ${
+            className={`absolute top-3 left-3 w-8 h-8 flex items-center justify-center backdrop-blur-sm border transition-all duration-300 ${
               wishlisted
                 ? 'bg-[#b5f72e]/10 border-[#b5f72e]/40 text-[#b5f72e]'
                 : 'bg-black/40 border-white/10 text-white/50 opacity-0 group-hover:opacity-100'
@@ -85,7 +88,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
             <Heart className={`w-4 h-4 ${wishlisted ? 'fill-[#b5f72e]' : ''}`} />
           </motion.button>
 
-          {/* Quick Action Bar - appears on hover */}
+          {/* Quick Action Bar */}
           <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
             <div className="flex">
               <button
@@ -97,11 +100,11 @@ export default function ProductCard({ product, index = 0 }: Props) {
                 }`}
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
-                {addedToCart ? 'Added!' : 'Quick Add'}
+                {addedToCart ? 'נוסף!' : 'הוסף לעגלה'}
               </button>
               <Link
                 href={`/product/${product.slug}`}
-                className="w-12 bg-black/80 border-l border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-black transition-colors"
+                className="w-12 bg-black/80 border-r border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-black transition-colors"
               >
                 <Eye className="w-4 h-4" />
               </Link>
@@ -111,15 +114,12 @@ export default function ProductCard({ product, index = 0 }: Props) {
 
         {/* Product Info */}
         <div className="p-4">
-          {/* Brand */}
           <p className="text-white/30 text-xs uppercase tracking-widest mb-1">{product.brand}</p>
 
-          {/* Name */}
           <h3 className="text-white text-sm font-medium leading-tight line-clamp-2 group-hover:text-[#b5f72e] transition-colors duration-300 mb-2">
             {product.name}
           </h3>
 
-          {/* Rating */}
           <div className="flex items-center gap-1.5 mb-3">
             <div className="flex items-center gap-0.5">
               {[...Array(5)].map((_, i) => (
@@ -129,27 +129,26 @@ export default function ProductCard({ product, index = 0 }: Props) {
                 />
               ))}
             </div>
-            <span className="text-white/30 text-xs">({product.reviewCount})</span>
+            <span className="text-white/30 text-xs ltr-text">({product.reviewCount})</span>
           </div>
 
           {/* Price */}
           <div className="flex items-center gap-2">
             {product.salePrice ? (
               <>
-                <span className="text-[#b5f72e] font-bold text-lg">€{product.salePrice}</span>
-                <span className="text-white/25 text-sm line-through">€{product.price}</span>
+                <span className="text-[#b5f72e] font-bold text-lg ltr-text">₪{product.salePrice.toLocaleString()}</span>
+                <span className="text-white/25 text-sm line-through ltr-text">₪{product.price.toLocaleString()}</span>
               </>
             ) : (
-              <span className="text-white font-bold text-lg">€{product.price}</span>
+              <span className="text-white font-bold text-lg ltr-text">₪{product.price.toLocaleString()}</span>
             )}
           </div>
 
           {/* Player level indicator */}
           {product.playerLevel && (
             <div className="mt-2 flex items-center gap-1">
-              {['beginner', 'intermediate', 'advanced', 'professional'].map((level, i) => {
-                const levels = ['beginner', 'intermediate', 'advanced', 'professional']
-                const currentIdx = levels.indexOf(product.playerLevel!)
+              {levels.map((level, i) => {
+                const currentIdx = levels.indexOf(product.playerLevel as typeof levels[number])
                 return (
                   <div
                     key={level}
@@ -157,7 +156,9 @@ export default function ProductCard({ product, index = 0 }: Props) {
                   />
                 )
               })}
-              <span className="text-white/30 text-[9px] ml-1 uppercase tracking-wider capitalize">{product.playerLevel}</span>
+              <span className="text-white/30 text-[9px] me-1 uppercase tracking-wider">
+                {playerLevelLabels[product.playerLevel as keyof typeof playerLevelLabels] || product.playerLevel}
+              </span>
             </div>
           )}
         </div>

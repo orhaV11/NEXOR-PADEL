@@ -1,166 +1,229 @@
 'use client'
 
+import { useMotionValue, useTransform, motion, useSpring, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Heart, ShoppingCart, Star, Eye } from 'lucide-react'
-import type { Product } from '@/lib/types'
+import { Heart, ShoppingCart, Eye, Star } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
-import ProductImagePlaceholder from './ProductImagePlaceholder'
+import ProductImagePlaceholder from '@/components/shop/ProductImagePlaceholder'
 import { playerLevelLabels } from '@/lib/data'
+import type { Product } from '@/lib/types'
 
-type Props = {
-  product: Product
-  index?: number
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const
+
+const playerLevelOrder = ['beginner', 'intermediate', 'advanced', 'professional']
+
+function PlayerLevelBar({ level }: { level: string }) {
+  const idx = playerLevelOrder.indexOf(level)
+  return (
+    <div className="mt-2.5">
+      <div className="flex gap-[3px] mb-1">
+        {playerLevelOrder.map((_, i) => (
+          <div
+            key={i}
+            className="h-[3px] flex-1 rounded-full"
+            style={{
+              background:
+                i <= idx
+                  ? 'linear-gradient(90deg, #b08840, #e2c890)'
+                  : 'rgba(242,237,223,0.08)',
+              transition: 'background 0.3s ease',
+            }}
+          />
+        ))}
+      </div>
+      <span className="text-[10px] tracking-wider" style={{ color: 'rgba(201,165,90,0.5)' }}>
+        {playerLevelLabels[level] ?? level}
+      </span>
+    </div>
+  )
 }
 
-export default function ProductCard({ product, index = 0 }: Props) {
+export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addItem } = useCart()
-  const { isWishlisted, toggle } = useWishlist()
-  const [addedToCart, setAddedToCart] = useState(false)
-  const wishlisted = isWishlisted(product.id)
+  const { toggle, isWishlisted } = useWishlist()
+  const [added, setAdded] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+
+  const rawRotateX = useTransform(mouseY, [-0.5, 0.5], [6, -6])
+  const rawRotateY = useTransform(mouseX, [-0.5, 0.5], [-6, 6])
+  const rotateX = useSpring(rawRotateX, { stiffness: 300, damping: 30 })
+  const rotateY = useSpring(rawRotateY, { stiffness: 300, damping: 30 })
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5)
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5)
+  }
+
+  function handleMouseLeave() {
+    mouseX.set(0)
+    mouseY.set(0)
+    setHovered(false)
+  }
+
+  function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     addItem(product)
-    setAddedToCart(true)
-    setTimeout(() => setAddedToCart(false), 1500)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
   }
 
-  const handleWishlist = (e: React.MouseEvent) => {
+  function handleWishlist(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     toggle(product)
   }
 
+  const wishlisted = isWishlisted(product.id)
   const discount = product.salePrice
     ? Math.round(((product.price - product.salePrice) / product.price) * 100)
-    : null
-
-  const levels = ['beginner', 'intermediate', 'advanced', 'professional'] as const
+    : 0
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6, delay: index * 0.07, ease: [0.16, 1, 0.3, 1] }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.65, ease: LUXURY_EASE, delay: index * 0.07 }}
+      style={{ rotateX, rotateY, transformPerspective: 1200 }}
+      className="product-card group relative"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={handleMouseLeave}
     >
-      <Link href={`/product/${product.slug}`} className="product-card block">
-        {/* Image Container */}
+      <Link href={`/product/${product.slug}`} className="block">
+        {/* Image area */}
         <div className="relative aspect-square overflow-hidden">
-          <ProductImagePlaceholder
-            product={product}
-            className="w-full h-full transition-transform duration-700 group-hover:scale-105"
-          />
-
-          {/* Badges */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-            {product.salePrice && (
-              <span className="px-2 py-0.5 bg-[#b5f72e] text-black text-[10px] font-bold uppercase tracking-widest ltr-text">
-                -{discount}%
-              </span>
-            )}
-            {product.isNew && (
-              <span className="px-2 py-0.5 bg-white text-black text-[10px] font-bold uppercase tracking-widest">
-                חדש
-              </span>
-            )}
-            {product.isBestSeller && !product.isNew && (
-              <span className="px-2 py-0.5 bg-white/10 border border-white/20 text-white text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm">
-                פופולרי
-              </span>
-            )}
-          </div>
-
-          {/* Wishlist Button */}
-          <motion.button
-            onClick={handleWishlist}
-            className={`absolute top-3 left-3 w-8 h-8 flex items-center justify-center backdrop-blur-sm border transition-all duration-300 ${
-              wishlisted
-                ? 'bg-[#b5f72e]/10 border-[#b5f72e]/40 text-[#b5f72e]'
-                : 'bg-black/40 border-white/10 text-white/50 opacity-0 group-hover:opacity-100'
-            }`}
-            whileTap={{ scale: 0.85 }}
+          <div
+            className="w-full h-full"
+            style={{
+              transition: 'transform 0.6s cubic-bezier(0.16,1,0.3,1)',
+              transform: hovered ? 'scale(1.04)' : 'scale(1)',
+            }}
           >
-            <Heart className={`w-4 h-4 ${wishlisted ? 'fill-[#b5f72e]' : ''}`} />
-          </motion.button>
-
-          {/* Quick Action Bar */}
-          <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-            <div className="flex">
-              <button
-                onClick={handleAddToCart}
-                className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${
-                  addedToCart
-                    ? 'bg-[#b5f72e] text-black'
-                    : 'bg-white/95 text-black hover:bg-[#b5f72e]'
-                }`}
-              >
-                <ShoppingCart className="w-3.5 h-3.5" />
-                {addedToCart ? 'נוסף!' : 'הוסף לעגלה'}
-              </button>
-              <Link
-                href={`/product/${product.slug}`}
-                className="w-12 bg-black/80 border-r border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-black transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-              </Link>
-            </div>
+            <ProductImagePlaceholder product={product} className="w-full h-full" />
           </div>
+
+          {/* Badges — top-right in RTL */}
+          <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end">
+            {discount > 0 && <span className="badge-sale">–{discount}%</span>}
+            {product.isNew && <span className="badge-new">חדש</span>}
+            {product.isBestSeller && <span className="badge-gold">בסט-סלר</span>}
+          </div>
+
+          {/* Wishlist — top-left in RTL */}
+          <button
+            onClick={handleWishlist}
+            aria-label={wishlisted ? 'הסר מרשימת משאלות' : 'הוסף לרשימת משאלות'}
+            className="absolute top-2.5 left-2.5 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300"
+            style={{
+              opacity: hovered || wishlisted ? 1 : 0,
+              background: wishlisted ? 'rgba(201,165,90,0.18)' : 'rgba(8,8,10,0.72)',
+              color: wishlisted ? '#c9a55a' : 'rgba(242,237,223,0.45)',
+            }}
+          >
+            <Heart size={13} fill={wishlisted ? 'currentColor' : 'none'} />
+          </button>
+
+          {/* Quick-add overlay — slides up on hover */}
+          <AnimatePresence>
+            {hovered && (
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ duration: 0.28, ease: LUXURY_EASE }}
+                className="absolute bottom-0 inset-x-0 flex items-stretch"
+              >
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 text-[11px] font-bold uppercase tracking-widest transition-all duration-300"
+                  style={{
+                    background: added ? '#c9a55a' : 'white',
+                    color: '#08080a',
+                  }}
+                >
+                  <ShoppingCart size={13} />
+                  {added ? 'נוסף!' : 'הוסף לעגלה'}
+                </button>
+                <Link
+                  href={`/product/${product.slug}`}
+                  onClick={e => e.stopPropagation()}
+                  className="w-11 flex items-center justify-center transition-colors duration-200"
+                  style={{
+                    background: '#08080a',
+                    borderRight: '1px solid rgba(242,237,223,0.08)',
+                    color: 'rgba(242,237,223,0.4)',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#c9a55a')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(242,237,223,0.4)')}
+                >
+                  <Eye size={14} />
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Product Info */}
-        <div className="p-4">
-          <p className="text-white/30 text-xs uppercase tracking-widest mb-1">{product.brand}</p>
+        {/* Info */}
+        <div className="p-3.5">
+          <p
+            className="text-[10px] uppercase tracking-widest mb-1"
+            style={{ color: 'rgba(201,165,90,0.65)' }}
+          >
+            {product.brand}
+          </p>
 
-          <h3 className="text-white text-sm font-medium leading-tight line-clamp-2 group-hover:text-[#b5f72e] transition-colors duration-300 mb-2">
+          <h3
+            className="text-sm font-semibold line-clamp-2 leading-snug mb-2 transition-colors duration-200"
+            style={{ color: hovered ? '#c9a55a' : '#f2eddf' }}
+          >
             {product.name}
           </h3>
 
-          <div className="flex items-center gap-1.5 mb-3">
+          {/* Rating */}
+          <div className="flex items-center gap-1.5 mb-2.5">
             <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, i) => (
+              {[1, 2, 3, 4, 5].map(star => (
                 <Star
-                  key={i}
-                  className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'text-[#b5f72e] fill-[#b5f72e]' : 'text-white/15'}`}
+                  key={star}
+                  size={10}
+                  style={{ color: star <= Math.round(product.rating) ? '#c9a55a' : 'rgba(201,165,90,0.18)' }}
+                  fill={star <= Math.round(product.rating) ? '#c9a55a' : 'none'}
                 />
               ))}
             </div>
-            <span className="text-white/30 text-xs ltr-text">({product.reviewCount})</span>
+            <span className="text-[10px]" style={{ color: 'rgba(242,237,223,0.35)' }}>
+              ({product.reviewCount})
+            </span>
           </div>
 
           {/* Price */}
           <div className="flex items-center gap-2">
             {product.salePrice ? (
               <>
-                <span className="text-[#b5f72e] font-bold text-lg ltr-text">₪{product.salePrice.toLocaleString()}</span>
-                <span className="text-white/25 text-sm line-through ltr-text">₪{product.price.toLocaleString()}</span>
+                <span className="ltr font-bold text-base" style={{ color: '#c9a55a' }}>
+                  ₪{product.salePrice.toLocaleString()}
+                </span>
+                <span className="ltr text-xs line-through" style={{ color: 'rgba(242,237,223,0.25)' }}>
+                  ₪{product.price.toLocaleString()}
+                </span>
               </>
             ) : (
-              <span className="text-white font-bold text-lg ltr-text">₪{product.price.toLocaleString()}</span>
+              <span className="ltr font-bold text-base" style={{ color: '#f2eddf' }}>
+                ₪{product.price.toLocaleString()}
+              </span>
             )}
           </div>
 
-          {/* Player level indicator */}
-          {product.playerLevel && (
-            <div className="mt-2 flex items-center gap-1">
-              {levels.map((level, i) => {
-                const currentIdx = levels.indexOf(product.playerLevel as typeof levels[number])
-                return (
-                  <div
-                    key={level}
-                    className={`h-0.5 flex-1 transition-colors ${i <= currentIdx ? 'bg-[#b5f72e]' : 'bg-white/10'}`}
-                  />
-                )
-              })}
-              <span className="text-white/30 text-[9px] me-1 uppercase tracking-wider">
-                {playerLevelLabels[product.playerLevel as keyof typeof playerLevelLabels] || product.playerLevel}
-              </span>
-            </div>
-          )}
+          {/* Player level bar */}
+          {product.playerLevel && <PlayerLevelBar level={product.playerLevel} />}
         </div>
       </Link>
     </motion.div>

@@ -22,9 +22,9 @@ type ButtonProps = {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-[#b5f72e] text-black font-bold hover:bg-[#c8ff47] hover:shadow-neon-md',
-  outline: 'border border-white/20 text-white hover:border-[#b5f72e] hover:text-[#b5f72e] hover:shadow-neon-sm',
-  ghost: 'text-white/60 hover:text-white hover:bg-white/5',
+  primary: 'btn-gold',
+  outline: 'btn-outline',
+  ghost: 'btn-ghost',
   danger: 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20',
 }
 

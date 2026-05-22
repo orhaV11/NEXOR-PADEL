@@ -3,6 +3,7 @@ import { Heebo, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
+import { RecentlyViewedProvider } from '@/context/RecentlyViewedContext'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import CartDrawer from '@/components/layout/CartDrawer'
@@ -23,14 +24,14 @@ const bebas = Bebas_Neue({
 
 export const metadata: Metadata = {
   title: {
-    default: 'NEXOR Padel — ציוד פאדל פרימיום בישראל',
+    default: 'NEXOR Padel — פאדל ברמה אחרת',
     template: '%s | NEXOR Padel',
   },
-  description: 'מחבטי פאדל, נעליים, תיקים ואביזרים פרימיום. ציוד פאדל לשחקנים שרוצים יותר. הדור הבא של הפאדל בישראל.',
-  keywords: ['פאדל', 'מחבט פאדל', 'ציוד פאדל', 'חנות פאדל', 'nexor padel', 'פאדל ישראל'],
+  description: 'ציוד פאדל פרימיום לשחקנים שלא מתפשרים. מחבטים, נעליים, תיקים ואביזרים מהמותגים המובילים בעולם. משלוח מהיר לכל הארץ.',
+  keywords: ['פאדל', 'מחבט פאדל', 'ציוד פאדל', 'nexor padel', 'פאדל ישראל', 'head padel', 'bullpadel', 'nox'],
   openGraph: {
-    title: 'NEXOR Padel — ציוד פאדל פרימיום בישראל',
-    description: 'ציוד פאדל פרימיום נבחר לשחקנים שרוצים יותר. הדור הבא של הפאדל.',
+    title: 'NEXOR Padel — פאדל ברמה אחרת',
+    description: 'ציוד פאדל פרימיום לשחקנים שלא מתפשרים.',
     type: 'website',
     siteName: 'NEXOR Padel',
     locale: 'he_IL',
@@ -41,14 +42,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} ${bebas.variable}`}>
-      <body className="bg-brand-bg text-white antialiased font-heebo">
+      <body className="bg-brand-bg text-ivory antialiased" style={{ fontFamily: 'var(--font-heebo), Heebo, Arial, sans-serif' }}>
         <div className="noise-overlay" aria-hidden="true" />
         <CartProvider>
           <WishlistProvider>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-            <CartDrawer />
+            <RecentlyViewedProvider>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+              <CartDrawer />
+            </RecentlyViewedProvider>
           </WishlistProvider>
         </CartProvider>
       </body>

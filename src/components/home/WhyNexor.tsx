@@ -1,96 +1,108 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Shield, Truck, RotateCcw, Award, Headphones, Zap } from 'lucide-react'
+import Link from 'next/link'
+import { Award, Truck, RotateCcw, Headphones, Shield, Zap } from 'lucide-react'
+
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const
 
 const features = [
   {
     icon: Award,
     title: 'מוצרים מקוריים 100%',
-    description: 'ציוד אמיתי המסופק ישירות ממותגי הפאדל המובילים. כל מוצר מגיע עם אחריות יצרן מקורית.',
+    description: 'ספק מורשה רשמי של כל המותגים המובילים. כל מוצר מגיע עם אחריות יצרן מקורית.',
   },
   {
     icon: Truck,
-    title: 'משלוח חינם מעל ₪280',
-    description: 'משלוח חינם לכל הזמנה מעל ₪280. משלוח מהיר תוך 24 שעות לאלה שצריכים את הציוד כבר עכשיו.',
+    title: 'משלוח חינם מ-₪280',
+    description: 'משלוח מהיר לכל הארץ. הזמנות אקספרס מגיעות תוך 24 שעות.',
   },
   {
     icon: RotateCcw,
-    title: 'החזרה חינם עד 30 יום',
-    description: 'לא מתאים? החזר ללא טרחה תוך 30 יום. ללא שאלות, ללא עלויות נסתרות.',
+    title: 'החזרה חינם 30 יום',
+    description: 'לא מתאים? מחזירים ללא שאלות תוך 30 יום. פשוט וקל.',
   },
   {
     icon: Headphones,
-    title: 'תמיכת מומחי פאדל',
-    description: 'צוות מומחי הפאדל שלנו כאן לעזור לך למצוא את הציוד המושלם לרמה ולסגנון המשחק שלך.',
+    title: 'מומחי פאדל',
+    description: 'ייעוץ מקצועי מצוות שחקנים מנוסים שיעזרו לך לבחור נכון.',
   },
   {
     icon: Shield,
     title: 'תשלום מאובטח',
-    description: 'כל העסקאות מוצפנות ומאובטחות. ויזה, מסטרקארד, ביט, אפל פיי ועוד.',
+    description: 'הצפנה מלאה SSL. ויזה, מסטרקארד, Apple Pay, Google Pay.',
   },
   {
     icon: Zap,
     title: 'בחירה פרימיום',
-    description: 'מבחר הציוד הטוב ביותר הזמין בשוק. אנחנו בודקים ומאשרים כל מוצר לפני שהוא מגיע אליך.',
+    description: 'כל מוצר עבר בדיקה קפדנית לפני שנכנס לקטלוג. רק הטוב ביותר.',
   },
 ]
 
 export default function WhyNexor() {
   return (
-    <section className="py-24 bg-[#060606] relative overflow-hidden">
+    <section className="py-24 md:py-32 bg-[#07070a] relative overflow-hidden">
+      {/* Subtle gold orb top right */}
       <div
-        className="absolute top-0 right-1/2 translate-x-1/2 w-px h-full opacity-20"
-        style={{ background: 'linear-gradient(to bottom, transparent, #b5f72e, transparent)' }}
-      />
-      <div
-        className="absolute -right-40 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-5 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #b5f72e 0%, transparent 70%)', filter: 'blur(40px)' }}
+        aria-hidden="true"
+        className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full pointer-events-none opacity-[0.04]"
+        style={{
+          background: 'radial-gradient(circle, #c9a55a 0%, transparent 70%)',
+          filter: 'blur(80px)',
+        }}
       />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
+        {/* Section header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.9, ease: LUXURY_EASE }}
           className="text-center mb-16"
         >
-          <div className="section-tag mx-auto inline-flex">למה NEXOR</div>
-          <h2 className="section-heading mt-2">
-            ההבדל של<br />
-            <span className="text-[#b5f72e]">NEXOR</span>
+          <span className="section-label mx-auto">למה NEXOR</span>
+          <h2 className="section-title mt-3">
+            ההבדל שמשנה{' '}
+            <span className="text-gold-gradient">כל דבר</span>
           </h2>
-          <p className="text-white/40 mt-4 max-w-xl mx-auto text-sm leading-relaxed">
+          <p className="text-[rgba(242,237,223,0.4)] mt-4 max-w-xl mx-auto text-sm leading-relaxed">
             אנחנו לא רק חנות. אנחנו יעד פאדל שנבנה עבור שחקנים שדורשים את הטוב ביותר.
           </p>
         </motion.div>
 
+        {/* Feature cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature, i) => {
             const Icon = feature.icon
             return (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                className="group relative p-6 bg-[#0f0f0f] border border-white/5 hover:border-[#b5f72e]/20 transition-all duration-500 hover:shadow-card-hover"
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 0.9, delay: i * 0.1, ease: LUXURY_EASE }}
+                className="luxury-card relative p-7 overflow-hidden"
               >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse at top right, rgba(181,247,46,0.03) 0%, transparent 60%)' }}
+                {/* Hover glow */}
+                <div
+                  className="absolute inset-0 opacity-0 transition-opacity duration-500 pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(ellipse at top right, rgba(201,165,90,0.05) 0%, transparent 65%)',
+                  }}
+                  aria-hidden="true"
                 />
 
                 <div className="relative">
-                  <div className="w-12 h-12 border border-[#b5f72e]/20 bg-[#b5f72e]/5 flex items-center justify-center mb-5 group-hover:bg-[#b5f72e]/10 group-hover:border-[#b5f72e]/40 transition-all duration-300">
-                    <Icon className="w-5 h-5 text-[#b5f72e]" />
+                  {/* Icon box */}
+                  <div className="w-12 h-12 border border-[rgba(201,165,90,0.22)] bg-[rgba(201,165,90,0.06)] flex items-center justify-center mb-5 transition-colors duration-300">
+                    <Icon className="w-5 h-5 text-[#c9a55a]" aria-hidden="true" />
                   </div>
 
-                  <h3 className="text-white font-bold text-sm mb-2.5 group-hover:text-[#b5f72e] transition-colors duration-300 leading-snug">
+                  <h3 className="text-[#f2eddf] font-bold text-sm mb-2.5 leading-snug transition-colors duration-300">
                     {feature.title}
                   </h3>
-                  <p className="text-white/40 text-sm leading-relaxed">
+                  <p className="text-[rgba(242,237,223,0.4)] text-sm leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -99,22 +111,20 @@ export default function WhyNexor() {
           })}
         </div>
 
+        {/* Bottom CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mt-16 pt-16 border-t border-white/5"
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.9, delay: 0.3, ease: LUXURY_EASE }}
+          className="text-center mt-20 pt-16 border-t border-[rgba(242,237,223,0.06)]"
         >
-          <p className="text-3xl md:text-4xl font-display text-white tracking-wide mb-6">
-            המשחק הבא שלך מתחיל כאן.
+          <p className="font-display text-3xl md:text-5xl text-[#f2eddf] tracking-wide leading-tight mb-8">
+            המשחק הבא שלך מתחיל כאן
           </p>
-          <a
-            href="/shop"
-            className="inline-flex items-center gap-3 px-8 py-4 bg-[#b5f72e] text-black font-bold text-sm uppercase tracking-widest hover:bg-[#c8ff47] hover:shadow-neon-md transition-all duration-300"
-          >
+          <Link href="/shop" className="btn-gold inline-flex">
             קנה ציוד פרימיום
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

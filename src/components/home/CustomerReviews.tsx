@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Quote, ChevronRight, ChevronLeft } from 'lucide-react'
 import { reviews } from '@/lib/data'
 
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const
+
 export default function CustomerReviews() {
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -12,29 +14,29 @@ export default function CustomerReviews() {
   const next = () => setActiveIndex(i => (i + 1) % reviews.length)
 
   return (
-    <section className="py-24 overflow-hidden">
+    <section className="py-24 overflow-hidden bg-[#08080a]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: LUXURY_EASE }}
           className="text-center mb-16"
         >
-          <div className="section-tag mx-auto inline-flex">ביקורות</div>
-          <h2 className="section-heading mt-2">
-            מה השחקנים<br />
-            <span className="text-[#b5f72e]">אומרים</span>
+          <span className="section-label">ביקורות</span>
+          <h2 className="section-title mt-3">
+            מה השחקנים{' '}
+            <span className="text-gold-gradient">אומרים</span>
           </h2>
 
           <div className="flex items-center justify-center gap-3 mt-6">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-5 h-5 text-[#b5f72e] fill-[#b5f72e]" />
+                <Star key={i} size={16} style={{ color: '#c9a55a' }} fill="#c9a55a" />
               ))}
             </div>
-            <span className="text-white font-bold text-xl ltr-text">4.9</span>
-            <span className="text-white/30 text-sm">מתוך +1,200 ביקורות</span>
+            <span className="text-[#f2eddf] font-bold text-xl ltr">4.9</span>
+            <span className="text-[rgba(242,237,223,0.35)] text-sm">מתוך +1,200 ביקורות</span>
           </div>
         </motion.div>
 
@@ -46,32 +48,32 @@ export default function CustomerReviews() {
               initial={{ opacity: 0, x: -60 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 60 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="relative bg-[#0f0f0f] border border-white/5 p-8 md:p-12"
+              transition={{ duration: 0.45, ease: LUXURY_EASE }}
+              className="relative bg-[#0d0d10] border border-[rgba(201,165,90,0.1)] p-8 md:p-12"
             >
-              <Quote className="absolute top-8 left-8 w-10 h-10 text-[#b5f72e]/10" />
+              <Quote className="absolute top-8 left-8 w-10 h-10 text-[rgba(201,165,90,0.08)]" />
 
               <div className="flex items-center gap-1 mb-6">
                 {[...Array(reviews[activeIndex].rating)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-[#b5f72e] fill-[#b5f72e]" />
+                  <Star key={i} size={14} style={{ color: '#c9a55a' }} fill="#c9a55a" />
                 ))}
               </div>
 
-              <h3 className="text-white text-xl font-bold mb-3">{reviews[activeIndex].title}</h3>
-              <p className="text-white/50 text-base leading-relaxed mb-8">{reviews[activeIndex].body}</p>
+              <h3 className="text-[#f2eddf] text-xl font-bold mb-3">{reviews[activeIndex].title}</h3>
+              <p className="text-[rgba(242,237,223,0.5)] text-base leading-relaxed mb-8">{reviews[activeIndex].body}</p>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#b5f72e]/10 border border-[#b5f72e]/20 flex items-center justify-center">
-                    <span className="text-[#b5f72e] font-bold text-sm">{reviews[activeIndex].author[0]}</span>
+                  <div className="w-10 h-10 bg-[rgba(201,165,90,0.08)] border border-[rgba(201,165,90,0.2)] flex items-center justify-center">
+                    <span className="text-[#c9a55a] font-bold text-sm">{reviews[activeIndex].author[0]}</span>
                   </div>
                   <div>
-                    <p className="text-white font-medium text-sm">{reviews[activeIndex].author}</p>
-                    <p className="text-white/30 text-xs">{reviews[activeIndex].date}</p>
+                    <p className="text-[#f2eddf] font-medium text-sm">{reviews[activeIndex].author}</p>
+                    <p className="text-[rgba(242,237,223,0.3)] text-xs">{reviews[activeIndex].date}</p>
                   </div>
                 </div>
                 {reviews[activeIndex].verified && (
-                  <span className="text-[#b5f72e] text-xs uppercase tracking-widest border border-[#b5f72e]/30 px-2 py-1">
+                  <span className="text-[#c9a55a] text-xs uppercase tracking-widest border border-[rgba(201,165,90,0.3)] px-2 py-1">
                     ✓ מאומת
                   </span>
                 )}
@@ -87,7 +89,7 @@ export default function CustomerReviews() {
                   key={i}
                   onClick={() => setActiveIndex(i)}
                   className={`transition-all duration-300 ${
-                    i === activeIndex ? 'w-8 h-1.5 bg-[#b5f72e]' : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40 rounded-full'
+                    i === activeIndex ? 'w-8 h-1.5 bg-[#c9a55a]' : 'w-1.5 h-1.5 bg-[rgba(242,237,223,0.15)] hover:bg-[rgba(242,237,223,0.3)] rounded-full'
                   }`}
                 />
               ))}
@@ -95,13 +97,13 @@ export default function CustomerReviews() {
             <div className="flex items-center gap-2">
               <button
                 onClick={next}
-                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
+                className="w-10 h-10 border border-[rgba(201,165,90,0.12)] flex items-center justify-center text-[rgba(242,237,223,0.35)] hover:text-[#f2eddf] hover:border-[rgba(201,165,90,0.35)] transition-all"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
               <button
                 onClick={prev}
-                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
+                className="w-10 h-10 border border-[rgba(201,165,90,0.12)] flex items-center justify-center text-[rgba(242,237,223,0.35)] hover:text-[#f2eddf] hover:border-[rgba(201,165,90,0.35)] transition-all"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -117,20 +119,20 @@ export default function CustomerReviews() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-30px' }}
-              transition={{ duration: 0.6, delay: i * 0.09, ease: [0.16, 1, 0.3, 1] }}
-              className="p-5 bg-[#0c0c0c] border border-white/5 hover:border-[#b5f72e]/15 transition-all duration-300"
+              transition={{ duration: 0.6, delay: i * 0.09, ease: LUXURY_EASE }}
+              className="p-5 bg-[#0d0d10] border border-[rgba(201,165,90,0.07)] hover:border-[rgba(201,165,90,0.18)] transition-all duration-300"
             >
               <div className="flex items-center gap-0.5 mb-3">
                 {[...Array(review.rating)].map((_, j) => (
-                  <Star key={j} className="w-3.5 h-3.5 text-[#b5f72e] fill-[#b5f72e]" />
+                  <Star key={j} size={12} style={{ color: '#c9a55a' }} fill="#c9a55a" />
                 ))}
               </div>
-              <p className="text-white/50 text-sm leading-relaxed line-clamp-3 mb-4">{review.body}</p>
+              <p className="text-[rgba(242,237,223,0.5)] text-sm leading-relaxed line-clamp-3 mb-4">{review.body}</p>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-[#b5f72e]/10 flex items-center justify-center">
-                  <span className="text-[#b5f72e] text-xs font-bold">{review.author[0]}</span>
+                <div className="w-6 h-6 bg-[rgba(201,165,90,0.08)] flex items-center justify-center">
+                  <span className="text-[#c9a55a] text-xs font-bold">{review.author[0]}</span>
                 </div>
-                <span className="text-white/60 text-xs">{review.author}</span>
+                <span className="text-[rgba(242,237,223,0.6)] text-xs">{review.author}</span>
               </div>
             </motion.div>
           ))}

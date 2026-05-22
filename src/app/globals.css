@@ -86,16 +86,20 @@ body {
 
   /* Typography */
   .display-xl {
-    @apply font-heebo font-black text-[clamp(3.5rem,10vw,9rem)] leading-[0.88] tracking-tight;
+    @apply font-bold text-[clamp(3.5rem,10vw,9rem)] leading-[0.88] tracking-tight;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
   }
   .display-lg {
-    @apply font-heebo font-black text-[clamp(2.5rem,7vw,6rem)] leading-[0.9] tracking-tight;
+    @apply font-bold text-[clamp(2.5rem,7vw,6rem)] leading-[0.9] tracking-tight;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
   }
   .display-md {
-    @apply font-heebo font-bold text-[clamp(1.8rem,4vw,3.5rem)] leading-tight tracking-tight;
+    @apply font-bold text-[clamp(1.8rem,4vw,3.5rem)] leading-tight tracking-tight;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
   }
   .section-heading {
-    @apply font-heebo font-bold text-4xl md:text-5xl lg:text-6xl text-white leading-tight tracking-tight;
+    @apply font-bold text-4xl md:text-5xl lg:text-6xl text-white leading-tight tracking-tight;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
   }
 
   /* Tags */
@@ -146,7 +150,7 @@ body {
   .price-display {
     direction: ltr;
     unicode-bidi: isolate;
-    @apply font-heebo font-bold;
+    font-weight: bold;
   }
 }
 

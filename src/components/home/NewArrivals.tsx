@@ -23,7 +23,10 @@ export default function NewArrivals() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-[#c9a55a]" aria-hidden="true" />
-              <span className="section-label" style={{ marginBottom: 0 }}>הגיע עכשיו</span>
+              <span className="section-label" style={{ marginBottom: 0 }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a55a] inline-block animate-pulse-soft" />
+                הגיע עכשיו
+              </span>
             </div>
             <h2 className="section-title">
               חדש{' '}
@@ -42,7 +45,7 @@ export default function NewArrivals() {
           </Link>
         </motion.div>
 
-        {/* Product grid with stagger */}
+        {/* Mobile horizontal scroll */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -51,7 +54,25 @@ export default function NewArrivals() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
           }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          className="md:hidden scroll-x flex gap-3 pb-2"
+        >
+          {newArrivals.map((product, i) => (
+            <div key={product.id} className="flex-shrink-0 w-[70vw]">
+              <ProductCard product={product} index={i} />
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Desktop grid */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
+          }}
+          className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {newArrivals.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />

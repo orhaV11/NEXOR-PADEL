@@ -143,12 +143,20 @@ export default function Hero() {
             </motion.div>
           </motion.div>
 
+          {/* Store identity badge */}
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center justify-center gap-2 mt-6"
+          >
+            <span className="section-label text-xs">חנות פאדל פרימיום בישראל</span>
+          </motion.div>
+
           {/* Subheadline */}
           <motion.p
             variants={itemVariants}
-            className="text-[rgba(242,237,223,0.5)] text-lg md:text-xl font-light mt-7 max-w-lg"
+            className="text-[rgba(242,237,223,0.5)] text-lg md:text-xl font-light mt-4 max-w-lg"
           >
-            חנות פאדל פרימיום בישראל — מחבטים, נעליים, כדורים ואביזרים ממותגים מובילים.
+            מחבטים, נעליים, כדורים ואביזרים ממותגים מובילים בעולם.
           </motion.p>
 
           {/* CTA row — stacks on mobile */}

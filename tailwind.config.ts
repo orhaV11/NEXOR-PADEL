@@ -100,6 +100,19 @@ const config: Config = {
           '0%, 100%': { opacity: '0.45' },
           '50%': { opacity: '1' },
         },
+        'shimmer-sweep': {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
+        'page-fade-up': {
+          'from': { opacity: '0', transform: 'translateY(24px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'count-up': {
+          '0%': { opacity: '0', transform: 'scale(0.85)' },
+          '60%': { transform: 'scale(1.08)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'orb-drift-1': 'orb-drift-1 22s ease-in-out infinite',
@@ -108,6 +121,9 @@ const config: Config = {
         'float': 'float 6s ease-in-out infinite',
         'marquee': 'marquee 35s linear infinite',
         'pulse-soft': 'pulse-soft 2.5s ease-in-out infinite',
+        'shimmer-sweep': 'shimmer-sweep 2.2s ease-in-out infinite',
+        'page-fade-up': 'page-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
+        'count-up': 'count-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
       },
     },
   },

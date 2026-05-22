@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -69,7 +70,13 @@ function EmptyCart({ onClose }: { onClose: () => void }) {
             background: 'radial-gradient(ellipse at center, rgba(201,165,90,0.05) 0%, transparent 70%)',
           }}
         >
-          <ShoppingBag className="w-8 h-8 text-[rgba(201,165,90,0.3)]" aria-hidden="true" />
+          {/* Floating animation on the bag icon */}
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <ShoppingBag className="w-8 h-8 text-[rgba(201,165,90,0.3)]" aria-hidden="true" />
+          </motion.div>
         </div>
         {/* Decorative corner marks */}
         <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-[rgba(201,165,90,0.35)]" aria-hidden="true" />
@@ -133,14 +140,20 @@ function ShippingBanner({ totalPrice }: { totalPrice: number }) {
         )}
       </div>
 
-      {/* Progress track */}
-      <div className="h-[2px] bg-[rgba(242,237,223,0.06)] overflow-hidden">
+      {/* Progress track — taller with glowing dot */}
+      <div className="relative h-[3px] bg-[rgba(242,237,223,0.06)] overflow-visible">
         <motion.div
-          className="h-full bg-gradient-to-r from-[#b08840] to-[#e2c890]"
-          initial={{ width: 0 }}
+          className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#b08840] to-[#e2c890]"
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         />
+        {!reached && (
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#c9a55a] shadow-[0_0_6px_#c9a55a]"
+            animate={{ left: `${progress}%` }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          />
+        )}
       </div>
     </div>
   )
@@ -166,14 +179,23 @@ function CartItemRow({
       layout
       initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 18, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+      exit={{ opacity: 0, x: 30, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
       transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      className="flex gap-3.5 py-5 border-b border-[rgba(201,165,90,0.07)] group"
+      className="relative flex gap-3.5 py-5 border-b border-[rgba(201,165,90,0.07)] group
+                 before:absolute before:end-0 before:top-2 before:bottom-2 before:w-[2px]
+                 before:bg-[#c9a55a] before:scale-y-0 hover:before:scale-y-100
+                 before:transition-transform before:duration-300"
     >
-      {/* Thumbnail */}
-      <div className="w-[72px] h-[72px] shrink-0 border border-[rgba(201,165,90,0.08)]
+      {/* Thumbnail — slightly bigger on mobile via Tailwind responsive */}
+      <div className="w-20 h-20 sm:w-[72px] sm:h-[72px] shrink-0
+                      border border-[rgba(201,165,90,0.08)]
                       group-hover:border-[rgba(201,165,90,0.22)] transition-colors duration-300 overflow-hidden">
-        <ProductImagePlaceholder product={product} className="w-full h-full" />
+        <motion.div
+          layoutId={`cart-thumb-${product.id}`}
+          className="w-full h-full"
+        >
+          <ProductImagePlaceholder product={product} className="w-full h-full" />
+        </motion.div>
       </div>
 
       {/* Details */}
@@ -207,13 +229,23 @@ function CartItemRow({
             <Minus className="w-3 h-3" />
           </button>
 
-          {/* Count */}
-          <span
-            className="w-7 text-center text-sm text-[#f2eddf] font-semibold tabular-nums ltr"
-            aria-label={`כמות: ${quantity}`}
-          >
-            {quantity}
-          </span>
+          {/* Count — animated when it changes */}
+          <div className="w-7 overflow-hidden relative" style={{ height: '1.5rem' }}>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={quantity}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="absolute inset-0 flex items-center justify-center
+                           text-sm text-[#f2eddf] font-semibold tabular-nums ltr"
+                aria-label={`כמות: ${quantity}`}
+              >
+                {quantity}
+              </motion.span>
+            </AnimatePresence>
+          </div>
 
           {/* Increase */}
           <button
@@ -267,7 +299,7 @@ export default function CartDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             onClick={closeCart}
             className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50"
             aria-hidden="true"
@@ -279,10 +311,10 @@ export default function CartDrawer() {
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 240 }}
-            className="fixed left-0 top-0 bottom-0 w-full max-w-md
+            transition={{ type: 'spring', damping: 32, stiffness: 260, mass: 0.9 }}
+            className="fixed left-0 top-0 bottom-0 w-full max-w-md xs:max-w-full
                        bg-[#0d0d10] border-e border-[rgba(201,165,90,0.1)]
-                       z-50 flex flex-col shadow-luxury"
+                       z-50 flex flex-col shadow-luxury pb-6 sm:pb-0"
             role="dialog"
             aria-modal="true"
             aria-label="עגלת קניות"
@@ -338,9 +370,18 @@ export default function CartDrawer() {
                     <span className="text-[rgba(242,237,223,0.45)] text-sm uppercase tracking-wider font-medium">
                       סה״כ ביניים
                     </span>
-                    <span className="text-[#f2eddf] font-bold text-xl ltr tabular-nums">
-                      ₪{totalPrice.toLocaleString('he-IL')}
-                    </span>
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={totalPrice}
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-[#f2eddf] font-bold text-xl ltr tabular-nums"
+                      >
+                        ₪{totalPrice.toLocaleString('he-IL')}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
 
                   {/* Fine print */}
@@ -348,17 +389,19 @@ export default function CartDrawer() {
                     מיסים ומשלוח יחושבו בקופה
                   </p>
 
-                  {/* Checkout CTA */}
+                  {/* Checkout CTA — animated arrow */}
                   <Link
                     href="/cart"
                     onClick={closeCart}
-                    className="btn-gold w-full py-[1.1rem] text-[11px] rounded-none group"
+                    className="btn-gold w-full py-[1.1rem] text-[11px] rounded-none group gap-3"
                   >
-                    <span>לתשלום</span>
-                    <ArrowLeft
-                      className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:-translate-x-1"
-                      aria-hidden="true"
-                    />
+                    <span className="flex-1 text-center">לתשלום</span>
+                    <motion.div
+                      animate={{ x: [0, -4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.div>
                   </Link>
 
                   {/* Continue shopping ghost */}

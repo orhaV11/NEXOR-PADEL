@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion'
 import { ShoppingCart, Heart, Menu, X, Zap } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
@@ -28,12 +28,13 @@ function NexorLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
     <div className="flex items-center gap-2.5 group">
       {/* Diamond gemstone mark */}
       <div className={`relative flex items-center justify-center shrink-0 ${isSm ? 'w-7 h-7' : 'w-8 h-8'}`}>
-        {/* Outer square rotated */}
+        {/* Outer square rotated — spins further on logo hover */}
         <div
           className={[
             'absolute inset-0 rotate-45 border transition-all duration-500',
             'border-[rgba(201,165,90,0.3)] bg-[rgba(201,165,90,0.07)]',
             'group-hover:border-[rgba(201,165,90,0.6)] group-hover:bg-[rgba(201,165,90,0.14)]',
+            'group-hover:rotate-[60deg]',
             'group-hover:shadow-gold-sm',
           ].join(' ')}
         />
@@ -103,9 +104,24 @@ function CountBadge({ count }: { count: number }) {
 export default function Header() {
   const [scrolled, setScrolled]     = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [cartPulse, setCartPulse]   = useState(false)
   const pathname                    = usePathname()
   const { totalItems, openCart }    = useCart()
   const { count: wishlistCount }    = useWishlist()
+
+  /* Scroll progress bar */
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30 })
+
+  /* Cart pulse when items are added */
+  const prevItems = useRef(totalItems)
+  useEffect(() => {
+    if (totalItems > prevItems.current) {
+      setCartPulse(true)
+      setTimeout(() => setCartPulse(false), 600)
+    }
+    prevItems.current = totalItems
+  }, [totalItems])
 
   /* scroll detection */
   useEffect(() => {
@@ -143,6 +159,12 @@ export default function Header() {
             : 'bg-transparent',
         ].join(' ')}
       >
+        {/* Scroll progress bar — very top of header */}
+        <motion.div
+          className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#b08840] via-[#e2c890] to-[#b08840] origin-left z-10"
+          style={{ scaleX, transformOrigin: 'left' }}
+        />
+
         {/* Top accent shimmer — always visible, slightly brighter on scroll */}
         <div
           className={[
@@ -153,22 +175,24 @@ export default function Header() {
         />
 
         <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
-          <div className="flex items-center justify-between h-16 lg:h-20">
+          <div className="flex items-center justify-between h-14 lg:h-20">
 
             {/* ── ACTIONS — left side in RTL ── */}
             <div className="flex items-center gap-0.5">
 
-              {/* Cart */}
-              <button
+              {/* Cart — pulses when an item is added */}
+              <motion.button
                 onClick={openCart}
                 aria-label="פתח עגלת קניות"
+                animate={cartPulse ? { scale: [1, 1.3, 1] } : {}}
+                transition={{ duration: 0.4, type: 'spring' }}
                 className="relative p-2.5 text-[rgba(242,237,223,0.4)] hover:text-[#f2eddf]
                            transition-colors duration-300 rounded-sm
                            hover:bg-[rgba(201,165,90,0.05)]"
               >
                 <ShoppingCart className="w-[18px] h-[18px]" />
                 <CountBadge count={totalItems} />
-              </button>
+              </motion.button>
 
               {/* Wishlist (hidden on xs) */}
               <Link
@@ -336,8 +360,8 @@ export default function Header() {
                     initial={{ opacity: 0, x: 40 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{
-                      delay: 0.06 + i * 0.08,
-                      duration: 0.5,
+                      delay: 0.05 + i * 0.065,
+                      duration: 0.45,
                       ease: LUXURY_EASE,
                     }}
                   >
@@ -352,9 +376,18 @@ export default function Header() {
                           : 'text-[rgba(242,237,223,0.45)] hover:text-[#f2eddf]',
                       ].join(' ')}
                     >
-                      <span className="text-[1.75rem] font-bold tracking-tight leading-none">
-                        {link.label}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="text-[1.75rem] font-bold tracking-tight leading-none">
+                          {link.label}
+                        </span>
+                        {/* Gold underline for active item */}
+                        {isActive(link.href) && (
+                          <motion.div
+                            layoutId="mobile-active-indicator"
+                            className="w-6 h-[2px] bg-[#c9a55a]"
+                          />
+                        )}
+                      </div>
 
                       {/* Arrow indicator */}
                       <span
@@ -388,7 +421,7 @@ export default function Header() {
               <motion.div
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.42, duration: 0.5, ease: LUXURY_EASE }}
+                transition={{ delay: 0.38, duration: 0.5, ease: LUXURY_EASE }}
                 className="relative px-6 pt-4 pb-10 space-y-3"
               >
                 <div className="divider mb-5" />

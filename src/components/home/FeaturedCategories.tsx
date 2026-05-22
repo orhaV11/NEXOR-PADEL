@@ -42,7 +42,10 @@ export default function FeaturedCategories() {
           className="flex items-end justify-between mb-12 md:mb-16"
         >
           <div>
-            <span className="section-label">קטגוריות</span>
+            <span className="section-label">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a55a] inline-block animate-pulse-soft" />
+              קטגוריות
+            </span>
             <h2 className="section-title mt-3">
               גלה את הציוד{' '}
               <span className="text-gold-gradient">שלך</span>
@@ -70,26 +73,29 @@ export default function FeaturedCategories() {
           >
             <Link
               href={categoryHrefs.rackets}
-              className="luxury-card relative block h-64 md:h-[340px] overflow-hidden"
+              className="luxury-card-shine group relative block h-48 md:h-[340px] overflow-hidden"
               style={{ background: '#0d0d10' }}
             >
               {/* Gold radial glow on hover */}
               <div
                 className="absolute inset-0 opacity-0 transition-opacity duration-700 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(ellipse at 50% 100%, rgba(201,165,90,0.1) 0%, transparent 65%)',
+                  background:
+                    'radial-gradient(ellipse at 50% 100%, rgba(201,165,90,0.1) 0%, transparent 65%)',
                 }}
                 aria-hidden="true"
               />
 
-              {/* Racket SVG watermark */}
-              <div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              {/* Slowly rotating racket SVG watermark */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04]"
                 aria-hidden="true"
               >
                 <svg
                   viewBox="0 0 200 240"
-                  className="w-52 h-52 md:w-64 md:h-64 opacity-[0.06] transition-opacity duration-700"
+                  className="w-52 h-52 md:w-64 md:h-64"
                   fill="none"
                   stroke="#c9a55a"
                 >
@@ -104,7 +110,7 @@ export default function FeaturedCategories() {
                   <line x1="38" y1="122" x2="162" y2="122" strokeWidth="0.8" opacity="0.2" />
                   <rect x="92" y="163" width="16" height="58" rx="4" fill="#c9a55a" opacity="0.3" strokeWidth="0" />
                 </svg>
-              </div>
+              </motion.div>
 
               {/* Content */}
               <div className="absolute inset-0 flex flex-col justify-between p-7 md:p-8">
@@ -115,14 +121,19 @@ export default function FeaturedCategories() {
                 </div>
                 <div>
                   <p className="text-[rgba(242,237,223,0.28)] text-xs uppercase tracking-[0.18em] mb-2">
-                    {rackets.count} מוצרים · כל הרמות
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 bg-[rgba(201,165,90,0.15)] border border-[rgba(201,165,90,0.25)] text-[#c9a55a] text-[9px] tracking-wider font-bold">
+                        {rackets.count}
+                      </span>
+                      <span>מוצרים · כל הרמות</span>
+                    </span>
                   </p>
                   <h3 className="font-display text-5xl md:text-6xl text-[#f2eddf] tracking-wider uppercase leading-none">
                     מחבטים
                   </h3>
                   <div className="flex items-center gap-2 mt-4 text-[#c9a55a] text-xs font-bold uppercase tracking-[0.2em]">
                     <span>גלה עכשיו</span>
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <ArrowLeft className="w-3.5 h-3.5 opacity-30 group-hover:opacity-100 group-hover:text-[#c9a55a] transition-all duration-300" />
                   </div>
                 </div>
               </div>
@@ -141,14 +152,15 @@ export default function FeaturedCategories() {
             >
               <Link
                 href={categoryHrefs[cat.id] ?? '/shop'}
-                className="luxury-card relative block h-[148px] md:h-[162px] overflow-hidden"
+                className="luxury-card-shine group relative block h-32 md:h-[162px] overflow-hidden"
                 style={{ background: '#0d0d10' }}
               >
                 {/* Gold glow on hover */}
                 <div
                   className="absolute inset-0 opacity-0 transition-opacity duration-500 pointer-events-none"
                   style={{
-                    background: 'radial-gradient(ellipse at 50% 50%, rgba(201,165,90,0.08) 0%, transparent 70%)',
+                    background:
+                      'radial-gradient(ellipse at 50% 50%, rgba(201,165,90,0.08) 0%, transparent 70%)',
                   }}
                   aria-hidden="true"
                 />
@@ -159,16 +171,18 @@ export default function FeaturedCategories() {
                     <h3 className="font-display text-xl md:text-2xl text-[#f2eddf] tracking-wider uppercase leading-none mb-1">
                       {cat.label}
                     </h3>
-                    <p className="text-[rgba(242,237,223,0.28)] text-xs">
-                      {cat.count} מוצרים
+                    <p className="text-[rgba(242,237,223,0.28)] text-xs flex items-center gap-1.5">
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-[rgba(201,165,90,0.12)] border border-[rgba(201,165,90,0.2)] text-[#c9a55a] text-[9px] tracking-wider font-bold">
+                        {cat.count}
+                      </span>
+                      מוצרים
                     </p>
                   </div>
                 </div>
 
                 <ArrowLeft
-                  className="absolute bottom-4 left-4 w-4 h-4 text-[rgba(201,165,90,0.5)] opacity-0 transition-all duration-300 translate-x-2"
+                  className="absolute bottom-4 left-4 w-4 h-4 opacity-30 group-hover:opacity-100 group-hover:text-[#c9a55a] transition-all duration-300"
                   aria-hidden="true"
-                  style={{ transition: 'opacity 0.3s, transform 0.3s' }}
                 />
               </Link>
             </motion.div>

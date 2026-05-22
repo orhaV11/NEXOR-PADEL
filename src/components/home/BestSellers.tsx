@@ -10,7 +10,17 @@ const LUXURY_EASE = [0.16, 1, 0.3, 1] as const
 
 export default function BestSellers() {
   return (
-    <section className="py-24 md:py-32 bg-[#070708]">
+    <section className="py-24 md:py-32 bg-[#070708] relative overflow-hidden">
+      {/* Subtle radial glow behind grid */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 50%, rgba(201,165,90,0.03) 0%, transparent 70%)',
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
         {/* Header */}
         <motion.div
@@ -21,7 +31,10 @@ export default function BestSellers() {
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16"
         >
           <div>
-            <span className="section-label">הנמכרים ביותר</span>
+            <span className="section-label">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a55a] inline-block animate-pulse-soft" />
+              הנמכרים ביותר
+            </span>
             <h2 className="section-title mt-3">
               המועדפים של{' '}
               <span className="text-gold-gradient">השחקנים</span>
@@ -29,13 +42,23 @@ export default function BestSellers() {
             <p className="text-[rgba(242,237,223,0.4)] mt-4 max-w-md text-sm leading-relaxed">
               הציוד המהימן ביותר על ידי שחקני פאדל רציניים. נבדק במגרש. אהוב על ידי אלפים.
             </p>
+            {/* Animated gold line */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+              className="h-px bg-gradient-to-r from-[#c9a55a] to-transparent origin-right mt-4 max-w-[120px]"
+            />
           </div>
-          <Link
-            href="/shop?filter=bestseller"
-            className="flex items-center gap-2 text-[rgba(242,237,223,0.35)] text-xs uppercase tracking-[0.2em] hover:text-[#c9a55a] transition-colors duration-300 whitespace-nowrap pb-1"
-          >
-            כל הנמכרים
-            <ArrowLeft className="w-4 h-4" />
+
+          <Link href="/shop?filter=bestseller">
+            <motion.div
+              whileHover={{ x: -4 }}
+              className="flex items-center gap-2 text-[#c9a55a] text-xs uppercase tracking-widest cursor-pointer"
+            >
+              כל המחבטים <ArrowLeft className="w-3.5 h-3.5" />
+            </motion.div>
           </Link>
         </motion.div>
 
@@ -48,7 +71,7 @@ export default function BestSellers() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
           }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4"
         >
           {bestSellers.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />

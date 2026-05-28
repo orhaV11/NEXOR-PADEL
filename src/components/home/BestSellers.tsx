@@ -37,18 +37,21 @@ export default function BestSellers() {
             </span>
             <h2 className="section-title mt-3">
               המועדפים של{' '}
-              <span className="text-gold-gradient">השחקנים</span>
+              <span className="text-clip-gold">השחקנים</span>
             </h2>
             <p className="text-[rgba(242,237,223,0.4)] mt-4 max-w-md text-sm leading-relaxed">
               הציוד המהימן ביותר על ידי שחקני פאדל רציניים. נבדק במגרש. אהוב על ידי אלפים.
             </p>
-            {/* Animated gold line */}
+            {/* Animated gold line — full width, RTL gradient */}
             <motion.div
               initial={{ scaleX: 0 }}
               whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-              className="h-px bg-gradient-to-r from-[#c9a55a] to-transparent origin-right mt-4 max-w-[120px]"
+              className="h-px origin-right mt-4 max-w-none"
+              style={{
+                background: 'linear-gradient(to left, #c9a55a, transparent)',
+              }}
             />
           </div>
 
@@ -61,6 +64,17 @@ export default function BestSellers() {
             </motion.div>
           </Link>
         </motion.div>
+
+        {/* Premium product counter — right-aligned, above grid */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: LUXURY_EASE, delay: 0.1 }}
+          className="text-[#c9a55a] text-xs uppercase tracking-[0.22em] text-right mb-5"
+        >
+          {bestSellers.length} מוצרים פרימיום
+        </motion.p>
 
         {/* Product grid with stagger */}
         <motion.div

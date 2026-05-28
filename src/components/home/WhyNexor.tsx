@@ -27,9 +27,9 @@ function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string
 /* ── Stats ────────────────────────────────────── */
 const stats = [
   { value: 10000, suffix: '+', label: 'שחקנים מרוצים' },
+  { value: 14, suffix: '+', label: 'מותגים מובילים' },
   { value: 30, suffix: ' יום', label: 'אחריות החזרה' },
-  { value: 100, suffix: '%', label: 'מוצרים מקוריים' },
-  { value: 24, suffix: 'שע', label: 'משלוח אקספרס' },
+  { value: 24, suffix: 'H', label: 'משלוח אקספרס' },
 ]
 
 /* ── Features ─────────────────────────────────── */
@@ -68,7 +68,14 @@ const features = [
 
 export default function WhyNexor() {
   return (
-    <section className="py-24 md:py-32 bg-[#07070a] relative overflow-hidden bg-grid">
+    <section className="py-28 md:py-36 bg-[#07070a] relative overflow-hidden">
+      {/* bg-grid overlay at ~3% opacity */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-grid pointer-events-none"
+        style={{ opacity: 0.03 }}
+      />
+
       {/* Ambient glow */}
       <div
         aria-hidden="true"
@@ -87,14 +94,14 @@ export default function WhyNexor() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.9, ease: LUXURY_EASE }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
           <span className="section-label mx-auto">
             <span className="w-1.5 h-1.5 rounded-full bg-[#c9a55a] inline-block animate-pulse-soft" />
@@ -104,13 +111,13 @@ export default function WhyNexor() {
             ההבדל שמשנה{' '}
             <span className="text-gold-gradient">כל דבר</span>
           </h2>
-          <p className="text-[rgba(242,237,223,0.4)] mt-4 max-w-xl mx-auto text-sm leading-relaxed">
+          <p className="text-[rgba(242,237,223,0.4)] mt-5 max-w-xl mx-auto text-sm leading-relaxed">
             אנחנו לא רק חנות. אנחנו יעד פאדל שנבנה עבור שחקנים שדורשים את הטוב ביותר.
           </p>
         </motion.div>
 
         {/* 2-column layout on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 items-start">
           {/* Left column — Stats */}
           <motion.div
             initial={{ opacity: 0, x: 40 }}
@@ -122,9 +129,9 @@ export default function WhyNexor() {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="bg-[#07070a] p-8 flex flex-col items-center text-center"
+                className="bg-[#07070a] p-10 flex flex-col items-center text-center"
               >
-                <p className="font-display text-4xl md:text-5xl text-[#c9a55a] font-black tracking-tighter leading-none ltr mb-2">
+                <p className="stat-number ltr mb-2">
                   <AnimatedNumber value={stat.value} suffix={stat.suffix} />
                   <span>{stat.suffix}</span>
                 </p>
@@ -136,7 +143,7 @@ export default function WhyNexor() {
           </motion.div>
 
           {/* Right column — Feature cards */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {features.map((feature, i) => {
               const Icon = feature.icon
               return (
@@ -146,28 +153,35 @@ export default function WhyNexor() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-80px' }}
                   transition={{ duration: 0.7, delay: i * 0.08, ease: LUXURY_EASE }}
-                  className="luxury-card relative flex items-start gap-5 p-5 overflow-hidden border-r-2 border-transparent hover:border-[#c9a55a] transition-colors duration-300 pr-5"
+                  className="glass-card card-gold-top relative flex items-start gap-6 p-6 overflow-hidden border-r-2 border-transparent hover:border-[#c9a55a] transition-colors duration-300"
                 >
                   {/* Hover glow */}
                   <div
                     className="absolute inset-0 opacity-0 transition-opacity duration-500 pointer-events-none"
                     style={{
                       background:
-                        'radial-gradient(ellipse at top right, rgba(201,165,90,0.05) 0%, transparent 65%)',
+                        'radial-gradient(ellipse at top right, rgba(201,165,90,0.06) 0%, transparent 65%)',
                     }}
                     aria-hidden="true"
                   />
 
                   {/* Diamond icon container */}
                   <div className="relative w-12 h-12 shrink-0">
-                    <div className="absolute inset-0 rotate-45 bg-[rgba(201,165,90,0.08)] border border-[rgba(201,165,90,0.2)]" />
+                    <div
+                      className="absolute inset-0 rotate-45"
+                      style={{
+                        background:
+                          'linear-gradient(135deg, rgba(201,165,90,0.15) 0%, rgba(201,165,90,0.05) 100%)',
+                        border: '1px solid rgba(201,165,90,0.35)',
+                      }}
+                    />
                     <div className="relative w-full h-full flex items-center justify-center">
                       <Icon className="w-5 h-5 text-[#c9a55a]" aria-hidden="true" />
                     </div>
                   </div>
 
-                  <div className="relative min-w-0">
-                    <h3 className="text-[#f2eddf] font-bold text-sm mb-1.5 leading-snug">
+                  <div className="relative min-w-0 pt-0.5">
+                    <h3 className="text-[#f2eddf] font-bold text-sm mb-2 leading-snug">
                       {feature.title}
                     </h3>
                     <p className="text-[rgba(242,237,223,0.4)] text-sm leading-relaxed">
@@ -186,7 +200,7 @@ export default function WhyNexor() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.9, delay: 0.3, ease: LUXURY_EASE }}
-          className="text-center mt-20 pt-16 border-t border-[rgba(242,237,223,0.06)]"
+          className="text-center mt-24 pt-16 border-t border-[rgba(242,237,223,0.06)]"
         >
           <p className="font-display text-3xl md:text-5xl text-[#f2eddf] tracking-wide leading-tight mb-8">
             המשחק הבא שלך מתחיל כאן

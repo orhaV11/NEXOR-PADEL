@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Heebo, Bebas_Neue } from 'next/font/google'
+import { Heebo, Bebas_Neue, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
@@ -22,6 +22,13 @@ const bebas = Bebas_Neue({
   display: 'swap',
 })
 
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-playfair',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: {
     default: 'NEXOR Padel — פאדל ברמה אחרת',
@@ -41,7 +48,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} ${bebas.variable}`}>
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${bebas.variable} ${playfair.variable}`}>
       <body className="bg-brand-bg text-ivory antialiased" style={{ fontFamily: 'var(--font-heebo), Heebo, Arial, sans-serif' }}>
         <div className="noise-overlay" aria-hidden="true" />
         <CartProvider>

@@ -112,7 +112,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           ? {}
           : { rotateX, rotateY, transformPerspective: 1200 }
       }
-      className="product-card group relative"
+      className="product-card card-gold-top group relative cursor-pointer"
       onMouseMove={isMobile ? undefined : handleMouseMove}
       onMouseEnter={isMobile ? undefined : () => setHovered(true)}
       onMouseLeave={isMobile ? undefined : handleMouseLeave}
@@ -292,7 +292,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             </span>
           </div>
 
-          {/* Price — scales slightly on hover */}
+          {/* Price */}
           <motion.div
             className="flex items-center gap-2.5"
             animate={hovered ? { scale: 1.03 } : { scale: 1 }}
@@ -301,7 +301,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           >
             {product.salePrice ? (
               <>
-                <span className="ltr font-bold text-lg" style={{ color: '#c9a55a' }}>
+                <span className="stat-number text-xl ltr">
                   ₪{product.salePrice.toLocaleString()}
                 </span>
                 <span className="ltr text-xs line-through" style={{ color: 'rgba(242,237,223,0.25)' }}>
@@ -309,7 +309,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
                 </span>
               </>
             ) : (
-              <span className="ltr font-bold text-lg" style={{ color: '#f2eddf' }}>
+              <span className="stat-number text-xl ltr">
                 ₪{product.price.toLocaleString()}
               </span>
             )}

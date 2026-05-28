@@ -47,6 +47,7 @@ const config: Config = {
         display: ['var(--font-bebas)', 'Impact', 'sans-serif'],
         body: ['var(--font-heebo)', 'Heebo', 'Arial', 'sans-serif'],
         heebo: ['var(--font-heebo)', 'Heebo', 'Arial', 'sans-serif'],
+        playfair: ['var(--font-playfair)', 'Playfair Display', 'Georgia', 'serif'],
       },
       backgroundImage: {
         'hero-radial': 'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(201,165,90,0.10) 0%, transparent 65%)',
@@ -113,6 +114,10 @@ const config: Config = {
           '60%': { transform: 'scale(1.08)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'gold-shimmer': {
+          '0%': { 'background-position': '0% center' },
+          '100%': { 'background-position': '200% center' },
+        },
       },
       animation: {
         'orb-drift-1': 'orb-drift-1 22s ease-in-out infinite',
@@ -124,6 +129,7 @@ const config: Config = {
         'shimmer-sweep': 'shimmer-sweep 2.2s ease-in-out infinite',
         'page-fade-up': 'page-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
         'count-up': 'count-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
+        'gold-shimmer': 'gold-shimmer 4s linear infinite',
       },
     },
   },

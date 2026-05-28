@@ -73,7 +73,7 @@ export default function FeaturedCategories() {
           >
             <Link
               href={categoryHrefs.rackets}
-              className="luxury-card-shine group relative block h-48 md:h-[340px] overflow-hidden"
+              className="luxury-card-shine inset-glow group relative block h-48 md:h-[340px] overflow-hidden"
               style={{ background: '#0d0d10' }}
             >
               {/* Gold radial glow on hover */}
@@ -95,7 +95,7 @@ export default function FeaturedCategories() {
               >
                 <svg
                   viewBox="0 0 200 240"
-                  className="w-52 h-52 md:w-64 md:h-64"
+                  className="w-[260px] h-[260px] md:w-[310px] md:h-[310px]"
                   fill="none"
                   stroke="#c9a55a"
                 >
@@ -152,7 +152,7 @@ export default function FeaturedCategories() {
             >
               <Link
                 href={categoryHrefs[cat.id] ?? '/shop'}
-                className="luxury-card-shine group relative block h-32 md:h-[162px] overflow-hidden"
+                className="luxury-card-shine inset-glow group relative block h-32 md:h-[162px] overflow-hidden"
                 style={{ background: '#0d0d10' }}
               >
                 {/* Gold glow on hover */}
@@ -166,7 +166,8 @@ export default function FeaturedCategories() {
                 />
 
                 <div className="relative h-full flex flex-col justify-between p-5">
-                  <span className="text-2xl leading-none">{cat.icon}</span>
+                  {/* Icon — 20% larger */}
+                  <span className="text-[1.75rem] leading-none">{cat.icon}</span>
                   <div>
                     <h3 className="font-display text-xl md:text-2xl text-[#f2eddf] tracking-wider uppercase leading-none mb-1">
                       {cat.label}
@@ -188,6 +189,19 @@ export default function FeaturedCategories() {
             </motion.div>
           ))}
         </div>
+
+        {/* Brand logos strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: LUXURY_EASE, delay: 0.3 }}
+          className="mt-10 pt-6 border-t border-[rgba(242,237,223,0.05)] text-center"
+        >
+          <p className="text-[rgba(201,165,90,0.45)] text-[11px] uppercase tracking-[0.28em] font-medium">
+            Head · Bullpadel · Babolat · Wilson · Nox · StarVie
+          </p>
+        </motion.div>
 
         {/* Mobile "all categories" link */}
         <div className="flex md:hidden justify-center mt-8">

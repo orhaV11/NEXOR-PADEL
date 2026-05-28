@@ -61,7 +61,7 @@ function NexorLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
       <div className="flex flex-col leading-none">
         <span
           className={[
-            'font-display tracking-[0.12em] text-[#f2eddf] transition-colors duration-300',
+            'font-display tracking-[0.16em] text-[#f2eddf] transition-colors duration-300',
             'group-hover:text-[#e2c890]',
             isSm ? 'text-xl' : 'text-2xl lg:text-[1.65rem]',
           ].join(' ')}
@@ -71,6 +71,16 @@ function NexorLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
         <span className="text-[7px] text-[#c9a55a] tracking-[0.5em] uppercase font-semibold -mt-0.5 opacity-75 group-hover:opacity-100 transition-opacity duration-300">
           PADEL
         </span>
+        {/* Hebrew premium line — desktop only */}
+        {!isSm && (
+          <span
+            className="hidden lg:block text-[#c9a55a] font-normal -mt-0.5 opacity-50"
+            style={{ fontSize: '9px', letterSpacing: '0.04em' }}
+            aria-hidden="true"
+          >
+            פאדל פרימיום
+          </span>
+        )}
       </div>
     </div>
   )
@@ -99,12 +109,70 @@ function CountBadge({ count }: { count: number }) {
   )
 }
 
+/* ── Cart Tooltip ─────────────────────────────────────── */
+
+function CartButton({
+  onClick,
+  pulse,
+  count,
+}: {
+  onClick: () => void
+  pulse: boolean
+  count: number
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <div className="relative" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <motion.button
+        onClick={onClick}
+        aria-label="פתח עגלת קניות"
+        animate={pulse ? { scale: [1, 1.3, 1] } : {}}
+        transition={{ duration: 0.4, type: 'spring' }}
+        className="relative p-2.5 text-[rgba(242,237,223,0.4)] hover:text-[#f2eddf]
+                   transition-colors duration-300 rounded-sm
+                   hover:bg-[rgba(201,165,90,0.05)]
+                   ring-1 ring-[rgba(201,165,90,0.15)]"
+      >
+        <ShoppingCart className="w-[18px] h-[18px]" />
+        <CountBadge count={count} />
+      </motion.button>
+
+      {/* Tooltip */}
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.18 }}
+            className="absolute top-full mt-2 start-1/2 -translate-x-1/2 pointer-events-none z-50
+                       whitespace-nowrap px-2.5 py-1
+                       bg-[rgba(13,13,16,0.92)] border border-[rgba(201,165,90,0.2)]
+                       text-[#c9a55a] text-[10px] font-semibold"
+            style={{ direction: 'rtl' }}
+          >
+            עגלת קניות
+            {/* Tiny arrow */}
+            <span
+              className="absolute -top-[5px] start-1/2 -translate-x-1/2 w-2 h-2 rotate-45
+                         bg-[rgba(13,13,16,0.92)] border-t border-s border-[rgba(201,165,90,0.2)]"
+              aria-hidden="true"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 /* ── Main component ───────────────────────────────────── */
 
 export default function Header() {
   const [scrolled, setScrolled]     = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cartPulse, setCartPulse]   = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
   const pathname                    = usePathname()
   const { totalItems, openCart }    = useCart()
   const { count: wishlistCount }    = useWishlist()
@@ -112,6 +180,11 @@ export default function Header() {
   /* Scroll progress bar */
   const { scrollYProgress } = useScroll()
   const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30 })
+
+  /* Track raw scroll progress for the glowing dot position */
+  useEffect(() => {
+    return scrollYProgress.on('change', v => setScrollProgress(v))
+  }, [scrollYProgress])
 
   /* Cart pulse when items are added */
   const prevItems = useRef(totalItems)
@@ -155,15 +228,26 @@ export default function Header() {
         className={[
           'fixed top-0 inset-x-0 z-50 transition-all duration-500',
           scrolled
-            ? 'glass border-b border-[rgba(201,165,90,0.1)]'
+            ? 'glass-card inset-glow border-b border-[rgba(201,165,90,0.1)]'
             : 'bg-transparent',
         ].join(' ')}
       >
         {/* Scroll progress bar — very top of header */}
-        <motion.div
-          className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#b08840] via-[#e2c890] to-[#b08840] origin-left z-10"
-          style={{ scaleX, transformOrigin: 'left' }}
-        />
+        <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden z-10">
+          <motion.div
+            className="absolute top-0 left-0 right-0 h-full bg-gradient-to-r from-[#b08840] via-[#e2c890] to-[#b08840] origin-left"
+            style={{ scaleX, transformOrigin: 'left' }}
+          />
+          {/* Glowing dot at progress end */}
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full bg-[#e2c890] pointer-events-none"
+            style={{
+              left: `${Math.min(scrollProgress * 100, 99.5)}%`,
+              boxShadow: '0 0 6px 2px rgba(226,200,144,0.7)',
+              opacity: scrollProgress > 0.01 ? 1 : 0,
+            }}
+          />
+        </div>
 
         {/* Top accent shimmer — always visible, slightly brighter on scroll */}
         <div
@@ -180,19 +264,8 @@ export default function Header() {
             {/* ── ACTIONS — left side in RTL ── */}
             <div className="flex items-center gap-0.5">
 
-              {/* Cart — pulses when an item is added */}
-              <motion.button
-                onClick={openCart}
-                aria-label="פתח עגלת קניות"
-                animate={cartPulse ? { scale: [1, 1.3, 1] } : {}}
-                transition={{ duration: 0.4, type: 'spring' }}
-                className="relative p-2.5 text-[rgba(242,237,223,0.4)] hover:text-[#f2eddf]
-                           transition-colors duration-300 rounded-sm
-                           hover:bg-[rgba(201,165,90,0.05)]"
-              >
-                <ShoppingCart className="w-[18px] h-[18px]" />
-                <CountBadge count={totalItems} />
-              </motion.button>
+              {/* Cart — pulses when an item is added, with tooltip */}
+              <CartButton onClick={openCart} pulse={cartPulse} count={totalItems} />
 
               {/* Wishlist (hidden on xs) */}
               <Link
@@ -259,15 +332,26 @@ export default function Header() {
               className="hidden lg:flex items-center gap-7"
               aria-label="ניווט ראשי"
             >
-              {navLinks.map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`nav-link${isActive(link.href) ? ' active' : ''}`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map(link => {
+                const active = isActive(link.href)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`nav-link relative${active ? ' active' : ''}`}
+                  >
+                    {link.label}
+                    {/* Animated gold underline with layoutId for smooth slide */}
+                    {active && (
+                      <motion.span
+                        layoutId="nav-indicator"
+                        className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-[#c9a55a]"
+                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                      />
+                    )}
+                  </Link>
+                )
+              })}
             </nav>
 
             {/* ── LOGO — right side in RTL ── */}
@@ -354,67 +438,91 @@ export default function Header() {
                 className="relative flex-1 flex flex-col px-6 pt-4 overflow-y-auto"
                 aria-label="ניווט נייד"
               >
-                {navLinks.map((link, i) => (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: 40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      delay: 0.05 + i * 0.065,
-                      duration: 0.45,
-                      ease: LUXURY_EASE,
-                    }}
-                  >
-                    <Link
-                      href={link.href}
-                      className={[
-                        'flex items-center justify-between py-5 group',
-                        'border-b border-[rgba(242,237,223,0.05)]',
-                        'transition-colors duration-300',
-                        isActive(link.href)
-                          ? 'text-[#c9a55a]'
-                          : 'text-[rgba(242,237,223,0.45)] hover:text-[#f2eddf]',
-                      ].join(' ')}
+                {navLinks.map((link, i) => {
+                  const active = isActive(link.href)
+                  const prefix = String(i + 1).padStart(2, '0')
+                  return (
+                    <motion.div
+                      key={link.href}
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        delay: 0.05 + i * 0.065,
+                        duration: 0.45,
+                        ease: LUXURY_EASE,
+                      }}
                     >
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="text-[1.75rem] font-bold tracking-tight leading-none">
-                          {link.label}
-                        </span>
-                        {/* Gold underline for active item */}
-                        {isActive(link.href) && (
-                          <motion.div
-                            layoutId="mobile-active-indicator"
-                            className="w-6 h-[2px] bg-[#c9a55a]"
-                          />
-                        )}
-                      </div>
-
-                      {/* Arrow indicator */}
-                      <span
+                      <Link
+                        href={link.href}
                         className={[
-                          'w-8 h-8 border flex items-center justify-center shrink-0',
-                          'transition-all duration-300',
-                          isActive(link.href)
-                            ? 'border-[rgba(201,165,90,0.5)] text-[#c9a55a] bg-[rgba(201,165,90,0.06)]'
-                            : 'border-[rgba(242,237,223,0.07)] text-[rgba(242,237,223,0.18)]',
-                          'group-hover:border-[rgba(201,165,90,0.4)] group-hover:text-[#c9a55a]',
+                          'flex items-center justify-between py-5 group',
+                          'border-b border-[rgba(242,237,223,0.05)]',
+                          'transition-colors duration-300',
+                          active
+                            ? 'text-[#c9a55a]'
+                            : 'text-[rgba(242,237,223,0.45)] hover:text-[#f2eddf]',
                         ].join(' ')}
-                        aria-hidden="true"
                       >
-                        {/* ChevronLeft = "forward" arrow in RTL */}
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
+                        <div className="flex items-center gap-3">
+                          {/* Gold dot for active item */}
+                          <span
+                            className={[
+                              'w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-300',
+                              active
+                                ? 'bg-[#c9a55a] shadow-[0_0_6px_rgba(201,165,90,0.6)]'
+                                : 'bg-transparent',
+                            ].join(' ')}
+                            aria-hidden="true"
+                          />
+
+                          <div className="flex flex-col items-start gap-1">
+                            {/* Number prefix */}
+                            <span
+                              className="text-[#c9a55a] text-[10px] font-mono font-semibold opacity-30 leading-none"
+                              aria-hidden="true"
+                            >
+                              {prefix}
+                            </span>
+                            <span className="text-[1.75rem] font-bold tracking-tight leading-none">
+                              {link.label}
+                            </span>
+                            {/* Gold underline for active item */}
+                            {active && (
+                              <motion.div
+                                layoutId="mobile-active-indicator"
+                                className="w-6 h-[2px] bg-[#c9a55a]"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Arrow indicator */}
+                        <span
+                          className={[
+                            'w-8 h-8 border flex items-center justify-center shrink-0',
+                            'transition-all duration-300',
+                            active
+                              ? 'border-[rgba(201,165,90,0.5)] text-[#c9a55a] bg-[rgba(201,165,90,0.06)]'
+                              : 'border-[rgba(242,237,223,0.07)] text-[rgba(242,237,223,0.18)]',
+                            'group-hover:border-[rgba(201,165,90,0.4)] group-hover:text-[#c9a55a]',
+                          ].join(' ')}
                           aria-hidden="true"
                         >
-                          <path d="M7.5 2.5L4.5 6L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </Link>
-                  </motion.div>
-                ))}
+                          {/* ChevronLeft = "forward" arrow in RTL */}
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path d="M7.5 2.5L4.5 6L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </Link>
+                    </motion.div>
+                  )
+                })}
               </nav>
 
               {/* Bottom CTAs */}

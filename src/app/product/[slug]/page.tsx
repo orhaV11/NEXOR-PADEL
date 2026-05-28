@@ -146,14 +146,14 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             <div className="flex items-baseline gap-3 mb-6 pb-6 border-b border-[rgba(201,165,90,0.08)]">
               {product.salePrice ? (
                 <>
-                  <span className="text-4xl font-bold text-[#c9a55a] ltr">₪{product.salePrice.toLocaleString()}</span>
+                  <span className="stat-number text-5xl ltr">₪{product.salePrice.toLocaleString()}</span>
                   <span className="text-2xl text-[rgba(242,237,223,0.25)] line-through ltr">₪{product.price.toLocaleString()}</span>
                   <span className="px-2 py-1 bg-[rgba(201,165,90,0.1)] border border-[rgba(201,165,90,0.3)] text-[#c9a55a] text-xs font-bold">
                     חסוך {discount}%
                   </span>
                 </>
               ) : (
-                <span className="text-4xl font-bold text-[#f2eddf] ltr">₪{product.price.toLocaleString()}</span>
+                <span className="stat-number text-5xl ltr">₪{product.price.toLocaleString()}</span>
               )}
             </div>
 
@@ -162,7 +162,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
             {/* Specs Grid */}
             {(product.weight || product.balance || product.shape || product.playerLevel || product.material) && (
-              <div className="grid grid-cols-2 gap-2 mb-6 p-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(201,165,90,0.08)]">
+              <div className="grid grid-cols-2 gap-2 mb-6 p-4 glass-card inset-glow">
                 {product.playerLevel && (
                   <div>
                     <p className="text-[rgba(242,237,223,0.3)] text-xs uppercase tracking-widest mb-0.5">רמה</p>
@@ -289,14 +289,16 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </div>
 
             {/* Shipping, Returns, Security */}
-            <div className="space-y-3 border-t border-[rgba(201,165,90,0.08)] pt-6">
+            <div className="glass-card inset-glow p-4 mt-2 space-y-3">
               {[
-                { icon: Truck, text: 'משלוח חינם על הזמנות מעל ₪280. משלוח מהיר זמין.' },
-                { icon: RotateCcw, text: 'החזרה ללא טרחה עד 30 יום. ללא שאלות.' },
-                { icon: Shield, text: 'מקורי 100%. ספק מורשה רשמי.' },
+                { icon: Truck, text: 'משלוח חינם על הזמנות מעל ₪280. משלוח אקספרס זמין.' },
+                { icon: RotateCcw, text: 'החזרה חינם עד 30 יום — ללא שאלות.' },
+                { icon: Shield, text: 'מקורי 100% — ספק מורשה רשמי לכל המותגים.' },
               ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-start gap-3 text-[rgba(242,237,223,0.4)] text-xs">
-                  <Icon className="w-4 h-4 text-[#c9a55a] flex-shrink-0 mt-0.5" />
+                <div key={text} className="flex items-center gap-3 text-[rgba(242,237,223,0.5)] text-xs">
+                  <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(201,165,90,0.08)', border: '1px solid rgba(201,165,90,0.15)' }}>
+                    <Icon className="w-3.5 h-3.5 text-[#c9a55a]" />
+                  </div>
                   {text}
                 </div>
               ))}

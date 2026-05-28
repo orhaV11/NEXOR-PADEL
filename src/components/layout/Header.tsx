@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion'
 import { ShoppingCart, Heart, Menu, X, Zap } from 'lucide-react'
@@ -23,66 +24,16 @@ const LUXURY_EASE = [0.16, 1, 0.3, 1] as const
 /* ── Logo ─────────────────────────────────────────────── */
 
 function NexorLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const isSm = size === 'sm'
   return (
-    <div className="flex items-center gap-2.5 group">
-      {/* Diamond gemstone mark */}
-      <div className={`relative flex items-center justify-center shrink-0 ${isSm ? 'w-7 h-7' : 'w-8 h-8'}`}>
-        {/* Outer square rotated — spins further on logo hover */}
-        <div
-          className={[
-            'absolute inset-0 rotate-45 border transition-all duration-500',
-            'border-[rgba(201,165,90,0.3)] bg-[rgba(201,165,90,0.07)]',
-            'group-hover:border-[rgba(201,165,90,0.6)] group-hover:bg-[rgba(201,165,90,0.14)]',
-            'group-hover:rotate-[60deg]',
-            'group-hover:shadow-gold-sm',
-          ].join(' ')}
-        />
-        {/* Inner diamond */}
-        <div
-          className={[
-            'absolute rotate-45 border transition-all duration-700',
-            'border-[rgba(201,165,90,0.15)]',
-            isSm ? 'w-2.5 h-2.5' : 'w-3 h-3',
-          ].join(' ')}
-        />
-        <span
-          className={[
-            'relative font-black leading-none select-none transition-colors duration-300',
-            'text-[#c9a55a] group-hover:text-[#e2c890]',
-            isSm ? 'text-[9px]' : 'text-[10px]',
-          ].join(' ')}
-        >
-          ◆
-        </span>
-      </div>
-
-      {/* Wordmark */}
-      <div className="flex flex-col leading-none">
-        <span
-          className={[
-            'font-display tracking-[0.16em] text-[#f2eddf] transition-colors duration-300',
-            'group-hover:text-[#e2c890]',
-            isSm ? 'text-xl' : 'text-2xl lg:text-[1.65rem]',
-          ].join(' ')}
-        >
-          NEXOR
-        </span>
-        <span className="text-[7px] text-[#c9a55a] tracking-[0.5em] uppercase font-semibold -mt-0.5 opacity-75 group-hover:opacity-100 transition-opacity duration-300">
-          PADEL
-        </span>
-        {/* Hebrew premium line — desktop only */}
-        {!isSm && (
-          <span
-            className="hidden lg:block text-[#c9a55a] font-normal -mt-0.5 opacity-50"
-            style={{ fontSize: '9px', letterSpacing: '0.04em' }}
-            aria-hidden="true"
-          >
-            פאדל פרימיום
-          </span>
-        )}
-      </div>
-    </div>
+    <Image
+      src="/images/nexor-logo.webp"
+      alt="NEXOR Padel"
+      width={160}
+      height={160}
+      className={size === 'sm' ? 'h-10 w-auto' : 'h-11 w-auto sm:h-12 lg:h-[54px]'}
+      style={{ mixBlendMode: 'screen' }}
+      priority
+    />
   )
 }
 

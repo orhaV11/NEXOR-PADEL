@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Instagram, Youtube, ArrowLeft } from 'lucide-react'
 
 /* ── data ─────────────────────────────────────────────── */
@@ -116,31 +117,15 @@ export default function Footer() {
           <div className="sm:col-span-2 lg:col-span-1">
 
             {/* Logo mark */}
-            <Link href="/" className="group flex items-center gap-2.5 w-fit mb-7" aria-label="NEXOR Padel — דף הבית">
-              <div className="relative flex items-center justify-center w-9 h-9 shrink-0">
-                <div
-                  className="absolute inset-0 rotate-45 border transition-all duration-500
-                             border-[rgba(201,165,90,0.3)] bg-[rgba(201,165,90,0.07)]
-                             group-hover:border-[rgba(201,165,90,0.6)] group-hover:bg-[rgba(201,165,90,0.13)]"
-                />
-                <div
-                  className="absolute rotate-45 w-3.5 h-3.5 border transition-all duration-700
-                             border-[rgba(201,165,90,0.14)]"
-                />
-                <span className="relative text-[#c9a55a] text-[11px] font-black leading-none
-                                  group-hover:text-[#e2c890] transition-colors duration-300 select-none">
-                  ◆
-                </span>
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="font-display text-2xl tracking-[0.12em] text-[#f2eddf]
-                                  group-hover:text-[#e2c890] transition-colors duration-300">
-                  NEXOR
-                </span>
-                <span className="text-[7px] text-[#c9a55a] tracking-[0.5em] uppercase font-semibold -mt-0.5 opacity-75">
-                  PADEL
-                </span>
-              </div>
+            <Link href="/" className="w-fit mb-6 block" aria-label="NEXOR Padel — דף הבית">
+              <Image
+                src="/images/nexor-logo.webp"
+                alt="NEXOR Padel"
+                width={160}
+                height={160}
+                className="h-20 w-auto"
+                style={{ mixBlendMode: 'screen' }}
+              />
             </Link>
 
             {/* Tagline */}

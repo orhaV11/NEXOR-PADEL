@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -131,15 +132,17 @@ export default function Hero() {
             animate="visible"
             className="flex flex-col items-center lg:items-start text-center lg:text-start"
           >
-            {/* Eyebrow: NEXOR PADEL */}
+            {/* Brand logo mark */}
             <motion.div variants={itemVariants}>
-              <span className="section-label">
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-[#c9a55a] inline-block animate-pulse-soft"
-                  aria-hidden="true"
-                />
-                NEXOR PADEL
-              </span>
+              <Image
+                src="/images/nexor-logo.webp"
+                alt="NEXOR Padel"
+                width={200}
+                height={200}
+                className="h-20 sm:h-24 lg:h-28 w-auto mx-auto lg:mx-0 -mb-2"
+                style={{ mixBlendMode: 'screen' }}
+                priority
+              />
             </motion.div>
 
             {/* Headline line 1 — giant ivory display */}

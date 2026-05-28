@@ -1,0 +1,508 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─────────────────────────────────────── */
+@layer base {
+  html { scroll-behavior: smooth; color-scheme: dark; }
+
+  body {
+    direction: rtl;
+    background-color: #08080a;
+    color: #f2eddf;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgba(201,165,90,0.28);
+    color: #f2eddf;
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #08080a; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(201,165,90,0.18);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201,165,90,0.35); }
+
+  @media (max-width: 640px) {
+    .section-title {
+      font-size: clamp(1.9rem, 8vw, 3rem);
+    }
+    .btn-gold, .btn-outline {
+      padding: 0.8rem 1.5rem;
+      font-size: 0.65rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ─── Components ────────────────────────────────── */
+@layer components {
+
+  /* ── Buttons ── */
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 2rem;
+    background: linear-gradient(135deg, #b08840 0%, #e2c890 40%, #c9a55a 70%, #b08840 100%);
+    background-size: 250% 100%;
+    background-position: 0% 50%;
+    color: #08080a;
+    font-weight: 800;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    transition: background-position 0.5s ease, box-shadow 0.4s ease, transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .btn-gold:hover {
+    background-position: 100% 50%;
+    box-shadow: 0 0 40px rgba(201,165,90,0.3), 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .btn-gold:active { transform: scale(0.98); }
+  .btn-gold::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%);
+    background-size: 200% 100%;
+    background-position: 200% 0;
+    transition: background-position 0.5s ease;
+    pointer-events: none;
+  }
+  .btn-gold:hover::after {
+    background-position: -100% 0;
+  }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border: 1px solid rgba(201,165,90,0.28);
+    color: #c9a55a;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    transition: all 0.4s ease;
+    white-space: nowrap;
+    background: transparent;
+  }
+  .btn-outline:hover {
+    border-color: rgba(201,165,90,0.6);
+    background: rgba(201,165,90,0.06);
+    color: #e2c890;
+  }
+  .btn-outline:active { transform: scale(0.98); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    color: rgba(242,237,223,0.45);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    transition: color 0.3s ease;
+  }
+  .btn-ghost:hover { color: #f2eddf; }
+
+  /* ── Cards ── */
+  .luxury-card {
+    background: #0d0d10;
+    border: 1px solid rgba(201,165,90,0.1);
+    transition: border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+  .luxury-card:hover {
+    border-color: rgba(201,165,90,0.22);
+    box-shadow: 0 16px 56px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,165,90,0.12);
+  }
+
+  .glass {
+    background: rgba(13,13,16,0.75);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(201,165,90,0.1);
+  }
+
+  /* ── Typography ── */
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.875rem;
+    border: 1px solid rgba(201,165,90,0.22);
+    color: #c9a55a;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-weight: 900;
+    font-size: clamp(2.2rem, 4.5vw, 4rem);
+    line-height: 1.02;
+    color: #f2eddf;
+    letter-spacing: -0.02em;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
+  }
+
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #c9a55a 0%, #e2c890 50%, #c9a55a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Input ── */
+  .luxury-input {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,165,90,0.1);
+    color: #f2eddf;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    font-family: var(--font-heebo), Heebo, Arial, sans-serif;
+    transition: all 0.3s ease;
+    outline: none;
+  }
+  .luxury-input::placeholder { color: rgba(242,237,223,0.2); }
+  .luxury-input:focus {
+    border-color: rgba(201,165,90,0.38);
+    background: rgba(255,255,255,0.05);
+    box-shadow: 0 0 0 1px rgba(201,165,90,0.15), 0 0 20px rgba(201,165,90,0.06);
+  }
+
+  /* ── Product card ── */
+  .product-card {
+    background: #0d0d10;
+    border: 1px solid rgba(201,165,90,0.08);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.5s ease;
+    display: block;
+  }
+  .product-card:hover {
+    border-color: rgba(201,165,90,0.2);
+  }
+
+  /* ── Dividers ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,165,90,0.18), transparent);
+  }
+  .divider-subtle {
+    height: 1px;
+    background: rgba(242,237,223,0.06);
+  }
+
+  /* ── Background grid ── */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(201,165,90,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,165,90,0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* ── LTR isolation for numbers/prices ── */
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  /* ── Noise overlay ── */
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.018;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* ── Gold accent line ── */
+  .gold-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c9a55a, transparent);
+    opacity: 0.3;
+  }
+
+  /* ── Nav hover underline ── */
+  .nav-link {
+    position: relative;
+    color: rgba(242,237,223,0.5);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    transition: color 0.3s ease;
+    padding: 0.25rem 0;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: 0;
+    left: 0;
+    height: 1px;
+    background: #c9a55a;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  .nav-link:hover { color: #f2eddf; }
+  .nav-link:hover::after,
+  .nav-link.active::after { transform: scaleX(1); }
+  .nav-link.active { color: #c9a55a; }
+
+  /* ── Badge ── */
+  .badge-gold {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.625rem;
+    background: rgba(201,165,90,0.12);
+    border: 1px solid rgba(201,165,90,0.25);
+    color: #c9a55a;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .badge-new {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.625rem;
+    background: #f2eddf;
+    color: #08080a;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .badge-sale {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.625rem;
+    background: #c9a55a;
+    color: #08080a;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Scrollbar for horizontal scroll ── */
+  .scroll-x {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-x::-webkit-scrollbar { display: none; }
+
+  /* ── Shimmer animation for loading/hover ── */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(201,165,90,0.12) 50%, transparent 65%);
+    background-size: 200% 100%;
+    animation: shimmer-sweep 2.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* ── Page enter animation ── */
+  .page-enter {
+    animation: page-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  /* ── Magnetic button base ── */
+  .btn-magnetic {
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    will-change: transform;
+  }
+
+  /* ── Number display (prices) ── */
+  .price {
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Luxury card with glass sheen on hover ── */
+  .luxury-card-shine {
+    background: #0d0d10;
+    border: 1px solid rgba(201,165,90,0.1);
+    transition: border-color 0.5s ease, box-shadow 0.5s ease, transform 0.4s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .luxury-card-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,165,90,0.04) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .luxury-card-shine:hover::before { opacity: 1; }
+  .luxury-card-shine:hover {
+    border-color: rgba(201,165,90,0.22);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,165,90,0.1);
+    transform: translateY(-2px);
+  }
+
+  /* ── RTL-aware focus ring ── */
+  .focus-gold:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(201,165,90,0.5);
+  }
+
+  /* ── Text truncate with fade ── */
+  .text-fade-end {
+    -webkit-mask-image: linear-gradient(to left, transparent, black 20%);
+    mask-image: linear-gradient(to left, transparent, black 20%);
+  }
+
+  /* ── Horizontal rule with gold center dot ── */
+  .hr-diamond {
+    position: relative;
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,165,90,0.15), transparent);
+  }
+  .hr-diamond::before {
+    content: '◆';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(201,165,90,0.4);
+    font-size: 8px;
+    background: #08080a;
+    padding: 0 8px;
+  }
+
+  /* Glass morphism card */
+  .glass-card {
+    background: rgba(13,13,16,0.7);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(201,165,90,0.12);
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .glass-card:hover {
+    border-color: rgba(201,165,90,0.28);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,165,90,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  /* Playfair display font class */
+  .font-playfair {
+    font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  }
+
+  /* Gold border gradient on focus/hover */
+  .border-gold-gradient {
+    border: 1px solid transparent;
+    background-image: linear-gradient(#0d0d10, #0d0d10), linear-gradient(135deg, rgba(201,165,90,0.5), rgba(226,200,144,0.5));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  /* Premium section separator with diamond */
+  .section-sep {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 3rem 0;
+  }
+  .section-sep::before,
+  .section-sep::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,165,90,0.2));
+  }
+  .section-sep::after {
+    background: linear-gradient(270deg, transparent, rgba(201,165,90,0.2));
+  }
+
+  /* Gold top border accent for cards */
+  .card-gold-top {
+    position: relative;
+  }
+  .card-gold-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    inset-x: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,165,90,0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .card-gold-top:hover::before { opacity: 1; }
+
+  /* Floating gold glow orb background */
+  .gold-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+
+  /* Elegant text reveal clip */
+  .text-clip-gold {
+    background: linear-gradient(135deg, #9a7230 0%, #e2c890 30%, #c9a55a 55%, #f5d98a 72%, #c9a55a 85%, #9a7230 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gold-shimmer 4s linear infinite;
+  }
+
+  /* Subtle inset glow on dark panels */
+  .inset-glow {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.3);
+  }
+
+  /* Number counter display */
+  .stat-number {
+    font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
+    background: linear-gradient(135deg, #c9a55a 0%, #e2c890 50%, #c9a55a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

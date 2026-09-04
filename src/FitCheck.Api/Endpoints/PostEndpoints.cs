@@ -27,6 +27,8 @@ public static class PostEndpoints
         posts.MapPost("/{id:guid}/save", SaveAsync).RequireAuthorization();
         posts.MapDelete("/{id:guid}/save", UnsaveAsync).RequireAuthorization();
         posts.MapPost("/{id:guid}/report", ReportAsync).RequireAuthorization();
+        posts.MapPost("/{id:guid}/feature", FeatureAsync).RequireAuthorization();
+        posts.MapDelete("/{id:guid}/feature", UnfeatureAsync).RequireAuthorization();
         posts.MapGet("/{id:guid}/comments", ListCommentsAsync);
         posts.MapPost("/{id:guid}/comments", AddCommentAsync).RequireAuthorization();
 
@@ -156,6 +158,24 @@ public static class PostEndpoints
             });
         }
 
+        // #tags and @mentions are parsed here, never taken from the client: they become the rows that tag pages,
+        // community tabs and Explore query. Unknown handles stay plain text, and mentioning yourself is not a mention.
+        foreach (var tag in CaptionParser.Tags(caption))
+        {
+            db.PostTags.Add(new PostTag { PostId = post.Id, Tag = tag });
+        }
+
+        var handles = CaptionParser.Mentions(caption).Select(h => h.ToLowerInvariant()).ToList();
+        if (handles.Count > 0)
+        {
+            var mentioned = await db.Users.Where(u => handles.Contains(u.HandleLower) && u.Id != me.Id).Select(u => u.Id).ToListAsync(ct);
+            foreach (var userId in mentioned)
+            {
+                db.PostMentions.Add(new PostMention { PostId = post.Id, UserId = userId });
+                await notifier.AddOnceAsync(userId, NotificationType.Mention, me.Handle, post.Id, null, ct);
+            }
+        }
+
         if (challenge is not null && challenge.BrandId != me.Id)
         {
             notifier.Add(challenge.BrandId, NotificationType.Entry, me.Handle, post.Id, challenge.Id);
@@ -250,6 +270,8 @@ public static class PostEndpoints
         await db.ChallengeVotes.Where(v => v.PostId == id).ExecuteDeleteAsync(ct);
         await db.Reports.Where(r => r.PostId == id).ExecuteDeleteAsync(ct);
         await db.ProductLinks.Where(l => l.PostId == id).ExecuteDeleteAsync(ct);
+        await db.PostTags.Where(t => t.PostId == id).ExecuteDeleteAsync(ct);
+        await db.PostMentions.Where(m => m.PostId == id).ExecuteDeleteAsync(ct);
         // Nothing may keep pointing at a post that is gone: activity rows would link to a 404, a challenge to no winner.
         await db.Notifications.Where(n => n.PostId == id).ExecuteDeleteAsync(ct);
         await db.Challenges.Where(c => c.WinnerPostId == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
@@ -412,6 +434,96 @@ public static class PostEndpoints
 
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
+    }
+
+    /// <summary>
+    /// A brand puts its name on a look that mentioned it or entered one of its challenges. One brand per look,
+    /// first come; the author hears about it once.
+    /// </summary>
+    private static async Task<IResult> FeatureAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var lang = me.PreferredLanguage;
+        if (me.AccountType != AccountType.Brand)
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(lang, "error.brand_only"));
+        }
+
+        var post = await db.Posts.FindAsync([id], ct);
+        if (post is null || post.Hidden)
+        {
+            return Error(StatusCodes.Status404NotFound, localizer.Get(lang, "error.post_not_found"));
+        }
+
+        var state = new FeatureStateDto(PostReader.Ref(me));
+        if (post.FeaturedByBrandId == me.Id)
+        {
+            return Results.Json(state, AppJson.Options);   // a second tap asks for the state the look already has
+        }
+
+        var mentioned = await db.PostMentions.AnyAsync(m => m.PostId == id && m.UserId == me.Id, ct);
+        var entered = post.ChallengeId is Guid challengeId && await db.Challenges.AnyAsync(c => c.Id == challengeId && c.BrandId == me.Id, ct);
+        if (!mentioned && !entered)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.feature_not_allowed"));
+        }
+
+        if (post.FeaturedByBrandId is not null)
+        {
+            return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_featured"));
+        }
+
+        Guid? brandId = me.Id;
+        DateTime? now = DateTime.UtcNow;
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // The mark is written only while nobody holds it, so two brands tapping together cannot both win.
+        var claimed = await db.Posts.Where(p => p.Id == id && p.FeaturedByBrandId == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.FeaturedByBrandId, brandId).SetProperty(p => p.FeaturedAt, now), ct);
+        if (claimed == 0)
+        {
+            return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_featured"));
+        }
+
+        if (post.UserId != me.Id)
+        {
+            await notifier.AddOnceAsync(post.UserId, NotificationType.Featured, me.Handle, post.Id, null, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Results.Json(state, AppJson.Options);
+    }
+
+    /// <summary>Only the account that featured the look can take its name off it. Undoing twice is not an error.</summary>
+    private static async Task<IResult> UnfeatureAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var lang = me.PreferredLanguage;
+        var post = await db.Posts.Where(p => p.Id == id).Select(p => new { p.FeaturedByBrandId }).FirstOrDefaultAsync(ct);
+        if (post is null)
+        {
+            return Error(StatusCodes.Status404NotFound, localizer.Get(lang, "error.post_not_found"));
+        }
+
+        if (post.FeaturedByBrandId is Guid other && other != me.Id)
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(lang, "error.not_featured_by_you"));
+        }
+
+        // Cleared only while it is still ours; a look nobody features is already the state asked for.
+        await db.Posts.Where(p => p.Id == id && p.FeaturedByBrandId == me.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.FeaturedByBrandId, (Guid?)null).SetProperty(p => p.FeaturedAt, (DateTime?)null), ct);
+        return Results.Json(new FeatureStateDto(null), AppJson.Options);
     }
 
     private static async Task<IResult> ListCommentsAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)

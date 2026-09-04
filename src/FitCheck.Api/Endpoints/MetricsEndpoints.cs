@@ -44,7 +44,10 @@ public static class MetricsEndpoints
             ChallengesOpen: await db.Challenges.CountAsync(c => c.EndsAt > now, ct),
             ChallengesEnded: await db.Challenges.CountAsync(c => c.EndsAt <= now, ct),
             Votes: await db.ChallengeVotes.CountAsync(ct),
-            ActiveUsers7d: active.Count);
+            ActiveUsers7d: active.Count,
+            // Mentions live on their posts, so a hidden look takes its mentions out of the count with it.
+            Mentions: await db.PostMentions.CountAsync(m => db.Posts.Any(p => p.Id == m.PostId && !p.Hidden), ct),
+            Featured: await db.Posts.CountAsync(p => !p.Hidden && p.FeaturedByBrandId != null, ct));
 
         return Results.Ok(metrics with { Social = social });
     }

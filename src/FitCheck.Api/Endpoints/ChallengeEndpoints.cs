@@ -84,6 +84,20 @@ public static class ChallengeEndpoints
             DateTime.SpecifyKind(challenge.CreatedAt, DateTimeKind.Utc));
     }
 
+    /// <summary>Cards for a list of challenges, in the order given, with the top three entries each. Shared with Explore.</summary>
+    public static async Task<List<ChallengeDto>> ToDtosAsync(
+        AppDbContext db, PostReader reader, List<Challenge> challenges, Guid? viewerId, DateTime now, CancellationToken ct)
+    {
+        var loaded = await LoadAsync(db, reader, challenges, viewerId, ct);
+        var dtos = new List<ChallengeDto>(challenges.Count);
+        foreach (var challenge in challenges)
+        {
+            dtos.Add(await ToDtoAsync(challenge, loaded, reader, viewerId, now, 3, ct));
+        }
+
+        return dtos;
+    }
+
     private static async Task<IResult> ListAsync(
         HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, string? state, CancellationToken ct)
     {
@@ -99,14 +113,7 @@ public static class ChallengeEndpoints
             await ChallengeResolver.ResolveIfEndedAsync(db, notifier, challenge, now, ct);
         }
 
-        var loaded = await LoadAsync(db, reader, challenges, viewerId, ct);
-        var dtos = new List<ChallengeDto>(challenges.Count);
-        foreach (var challenge in challenges)
-        {
-            dtos.Add(await ToDtoAsync(challenge, loaded, reader, viewerId, now, 3, ct));
-        }
-
-        return Results.Json(dtos, AppJson.Options);
+        return Results.Json(await ToDtosAsync(db, reader, challenges, viewerId, now, ct), AppJson.Options);
     }
 
     private static async Task<IResult> GetAsync(

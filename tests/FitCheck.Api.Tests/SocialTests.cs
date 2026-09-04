@@ -120,7 +120,7 @@ public class SocialTests : IClassFixture<TestApp>
         await a.PostAsync($"/api/posts/{p2}/fire", null);
         await reader.PostAsync("/api/users/feed_a/follow", null);
 
-        var fresh = await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/feed?limit=30");
+        var fresh = await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/feed?tab=fresh&limit=30");
         var freshIds = fresh.GetProperty("items").EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
         Assert.Equal(0, freshIds.IndexOf(p3));
         Assert.True(freshIds.IndexOf(p3) < freshIds.IndexOf(p2) && freshIds.IndexOf(p2) < freshIds.IndexOf(p1));

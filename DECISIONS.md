@@ -1,0 +1,145 @@
+# DECISIONS.md — FitCheck Phase 1
+
+Every judgment call made while building, in the order it came up. The brief wins over instinct;
+objections are noted, not acted on.
+
+## Plan (written before building)
+
+1. Scaffold `src/FitCheck.Api` (ASP.NET Core 8, Minimal APIs) + `tests/FitCheck.Api.Tests` (xUnit) in this repo.
+2. Domain models, options, `AppDbContext` (SQLite, `EnsureCreated`, index on `(UserId, CreatedAt)`).
+3. `IImageStore` + `DiskImageStore` with magic-byte detection (JPEG/PNG/WebP), private storage root.
+4. `IOutfitVisionClient` + `AnthropicVisionClient` (raw `HttpClient`, forced tool call, 60s timeout, one retry).
+5. `OutfitAnalyzer`: prompt, schema, intent guide, `PromptVersion`, mapping + clamping.
+6. Endpoints: users, checks (multipart, caps, 413/415/429/502), metrics. `Localizer` for server messages.
+7. Client `wwwroot/index.html` (vanilla, mobile-first) + `i18n/en.json`, `i18n/he.json`, RTL via logical properties.
+8. Tests per §11, then README. Build + test after each step. Commit as steps land.
+
+## Decisions
+
+### Repository and toolchain
+
+- **Built in NEXOR-PADEL.** Two repositories were in scope. This one was an empty initial commit; the other
+  is a running React/Vite product with its own stack. A fresh .NET solution belongs in the empty one.
+- **.NET SDK 8.0.130 from the Ubuntu apt repository.** The official `dot.net` install script is blocked
+  by the build environment's egress policy. Any 8.0.x SDK builds this project.
+- **Test packages:** xunit 2.9.3, xunit.runner.visualstudio 3.1.5, Microsoft.NET.Test.Sdk 17.14.1,
+  Microsoft.AspNetCore.Mvc.Testing 8.0.30 (latest 8.x line, matching EF Core Sqlite 8.0.30).
+- **`TreatWarningsAsErrors` on** in the API project. Small project; a warning today is a bug next month.
+
+### Model and API call
+
+- **Model `claude-sonnet-5`.** The brief asks for a current Sonnet-class model. Verified against the
+  current model table in the Claude API reference (cached 2026-06). Forced tool use (`tool_choice:
+  {type:"tool"}`) is supported on Sonnet 5, Opus 5, the 4.x family and Haiku 4.5; it returns 400 on
+  Fable 5.1 / Mythos 5.1, so those are not candidates for `Anthropic:Model` without changing the client.
+- **`thinking: {type: "disabled"}` sent explicitly.** On Sonnet 5 an omitted `thinking` field runs
+  adaptive thinking, and `max_tokens` is shared between thinking and the tool call. A ~1000-token budget
+  could be eaten by reasoning and truncate the JSON. A 10-second outfit check does not need reasoning
+  tokens; if calibration quality turns out to need them, raise `MaxTokens` and switch to
+  `{type: "adaptive"}` in `AnthropicVisionClient.BuildBody`.
+- **`MaxTokens` 1200, not ~900.** Hebrew is token-dense and the Sonnet 5 tokenizer uses ~30% more tokens
+  than the previous generation. 900 risked a truncated tool call in Hebrew; 1200 is still tiny. Configurable.
+- **Retry once on 429 and 5xx only, 1.5 s backoff.** Timeouts and connection failures are not retried:
+  a second 60 s wait would turn a slow failure into a two-minute one. The user gets a 502 and retries.
+- **API-level refusal (`stop_reason: "refusal"`) maps to `rejected`, not `error`.** If the safety layer
+  declines the image, telling the user to "try again" would be wrong; the neutral rejection state is right.
+- **The API key is read from the environment at call time,** never from configuration, so it cannot end
+  up in `appsettings*.json`. Startup logs a warning when it is missing.
+
+### Data and storage
+
+- **Feedback JSON is stored camelCase,** the same shape the API returns, so reading a check back is a plain
+  deserialize. The snake_case policy applies only when mapping the model's tool payload.
+- **`ImagePath` becomes `""` when the file is removed** rather than a nullable column. The column is
+  non-null in the brief's model; an empty string reads as "no photo" without a schema change.
+- **Which rows keep their photo:** `ok` keeps it (future closet memory). `not_outfit`, `rejected` and
+  `error` delete the file immediately: there is no outfit to remember, and fewer private photos on disk
+  is strictly better. `rejected` stores nothing but the status and the request metadata (intent,
+  language, latency); no feedback, no score, and the model's own message is never returned or stored.
+  The client shows a server-side neutral message in the check's language instead.
+- **`not_outfit` keeps the model's friendly message** so the client can show a specific hint ("this looks
+  like a desk").
+- **Intent is stored as text,** not an int, so a SQLite browser shows `Date` rather than `1`.
+- **Storage root resolves against the content root,** not the working directory, so `dotnet run` from
+  anywhere lands photos in the same private folder. Absolute paths are honoured for deployments.
+- **Cascade delete plus explicit deletes.** The FK cascades, but `DELETE /api/users/{id}` deletes files
+  first, then checks, then the user, so a failure mid-way leaves something the user can retry rather than
+  orphaned photos with no owner.
+
+### Endpoints
+
+- **Rate cap counts every stored check except `error`.** A model outage must not eat the user's
+  allowance, while `not_outfit` and `rejected` did cost a model call and do count. The 429 carries a
+  `Retry-After` header computed from the oldest counted check. Two simultaneous uploads from one user can
+  both pass the check; acceptable for a 50-person pilot, noted in the README.
+- **Wrong owner on `GET /api/checks/{id}` is a 404, not a 403,** so ids do not leak existence.
+- **Unknown `language` on `POST /api/users` falls back** (Accept-Language, then English) instead of
+  failing: the client always sends a shipped locale, and a stale value should not block sign-up.
+  `PATCH` with an unsupported language is a 400 because it is an explicit request to switch.
+- **Missing `language` on `POST /api/checks` uses the user's preference.** Every check must carry a
+  language; the user record is the sensible default.
+- **Validation order on `POST /api/checks`:** body size, form parse, user, language, intent, occasion,
+  image present, image size, magic bytes, daily cap, then the model. The cap is checked after format
+  validation so a user at the cap still learns about a broken file, and before saving anything.
+- **413 is enforced three ways:** `Content-Length` up front, the multipart body limit, and the file
+  length after parsing. Kestrel's per-request body limit is set on the endpoint so a huge body is cut at
+  the transport rather than buffered.
+- **`scoreDistribution` always carries keys 1–10.** A stable shape charts better than sparse keys; the
+  brief's example only illustrated the format.
+- **Metrics are computed in memory** from the OK rows (six narrow columns). At pilot scale this is a few
+  thousand rows and keeps the second-check math readable and unit-testable (`MetricsEndpoints.Compute`).
+- **`GET /api/users/{id}/checks` returns all statuses;** the client filters to OK for history. Error and
+  rejected rows being visible to the owner is useful when debugging a pilot user's report.
+- **Unhandled exceptions return the same `{ error }` shape** in the caller's language, so the client has
+  one error path.
+
+### Client
+
+- **Available locales are a one-line constant in `index.html`** (`AVAILABLE_LOCALES`) plus one JSON file
+  each. Each file carries `meta.name` (native name for the switcher) and `meta.dir`. The brief says
+  "adding a locale = adding one JSON file"; the constant is the one extra line, needed so the switcher can
+  list locales before loading them.
+- **Both locale files load at startup** (two small requests) so the switcher shows native names
+  immediately. Fine for 2 locales; lazy-load when there are 10.
+- **Feedback keeps the language it was written in.** Switching the UI language re-renders labels, dates
+  and intent names but never the model text. The check's `language` field is the record of that.
+- **Fonts:** Heebo (body) and Karantina (display, the score numeral) from Google Fonts with system
+  fallbacks. Both cover Latin and Hebrew. If the font host is unreachable the page still renders.
+- **The score is wrapped in `dir="ltr"`** so "7/10" reads the same in Hebrew. Everything else mirrors via
+  logical properties.
+- **A "Delete my account and photos" text button** sits at the bottom of the check screen. The brief only
+  requires the endpoint, but pilot users must be able to exercise their deletion right without asking us.
+- **Client-side downscale:** max edge 1280 px, JPEG quality 0.85, via `createImageBitmap` with
+  `imageOrientation: 'from-image'`; on any failure the original file is sent and the server's 6 MB cap
+  still applies. The uploaded file is always named `outfit.jpg`; the server ignores the name and content
+  type and reads magic bytes.
+- **The client sends `Accept-Language` with the active locale** on every request, so server error
+  messages match the UI even if the user record lags.
+- **Web Share with clipboard fallback,** and a `prompt()` as the last resort on browsers that block both.
+- **A 404 for the user (account deleted elsewhere or database reset) resets the session** to onboarding
+  instead of showing an error the user cannot fix.
+- **Hebrew copy uses infinitive and neutral forms** ("להתחיל", "שווה לנסות", "אני בגיל 16 ומעלה") to avoid
+  gendered imperatives, matching the style note given to the model.
+
+### Testing and verification
+
+- **The vision client is faked at the `IOutfitVisionClient` seam** in the xUnit suite (scripted tool
+  payloads, recorded requests) and the real `AnthropicVisionClient` is exercised end to end against a
+  stub HTTP server that validates the request shape (headers, forced tool choice, base64 image block) and
+  answers 529 once to prove the retry. The browser flow was driven with Playwright/Chromium in a phone
+  viewport with `he-IL` as the browser language: auto-detect, RTL, switch to English without reload,
+  onboarding, upload with downscale, loading state, result in both languages, history, not-outfit state,
+  photo privacy by URL, deletion.
+- **Not verified here: real-model calibration** (the "scores are not all 7–8 on 10 varied photos" item).
+  No API key was available in the build environment. `scripts/calibrate.sh` is provided and the README
+  tells the operator to run it before inviting people, bumping `PromptVersion` if the spread is poor.
+
+### Objections kept out of the code (brief wins)
+
+- **The user id as the only credential** is the biggest risk in the pilot: anyone with the id can read,
+  post and delete. Documented prominently in the README as the brief asks; a signed cookie would have been
+  a small addition but is "real authentication", which is Phase 2.
+- **A 60 s model timeout** contradicts the 10-second promise. Kept per brief; in practice Sonnet 5 with
+  thinking disabled answers in a few seconds and the loading screen is honest about waiting.
+- **The metrics endpoint is public.** No auth exists in Phase 1, and the endpoint is aggregate-only; the
+  README says to protect it before the URL leaves the team.

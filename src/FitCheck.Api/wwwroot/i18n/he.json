@@ -1,0 +1,69 @@
+{
+  "meta.name": "עברית",
+  "meta.dir": "rtl",
+
+  "app.name": "FitCheck",
+  "app.tagline": "בדיקת לוק ב-10 שניות",
+  "lang.label": "שפה",
+
+  "onboarding.title": "הלוק הזה מתאים לאן שהוא הולך?",
+  "onboarding.intro": "בוחרים כוונה, מוסיפים תמונה, ומקבלים ציון, פירוט של הפריטים והשינוי האחד ששווה לעשות היום.",
+  "onboarding.handle": "כינוי",
+  "onboarding.handle_hint": "2 עד 40 תווים. רק שם כדי להגיד שלום.",
+  "onboarding.age": "אני בגיל 16 ומעלה.",
+  "onboarding.privacy": "הבדיקות פרטיות. התמונות לא מוצגות לאף אחד.",
+  "onboarding.start": "להתחיל",
+
+  "check.title": "לאן הלוק הזה הולך?",
+  "check.intent_label": "כוונה",
+  "check.occasion_label": "אירוע (לא חובה)",
+  "check.occasion_placeholder": "ארוחת ערב עם חברים, יום ראשון בעבודה חדשה…",
+  "check.photo_add": "להוסיף תמונה",
+  "check.photo_hint": "לחיצה כדי לצלם או לבחור תמונה",
+  "check.photo_replace": "לחיצה כדי להחליף את התמונה",
+  "check.submit": "לבדוק את הלוק",
+
+  "intent.Casual": "קז'ואל",
+  "intent.Date": "דייט",
+  "intent.Streetwear": "סטריטוור",
+  "intent.OldMoney": "אולד מאני",
+  "intent.Minimal": "מינימלי",
+  "intent.Office": "משרד",
+  "intent.Party": "מסיבה",
+  "intent.Sport": "ספורט",
+
+  "loading.line": "הסטייליסט מסתכל.",
+
+  "result.out_of": "/10",
+  "result.intent_match": "נקרא כ{intent}",
+  "result.items": "מה יש בלוק",
+  "result.working": "מה עובד",
+  "result.tip": "הטיפ האחד",
+  "result.share": "לשתף",
+  "result.share_text": "הלוק שלי קיבל {score}/10 בקטגוריית {intent} ב-FitCheck. הטיפ האחד: {tip}",
+  "result.copied": "הועתק ללוח",
+  "result.again": "לבדוק לוק נוסף",
+  "result.not_outfit_title": "זה לא נראה כמו לוק",
+  "result.not_outfit_body": "שווה לנסות תמונה שבה הבגדים נראים בבירור, רצוי בגובה מלא ובאור טוב.",
+  "result.rejected_title": "אי אפשר לבדוק את התמונה הזו",
+  "result.rejected_body": "שווה לנסות תמונה אחרת של לוק.",
+  "result.try_again": "לנסות תמונה אחרת",
+
+  "verdict.works": "עובד",
+  "verdict.neutral": "ניטרלי",
+  "verdict.weak": "חלש",
+
+  "history.title": "הבדיקות הקודמות שלך",
+  "history.empty": "הבדיקות שלך יופיעו כאן.",
+
+  "account.delete": "למחוק את החשבון ואת כל התמונות",
+  "account.delete_confirm": "למחוק את החשבון, את כל הבדיקות ואת כל התמונות? אי אפשר לבטל את זה.",
+
+  "error.network": "לא הצלחנו להתחבר ל-FitCheck. שווה לבדוק את החיבור ולנסות שוב.",
+  "error.generic": "משהו השתבש. שווה לנסות שוב.",
+  "error.image_read": "לא הצלחנו לקרוא את התמונה. שווה לנסות אחרת.",
+
+  "a11y.score": "ציון {score} מתוך 10",
+  "a11y.photo_preview": "תמונת הלוק שלך",
+  "a11y.intent_group": "לאן הלוק הולך"
+}

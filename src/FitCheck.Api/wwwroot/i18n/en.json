@@ -1,0 +1,69 @@
+{
+  "meta.name": "English",
+  "meta.dir": "ltr",
+
+  "app.name": "FitCheck",
+  "app.tagline": "A 10-second outfit check",
+  "lang.label": "Language",
+
+  "onboarding.title": "Is this outfit right for where it's going?",
+  "onboarding.intro": "Pick the intent, add a photo, and get a score, a breakdown of what you're wearing, and the one change worth making today.",
+  "onboarding.handle": "Your handle",
+  "onboarding.handle_hint": "2 to 40 characters. Just a name to say hello.",
+  "onboarding.age": "I'm 16 or older.",
+  "onboarding.privacy": "Checks are private. Photos are never shown to anyone.",
+  "onboarding.start": "Get started",
+
+  "check.title": "Where is this outfit going?",
+  "check.intent_label": "Intent",
+  "check.occasion_label": "Occasion (optional)",
+  "check.occasion_placeholder": "Dinner with friends, first day at a new job…",
+  "check.photo_add": "Add a photo",
+  "check.photo_hint": "Tap to take or choose a photo",
+  "check.photo_replace": "Tap to replace the photo",
+  "check.submit": "Check my outfit",
+
+  "intent.Casual": "Casual",
+  "intent.Date": "Date",
+  "intent.Streetwear": "Streetwear",
+  "intent.OldMoney": "Old money",
+  "intent.Minimal": "Minimal",
+  "intent.Office": "Office",
+  "intent.Party": "Party",
+  "intent.Sport": "Sport",
+
+  "loading.line": "The stylist is looking.",
+
+  "result.out_of": "/10",
+  "result.intent_match": "Reads as {intent}",
+  "result.items": "What you're wearing",
+  "result.working": "What works",
+  "result.tip": "The one tip",
+  "result.share": "Share",
+  "result.share_text": "My outfit scored {score}/10 for {intent} on FitCheck. The one tip: {tip}",
+  "result.copied": "Copied to your clipboard",
+  "result.again": "Check another",
+  "result.not_outfit_title": "That doesn't look like an outfit",
+  "result.not_outfit_body": "Try a photo where the clothes are clearly visible, ideally full length in good light.",
+  "result.rejected_title": "We can't check this photo",
+  "result.rejected_body": "Try a different photo of an outfit.",
+  "result.try_again": "Try another photo",
+
+  "verdict.works": "Works",
+  "verdict.neutral": "Neutral",
+  "verdict.weak": "Weak",
+
+  "history.title": "Your previous checks",
+  "history.empty": "Your checks will show up here.",
+
+  "account.delete": "Delete my account and photos",
+  "account.delete_confirm": "Delete your account, every check and every photo? This can't be undone.",
+
+  "error.network": "Couldn't reach FitCheck. Check your connection and try again.",
+  "error.generic": "Something went wrong. Please try again.",
+  "error.image_read": "Couldn't read that photo. Try another one.",
+
+  "a11y.score": "Score {score} out of 10",
+  "a11y.photo_preview": "Your outfit photo",
+  "a11y.intent_group": "Where the outfit is going"
+}

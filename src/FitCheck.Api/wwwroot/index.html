@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <title>FitCheck</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2712%27 fill=%27%230a3bd6%27/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Karantina:wght@700&display=swap" rel="stylesheet">
+  <style>
+    /*
+      One memorable element (the score), everything else quiet.
+      Monochrome base, one cobalt accent. Logical properties only, so Hebrew (rtl) mirrors for free.
+    */
+    :root {
+      --ink: #111111;
+      --ink-2: #4d4d4d;
+      --ink-3: #8c8c8c;
+      --line: #d6d6d6;
+      --paper: #ffffff;
+      --paper-2: #f3f3f3;
+      --accent: #0a3bd6;
+      --radius: 12px;
+      --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Noto Sans Hebrew", sans-serif;
+      --font-display: "Karantina", "Heebo", "Arial Narrow", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.45;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, p, ul, ol, figure { margin: 0; }
+    ul, ol { padding: 0; list-style: none; }
+    button, input, select { font: inherit; color: inherit; }
+    img { display: block; max-inline-size: 100%; }
+    [hidden] { display: none !important; }
+
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+    .sr-only {
+      position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap;
+    }
+
+    .top {
+      max-inline-size: 520px;
+      margin-inline: auto;
+      padding-block: 14px 8px;
+      padding-inline: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      font-family: var(--font-display);
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      color: var(--ink);
+    }
+    .lang select {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      padding-block: 6px;
+      padding-inline: 14px;
+      font-size: 15px;
+      min-block-size: 36px;
+    }
+
+    main {
+      max-inline-size: 520px;
+      margin-inline: auto;
+      padding-inline: 20px;
+      padding-block: 8px 56px;
+    }
+    .screen > * + * { margin-block-start: 20px; }
+
+    h1 { font-size: 30px; line-height: 1.15; font-weight: 700; }
+    h2 { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+    .lede { color: var(--ink-2); }
+    .hint { font-size: 14px; color: var(--ink-3); margin-block-start: 6px; }
+
+    .field label { display: block; font-size: 15px; font-weight: 500; margin-block-end: 6px; }
+    .field input[type="text"] {
+      inline-size: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      padding-block: 12px;
+      padding-inline: 14px;
+      min-block-size: 48px;
+    }
+    .field input[type="text"]::placeholder { color: var(--ink-3); }
+
+    .checkline { display: flex; align-items: flex-start; gap: 12px; }
+    .checkline input[type="checkbox"] {
+      inline-size: 22px; block-size: 22px; margin: 2px 0 0; flex: none; accent-color: var(--accent);
+    }
+    .checkline span { display: block; }
+    .checkline .hint { margin-block-start: 2px; }
+
+    .btn {
+      inline-size: 100%;
+      min-block-size: 52px;
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--ink);
+      color: var(--paper);
+      font-weight: 500;
+      padding-inline: 18px;
+      cursor: pointer;
+    }
+    .btn:disabled { background: var(--paper-2); border-color: var(--paper-2); color: var(--ink-3); cursor: default; }
+    .btn-secondary { background: var(--paper); color: var(--ink); }
+    .btn-text {
+      background: none; border: 0; padding: 0; color: var(--ink-2); text-decoration: underline;
+      text-underline-offset: 3px; cursor: pointer; font-size: 15px;
+    }
+    .row { display: flex; gap: 12px; }
+    .row > .btn { flex: 1; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      padding-block: 9px;
+      padding-inline: 16px;
+      min-block-size: 40px;
+      cursor: pointer;
+    }
+    .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+    .photo {
+      position: relative;
+      inline-size: 100%;
+      aspect-ratio: 4 / 5;
+      border: 1px dashed var(--ink-3);
+      border-radius: var(--radius);
+      background: var(--paper-2);
+      padding: 0;
+      overflow: hidden;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+    .photo.has-image { border-style: solid; border-color: var(--line); background: var(--ink); }
+    .photo img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+    .photo .photo-empty { padding: 24px; }
+    .photo .photo-empty strong { display: block; font-weight: 500; }
+    .photo .photo-replace {
+      position: absolute;
+      inset-block-end: 12px;
+      inset-inline-start: 12px;
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 999px;
+      padding-block: 6px;
+      padding-inline: 12px;
+      font-size: 14px;
+    }
+
+    .alert {
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding-block: 12px;
+      padding-inline: 14px;
+      color: var(--ink);
+    }
+
+    .loading { min-block-size: 50vh; display: grid; place-items: center; text-align: center; }
+    .loading p { font-size: 22px; color: var(--ink-2); }
+    .loading-mark {
+      inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--accent);
+      margin-inline: auto; margin-block-end: 18px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+    .hero { display: flex; align-items: baseline; gap: 6px; direction: ltr; }
+    .score {
+      font-family: var(--font-display);
+      font-size: clamp(132px, 42vw, 196px);
+      line-height: 0.85;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    .score-out { font-family: var(--font-display); font-size: 44px; color: var(--ink-3); font-weight: 700; }
+    .headline { font-size: 26px; font-weight: 700; line-height: 1.2; }
+    .vibe { color: var(--ink-2); margin-block-start: 6px; }
+
+    .match { display: block; }
+    .match-label { display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-2); margin-block-end: 8px; }
+    .bar { block-size: 6px; background: var(--paper-2); border-radius: 999px; overflow: hidden; }
+    .bar-fill { block-size: 100%; inline-size: 0; background: var(--accent); border-radius: 999px; transition: inline-size 700ms ease-out; }
+
+    .items li { display: flex; align-items: flex-start; gap: 12px; padding-block: 10px; border-block-end: 1px solid var(--paper-2); }
+    .items li:last-child { border-block-end: 0; }
+    .dot { flex: none; inline-size: 12px; block-size: 12px; border-radius: 50%; border: 2px solid var(--ink); margin-block-start: 7px; }
+    .dot.works { background: var(--ink); }
+    .dot.neutral { background: transparent; }
+    .dot.weak { background: var(--accent); border-color: var(--accent); }
+    .item-name { font-weight: 500; }
+    .item-note { color: var(--ink-2); font-size: 15px; }
+    .item-verdict { font-size: 14px; color: var(--ink-3); margin-inline-start: 8px; font-weight: 400; }
+
+    .working li { position: relative; padding-inline-start: 18px; padding-block: 4px; }
+    .working li::before {
+      content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 14px;
+      inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--ink);
+    }
+
+    .tip { border-inline-start: 4px solid var(--accent); padding-inline-start: 16px; padding-block: 4px; }
+    .tip p { font-size: 20px; line-height: 1.35; }
+
+    .state { padding-block: 24px 8px; }
+    .state h1 { font-size: 26px; }
+
+    .history li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 10px; border-block-end: 1px solid var(--paper-2); }
+    .history li:last-child { border-block-end: 0; }
+    .history time { color: var(--ink-3); font-size: 14px; }
+    .history .h-score { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; direction: ltr; }
+    .history .h-intent { flex: 1; }
+
+    .footer { margin-block-start: 40px; padding-block-start: 16px; border-block-start: 1px solid var(--paper-2);
+      display: flex; justify-content: space-between; gap: 12px; color: var(--ink-3); font-size: 15px; flex-wrap: wrap; }
+
+    .toast {
+      position: fixed; inset-block-end: 24px; inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: 90vw;
+      background: var(--ink); color: var(--paper); border-radius: 999px; padding-block: 10px; padding-inline: 18px; font-size: 15px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bar-fill { transition: none; }
+      .loading-mark { animation: none; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/" data-i18n="app.name">FitCheck</a>
+    <label class="lang">
+      <span class="sr-only" data-i18n="lang.label">Language</span>
+      <select id="lang"></select>
+    </label>
+  </header>
+
+  <main id="app">
+    <!-- 1. Onboarding -->
+    <section id="screen-onboarding" class="screen" hidden>
+      <h1 data-i18n="onboarding.title"></h1>
+      <p class="lede" data-i18n="onboarding.intro"></p>
+      <form id="onboarding-form" novalidate>
+        <div class="field">
+          <label for="handle" data-i18n="onboarding.handle"></label>
+          <input id="handle" type="text" autocomplete="nickname" maxlength="40" minlength="2" required>
+          <p class="hint" data-i18n="onboarding.handle_hint"></p>
+        </div>
+        <div class="field" style="margin-block-start: 20px;">
+          <label class="checkline" for="age">
+            <input id="age" type="checkbox" required>
+            <span>
+              <span data-i18n="onboarding.age"></span>
+              <span class="hint" data-i18n="onboarding.privacy"></span>
+            </span>
+          </label>
+        </div>
+        <p id="onboarding-error" class="alert" role="alert" hidden style="margin-block-start: 20px;"></p>
+        <button id="start" class="btn" type="submit" disabled style="margin-block-start: 24px;" data-i18n="onboarding.start"></button>
+      </form>
+    </section>
+
+    <!-- 2. Check -->
+    <section id="screen-check" class="screen" hidden>
+      <h1 data-i18n="check.title"></h1>
+      <div>
+        <h2 data-i18n="check.intent_label"></h2>
+        <div id="intents" class="chips" role="group" style="margin-block-start: 10px;"></div>
+      </div>
+      <div class="field">
+        <label for="occasion" data-i18n="check.occasion_label"></label>
+        <input id="occasion" type="text" maxlength="120" autocomplete="off" data-i18n-placeholder="check.occasion_placeholder">
+      </div>
+      <div>
+        <input id="file" type="file" accept="image/*" class="sr-only" tabindex="-1">
+        <button id="photo" class="photo" type="button">
+          <span class="photo-empty">
+            <strong data-i18n="check.photo_add"></strong>
+            <span class="hint" data-i18n="check.photo_hint"></span>
+          </span>
+        </button>
+      </div>
+      <p id="check-error" class="alert" role="alert" hidden></p>
+      <button id="submit" class="btn" type="button" disabled data-i18n="check.submit"></button>
+      <ul id="history-check" class="history" hidden></ul>
+      <div class="footer">
+        <span id="whoami"></span>
+        <button id="delete-account" class="btn-text" type="button" data-i18n="account.delete"></button>
+      </div>
+    </section>
+
+    <!-- 3. Loading -->
+    <section id="screen-loading" class="screen" hidden>
+      <div class="loading" role="status" aria-live="polite">
+        <div>
+          <div class="loading-mark" aria-hidden="true"></div>
+          <p data-i18n="loading.line"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Result (+ 5. History below it) -->
+    <section id="screen-result" class="screen" hidden>
+      <div id="result"></div>
+      <div id="history-block">
+        <h2 data-i18n="history.title"></h2>
+        <ul id="history" class="history" style="margin-block-start: 8px;"></ul>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Adding a locale: drop wwwroot/i18n/<code>.json (with meta.name and meta.dir) and add the code here.
+      const AVAILABLE_LOCALES = ['en', 'he'];
+      const DEFAULT_LOCALE = 'en';
+      const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport'];
+      const STORAGE_KEY = 'fitcheck.session';
+      const MAX_EDGE = 1280;
+      const JPEG_QUALITY = 0.85;
+
+      const messages = {};
+      let locale = DEFAULT_LOCALE;
+
+      const state = {
+        userId: null,
+        handle: null,
+        intent: null,
+        photo: null,
+        previewUrl: null,
+        result: null,
+        history: [],
+        screen: 'onboarding',
+        busy: false
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ---------- i18n ----------
+
+      function t(key, params) {
+        let text = messages[locale] && messages[locale][key];
+        if (text === undefined) {
+          text = messages[DEFAULT_LOCALE] && messages[DEFAULT_LOCALE][key];
+          if (text === undefined) {
+            console.warn('i18n: missing key "' + key + '" in ' + locale + ' and ' + DEFAULT_LOCALE);
+            return key;
+          }
+          if (locale !== DEFAULT_LOCALE) {
+            console.warn('i18n: missing key "' + key + '" in ' + locale + ', using ' + DEFAULT_LOCALE);
+          }
+        }
+        if (params) {
+          text = text.replace(/\{(\w+)\}/g, (m, name) => (name in params ? String(params[name]) : m));
+        }
+        return text;
+      }
+
+      function matchLocale(tag) {
+        if (!tag) return null;
+        const language = String(tag).toLowerCase().split(/[-_]/)[0];
+        return AVAILABLE_LOCALES.includes(language) ? language : null;
+      }
+
+      function detectLocale() {
+        const tags = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+        for (const tag of tags) {
+          const match = matchLocale(tag);
+          if (match) return match;
+        }
+        return DEFAULT_LOCALE;
+      }
+
+      async function loadLocale(code) {
+        if (messages[code]) return;
+        const response = await fetch('/i18n/' + code + '.json', { cache: 'no-cache' });
+        if (!response.ok) throw new Error('Could not load locale ' + code);
+        messages[code] = await response.json();
+      }
+
+      function fmtDate(iso) {
+        return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
+      }
+      function fmtNumber(n) {
+        return new Intl.NumberFormat(locale).format(n);
+      }
+      function fmtPercent(fraction) {
+        return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(fraction);
+      }
+
+      function applyLocale(code) {
+        locale = code;
+        document.documentElement.lang = code;
+        document.documentElement.dir = t('meta.dir') === 'rtl' ? 'rtl' : 'ltr';
+        document.title = t('app.name');
+        for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+        for (const node of document.querySelectorAll('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
+        $('intents').setAttribute('aria-label', t('a11y.intent_group'));
+        $('lang').value = code;
+        renderScreen();
+      }
+
+      async function switchLocale(code) {
+        await loadLocale(code);
+        applyLocale(code);
+        saveSession();
+        if (state.userId) {
+          // Best effort: the language also lives on the user record so future checks default to it.
+          api('PATCH', '/api/users/' + state.userId, { language: code }).catch(() => {});
+        }
+      }
+
+      function renderLanguageSelect() {
+        const select = $('lang');
+        select.innerHTML = '';
+        for (const code of AVAILABLE_LOCALES) {
+          const option = document.createElement('option');
+          option.value = code;
+          option.textContent = (messages[code] && messages[code]['meta.name']) || code;
+          option.lang = code;
+          select.appendChild(option);
+        }
+        select.value = locale;
+      }
+
+      // ---------- session ----------
+
+      function loadSession() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (saved && saved.userId) {
+            state.userId = saved.userId;
+            state.handle = saved.handle || null;
+          }
+          return saved;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveSession() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId: state.userId, handle: state.handle, language: locale }));
+        } catch (e) { /* private mode: nothing to do */ }
+      }
+
+      function clearSession() {
+        state.userId = null;
+        state.handle = null;
+        state.history = [];
+        state.result = null;
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+      }
+
+      // ---------- API ----------
+
+      async function api(method, path, body) {
+        let response;
+        try {
+          response = await fetch(path, {
+            method,
+            headers: body instanceof FormData ? { 'Accept-Language': locale } : { 'Content-Type': 'application/json', 'Accept-Language': locale },
+            body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body)
+          });
+        } catch (e) {
+          throw new ApiError(0, t('error.network'));
+        }
+        if (response.status === 204) return null;
+        let data = null;
+        try { data = await response.json(); } catch (e) { data = null; }
+        if (!response.ok) {
+          throw new ApiError(response.status, (data && data.error) || t('error.generic'));
+        }
+        return data;
+      }
+
+      class ApiError extends Error {
+        constructor(status, message) { super(message); this.status = status; }
+      }
+
+      // ---------- DOM helpers ----------
+
+      function el(tag, attrs, children) {
+        const node = document.createElement(tag);
+        if (attrs) {
+          for (const [key, value] of Object.entries(attrs)) {
+            if (value === null || value === undefined) continue;
+            if (key === 'class') node.className = value;
+            else if (key === 'text') node.textContent = value;
+            else if (key === 'html') node.innerHTML = value;
+            else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+            else node.setAttribute(key, value);
+          }
+        }
+        if (children) {
+          for (const child of [].concat(children)) {
+            if (child === null || child === undefined) continue;
+            node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+          }
+        }
+        return node;
+      }
+
+      function showScreen(name) {
+        state.screen = name;
+        for (const section of document.querySelectorAll('.screen')) section.hidden = section.id !== 'screen-' + name;
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+
+      function showError(id, message) {
+        const node = $(id);
+        node.textContent = message || '';
+        node.hidden = !message;
+      }
+
+      let toastTimer = null;
+      function toast(message) {
+        const node = $('toast');
+        node.textContent = message;
+        node.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { node.hidden = true; }, 2200);
+      }
+
+      // ---------- screens ----------
+
+      function renderScreen() {
+        renderOnboarding();
+        renderCheck();
+        renderResult();
+        renderHistory();
+      }
+
+      function renderOnboarding() {
+        const handle = $('handle').value.trim();
+        $('start').disabled = !(handle.length >= 2 && handle.length <= 40 && $('age').checked) || state.busy;
+      }
+
+      function renderCheck() {
+        const chips = $('intents');
+        chips.innerHTML = '';
+        for (const intent of INTENTS) {
+          chips.appendChild(el('button', {
+            type: 'button',
+            class: 'chip',
+            'aria-pressed': String(state.intent === intent),
+            'data-intent': intent,
+            text: t('intent.' + intent),
+            onclick: () => { state.intent = intent; renderCheck(); }
+          }));
+        }
+
+        const photo = $('photo');
+        photo.classList.toggle('has-image', !!state.previewUrl);
+        photo.innerHTML = '';
+        if (state.previewUrl) {
+          photo.appendChild(el('img', { src: state.previewUrl, alt: t('a11y.photo_preview') }));
+          photo.appendChild(el('span', { class: 'photo-replace', text: t('check.photo_replace') }));
+          photo.setAttribute('aria-label', t('check.photo_replace'));
+        } else {
+          photo.appendChild(el('span', { class: 'photo-empty' }, [
+            el('strong', { text: t('check.photo_add') }),
+            el('span', { class: 'hint', text: t('check.photo_hint') })
+          ]));
+          photo.setAttribute('aria-label', t('check.photo_add'));
+        }
+
+        $('submit').disabled = !(state.intent && state.photo) || state.busy;
+        $('whoami').textContent = state.handle || '';
+      }
+
+      function renderResult() {
+        const root = $('result');
+        root.innerHTML = '';
+        const result = state.result;
+        if (!result) return;
+        const feedback = result.feedback || {};
+        const intentLabel = t('intent.' + result.intent);
+
+        if (feedback.status !== 'ok') {
+          const rejected = feedback.status === 'rejected';
+          root.appendChild(el('div', { class: 'state' }, [
+            el('h1', { text: t(rejected ? 'result.rejected_title' : 'result.not_outfit_title') }),
+            el('p', { class: 'lede', text: (!rejected && feedback.message) || t(rejected ? 'result.rejected_body' : 'result.not_outfit_body'), style: 'margin-block-start: 12px;' }),
+            el('button', { type: 'button', class: 'btn', style: 'margin-block-start: 24px;', text: t('result.try_again'), onclick: checkAnother })
+          ]));
+          $('history-block').hidden = true;
+          return;
+        }
+
+        $('history-block').hidden = false;
+        const scoreNode = el('span', { class: 'score', text: reducedMotion() ? fmtNumber(feedback.score) : fmtNumber(0) });
+        const fill = el('div', { class: 'bar-fill' });
+
+        root.appendChild(el('div', {}, [
+          el('div', { class: 'hero', role: 'img', 'aria-label': t('a11y.score', { score: feedback.score }) }, [
+            scoreNode,
+            el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
+          ]),
+          el('h1', { class: 'headline', text: feedback.headline, style: 'margin-block-start: 16px;' }),
+          el('p', { class: 'vibe', text: feedback.vibe })
+        ]));
+
+        root.appendChild(el('div', { class: 'match' }, [
+          el('div', { class: 'match-label' }, [
+            el('span', { text: t('result.intent_match', { intent: intentLabel }) }),
+            el('span', { text: fmtPercent(feedback.intentMatch / 100) })
+          ]),
+          el('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(feedback.intentMatch), 'aria-label': t('result.intent_match', { intent: intentLabel }) }, [fill])
+        ]));
+
+        if (feedback.items && feedback.items.length) {
+          root.appendChild(el('div', {}, [
+            el('h2', { text: t('result.items') }),
+            el('ul', { class: 'items', style: 'margin-block-start: 4px;' }, feedback.items.map((item) => el('li', {}, [
+              el('span', { class: 'dot ' + item.verdict, 'aria-hidden': 'true' }),
+              el('div', {}, [
+                el('div', { class: 'item-name' }, [item.name, el('span', { class: 'item-verdict', text: t('verdict.' + item.verdict) })]),
+                el('div', { class: 'item-note', text: item.note })
+              ])
+            ])))
+          ]));
+        }
+
+        if (feedback.working && feedback.working.length) {
+          root.appendChild(el('div', {}, [
+            el('h2', { text: t('result.working') }),
+            el('ul', { class: 'working', style: 'margin-block-start: 6px;' }, feedback.working.map((line) => el('li', { text: line })))
+          ]));
+        }
+
+        if (feedback.oneTip) {
+          root.appendChild(el('div', {}, [
+            el('h2', { text: t('result.tip') }),
+            el('div', { class: 'tip', style: 'margin-block-start: 8px;' }, [el('p', { text: feedback.oneTip })])
+          ]));
+        }
+
+        root.appendChild(el('div', { class: 'row', style: 'margin-block-start: 28px;' }, [
+          el('button', { type: 'button', class: 'btn btn-secondary', text: t('result.share'), onclick: () => share(result) }),
+          el('button', { type: 'button', class: 'btn', text: t('result.again'), onclick: checkAnother })
+        ]));
+
+        // Count up once; the bar fills alongside it. Both are instant under reduced motion.
+        requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });
+        if (!reducedMotion()) animateScore(scoreNode, feedback.score);
+      }
+
+      function animateScore(node, target) {
+        const duration = 900;
+        const start = performance.now();
+        function frame(now) {
+          const progress = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          node.textContent = fmtNumber(Math.round(eased * target));
+          if (progress < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function renderHistory() {
+        const ok = state.history.filter((check) => check.status === 'ok');
+        for (const id of ['history', 'history-check']) {
+          const list = $(id);
+          list.innerHTML = '';
+          if (id === 'history-check') {
+            list.hidden = ok.length === 0;
+          } else if (ok.length === 0) {
+            list.appendChild(el('li', { class: 'hint', text: t('history.empty') }));
+            continue;
+          }
+          for (const check of ok) {
+            list.appendChild(el('li', {}, [
+              el('time', { datetime: check.createdAt, text: fmtDate(check.createdAt) }),
+              el('span', { class: 'h-intent', text: t('intent.' + check.intent) }),
+              el('span', { class: 'h-score', text: fmtNumber(check.score) + t('result.out_of') })
+            ]));
+          }
+        }
+      }
+
+      async function refreshHistory() {
+        if (!state.userId) return;
+        try {
+          state.history = await api('GET', '/api/users/' + state.userId + '/checks');
+        } catch (e) {
+          if (e.status === 404) {
+            // The account is gone (deleted elsewhere, or the database was reset): start over.
+            clearSession();
+            showScreen('onboarding');
+            renderScreen();
+            return;
+          }
+          state.history = [];
+        }
+        renderHistory();
+      }
+
+      // ---------- actions ----------
+
+      async function createUser(event) {
+        event.preventDefault();
+        if ($('start').disabled) return;
+        state.busy = true;
+        renderOnboarding();
+        showError('onboarding-error', null);
+        try {
+          const user = await api('POST', '/api/users', {
+            handle: $('handle').value.trim(),
+            confirmed16Plus: $('age').checked,
+            language: locale
+          });
+          state.userId = user.id;
+          state.handle = user.handle;
+          saveSession();
+          showScreen('check');
+          renderScreen();
+        } catch (e) {
+          showError('onboarding-error', e.message);
+        } finally {
+          state.busy = false;
+          renderOnboarding();
+        }
+      }
+
+      // Downscale before upload: less data over mobile networks, fewer input tokens, and EXIF orientation baked in.
+      async function prepareImage(file) {
+        try {
+          const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+          const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+          const width = Math.max(1, Math.round(bitmap.width * scale));
+          const height = Math.max(1, Math.round(bitmap.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+          if (bitmap.close) bitmap.close();
+          const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
+          return blob;
+        } catch (e) {
+          console.warn('Client-side downscale failed, sending the original file', e);
+          return file;
+        }
+      }
+
+      async function onFileChosen(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        showError('check-error', null);
+        try {
+          const blob = await prepareImage(file);
+          if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+          state.photo = blob;
+          state.previewUrl = URL.createObjectURL(blob);
+        } catch (e) {
+          state.photo = null;
+          state.previewUrl = null;
+          showError('check-error', t('error.image_read'));
+        }
+        renderCheck();
+      }
+
+      async function submitCheck() {
+        if ($('submit').disabled) return;
+        state.busy = true;
+        renderCheck();
+        showError('check-error', null);
+        showScreen('loading');
+
+        const form = new FormData();
+        form.append('userId', state.userId);
+        form.append('intent', state.intent);
+        form.append('occasion', $('occasion').value.trim());
+        form.append('language', locale);
+        form.append('image', state.photo, 'outfit.jpg');
+
+        try {
+          state.result = await api('POST', '/api/checks', form);
+          showScreen('result');
+          renderResult();
+          refreshHistory();
+        } catch (e) {
+          if (e.status === 404) {
+            clearSession();
+            showScreen('onboarding');
+          } else {
+            showScreen('check');
+            showError('check-error', e.message);
+          }
+        } finally {
+          state.busy = false;
+          renderCheck();
+        }
+      }
+
+      function checkAnother() {
+        state.result = null;
+        state.photo = null;
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        state.previewUrl = null;
+        showScreen('check');
+        renderScreen();
+      }
+
+      async function share(result) {
+        const feedback = result.feedback;
+        const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: t('intent.' + result.intent), tip: feedback.oneTip });
+        if (navigator.share) {
+          try { await navigator.share({ text }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          toast(t('result.copied'));
+        } catch (e) {
+          window.prompt(t('result.share'), text);
+        }
+      }
+
+      async function deleteAccount() {
+        if (!state.userId || !window.confirm(t('account.delete_confirm'))) return;
+        try {
+          await api('DELETE', '/api/users/' + state.userId);
+        } catch (e) {
+          if (e.status !== 404) { showError('check-error', e.message); return; }
+        }
+        clearSession();
+        checkAnother();
+        $('handle').value = '';
+        $('age').checked = false;
+        showScreen('onboarding');
+        renderScreen();
+      }
+
+      // ---------- boot ----------
+
+      async function boot() {
+        const saved = loadSession();
+        const initial = matchLocale(saved && saved.language) || detectLocale();
+        await Promise.all(AVAILABLE_LOCALES.map((code) => loadLocale(code).catch((e) => console.warn(e))));
+        if (!messages[DEFAULT_LOCALE]) messages[DEFAULT_LOCALE] = {};
+        renderLanguageSelect();
+        applyLocale(messages[initial] ? initial : DEFAULT_LOCALE);
+
+        $('lang').addEventListener('change', (event) => switchLocale(event.target.value));
+        $('handle').addEventListener('input', renderOnboarding);
+        $('age').addEventListener('change', renderOnboarding);
+        $('onboarding-form').addEventListener('submit', createUser);
+        $('photo').addEventListener('click', () => $('file').click());
+        $('file').addEventListener('change', onFileChosen);
+        $('submit').addEventListener('click', submitCheck);
+        $('delete-account').addEventListener('click', deleteAccount);
+
+        showScreen(state.userId ? 'check' : 'onboarding');
+        renderScreen();
+        refreshHistory();
+      }
+
+      boot().catch((e) => {
+        console.error(e);
+        document.body.appendChild(el('p', { class: 'alert', style: 'margin: 20px;', text: 'FitCheck could not start. Reload the page.' }));
+      });
+    })();
+  </script>
+</body>
+</html>

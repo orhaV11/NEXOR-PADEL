@@ -1,0 +1,69 @@
+using FitCheck.Api.Domain;
+using Microsoft.Extensions.Options;
+
+namespace FitCheck.Api.Services;
+
+/// <summary>Stores photos as storage/&lt;userId&gt;/&lt;checkId&gt;.&lt;ext&gt; under a root that is outside wwwroot.</summary>
+public sealed class DiskImageStore : IImageStore
+{
+    private readonly string _root;
+
+    public DiskImageStore(IOptions<StorageOptions> options, IHostEnvironment environment)
+    {
+        var configured = options.Value.Root;
+        _root = Path.GetFullPath(Path.IsPathRooted(configured)
+            ? configured
+            : Path.Combine(environment.ContentRootPath, configured));
+        Directory.CreateDirectory(_root);
+    }
+
+    public string Root => _root;
+
+    public async Task<string> SaveAsync(Guid userId, Guid checkId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct)
+    {
+        // Both segments come from Guids we generated, so the relative path can never escape the root.
+        var relative = Path.Combine(userId.ToString("N"), $"{checkId:N}.{format.Extension}");
+        var full = Resolve(relative);
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        await File.WriteAllBytesAsync(full, bytes.ToArray(), ct);
+        return relative;
+    }
+
+    public void Delete(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return;
+        }
+
+        var full = Resolve(relativePath);
+        if (File.Exists(full))
+        {
+            File.Delete(full);
+        }
+    }
+
+    public void DeleteUser(Guid userId)
+    {
+        var folder = Resolve(userId.ToString("N"));
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    public bool Exists(string relativePath) =>
+        !string.IsNullOrEmpty(relativePath) && File.Exists(Resolve(relativePath));
+
+    private string Resolve(string relativePath)
+    {
+        var full = Path.GetFullPath(Path.Combine(_root, relativePath));
+        // Defence in depth: nothing user-controlled reaches here, but a stored path must still stay inside the root.
+        if (!full.StartsWith(_root + Path.DirectorySeparatorChar, StringComparison.Ordinal) && full != _root)
+        {
+            throw new InvalidOperationException("Image path escapes the storage root.");
+        }
+
+        return full;
+    }
+}

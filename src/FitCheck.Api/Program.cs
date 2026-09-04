@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,11 +34,38 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddSingleton<Localizer>();
 builder.Services.AddSingleton<IImageStore, DiskImageStore>();
+builder.Services.AddSingleton<CheckCapacity>();
 builder.Services.AddScoped<OutfitAnalyzer>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
+    {
+        // A vision call that takes longer than this is not a 10-second outfit check; fail and let the user retry.
+        client.Timeout = TimeSpan.FromSeconds(60);
+    })
+    // Trace-level HttpClient logging prints request headers; the key must never reach a log line.
+    .RedactLoggedHeaders(["x-api-key"]);
+
+// The app is meant to sit behind a tunnel, so the client address comes from X-Forwarded-For.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    // A vision call that takes longer than this is not a 10-second outfit check; fail and let the user retry.
-    client.Timeout = TimeSpan.FromSeconds(60);
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Minting fresh accounts is the obvious way around the per-user cap; slow it down per client address.
+var signupsPerHour = builder.Configuration.GetValue<int?>("Limits:SignupsPerHourPerIp") ?? new LimitsOptions().SignupsPerHourPerIp;
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(UserEndpoints.SignupPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = signupsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    options.OnRejected = async (context, ct) =>
+    {
+        var localizer = context.HttpContext.RequestServices.GetRequiredService<Localizer>();
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new ErrorDto(localizer.Get(Localizer.Resolve(null, context.HttpContext.Request), "error.signup_limited")), AppJson.Options, ct);
+    };
 });
 
 var app = builder.Build();
@@ -51,6 +81,8 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVision
     app.Logger.LogWarning("{Variable} is not set: every outfit check will fail with 502 until it is.", AnthropicVisionClient.ApiKeyVariable);
 }
 
+app.UseForwardedHeaders();
+
 // Unhandled exceptions become the same { error } shape as every other failure, in the caller's language.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
@@ -61,6 +93,9 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     await context.Response.WriteAsJsonAsync(
         new ErrorDto(localizer.Get(Localizer.Resolve(null, context.Request), "error.server")), AppJson.Options);
 }));
+
+app.UseRouting();
+app.UseRateLimiter();
 
 // Only wwwroot is served. Photos live under Storage:Root, which is outside it and has no route.
 app.UseDefaultFiles();

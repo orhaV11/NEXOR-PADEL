@@ -32,6 +32,8 @@ public sealed class Localizer
             ["error.image_too_large"] = "That photo is too large. Try one under {0} MB.",
             ["error.image_format"] = "Use a JPEG, PNG or WebP photo.",
             ["error.rate_limited"] = "You've reached today's limit of {0} checks. Come back tomorrow.",
+            ["error.rate_limited_global"] = "FitCheck is at capacity for today. Please try again tomorrow.",
+            ["error.signup_limited"] = "Too many new accounts from this network. Try again in an hour.",
             ["error.model_failed"] = "The stylist couldn't look at this one. Please try again in a moment.",
             ["error.invalid_request"] = "That request didn't look right.",
             ["error.server"] = "Something went wrong on our side. Please try again.",
@@ -50,6 +52,8 @@ public sealed class Localizer
             ["error.image_too_large"] = "התמונה גדולה מדי. אפשר לנסות תמונה עד {0}MB.",
             ["error.image_format"] = "אפשר להעלות תמונה בפורמט JPEG, PNG או WebP.",
             ["error.rate_limited"] = "המכסה היומית של {0} בדיקות נוצלה. שווה לחזור מחר.",
+            ["error.rate_limited_global"] = "FitCheck הגיע לקיבולת היומית. שווה לנסות שוב מחר.",
+            ["error.signup_limited"] = "יותר מדי חשבונות חדשים מהרשת הזו. שווה לנסות שוב בעוד שעה.",
             ["error.model_failed"] = "הסטייליסט לא הצליח להסתכל על התמונה הזו. שווה לנסות שוב בעוד רגע.",
             ["error.invalid_request"] = "הבקשה לא תקינה.",
             ["error.server"] = "משהו השתבש אצלנו. שווה לנסות שוב.",
@@ -61,15 +65,25 @@ public sealed class Localizer
         locale is not null && Array.IndexOf(SupportedLocales, locale) >= 0;
 
     /// <summary>"he-IL" → "he", "fr-FR" → "en", "" → "en". Only the language subtag is compared.</summary>
-    public static string Match(string? tag)
+    public static string Match(string? tag) => TryMatch(tag, out var locale) ? locale : DefaultLocale;
+
+    /// <summary>Same matching without the English fallback, for callers that have a better default of their own.</summary>
+    public static bool TryMatch(string? tag, out string locale)
     {
+        locale = DefaultLocale;
         if (string.IsNullOrWhiteSpace(tag))
         {
-            return DefaultLocale;
+            return false;
         }
 
         var language = tag.Trim().Split('-', '_')[0].ToLowerInvariant();
-        return IsSupported(language) ? language : DefaultLocale;
+        if (!IsSupported(language))
+        {
+            return false;
+        }
+
+        locale = language;
+        return true;
     }
 
     /// <summary>First supported entry of an Accept-Language header, honouring q ordering. Falls back to English.</summary>
@@ -110,19 +124,8 @@ public sealed class Localizer
     }
 
     /// <summary>Locale for API messages: an explicit supported value wins, otherwise Accept-Language, otherwise English.</summary>
-    public static string Resolve(string? explicitLanguage, HttpRequest request)
-    {
-        if (!string.IsNullOrWhiteSpace(explicitLanguage))
-        {
-            var language = explicitLanguage.Trim().Split('-', '_')[0].ToLowerInvariant();
-            if (IsSupported(language))
-            {
-                return language;
-            }
-        }
-
-        return MatchAcceptLanguage(request.Headers.AcceptLanguage.ToString());
-    }
+    public static string Resolve(string? explicitLanguage, HttpRequest request) =>
+        TryMatch(explicitLanguage, out var language) ? language : MatchAcceptLanguage(request.Headers.AcceptLanguage.ToString());
 
     public static string LanguageName(string locale) =>
         LanguageNames.TryGetValue(locale, out var name) ? name : LanguageNames[DefaultLocale];

@@ -9,12 +9,13 @@ public static class UserEndpoints
 {
     public const int HandleMinLength = 2;
     public const int HandleMaxLength = 40;
+    public const string SignupPolicy = "signup";
 
     public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/users");
 
-        group.MapPost("/", CreateAsync);
+        group.MapPost("/", CreateAsync).RequireRateLimiting(SignupPolicy);
         group.MapPatch("/{id:guid}", UpdateAsync);
         group.MapDelete("/{id:guid}", DeleteAsync);
         group.MapGet("/{id:guid}/checks", ListChecksAsync);
@@ -62,13 +63,12 @@ public static class UserEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, request), "error.user_not_found"));
         }
 
-        var language = body.Language?.Trim().Split('-', '_')[0].ToLowerInvariant();
-        if (!Localizer.IsSupported(language))
+        if (!Localizer.TryMatch(body.Language, out var language))
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.language_invalid"));
         }
 
-        user.PreferredLanguage = language!;
+        user.PreferredLanguage = language;
         await db.SaveChangesAsync(ct);
         return Results.Ok(new UserDto(user.Id, user.Handle, user.PreferredLanguage));
     }

@@ -119,31 +119,50 @@ public sealed class AnthropicVisionClient(
 
     private static JsonElement ExtractToolInput(string responseJson, string toolName)
     {
-        using var doc = JsonDocument.Parse(responseJson);
-        var root = doc.RootElement;
-
-        if (root.TryGetProperty("stop_reason", out var stop) && stop.ValueKind == JsonValueKind.String
-            && stop.GetString() == "refusal")
+        JsonDocument doc;
+        try
         {
-            throw new VisionRefusedException("The API refused to process this image.");
+            doc = JsonDocument.Parse(responseJson);
+        }
+        catch (JsonException ex)
+        {
+            throw new VisionClientException("The API returned a response that was not JSON.", ex);
         }
 
-        if (root.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
+        using (doc)
         {
-            foreach (var block in content.EnumerateArray())
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
             {
-                if (block.TryGetProperty("type", out var type) && type.GetString() == "tool_use"
-                    && block.TryGetProperty("name", out var name) && name.GetString() == toolName
-                    && block.TryGetProperty("input", out var input))
+                throw new VisionClientException("The API response was not an object.");
+            }
+
+            if (StringProperty(root, "stop_reason") == "refusal")
+            {
+                throw new VisionRefusedException("The API refused to process this image.");
+            }
+
+            if (root.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var block in content.EnumerateArray())
                 {
-                    // The document is disposed on return; Clone detaches the element from it.
-                    return input.Clone();
+                    if (block.ValueKind == JsonValueKind.Object
+                        && StringProperty(block, "type") == "tool_use"
+                        && StringProperty(block, "name") == toolName
+                        && block.TryGetProperty("input", out var input))
+                    {
+                        // The document is disposed on return; Clone detaches the element from it.
+                        return input.Clone();
+                    }
                 }
             }
         }
 
         throw new VisionClientException("The model did not call the feedback tool.");
     }
+
+    private static string? StringProperty(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
     private static string Truncate(string text) => text.Length <= 2000 ? text : text[..2000] + "…";
 }

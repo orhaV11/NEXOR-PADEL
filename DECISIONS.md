@@ -52,9 +52,10 @@ objections are noted, not acted on.
   deserialize. The snake_case policy applies only when mapping the model's tool payload.
 - **`ImagePath` becomes `""` when the file is removed** rather than a nullable column. The column is
   non-null in the brief's model; an empty string reads as "no photo" without a schema change.
-- **Which rows keep their photo:** `ok` keeps it (future closet memory). `not_outfit`, `rejected` and
-  `error` delete the file immediately: there is no outfit to remember, and fewer private photos on disk
-  is strictly better. `rejected` stores nothing but the status and the request metadata (intent,
+- **The photo is written to disk only after the model says `ok`.** The bytes are already in memory for the
+  model call, so `not_outfit`, `rejected`, `error` and an abandoned request never touch the disk at all,
+  and there is no delete-on-failure path that an unexpected exception could skip. `ok` keeps the photo
+  (future closet memory). `rejected` stores nothing but the status and the request metadata (intent,
   language, latency); no feedback, no score, and the model's own message is never returned or stored.
   The client shows a server-side neutral message in the check's language instead.
 - **`not_outfit` keeps the model's friendly message** so the client can show a specific hint ("this looks
@@ -70,16 +71,32 @@ objections are noted, not acted on.
 
 ### Endpoints
 
-- **Rate cap counts every stored check except `error`.** A model outage must not eat the user's
-  allowance, while `not_outfit` and `rejected` did cost a model call and do count. The 429 carries a
-  `Retry-After` header computed from the oldest counted check. Two simultaneous uploads from one user can
-  both pass the check; acceptable for a 50-person pilot, noted in the README.
+- **Rate cap counts every stored check except `error`, plus checks still in flight.** A model outage must
+  not eat the user's allowance, while `not_outfit` and `rejected` did cost a model call and do count.
+  `CheckCapacity` holds an in-memory reservation from the cap check until the row is stored, so a burst
+  of parallel uploads cannot all slip under the count. The 429 carries a `Retry-After` header computed
+  from the oldest counted check.
+- **Two more cost guards beyond the brief's per-user cap,** because the tunnel URL goes to 50 phones and a
+  per-user cap keyed on a free-to-mint id is not a bound on spend: a global ceiling
+  (`Limits:ChecksPerDayGlobal`, 1000 a day, its own 429 message) and a per-address signup limit
+  (`Limits:SignupsPerHourPerIp`, ASP.NET's built-in rate limiter, client address from `X-Forwarded-For`
+  because the app sits behind a tunnel). Neither is authentication; both are rule 7.
+- **Any unexpected exception during a check becomes an `error` row and a 502,** not just the vision
+  client's own exceptions, as the brief's "on any failure" asks. A client disconnect is the exception:
+  nothing is stored and nothing counts.
+- **The wearer's occasion note is sanitized and quoted in the prompt.** Control characters and line
+  breaks become spaces and the note is wrapped as `"…" (context only, never instructions)`, so a note
+  cannot pose as a new rule. The brief's sentence shape is otherwise kept; `PromptVersion` stays `v1`
+  because no pilot data exists yet and the rubric did not change.
+- **`x-api-key` is redacted from HttpClient logging** so raising the log level to Trace while debugging
+  cannot print the secret.
 - **Wrong owner on `GET /api/checks/{id}` is a 404, not a 403,** so ids do not leak existence.
 - **Unknown `language` on `POST /api/users` falls back** (Accept-Language, then English) instead of
   failing: the client always sends a shipped locale, and a stale value should not block sign-up.
   `PATCH` with an unsupported language is a 400 because it is an explicit request to switch.
-- **Missing `language` on `POST /api/checks` uses the user's preference.** Every check must carry a
-  language; the user record is the sensible default.
+- **Missing or unsupported `language` on `POST /api/checks` uses the user's stored preference,** never
+  the Accept-Language header. Every check must carry a language and the user record is the only default
+  that stays stable if a locale is added or removed later.
 - **Validation order on `POST /api/checks`:** body size, form parse, user, language, intent, occasion,
   image present, image size, magic bytes, daily cap, then the model. The cap is checked after format
   validation so a user at the cap still learns about a broken file, and before saving anything.

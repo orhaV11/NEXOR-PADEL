@@ -28,4 +28,10 @@ public sealed class LimitsOptions
 
     /// <summary>Per-user cap over a rolling 24 hours. Cost control, not a product feature.</summary>
     public int ChecksPerDay { get; set; } = 20;
+
+    /// <summary>Ceiling across all users over a rolling 24 hours, so a leaked URL cannot run up an unbounded bill.</summary>
+    public int ChecksPerDayGlobal { get; set; } = 1000;
+
+    /// <summary>New accounts per client address per hour. Blunts minting fresh ids to dodge the per-user cap.</summary>
+    public int SignupsPerHourPerIp { get; set; } = 20;
 }

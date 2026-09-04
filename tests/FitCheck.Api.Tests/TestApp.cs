@@ -17,6 +17,9 @@ public class TestApp : WebApplicationFactory<Program>
     public string StorageRoot => Path.Combine(Root, "storage");
     public FakeVisionClient Vision { get; } = new();
     public int ChecksPerDay { get; init; } = 20;
+    public int ChecksPerDayGlobal { get; init; } = 1000;
+    /// <summary>TestServer has no client address, so every test shares one signup bucket; keep it out of the way by default.</summary>
+    public int SignupsPerHourPerIp { get; init; } = 100_000;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -24,6 +27,8 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "test.db")}");
         builder.UseSetting("Storage:Root", StorageRoot);
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
+        builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
+        builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();

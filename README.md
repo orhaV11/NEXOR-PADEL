@@ -101,6 +101,8 @@ user. If most scores land on 7–8, tighten the calibration text in `Services/Ou
 | `Storage:Root` | `storage` | Private photo folder. Relative paths resolve against the content root, never `wwwroot` |
 | `Storage:MaxImageBytes` | `6291456` | Upload limit (6 MB). The client downscales to 1280px JPEG first |
 | `Limits:ChecksPerDay` | `20` | Per-user cap over a rolling 24 hours |
+| `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users over a rolling 24 hours, so a leaked URL cannot run up an unbounded bill |
+| `Limits:SignupsPerHourPerIp` | `20` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
 
 Any key can be overridden with an environment variable, e.g. `Limits__ChecksPerDay=5`.
 `ANTHROPIC_API_KEY` is read from the environment only.
@@ -160,8 +162,10 @@ and anything descriptive is dropped when the status is not `ok`.
   the model's own words are never shown.
 - **One endpoint deletes everything.** User row, checks, photo files.
 - **No hallucinated brands or items.** Instruction in the prompt; the model may only name what is visible.
-- **Cost control.** 20 checks per user per rolling 24 hours (429 with a friendly message), 6 MB upload cap,
-  and the client downscales to 1280px JPEG before uploading. Failed model calls do not count toward the cap.
+- **Cost control.** 20 checks per user per rolling 24 hours (429 with a friendly message), counted including
+  checks still in flight so a parallel burst cannot slip past; a global ceiling of 1000 checks a day across
+  everyone; 20 new accounts per hour per client address; a 6 MB upload cap; and the client downscales to
+  1280px JPEG before uploading. Failed model calls do not count toward the caps.
 
 ## Known limitations (read before inviting anyone)
 
@@ -172,8 +176,10 @@ and anything descriptive is dropped when the status is not `ok`.
   and Google age-signal APIs (or an equivalent provider) and gate account creation on the result.
 - **Metrics are unauthenticated.** `/api/metrics/pilot` only returns aggregates, but put it behind a
   password or an allow-list before the URL leaves the team.
-- **Single process, single SQLite file.** Two simultaneous uploads from one user can both pass the daily
-  cap check. Acceptable for the pilot.
+- **Single process, single SQLite file.** The in-flight reservation that closes the cap race lives in
+  memory, so running two instances would reopen it. One instance is all the pilot needs.
+- **The signup limiter trusts `X-Forwarded-For`.** That is right behind the tunnel and spoofable if Kestrel
+  is exposed directly; the global daily ceiling bounds the damage either way.
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run
   `scripts/calibrate.sh` on real photos before judging scores.
 - **Photos stay on disk until the user deletes their account.** There is no retention job yet.

@@ -136,6 +136,19 @@ public class CheckEndpointTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task Occasion_is_sanitized_before_storage_and_prompt()
+    {
+        var userId = await _app.CreateUserAsync(_client);
+        _app.Vision.Requests.Clear();
+
+        var response = await _client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg(), occasion: "  line one\nline two  "));
+
+        var check = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("line one line two", check.GetProperty("occasion").GetString());
+        Assert.Contains("\"line one line two\"", Assert.Single(_app.Vision.Requests).UserText);
+    }
+
+    [Fact]
     public async Task Checks_older_than_24_hours_do_not_count_toward_the_cap()
     {
         var userId = await _app.CreateUserAsync(_client);
@@ -271,6 +284,12 @@ public class CheckEndpointTests : IClassFixture<TestApp>
 
         var check = await (await _client.PostAsync("/api/checks", form)).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("he", check.GetProperty("language").GetString());
+
+        // A stale or unknown locale from the client also lands on the stored preference, not on a header guess.
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/checks") { Content = TestApp.CheckForm(userId, TestImages.Jpeg(), language: "fr") };
+        request.Headers.Add("Accept-Language", "en-US");
+        var stale = await (await _client.SendAsync(request)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("he", stale.GetProperty("language").GetString());
     }
 
     [Fact]

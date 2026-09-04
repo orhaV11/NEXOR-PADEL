@@ -33,6 +33,7 @@ public static class CheckEndpoints
         AppDbContext db,
         IImageStore images,
         OutfitAnalyzer analyzer,
+        CheckCapacity capacity,
         Localizer localizer,
         IOptions<StorageOptions> storage,
         IOptions<LimitsOptions> limits,
@@ -87,11 +88,11 @@ public static class CheckEndpoints
             return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(headerLanguage, "error.user_not_found"));
         }
 
-        // The check's language is what the feedback is written in; fall back to the user's preference, then the header.
-        var language = Localizer.Resolve(form["language"].ToString(), request);
-        if (string.IsNullOrWhiteSpace(form["language"]))
+        // The check's language is what the feedback is written in. A shipped locale in the form wins; anything
+        // else (missing, stale, unknown) falls back to the user's stored preference, never to a header guess.
+        if (!Localizer.TryMatch(form["language"].ToString(), out var language))
         {
-            language = user.PreferredLanguage;
+            language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
         }
 
         if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
@@ -99,7 +100,7 @@ public static class CheckEndpoints
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
         }
 
-        var occasion = form["occasion"].ToString().Trim();
+        var occasion = OutfitAnalyzer.SanitizeOccasion(form["occasion"].ToString());
         if (occasion.Length > OccasionMaxLength)
         {
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.occasion_too_long"));
@@ -140,28 +141,39 @@ public static class CheckEndpoints
             .OrderBy(c => c.CreatedAt)
             .Select(c => c.CreatedAt)
             .ToListAsync(ct);
-        if (recent.Count >= cap)
+        var storedGlobal = await db.Checks.CountAsync(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
+
+        var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
+        if (verdict == CapacityVerdict.UserCapReached)
         {
-            var retryAfter = (int)Math.Ceiling((recent[0] + CapWindow - now).TotalSeconds);
-            context.Response.Headers.RetryAfter = Math.Max(retryAfter, 1).ToString();
+            if (recent.Count > 0)
+            {
+                var retryAfter = (int)Math.Ceiling((recent[0] + CapWindow - now).TotalSeconds);
+                context.Response.Headers.RetryAfter = Math.Max(retryAfter, 1).ToString();
+            }
+
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.rate_limited", cap));
         }
 
-        var checkId = Guid.NewGuid();
-        var imagePath = await images.SaveAsync(userId, checkId, format, bytes, ct);
+        if (verdict == CapacityVerdict.GlobalCapReached)
+        {
+            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.rate_limited_global"));
+        }
 
+        using var _ = reservation;
         var check = new OutfitCheck
         {
-            Id = checkId,
+            Id = Guid.NewGuid(),
             UserId = userId,
             Intent = intent,
             Occasion = occasion.Length == 0 ? null : occasion,
             Language = language,
-            ImagePath = imagePath,
             PromptVersion = OutfitAnalyzer.PromptVersion,
             CreatedAt = now
         };
 
+        // The photo is written only once the model has confirmed an outfit, so a rejected, unrecognised, failed or
+        // abandoned check never leaves a private image on disk.
         var stopwatch = Stopwatch.StartNew();
         try
         {
@@ -174,37 +186,35 @@ public static class CheckEndpoints
                 case CheckStatus.Ok:
                     check.Score = feedback.Score;
                     check.FeedbackJson = JsonSerializer.Serialize(feedback, AppJson.Options);
+                    check.ImagePath = await images.SaveAsync(userId, check.Id, format, bytes, CancellationToken.None);
                     break;
                 case CheckStatus.NotOutfit:
-                    // Keep the friendly explanation, drop the photo: there is no outfit to remember.
+                    // Keep the friendly explanation; there is no outfit to remember.
                     check.FeedbackJson = JsonSerializer.Serialize(feedback, AppJson.Options);
-                    images.Delete(imagePath);
-                    check.ImagePath = "";
                     break;
                 default:
-                    // Rejected: nothing but the status survives. Not the photo, not the model's words, not the wearer's note.
-                    images.Delete(imagePath);
-                    check.ImagePath = "";
+                    // Rejected: nothing but the status survives. Not the model's words, not the wearer's note.
                     check.Occasion = null;
                     break;
             }
         }
         catch (VisionRefusedException ex)
         {
-            logger.LogInformation(ex, "Check {CheckId} refused by the API", checkId);
+            logger.LogInformation(ex, "Check {CheckId} refused by the API", check.Id);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = CheckStatus.Rejected;
-            images.Delete(imagePath);
-            check.ImagePath = "";
             check.Occasion = null;
         }
-        catch (VisionClientException ex)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "Check {CheckId} failed", checkId);
+            // The phone went away mid-check. Nothing was written, nothing counts against the cap.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Check {CheckId} failed", check.Id);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = CheckStatus.Error;
-            images.Delete(imagePath);
-            check.ImagePath = "";
             db.Checks.Add(check);
             await db.SaveChangesAsync(CancellationToken.None);
             return UserEndpoints.Error(StatusCodes.Status502BadGateway, localizer.Get(language, "error.model_failed"));

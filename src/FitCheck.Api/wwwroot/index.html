@@ -194,7 +194,9 @@
     }
     @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 
-    .hero { display: flex; align-items: baseline; gap: 6px; direction: ltr; }
+    #result > * + * { margin-block-start: 26px; }
+    /* Digits read left-to-right in every language; inline-flex lets the block sit at the inline start (right in RTL). */
+    .hero { display: inline-flex; align-items: baseline; gap: 6px; direction: ltr; }
     .score {
       font-family: var(--font-display);
       font-size: clamp(132px, 42vw, 196px);
@@ -310,7 +312,6 @@
       </div>
       <p id="check-error" class="alert" role="alert" hidden></p>
       <button id="submit" class="btn" type="button" disabled data-i18n="check.submit"></button>
-      <ul id="history-check" class="history" hidden></ul>
       <div class="footer">
         <span id="whoami"></span>
         <button id="delete-account" class="btn-text" type="button" data-i18n="account.delete"></button>
@@ -693,22 +694,18 @@
 
       function renderHistory() {
         const ok = state.history.filter((check) => check.status === 'ok');
-        for (const id of ['history', 'history-check']) {
-          const list = $(id);
-          list.innerHTML = '';
-          if (id === 'history-check') {
-            list.hidden = ok.length === 0;
-          } else if (ok.length === 0) {
-            list.appendChild(el('li', { class: 'hint', text: t('history.empty') }));
-            continue;
-          }
-          for (const check of ok) {
-            list.appendChild(el('li', {}, [
-              el('time', { datetime: check.createdAt, text: fmtDate(check.createdAt) }),
-              el('span', { class: 'h-intent', text: t('intent.' + check.intent) }),
-              el('span', { class: 'h-score', text: fmtNumber(check.score) + t('result.out_of') })
-            ]));
-          }
+        const list = $('history');
+        list.innerHTML = '';
+        if (ok.length === 0) {
+          list.appendChild(el('li', { class: 'hint', text: t('history.empty') }));
+          return;
+        }
+        for (const check of ok) {
+          list.appendChild(el('li', {}, [
+            el('time', { datetime: check.createdAt, text: fmtDate(check.createdAt) }),
+            el('span', { class: 'h-intent', text: t('intent.' + check.intent) }),
+            el('span', { class: 'h-score', text: fmtNumber(check.score) + t('result.out_of') })
+          ]));
         }
       }
 

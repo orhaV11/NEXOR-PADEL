@@ -24,3 +24,6 @@ TestResults/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Workflow worktrees and local agent state
+.claude/

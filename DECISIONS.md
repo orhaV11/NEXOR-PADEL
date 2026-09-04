@@ -1,4 +1,4 @@
-# DECISIONS.md — FitCheck Phase 1
+# DECISIONS.md — OREVOSH (built as FitCheck: Phase 1, Phase 2, Phase 3)
 
 Every judgment call made while building, in the order it came up. The brief wins over instinct;
 objections are noted, not acted on.
@@ -359,3 +359,87 @@ was written before building; what follows are the calls made while building it.
   metric is still there for the pilot readout.
 - **Brand accounts are self-declared.** Anyone can tick the box. Fine for an invited pilot; verification
   belongs with age assurance in the launch checklist.
+
+# Phase 3 — OREVOSH, the real thing
+
+The owner tried Phase 2 and set the direction: this is a social app first, challenges are a nice way in for
+brands rather than the point, the neon accent had to go, the app is called OREVOSH, it has to feel like a
+phone app, and the goal is a place where fashion brands and the people who wear them meet. `PHASE3.md` is the
+plan written before building; what follows are the calls made while building it.
+
+## Decisions
+
+### Name, look, feel
+
+- **OREVOSH everywhere a person looks; the .NET project keeps `FitCheck.Api` for now.** Cookie, CSRF header
+  value, preferences key, copy, manifest, icons and docs say OREVOSH. Renaming the solution, folders and
+  namespaces is a mechanical change that also changes the run instructions the owner just learned, so it waits
+  for the repository's own rename.
+- **The accent is one lilac (`#b39dff`) with a rose companion (`#ff8fb1`) and fire orange for reactions.**
+  The owner asked for something nicer than the neon yellow; lilac on the dark base reads young and chic, rose
+  marks brands and featured looks, and fire stays the colour of a reaction. All of it is CSS tokens, so a
+  different accent is a one-line change.
+- **Syne for the wordmark and display numerals, Heebo for text.** Syne has no Hebrew, so Hebrew headings fall
+  back to Heebo 800 through the font stack; the wordmark stays Latin and left-to-right in both languages.
+- **Phone-native by construction, not by media query.** Edge-to-edge look cards, a raised check button in the
+  bottom tab bar, bottom sheets for every menu and form that used to be inline, skeleton loaders, infinite
+  scroll, pull to refresh, double-tap to fire with a flame burst, 44px targets, safe-area insets, and a top
+  bar that turns into a back-arrow-plus-title on inner pages. Desktop simply gets the same column centred.
+- **Installable.** A manifest with generated icons and a service worker that caches the app shell
+  (network first so a deploy shows up, cache as the fallback) and never touches `/api` or photos. Chrome shows
+  its own install prompt and the app keeps it for a one-time banner; iPhone gets the "Share → Add to Home
+  Screen" hint instead, because Safari offers nothing else. The browser test blocks the service worker so it
+  never masks a live request.
+
+### Information architecture
+
+- **Five tabs: Home, Explore, Check, Activity, Profile.** Challenges moved from a tab to a section of Explore,
+  with their own routes intact. Explore is where discovery lives: search, trending tags, brands to follow, the
+  week's top looks, open challenges.
+- **Signup asks three things: handle, password, 16+.** The brand question is gone from signup. Brand mode is a
+  switch in settings with a one-line explanation, switchable both ways; the display name moved to settings
+  too. A welcome screen follows signup: pick the styles you wear and follow a few brands, both skippable.
+- **Home has two feeds, For you and Following, plus intent chips.** "Fresh" and "Top" survive as API tabs
+  (Top feeds Explore's "Top looks this week").
+
+### Brands and people meeting
+
+- **`@brand` mentions and `#tags` are parsed on the server at posting time**, not trusted from the client:
+  only existing handles become mentions, the author cannot mention themselves, five of each at most, tags are
+  lower-cased once. Mentioned accounts get one notification. This is the mechanic the owner described: a person
+  wears a brand, says so, and the look lands on the brand's Community wall.
+- **"Featured by" is the collaboration primitive, and it is earned.** A brand can feature a look only when the
+  look mentions the brand or entered one of its challenges; one brand per look, first come; the creator is
+  told; only the featuring brand can undo it. No money moves, no review step: the brand's taste is the curation.
+  A person's profile gains a Featured tab the first time a brand features them.
+- **Avatars use the same private store and the same magic-byte rules as check photos**, capped at 2 MB, downscaled
+  and centre-cropped to 320px on the phone, served through one versioned route with a public one-day cache. The
+  version in the URL is what lets the cache be that long.
+- **The For you feed is a documented formula, not a recommender.** Fire and comments (log-scaled), a bonus for
+  people you follow, for intents you said you wear, for intents you have checked lately, and for featured looks,
+  minus a slow time decay; ties by recency. Deterministic, testable, explainable to a pilot user, and ranked in
+  memory over the newest 400 posts of the last 30 days. When the feed has ten thousand posts a day this becomes
+  a job with a table; not before.
+- **Search is a prefix match on SQLite.** Handles by prefix, display names by substring, tags by prefix, brands
+  first. An index and a proper tokenizer are a scale problem the pilot does not have.
+
+### How it was built
+
+- **The spec came first, then three backend agents in parallel worktrees, then nine view agents in parallel
+  on distinct files, then reviewers.** The shared contract (`PHASE3.md`), the schema, the DTOs, the localizer
+  keys, the batched reader and the client core were written by hand up front so that parallel work had fixed
+  edges to build against; the feed handler moved to its own file for the same reason. Every backend agent
+  shipped its own tests; every view agent smoke-tested its screen in Chromium against the running API.
+- **The client became modules.** One core (`core.js`) and one file per screen replace the Phase 2 monolith.
+  Same vanilla approach, no build step, but nine people or nine agents can now work without touching each
+  other's files.
+- **All UI strings were written up front in both languages**, so the view work could not drift into
+  untranslated copy; the browser test still fails on any missing key.
+
+### Objections kept out of the code (owner wins)
+
+- **Brand mode is a switch anyone can flip.** Verification belongs in the launch checklist with age assurance;
+  for an invited pilot the switch is the honest amount of process.
+- **Featured looks have no review.** A brand featuring a look is a brand endorsing it; if that is ever abused,
+  reports still hide the look.
+- **The project folder still says FitCheck.** See above.

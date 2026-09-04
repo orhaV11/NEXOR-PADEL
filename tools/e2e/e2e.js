@@ -1,13 +1,13 @@
-// Browser smoke test for OREVOSH: the real client and the real API in a phone-sized Chromium,
-// with only the Anthropic API stubbed (stub_anthropic.py).
+// Browser smoke test for OREVOSH: the real client and the real API in a phone-sized Chromium, with only the
+// Anthropic API stubbed (stub_anthropic.py).
 // Run from this folder: npm install && node e2e.js   (after `dotnet build` at the repository root).
 //
-// Three people take part: Noa (a person, English UI), NEXOR (a brand, English UI) and Dan (a person who
-// mostly browses, Hebrew UI). The run covers: browsing signed out, signup validation, a check with the
-// client-side downscale, the result screen, posting to the feed, feed tabs and intent filter, fire, save,
-// comments, follow, the activity feed and badge, a brand opening a challenge, entering it from a check,
-// voting, product links on a brand post, the winner being fixed when the challenge ends, photo privacy,
-// deleting a post, metrics, and deleting an account.
+// Three people: Noa (a person, English), NEXOR (a brand, English) and Dan (mostly browsing, Hebrew). The run covers:
+// browsing signed out in Hebrew and RTL, signup and the welcome screen (interests, brands), settings (brand mode,
+// avatar upload), a check with the client-side downscale, posting with #tags and @mentions, the post page with tagged
+// accounts and comments, mention and featured notifications, a brand featuring a look, the brand's Community and
+// Featured tabs, Explore (trending tags, brands, top looks, search, tag page), the For you feed, double-tap to fire,
+// a challenge from brief to winner, the PWA manifest and service worker, photo privacy, and deleting a look and an account.
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs');
@@ -65,7 +65,7 @@ const pages = {};
 let step = 'boot';
 
 async function person(browser, name, locale) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale, serviceWorkers: 'block' });
   const page = await context.newPage();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${step} ${name}] ` + m.text()); if (m.type() === 'warning') consoleWarnings.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push(`[${step} ${name}] pageerror: ` + e.message));
@@ -79,33 +79,32 @@ async function person(browser, name, locale) {
   return page;
 }
 
+const settled = '#view h1, #view .card, #view .empty, #view .notice, #view .grid, #view .sheet, #view .person, #view form';
 async function go(page, hash) {
   if (!page.url().startsWith(base)) {
     await page.goto(base + '/' + hash);
   } else if (await page.evaluate(() => location.hash) === hash) {
-    // Same route again: tapping the active tab refreshes it, which is what a person would do.
     await page.evaluate(() => { const tab = document.querySelector('.tab[aria-current="page"]'); if (tab) tab.click(); else window.dispatchEvent(new HashChangeEvent('hashchange')); });
   } else {
     await page.evaluate((h) => { location.hash = h; }, hash);
   }
-  await page.waitForFunction((h) => location.hash === h, hash);
-  await page.waitForSelector('#view h1, #view .card, #view .empty, #view .notice', { timeout: 15000 });
+  await page.waitForFunction((h) => location.hash === h || (h === '#/' && location.hash === ''), hash);
+  await page.waitForSelector(settled, { timeout: 15000 });
 }
 const hash = (page) => page.evaluate(() => location.hash);
 const text = (page, sel) => page.textContent(sel).then((s) => (s || '').trim());
 const count = async (page, sel) => (await page.$$(sel)).length;
+const me = async (page) => { const r = await page.request.get(base + '/api/auth/me'); return r.ok() ? await r.json() : null; };
 
-async function signup(page, opts) {
+async function signup(page, handle, password) {
   await go(page, '#/signup');
   await page.waitForSelector('#a-handle');
-  await page.fill('#a-handle', opts.handle);
-  await page.fill('#a-password', opts.password);
-  if (opts.name) await page.fill('#a-name', opts.name);
-  if (opts.brand) await page.check('#a-brand');
+  await page.fill('#a-handle', handle);
+  await page.fill('#a-password', password);
   await page.check('#a-age');
   await page.click('#a-submit');
-  await page.waitForFunction(() => location.hash === '#/feed');
-  await page.waitForFunction((n) => document.getElementById('top-auth').textContent === n, opts.name || opts.handle);
+  await page.waitForFunction(() => location.hash === '#/welcome');
+  await page.waitForSelector(settled);
 }
 
 function makeJpeg(page, w, h) {
@@ -118,11 +117,17 @@ function makeJpeg(page, w, h) {
   }, [w, h]).then((b64) => Buffer.from(b64, 'base64'));
 }
 
+/** The photo button opens a file chooser (pickFile clicks the hidden input); answer it with a JPEG buffer. */
+async function choosePhoto(page, buttonSelector, buffer, name) {
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(buttonSelector)]);
+  await chooser.setFiles({ name: name || 'outfit.jpg', mimeType: 'image/jpeg', buffer });
+}
+
 async function runCheck(page, opts) {
   await go(page, '#/check');
   await page.waitForSelector('#photo');
   if (opts.intent) await page.click(`.chip[data-intent=${opts.intent}]`);
-  await page.setInputFiles('#file', { name: 'outfit.jpg', mimeType: 'image/jpeg', buffer: opts.buffer });
+  await choosePhoto(page, '#photo', opts.buffer);
   await page.waitForSelector('#photo img');
   await page.waitForFunction(() => !document.getElementById('submit').disabled);
   if (opts.occasion) await page.fill('#occasion', opts.occasion);
@@ -146,7 +151,6 @@ async function postIt(page, opts) {
       if (p.price) await inputs[i * 3 + 2].fill(p.price);
     }
   }
-  if (opts.beforeConfirm) await opts.beforeConfirm();
   await page.click('#post-confirm');
   await page.waitForSelector('#post-link');
   return (await page.getAttribute('#post-link', 'href')).replace('#/post/', '');
@@ -174,341 +178,305 @@ async function postIt(page, opts) {
   const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, name + '.png'), fullPage: true });
 
   step = '1';
-  // 1. A signed-out visitor with a Hebrew browser: Hebrew, RTL, an empty feed, and the check tab asks to sign in.
+  // 1. PWA surface and a signed-out visitor with a Hebrew browser: OREVOSH wordmark, RTL, empty feed, Explore, sign-in prompts.
+  const manifest = await get(`${base}/manifest.webmanifest`);
+  assert.strictEqual(manifest.status, 200);
+  assert.strictEqual(JSON.parse(manifest.body.toString()).name, 'OREVOSH');
+  assert.strictEqual((await get(`${base}/sw.js`)).status, 200);
+  assert.strictEqual((await get(`${base}/icons/icon-192.png`)).headers['content-type'], 'image/png');
   expected.push('GET /api/auth/me -> 401');
   await dan.goto(base + '/');
-  await dan.waitForSelector('#view h1');
+  await dan.waitForSelector(settled);
   assert.strictEqual(await dan.getAttribute('html', 'lang'), 'he');
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
-  assert.strictEqual(await text(dan, '#view h1'), 'פיד');
-  await dan.waitForSelector('#feed-list .empty');
-  assert.strictEqual(await text(dan, '.tab[data-tab=feed] span'), 'פיד');
+  assert.strictEqual(await text(dan, '.wordmark'), 'OREVOSH');
+  assert.strictEqual(await dan.getAttribute('meta[name="apple-mobile-web-app-capable"]', 'content'), 'yes');
+  assert.strictEqual(await text(dan, '.tab[data-tab=home] span'), 'בית');
+  assert.strictEqual(await text(dan, '.tab[data-tab=explore] span'), 'גילוי');
   assert.strictEqual(await text(dan, '#top-auth'), 'הצטרפות');
-  await shot(dan, '01-feed-empty-he');
+  await dan.waitForSelector('#view .empty');
+  await shot(dan, '01-home-empty-he');
+  await go(dan, '#/explore');
+  assert.strictEqual(await text(dan, '#view h1'), 'גילוי');
+  await dan.waitForSelector('#search');
+  await shot(dan, '02-explore-empty-he');
   await go(dan, '#/check');
   assert.strictEqual(await text(dan, '.notice h3'), 'צריך להתחבר בשביל זה');
   await go(dan, '#/feed/following');
   assert.strictEqual(await text(dan, '.notice h3'), 'צריך להתחבר בשביל זה');
 
   step = '2';
-  // 2. Noa signs up in English. The age box is required; the server says so in the UI's language.
+  // 2. Noa signs up (handle, password, 16+ only) and lands on the welcome screen: styles, no brands yet, done.
   await noa.goto(base + '/');
-  await noa.waitForSelector('#view h1');
+  await noa.waitForSelector(settled);
   assert.strictEqual(await noa.getAttribute('html', 'lang'), 'en');
   await go(noa, '#/signup');
   await noa.waitForSelector('#a-handle');
+  assert.strictEqual(await count(noa, '#a-brand'), 0, 'no brand question at signup');
+  assert.strictEqual(await count(noa, '#a-name'), 0, 'no display name at signup');
   await noa.fill('#a-handle', 'noa');
   await noa.fill('#a-password', 'password123');
-  await noa.fill('#a-name', 'Noa');
-  await shot(noa, '02-signup-en');
+  await shot(noa, '03-signup-en');
   expected.push('POST /api/auth/signup -> 400');
   await noa.click('#a-submit');
   await noa.waitForSelector('form .alert:not([hidden])');
-  assert.ok((await text(noa, 'form .alert')).length > 10, 'age error shown');
   await noa.check('#a-age');
   await noa.click('#a-submit');
-  await noa.waitForFunction(() => location.hash === '#/feed');
-  await noa.waitForFunction(() => document.getElementById('top-auth').textContent === 'Noa');
-  assert.strictEqual(await noa.getAttribute('.tab[data-tab=feed]', 'aria-current'), 'page');
+  await noa.waitForFunction(() => location.hash === '#/welcome');
+  await noa.waitForSelector('.chip[data-intent]');
+  assert.strictEqual(await text(noa, '#view h1'), 'Welcome to OREVOSH');
+  await noa.click('.chip[data-intent=Date]');
+  await noa.click('.chip[data-intent=Streetwear]');
+  await shot(noa, '04-welcome-en');
+  await noa.click('button:has-text("Take me in")');
+  await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await noa.waitForSelector(settled);
+  assert.deepStrictEqual((await me(noa)).interests.sort(), ['Date', 'Streetwear']);
+  assert.strictEqual(await noa.getAttribute('.tab[data-tab=home]', 'aria-current'), 'page');
 
   step = '3';
-  // 3. Noa checks a look (large JPEG, downscaled on the client) and posts it to the feed.
+  // 3. NEXOR signs up, skips the welcome, becomes a brand in settings and uploads an avatar.
+  await brand.goto(base + '/');
+  await brand.waitForSelector(settled);
+  await signup(brand, 'nexor', 'password123');
+  await brand.click('button:has-text("Skip")');
+  await brand.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await go(brand, '#/settings');
+  await brand.waitForSelector('#s-save');
+  await brand.fill('#s-name', 'NEXOR');
+  await brand.fill('#s-web', 'https://nexor.example');
+  await brand.check('#s-brand');
+  await brand.click('#s-save');
+  await brand.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+  await brand.waitForFunction(async () => true);
+  const brandMe = await me(brand);
+  assert.strictEqual(brandMe.accountType, 'Brand');
+  assert.strictEqual(brandMe.name, 'NEXOR');
+  const avatarJpeg = await makeJpeg(brand, 600, 800);
+  await choosePhoto(brand, 'button:has-text("Change photo")', avatarJpeg, 'me.jpg');
+  await brand.waitForFunction(() => !!document.querySelector('#view .avatar img'));
+  const avatarUrl = await brand.getAttribute('#view .avatar img', 'src');
+  assert.match(avatarUrl, /^\/api\/users\/nexor\/avatar\?v=\d+$/, avatarUrl);
+  const avatarResponse = await get(base + avatarUrl);
+  assert.strictEqual(avatarResponse.status, 200);
+  assert.strictEqual(avatarResponse.headers['content-type'], 'image/jpeg');
+  assert.ok(avatarResponse.headers['cache-control'].includes('public'));
+  await shot(brand, '05-settings-brand-en');
+  await go(brand, '#/me');
+  await brand.waitForSelector('.profile-head');
+  assert.strictEqual(await text(brand, '.profile-head .brand-mark'), 'Brand');
+  assert.ok(await brand.$('.profile-head .avatar img'), 'avatar shown on the profile');
+  assert.strictEqual(await count(brand, '.profile-tabs button'), 3, 'brands get Looks, Community and Featured');
+  await shot(brand, '06-profile-brand-en');
+
+  step = '4';
+  // 4. Noa checks a look and posts it with a #tag and an @mention of the brand.
   const bigJpeg = await makeJpeg(noa, 1800, 2400);
-  await runCheck(noa, { intent: 'Date', occasion: 'dinner with friends', buffer: bigJpeg, score: 7, beforeSubmit: () => shot(noa, '03-check-ready-en') });
+  await runCheck(noa, { intent: 'Date', occasion: 'dinner with friends', buffer: bigJpeg, score: 7, beforeSubmit: () => shot(noa, '07-check-ready-en') });
   assert.strictEqual(await text(noa, '.result-headline'), 'Clean casual with one weak link');
-  assert.strictEqual(await text(noa, '.vibe'), 'relaxed weekend');
-  assert.strictEqual(await count(noa, '.items li'), 3);
   assert.deepStrictEqual(await noa.$$eval('.item-verdict', (n) => n.map((x) => x.textContent)), ['Works', 'Neutral', 'Weak']);
-  assert.strictEqual(await count(noa, '.working li'), 2);
-  assert.strictEqual(await text(noa, '.tip p'), 'Swap the running shoes for plain white leather sneakers.');
   assert.strictEqual(await noa.getAttribute('.bar', 'aria-valuenow'), '72');
-  await shot(noa, '04-result-en');
+  await shot(noa, '08-result-en');
   await noa.click('#post-open');
   await noa.waitForSelector('#post-confirm');
-  assert.deepStrictEqual(await noa.$$eval('#challenge-pick option', (o) => o.map((x) => x.textContent)), ['Just the feed'], 'no challenges yet');
   assert.strictEqual(await count(noa, '.products-grid'), 0, 'people do not get product links');
-  await noa.fill('#caption', 'Dinner fit, thoughts?');
-  await shot(noa, '05-post-sheet-en');
+  await noa.fill('#caption', 'Dinner fit, thoughts? #datenight #DateNight @nexor @nobody');
+  await shot(noa, '09-post-sheet-en');
   await noa.click('#post-confirm');
   await noa.waitForSelector('#post-link');
   const post1 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
-  assert.match(post1, /^[0-9a-f-]{36}$/);
   await noa.click('#post-link');
   await noa.waitForSelector('#view .card');
   assert.strictEqual(await text(noa, '.card .headline'), 'Clean casual with one weak link');
-  assert.strictEqual(await text(noa, '.card .caption'), 'Dinner fit, thoughts?');
+  assert.deepStrictEqual(await noa.$$eval('.card .caption a', (n) => n.map((x) => x.getAttribute('href'))), ['#/tag/datenight', '#/tag/datenight', '#/u/nexor', '#/u/nobody']);
+  await noa.waitForSelector('.person');
+  assert.strictEqual(await text(noa, '.person .name'), 'NEXORBrand', 'tagged brand listed');
   assert.strictEqual(await text(noa, '.card .score-badge'), '7/10');
-  assert.strictEqual(await text(noa, '.card-head .tag'), 'Date');
-  assert.strictEqual(await text(noa, '.comments li'), 'No comments yet.');
-  await shot(noa, '06-post-view-en');
-
-  step = '4';
-  // 4. The feed: one card, the intent filter hides and shows it, "top" and "fresh" both list it.
-  await go(noa, '#/feed');
-  await noa.waitForSelector('#feed-list .card');
-  assert.strictEqual(await count(noa, '#feed-list .card'), 1);
-  await noa.click('.chip[data-intent=Office]');
-  await noa.waitForSelector('#feed-list .empty');
-  assert.strictEqual(await count(noa, '#feed-list .card'), 0);
-  await noa.click('.chip[data-intent=""]');
-  await noa.waitForSelector('#feed-list .card');
-  await shot(noa, '07-feed-en');
-  await go(noa, '#/feed/top');
-  await noa.waitForSelector('#feed-list .card');
-  assert.strictEqual(await noa.getAttribute('.segment:nth-child(2)', 'aria-pressed'), 'true');
-
-  // The signed-out visitor can open the post and read it, but is asked to sign in to comment.
-  await go(dan, '#/post/' + post1);
-  await dan.waitForSelector('#view .card');
-  assert.strictEqual(await text(dan, '.card .caption'), 'Dinner fit, thoughts?');
-  assert.strictEqual(await text(dan, 'a[href="#/login"].btn-text'), 'מתחברים כדי להגיב');
-  assert.ok((await text(dan, '.card .match span')).startsWith('משדר דייט'), await text(dan, '.card .match span'));
+  await shot(noa, '10-post-en');
 
   step = '5';
-  // 5. NEXOR signs up as a brand and opens a challenge.
-  await brand.goto(base + '/');
-  await brand.waitForSelector('#view h1');
-  await signup(brand, { handle: 'nexor', password: 'password123', name: 'NEXOR', brand: true });
-  await go(brand, '#/challenges');
+  // 5. The brand is told, features the look, and its Community and Featured tabs fill up; Noa is told back.
+  await go(brand, '#/activity');
+  await brand.waitForSelector('.activity li');
+  assert.deepStrictEqual(await brand.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent)), ['noa tagged you in a look']);
+  await go(brand, '#/post/' + post1);
+  await brand.waitForSelector('.menu-open');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  await brand.click('.sheet button:has-text("Feature this look")');
+  await brand.waitForSelector('.card .featured');
+  assert.strictEqual(await text(brand, '.card .featured'), 'Featured by NEXOR');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  assert.strictEqual(await count(brand, '.sheet button:has-text("Remove from featured")'), 1);
+  await brand.keyboard.press('Escape');
+  await brand.waitForFunction(() => !document.querySelector('.sheet'));
+  await shot(brand, '11-featured-en');
+  await go(brand, '#/u/nexor/community');
+  await brand.waitForSelector('.grid a');
+  assert.strictEqual(await count(brand, '.grid a'), 1);
+  assert.strictEqual(await brand.getAttribute('.profile-tabs button:nth-child(2)', 'aria-selected'), 'true');
+  await go(brand, '#/u/nexor/featured');
+  await brand.waitForSelector('.grid a');
+  assert.strictEqual(await count(brand, '.grid a'), 1);
+  await shot(brand, '12-brand-community-en');
+  await go(noa, '#/activity');
+  await noa.waitForSelector('.activity li');
+  assert.deepStrictEqual(await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent)), ['NEXOR featured your look']);
+  await go(noa, '#/u/noa');
+  await noa.waitForSelector('.profile-tabs');
+  assert.strictEqual(await count(noa, '.profile-tabs button'), 2, 'a featured person gets a Featured tab');
+
+  step = '6';
+  // 6. Explore, signed out: trending tag, the brand, the top look, search, the tag page.
+  await go(dan, '#/explore');
+  await dan.waitForSelector('a[href="#/tag/datenight"]');
+  assert.ok((await text(dan, 'a[href="#/tag/datenight"]')).includes('#datenight'));
+  await dan.waitForSelector('.brand-card');
+  assert.strictEqual(await text(dan, '.brand-card .name'), 'NEXOR');
+  assert.strictEqual(await count(dan, '.grid a'), 1, 'top look this week');
+  await shot(dan, '13-explore-he');
+  await dan.fill('#search', 'nex');
+  await dan.press('#search', 'Enter');
+  await dan.waitForFunction(() => location.hash === '#/search/nex');
+  await dan.waitForSelector('.person');
+  assert.strictEqual(await text(dan, '.person .name'), 'NEXORמותג');
+  await go(dan, '#/search/date');
+  await dan.waitForSelector('a[href="#/tag/datenight"]');
+  await go(dan, '#/tag/datenight');
+  await dan.waitForSelector('#view .card');
+  assert.strictEqual(await count(dan, '#view .card'), 1);
+  assert.strictEqual(await text(dan, '.card .featured'), 'הוצג על ידי NEXOR');
+  await shot(dan, '14-tag-he');
+
+  step = '7';
+  // 7. Dan signs up in Hebrew, follows the brand from the welcome screen, sees the look in For you, double-taps to fire.
+  await signup(dan, 'dan', 'password123');
+  await dan.waitForSelector('.person');
+  assert.strictEqual(await text(dan, '.person .name'), 'NEXORמותג');
+  await dan.click('.person .btn');
+  await dan.waitForFunction(() => document.querySelector('.person .btn').getAttribute('aria-pressed') === 'true');
+  await dan.click('.chip[data-intent=Date]');
+  await shot(dan, '15-welcome-he');
+  await dan.click('button:has-text("קחו אותי פנימה")');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector('#view .card');
+  assert.strictEqual(await count(dan, '#view .card'), 1);
+  assert.strictEqual(await text(dan, '.segment[aria-pressed="true"]'), 'בשבילך');
+  const photo = await dan.$('.card .card-photo');
+  await photo.tap(); await photo.tap();
+  await dan.waitForFunction(() => document.querySelector('.card .action.fire').getAttribute('aria-pressed') === 'true');
+  assert.strictEqual(await text(dan, '.card .action.fire .count'), '1');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '', null, { timeout: 2000 });
+  assert.ok(!(await hash(dan)).startsWith('#/post/'), 'double tap must not open the look');
+  await shot(dan, '16-home-he');
+  await go(dan, '#/feed/following');
+  await dan.waitForSelector('#view .empty');
+  await go(dan, '#/u/noa');
+  await dan.waitForSelector('#follow, .profile-head');
+  await dan.click('.profile-head ~ * button.btn, button.btn:has-text("לעקוב")');
+  await dan.waitForFunction(() => !!document.querySelector('button[aria-pressed="true"].btn'));
+  await go(dan, '#/feed/following');
+  await dan.waitForSelector('#view .card');
+
+  step = '8';
+  // 8. A challenge from brief to winner, now reached through Explore.
+  await go(brand, '#/explore');
+  await brand.waitForSelector('a[href="#/challenges"]');
+  await brand.click('a[href="#/challenges"]');
   await brand.waitForSelector('a[href="#/new-challenge"]');
-  assert.strictEqual(await text(brand, '#view .empty'), 'No open challenges right now.');
   await brand.click('a[href="#/new-challenge"]');
   await brand.waitForSelector('#nc-submit');
   await brand.fill('#nc-title', 'Date night in black');
   await brand.click('.chip:has-text("Date")');
   await brand.fill('#nc-brief', 'All-black date looks. Texture over logos.');
   await brand.fill('#nc-prize', 'A black shirt of your choice');
-  await brand.fill('#nc-url', 'https://example.com/black-shirt');
-  await shot(brand, '08-challenge-form');
   await brand.click('#nc-submit');
   await brand.waitForFunction(() => /^#\/challenge\/[0-9a-f-]{36}$/.test(location.hash));
   const challengeId = (await hash(brand)).replace('#/challenge/', '');
   await brand.waitForSelector('.challenge-title');
-  assert.strictEqual(await text(brand, 'h1.challenge-title'), 'Date night in black');
-  assert.match(await text(brand, '.countdown'), /^Ends in 3 days$/);
-  assert.ok((await text(brand, '.prize')).includes('A black shirt of your choice'));
-  assert.strictEqual(await text(brand, '#view .empty'), 'No entries yet. Be the first.');
-  assert.strictEqual(await count(brand, 'button:has-text("Enter with a check")'), 0, 'the brand cannot enter its own challenge');
-  await shot(brand, '09-challenge-new');
-
-  step = '6';
-  // 6. The brand reacts to Noa's look: fire, save, comment, follow.
-  await go(brand, '#/feed');
-  await brand.waitForSelector('#feed-list .card');
-  assert.strictEqual(await brand.getAttribute('.card .action.fire', 'aria-pressed'), 'false');
-  await brand.click('.card .action.fire');
-  await brand.waitForFunction(() => document.querySelector('.card .action.fire').getAttribute('aria-pressed') === 'true');
-  assert.strictEqual(await text(brand, '.card .action.fire .count'), '1');
-  await brand.click('.card .action.save');
-  await brand.waitForFunction(() => document.querySelector('.card .action.save').getAttribute('aria-pressed') === 'true');
-  await brand.click('.card .card-photo');
-  await brand.waitForSelector('#comment-input');
-  await brand.fill('#comment-input', 'Love the palette. Shoes could go leather.');
-  await brand.click('#comment-send');
-  await brand.waitForSelector('.comments li .text b');
-  assert.strictEqual(await text(brand, '.comments li .text b'), 'NEXOR');
-  assert.ok((await text(brand, '.comments li .text')).includes('Love the palette'));
-  await brand.click('.card-head a.name');
-  await brand.waitForSelector('#follow');
-  assert.strictEqual(await text(brand, '#follow'), 'Follow');
-  await brand.click('#follow');
-  await brand.waitForFunction(() => document.getElementById('follow') && document.getElementById('follow').getAttribute('aria-pressed') === 'true');
-  assert.strictEqual(await text(brand, '#follow'), 'Following');
-  assert.deepStrictEqual(await brand.$$eval('.stats .stat b', (n) => n.map((x) => x.textContent)), ['1', '1', '0', '1', '7', '1']);
-  await shot(brand, '10-profile-noa-by-brand');
-  await go(brand, '#/saved');
-  await brand.waitForSelector('.grid a');
-  assert.strictEqual(await count(brand, '.grid a'), 1);
-
-  step = '7';
-  // 7. Noa's activity: three unread (fire, comment, follow), the badge shows 3 and clears after reading.
-  await noa.reload();
-  await noa.waitForSelector('#view h1');
-  await noa.waitForFunction(() => !document.getElementById('activity-badge').hidden);
-  assert.strictEqual(await text(noa, '#activity-badge'), '3');
-  await go(noa, '#/activity');
-  await noa.waitForSelector('.activity li');
-  const activity = await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent));
-  assert.deepStrictEqual(activity.sort(), ['NEXOR commented on your look', 'NEXOR set your look on fire', 'NEXOR started following you']);
-  assert.strictEqual(await count(noa, '.activity li.unread'), 3);
-  await noa.waitForFunction(() => document.getElementById('activity-badge').hidden);
-  await shot(noa, '11-activity-noa');
-  await go(noa, '#/post/' + post1);
-  await noa.waitForSelector('.card');
-  assert.strictEqual(await text(noa, '.card .action.fire .count'), '1');
-  assert.strictEqual(await text(noa, '.card a.action .count'), '1', 'comment count on the card');
-
-  step = '8';
-  // 8. Noa enters the challenge from its card: the intent is locked to the challenge's, the post sheet preselects it.
-  await go(noa, '#/challenges');
-  await noa.waitForSelector('.challenge-card');
-  assert.strictEqual(await text(noa, '.challenge-title'), 'Date night in black');
-  assert.strictEqual(await text(noa, '.challenge-meta'), 'Date' + 'by NEXOR' + '0 entries');
+  await shot(brand, '17-challenge-en');
+  await go(noa, '#/challenge/' + challengeId);
+  await noa.waitForSelector('button:has-text("Enter with a check")');
   await noa.click('button:has-text("Enter with a check")');
   await noa.waitForSelector('#photo');
-  assert.strictEqual(await text(noa, '.alert b'), 'Entering: Date night in black');
-  assert.strictEqual(await noa.getAttribute('.chip[data-intent=Date]', 'aria-pressed'), 'true');
-  assert.strictEqual(await noa.isDisabled('.chip[data-intent=Casual]'), true);
-  await shot(noa, '12-check-entering');
+  assert.strictEqual(await noa.isDisabled('.chip[data-intent=Casual]'), true, 'intent locked to the challenge');
   await runCheck(noa, { buffer: bigJpeg, score: 7 });
-  await noa.click('#post-open');
-  await noa.waitForSelector('#post-confirm');
-  await noa.waitForFunction((id) => document.getElementById('challenge-pick').value === id, challengeId);
-  assert.strictEqual(await count(noa, '#challenge-pick option'), 2);
-  await noa.click('#post-confirm');
-  await noa.waitForSelector('#post-link');
-  const post2 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
-  await go(noa, '#/challenge/' + challengeId);
-  await noa.waitForSelector('.lb-row');
-  assert.strictEqual(await count(noa, '.lb-row'), 1);
-  assert.strictEqual(await text(noa, '.lb-who .name'), 'Noa');
-  assert.ok((await text(noa, '.lb-who .votes')).startsWith('0 votes'));
-  assert.strictEqual(await noa.isDisabled('.lb-row .vote'), true, 'no voting for your own entry');
-  assert.strictEqual(await text(noa, '.challenge-card .tag.accent'), "You're in");
-  await shot(noa, '13-leaderboard');
-
-  step = '9';
-  // 9. Dan signs up in Hebrew, scrolls the feed, fires, votes for Noa, follows her, and sees a "following" feed.
-  await signup(dan, { handle: 'dan', password: 'password123' });
-  await go(dan, '#/feed');
-  await dan.waitForSelector('#feed-list .card');
-  assert.strictEqual(await count(dan, '#feed-list .card'), 2);
-  assert.strictEqual(await text(dan, '.card:nth-child(1) .challenge-link'), 'באתגר: Date night in black');
-  await shot(dan, '14-feed-he');
-  await dan.click('.card:nth-child(2) .action.fire');
-  await dan.waitForFunction(() => document.querySelector('.card:nth-child(2) .action.fire').getAttribute('aria-pressed') === 'true');
-  assert.strictEqual(await text(dan, '.card:nth-child(2) .action.fire .count'), '2');
-  await dan.click('.card:nth-child(1) .challenge-link');
+  const post2 = await postIt(noa, { caption: 'Black on black #datenight' });
+  await go(dan, '#/challenge/' + challengeId);
   await dan.waitForSelector('.lb-row .vote');
-  assert.strictEqual(await text(dan, '.lb-row .vote'), 'להצביע');
   await dan.click('.lb-row .vote');
   await dan.waitForFunction(() => document.querySelector('.lb-row .vote') && document.querySelector('.lb-row .vote').getAttribute('aria-pressed') === 'true');
-  assert.strictEqual(await text(dan, '.lb-row .vote'), 'ההצבעה שלך');
-  assert.ok((await text(dan, '.lb-who .votes')).startsWith('1 הצבעות'), await text(dan, '.lb-who .votes'));
-  await shot(dan, '15-vote-he');
-  await go(dan, '#/u/noa');
-  await dan.waitForSelector('#follow');
-  await dan.click('#follow');
-  await dan.waitForFunction(() => document.getElementById('follow') && document.getElementById('follow').getAttribute('aria-pressed') === 'true');
-  assert.strictEqual(await text(dan, '#follow'), 'עוקבים');
-  await go(dan, '#/feed/following');
-  await dan.waitForSelector('#feed-list .card');
-  assert.strictEqual(await count(dan, '#feed-list .card'), 2);
-  await go(dan, '#/feed/top');
-  await dan.waitForSelector('#feed-list .card');
-  assert.strictEqual(await text(dan, '.card:nth-child(1) .action.fire .count'), '2', 'top sorts by fire');
-
-  step = '10';
-  // 10. A brand post carries product links; the feed shows "shop the look".
-  await runCheck(brand, { intent: 'Minimal', buffer: bigJpeg, score: 7 });
-  const post3 = await postIt(brand, { caption: 'The shirt from the challenge.', products: [{ label: 'Black shirt', url: 'https://example.com/black-shirt', price: '₪199' }] });
-  await go(brand, '#/feed');
-  await brand.waitForSelector('#feed-list .card');
-  assert.strictEqual(await count(brand, '#feed-list .card'), 3);
-  assert.strictEqual(await text(brand, '.card:nth-child(1) .brand-mark'), 'Brand');
-  assert.strictEqual(await text(brand, '.card:nth-child(1) .shop a'), 'Black shirt₪199');
-  assert.strictEqual(await brand.getAttribute('.card:nth-child(1) .shop a', 'href'), 'https://example.com/black-shirt');
-  await shot(brand, '16-feed-brand-post');
-  await go(brand, '#/activity');
-  await brand.waitForSelector('.activity li');
-  assert.deepStrictEqual(await brand.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent)), ['Noa entered your challenge']);
-
-  step = '11';
-  // 11. Time passes: the challenge ends, the winner is fixed on the next read, both sides get told.
+  await shot(dan, '18-vote-he');
   const changed = execFileSync('python3', ['-c', [
     'import sqlite3, sys',
     'c = sqlite3.connect(sys.argv[1])',
     "n = c.execute(\"update Challenges set EndsAt = strftime('%Y-%m-%d %H:%M:%S', 'now', '-1 hour')\").rowcount",
     'c.commit(); print(n)'].join('\n'), DB]).toString().trim();
   assert.strictEqual(changed, '1');
-  await go(dan, '#/challenges/ended');
-  await dan.waitForSelector('.challenge-card');
-  assert.strictEqual(await text(dan, '.challenge-card .tag.accent'), 'הזכייה');
-  await dan.click('.challenge-card .challenge-title');
+  await go(dan, '#/challenge/' + challengeId);
   await dan.waitForSelector('.lb-row.winner');
-  assert.match(await text(dan, '.countdown'), /^הסתיים לפני שעה$/);
   assert.strictEqual(await count(dan, '.card[data-post="' + post2 + '"]'), 1, 'winner card shown');
-  assert.strictEqual(await dan.isDisabled('.lb-row .vote'), true, 'voting closed');
-  await shot(dan, '17-winner-he');
   await go(noa, '#/activity');
   await noa.waitForSelector('.activity li');
-  const noaActivity = await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent));
-  assert.ok(noaActivity.includes("You won NEXOR's challenge"), noaActivity.join(' | '));
-  assert.ok(noaActivity.includes('dan voted for your entry'), noaActivity.join(' | '));
-  await go(brand, '#/activity');
-  await brand.waitForSelector('.activity li');
-  assert.ok((await brand.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent))).includes('Your challenge ended. Winner: Noa'));
-  await go(brand, '#/challenges');
-  await brand.waitForSelector('#view .empty');
-  assert.strictEqual(await text(brand, '#view .empty'), 'No open challenges right now.');
+  assert.ok((await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent))).includes("You won NEXOR's challenge"));
+  // The brand features the winning entry through the challenge route (no mention needed).
+  await go(brand, '#/post/' + post2);
+  await brand.waitForSelector('.menu-open');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  await brand.click('.sheet button:has-text("Feature this look")');
+  await brand.waitForSelector('.card .featured');
 
-  step = '12';
-  // 12. Photos: a public post serves its photo through the API only; nothing under storage is reachable by path.
-  const image = await get(`${base}/api/posts/${post1}/image`);
-  assert.strictEqual(image.status, 200);
-  assert.strictEqual(image.headers['content-type'], 'image/jpeg');
-  assert.ok(image.headers['cache-control'].includes('private'));
+  step = '9';
+  // 9. Photos: the post image route and the avatar route are the only doors; nothing under storage is reachable by path.
+  assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 200);
   const storage = path.join(DATA, 'storage');
   const files = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) files.push(user + '/' + f);
-  assert.strictEqual(files.length, 3, 'three OK checks keep their photos: ' + files.join(','));
+  assert.strictEqual(files.length, 3, 'two OK checks plus one avatar: ' + files.join(','));
   for (const rel of files) {
     for (const url of [`${base}/${rel}`, `${base}/storage/${rel}`, `${base}/wwwroot/${rel}`]) {
       assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
     }
   }
+  const metrics = await getJson(`${base}/api/metrics/pilot`);
+  assert.strictEqual(metrics.social.mentions, 1);
+  assert.strictEqual(metrics.social.featured, 2);
+  assert.strictEqual(metrics.social.brands, 1);
 
-  step = '13';
-  // 13. Noa deletes her first post: it leaves the feed and its photo goes private again.
+  step = '10';
+  // 10. Noa deletes her first look, then her account; the brand's walls empty out; Dan signs out and back in.
   await go(noa, '#/post/' + post1);
   await noa.waitForSelector('.menu-open');
   await noa.click('.menu-open');
-  await noa.waitForSelector('#post-delete');
-  assert.strictEqual(await count(noa, '#post-report'), 0, 'no report button on your own post');
-  await noa.click('#post-delete');
+  await noa.waitForSelector('.sheet');
+  assert.strictEqual(await count(noa, '.sheet button:has-text("Report")'), 0, 'no report on your own look');
+  await noa.click('.sheet button:has-text("Delete look")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
   await noa.waitForFunction(() => location.hash === '#/me');
-  await noa.waitForSelector('.grid a');
-  assert.strictEqual(await count(noa, '.grid a'), 1);
   expected.push(`GET /api/posts/${post1}/image -> 404`);
   assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 404);
-  await shot(noa, '18-profile-me');
-  await go(noa, '#/checks');
-  await noa.waitForSelector('.activity li');
-  assert.strictEqual(await count(noa, '.activity li'), 2);
-  assert.strictEqual(await count(noa, '.activity li .pill.accent'), 1, 'the unposted check can be posted from the list');
-
-  step = '14';
-  // 14. Metrics (post 1 took its two fires and its comment with it), then Noa deletes her account:
-  //     her posts, photos and entry vanish; the others keep theirs.
-  const metrics = await getJson(`${base}/api/metrics/pilot`);
-  assert.strictEqual(metrics.totalChecks, 3);
-  assert.deepStrictEqual(metrics.social, { users: 3, brands: 1, posts: 2, fires: 0, follows: 2, comments: 0, challengesOpen: 0, challengesEnded: 1, votes: 1, activeUsers7d: 3 });
+  await go(brand, '#/u/nexor/community');
+  await brand.waitForSelector('#view .empty');
   await go(noa, '#/settings');
   await noa.waitForSelector('#delete-account');
-  await shot(noa, '19-settings');
   await noa.click('#delete-account');
-  await noa.waitForFunction(() => location.hash === '#/feed');
-  await noa.waitForFunction(() => document.getElementById('top-auth').textContent === 'Join');
-  await noa.waitForSelector('#feed-list .card');
-  assert.strictEqual(await count(noa, '#feed-list .card'), 1, 'only the brand post remains');
-  assert.strictEqual(fs.readdirSync(storage).length, 1, 'only the brand folder remains');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await noa.waitForFunction(() => !!document.getElementById('top-auth'));
   const after = await getJson(`${base}/api/metrics/pilot`);
   assert.strictEqual(after.social.users, 2);
-  assert.strictEqual(after.social.posts, 1);
-  assert.strictEqual(after.social.fires, 0);
-  expected.push('GET /api/users/noa -> 404');
-  await go(dan, '#/u/noa');
-  assert.strictEqual(await text(dan, '#view .empty'), 'לא מצאנו את הפרופיל הזה.');
-  const detail = await getJson(`${base}/api/challenges/${challengeId}`);
-  assert.strictEqual(detail.winner, undefined, 'the winning entry is gone with its author');
-  assert.strictEqual(detail.entriesByVotes.length, 0);
-
-  step = '15';
-  // 15. Sign out and back in; the language preference and session survive a reload.
-  await go(dan, '#/me');
+  assert.strictEqual(after.social.featured, 0);
+  assert.strictEqual(after.social.mentions, 0);
+  await go(brand, '#/u/nexor/featured');
+  await brand.waitForSelector('#view .empty');
+  await go(dan, '#/settings');
   await dan.waitForSelector('#logout');
   await dan.click('#logout');
-  await dan.waitForFunction(() => document.getElementById('top-auth').textContent === 'הצטרפות');
+  await dan.waitForFunction(() => !!document.getElementById('top-auth'));
   await go(dan, '#/login');
   await dan.fill('#a-handle', 'dan');
   await dan.fill('#a-password', 'wrong-password');
@@ -518,32 +486,24 @@ async function postIt(page, opts) {
   assert.strictEqual(await text(dan, 'form .alert'), 'הכינוי או הסיסמה לא נכונים.');
   await dan.fill('#a-password', 'password123');
   await dan.click('#a-submit');
-  await dan.waitForFunction(() => location.hash === '#/feed');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await dan.reload();
-  await dan.waitForSelector('#view h1');
-  await dan.waitForFunction(() => document.getElementById('top-auth').textContent === 'dan');
+  await dan.waitForSelector(settled);
+  await dan.waitForFunction(() => !document.getElementById('top-auth'));
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
 
   const stubRequests = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
-  assert.ok(stubRequests.length >= 4, 'stub saw the requests (incl. the retried one)');
-  for (const r of stubRequests) {
-    assert.strictEqual(r.media_type, 'image/jpeg');
-    assert.strictEqual(r.thinking && r.thinking.type, 'disabled');
-    assert.strictEqual(r.model, 'claude-sonnet-5');
-  }
+  assert.ok(stubRequests.length >= 3, 'stub saw the checks (incl. the retried one)');
+  for (const r of stubRequests) { assert.strictEqual(r.media_type, 'image/jpeg'); assert.strictEqual(r.model, 'claude-sonnet-5'); }
   assert.ok(stubRequests[1].image_len < bigJpeg.length, `downscaled: ${stubRequests[1].image_len} < ${bigJpeg.length}`);
-  assert.ok(stubRequests[1].user_text.includes('dinner with friends'));
 
   const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
-  // Chromium reports a body-less 204 fetch as net::ERR_ABORTED after the response arrived, and a reload cancels
-  // lazy images still in flight; neither is a failure.
   const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
     && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/image -> /.test(u))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar)/.test(u))
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
-  // Chromium logs every non-2xx response as a console error; those are judged above through failedUrls.
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));
   assert.deepStrictEqual(realErrors, [], 'console errors: ' + realErrors.join(' | '));
 

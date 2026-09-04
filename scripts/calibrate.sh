@@ -11,7 +11,7 @@ BASE="${4:-http://localhost:5000}"
 
 user=$(curl -sS -X POST "$BASE/api/users" -H 'Content-Type: application/json' \
   -d "{\"handle\":\"calibration\",\"confirmed16Plus\":true,\"language\":\"$LANGUAGE\"}")
-user_id=$(printf '%s' "$user" | grep -o '"id":"[^"]*"' | head -n1 | cut -d'"' -f4)
+user_id=$(printf '%s' "$user" | grep -o '"id":"[^"]*"' | head -n1 | cut -d'"' -f4 || true)
 if [ -z "$user_id" ]; then echo "could not create user: $user" >&2; exit 1; fi
 trap 'curl -sS -o /dev/null -X DELETE "$BASE/api/users/$user_id"' EXIT
 
@@ -22,13 +22,13 @@ for photo in "$FOLDER"/*; do
   http_status=$(printf '%s' "$response" | tail -n1)
   body=$(printf '%s' "$response" | sed '$d')
   # Top-level fields come before "feedback" in the response, so the first match is the check itself.
-  check_status=$(printf '%s' "$body" | grep -o '"status":"[a-z_]*"' | head -n1 | cut -d'"' -f4)
+  check_status=$(printf '%s' "$body" | grep -o '"status":"[a-z_]*"' | head -n1 | cut -d'"' -f4 || true)
   score=""
   if [ "$check_status" = "ok" ]; then
-    score=$(printf '%s' "$body" | grep -o '"score":[0-9]*' | head -n1 | cut -d: -f2)
+    score=$(printf '%s' "$body" | grep -o '"score":[0-9]*' | head -n1 | cut -d: -f2 || true)
   fi
-  headline=$(printf '%s' "$body" | grep -o '"headline":"[^"]*"' | head -n1 | cut -d'"' -f4)
-  error=$(printf '%s' "$body" | grep -o '"error":"[^"]*"' | head -n1 | cut -d'"' -f4)
+  headline=$(printf '%s' "$body" | grep -o '"headline":"[^"]*"' | head -n1 | cut -d'"' -f4 || true)
+  error=$(printf '%s' "$body" | grep -o '"error":"[^"]*"' | head -n1 | cut -d'"' -f4 || true)
   printf '%-36s HTTP %s  %-11s score %-3s %s\n' "$(basename "$photo")" "$http_status" "${check_status:-error}" "${score:--}" "${headline:-$error}"
   if [ -n "$score" ]; then scores="$scores $score"; fi
 done

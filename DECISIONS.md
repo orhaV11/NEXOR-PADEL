@@ -177,6 +177,16 @@ objections are noted, not acted on.
   No API key was available in the build environment. `scripts/calibrate.sh` is provided and the README
   tells the operator to run it before inviting people, bumping `PromptVersion` if the spread is poor.
 
+### Review before hand-off
+
+- **Five independent reviews with adversarial verification** were run against the brief before hand-off
+  (spec compliance, security and privacy, backend correctness, client and i18n, tests and docs; every
+  finding was then challenged by two more reviewers). Everything that survived was fixed: deferred photo
+  write and catch-all error rows, the in-flight cap reservation and global ceiling, per-address signups,
+  header redaction, the quoted occasion note, occasion dropped on rejection, the anchored SQLite path,
+  chip focus, the photo-replacement race, decode fallbacks, live regions, the share guard, the locale
+  switch failure path, two Hebrew strings, and three bugs in `scripts/calibrate.sh`.
+
 ### Objections kept out of the code (brief wins)
 
 - **The user id as the only credential** is the biggest risk in the pilot: anyone with the id can read,

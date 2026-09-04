@@ -74,6 +74,8 @@ a { color: inherit; }
   display: inline-grid; place-items: center; text-decoration: none; position: relative;
 }
 .icon-btn:active { background: var(--surface-2); }
+[dir="rtl"] .icon-btn.back svg { transform: scaleX(-1); }
+.stack .btn + .btn { margin-block-start: 10px; }
 .icon-btn svg, .icon svg { inline-size: 24px; block-size: 24px; }
 .icon { display: inline-grid; place-items: center; }
 .pill {

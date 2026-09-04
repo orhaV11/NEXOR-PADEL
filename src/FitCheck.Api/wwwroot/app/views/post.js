@@ -13,6 +13,7 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: [
     '.post-section { padding-inline: 16px; }',
     '.post-section > * + * { margin-block-start: 10px; }',
+    '.post-card:focus { outline: none; }',   /* a landing target for focusHeading, not a control: no full-card ring */
     '.view.flush > .composer { padding-inline: 16px; }',
     '.comments .when { font-size: 12px; color: var(--ink-3); margin-block-start: 2px; }',
     '.comments .text .body { white-space: pre-line; }',
@@ -95,6 +96,7 @@ register('post', async (root, params, ctx) => {
       avatar(c.user, { size: 'sm' }),
       el('div', { class: 'text' }, [
         el('b', { text: c.user.name }),
+        ' ',   // a real space: the name's margin-inline-end lands outside the LTR run inside an RTL paragraph
         el('span', { class: 'body', text: c.text }),
         el('div', { class: 'when', text: relative(c.createdAt) })
       ]),

@@ -84,7 +84,8 @@ async function go(page, hash) {
   if (!page.url().startsWith(base)) {
     await page.goto(base + '/' + hash);
   } else if (await page.evaluate(() => location.hash) === hash) {
-    await page.evaluate(() => { const tab = document.querySelector('.tab[aria-current="page"]'); if (tab) tab.click(); else window.dispatchEvent(new HashChangeEvent('hashchange')); });
+    // Same route again: a hashchange re-renders it (what tapping the active tab does for a tab route).
+    await page.evaluate(() => { window.dispatchEvent(new HashChangeEvent('hashchange')); });
   } else {
     await page.evaluate((h) => { location.hash = h; }, hash);
   }
@@ -297,8 +298,8 @@ async function postIt(page, opts) {
   step = '5';
   // 5. The brand is told, features the look, and its Community and Featured tabs fill up; Noa is told back.
   await go(brand, '#/activity');
-  await brand.waitForSelector('.activity li');
-  assert.deepStrictEqual(await brand.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent)), ['noa tagged you in a look']);
+  await brand.waitForSelector('.activity li a[href]');
+  assert.deepStrictEqual(await brand.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent)), ['noa tagged you in a look']);
   await go(brand, '#/post/' + post1);
   await brand.waitForSelector('.menu-open');
   await brand.click('.menu-open');
@@ -321,8 +322,8 @@ async function postIt(page, opts) {
   assert.strictEqual(await count(brand, '.grid a'), 1);
   await shot(brand, '12-brand-community-en');
   await go(noa, '#/activity');
-  await noa.waitForSelector('.activity li');
-  assert.deepStrictEqual(await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent)), ['NEXOR featured your look']);
+  await noa.waitForSelector('.activity li a[href]');
+  assert.deepStrictEqual(await noa.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent)), ['NEXOR featured your look']);
   await go(noa, '#/u/noa');
   await noa.waitForSelector('.profile-tabs');
   assert.strictEqual(await count(noa, '.profile-tabs button'), 2, 'a featured person gets a Featured tab');
@@ -418,8 +419,8 @@ async function postIt(page, opts) {
   await dan.waitForSelector('.lb-row.winner');
   assert.strictEqual(await count(dan, '.card[data-post="' + post2 + '"]'), 1, 'winner card shown');
   await go(noa, '#/activity');
-  await noa.waitForSelector('.activity li');
-  assert.ok((await noa.$$eval('.activity li a > div:first-child', (n) => n.map((x) => x.textContent))).includes("You won NEXOR's challenge"));
+  await noa.waitForSelector('.activity li a[href]');
+  assert.ok((await noa.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent))).includes("You won NEXOR's challenge"));
   // The brand features the winning entry through the challenge route (no mention needed).
   await go(brand, '#/post/' + post2);
   await brand.waitForSelector('.menu-open');

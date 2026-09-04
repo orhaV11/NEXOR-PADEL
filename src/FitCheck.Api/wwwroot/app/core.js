@@ -301,7 +301,7 @@ export function setTopBar(opts) {
   topBarCustom = true;
   const inner = $('top-inner');
   inner.innerHTML = '';
-  if (opts.back) inner.appendChild(iconButton('back', t('common.back'), () => { if (history.length > 1) history.back(); else location.hash = opts.back === true ? '#/' : opts.back; }));
+  if (opts.back) inner.appendChild(iconButton('back', t('common.back'), () => { if (history.length > 1) history.back(); else location.hash = opts.back === true ? '#/' : opts.back; }, { class: 'icon-btn back' }));
   if (opts.title !== undefined) inner.appendChild(el('div', { class: 'top-title', text: opts.title }));
   else inner.appendChild(el('a', { class: 'wordmark', href: '#/', 'aria-label': t('app.name'), text: 'OREVOSH' }));
   inner.appendChild(el('div', { class: 'top-actions', id: 'top-actions' }, opts.actions || []));
@@ -468,7 +468,7 @@ export function confirmSheet(title, body, confirmText, danger) {
       title, onClose: () => { if (!answered) resolve(false); },
       content: el('div', {}, [
         body ? el('p', { class: 'muted', text: body }) : null,
-        el('div', { class: 'row', style: 'margin-block-start:16px' }, [
+        el('div', { class: 'stack', style: 'margin-block-start:16px' }, [
           el('button', { type: 'button', class: 'btn ' + (danger ? 'btn-danger' : ''), text: confirmText, onclick: () => { answered = true; s.close(); resolve(true); } }),
           el('button', { type: 'button', class: 'btn btn-secondary', text: t('common.cancel'), onclick: () => { answered = true; s.close(); resolve(false); } })
         ])

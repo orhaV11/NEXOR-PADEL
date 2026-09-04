@@ -60,7 +60,7 @@ last 7 days.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-__TESTCOUNT__ tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale
+181 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules, the CSRF header, uploads and 413/415/429/502, the daily and
 global caps, posting, fire, comments, saves, follows, the feed tabs and the For you ranking, reports hiding

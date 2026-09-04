@@ -67,7 +67,7 @@ days after their first ÷ users with at least one OK check.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-90 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, the
+98 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, the
 Anthropic client against a scripted HTTP handler (request shape, single retry, refusal handling), and endpoint
 smoke tests against the real app with a scripted vision client (user validation, uploads, 413/415/429/502,
 deletion removing files, metrics math on a seeded dataset).

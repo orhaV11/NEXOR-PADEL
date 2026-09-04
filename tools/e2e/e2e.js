@@ -59,6 +59,9 @@ function start(cmd, args, env, log) {
 
   await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
   await waitFor(`http://127.0.0.1:${API_PORT}/api/metrics/pilot`);
+  // A stub left over from an earlier run would answer on the same port with stale state: refuse to continue.
+  const stubState = JSON.parse((await get(`http://127.0.0.1:${STUB_PORT}/`)).body);
+  assert.deepStrictEqual(stubState, [], `port ${STUB_PORT} is served by a stale stub with ${stubState.length} recorded requests; kill it first`);
 
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
   const context = await browser.newContext({

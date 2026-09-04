@@ -248,7 +248,10 @@
     .toast {
       position: fixed; inset-block-end: 24px; inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: 90vw;
       background: var(--ink); color: var(--paper); border-radius: 999px; padding-block: 10px; padding-inline: 18px; font-size: 15px;
+      opacity: 0; pointer-events: none; transition: opacity 150ms ease-out;
     }
+    .toast.show { opacity: 1; }
+    h1:focus, .loading p:focus { outline: none; }
 
     @media (prefers-reduced-motion: reduce) {
       .bar-fill { transition: none; }
@@ -323,7 +326,7 @@
       <div class="loading" role="status" aria-live="polite">
         <div>
           <div class="loading-mark" aria-hidden="true"></div>
-          <p data-i18n="loading.line"></p>
+          <p data-i18n="loading.line" tabindex="-1"></p>
         </div>
       </div>
     </section>
@@ -338,7 +341,9 @@
     </section>
   </main>
 
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <!-- Live regions stay in the tree at all times; only their text changes, so screen readers announce it. -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
     (function () {
@@ -365,7 +370,10 @@
         resultAnimated: false,
         history: [],
         screen: 'onboarding',
-        busy: false
+        busy: false,
+        photoBusy: false,
+        photoToken: 0,
+        sharing: false
       };
 
       const $ = (id) => document.getElementById(id);
@@ -540,6 +548,21 @@
         state.screen = name;
         for (const section of document.querySelectorAll('.screen')) section.hidden = section.id !== 'screen-' + name;
         window.scrollTo({ top: 0, behavior: 'auto' });
+        // Move focus to the new screen's heading so keyboard and screen-reader users land where the content starts.
+        requestAnimationFrame(() => {
+          const section = $('screen-' + name);
+          const target = section && section.querySelector('h1, [tabindex="-1"]');
+          if (target && state.screen === name) {
+            target.setAttribute('tabindex', '-1');
+            target.focus({ preventScroll: true });
+          }
+        });
+      }
+
+      function announce(text) {
+        const live = $('live');
+        live.textContent = '';
+        requestAnimationFrame(() => { live.textContent = text; });
       }
 
       function showError(id, message) {
@@ -551,10 +574,10 @@
       let toastTimer = null;
       function toast(message) {
         const node = $('toast');
+        node.classList.add('show');
         node.textContent = message;
-        node.hidden = false;
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { node.hidden = true; }, 2200);
+        toastTimer = setTimeout(() => { node.classList.remove('show'); node.textContent = ''; }, 2200);
       }
 
       // ---------- screens ----------
@@ -571,8 +594,13 @@
         $('start').disabled = !(handle.length >= 2 && handle.length <= 40 && $('age').checked) || state.busy;
       }
 
-      function renderCheck() {
+      let chipsLocale = null;
+      // Chips are built once per locale and only their pressed state changes afterwards, so the chip a keyboard
+      // user just activated keeps focus instead of being replaced under them.
+      function buildChips() {
         const chips = $('intents');
+        const active = document.activeElement;
+        const focusedIntent = active && active.dataset ? active.dataset.intent : null;
         chips.innerHTML = '';
         for (const intent of INTENTS) {
           chips.appendChild(el('button', {
@@ -581,26 +609,52 @@
             'aria-pressed': String(state.intent === intent),
             'data-intent': intent,
             text: t('intent.' + intent),
-            onclick: () => { state.intent = intent; renderCheck(); }
+            onclick: () => { state.intent = intent; updateChips(); updateSubmit(); }
           }));
         }
+        chipsLocale = locale;
+        if (focusedIntent) {
+          const again = chips.querySelector('[data-intent="' + focusedIntent + '"]');
+          if (again) again.focus({ preventScroll: true });
+        }
+      }
 
+      function updateChips() {
+        for (const chip of $('intents').querySelectorAll('.chip')) {
+          chip.setAttribute('aria-pressed', String(chip.dataset.intent === state.intent));
+        }
+      }
+
+      let photoKey = null;
+      function renderPhoto() {
         const photo = $('photo');
+        const key = locale + '|' + (state.photoBusy ? 'busy' : 'idle') + '|' + (state.previewUrl || '');
+        if (key === photoKey) return;
+        photoKey = key;
+        const label = state.photoBusy ? t('check.photo_processing') : t(state.previewUrl ? 'check.photo_replace' : 'check.photo_add');
         photo.classList.toggle('has-image', !!state.previewUrl);
+        photo.setAttribute('aria-label', label);
+        photo.setAttribute('aria-busy', String(state.photoBusy));
         photo.innerHTML = '';
         if (state.previewUrl) {
           photo.appendChild(el('img', { src: state.previewUrl, alt: t('a11y.photo_preview') }));
-          photo.appendChild(el('span', { class: 'photo-replace', text: t('check.photo_replace') }));
-          photo.setAttribute('aria-label', t('check.photo_replace'));
+          photo.appendChild(el('span', { class: 'photo-replace', text: label }));
         } else {
           photo.appendChild(el('span', { class: 'photo-empty' }, [
-            el('strong', { text: t('check.photo_add') }),
-            el('span', { class: 'hint', text: t('check.photo_hint') })
+            el('strong', { text: label }),
+            state.photoBusy ? null : el('span', { class: 'hint', text: t('check.photo_hint') })
           ]));
-          photo.setAttribute('aria-label', t('check.photo_add'));
         }
+      }
 
-        $('submit').disabled = !(state.intent && state.photo) || state.busy;
+      function updateSubmit() {
+        $('submit').disabled = !(state.intent && state.photo) || state.busy || state.photoBusy;
+      }
+
+      function renderCheck() {
+        if (chipsLocale !== locale) buildChips(); else updateChips();
+        renderPhoto();
+        updateSubmit();
         $('whoami').textContent = state.handle || '';
       }
 
@@ -614,6 +668,8 @@
 
         if (feedback.status !== 'ok') {
           const rejected = feedback.status === 'rejected';
+          if (!state.resultAnimated) announce(t(rejected ? 'result.rejected_title' : 'result.not_outfit_title'));
+          state.resultAnimated = true;
           root.appendChild(el('div', { class: 'state' }, [
             el('h1', { text: t(rejected ? 'result.rejected_title' : 'result.not_outfit_title') }),
             el('p', { class: 'lede', text: (!rejected && feedback.message) || t(rejected ? 'result.rejected_body' : 'result.not_outfit_body'), style: 'margin-block-start: 12px;' }),
@@ -626,6 +682,7 @@
         $('history-block').hidden = false;
         // Count up exactly once per result; a language switch re-renders with the final values in place.
         const animate = !state.resultAnimated && !reducedMotion();
+        if (!state.resultAnimated) announce(t('a11y.score', { score: feedback.score }) + '. ' + feedback.headline);
         state.resultAnimated = true;
         const scoreNode = el('span', { class: 'score', text: animate ? fmtNumber(0) : fmtNumber(feedback.score) });
         const fill = el('div', { class: 'bar-fill', style: animate ? null : 'transition: none; inline-size: ' + feedback.intentMatch + '%;' });
@@ -758,20 +815,44 @@
         }
       }
 
+      // Decode with EXIF orientation applied. Newer engines take the option; older ones reject the option itself
+      // with a TypeError but orient by default; engines without createImageBitmap go through an <img>.
+      async function decodeImage(file) {
+        if (typeof createImageBitmap === 'function') {
+          try {
+            return await createImageBitmap(file, { imageOrientation: 'from-image' });
+          } catch (e) {
+            if (!(e instanceof TypeError)) throw e;
+          }
+          return await createImageBitmap(file);
+        }
+        const url = URL.createObjectURL(file);
+        try {
+          const img = new Image();
+          img.src = url;
+          if (img.decode) await img.decode();
+          else await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+          return img;
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
       // Downscale before upload: less data over mobile networks, fewer input tokens, and EXIF orientation baked in.
       async function prepareImage(file) {
         try {
-          const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-          const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-          const width = Math.max(1, Math.round(bitmap.width * scale));
-          const height = Math.max(1, Math.round(bitmap.height * scale));
+          const source = await decodeImage(file);
+          const sourceWidth = source.width || source.naturalWidth;
+          const sourceHeight = source.height || source.naturalHeight;
+          const scale = Math.min(1, MAX_EDGE / Math.max(sourceWidth, sourceHeight));
+          const width = Math.max(1, Math.round(sourceWidth * scale));
+          const height = Math.max(1, Math.round(sourceHeight * scale));
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
-          canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
-          if (bitmap.close) bitmap.close();
-          const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
-          return blob;
+          canvas.getContext('2d').drawImage(source, 0, 0, width, height);
+          if (source.close) source.close();
+          return await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
         } catch (e) {
           console.warn('Client-side downscale failed, sending the original file', e);
           return file;
@@ -783,12 +864,20 @@
         event.target.value = '';
         if (!file) return;
         showError('check-error', null);
-        try {
-          const blob = await prepareImage(file);
-          if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        // The previous photo must not be submitted while the new one is being prepared, and a newer pick wins.
+        const token = ++state.photoToken;
+        state.photo = null;
+        state.photoBusy = true;
+        renderCheck();
+        let blob = null;
+        try { blob = await prepareImage(file); } catch (e) { blob = null; }
+        if (token !== state.photoToken) return;
+        state.photoBusy = false;
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        if (blob) {
           state.photo = blob;
           state.previewUrl = URL.createObjectURL(blob);
-        } catch (e) {
+        } else {
           state.photo = null;
           state.previewUrl = null;
           showError('check-error', t('error.image_read'));
@@ -802,6 +891,7 @@
         renderCheck();
         showError('check-error', null);
         showScreen('loading');
+        announce(t('loading.line'));
 
         const form = new FormData();
         form.append('userId', state.userId);
@@ -840,16 +930,23 @@
       }
 
       async function share(result) {
-        const feedback = result.feedback;
-        const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: t('intent.' + result.intent), tip: feedback.oneTip });
-        if (navigator.share) {
-          try { await navigator.share({ text }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
-        }
+        if (state.sharing) return;
+        state.sharing = true;
         try {
-          await navigator.clipboard.writeText(text);
-          toast(t('result.copied'));
-        } catch (e) {
-          window.prompt(t('result.share'), text);
+          const feedback = result.feedback;
+          const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: t('intent.' + result.intent), tip: feedback.oneTip });
+          if (navigator.share) {
+            try { await navigator.share({ text }); return; }
+            catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }
+          }
+          try {
+            await navigator.clipboard.writeText(text);
+            toast(t('result.copied'));
+          } catch (e) {
+            window.prompt(t('result.share'), text);
+          }
+        } finally {
+          state.sharing = false;
         }
       }
 
@@ -878,7 +975,11 @@
         renderLanguageSelect();
         applyLocale(messages[initial] ? initial : DEFAULT_LOCALE);
 
-        $('lang').addEventListener('change', (event) => switchLocale(event.target.value));
+        $('lang').addEventListener('change', (event) => switchLocale(event.target.value).catch((e) => {
+          console.warn(e);
+          $('lang').value = locale;
+          toast(t('error.network'));
+        }));
         $('handle').addEventListener('input', renderOnboarding);
         $('age').addEventListener('change', renderOnboarding);
         $('onboarding-form').addEventListener('submit', createUser);

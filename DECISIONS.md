@@ -63,8 +63,10 @@ objections are noted, not acted on.
 - **`rejected` also drops the wearer's occasion note.** It is user-authored prose about the photo, which is
   exactly what "nothing stored except the status" is protecting against.
 - **Intent is stored as text,** not an int, so a SQLite browser shows `Date` rather than `1`.
-- **Storage root resolves against the content root,** not the working directory, so `dotnet run` from
-  anywhere lands photos in the same private folder. Absolute paths are honoured for deployments.
+- **Storage root and a relative SQLite path both resolve against the content root,** not the working
+  directory, so `dotnet run` from anywhere finds the same photos and the same database. Restarting from a
+  different folder would otherwise create an empty database and log every pilot user out. Absolute paths
+  are honoured for deployments.
 - **Cascade delete plus explicit deletes.** The FK cascades, but `DELETE /api/users/{id}` deletes files
   first, then checks, then the user, so a failure mid-way leaves something the user can retry rather than
   orphaned photos with no owner.
@@ -80,7 +82,9 @@ objections are noted, not acted on.
   per-user cap keyed on a free-to-mint id is not a bound on spend: a global ceiling
   (`Limits:ChecksPerDayGlobal`, 1000 a day, its own 429 message) and a per-address signup limit
   (`Limits:SignupsPerHourPerIp`, ASP.NET's built-in rate limiter, client address from `X-Forwarded-For`
-  because the app sits behind a tunnel). Neither is authentication; both are rule 7.
+  because the app sits behind a tunnel). Neither is authentication; both are rule 7. The signup limit
+  defaults to the pilot size (50 an hour) because carrier NAT and office Wi-Fi put many real users behind
+  one address; the README says to raise it for a launch hour that exceeds that.
 - **Any unexpected exception during a check becomes an `error` row and a 502,** not just the vision
   client's own exceptions, as the brief's "on any failure" asks. A client disconnect is the exception:
   nothing is stored and nothing counts.
@@ -126,6 +130,18 @@ objections are noted, not acted on.
   fallbacks. Both cover Latin and Hebrew. If the font host is unreachable the page still renders.
 - **The score is wrapped in `dir="ltr"`** so "7/10" reads the same in Hebrew. Everything else mirrors via
   logical properties.
+- **Intent chips are built once per locale and only their pressed state changes.** Rebuilding them on
+  every tap threw keyboard focus back to the top of the page; now the chip keeps focus, and a language
+  switch that must rebuild them restores focus to the same intent.
+- **Choosing a photo clears the previous one immediately** and carries a selection token, so an old photo
+  can never be submitted while a new one is being prepared, and a slower earlier pick cannot overwrite a
+  later one. The photo area shows "Preparing the photo…" meanwhile.
+- **Image decoding falls back in three steps:** `createImageBitmap` with EXIF orientation, then without the
+  option (older engines reject the option but orient by default), then an `<img>` decode; the raw file is
+  sent only when decoding itself fails, so the downscale survives on older Safari and Chrome.
+- **Live regions never toggle `hidden`.** The toast fades with opacity and a visually hidden status region
+  announces the loading line and the result, because a region that appears already filled is not read out.
+  Each screen change moves focus to the new screen's heading.
 - **The score counts up exactly once per result.** A language switch on the result screen re-renders
   with the final numeral and a full bar in place, so the switch is instant as the brief asks.
 - **A "Delete my account and photos" text button** sits at the bottom of the check screen. The brief only

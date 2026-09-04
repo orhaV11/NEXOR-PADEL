@@ -21,6 +21,7 @@
   "check.photo_add": "Add a photo",
   "check.photo_hint": "Tap to take or choose a photo",
   "check.photo_replace": "Tap to replace the photo",
+  "check.photo_processing": "Preparing the photo…",
   "check.submit": "Check my outfit",
 
   "intent.Casual": "Casual",

@@ -33,5 +33,5 @@ public sealed class LimitsOptions
     public int ChecksPerDayGlobal { get; set; } = 1000;
 
     /// <summary>New accounts per client address per hour. Blunts minting fresh ids to dodge the per-user cap.</summary>
-    public int SignupsPerHourPerIp { get; set; } = 20;
+    public int SignupsPerHourPerIp { get; set; } = 50;
 }

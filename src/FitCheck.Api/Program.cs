@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,8 +23,15 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = maxImageBytes + 256 * 1024;
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=fitcheck.db"));
+// Same rule as the photo root: a relative database path is anchored to the content root, so a restart from a
+// different working directory finds the same data instead of silently starting a new pilot.
+var connection = new SqliteConnectionStringBuilder(builder.Configuration.GetConnectionString("Default") ?? "Data Source=fitcheck.db");
+if (!string.IsNullOrEmpty(connection.DataSource) && connection.DataSource != ":memory:" && !Path.IsPathRooted(connection.DataSource))
+{
+    connection.DataSource = Path.Combine(builder.Environment.ContentRootPath, connection.DataSource);
+}
+
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection.ConnectionString));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

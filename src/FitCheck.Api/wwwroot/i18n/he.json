@@ -17,10 +17,11 @@
   "check.title": "לאן הלוק הזה הולך?",
   "check.intent_label": "כוונה",
   "check.occasion_label": "אירוע (לא חובה)",
-  "check.occasion_placeholder": "ארוחת ערב עם חברים, יום ראשון בעבודה חדשה…",
+  "check.occasion_placeholder": "ארוחת ערב עם חברים, היום הראשון בעבודה חדשה…",
   "check.photo_add": "להוסיף תמונה",
   "check.photo_hint": "לחיצה כדי לצלם או לבחור תמונה",
   "check.photo_replace": "לחיצה כדי להחליף את התמונה",
+  "check.photo_processing": "מכינים את התמונה…",
   "check.submit": "לבדוק את הלוק",
 
   "intent.Casual": "קז'ואל",
@@ -35,7 +36,7 @@
   "loading.line": "הסטייליסט מסתכל.",
 
   "result.out_of": "/10",
-  "result.intent_match": "נקרא כ{intent}",
+  "result.intent_match": "משדר {intent}",
   "result.items": "מה יש בלוק",
   "result.working": "מה עובד",
   "result.tip": "הטיפ האחד",

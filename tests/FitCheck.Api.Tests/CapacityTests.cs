@@ -67,14 +67,27 @@ public class CapacityTests
     {
         using var app = new TestApp { SignupsPerHourPerIp = 2 };
         using var client = app.CreateClient();
+        // The app sits behind a tunnel, so the client address arrives in X-Forwarded-For.
+        async Task<HttpResponseMessage> Signup(string handle, string address)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/users")
+            {
+                Content = JsonContent.Create(new { handle, confirmed16Plus = true, language = "en" })
+            };
+            request.Headers.Add("X-Forwarded-For", address);
+            return await client.SendAsync(request);
+        }
 
-        await app.CreateUserAsync(client, "one");
-        await app.CreateUserAsync(client, "two");
-        var response = await client.PostAsJsonAsync("/api/users", new { handle = "three", confirmed16Plus = true, language = "en" });
+        Assert.Equal(HttpStatusCode.Created, (await Signup("one", "203.0.113.1")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await Signup("two", "203.0.113.1")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var third = await Signup("three", "203.0.113.1");
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+        var error = await third.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Too many new accounts from this network. Try again in an hour.", error.GetProperty("error").GetString());
+
+        // Another address has its own bucket.
+        Assert.Equal(HttpStatusCode.Created, (await Signup("four", "203.0.113.2")).StatusCode);
     }
 
     [Fact]

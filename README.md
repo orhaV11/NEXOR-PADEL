@@ -22,7 +22,8 @@ dotnet run
 ```
 
 Open http://localhost:5000 (the port is printed on start). The SQLite database (`fitcheck.db`) and the
-private photo folder (`storage/`) are created next to the project on first run; both are git-ignored.
+private photo folder (`storage/`) are created next to the project on first run, wherever you start it
+from; both are git-ignored.
 
 ### On a phone
 
@@ -102,7 +103,7 @@ user. If most scores land on 7–8, tighten the calibration text in `Services/Ou
 | `Storage:MaxImageBytes` | `6291456` | Upload limit (6 MB). The client downscales to 1280px JPEG first |
 | `Limits:ChecksPerDay` | `20` | Per-user cap over a rolling 24 hours |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users over a rolling 24 hours, so a leaked URL cannot run up an unbounded bill |
-| `Limits:SignupsPerHourPerIp` | `20` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
+| `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
 
 Any key can be overridden with an environment variable, e.g. `Limits__ChecksPerDay=5`.
 `ANTHROPIC_API_KEY` is read from the environment only.
@@ -164,7 +165,7 @@ and anything descriptive is dropped when the status is not `ok`.
 - **No hallucinated brands or items.** Instruction in the prompt; the model may only name what is visible.
 - **Cost control.** 20 checks per user per rolling 24 hours (429 with a friendly message), counted including
   checks still in flight so a parallel burst cannot slip past; a global ceiling of 1000 checks a day across
-  everyone; 20 new accounts per hour per client address; a 6 MB upload cap; and the client downscales to
+  everyone; 50 new accounts per hour per client address; a 6 MB upload cap; and the client downscales to
   1280px JPEG before uploading. Failed model calls do not count toward the caps.
 
 ## Known limitations (read before inviting anyone)
@@ -179,7 +180,9 @@ and anything descriptive is dropped when the status is not `ok`.
 - **Single process, single SQLite file.** The in-flight reservation that closes the cap race lives in
   memory, so running two instances would reopen it. One instance is all the pilot needs.
 - **The signup limiter trusts `X-Forwarded-For`.** That is right behind the tunnel and spoofable if Kestrel
-  is exposed directly; the global daily ceiling bounds the damage either way.
+  is exposed directly; the global daily ceiling bounds the damage either way. Shared addresses (carrier
+  NAT, office Wi-Fi) share one bucket, so if the invite goes out to more than 50 people on one network in
+  the same hour, raise `Limits__SignupsPerHourPerIp` for the launch hour.
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run
   `scripts/calibrate.sh` on real photos before judging scores.
 - **Photos stay on disk until the user deletes their account.** There is no retention job yet.

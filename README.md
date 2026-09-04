@@ -82,12 +82,13 @@ The score calibration lives in the prompt and only a real sample tells you wheth
 server running and a folder of 10 varied outfit photos:
 
 ```bash
-scripts/calibrate.sh ./sample-photos Casual
+python3 scripts/calibrate.py ./sample-photos --intent Casual --intent Date --language en --language he
 ```
 
-It creates a throwaway user, checks every photo, prints each score and the distribution, then deletes the
-user. If most scores land on 7–8, tighten the calibration text in `Services/OutfitAnalyzer.cs` and bump
-`PromptVersion` so the two rubrics can be compared in `byPromptVersion`.
+It creates a throwaway user, checks every photo for each intent and language, prints a table, the score
+distribution per group, latency, and a scan of every feedback text for body, face, age or gender words
+(rule 1), then deletes the user and writes a JSON report. If most scores land on 7–8 it says so: tighten
+the calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and compare the two reports.
 
 ## Configuration
 
@@ -144,7 +145,7 @@ src/FitCheck.Api/
   wwwroot/i18n/en.json, he.json   UI strings; add a locale by adding a file
 tests/FitCheck.Api.Tests/         xUnit
 tools/e2e/                        optional browser smoke test (Playwright + a stub of the Anthropic API)
-scripts/calibrate.sh              score-distribution check against the real model
+scripts/calibrate.py              calibration run against the real model: score spread, latency, rule 1 scan
 ```
 
 The model is forced to call a tool (`tool_choice: {type: "tool"}`) whose input schema is our feedback
@@ -184,7 +185,7 @@ and anything descriptive is dropped when the status is not `ok`.
   NAT, office Wi-Fi) share one bucket, so if the invite goes out to more than 50 people on one network in
   the same hour, raise `Limits__SignupsPerHourPerIp` for the launch hour.
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run
-  `scripts/calibrate.sh` on real photos before judging scores.
+  `scripts/calibrate.py` on real photos before judging scores.
 - **Photos stay on disk until the user deletes their account.** There is no retention job yet.
 
 ## Phase 2 (only if returnRate says so)

@@ -174,8 +174,10 @@ objections are noted, not acted on.
 - **`FitCheck.sln` at the root** so `dotnet build` and `dotnet test` work from the repository root as the
   definition of done expects.
 - **Not verified here: real-model calibration** (the "scores are not all 7–8 on 10 varied photos" item).
-  No API key was available in the build environment. `scripts/calibrate.sh` is provided and the README
-  tells the operator to run it before inviting people, bumping `PromptVersion` if the spread is poor.
+  No API key was available in the build environment. `scripts/calibrate.py` is provided (Python 3
+  standard library, so it runs on a Mac, Linux or Windows laptop) and the README tells the operator to
+  run it before inviting people. Beyond the score spread it scans every feedback text for body, face,
+  age and gender words in both languages, because rule 1 can only be checked on real model output.
 
 ### Review before hand-off
 
@@ -185,7 +187,7 @@ objections are noted, not acted on.
   write and catch-all error rows, the in-flight cap reservation and global ceiling, per-address signups,
   header redaction, the quoted occasion note, occasion dropped on rejection, the anchored SQLite path,
   chip focus, the photo-replacement race, decode fallbacks, live regions, the share guard, the locale
-  switch failure path, two Hebrew strings, and three bugs in `scripts/calibrate.sh`.
+  switch failure path, two Hebrew strings, and the calibration script, which was then rewritten in Python to add the rule 1 scan and a JSON report.
 
 ### Objections kept out of the code (brief wins)
 

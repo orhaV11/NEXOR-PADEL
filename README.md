@@ -64,12 +64,16 @@ days after their first ÷ users with at least one OK check.
 ### Run the tests
 
 ```bash
-dotnet test
+dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-82 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, and
-endpoint smoke tests against the real app with a scripted vision client (user validation, uploads, 413/415/429/502,
+90 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, the
+Anthropic client against a scripted HTTP handler (request shape, single retry, refusal handling), and endpoint
+smoke tests against the real app with a scripted vision client (user validation, uploads, 413/415/429/502,
 deletion removing files, metrics math on a seeded dataset).
+
+There is also a browser smoke test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real page in a
+phone viewport against the real API with only the Anthropic API stubbed, in Hebrew and English.
 
 ### Check the calibration before inviting people
 
@@ -122,6 +126,7 @@ Language for messages: an explicit `language` field wins, then `Accept-Language`
 ## How it is built
 
 ```
+FitCheck.sln
 src/FitCheck.Api/
   Program.cs                      wiring, EnsureCreated, error shape, static files
   appsettings.json
@@ -135,6 +140,8 @@ src/FitCheck.Api/
   wwwroot/index.html              the whole client: vanilla HTML/CSS/JS, no build step
   wwwroot/i18n/en.json, he.json   UI strings; add a locale by adding a file
 tests/FitCheck.Api.Tests/         xUnit
+tools/e2e/                        optional browser smoke test (Playwright + a stub of the Anthropic API)
+scripts/calibrate.sh              score-distribution check against the real model
 ```
 
 The model is forced to call a tool (`tool_choice: {type: "tool"}`) whose input schema is our feedback

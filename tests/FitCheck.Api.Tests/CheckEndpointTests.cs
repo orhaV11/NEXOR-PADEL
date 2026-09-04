@@ -205,11 +205,12 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         var userId = await _app.CreateUserAsync(_client, language: "he");
         _app.Vision.Handler = _ => Payloads.Rejected();
 
-        var response = await _client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg(), language: "he"));
+        var response = await _client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg(), language: "he", occasion: "my cousin's birthday"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("MODEL_MESSAGE_THAT_MUST_NOT_LEAK", body);
+        Assert.DoesNotContain("birthday", body);
         var check = JsonDocument.Parse(body).RootElement;
         Assert.Equal("rejected", check.GetProperty("status").GetString());
         Assert.Equal("אי אפשר לבדוק את התמונה הזו.", check.GetProperty("feedback").GetProperty("message").GetString());
@@ -220,6 +221,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         Assert.Equal(CheckStatus.Rejected, row.Status);
         Assert.Null(row.FeedbackJson);
         Assert.Null(row.Score);
+        Assert.Null(row.Occasion);
         Assert.Equal("", row.ImagePath);
         var folder = Path.Combine(_app.StorageRoot, userId.ToString("N"));
         Assert.True(!Directory.Exists(folder) || Directory.GetFiles(folder).Length == 0);

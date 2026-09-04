@@ -362,6 +362,7 @@
         photo: null,
         previewUrl: null,
         result: null,
+        resultAnimated: false,
         history: [],
         screen: 'onboarding',
         busy: false
@@ -623,8 +624,11 @@
         }
 
         $('history-block').hidden = false;
-        const scoreNode = el('span', { class: 'score', text: reducedMotion() ? fmtNumber(feedback.score) : fmtNumber(0) });
-        const fill = el('div', { class: 'bar-fill' });
+        // Count up exactly once per result; a language switch re-renders with the final values in place.
+        const animate = !state.resultAnimated && !reducedMotion();
+        state.resultAnimated = true;
+        const scoreNode = el('span', { class: 'score', text: animate ? fmtNumber(0) : fmtNumber(feedback.score) });
+        const fill = el('div', { class: 'bar-fill', style: animate ? null : 'transition: none; inline-size: ' + feedback.intentMatch + '%;' });
 
         root.appendChild(el('div', {}, [
           el('div', { class: 'hero', role: 'img', 'aria-label': t('a11y.score', { score: feedback.score }) }, [
@@ -675,9 +679,10 @@
           el('button', { type: 'button', class: 'btn', text: t('result.again'), onclick: checkAnother })
         ]));
 
-        // Count up once; the bar fills alongside it. Both are instant under reduced motion.
-        requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });
-        if (!reducedMotion()) animateScore(scoreNode, feedback.score);
+        if (animate) {
+          requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });
+          animateScore(scoreNode, feedback.score);
+        }
       }
 
       function animateScore(node, target) {
@@ -807,6 +812,7 @@
 
         try {
           state.result = await api('POST', '/api/checks', form);
+          state.resultAnimated = false;
           showScreen('result');
           renderResult();
           refreshHistory();

@@ -59,6 +59,8 @@ objections are noted, not acted on.
   The client shows a server-side neutral message in the check's language instead.
 - **`not_outfit` keeps the model's friendly message** so the client can show a specific hint ("this looks
   like a desk").
+- **`rejected` also drops the wearer's occasion note.** It is user-authored prose about the photo, which is
+  exactly what "nothing stored except the status" is protecting against.
 - **Intent is stored as text,** not an int, so a SQLite browser shows `Date` rather than `1`.
 - **Storage root resolves against the content root,** not the working directory, so `dotnet run` from
   anywhere lands photos in the same private folder. Absolute paths are honoured for deployments.
@@ -107,6 +109,8 @@ objections are noted, not acted on.
   fallbacks. Both cover Latin and Hebrew. If the font host is unreachable the page still renders.
 - **The score is wrapped in `dir="ltr"`** so "7/10" reads the same in Hebrew. Everything else mirrors via
   logical properties.
+- **The score counts up exactly once per result.** A language switch on the result screen re-renders
+  with the final numeral and a full bar in place, so the switch is instant as the brief asks.
 - **A "Delete my account and photos" text button** sits at the bottom of the check screen. The brief only
   requires the endpoint, but pilot users must be able to exercise their deletion right without asking us.
 - **Client-side downscale:** max edge 1280 px, JPEG quality 0.85, via `createImageBitmap` with
@@ -123,13 +127,19 @@ objections are noted, not acted on.
 
 ### Testing and verification
 
-- **The vision client is faked at the `IOutfitVisionClient` seam** in the xUnit suite (scripted tool
-  payloads, recorded requests) and the real `AnthropicVisionClient` is exercised end to end against a
-  stub HTTP server that validates the request shape (headers, forced tool choice, base64 image block) and
-  answers 529 once to prove the retry. The browser flow was driven with Playwright/Chromium in a phone
-  viewport with `he-IL` as the browser language: auto-detect, RTL, switch to English without reload,
-  onboarding, upload with downscale, loading state, result in both languages, history, not-outfit state,
-  photo privacy by URL, deletion.
+- **The vision client is faked at the `IOutfitVisionClient` seam** in the endpoint tests (scripted tool
+  payloads, recorded requests). The real `AnthropicVisionClient` has its own unit tests against a scripted
+  `HttpMessageHandler` (headers, forced tool choice, base64 image block, thinking disabled, 529-then-200
+  retry, no retry on 4xx or connection failure, refusal, missing tool_use, missing key).
+- **A browser smoke test lives in `tools/e2e`** (Playwright, optional, not part of `dotnet test`): the real
+  page in a phone viewport against the real API, with only the Anthropic API replaced by
+  `stub_anthropic.py`, which validates the request shape and answers 529 once. It was run with `he-IL` as
+  the browser language: auto-detect, RTL, switch to English without reload, onboarding validation, upload
+  with downscale, loading state, result in both languages, history, not-outfit state, photo privacy by
+  URL, metrics, deletion. Chromium reports a body-less 204 fetch as `ERR_ABORTED` after the response
+  arrives; the script treats that as success only when the 204 was observed.
+- **`FitCheck.sln` at the root** so `dotnet build` and `dotnet test` work from the repository root as the
+  definition of done expects.
 - **Not verified here: real-model calibration** (the "scores are not all 7–8 on 10 varied photos" item).
   No API key was available in the build environment. `scripts/calibrate.sh` is provided and the README
   tells the operator to run it before inviting people, bumping `PromptVersion` if the spread is poor.

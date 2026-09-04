@@ -182,9 +182,10 @@ public static class CheckEndpoints
                     check.ImagePath = "";
                     break;
                 default:
-                    // Rejected: nothing but the status survives, and the model's own words are not shown.
+                    // Rejected: nothing but the status survives. Not the photo, not the model's words, not the wearer's note.
                     images.Delete(imagePath);
                     check.ImagePath = "";
+                    check.Occasion = null;
                     break;
             }
         }
@@ -195,6 +196,7 @@ public static class CheckEndpoints
             check.Status = CheckStatus.Rejected;
             images.Delete(imagePath);
             check.ImagePath = "";
+            check.Occasion = null;
         }
         catch (VisionClientException ex)
         {

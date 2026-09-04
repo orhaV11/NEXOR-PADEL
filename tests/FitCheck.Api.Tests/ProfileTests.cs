@@ -19,6 +19,9 @@ public class ProfileTests : IClassFixture<TestApp>
 
     private static async Task<JsonElement> Json(HttpResponseMessage response) => await response.Content.ReadFromJsonAsync<JsonElement>();
 
+    /// <summary>The version in a versioned avatar URL. Versions are wall-clock based, so tests compare them, never pin them.</summary>
+    private static int Version(string url) => int.Parse(url[(url.IndexOf("v=", StringComparison.Ordinal) + 2)..]);
+
     private static bool IsNull(JsonElement element, string name) =>
         !element.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null;
 
@@ -81,7 +84,8 @@ public class ProfileTests : IClassFixture<TestApp>
         Assert.Equal("av_one", me.GetProperty("handle").GetString());
         Assert.Equal("Av One", me.GetProperty("name").GetString());
         var url = me.GetProperty("avatarUrl").GetString()!;
-        Assert.Equal("/api/users/av_one/avatar?v=1", url);
+        Assert.Matches(@"^/api/users/av_one/avatar\?v=\d+$", url);
+        var v1 = Version(url);
 
         var image = await anonymous.GetAsync(url);
         Assert.Equal(HttpStatusCode.OK, image.StatusCode);
@@ -103,15 +107,17 @@ public class ProfileTests : IClassFixture<TestApp>
 
         // A new photo gets a new version whatever its format, and the old file is replaced, not kept beside it.
         var png = await Json(await client.PostAsync("/api/users/me/avatar", AvatarForm(TestImages.Png(), "me.png")));
-        Assert.Equal("/api/users/av_one/avatar?v=2", png.GetProperty("avatarUrl").GetString());
-        var pngImage = await anonymous.GetAsync("/api/users/AV_ONE/avatar?v=2");
+        var v2 = Version(png.GetProperty("avatarUrl").GetString()!);
+        Assert.True(v2 > v1, "a new photo gets a newer version");
+        var pngImage = await anonymous.GetAsync($"/api/users/AV_ONE/avatar?v={v2}");
         Assert.Equal(HttpStatusCode.OK, pngImage.StatusCode);
         Assert.Equal("image/png", pngImage.Content.Headers.ContentType?.MediaType);
         Assert.Equal(TestImages.Png(), await pngImage.Content.ReadAsByteArrayAsync());
         Assert.False(File.Exists(Path.Combine(UserFolder(id), "avatar.jpg")));
 
         var webp = await Json(await client.PostAsync("/api/users/me/avatar", AvatarForm(TestImages.WebP(), "me.webp")));
-        Assert.Equal("/api/users/av_one/avatar?v=3", webp.GetProperty("avatarUrl").GetString());
+        var v3 = Version(webp.GetProperty("avatarUrl").GetString()!);
+        Assert.True(v3 > v2);
         var webpImage = await anonymous.GetAsync("/api/users/av_one/avatar");
         Assert.Equal("image/webp", webpImage.Content.Headers.ContentType?.MediaType);
         Assert.Equal(TestImages.WebP(), await webpImage.Content.ReadAsByteArrayAsync());
@@ -126,10 +132,11 @@ public class ProfileTests : IClassFixture<TestApp>
         Assert.Empty(Directory.GetFiles(UserFolder(id), "avatar.*"));
         Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync("/api/users/me/avatar")).StatusCode);
 
-        // A re-upload never reuses an old version, so a cached v=3 cannot be mistaken for the new photo.
+        // A re-upload never reuses an old version, so a cached earlier URL cannot be mistaken for the new photo.
         var again = await Json(await client.PostAsync("/api/users/me/avatar", AvatarForm(TestImages.Jpeg())));
-        Assert.Equal("/api/users/av_one/avatar?v=5", again.GetProperty("avatarUrl").GetString());
-        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync("/api/users/av_one/avatar?v=5")).StatusCode);
+        var v4 = Version(again.GetProperty("avatarUrl").GetString()!);
+        Assert.True(v4 > v3);
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync($"/api/users/av_one/avatar?v={v4}")).StatusCode);
     }
 
     [Fact]
@@ -162,7 +169,7 @@ public class ProfileTests : IClassFixture<TestApp>
         // Exactly the cap is fine.
         var atCap = await client.PostAsync("/api/users/me/avatar", AvatarForm(TestImages.Jpeg(2 * 1024 * 1024)));
         Assert.Equal(HttpStatusCode.OK, atCap.StatusCode);
-        Assert.Equal("/api/users/av_picky/avatar?v=1", (await Json(atCap)).GetProperty("avatarUrl").GetString());
+        Assert.Matches(@"^/api/users/av_picky/avatar\?v=\d+$", (await Json(atCap)).GetProperty("avatarUrl").GetString());
 
         // Signed out: no upload, no delete; an unknown handle has no photo.
         Assert.Equal(HttpStatusCode.Unauthorized, (await _app.NewClient().PostAsync("/api/users/me/avatar", AvatarForm(TestImages.Jpeg()))).StatusCode);

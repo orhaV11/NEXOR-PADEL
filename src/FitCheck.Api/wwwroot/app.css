@@ -72,7 +72,7 @@ h1[tabindex="-1"]:focus, div[tabindex="-1"]:focus, article[tabindex="-1"]:focus,
 }
 .top-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: 0.02em; flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 .icon-btn {
-  inline-size: 40px; block-size: 40px; border-radius: 50%; border: 0; background: transparent; color: var(--ink);
+  inline-size: 44px; block-size: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--ink);
   display: inline-grid; place-items: center; text-decoration: none; position: relative;
 }
 .icon-btn:active { background: var(--surface-2); }
@@ -132,7 +132,7 @@ h3 { font-size: 17px; font-weight: 700; }
 .tab.check .plus svg { color: var(--accent-ink); inline-size: 26px; block-size: 26px; }
 .badge {
   position: absolute; inset-block-start: 6px; inset-inline-start: calc(50% + 6px); min-inline-size: 18px; block-size: 18px; padding-inline: 5px; border-radius: 999px;
-  background: var(--fire); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;
+  background: var(--accent-2); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center;
 }
 
 /* ---------- controls ---------- */
@@ -147,18 +147,18 @@ h3 { font-size: 17px; font-weight: 700; }
 .btn-ghost { background: transparent; color: var(--ink-2); border-color: transparent; }
 .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
 .btn-sm { min-block-size: 38px; inline-size: auto; padding-inline: 16px; font-size: 14px; }
-.btn-text { background: none; border: 0; color: var(--accent); padding: 4px 0; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+.btn-text { background: none; border: 0; color: var(--accent); padding: 10px 0; min-block-size: 44px; display: inline-flex; align-items: center; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding-block-end: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .chips.scroll::-webkit-scrollbar { display: none; }
 .chip {
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink);
-  padding-block: 8px; padding-inline: 14px; font-size: 14px; min-block-size: 38px; white-space: nowrap; flex: none;
+  padding-block: 8px; padding-inline: 14px; font-size: 14px; min-block-size: 40px; white-space: nowrap; flex: none;
 }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .chip:disabled { opacity: 0.35; }
 .segments { display: flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
-.segment { flex: 1; border: 0; background: transparent; color: var(--ink-3); border-radius: 999px; min-block-size: 36px; font-size: 14px; }
+.segment { flex: 1; border: 0; background: transparent; color: var(--ink-3); border-radius: 999px; min-block-size: 40px; font-size: 14px; }
 .segment[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; }
 .sticky-tabs { position: sticky; inset-block-start: calc(var(--top) + var(--safe-t)); z-index: 4; background: var(--bg); padding-block: 8px; }
 .sticky-tabs .segments { margin-inline: 16px; }
@@ -190,6 +190,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 .search input { padding-inline-start: 44px; }
 .search .icon { position: absolute; inset-inline-start: 14px; inset-block-start: 50%; transform: translateY(-50%); color: var(--ink-3); }
 .search .icon svg { inline-size: 20px; block-size: 20px; }
+
+/* Text people and the stylist wrote follows its own direction inside either UI (English looks in Hebrew and back). */
+.headline, .caption, .comments .text, .challenge-title, .lede, .result-headline, .item-name, .item-note, .tip p, .working li, .vibe, .who .name, .brand-card .name, .top-title { unicode-bidi: plaintext; }
 
 /* ---------- avatars & people ---------- */
 .avatar {
@@ -363,11 +366,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 .menu { display: flex; gap: 8px; flex-wrap: wrap; padding-block: 6px; }
 
 /* ---------- bottom sheet ---------- */
-.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.55); animation: fade 160ms ease-out; }
+.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.55); animation: fade 160ms ease-out; touch-action: none; }
 .sheet {
   position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 21; max-inline-size: var(--col); margin-inline: auto;
   background: var(--surface); border-start-start-radius: 22px; border-start-end-radius: 22px; border: 1px solid var(--line); border-block-end: 0;
-  padding: 10px 16px calc(16px + var(--safe-b)); max-block-size: 88vh; overflow-y: auto; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding: 10px 16px calc(16px + var(--safe-b)); max-block-size: 88vh; overflow-y: auto; overscroll-behavior: contain; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sheet > * + * { margin-block-start: 14px; }
 .sheet .handle { inline-size: 40px; block-size: 4px; border-radius: 999px; background: var(--line); margin-inline: auto; margin-block-end: 6px; }

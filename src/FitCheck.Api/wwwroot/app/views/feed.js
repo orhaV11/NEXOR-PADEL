@@ -2,11 +2,13 @@
 // pages as you scroll and refreshes when you pull down. The intent filter lives in state.feed so it survives a
 // trip to a post and back; the tab comes from the route (#/ or #/feed/following).
 import {
-  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner,
-  signInPrompt, emptyState, announce
+  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, emptyState, announce, onLeave, feedVersion
 } from '../core.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
+// The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
+const cache = new Map();
+const CACHE_TTL = 10 * 60 * 1000;
 
 function feedQuery(tab, intent, offset) {
   const q = new URLSearchParams({ tab, offset: String(offset), limit: String(PAGE) });
@@ -77,12 +79,26 @@ register('feed', async (root, params, ctx) => {
     ]);
   };
 
+  const cacheKey = () => tab + '|' + state.feed.intent;
+  const remembered = cache.get(cacheKey());
+  const forced = state.forceRefresh;
+  state.forceRefresh = false;
+  const restore = !!remembered && !forced && remembered.version === feedVersion.n && Date.now() - remembered.at < CACHE_TTL;
+  if (!restore) cache.delete(cacheKey());
+
   let list = null;
   list = infiniteList(body, {
     load: (offset) => api('GET', feedQuery(tab, state.feed.intent, offset)),
     render: (post) => postCard(post, { onDelete: () => list.refresh() }),
     empty,
+    key: (post) => post.id,
+    initial: restore ? { items: remembered.items, nextOffset: remembered.nextOffset } : undefined,
     stale: ctx.stale
+  });
+  if (restore) requestAnimationFrame(() => requestAnimationFrame(() => { if (!ctx.stale()) window.scrollTo(0, remembered.scrollY); }));
+  onLeave(() => {
+    const snap = list.snapshot();
+    if (snap.items.length) cache.set(cacheKey(), { ...snap, scrollY: window.scrollY, at: Date.now(), version: feedVersion.n });
   });
 
   pullToRefresh(indicator, async () => {

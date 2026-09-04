@@ -289,7 +289,9 @@ async function postIt(page, opts) {
   await noa.click('#post-link');
   await noa.waitForSelector('#view .card');
   assert.strictEqual(await text(noa, '.card .headline'), 'Clean casual with one weak link');
-  assert.deepStrictEqual(await noa.$$eval('.card .caption a', (n) => n.map((x) => x.getAttribute('href'))), ['#/tag/datenight', '#/tag/datenight', '#/u/nexor', '#/u/nobody']);
+  // @nobody is not an account, so it stays plain text; the tags and the brand become links.
+  assert.deepStrictEqual(await noa.$$eval('.card .caption a', (n) => n.map((x) => x.getAttribute('href'))), ['#/tag/datenight', '#/tag/datenight', '#/u/nexor']);
+  assert.ok((await text(noa, '.card .caption')).includes('@nobody'));
   await noa.waitForSelector('.person');
   assert.strictEqual(await text(noa, '.person .name'), 'NEXORBrand', 'tagged brand listed');
   assert.strictEqual(await text(noa, '.card .score-badge'), '7/10');

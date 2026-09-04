@@ -2,8 +2,7 @@
 // that follows a signup: pick the styles you wear, follow a few brands, then in. Both auth pages are public;
 // a signed-in person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale,
-  INTENTS, intentLabel, userRow, toast, isMe
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: the two-line checkbox text, bigger onboarding steps and chips.
@@ -38,7 +37,7 @@ const langButton = () => iconButton('globe', t('lang.label'), openLanguageSheet,
 function authView(mode) {
   const signup = mode === 'signup';
   return async (root, params, ctx) => {
-    if (state.me) { navigate('#/'); return; }
+    if (state.me) { redirect('#/'); return; }
     ensureStyle();
     setTopBar({ back: true, actions: [langButton()] });
 
@@ -69,8 +68,7 @@ function authView(mode) {
         if (signup) navigate('#/welcome');               // returnTo stays for the welcome screen to honour
         else navigate(takeReturnTo());
       } catch (e) {
-        error.textContent = e.message;
-        error.hidden = false;
+        showAlert(error, e.message);
         submit.disabled = false;
       }
     };
@@ -111,7 +109,7 @@ register('signup', authView('signup'));
 // ---------- welcome (after signup) ----------
 
 register('welcome', async (root, params, ctx) => {
-  if (!state.me) { navigate('#/signup'); return; }
+  if (!state.me) { redirect('#/signup'); return; }
   ensureStyle();
   setTopBar({ title: t('welcome.title'), actions: [langButton()] });
 

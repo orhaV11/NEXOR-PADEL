@@ -88,14 +88,20 @@ public static class ExploreEndpoints
             return Results.Json(new SearchDto([], []), AppJson.Options);
         }
 
-        var users = await db.Users
-            .Where(u => u.HandleLower.StartsWith(term) || (u.DisplayName != null && u.DisplayName.ToLower().Contains(term)))
+        // SQLite's lower() only folds ASCII, so display names are matched in .NET: handles by prefix in SQL, every
+        // named account loaded once (pilot scale) and compared case-insensitively for any script.
+        var candidates = await db.Users
+            .Where(u => u.HandleLower.StartsWith(term) || u.DisplayName != null)
             .Select(u => new RankedUser { User = u, Followers = db.Follows.Count(f => f.FollowedId == u.Id) })
+            .ToListAsync(ct);
+        var users = candidates
+            .Where(x => x.User.HandleLower.StartsWith(term, StringComparison.Ordinal)
+                        || (x.User.DisplayName is not null && x.User.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(x => x.User.AccountType == AccountType.Brand ? 0 : 1)
             .ThenByDescending(x => x.Followers)
-            .ThenBy(x => x.User.HandleLower)
+            .ThenBy(x => x.User.HandleLower, StringComparer.Ordinal)
             .Take(SearchResultCount)
-            .ToListAsync(ct);
+            .ToList();
 
         var tags = await db.PostTags
             .Where(t => t.Tag.StartsWith(term))

@@ -73,7 +73,7 @@ register('post', async (root, params, ctx) => {
 
   // ---- comments ----
   let comments = [];
-  const list = el('ul', { class: 'comments', id: 'comments', 'aria-live': 'polite' });
+  const list = el('ul', { class: 'comments', id: 'comments' });
   root.appendChild(el('section', { class: 'post-section', 'aria-labelledby': 'comments-title' }, [
     el('h2', { id: 'comments-title', text: t('comments.title') }),
     list

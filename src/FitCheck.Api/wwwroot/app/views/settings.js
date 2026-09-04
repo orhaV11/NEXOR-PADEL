@@ -2,9 +2,7 @@
 // delete for everything. Ported from the Phase 2 settingsView onto the kit: bottom sheets instead of confirm(),
 // the avatar upload with the client-side square crop, interests as chips, brand mode as a switch.
 import {
-  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession,
-  renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage,
-  AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel
+  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label.
@@ -150,8 +148,7 @@ register('settings', async (root, params, ctx) => {
       if (ctx.stale()) return;
       paintAvatar();   // the initials follow the display name
     } catch (e) {
-      error.textContent = e.message;
-      error.hidden = false;
+      showAlert(error, e.message);
     } finally {
       save.disabled = false;
     }
@@ -188,7 +185,7 @@ register('settings', async (root, params, ctx) => {
       await api('DELETE', '/api/users/me');
     } catch (e) {
       // 401 means the account is already gone; anything else keeps the person here with the reason.
-      if (e.status !== 401) { dangerError.textContent = e.message; dangerError.hidden = false; del.disabled = false; return; }
+      if (e.status !== 401) { showAlert(dangerError, e.message); del.disabled = false; return; }
     }
     state.me = null;
     resetSession();

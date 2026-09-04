@@ -275,8 +275,8 @@ public static class PostEndpoints
         // Nothing may keep pointing at a post that is gone: activity rows would link to a 404, a challenge to no winner.
         await db.Notifications.Where(n => n.PostId == id).ExecuteDeleteAsync(ct);
         await db.Challenges.Where(c => c.WinnerPostId == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
-        db.Posts.Remove(post);
-        await db.SaveChangesAsync(ct);
+        // Set-based, so a second delete racing this one finds nothing and answers 204 like this one, never 500.
+        await db.Posts.Where(p => p.Id == id).ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct);
         return Results.NoContent();
     }
@@ -617,9 +617,8 @@ public static class PostEndpoints
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Reports.Where(r => r.CommentId == id).ExecuteDeleteAsync(ct);
-        db.Comments.Remove(comment);
-        await db.SaveChangesAsync(ct);
-        if (!comment.Hidden)
+        var removed = await db.Comments.Where(c => c.Id == id).ExecuteDeleteAsync(ct);
+        if (removed > 0 && !comment.Hidden)
         {
             // A hidden comment already left the count when it was hidden.
             await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
@@ -672,9 +671,14 @@ public static class PostEndpoints
         comment.ReportCount = await db.Reports.CountAsync(r => r.CommentId == id, ct);
         if (comment.ReportCount >= limits.Value.ReportsToHide && !comment.Hidden)
         {
+            // Only the request that flips Hidden moves the post's count; two simultaneous third reports cannot both.
+            var hiddenNow = await db.Comments.Where(c => c.Id == id && !c.Hidden).ExecuteUpdateAsync(s => s.SetProperty(c => c.Hidden, true), ct);
             comment.Hidden = true;
-            await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
+            if (hiddenNow > 0)
+            {
+                await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
+            }
         }
 
         await db.SaveChangesAsync(ct);

@@ -4,6 +4,7 @@
 
   "app.name": "OREVOSH",
   "app.tagline": "Your looks. Your people. Your brands.",
+
   "lang.label": "Language",
 
   "nav.main": "Main",
@@ -302,5 +303,17 @@
   "a11y.avatar": "{name}'s avatar",
   "a11y.look_by": "{intent} look by {name}",
   "a11y.unread": "{n} unread",
-  "a11y.search": "Search"
+  "a11y.search": "Search",
+
+  "tag.looks_one": "1 look",
+
+  "post.votes_one": "1 vote",
+
+  "challenges.entries_one": "1 entry",
+  "challenges.votes_one": "1 vote",
+
+  "profile.followers_n_one": "1 follower",
+  "profile.featured_n_one": "1 featured",
+
+  "a11y.unread_one": "1 unread"
 }

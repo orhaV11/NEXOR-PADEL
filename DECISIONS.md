@@ -436,6 +436,29 @@ plan written before building; what follows are the calls made while building it.
 - **All UI strings were written up front in both languages**, so the view work could not drift into
   untranslated copy; the browser test still fails on any missing key.
 
+### Review before hand-off
+
+- **Six review lenses, then three adversarial refuters per finding, 141 agents in all.** Forty-five findings
+  stood; the refuters rated most of them low. What was fixed: the service worker and the static files now
+  revalidate on every load (`Cache-Control: no-cache`, `cache: 'no-cache'`), so a deploy can no longer leave an
+  old core next to a new screen; the feed loader no longer sticks on skeletons when a refresh lands during a
+  page load; cards are deduplicated across pages because the For you ranking moves under the reader; Back from
+  a look returns to the same place in the feed (the list and the scroll position are kept for ten minutes and
+  dropped when a look is posted or deleted); guards and signed-in redirects replace the history entry instead of
+  pushing one, so Back never loops; bottom sheets trap focus, make the page behind them inert, dismiss on a
+  swipe only from their own chrome, and open a confirmation on Cancel rather than on the destructive button;
+  a cancelled photo picker no longer swallows the next pick; a deleted account takes every activity row keyed by
+  its handle with it, and avatar versions are wall-clock based, so a handle taken again inherits neither;
+  display-name search compares in .NET, so Hebrew and accented capitals match; un-vote, delete-look and
+  delete-comment are set-based and answer the same to a racing second request; two simultaneous third reports
+  on a comment move the count once; activity rows show the actor's photo; only mentions that resolved become
+  links, with the same token rules as the server; fire and comment counts are readable by screen readers;
+  form errors take focus; touch targets are 44px; the unread badge has contrast; people's text is
+  bidi-isolated inside either UI; Hebrew activity lines are gender-neutral; singular forms exist for counts.
+- **Left as documented limitations:** the challenge list loads entry rows to count them (fine at pilot scale),
+  the language switch rebuilds a form in progress, profile tabs lack the full keyboard tab pattern, and the
+  install banner cannot be exercised in headless Chromium.
+
 ### Objections kept out of the code (owner wins)
 
 - **Brand mode is a switch anyone can flip.** Verification belongs in the launch checklist with age assurance;

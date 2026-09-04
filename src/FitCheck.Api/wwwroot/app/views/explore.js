@@ -1,7 +1,6 @@
 // Explore, search and tag pages: what's trending, who to follow, the best looks this week, open brand challenges.
 import {
-  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards,
-  errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, relative, intentLabel, PAGE, $
+  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, relative, intentLabel, PAGE, $
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: tag chips as links, the compact challenge card, the tag count line.
@@ -98,7 +97,7 @@ register('explore', async (root, params, ctx) => {
 
   let data;
   try { data = await api('GET', '/api/explore'); }
-  catch (e) { if (ctx.stale()) return; holder.replaceWith(emptyState(t('explore.empty'))); return; }
+  catch (e) { if (ctx.stale()) return; holder.replaceWith(e.status === 501 ? emptyState(t('explore.empty')) : errorBlock(e)); return; }
   if (ctx.stale()) return;
 
   const tags = data.trendingTags || [];
@@ -171,11 +170,7 @@ register('tag', async (root, params, ctx) => {
   list = infiniteList(root, {
     load: async (offset) => {
       const page = await api('GET', '/api/tags/' + encodeURIComponent(tag) + '/posts?offset=' + offset + '&limit=' + PAGE);
-      if (offset === 0) count = 0;
-      count += page.items.length;
-      countLine.textContent = t('tag.looks', { n: fmtNumber(count) });
-      countLine.hidden = count === 0;
-      return page;
+      return page;   // the page carries no total, so the count line stays hidden rather than lying
     },
     render: (post) => lookCard(post, refresh),
     empty: () => emptyState(t('tag.empty')),

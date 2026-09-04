@@ -3,8 +3,7 @@
 // challengeView / newChallengeView onto the Phase 3 kit: top bar with a back arrow, flush lists, requireSignIn()
 // before every write, localized server errors shown in an alert, focus kept on the same entry after a vote.
 import {
-  register, state, t, api, el, icon, avatar, brandMark, postCard, setTopBar, navigate, requireSignIn, signInPrompt,
-  emptyState, errorBlock, toast, isBrand, INTENTS, intentLabel, fmtNumber, relative
+  register, state, t, api, el, icon, avatar, brandMark, postCard, setTopBar, navigate, requireSignIn, signInPrompt, emptyState, errorBlock, toast, isBrand, INTENTS, intentLabel, fmtNumber, relative, showAlert
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: an inset section inside a flush view, the ended countdown,
@@ -287,7 +286,7 @@ register('challenge', async (root, params, ctx) => {
     if (!c.isOpen) {
       nodes.push(el('section', { class: 'ch-section', 'aria-labelledby': 'ch-winner-title' }, [
         el('h2', { id: 'ch-winner-title', text: t('challenges.winner') }),
-        detail.winner ? null : el('p', { class: 'muted', text: t('challenges.no_winner') })
+        detail.winner || entries.length ? null : el('p', { class: 'muted', text: t('challenges.no_winner') })
       ]));
       if (detail.winner) nodes.push(winnerCard(detail.winner));
     }
@@ -363,8 +362,7 @@ register('new-challenge', async (root, params, ctx) => {
       } catch (e) {
         busy = false; submit.disabled = false;
         if (ctx.stale()) return;
-        error.textContent = e.message;
-        error.hidden = false;
+        showAlert(error, e.message);
         error.focus({ preventScroll: false });
       }
     }

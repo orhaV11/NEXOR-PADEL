@@ -152,7 +152,12 @@ app.UseAuthorization();
 
 // Only wwwroot is served. Photos live under Storage:Root, which is outside it; a post is the only door to one.
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// The client is versionless files; browsers (and the service worker) revalidate them on every load so a deploy never
+// leaves an old core.js running next to a new screen. ETags keep the revalidation cheap.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache"
+});
 
 app.MapAuthEndpoints();
 app.MapUserEndpoints();

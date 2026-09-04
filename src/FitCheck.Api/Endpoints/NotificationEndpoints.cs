@@ -30,15 +30,18 @@ public static class NotificationEndpoints
 
         // Notifications store the actor's handle; the display name is looked up now so renames show through.
         var handles = rows.Select(n => n.ActorHandle.ToLowerInvariant()).Distinct().ToList();
-        var names = await db.Users
+        var actors = await db.Users
             .Where(u => handles.Contains(u.HandleLower))
-            .Select(u => new { u.HandleLower, u.Handle, u.DisplayName })
-            .ToDictionaryAsync(u => u.HandleLower, u => PostReader.NameOf(u.Handle, u.DisplayName), ct);
+            .Select(u => new { u.HandleLower, u.Handle, u.DisplayName, u.AvatarPath, u.AvatarVersion })
+            .ToDictionaryAsync(u => u.HandleLower, u => (Name: PostReader.NameOf(u.Handle, u.DisplayName), Avatar: PostReader.AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion)), ct);
 
-        var items = rows.Select(n => new NotificationDto(
-            n.Id, n.Type, n.ActorHandle,
-            names.TryGetValue(n.ActorHandle.ToLowerInvariant(), out var name) ? name : n.ActorHandle,
-            n.PostId, n.ChallengeId, DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc), n.ReadAt != null)).ToList();
+        var items = rows.Select(n =>
+        {
+            var found = actors.TryGetValue(n.ActorHandle.ToLowerInvariant(), out var actor);
+            return new NotificationDto(
+                n.Id, n.Type, n.ActorHandle, found ? actor.Name : n.ActorHandle, found ? actor.Avatar : null,
+                n.PostId, n.ChallengeId, DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc), n.ReadAt != null);
+        }).ToList();
         var unread = await db.Notifications.CountAsync(n => n.UserId == me.Id && n.ReadAt == null, ct);
         return Results.Json(new NotificationsDto(items, unread), AppJson.Options);
     }

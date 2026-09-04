@@ -57,7 +57,7 @@ function row(n) {
   const key = sentenceKey(n);
   const sentence = key ? t(key, { actor }) : actor + ' · ' + n.type;
   return el('li', { class: n.read ? null : 'unread' }, [
-    avatar({ handle: n.actorHandle, name: actor }),
+    avatar({ handle: n.actorHandle, name: actor, avatarUrl: n.actorAvatarUrl }),
     el('a', { href: target(n) }, [
       el('div', { text: sentence }),
       el('div', { class: 'when', text: relative(n.createdAt) })

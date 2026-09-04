@@ -168,7 +168,7 @@ public sealed record VoteStateDto(Guid? VotedPostId, int Votes);
 // ---- notifications ----
 
 /// <summary>ActorName is the actor's current display name, or the handle when there is none or the account is gone.</summary>
-public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read);
+public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, string? ActorAvatarUrl, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read);
 
 public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 

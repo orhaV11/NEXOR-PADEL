@@ -24,6 +24,7 @@ export const state = {
   resultPostId: null,
   sharing: false,
   installPrompt: null,
+  forceRefresh: false,
   online: typeof navigator === 'undefined' ? true : navigator.onLine
 };
 
@@ -64,6 +65,10 @@ export function t(key, params) {
     text = messages[DEFAULT_LOCALE] && messages[DEFAULT_LOCALE][key];
     if (text === undefined) { console.warn('i18n: missing key "' + key + '" in ' + locale + ' and ' + DEFAULT_LOCALE); return key; }
     if (locale !== DEFAULT_LOCALE) console.warn('i18n: missing key "' + key + '" in ' + locale + ', using ' + DEFAULT_LOCALE);
+  }
+  if (params && params.n === 1) {
+    const one = (messages[locale] && messages[locale][key + '_one']) || (messages[DEFAULT_LOCALE] && messages[DEFAULT_LOCALE][key + '_one']);
+    if (one !== undefined) text = one;
   }
   if (params) text = text.replace(/\{(\w+)\}/g, (m, name) => (name in params ? String(params[name]) : m));
   return text;
@@ -190,10 +195,11 @@ export function avatar(user, opts) {
 export function brandMark(user) { return user && user.accountType === 'Brand' ? el('span', { class: 'brand-mark', text: t('profile.brand') }) : null; }
 export function handleText(handle) { return el('bdi', { dir: 'ltr', text: '@' + handle }); }
 
-/** #tags and @mentions become links; everything else stays text. */
-export function richCaption(text) {
+/** #tags and @mentions become links; everything else stays text. known (optional) limits mention links to accounts that resolved. */
+export function richCaption(text, known) {
   const frag = document.createDocumentFragment();
-  const re = /(#[\p{L}\p{N}_]{2,30}|@[\p{L}\p{N}_.]{2,40})/gu;
+  const re = /(?<![\p{L}\p{N}_#@])(#[\p{L}\p{N}_]{2,30}|@[\p{L}\p{N}_.]{2,40})/gu;
+  const allowed = known ? new Set(known.map((m) => (m.handle || m).toLowerCase())) : null;
   let last = 0;
   for (const m of (text || '').matchAll(re)) {
     if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
@@ -201,8 +207,11 @@ export function richCaption(text) {
     if (token[0] === '#') frag.appendChild(el('a', { href: '#/tag/' + encodeURIComponent(token.slice(1).toLowerCase()), text: token }));
     else {
       const handle = token.slice(1).replace(/\.+$/, '');
-      frag.appendChild(el('a', { href: '#/u/' + encodeURIComponent(handle), text: '@' + handle }));
-      if (handle.length < token.length - 1) frag.appendChild(document.createTextNode(token.slice(1 + handle.length)));
+      if (allowed && !allowed.has(handle.toLowerCase())) frag.appendChild(document.createTextNode(token));
+      else {
+        frag.appendChild(el('a', { href: '#/u/' + encodeURIComponent(handle), text: '@' + handle }));
+        if (handle.length < token.length - 1) frag.appendChild(document.createTextNode(token.slice(1 + handle.length)));
+      }
     }
     last = m.index + token.length;
   }
@@ -259,11 +268,15 @@ export async function api(method, path, body) {
   let data = null;
   try { data = await response.json(); } catch (e) { data = null; }
   if (!response.ok) {
-    if (response.status === 401 && state.me && !/^\/api\/auth\/(login|signup)/.test(path)) { state.me = null; resetSession(); renderShell(); }
+    if (response.status === 401 && state.me && !/^\/api\/auth\/(login|signup)/.test(path)) { state.me = null; resetSession(); renderShell(); render(false); }
     throw new ApiError(response.status, (data && data.error) || t('error.generic'));
   }
+  if ((method === 'POST' && /^\/api\/posts\/?$/.test(path)) || (method === 'DELETE' && /^\/api\/posts\/[^/]+$/.test(path))) feedVersion.n += 1;
   return data;
 }
+
+/** Bumped whenever a look is created or deleted, so cached feeds know they are stale. */
+export const feedVersion = { n: 0 };
 
 export async function loadMe() {
   try { state.me = await api('GET', '/api/auth/me'); } catch (e) { if (e.status === 401) state.me = null; }
@@ -280,6 +293,10 @@ export function resetSession() {
   state.result = null; state.resultAnimated = false; state.resultPostId = null; state.returnTo = null;
 }
 export function navigate(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
+/** Like navigate, but replaces the current history entry: for guards and redirects, so Back does not loop. */
+export function redirect(hash) { if (location.hash === hash) render(true); else location.replace(location.pathname + location.search + hash); }
+/** Shows a message in an alert element and moves focus to it, so screen readers announce it on every platform. */
+export function showAlert(node, message) { node.textContent = message; node.hidden = false; node.setAttribute('tabindex', '-1'); node.focus({ preventScroll: false }); }
 export function requireSignIn(returnTo) {
   if (state.me) return true;
   state.returnTo = returnTo || location.hash;
@@ -420,34 +437,51 @@ export function sheet(opts) {
   document.body.appendChild(backdrop);
   document.body.appendChild(panel);
   document.body.classList.add('sheet-open');
-  openSheetNode = { backdrop, panel, previouslyFocused };
-  // Swipe down to dismiss.
+  // The page behind is inert while the sheet is open, so neither taps nor Tab reach it.
+  const behind = [view(), document.querySelector('header.top'), document.querySelector('nav.tabbar')].filter(Boolean);
+  for (const node of behind) node.inert = true;
+  let closed = false;
+  // Swipe down to dismiss, but only when the drag starts on the sheet's own chrome, never inside a field or a scrolled list.
   let startY = null;
-  panel.addEventListener('touchstart', (e) => { if (panel.scrollTop === 0) startY = e.touches[0].clientY; }, { passive: true });
+  panel.addEventListener('touchstart', (e) => {
+    if (panel.scrollTop > 0 || e.target.closest('input, textarea, select, button, a, [contenteditable="true"]')) { startY = null; return; }
+    startY = e.touches[0].clientY;
+  }, { passive: true });
   panel.addEventListener('touchmove', (e) => { if (startY !== null) { const dy = e.touches[0].clientY - startY; if (dy > 0) panel.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
   panel.addEventListener('touchend', (e) => { if (startY === null) return; const dy = e.changedTouches[0].clientY - startY; startY = null; if (dy > 80) close(); else panel.style.transform = ''; });
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const focusables = () => [...panel.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+  const onKey = (e) => {
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key !== 'Tab') return;
+    const items = focusables();
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0]; const last = items[items.length - 1];
+    if (!panel.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
   document.addEventListener('keydown', onKey);
-  const first = panel.querySelector('button, [href], input, select, textarea');
-  if (first) requestAnimationFrame(() => first.focus({ preventScroll: true }));
-  function close() {
+  const first = panel.querySelector('[data-autofocus]') || focusables()[0];
+  if (first) requestAnimationFrame(() => { if (!closed) first.focus({ preventScroll: true }); });
+  function close(immediate) {
+    if (closed) return;
+    closed = true;
     document.removeEventListener('keydown', onKey);
+    for (const node of behind) node.inert = false;
     if (openSheetNode && openSheetNode.panel === panel) openSheetNode = null;
     document.body.classList.remove('sheet-open');
-    panel.classList.add('closing'); backdrop.classList.add('closing');
     const done = () => { panel.remove(); backdrop.remove(); };
-    if (reducedMotion()) done(); else setTimeout(done, 170);
+    if (immediate || reducedMotion()) done();
+    else { panel.classList.add('closing'); backdrop.classList.add('closing'); setTimeout(done, 170); }
     if (previouslyFocused && previouslyFocused.focus && document.contains(previouslyFocused)) previouslyFocused.focus({ preventScroll: true });
     if (opts.onClose) opts.onClose();
   }
+  openSheetNode = { panel, close };
   return { close, panel };
 }
 export function closeSheet() {
   if (!openSheetNode) return;
-  const { panel, backdrop } = openSheetNode;
-  openSheetNode = null;
-  document.body.classList.remove('sheet-open');
-  panel.remove(); backdrop.remove();
+  openSheetNode.close(true);
 }
 /** A sheet of tappable rows: [{ icon, text, onclick, danger, href }]. */
 export function actionSheet(title, items) {
@@ -470,7 +504,7 @@ export function confirmSheet(title, body, confirmText, danger) {
         body ? el('p', { class: 'muted', text: body }) : null,
         el('div', { class: 'stack', style: 'margin-block-start:16px' }, [
           el('button', { type: 'button', class: 'btn ' + (danger ? 'btn-danger' : ''), text: confirmText, onclick: () => { answered = true; s.close(); resolve(true); } }),
-          el('button', { type: 'button', class: 'btn btn-secondary', text: t('common.cancel'), onclick: () => { answered = true; s.close(); resolve(false); } })
+          el('button', { type: 'button', class: 'btn btn-secondary', 'data-autofocus': true, text: t('common.cancel'), onclick: () => { answered = true; s.close(); resolve(false); } })
         ])
       ])
     });
@@ -483,10 +517,15 @@ export function confirmSheet(title, body, confirmText, danger) {
 export function doubleTap(node, handler, single) {
   let last = 0; let timer = null;
   node.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;   // open in a new tab etc.
     const now = performance.now();
     if (now - last < 300) { last = 0; clearTimeout(timer); event.preventDefault(); handler(event); return; }
     last = now;
-    if (single) { event.preventDefault(); timer = setTimeout(() => single(event), 280); }
+    if (single) {
+      event.preventDefault();
+      const hashAtTap = location.hash;
+      timer = setTimeout(() => { if (location.hash === hashAtTap) single(event); }, 280);
+    }
   });
 }
 
@@ -526,16 +565,34 @@ export function pullToRefresh(indicator, onRefresh) {
 
 /**
  * A paged list that loads more as you scroll. opts: load(offset) -> { items, nextOffset }, render(item) -> node,
- * empty() -> node, skeleton (bool), stale() from the view. Returns { refresh, list }.
+ * empty() -> node, key(item) -> id (drops repeats across pages), initial { items, nextOffset } (restores a snapshot
+ * without a request), skeleton (bool), stale() from the view. Returns { refresh, snapshot, list }.
  */
 export function infiniteList(container, opts) {
   const list = el('div', { class: opts.className || '' });
   const sentinel = el('div', { class: 'sentinel', 'aria-hidden': 'true' });
   const more = el('div', { class: 'empty', hidden: true });
   container.appendChild(list); container.appendChild(more); container.appendChild(sentinel);
-  let seq = 0; let next = 0; let loading = false; let count = 0;
+  let seq = 0; let next = 0; let loading = false; let items = []; let seen = new Set(); let errorNode = null;
+  function append(page) {
+    for (const item of page) {
+      const id = opts.key ? opts.key(item) : null;
+      if (id !== null && seen.has(id)) continue;       // the ranking moved under us between pages
+      if (id !== null) seen.add(id);
+      items.push(item);
+      list.appendChild(opts.render(item));
+    }
+  }
+  function finish() {
+    if (items.length === 0) list.appendChild(opts.empty ? opts.empty() : emptyState(t('feed.empty')));
+    else if (next === null && opts.endText !== false) { more.textContent = opts.endText || t('feed.end'); more.hidden = items.length < 3; }
+  }
   async function loadPage(reset) {
-    if (reset) { seq += 1; next = 0; count = 0; list.innerHTML = ''; more.hidden = true; if (opts.skeleton !== false) list.appendChild(skeletonCards(2)); }
+    if (reset) {
+      seq += 1; next = 0; items = []; seen = new Set(); errorNode = null; loading = false;   // an in-flight page is now stale and will be dropped
+      list.innerHTML = ''; more.hidden = true;
+      if (opts.skeleton !== false) list.appendChild(skeletonCards(2));
+    }
     if (next === null || loading) return;
     const mine = seq; const offset = next;
     loading = true;
@@ -543,31 +600,52 @@ export function infiniteList(container, opts) {
       const page = await opts.load(offset);
       if (mine !== seq || (opts.stale && opts.stale())) return;
       if (reset) list.innerHTML = '';
-      for (const item of page.items) { list.appendChild(opts.render(item)); count += 1; }
+      if (errorNode) { errorNode.remove(); errorNode = null; }
+      append(page.items);
       next = page.nextOffset === null || page.nextOffset === undefined ? null : page.nextOffset;
-      if (count === 0) list.appendChild(opts.empty ? opts.empty() : emptyState(t('feed.empty')));
-      else if (next === null && opts.endText !== false) { more.textContent = opts.endText || t('feed.end'); more.hidden = count < 3; }
+      finish();
     } catch (e) {
       if (mine !== seq) return;
       if (reset) list.innerHTML = '';
-      list.appendChild(errorBlock(e));
+      if (errorNode) errorNode.remove();
+      errorNode = errorBlock(e);
+      list.appendChild(errorNode);
       next = offset;
     } finally { if (mine === seq) loading = false; }
   }
   const observer = new IntersectionObserver((entries) => { if (entries.some((x) => x.isIntersecting) && next !== null && !loading) loadPage(false); }, { rootMargin: '600px 0px' });
   observer.observe(sentinel);
   onLeave(() => observer.disconnect());
-  loadPage(true);
-  return { refresh: () => loadPage(true), list };
+  if (opts.initial && Array.isArray(opts.initial.items)) {
+    append(opts.initial.items);
+    next = opts.initial.nextOffset === null || opts.initial.nextOffset === undefined ? null : opts.initial.nextOffset;
+    finish();
+  } else {
+    loadPage(true);
+  }
+  return { refresh: () => loadPage(true), snapshot: () => ({ items: items.slice(), nextOffset: next }), list };
 }
 
 // ---------- images ----------
 
+const pendingPicks = new Map();
 export function pickFile(inputId) {
+  const input = $(inputId);
+  const previous = pendingPicks.get(inputId);
+  if (previous) previous(null);                       // a pick that was cancelled without a cancel event resolves now
   return new Promise((resolve) => {
-    const input = $(inputId);
-    const onChange = () => { input.removeEventListener('change', onChange); const file = input.files && input.files[0]; input.value = ''; resolve(file || null); };
+    const done = (file) => {
+      if (pendingPicks.get(inputId) !== done) return;
+      pendingPicks.delete(inputId);
+      input.removeEventListener('change', onChange);
+      input.removeEventListener('cancel', onCancel);
+      resolve(file);
+    };
+    const onChange = () => { const file = input.files && input.files[0]; input.value = ''; done(file || null); };
+    const onCancel = () => done(null);
+    pendingPicks.set(inputId, done);
     input.addEventListener('change', onChange);
+    input.addEventListener('cancel', onCancel);
     input.click();
   });
 }
@@ -626,7 +704,8 @@ export async function toggleFire(post, button) {
 function paintFire(button, post) {
   if (!button) return;
   button.setAttribute('aria-pressed', String(post.fired));
-  button.setAttribute('aria-label', post.fired ? t('post.fired') : t('post.fire'));
+  const name = button.querySelector('.sr-only');
+  if (name) name.textContent = post.fired ? t('post.fired') : t('post.fire');
   const count = button.querySelector('.count');
   if (count) count.textContent = fmtCompact(post.fireCount);
 }
@@ -705,8 +784,8 @@ export function postCard(post, opts) {
   opts = opts || {};
   const user = post.user;
   const saveBtn = el('button', { type: 'button', class: 'action save', 'aria-pressed': String(post.saved), 'aria-label': post.saved ? t('post.saved') : t('post.save'), onclick: () => toggleSave(post, saveBtn) }, [icon('bookmark')]);
-  const fireBtn = el('button', { type: 'button', class: 'action fire', 'aria-pressed': String(post.fired), 'aria-label': post.fired ? t('post.fired') : t('post.fire'), onclick: () => toggleFire(post, fireBtn) },
-    [icon('flame'), el('span', { class: 'count', text: fmtCompact(post.fireCount) })]);
+  const fireBtn = el('button', { type: 'button', class: 'action fire', 'aria-pressed': String(post.fired), onclick: () => toggleFire(post, fireBtn) },
+    [icon('flame'), el('span', { class: 'sr-only', text: post.fired ? t('post.fired') : t('post.fire') }), el('span', { class: 'count', text: fmtCompact(post.fireCount) })]);
   const head = el('div', { class: 'card-head' }, [
     avatar(user),
     el('div', { class: 'who' }, [
@@ -727,7 +806,7 @@ export function postCard(post, opts) {
   const body = el('div', { class: 'card-body' }, [
     post.hidden ? el('p', { class: 'alert danger', text: t('post.hidden') + ' · ' + t('post.hidden_hint') }) : null,
     el('p', { class: 'headline', text: post.headline }),
-    post.caption ? el('p', { class: 'caption' }, [richCaption(post.caption)]) : null,
+    post.caption ? el('p', { class: 'caption' }, [richCaption(post.caption, post.mentions)]) : null,
     post.featuredBy ? el('a', { class: 'featured', href: '#/u/' + encodeURIComponent(post.featuredBy.handle) + '/featured' }, [icon('sparkle'), t('post.featured_by', { name: post.featuredBy.name })]) : null,
     opts.compact ? null : el('div', { class: 'match' }, [
       el('span', { text: t('post.reads_as', { intent: intentLabel(post.intent), pct: fmtPercent(post.intentMatch / 100) }) }),
@@ -738,7 +817,7 @@ export function postCard(post, opts) {
   ]);
   const actions = el('div', { class: 'actions' }, [
     fireBtn,
-    el('a', { class: 'action', href: '#/post/' + post.id, 'aria-label': t('post.comments') }, [icon('comment'), el('span', { class: 'count', text: fmtCompact(post.commentCount) })]),
+    el('a', { class: 'action', href: '#/post/' + post.id }, [icon('comment'), el('span', { class: 'sr-only', text: t('post.comments') }), el('span', { class: 'count', text: fmtCompact(post.commentCount) })]),
     saveBtn,
     el('button', { type: 'button', class: 'action', 'aria-label': t('post.share'), onclick: () => sharePost(post) }, [icon('share')]),
     opts.votes !== undefined ? el('span', { class: 'tag accent end', text: t('post.votes', { n: fmtNumber(opts.votes) }) }) : null
@@ -814,7 +893,7 @@ export async function boot() {
   window.addEventListener('hashchange', () => render(true));
   for (const tab of document.querySelectorAll('.tab')) {
     tab.addEventListener('click', (event) => {
-      if (tab.getAttribute('href') === location.hash || (tab.dataset.tab === 'home' && (location.hash === '' || location.hash === '#/'))) { event.preventDefault(); window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); render(true); }
+      if (tab.getAttribute('href') === location.hash || (tab.dataset.tab === 'home' && (location.hash === '' || location.hash === '#/'))) { event.preventDefault(); state.forceRefresh = true; window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); render(true); }
     });
   }
   window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); state.installPrompt = event; });

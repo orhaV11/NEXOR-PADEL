@@ -38,6 +38,10 @@ public static class UserEndpoints
 
     public static IResult Error(int status, string message) => AuthEndpoints.Error(status, message);
 
+    /// <summary>Unix seconds, always increasing: a handle that is freed and taken again never reuses a cached avatar URL.</summary>
+    public static int NextAvatarVersion(int current) =>
+        Math.Max(current + 1, (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() % int.MaxValue));
+
     public static bool IsHttpsUrl(string? url, int maxLength) =>
         url is not null && url.Length <= maxLength && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
 
@@ -243,9 +247,9 @@ public static class UserEndpoints
             return Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(lang, "error.avatar_invalid"));
         }
 
-        user.AvatarPath = await images.SaveAvatarAsync(user.Id, format, bytes, ct);
+        user.AvatarPath = await images.SaveAvatarAsync(user.Id, format, bytes, CancellationToken.None);
         // A new version is a new URL, so a day-long cache can never show the old photo.
-        user.AvatarVersion++;
+        user.AvatarVersion = NextAvatarVersion(user.AvatarVersion);
         await db.SaveChangesAsync(ct);
         return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
     }
@@ -264,7 +268,7 @@ public static class UserEndpoints
             // File first, as with account deletion: a row pointing at a missing file just 404s, an orphaned file has no owner.
             images.Delete(user.AvatarPath);
             user.AvatarPath = null;
-            user.AvatarVersion++;
+            user.AvatarVersion = NextAvatarVersion(user.AvatarVersion);
             await db.SaveChangesAsync(ct);
         }
 
@@ -346,11 +350,8 @@ public static class UserEndpoints
         await db.ProductLinks.Where(l => myPostIds.Contains(l.PostId)).ExecuteDeleteAsync(ct);
         // Own notifications, everyone else's that point at a post or challenge about to disappear, and the mention
         // and featured ones this account sent: the mark or mention they announce is gone.
-        await db.Notifications.Where(n => n.UserId == id
-                || (n.PostId != null && myPostIds.Contains(n.PostId.Value))
-                || (n.ChallengeId != null && myChallengeIds.Contains(n.ChallengeId.Value))
-                || ((n.Type == NotificationType.Mention || n.Type == NotificationType.Featured) && n.ActorHandle == handle))
-            .ExecuteDeleteAsync(ct);
+        // Everything addressed to this account, and everything it caused elsewhere: a freed handle must not inherit old activity.
+        await db.Notifications.Where(n => n.UserId == id || n.ActorHandle == user.Handle).ExecuteDeleteAsync(ct);
         await db.Follows.Where(f => f.FollowerId == id || f.FollowedId == id).ExecuteDeleteAsync(ct);
         await db.Challenges.Where(c => c.WinnerPostId != null && myPostIds.Contains(c.WinnerPostId.Value))
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);

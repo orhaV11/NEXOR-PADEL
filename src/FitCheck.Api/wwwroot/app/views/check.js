@@ -3,9 +3,7 @@
 // #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/.items/.working/.tip/.bar structure
 // are part of the browser test contract; keep them when changing the layout.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading,
-  onLeave, pickFile, prepareImage, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale,
-  reducedMotion, copyText, view, $
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert
 } from '../core.js';
 
 const SCORE_COUNT_MS = 900;
@@ -151,7 +149,7 @@ async function submitCheck() {
     navigate('#/result');
   } catch (e) {
     ck.busy = false;
-    ck.error = e && e.message ? e.message : t('error.generic');
+    ck.error = e && e.status === 401 ? null : (e && e.message ? e.message : t('error.generic'));   // a lost session already re-rendered
     navigate('#/check');
   }
 }
@@ -171,7 +169,7 @@ function checkAnother(keepChallenge) {
 
 register('result', async (root) => {
   const result = state.result;
-  if (!result) { location.hash = '#/check'; return; }
+  if (!result) { redirect('#/check'); return; }
   setTopBar({ title: t('result.title') });
   const feedback = result.feedback || {};
   const status = feedback.status || result.status;

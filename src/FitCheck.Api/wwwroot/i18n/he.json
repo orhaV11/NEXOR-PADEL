@@ -4,6 +4,7 @@
 
   "app.name": "OREVOSH",
   "app.tagline": "הלוקים שלך. האנשים שלך. המותגים שלך.",
+
   "lang.label": "שפה",
 
   "nav.main": "ראשי",
@@ -222,16 +223,16 @@
 
   "activity.title": "פעילות",
   "activity.empty": "עדיין כלום. מעלים לוק ורואים מה קורה.",
-  "activity.fire": "{actor} שם אש על הלוק שלך",
-  "activity.follow": "{actor} התחיל לעקוב אחריך",
-  "activity.vote": "{actor} הצביע לכניסה שלך",
-  "activity.comment": "{actor} הגיב על הלוק שלך",
-  "activity.entry": "{actor} נכנס לאתגר שלך",
+  "activity.fire": "אש מ-{actor} על הלוק שלך",
+  "activity.follow": "עוקב חדש: {actor}",
+  "activity.vote": "הצבעה מ-{actor} לכניסה שלך",
+  "activity.comment": "תגובה מ-{actor} על הלוק שלך",
+  "activity.entry": "כניסה חדשה לאתגר שלך: {actor}",
   "activity.ended": "האתגר שלך הסתיים. הזכייה: {actor}",
   "activity.ended_empty": "האתגר שלך הסתיים בלי כניסות",
   "activity.won": "זכית באתגר של {actor}",
-  "activity.mention": "{actor} תייג אותך בלוק",
-  "activity.featured": "{actor} הציג את הלוק שלך",
+  "activity.mention": "תיוג מ-{actor} בלוק",
+  "activity.featured": "הלוק שלך מוצג אצל {actor}",
 
   "profile.posts": "לוקים",
   "profile.followers": "עוקבים",
@@ -302,5 +303,17 @@
   "a11y.avatar": "האווטאר של {name}",
   "a11y.look_by": "לוק {intent} של {name}",
   "a11y.unread": "{n} שלא נקראו",
-  "a11y.search": "חיפוש"
+  "a11y.search": "חיפוש",
+
+  "tag.looks_one": "לוק אחד",
+
+  "post.votes_one": "הצבעה אחת",
+
+  "challenges.entries_one": "כניסה אחת",
+  "challenges.votes_one": "הצבעה אחת",
+
+  "profile.followers_n_one": "עוקב אחד",
+  "profile.featured_n_one": "אחד מוצג",
+
+  "a11y.unread_one": "אחת שלא נקראה"
 }

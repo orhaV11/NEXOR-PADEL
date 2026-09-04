@@ -279,8 +279,7 @@ public static class ChallengeEndpoints
         }
 
         var postId = existing.PostId;
-        db.ChallengeVotes.Remove(existing);
-        await db.SaveChangesAsync(ct);
+        await db.ChallengeVotes.Where(v => v.ChallengeId == id && v.UserId == me.Id).ExecuteDeleteAsync(ct);
         var votes = await db.ChallengeVotes.CountAsync(v => v.ChallengeId == id && v.PostId == postId, ct);
         return Results.Json(new VoteStateDto(null, votes), AppJson.Options);
     }

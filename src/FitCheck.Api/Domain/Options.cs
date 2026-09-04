@@ -34,4 +34,10 @@ public sealed class LimitsOptions
 
     /// <summary>New accounts per client address per hour. Blunts minting fresh ids to dodge the per-user cap.</summary>
     public int SignupsPerHourPerIp { get; set; } = 50;
+
+    /// <summary>Login attempts per client address per 15 minutes. Slows password guessing.</summary>
+    public int LoginsPerQuarterHourPerIp { get; set; } = 30;
+
+    /// <summary>Reports that hide a post pending review.</summary>
+    public int ReportsToHide { get; set; } = 3;
 }

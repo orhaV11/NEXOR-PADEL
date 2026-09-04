@@ -21,9 +21,10 @@ public static class CheckEndpoints
     {
         var group = app.MapGroup("/api/checks");
 
-        // The form is read by hand from the request, so the antiforgery filter has nothing to validate.
-        group.MapPost("/", CreateAsync).DisableAntiforgery();
-        group.MapGet("/{id:guid}", GetAsync);
+        // The form is read by hand from the request, so the antiforgery filter has nothing to validate;
+        // the X-Requested-With check in Program.cs covers CSRF for every state-changing call.
+        group.MapPost("/", CreateAsync).DisableAntiforgery().RequireAuthorization();
+        group.MapGet("/{id:guid}", GetAsync).RequireAuthorization();
 
         return app;
     }
@@ -44,6 +45,14 @@ public static class CheckEndpoints
         var maxBytes = storage.Value.MaxImageBytes;
         var maxMb = maxBytes / (1024 * 1024);
         var headerLanguage = Localizer.Resolve(null, request);
+
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        var userId = user.Id;
 
         if (!request.HasFormContentType)
         {
@@ -75,17 +84,6 @@ public static class CheckEndpoints
             return tooLarge
                 ? UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, localizer.Get(headerLanguage, "error.image_too_large", maxMb))
                 : UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(headerLanguage, "error.invalid_request"));
-        }
-
-        if (!Guid.TryParse(form["userId"], out var userId))
-        {
-            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(headerLanguage, "error.user_not_found"));
-        }
-
-        var user = await db.Users.FindAsync([userId], ct);
-        if (user is null)
-        {
-            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(headerLanguage, "error.user_not_found"));
         }
 
         // The check's language is what the feedback is written in. A shipped locale in the form wins; anything
@@ -187,6 +185,7 @@ public static class CheckEndpoints
                     check.Score = feedback.Score;
                     check.FeedbackJson = JsonSerializer.Serialize(feedback, AppJson.Options);
                     check.ImagePath = await images.SaveAsync(userId, check.Id, format, bytes, CancellationToken.None);
+                    UpdateStreak(user, now);
                     break;
                 case CheckStatus.NotOutfit:
                     // Keep the friendly explanation; there is no outfit to remember.
@@ -223,19 +222,34 @@ public static class CheckEndpoints
         db.Checks.Add(check);
         await db.SaveChangesAsync(CancellationToken.None);
 
-        return Results.Json(CheckDto.FromEntity(check, localizer), AppJson.Options, statusCode: StatusCodes.Status201Created);
+        return Results.Json(CheckDto.FromEntity(check, localizer, null), AppJson.Options, statusCode: StatusCodes.Status201Created);
+    }
+
+    /// <summary>Consecutive UTC days with an ok check. A missed day starts over; a second check today changes nothing.</summary>
+    public static void UpdateStreak(AppUser user, DateTime now)
+    {
+        var today = now.Date;
+        if (user.LastCheckDate == today)
+        {
+            return;
+        }
+
+        user.StreakCount = user.LastCheckDate == today.AddDays(-1) ? user.StreakCount + 1 : 1;
+        user.LastCheckDate = today;
     }
 
     /// <summary>Owner only. A wrong owner gets the same 404 as a missing id, so ids do not leak existence.</summary>
     private static async Task<IResult> GetAsync(
-        Guid id, Guid? userId, HttpRequest request, AppDbContext db, Localizer localizer, CancellationToken ct)
+        Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
+        var userId = Sessions.UserId(context.User);
         var check = await db.Checks.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (check is null || userId is null || check.UserId != userId)
         {
-            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, request), "error.check_not_found"));
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.check_not_found"));
         }
 
-        return Results.Json(CheckDto.FromEntity(check, localizer), AppJson.Options);
+        var postId = await db.Posts.Where(p => p.CheckId == id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct);
+        return Results.Json(CheckDto.FromEntity(check, localizer, postId), AppJson.Options);
     }
 }

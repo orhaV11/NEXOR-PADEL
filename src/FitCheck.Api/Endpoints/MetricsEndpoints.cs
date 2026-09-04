@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitCheck.Api.Endpoints;
 
-/// <summary>The kill switch. returnRate decides whether Phase 2 gets built.</summary>
+/// <summary>The kill switch. returnRate decides whether the next phase gets built; the social block says whether the loop turns.</summary>
 public static class MetricsEndpoints
 {
     private static readonly TimeSpan ReturnWindow = TimeSpan.FromDays(7);
@@ -24,7 +24,29 @@ public static class MetricsEndpoints
             .Select(c => new { c.UserId, c.CreatedAt, c.Score, c.LatencyMs, c.Language, c.PromptVersion })
             .ToListAsync(ct);
 
-        return Results.Ok(Compute(checks.Select(c => new MetricRow(c.UserId, c.CreatedAt, c.Score ?? 0, c.LatencyMs, c.Language, c.PromptVersion))));
+        var metrics = Compute(checks.Select(c => new MetricRow(c.UserId, c.CreatedAt, c.Score ?? 0, c.LatencyMs, c.Language, c.PromptVersion)));
+
+        var now = DateTime.UtcNow;
+        var since = now - ReturnWindow;
+        var active = new HashSet<Guid>();
+        active.UnionWith(await db.Checks.Where(c => c.CreatedAt >= since).Select(c => c.UserId).Distinct().ToListAsync(ct));
+        active.UnionWith(await db.Fires.Where(f => f.CreatedAt >= since).Select(f => f.UserId).Distinct().ToListAsync(ct));
+        active.UnionWith(await db.Comments.Where(c => c.CreatedAt >= since).Select(c => c.UserId).Distinct().ToListAsync(ct));
+        active.UnionWith(await db.ChallengeVotes.Where(v => v.CreatedAt >= since).Select(v => v.UserId).Distinct().ToListAsync(ct));
+
+        var social = new SocialMetricsDto(
+            Users: await db.Users.CountAsync(ct),
+            Brands: await db.Users.CountAsync(u => u.AccountType == AccountType.Brand, ct),
+            Posts: await db.Posts.CountAsync(p => !p.Hidden, ct),
+            Fires: await db.Fires.CountAsync(ct),
+            Follows: await db.Follows.CountAsync(ct),
+            Comments: await db.Comments.CountAsync(c => !c.Hidden, ct),
+            ChallengesOpen: await db.Challenges.CountAsync(c => c.EndsAt > now, ct),
+            ChallengesEnded: await db.Challenges.CountAsync(c => c.EndsAt <= now, ct),
+            Votes: await db.ChallengeVotes.CountAsync(ct),
+            ActiveUsers7d: active.Count);
+
+        return Results.Ok(metrics with { Social = social });
     }
 
     public sealed record MetricRow(Guid UserId, DateTime CreatedAt, int Score, int LatencyMs, string Language, string PromptVersion);

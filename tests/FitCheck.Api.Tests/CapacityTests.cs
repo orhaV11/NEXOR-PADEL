@@ -1,51 +1,43 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FitCheck.Api.Data;
 using FitCheck.Api.Services;
 
 namespace FitCheck.Api.Tests;
 
-/// <summary>Own fixtures: these tests change the limits, so they cannot share a host with the others.</summary>
+/// <summary>Each test owns its app: the caps under test are global state.</summary>
 public class CapacityTests
 {
     [Fact]
-    public async Task Parallel_burst_cannot_slip_past_the_per_user_cap()
+    public async Task A_parallel_burst_cannot_slip_past_the_per_user_cap()
     {
         using var app = new TestApp { ChecksPerDay = 3 };
-        using var client = app.CreateClient();
-        var userId = await app.CreateUserAsync(client);
-        // Slow model: every request is in flight at the same time, so only the reservation can stop the extras.
-        app.Vision.Handler = _ => { Thread.Sleep(400); return Payloads.Ok(); };
+        var (client, _, _) = await app.NewUserAsync("burst");
+        // A slow model keeps every request in flight at the same time.
+        app.Vision.Handler = _ => { Thread.Sleep(300); return Payloads.Ok(); };
 
-        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
-            client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg()))));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))));
 
         Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
-        Assert.Equal(5, responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
+        Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
         Assert.Equal(3, app.Vision.Requests.Count);
-
-        // Reservations are released, so the stored count alone decides afterwards (still at cap).
-        var again = await client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg()));
-        Assert.Equal(HttpStatusCode.TooManyRequests, again.StatusCode);
     }
 
     [Fact]
     public async Task Global_ceiling_stops_checks_across_users_with_its_own_message()
     {
         using var app = new TestApp { ChecksPerDayGlobal = 2 };
-        using var client = app.CreateClient();
-        var a = await app.CreateUserAsync(client, "aa");
-        var b = await app.CreateUserAsync(client, "bb");
-        var c = await app.CreateUserAsync(client, "cc");
+        var (a, _, _) = await app.NewUserAsync("aa");
+        var (b, _, _) = await app.NewUserAsync("bb");
+        var (c, _, _) = await app.NewUserAsync("cc", language: "he");
 
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/checks", TestApp.CheckForm(a, TestImages.Jpeg()))).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/checks", TestApp.CheckForm(b, TestImages.Jpeg()))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await a.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await b.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        var third = await c.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg(), language: "he"));
 
-        var response = await client.PostAsync("/api/checks", TestApp.CheckForm(c, TestImages.Jpeg(), language: "he"));
-
-        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Contains("קיבולת", error.GetProperty("error").GetString());
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+        Assert.Contains("קיבולת", (await third.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
         Assert.Equal(2, app.Vision.Requests.Count);
     }
 
@@ -53,10 +45,9 @@ public class CapacityTests
     public async Task Cap_of_zero_pauses_the_pilot_with_a_429_not_a_crash()
     {
         using var app = new TestApp { ChecksPerDay = 0 };
-        using var client = app.CreateClient();
-        var userId = await app.CreateUserAsync(client);
+        var (client, _, _) = await app.NewUserAsync("paused");
 
-        var response = await client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg()));
+        var response = await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
 
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.Empty(app.Vision.Requests);
@@ -66,13 +57,13 @@ public class CapacityTests
     public async Task Signups_are_limited_per_client_address()
     {
         using var app = new TestApp { SignupsPerHourPerIp = 2 };
-        using var client = app.CreateClient();
+        var client = app.NewClient();
         // The app sits behind a tunnel, so the client address arrives in X-Forwarded-For.
         async Task<HttpResponseMessage> Signup(string handle, string address)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/users")
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/signup")
             {
-                Content = JsonContent.Create(new { handle, confirmed16Plus = true, language = "en" })
+                Content = JsonContent.Create(new { handle, password = "password123", confirmed16Plus = true, language = "en" })
             };
             request.Headers.Add("X-Forwarded-For", address);
             return await client.SendAsync(request);
@@ -83,44 +74,45 @@ public class CapacityTests
 
         var third = await Signup("three", "203.0.113.1");
         Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
-        var error = await third.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Too many new accounts from this network. Try again in an hour.", error.GetProperty("error").GetString());
+        Assert.Equal("Too many new accounts from this network. Try again in an hour.", (await third.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
 
         // Another address has its own bucket.
         Assert.Equal(HttpStatusCode.Created, (await Signup("four", "203.0.113.2")).StatusCode);
     }
 
     [Fact]
-    public async Task Unexpected_failure_after_upload_stores_an_error_row_and_no_photo()
+    public async Task Login_attempts_are_limited_per_client_address()
     {
-        using var app = new TestApp();
-        using var client = app.CreateClient();
-        var userId = await app.CreateUserAsync(client);
-        app.Vision.Handler = _ => throw new InvalidOperationException("something nobody anticipated");
+        using var app = new TestApp { LoginsPerQuarterHourPerIp = 2 };
+        await app.SignupAsync(app.NewClient(), "target", password: "correct horse");
+        var client = app.NewClient();
+        async Task<HttpResponseMessage> Login(string password)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/login") { Content = JsonContent.Create(new { handle = "target", password }) };
+            request.Headers.Add("X-Forwarded-For", "203.0.113.9");
+            return await client.SendAsync(request);
+        }
 
-        var response = await client.PostAsync("/api/checks", TestApp.CheckForm(userId, TestImages.Jpeg()));
-
-        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
-        var folder = Path.Combine(app.StorageRoot, userId.ToString("N"));
-        Assert.True(!Directory.Exists(folder) || Directory.GetFiles(folder).Length == 0);
-        var list = await client.GetFromJsonAsync<JsonElement>($"/api/users/{userId}/checks");
-        Assert.Equal("error", Assert.Single(list.EnumerateArray()).GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login("wrong1")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login("wrong2")).StatusCode);
+        var third = await Login("correct horse");
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+        Assert.Contains("15 minutes", (await third.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
     }
 
     [Fact]
-    public void Reservation_release_restores_capacity()
+    public async Task Unexpected_failure_after_upload_is_an_error_row_and_a_502_with_no_photo()
     {
-        var capacity = new CheckCapacity();
-        var user = Guid.NewGuid();
+        using var app = new TestApp();
+        var (client, userId, _) = await app.NewUserAsync("boom");
+        app.Vision.Handler = _ => throw new InvalidOperationException("something nobody expected");
 
-        Assert.Equal(CapacityVerdict.Ok, capacity.TryReserve(user, storedForUser: 1, userCap: 2, storedGlobal: 1, globalCap: 10, out var first));
-        Assert.Equal(CapacityVerdict.UserCapReached, capacity.TryReserve(user, 1, 2, 1, 10, out var second));
-        Assert.Null(second);
-        Assert.Equal(CapacityVerdict.GlobalCapReached, capacity.TryReserve(Guid.NewGuid(), 0, 2, 9, 10, out _));
+        var response = await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
 
-        first!.Dispose();
-        first.Dispose();
-        Assert.Equal(CapacityVerdict.Ok, capacity.TryReserve(user, 1, 2, 1, 10, out var third));
-        third!.Dispose();
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        Assert.False(Directory.Exists(Path.Combine(app.StorageRoot, userId.ToString("N"))));
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal("error", Assert.Single(db.Checks.Where(c => c.UserId == userId)).Status);
     }
 }

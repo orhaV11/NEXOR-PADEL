@@ -55,6 +55,17 @@ public sealed class DiskImageStore : IImageStore
     public bool Exists(string relativePath) =>
         !string.IsNullOrEmpty(relativePath) && File.Exists(Resolve(relativePath));
 
+    public Stream? OpenRead(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return null;
+        }
+
+        var full = Resolve(relativePath);
+        return File.Exists(full) ? new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, useAsync: true) : null;
+    }
+
     private string Resolve(string relativePath)
     {
         var full = Path.GetFullPath(Path.Combine(_root, relativePath));

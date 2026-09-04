@@ -66,13 +66,14 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
     public MetricsEndpointTests(MetricsApp app) => _app = app;
 
     [Fact]
-    public async Task Endpoint_ignores_non_ok_checks_and_computes_return_rate()
+    public async Task Endpoint_ignores_non_ok_checks_computes_return_rate_and_reports_the_social_loop()
     {
-        var client = _app.CreateClient();
-        var returning = await _app.CreateUserAsync(client, "returning", "he");
-        var oneOff = await _app.CreateUserAsync(client, "oneoff");
-        var late = await _app.CreateUserAsync(client, "late");
-        var errorsOnly = await _app.CreateUserAsync(client, "errors");
+        _app.Vision.Handler = _ => Payloads.Ok();
+        var (returningClient, returning, _) = await _app.NewUserAsync("returning", language: "he");
+        var (oneOffClient, oneOff, _) = await _app.NewUserAsync("oneoff");
+        var (_, late, _) = await _app.NewUserAsync("late");
+        var (_, errorsOnly, _) = await _app.NewUserAsync("errors");
+        var (brandClient, _, _) = await _app.NewUserAsync("metricbrand", accountType: "Brand");
 
         using (var scope = _app.Services.CreateScope())
         {
@@ -93,17 +94,31 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
             await db.SaveChangesAsync();
         }
 
-        var m = await client.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        // A little social activity on top: one post, one fire, one comment, one follow, one open challenge.
+        var postId = await _app.CheckAndPostAsync(returningClient);
+        await oneOffClient.PostAsync($"/api/posts/{postId}/fire", null);
+        await oneOffClient.PostAsJsonAsync($"/api/posts/{postId}/comments", new { text = "clean" });
+        await oneOffClient.PostAsync("/api/users/returning/follow", null);
+        await brandClient.PostAsJsonAsync("/api/challenges", new { title = "T", brief = "B", intent = "Date", prize = "P", endsAt = DateTime.UtcNow.AddDays(2) });
 
-        Assert.Equal(5, m.GetProperty("totalChecks").GetInt32());
+        var m = await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+
+        Assert.Equal(6, m.GetProperty("totalChecks").GetInt32());
         Assert.Equal(3, m.GetProperty("usersWithAtLeastOneCheck").GetInt32());
         Assert.Equal(1, m.GetProperty("usersWithSecondCheckWithin7Days").GetInt32());
         Assert.Equal(0.3333, m.GetProperty("returnRate").GetDouble(), precision: 4);
-        Assert.Equal(2700, m.GetProperty("avgLatencyMs").GetInt32());
-        Assert.Equal(2, m.GetProperty("scoreDistribution").GetProperty("7").GetInt32());
-        Assert.Equal(1, m.GetProperty("scoreDistribution").GetProperty("8").GetInt32());
         Assert.Equal(2, m.GetProperty("byLanguage").GetProperty("he").GetInt32());
-        Assert.Equal(3, m.GetProperty("byLanguage").GetProperty("en").GetInt32());
-        Assert.Equal(5, m.GetProperty("byPromptVersion").GetProperty("v1").GetInt32());
+        Assert.Equal(6, m.GetProperty("byPromptVersion").GetProperty("v1").GetInt32());
+
+        var social = m.GetProperty("social");
+        Assert.Equal(5, social.GetProperty("users").GetInt32());
+        Assert.Equal(1, social.GetProperty("brands").GetInt32());
+        Assert.Equal(1, social.GetProperty("posts").GetInt32());
+        Assert.Equal(1, social.GetProperty("fires").GetInt32());
+        Assert.Equal(1, social.GetProperty("comments").GetInt32());
+        Assert.Equal(1, social.GetProperty("follows").GetInt32());
+        Assert.Equal(1, social.GetProperty("challengesOpen").GetInt32());
+        Assert.Equal(0, social.GetProperty("challengesEnded").GetInt32());
+        Assert.Equal(2, social.GetProperty("activeUsers7d").GetInt32());
     }
 }

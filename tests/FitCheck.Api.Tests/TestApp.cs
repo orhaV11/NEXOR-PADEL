@@ -1,6 +1,6 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,9 +17,10 @@ public class TestApp : WebApplicationFactory<Program>
     public string StorageRoot => Path.Combine(Root, "storage");
     public FakeVisionClient Vision { get; } = new();
     public int ChecksPerDay { get; init; } = 20;
-    public int ChecksPerDayGlobal { get; init; } = 1000;
-    /// <summary>TestServer has no client address, so every test shares one signup bucket; keep it out of the way by default.</summary>
-    public int SignupsPerHourPerIp { get; init; } = 100_000;
+    public int ChecksPerDayGlobal { get; init; } = 100000;
+    public int SignupsPerHourPerIp { get; init; } = 100000;
+    public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
+    public int ReportsToHide { get; init; } = 3;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -29,6 +30,8 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
         builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
+        builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
+        builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();
@@ -36,22 +39,47 @@ public class TestApp : WebApplicationFactory<Program>
         });
     }
 
-    public async Task<Guid> CreateUserAsync(HttpClient client, string handle = "tester", string language = "en", bool confirmed = true)
+    /// <summary>A client with its own cookie jar and the CSRF header every state-changing call needs.</summary>
+    public HttpClient NewClient()
     {
-        var response = await client.PostAsJsonAsync("/api/users", new { handle, confirmed16Plus = confirmed, language });
-        response.EnsureSuccessStatusCode();
-        var user = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return user.GetProperty("id").GetGuid();
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add(Sessions.RequestHeader, Sessions.RequestHeaderValue);
+        return client;
     }
 
-    public static MultipartFormDataContent CheckForm(Guid userId, byte[] image, string intent = "Date", string language = "en", string? occasion = null, string fileName = "outfit.jpg")
+    /// <summary>A client with no CSRF header, for the tests that check the header is required.</summary>
+    public HttpClient BareClient() => CreateClient();
+
+    public async Task<JsonElement> SignupAsync(
+        HttpClient client, string handle, string password = "password123", string language = "en", string accountType = "Person", string? displayName = null)
     {
-        var form = new MultipartFormDataContent
+        var response = await client.PostAsJsonAsync("/api/auth/signup",
+            new { handle, password, confirmed16Plus = true, language, accountType, displayName });
+        if (response.StatusCode != HttpStatusCode.Created)
         {
-            { new StringContent(userId.ToString()), "userId" },
-            { new StringContent(intent), "intent" },
-            { new StringContent(language), "language" }
-        };
+            throw new InvalidOperationException($"signup {handle} failed: {response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    /// <summary>A fresh signed-in client for one user.</summary>
+    public async Task<(HttpClient Client, Guid Id, string Handle)> NewUserAsync(
+        string handle, string language = "en", string accountType = "Person", string? displayName = null)
+    {
+        var client = NewClient();
+        var me = await SignupAsync(client, handle, language: language, accountType: accountType, displayName: displayName);
+        return (client, me.GetProperty("id").GetGuid(), handle);
+    }
+
+    public static MultipartFormDataContent CheckForm(byte[] image, string intent = "Date", string? language = "en", string? occasion = null, string fileName = "outfit.jpg")
+    {
+        var form = new MultipartFormDataContent { { new StringContent(intent), "intent" } };
+        if (language is not null)
+        {
+            form.Add(new StringContent(language), "language");
+        }
+
         if (occasion is not null)
         {
             form.Add(new StringContent(occasion), "occasion");
@@ -61,6 +89,38 @@ public class TestApp : WebApplicationFactory<Program>
         file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
         form.Add(file, "image", fileName);
         return form;
+    }
+
+    /// <summary>Runs one ok check with the scripted client and returns the check id.</summary>
+    public async Task<Guid> CheckAsync(HttpClient client, string intent = "Date", string language = "en")
+    {
+        var response = await client.PostAsync("/api/checks", CheckForm(TestImages.Jpeg(), intent, language));
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new InvalidOperationException($"check failed: {response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var check = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return check.GetProperty("id").GetGuid();
+    }
+
+    public async Task<JsonElement> PostAsync(HttpClient client, Guid checkId, string? caption = null, Guid? challengeId = null, object? products = null)
+    {
+        var response = await client.PostAsJsonAsync("/api/posts", new { checkId, caption, challengeId, products });
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new InvalidOperationException($"post failed: {response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    /// <summary>Check then post, the common social fixture.</summary>
+    public async Task<Guid> CheckAndPostAsync(HttpClient client, string intent = "Date", Guid? challengeId = null, string? caption = null)
+    {
+        var checkId = await CheckAsync(client, intent);
+        var post = await PostAsync(client, checkId, caption, challengeId);
+        return post.GetProperty("id").GetGuid();
     }
 
     protected override void Dispose(bool disposing)
@@ -103,12 +163,12 @@ public static class Payloads
         return doc.RootElement.Clone();
     }
 
-    public static JsonElement Ok(int score = 7, int intentMatch = 72) => Parse($$"""
+    public static JsonElement Ok(int score = 7, int intentMatch = 72, string headline = "Clean casual with one weak link") => Parse($$"""
         {
           "status": "ok",
           "score": {{score}},
           "intent_match": {{intentMatch}},
-          "headline": "Clean casual with one weak link",
+          "headline": "{{headline}}",
           "vibe": "relaxed weekend",
           "items": [
             { "name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple." },

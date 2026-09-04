@@ -4,9 +4,11 @@ using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +46,9 @@ builder.Services.AddSingleton<Localizer>();
 builder.Services.AddSingleton<IImageStore, DiskImageStore>();
 builder.Services.AddSingleton<CheckCapacity>();
 builder.Services.AddScoped<OutfitAnalyzer>();
+builder.Services.AddScoped<Notifier>();
+builder.Services.AddScoped<PostReader>();
+builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {
         // A vision call that takes longer than this is not a 10-second outfit check; fail and let the user retry.
@@ -51,6 +56,22 @@ builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(clien
     })
     // Trace-level HttpClient logging prints request headers; the key must never reach a log line.
     .RedactLoggedHeaders(["x-api-key"]);
+
+// Cookie sessions: HttpOnly, SameSite=Strict, Secure whenever the request came in over https (the tunnel does).
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = Sessions.CookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.ExpireTimeSpan = TimeSpan.FromDays(90);
+        options.SlidingExpiration = true;
+        // An API never redirects to a login page; it answers with the same { error } shape as everything else.
+        options.Events.OnRedirectToLogin = context => WriteAuthError(context.HttpContext, StatusCodes.Status401Unauthorized, "error.sign_in_required");
+        options.Events.OnRedirectToAccessDenied = context => WriteAuthError(context.HttpContext, StatusCodes.Status403Forbidden, "error.forbidden");
+    });
+builder.Services.AddAuthorization();
 
 // The app is meant to sit behind a tunnel, so the client address comes from X-Forwarded-For.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -60,19 +81,25 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Minting fresh accounts is the obvious way around the per-user cap; slow it down per client address.
-var signupsPerHour = builder.Configuration.GetValue<int?>("Limits:SignupsPerHourPerIp") ?? new LimitsOptions().SignupsPerHourPerIp;
+// Minting fresh accounts is the obvious way around the per-user cap, and password guessing needs a brake.
+var limitDefaults = new LimitsOptions();
+var signupsPerHour = builder.Configuration.GetValue<int?>("Limits:SignupsPerHourPerIp") ?? limitDefaults.SignupsPerHourPerIp;
+var loginsPerQuarterHour = builder.Configuration.GetValue<int?>("Limits:LoginsPerQuarterHourPerIp") ?? limitDefaults.LoginsPerQuarterHourPerIp;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy(UserEndpoints.SignupPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+    options.AddPolicy(AuthEndpoints.SignupPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = signupsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    options.AddPolicy(AuthEndpoints.LoginPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = loginsPerQuarterHour, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var localizer = context.HttpContext.RequestServices.GetRequiredService<Localizer>();
+        var key = context.HttpContext.Request.Path.StartsWithSegments("/api/auth/login") ? "error.login_limited" : "error.signup_limited";
         await context.HttpContext.Response.WriteAsJsonAsync(
-            new ErrorDto(localizer.Get(Localizer.Resolve(null, context.HttpContext.Request), "error.signup_limited")), AppJson.Options, ct);
+            new ErrorDto(localizer.Get(Localizer.Resolve(null, context.HttpContext.Request), key)), AppJson.Options, ct);
     };
 });
 
@@ -80,7 +107,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    // No migrations in Phase 1: the schema is created on first run and the file is throwaway.
+    // No migrations in this phase: the schema is created on first run. Delete the file to reset the pilot.
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
 }
 
@@ -102,18 +129,48 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
         new ErrorDto(localizer.Get(Localizer.Resolve(null, context.Request), "error.server")), AppJson.Options);
 }));
 
+// CSRF: a cross-site form can post to the API with the session cookie attached, but it cannot set a custom
+// header. Every state-changing call must carry one, or it is refused before any handler runs.
+app.Use(async (context, next) =>
+{
+    var method = context.Request.Method;
+    if (context.Request.Path.StartsWithSegments("/api")
+        && !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method) && !HttpMethods.IsOptions(method)
+        && context.Request.Headers[Sessions.RequestHeader] != Sessions.RequestHeaderValue)
+    {
+        await WriteAuthError(context, StatusCodes.Status403Forbidden, "error.forbidden");
+        return;
+    }
+
+    await next();
+});
+
 app.UseRouting();
 app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Only wwwroot is served. Photos live under Storage:Root, which is outside it and has no route.
+// Only wwwroot is served. Photos live under Storage:Root, which is outside it; a post is the only door to one.
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapCheckEndpoints();
+app.MapPostEndpoints();
+app.MapChallengeEndpoints();
+app.MapNotificationEndpoints();
 app.MapMetricsEndpoints();
 
 app.Run();
+
+static Task WriteAuthError(HttpContext context, int status, string key)
+{
+    var localizer = context.RequestServices.GetRequiredService<Localizer>();
+    context.Response.StatusCode = status;
+    return context.Response.WriteAsJsonAsync(
+        new ErrorDto(localizer.Get(Localizer.Resolve(null, context.Request), key)), AppJson.Options);
+}
 
 /// <summary>Exposed so the test project can host the app with WebApplicationFactory.</summary>
 public partial class Program;

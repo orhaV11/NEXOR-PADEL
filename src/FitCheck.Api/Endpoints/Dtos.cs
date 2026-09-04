@@ -12,19 +12,30 @@ public sealed record SignupRequest(string? Handle, string? Password, bool Confir
 
 public sealed record LoginRequest(string? Handle, string? Password);
 
-public sealed record UpdateMeRequest(string? Language, string? DisplayName, string? Bio, string? Website);
+public sealed record UpdateMeRequest(string? Language, string? DisplayName, string? Bio, string? Website, string? AccountType = null, List<string>? Interests = null);
 
 /// <summary>The signed-in user, as the client keeps it in memory.</summary>
-public sealed record MeDto(Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications);
+public sealed record MeDto(
+    Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
+    string? AvatarUrl = null, List<string>? Interests = null);
 
-public sealed record UserRefDto(string Handle, string Name, string AccountType);
+/// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
+public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null);
+
+/// <summary>A person or brand in a list: search results, brands to follow.</summary>
+public sealed record UserCardDto(UserRefDto User, int Followers, int Posts, bool Following);
+
+public sealed record TagDto(string Tag, int Posts);
+
+public sealed record AvatarDto(string? AvatarUrl);
 
 public sealed record ViewerProfileDto(bool IsMe, bool Following);
 
+/// <summary>Featured: for a brand, looks it featured; for a person, their looks that were featured. Community: looks mentioning this account.</summary>
 public sealed record ProfileDto(
     string Handle, string Name, string AccountType, string? Bio, string? Website,
     int Posts, int Followers, int Following, int FireReceived, int? BestScore, int Streak, DateTime CreatedAt,
-    ViewerProfileDto Viewer);
+    ViewerProfileDto Viewer, string? AvatarUrl = null, int Featured = 0, int Community = 0);
 
 public sealed record FollowStateDto(int Followers, bool Following);
 
@@ -102,7 +113,18 @@ public sealed record PostDto(
     int Votes,
     List<ProductLinkDto> Products,
     string ImageUrl,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    List<string> Tags,
+    List<UserRefDto> Mentions,
+    UserRefDto? FeaturedBy);
+
+public sealed record FeatureStateDto(UserRefDto? FeaturedBy);
+
+// ---- explore ----
+
+public sealed record ExploreDto(List<TagDto> TrendingTags, List<UserCardDto> Brands, List<PostDto> TopLooks, List<ChallengeDto> Challenges);
+
+public sealed record SearchDto(List<UserCardDto> Users, List<TagDto> Tags);
 
 public sealed record FireStateDto(int FireCount, bool Fired);
 
@@ -162,7 +184,9 @@ public sealed record SocialMetricsDto(
     int ChallengesOpen,
     int ChallengesEnded,
     int Votes,
-    int ActiveUsers7d);
+    int ActiveUsers7d,
+    int Mentions = 0,
+    int Featured = 0);
 
 public sealed record PilotMetricsDto(
     int TotalChecks,

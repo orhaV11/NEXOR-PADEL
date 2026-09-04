@@ -18,7 +18,7 @@ public static partial class AuthEndpoints
     private static partial Regex HandleRegex();
 
     private static readonly HashSet<string> ReservedHandles =
-        new(StringComparer.OrdinalIgnoreCase) { "me", "admin", "fitcheck", "support", "brand", "challenges", "feed", "api" };
+        new(StringComparer.OrdinalIgnoreCase) { "me", "admin", "fitcheck", "orevosh", "support", "brand", "challenges", "feed", "api", "explore", "search", "tag", "tags" };
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
@@ -36,7 +36,9 @@ public static partial class AuthEndpoints
     public static async Task<MeDto> ToMeAsync(AppDbContext db, AppUser user, CancellationToken ct)
     {
         var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
-        return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread);
+        var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
+            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests);
     }
 
     private static async Task<IResult> SignupAsync(

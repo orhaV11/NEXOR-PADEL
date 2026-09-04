@@ -48,7 +48,7 @@ OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
 
 def request(method, url, body=None, headers=None, timeout=90):
     # Every non-GET call to the API needs this header (the CSRF guard); the cookie carries the session.
-    all_headers = {"X-Requested-With": "FitCheck", **(headers or {})}
+    all_headers = {"X-Requested-With": "Orevosh", **(headers or {})}
     req = urllib.request.Request(url, data=body, method=method, headers=all_headers)
     try:
         with OPENER.open(req, timeout=timeout) as response:
@@ -58,7 +58,7 @@ def request(method, url, body=None, headers=None, timeout=90):
 
 
 def multipart(fields, file_field, file_name, file_bytes):
-    boundary = "----fitcheck" + uuid.uuid4().hex
+    boundary = "----orevosh" + uuid.uuid4().hex
     parts = []
     for name, value in fields.items():
         parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n".encode("utf-8"))

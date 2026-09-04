@@ -2,7 +2,7 @@
   "meta.name": "עברית",
   "meta.dir": "rtl",
 
-  "app.name": "FitCheck",
+  "app.name": "OREVOSH",
   "app.tagline": "בודקים. מעלים. זוכים.",
   "lang.label": "שפה",
 
@@ -26,7 +26,7 @@
   "auth.signup": "הצטרפות",
   "auth.logout": "התנתקות",
   "auth.handle": "כינוי",
-  "auth.handle_hint": "2 עד 40 אותיות, ספרות, נקודות או קו תחתון. זה השם שלך ב-FitCheck.",
+  "auth.handle_hint": "2 עד 40 אותיות, ספרות, נקודות או קו תחתון. זה השם שלך ב-OREVOSH.",
   "auth.password": "סיסמה",
   "auth.password_hint": "לפחות 8 תווים.",
   "auth.display_name": "שם תצוגה (לא חובה)",
@@ -34,7 +34,7 @@
   "auth.brand_hint": "מותגים פותחים אתגרים עם פרסים ויכולים לתייג מוצרים בפוסטים שלהם.",
   "auth.age": "אני בגיל 16 ומעלה.",
   "auth.privacy": "הבדיקות פרטיות עד שמעלים אותן. שום דבר לא ציבורי בלי אישור שלך.",
-  "auth.signup_title": "מצטרפים ל-FitCheck",
+  "auth.signup_title": "מצטרפים ל-OREVOSH",
   "auth.signup_intro": "בודקים לוק עם סטייליסט, מעלים, מקבלים אש, זוכים באתגרים.",
   "auth.login_title": "ברוכים השבים",
   "auth.login_intro": "מתחברים כדי לבדוק, להעלות, להגיב ולהצביע.",
@@ -61,7 +61,7 @@
   "post.unsaved": "הוסר מהשמורים",
   "post.saved": "נשמר",
   "post.share": "לשתף",
-  "post.share_text": "הלוק של {name} בקטגוריית {intent} קיבל {score}/10 ב-FitCheck",
+  "post.share_text": "הלוק של {name} בקטגוריית {intent} קיבל {score}/10 ב-OREVOSH",
   "post.copied": "הקישור הועתק",
   "post.report": "לדווח",
   "post.report_confirm": "לדווח על הפוסט הזה? שלושה דיווחים מסתירים אותו עד שנבדוק.",
@@ -122,7 +122,7 @@
   "result.working": "מה עובד",
   "result.tip": "הטיפ האחד",
   "result.share": "לשתף",
-  "result.share_text": "הלוק שלי קיבל {score}/10 בקטגוריית {intent} ב-FitCheck. הטיפ האחד: {tip}",
+  "result.share_text": "הלוק שלי קיבל {score}/10 בקטגוריית {intent} ב-OREVOSH. הטיפ האחד: {tip}",
   "result.copied": "הועתק ללוח",
   "result.again": "לבדוק לוק נוסף",
   "result.not_outfit_title": "זה לא נראה כמו לוק",
@@ -223,7 +223,7 @@
   "checks.empty": "הבדיקות שלך יופיעו כאן.",
   "checks.private": "פרטי",
 
-  "error.network": "לא הצלחנו להתחבר ל-FitCheck. שווה לבדוק את החיבור ולנסות שוב.",
+  "error.network": "לא הצלחנו להתחבר ל-OREVOSH. שווה לבדוק את החיבור ולנסות שוב.",
   "error.generic": "משהו השתבש. שווה לנסות שוב.",
   "error.image_read": "לא הצלחנו לקרוא את התמונה. שווה לנסות אחרת.",
 

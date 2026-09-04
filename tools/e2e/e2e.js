@@ -1,4 +1,4 @@
-// Browser smoke test for FitCheck Phase 2: the real client and the real API in a phone-sized Chromium,
+// Browser smoke test for OREVOSH: the real client and the real API in a phone-sized Chromium,
 // with only the Anthropic API stubbed (stub_anthropic.py).
 // Run from this folder: npm install && node e2e.js   (after `dotnet build` at the repository root).
 //

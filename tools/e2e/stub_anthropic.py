@@ -1,6 +1,6 @@
 """Stub of the Anthropic Messages API for end-to-end runs without a real key.
 
-Validates the request shape FitCheck sends (headers, forced tool call, base64 image block) and answers
+Validates the request shape OREVOSH sends (headers, forced tool call, base64 image block) and answers
 with a tool_use block in the requested language. The very first request answers 529 so the client's
 single retry is exercised too. Anything malformed gets a 400 with the reason, so mistakes are loud.
 """

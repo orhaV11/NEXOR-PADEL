@@ -24,6 +24,11 @@ public sealed class Post
 
     public Guid? ChallengeId { get; set; }
 
+    /// <summary>A brand that featured this look (it mentions the brand or entered one of its challenges). One brand per post.</summary>
+    public Guid? FeaturedByBrandId { get; set; }
+
+    public DateTime? FeaturedAt { get; set; }
+
     /// <summary>Denormalised so the feed never counts rows.</summary>
     public int FireCount { get; set; }
 
@@ -34,6 +39,20 @@ public sealed class Post
     public bool Hidden { get; set; }
 
     public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>A #tag from the caption, lower case, without the #. At most 5 per post.</summary>
+public sealed class PostTag
+{
+    public Guid PostId { get; set; }
+    public string Tag { get; set; } = "";
+}
+
+/// <summary>An @mention from the caption that resolved to an account. At most 5 per post.</summary>
+public sealed class PostMention
+{
+    public Guid PostId { get; set; }
+    public Guid UserId { get; set; }
 }
 
 /// <summary>Short and public. The post owner can remove any comment on their post; three reports hide one.</summary>
@@ -122,6 +141,8 @@ public static class NotificationType
     public const string Ended = "ended";
     public const string Won = "won";
     public const string Comment = "comment";
+    public const string Mention = "mention";
+    public const string Featured = "featured";
 }
 
 /// <summary>In-app activity only. No push, no email.</summary>

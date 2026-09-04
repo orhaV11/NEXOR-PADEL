@@ -8,11 +8,11 @@ namespace FitCheck.Api.Services;
 /// <summary>Cookie session helpers. The cookie carries the user id and handle; everything else is read from the database.</summary>
 public static class Sessions
 {
-    public const string CookieName = "fitcheck.session";
+    public const string CookieName = "orevosh.session";
 
     /// <summary>Every state-changing API call must carry this header; cross-site forms cannot set it, so it doubles as the CSRF token.</summary>
     public const string RequestHeader = "X-Requested-With";
-    public const string RequestHeaderValue = "FitCheck";
+    public const string RequestHeaderValue = "Orevosh";
 
     public static Guid? UserId(ClaimsPrincipal principal) =>
         Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;

@@ -17,6 +17,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
+    public DbSet<PostTag> PostTags => Set<PostTag>();
+    public DbSet<PostMention> PostMentions => Set<PostMention>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +34,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.Bio).HasMaxLength(160);
             user.Property(u => u.Website).HasMaxLength(200);
             user.Property(u => u.PreferredLanguage).HasMaxLength(16).IsRequired();
+            user.Property(u => u.AvatarPath).HasMaxLength(260);
+            user.Property(u => u.Interests).HasMaxLength(200);
             user.Ignore(u => u.Name);
         });
 
@@ -65,6 +69,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             post.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
             post.HasOne<OutfitCheck>().WithMany().HasForeignKey(p => p.CheckId).OnDelete(DeleteBehavior.Cascade);
             post.HasOne<Challenge>().WithMany().HasForeignKey(p => p.ChallengeId).OnDelete(DeleteBehavior.SetNull);
+            post.HasIndex(p => p.FeaturedByBrandId);
+            post.HasOne<AppUser>().WithMany().HasForeignKey(p => p.FeaturedByBrandId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PostTag>(tag =>
+        {
+            tag.HasKey(t => new { t.PostId, t.Tag });
+            tag.Property(t => t.Tag).HasMaxLength(30).IsRequired();
+            tag.HasIndex(t => new { t.Tag, t.PostId });
+            tag.HasOne<Post>().WithMany().HasForeignKey(t => t.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PostMention>(mention =>
+        {
+            mention.HasKey(m => new { m.PostId, m.UserId });
+            mention.HasIndex(m => m.UserId);
+            mention.HasOne<Post>().WithMany().HasForeignKey(m => m.PostId).OnDelete(DeleteBehavior.Cascade);
+            mention.HasOne<AppUser>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ProductLink>(link =>

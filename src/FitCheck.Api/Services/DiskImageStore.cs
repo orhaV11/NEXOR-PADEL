@@ -29,6 +29,20 @@ public sealed class DiskImageStore : IImageStore
         return relative;
     }
 
+    public async Task<string> SaveAvatarAsync(Guid userId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct)
+    {
+        var folder = Resolve(userId.ToString("N"));
+        Directory.CreateDirectory(folder);
+        foreach (var old in Directory.EnumerateFiles(folder, "avatar.*"))
+        {
+            File.Delete(old);
+        }
+
+        var relative = Path.Combine(userId.ToString("N"), $"avatar.{format.Extension}");
+        await File.WriteAllBytesAsync(Resolve(relative), bytes.ToArray(), ct);
+        return relative;
+    }
+
     public void Delete(string relativePath)
     {
         if (string.IsNullOrEmpty(relativePath))

@@ -27,7 +27,7 @@ builder.Services.Configure<FormOptions>(options =>
 
 // Same rule as the photo root: a relative database path is anchored to the content root, so a restart from a
 // different working directory finds the same data instead of silently starting a new pilot.
-var connection = new SqliteConnectionStringBuilder(builder.Configuration.GetConnectionString("Default") ?? "Data Source=fitcheck.db");
+var connection = new SqliteConnectionStringBuilder(builder.Configuration.GetConnectionString("Default") ?? "Data Source=orevosh.db");
 if (!string.IsNullOrEmpty(connection.DataSource) && connection.DataSource != ":memory:" && !Path.IsPathRooted(connection.DataSource))
 {
     connection.DataSource = Path.Combine(builder.Environment.ContentRootPath, connection.DataSource);
@@ -158,6 +158,8 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapCheckEndpoints();
 app.MapPostEndpoints();
+app.MapFeedEndpoints();
+app.MapExploreEndpoints();
 app.MapChallengeEndpoints();
 app.MapNotificationEndpoints();
 app.MapMetricsEndpoints();

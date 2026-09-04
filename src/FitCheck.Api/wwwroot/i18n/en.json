@@ -2,7 +2,7 @@
   "meta.name": "English",
   "meta.dir": "ltr",
 
-  "app.name": "FitCheck",
+  "app.name": "OREVOSH",
   "app.tagline": "Check it. Post it. Win it.",
   "lang.label": "Language",
 
@@ -26,7 +26,7 @@
   "auth.signup": "Join",
   "auth.logout": "Sign out",
   "auth.handle": "Handle",
-  "auth.handle_hint": "2 to 40 letters, numbers, dots or underscores. This is your name on FitCheck.",
+  "auth.handle_hint": "2 to 40 letters, numbers, dots or underscores. This is your name on OREVOSH.",
   "auth.password": "Password",
   "auth.password_hint": "At least 8 characters.",
   "auth.display_name": "Display name (optional)",
@@ -34,7 +34,7 @@
   "auth.brand_hint": "Brands open challenges with prizes and can tag products on their posts.",
   "auth.age": "I'm 16 or older.",
   "auth.privacy": "Checks are private until you post them. Nothing is public until you say so.",
-  "auth.signup_title": "Join FitCheck",
+  "auth.signup_title": "Join OREVOSH",
   "auth.signup_intro": "Check your look with a stylist, post it, get fire, win challenges.",
   "auth.login_title": "Welcome back",
   "auth.login_intro": "Sign in to check, post, react and vote.",
@@ -61,7 +61,7 @@
   "post.unsaved": "Removed from saved",
   "post.saved": "Saved",
   "post.share": "Share",
-  "post.share_text": "{name}'s {intent} look scored {score}/10 on FitCheck",
+  "post.share_text": "{name}'s {intent} look scored {score}/10 on OREVOSH",
   "post.copied": "Link copied",
   "post.report": "Report",
   "post.report_confirm": "Report this post? Three reports hide it until we look at it.",
@@ -122,7 +122,7 @@
   "result.working": "What works",
   "result.tip": "The one tip",
   "result.share": "Share",
-  "result.share_text": "My outfit scored {score}/10 for {intent} on FitCheck. The one tip: {tip}",
+  "result.share_text": "My outfit scored {score}/10 for {intent} on OREVOSH. The one tip: {tip}",
   "result.copied": "Copied to your clipboard",
   "result.again": "Check another",
   "result.not_outfit_title": "That doesn't look like an outfit",
@@ -223,7 +223,7 @@
   "checks.empty": "Your checks will show up here.",
   "checks.private": "Private",
 
-  "error.network": "Couldn't reach FitCheck. Check your connection and try again.",
+  "error.network": "Couldn't reach OREVOSH. Check your connection and try again.",
   "error.generic": "Something went wrong. Please try again.",
   "error.image_read": "Couldn't read that photo. Try another one.",
 

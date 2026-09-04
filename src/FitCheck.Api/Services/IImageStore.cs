@@ -50,6 +50,9 @@ public interface IImageStore
     /// <summary>True when a photo is still on disk. Used by tests and the delete endpoint, never by the client.</summary>
     bool Exists(string relativePath);
 
-    /// <summary>Opens a photo for serving. Only posts call this: a photo without a post is never read back out.</summary>
+    /// <summary>Opens a photo for serving. Only posts and avatars call this: a photo without a post is never read back out.</summary>
     Stream? OpenRead(string relativePath);
+
+    /// <summary>Writes &lt;userId&gt;/avatar.&lt;ext&gt;, replacing any earlier avatar whatever its extension. Returns the relative path.</summary>
+    Task<string> SaveAvatarAsync(Guid userId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct);
 }

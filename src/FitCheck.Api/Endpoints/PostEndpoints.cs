@@ -14,7 +14,6 @@ public static class PostEndpoints
     public const int MaxProducts = 3;
     private const int DefaultPage = 20;
     private const int MaxPage = 30;
-    private static readonly TimeSpan TopWindow = TimeSpan.FromDays(7);
 
     public static IEndpointRouteBuilder MapPostEndpoints(this IEndpointRouteBuilder app)
     {
@@ -35,7 +34,6 @@ public static class PostEndpoints
         comments.MapDelete("/{id:guid}", DeleteCommentAsync).RequireAuthorization();
         comments.MapPost("/{id:guid}/report", ReportCommentAsync).RequireAuthorization();
 
-        app.MapGet("/api/feed", FeedAsync);
         return app;
     }
 
@@ -52,7 +50,7 @@ public static class PostEndpoints
         return new FeedDto(await reader.ToDtosAsync(page, viewerId, ct), hasMore ? skip + take : null);
     }
 
-    private static string Language(HttpContext context, AppUser? user) =>
+    public static string Language(HttpContext context, AppUser? user) =>
         user?.PreferredLanguage ?? Localizer.Resolve(null, context.Request);
 
     private static async Task<IResult> CreateAsync(
@@ -432,13 +430,13 @@ public static class PostEndpoints
             .ToListAsync(ct);
         var userIds = comments.Select(c => c.UserId).Distinct().ToList();
         var users = await db.Users.Where(u => userIds.Contains(u.Id))
-            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType })
+            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType, u.AvatarPath, u.AvatarVersion })
             .ToDictionaryAsync(u => u.Id, ct);
 
         var dtos = comments.Select(c =>
         {
             users.TryGetValue(c.UserId, out var u);
-            var user = u is null ? new UserRefDto("?", "?", "Person") : new UserRefDto(u.Handle, PostReader.NameOf(u.Handle, u.DisplayName), u.AccountType.ToString());
+            var user = u is null ? new UserRefDto("?", "?", "Person") : new UserRefDto(u.Handle, PostReader.NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), PostReader.AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion));
             var isMine = c.UserId == viewerId;
             return new CommentDto(c.Id, user, c.Text, isMine, isMine || post.UserId == viewerId, DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc));
         }).ToList();
@@ -480,7 +478,7 @@ public static class PostEndpoints
             await tx.CommitAsync(ct);
         }
 
-        var dto = new CommentDto(comment.Id, new UserRefDto(me.Handle, me.Name, me.AccountType.ToString()), comment.Text, true, true,
+        var dto = new CommentDto(comment.Id, PostReader.Ref(me), comment.Text, true, true,
             DateTime.SpecifyKind(comment.CreatedAt, DateTimeKind.Utc));
         return Results.Json(dto, AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
@@ -569,42 +567,6 @@ public static class PostEndpoints
 
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
-    }
-
-    private static async Task<IResult> FeedAsync(
-        HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, string? tab, string? intent, int? offset, int? limit, CancellationToken ct)
-    {
-        var viewerId = Sessions.UserId(context.User);
-        var (skip, take) = Page(offset, limit);
-        var now = DateTime.UtcNow;
-
-        IQueryable<Post> query = db.Posts.Where(p => !p.Hidden);
-        if (Enum.TryParse<StyleIntent>(intent, ignoreCase: true, out var filter) && Enum.IsDefined(filter))
-        {
-            query = query.Where(p => p.Intent == filter);
-        }
-
-        switch ((tab ?? "fresh").ToLowerInvariant())
-        {
-            case "top":
-                var since = now - TopWindow;
-                query = query.Where(p => p.CreatedAt >= since).OrderByDescending(p => p.FireCount).ThenByDescending(p => p.CreatedAt);
-                break;
-            case "following":
-                if (viewerId is not Guid me)
-                {
-                    return Error(StatusCodes.Status401Unauthorized, localizer.Get(Language(context, null), "error.sign_in_required"));
-                }
-
-                query = query.Where(p => db.Follows.Any(f => f.FollowerId == me && f.FollowedId == p.UserId)).OrderByDescending(p => p.CreatedAt);
-                break;
-            default:
-                query = query.OrderByDescending(p => p.CreatedAt);
-                break;
-        }
-
-        var posts = await query.Skip(skip).Take(take + 1).ToListAsync(ct);
-        return Results.Json(await PageDtoAsync(reader, posts, viewerId, skip, take, ct), AppJson.Options);
     }
 
     private static string Truncate(string text, int max) => text.Length <= max ? text : text[..max];

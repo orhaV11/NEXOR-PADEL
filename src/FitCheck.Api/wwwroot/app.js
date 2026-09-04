@@ -5,7 +5,7 @@
   const AVAILABLE_LOCALES = ['en', 'he'];
   const DEFAULT_LOCALE = 'en';
   const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport'];
-  const PREFS_KEY = 'fitcheck.prefs';
+  const PREFS_KEY = 'orevosh.prefs';
   const MAX_EDGE = 1280;
   const JPEG_QUALITY = 0.85;
   const PAGE = 10;
@@ -191,7 +191,7 @@
   class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
   async function api(method, path, body) {
-    const headers = { 'X-Requested-With': 'FitCheck', 'Accept-Language': locale };
+    const headers = { 'X-Requested-With': 'Orevosh', 'Accept-Language': locale };
     const isForm = body instanceof FormData;
     if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
     let response;
@@ -1270,6 +1270,6 @@
 
   boot().catch((e) => {
     console.error(e);
-    document.body.appendChild(el('p', { class: 'alert', style: 'margin: 20px;', text: 'FitCheck could not start. Reload the page.' }));
+    document.body.appendChild(el('p', { class: 'alert', style: 'margin: 20px;', text: 'OREVOSH could not start. Reload the page.' }));
   });
 })();

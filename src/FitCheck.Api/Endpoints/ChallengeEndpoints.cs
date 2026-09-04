@@ -30,7 +30,7 @@ public static class ChallengeEndpoints
         Dictionary<Guid, Guid> ViewerVotes);
 
     /// <summary>One pass of batched queries for a set of challenges: entries, vote counts, brands, the viewer's votes.</summary>
-    private static async Task<Loaded> LoadAsync(AppDbContext db, List<Challenge> challenges, Guid? viewerId, CancellationToken ct)
+    private static async Task<Loaded> LoadAsync(AppDbContext db, PostReader reader, List<Challenge> challenges, Guid? viewerId, CancellationToken ct)
     {
         var ids = challenges.Select(c => c.Id).ToList();
         var entries = await db.Posts
@@ -42,9 +42,7 @@ public static class ChallengeEndpoints
             .Select(g => new { PostId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.PostId, g => g.Count, ct);
         var brandIds = challenges.Select(c => c.BrandId).Distinct().ToList();
-        var brands = await db.Users.Where(u => brandIds.Contains(u.Id))
-            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType })
-            .ToDictionaryAsync(u => u.Id, u => new UserRefDto(u.Handle, PostReader.NameOf(u.Handle, u.DisplayName), u.AccountType.ToString()), ct);
+        var brands = await reader.RefsAsync(brandIds, ct);
         var viewerVotes = viewerId is Guid me
             ? await db.ChallengeVotes.Where(v => v.UserId == me && ids.Contains(v.ChallengeId)).ToDictionaryAsync(v => v.ChallengeId, v => v.PostId, ct)
             : new Dictionary<Guid, Guid>();
@@ -101,7 +99,7 @@ public static class ChallengeEndpoints
             await ChallengeResolver.ResolveIfEndedAsync(db, notifier, challenge, now, ct);
         }
 
-        var loaded = await LoadAsync(db, challenges, viewerId, ct);
+        var loaded = await LoadAsync(db, reader, challenges, viewerId, ct);
         var dtos = new List<ChallengeDto>(challenges.Count);
         foreach (var challenge in challenges)
         {
@@ -123,7 +121,7 @@ public static class ChallengeEndpoints
 
         var now = DateTime.UtcNow;
         await ChallengeResolver.ResolveIfEndedAsync(db, notifier, challenge, now, ct);
-        var loaded = await LoadAsync(db, [challenge], viewerId, ct);
+        var loaded = await LoadAsync(db, reader, [challenge], viewerId, ct);
         var dto = await ToDtoAsync(challenge, loaded, reader, viewerId, now, 3, ct);
         var entries = await reader.ToDtosAsync(loaded.EntriesByChallenge.GetValueOrDefault(id) ?? [], viewerId, ct, loaded.VotesByPost);
         var winner = challenge.WinnerPostId is Guid w ? entries.FirstOrDefault(e => e.Id == w) : null;
@@ -178,7 +176,7 @@ public static class ChallengeEndpoints
         db.Challenges.Add(challenge);
         await db.SaveChangesAsync(ct);
 
-        var loaded = await LoadAsync(db, [challenge], me.Id, ct);
+        var loaded = await LoadAsync(db, reader, [challenge], me.Id, ct);
         return Results.Json(await ToDtoAsync(challenge, loaded, reader, me.Id, now, 3, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 

@@ -24,6 +24,15 @@ public sealed class AppUser
     /// <summary>Brands mostly. https only.</summary>
     public string? Website { get; set; }
 
+    /// <summary>Profile photo under the private storage root (&lt;userId&gt;/avatar.&lt;ext&gt;). Served only through the avatar route.</summary>
+    public string? AvatarPath { get; set; }
+
+    /// <summary>Bumped on every upload and put in the avatar URL, so caches refresh without cache-busting headers.</summary>
+    public int AvatarVersion { get; set; }
+
+    /// <summary>Comma-separated StyleIntent names the person picked at onboarding or in settings. At most 8.</summary>
+    public string? Interests { get; set; }
+
     /// <summary>Self-declared for the pilot. Real age assurance is required before public launch.</summary>
     public bool Confirmed16Plus { get; set; }
 

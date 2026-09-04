@@ -18,7 +18,8 @@
     route: { name: 'feed', params: {} },
     feed: { tab: 'fresh', intent: '', items: [], next: null, seq: 0 },
     challenges: { tab: 'open' },
-    check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null },
+    check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null },
+    returnTo: null,
     result: null,
     resultAnimated: false,
     resultPostId: null,
@@ -83,6 +84,7 @@
     document.documentElement.dir = t('meta.dir') === 'rtl' ? 'rtl' : 'ltr';
     document.title = t('app.name');
     for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+    for (const node of document.querySelectorAll('[data-i18n-aria]')) node.setAttribute('aria-label', t(node.dataset.i18nAria));
     $('lang').value = code;
     renderShell();
     render(false);
@@ -167,6 +169,7 @@
 
   function focusHeading() {
     requestAnimationFrame(() => {
+      if (view().contains(document.activeElement) && document.activeElement !== document.body) return;
       const target = view().querySelector('h1, [tabindex="-1"]');
       if (target) { target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
     });
@@ -201,19 +204,32 @@
     let data = null;
     try { data = await response.json(); } catch (e) { data = null; }
     if (!response.ok) {
-      if (response.status === 401 && state.me) { state.me = null; renderShell(); }
+      if (response.status === 401 && state.me && !/^\/api\/auth\/(login|signup)/.test(path)) { state.me = null; resetSession(); renderShell(); }
       throw new ApiError(response.status, (data && data.error) || t('error.generic'));
     }
     return data;
   }
 
   async function loadMe() {
-    try { state.me = await api('GET', '/api/auth/me'); } catch (e) { state.me = null; }
+    try { state.me = await api('GET', '/api/auth/me'); } catch (e) { if (e.status === 401) state.me = null; }
     renderShell();
   }
 
-  function requireSignIn() {
+  // Everything private to the person who just left: the photo, the check, the result, the pending challenge.
+  function resetSession() {
+    const ck = state.check;
+    if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
+    Object.assign(ck, { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: ck.photoToken + 1, busy: false, challenge: null, error: null });
+    state.result = null; state.resultAnimated = false; state.resultPostId = null; state.returnTo = null;
+  }
+
+  function navigate(hash) {
+    if (location.hash === hash) render(true); else location.hash = hash;
+  }
+
+  function requireSignIn(returnTo) {
     if (state.me) return true;
+    state.returnTo = returnTo || location.hash;
     toast(t('auth.required_title'));
     location.hash = '#/login';
     return false;
@@ -255,7 +271,8 @@
   // ---------- routing ----------
 
   function parseRoute() {
-    const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+    const safeDecode = (part) => { try { return decodeURIComponent(part); } catch (e) { return part; } };
+    const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(safeDecode);
     const [head, a] = parts;
     switch (head || 'feed') {
       case 'feed': return { name: 'feed', params: { tab: ['fresh', 'top', 'following'].includes(a) ? a : 'fresh' } };
@@ -308,7 +325,7 @@
       if (stale()) return;
       root.appendChild(errorBlock(e));
     }
-    if (isNavigation !== false) { window.scrollTo({ top: 0 }); focusHeading(); }
+    if (isNavigation !== false && !stale()) { window.scrollTo({ top: 0 }); focusHeading(); }
   }
 
   function errorBlock(e) {
@@ -323,8 +340,8 @@
       el('h3', { text: t('auth.required_title') }),
       el('p', { class: 'muted', text: t('auth.required_body') }),
       el('div', { class: 'row', style: 'margin-block-start: 14px;' }, [
-        el('a', { class: 'btn', href: '#/signup', text: t('auth.signup'), style: 'display:grid;place-items:center;text-decoration:none;' }),
-        el('a', { class: 'btn btn-secondary', href: '#/login', text: t('auth.login'), style: 'display:grid;place-items:center;text-decoration:none;' })
+        el('a', { class: 'btn', href: '#/signup', text: t('auth.signup'), style: 'display:grid;place-items:center;text-decoration:none;', onclick: () => { state.returnTo = location.hash; } }),
+        el('a', { class: 'btn btn-secondary', href: '#/login', text: t('auth.login'), style: 'display:grid;place-items:center;text-decoration:none;', onclick: () => { state.returnTo = location.hash; } })
       ])
     ]);
   }
@@ -338,7 +355,7 @@
       avatar(user),
       el('div', { class: 'who' }, [
         el('a', { class: 'name', href: '#/u/' + encodeURIComponent(user.handle), style: 'text-decoration:none' }, [user.name, brandMark(user)]),
-        el('div', { class: 'sub', text: '@' + user.handle + ' · ' + relative(post.createdAt) })
+        el('div', { class: 'sub' }, [el('bdi', { dir: 'ltr', text: '@' + user.handle }), ' · ' + relative(post.createdAt)])
       ]),
       el('span', { class: 'tag', text: intentLabel(post.intent) })
     ]);
@@ -411,7 +428,7 @@
     try {
       const result = await api(was ? 'DELETE' : 'POST', '/api/posts/' + post.id + '/save');
       post.saved = result.saved;
-      toast(post.saved ? t('post.saved') : t('post.save'));
+      toast(post.saved ? t('post.saved') : t('post.unsaved'));
     } catch (e) {
       post.saved = was;
       toast(e.message);
@@ -513,7 +530,7 @@
   async function postView(root, id, stale) {
     const post = await api('GET', '/api/posts/' + id);
     if (stale()) return;
-    root.appendChild(el('a', { class: 'btn-text', href: '#/feed', text: t('common.back') }));
+    root.appendChild(el('a', { class: 'btn-text', href: '#/feed', text: t('common.back'), tabindex: '-1' }));
     root.appendChild(postCard(post, { menu: (p) => {
       const menu = root.querySelector('.menu');
       if (menu) { menu.remove(); return; }
@@ -532,6 +549,9 @@
     async function loadComments() {
       const comments = await api('GET', '/api/posts/' + id + '/comments');
       if (stale()) return;
+      post.commentCount = comments.length;
+      const countNode = root.querySelector('.card a.action .count');
+      if (countNode) countNode.textContent = fmtNumber(comments.length);
       list.innerHTML = '';
       if (comments.length === 0) list.appendChild(el('li', { class: 'muted', text: t('comments.empty') }));
       for (const c of comments) {
@@ -539,7 +559,7 @@
           avatar(c.user),
           el('div', { class: 'text' }, [el('b', { text: c.user.name }), c.text, el('div', { class: 'when muted', style: 'font-size:12px', text: relative(c.createdAt) })]),
           c.canDelete
-            ? el('button', { type: 'button', class: 'btn-text', text: t('comments.delete'), onclick: async () => { try { await api('DELETE', '/api/comments/' + c.id); post.commentCount = Math.max(0, post.commentCount - 1); await loadComments(); } catch (e) { toast(e.message); } } })
+            ? el('button', { type: 'button', class: 'btn-text', text: t('comments.delete'), onclick: async () => { try { await api('DELETE', '/api/comments/' + c.id); await loadComments(); } catch (e) { toast(e.message); } } })
             : state.me ? el('button', { type: 'button', class: 'btn-text', text: t('comments.report'), onclick: async () => { if (!window.confirm(t('comments.report_confirm'))) return; try { await api('POST', '/api/comments/' + c.id + '/report', { reason: 'reported from app' }); toast(t('post.reported')); } catch (e) { toast(e.message); } } }) : null
         ]));
       }
@@ -594,9 +614,9 @@
     if (c.viewer.hasEntered) return el('span', { class: 'tag accent', text: t('challenges.entered') });
     if (c.viewer.isBrand) return null;
     return el('button', { type: 'button', class: 'btn btn-secondary', text: t('challenges.enter'), onclick: () => {
-      if (!requireSignIn()) return;
       state.check.challenge = { id: c.id, title: c.title, intent: c.intent };
       state.check.intent = c.intent;
+      if (!requireSignIn('#/check')) return;
       location.hash = '#/check';
     } });
   }
@@ -644,7 +664,7 @@
     detail.entriesByVotes.forEach((entry, index) => {
       const mine = c.viewer.votedPostId === entry.id;
       const voteBtn = el('button', {
-        type: 'button', class: 'vote', 'aria-pressed': String(mine),
+        type: 'button', class: 'vote', 'data-post': entry.id, 'aria-pressed': String(mine),
         disabled: !c.isOpen || entry.isMine,
         text: mine ? t('post.voted') : t('post.vote'),
         onclick: async () => {
@@ -653,6 +673,8 @@
             const result = mine ? await api('DELETE', '/api/challenges/' + id + '/vote') : await api('POST', '/api/challenges/' + id + '/vote', { postId: entry.id });
             c.viewer.votedPostId = result.votedPostId;
             await render(false);
+            const again = view().querySelector('.vote[data-post="' + entry.id + '"]');
+            if (again) again.focus({ preventScroll: true });
           } catch (e) { toast(e.message); }
         }
       });
@@ -686,7 +708,8 @@
     const submit = el('button', { type: 'button', class: 'btn', id: 'nc-submit', text: t('newchallenge.submit'), onclick: async () => {
       submit.disabled = true; error.hidden = true;
       try {
-        const created = await api('POST', '/api/challenges', { title: title.value, brief: brief.value, intent, prize: prize.value, prizeUrl: prizeUrl.value || null, endsAt: new Date(ends.value).toISOString() });
+        const when = ends.value ? new Date(ends.value) : null;
+        const created = await api('POST', '/api/challenges', { title: title.value, brief: brief.value, intent, prize: prize.value, prizeUrl: prizeUrl.value || null, endsAt: when && !isNaN(when) ? when.toISOString() : null });
         location.hash = '#/challenge/' + created.id;
       } catch (e) { error.textContent = e.message; error.hidden = false; submit.disabled = false; }
     } });
@@ -731,6 +754,7 @@
     const photo = el('button', { id: 'photo', class: 'photo', type: 'button', onclick: () => $('file').click() });
     root.appendChild(photo);
     const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
+    if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }
     root.appendChild(error);
     const submit = el('button', { id: 'submit', class: 'btn', type: 'button', text: t('check.submit'), onclick: submitCheck });
     root.appendChild(submit);
@@ -813,7 +837,11 @@
     ck.photoBusy = false;
     if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
     if (blob) { ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob); }
-    else { ck.photo = null; ck.previewUrl = null; if (errorNode) { errorNode.textContent = t('error.image_read'); errorNode.hidden = false; } }
+    else {
+      ck.photo = null; ck.previewUrl = null;
+      const node = $('check-error');   // looked up again: the view may have been re-rendered during the decode
+      if (node) { node.textContent = t('error.image_read'); node.hidden = false; } else ck.error = t('error.image_read');
+    }
     renderPhoto(); updateSubmit();
   }
 
@@ -840,19 +868,18 @@
       location.hash = '#/result';
     } catch (e) {
       ck.busy = false;
-      if (location.hash !== '#/check') location.hash = '#/check';
-      await render(true);
-      const errorNode = $('check-error');
-      if (errorNode) { errorNode.textContent = e.message; errorNode.hidden = false; }
+      ck.error = e.message;
+      navigate('#/check');
       return;
     }
     ck.busy = false;
   }
 
-  function checkAnother() {
+  function checkAnother(keepChallenge) {
     const ck = state.check;
     state.result = null; state.resultPostId = null;
-    ck.photo = null; ck.challenge = null;
+    ck.photo = null;
+    if (!keepChallenge) ck.challenge = null;
     if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
     ck.previewUrl = null;
     location.hash = '#/check';
@@ -875,7 +902,7 @@
       container.appendChild(el('div', { class: 'state' }, [
         el('h1', { text: t(rejected ? 'result.rejected_title' : 'result.not_outfit_title') }),
         el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: (!rejected && feedback.message) || t(rejected ? 'result.rejected_body' : 'result.not_outfit_body') }),
-        el('button', { type: 'button', class: 'btn', style: 'margin-block-start: 24px;', text: t('result.try_again'), onclick: checkAnother })
+        el('button', { type: 'button', class: 'btn', style: 'margin-block-start: 24px;', text: t('result.try_again'), onclick: () => checkAnother(true) })
       ]));
       return;
     }
@@ -913,7 +940,7 @@
     renderPostArea(postArea, result);
     container.appendChild(el('div', { class: 'row' }, [
       el('button', { type: 'button', class: 'btn btn-secondary', text: t('result.share'), onclick: () => shareResult(result) }),
-      el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: checkAnother })
+      el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) })
     ]));
 
     if (animate) {
@@ -933,7 +960,7 @@
   }
 
   async function openPostSheet(area, result) {
-    if (!requireSignIn()) return;
+    if (!requireSignIn('#/result')) return;
     area.innerHTML = '';
     const sheet = el('div', { class: 'sheet' });
     area.appendChild(sheet);
@@ -1045,16 +1072,18 @@
       avatar(profile, true),
       el('div', { class: 'who' }, [
         el('h1', { class: 'name' }, [profile.name, brandMark(profile)]),
-        el('div', { class: 'sub', text: '@' + profile.handle }),
+        el('div', { class: 'sub' }, [el('bdi', { dir: 'ltr', text: '@' + profile.handle })]),
         profile.bio ? el('p', { class: 'caption', style: 'margin-block-start:6px', text: profile.bio }) : null,
         profile.website ? el('a', { href: profile.website, target: '_blank', rel: 'noopener', class: 'challenge-link', text: profile.website.replace(/^https:\/\//, '') }) : null
       ])
     ]);
     root.appendChild(head);
-    root.appendChild(el('div', { class: 'stats' }, [
+    const statsBlock = () => el('div', { class: 'stats' }, [
       stat(profile.posts, 'profile.posts'), stat(profile.followers, 'profile.followers'), stat(profile.following, 'profile.following'),
       stat(profile.fireReceived, 'profile.fire', true), stat(profile.bestScore === null || profile.bestScore === undefined ? '–' : profile.bestScore, 'profile.best'), stat(profile.streak, 'profile.streak', profile.streak > 1)
-    ]));
+    ]);
+    let stats = statsBlock();
+    root.appendChild(stats);
 
     if (isMe) {
       const links = el('div', { class: 'links' }, [
@@ -1062,7 +1091,7 @@
         el('a', { href: '#/saved', text: t('profile.saved') }),
         el('a', { href: '#/checks', text: t('profile.checks') }),
         state.me.accountType === 'Brand' ? el('a', { href: '#/new-challenge', text: t('challenges.new') }) : null,
-        el('button', { type: 'button', id: 'logout', text: t('auth.logout'), onclick: async () => { try { await api('POST', '/api/auth/logout'); } catch (e) { /* cookie may already be gone */ } state.me = null; toast(t('common.signed_out')); location.hash = '#/feed'; } })
+        el('button', { type: 'button', id: 'logout', text: t('auth.logout'), onclick: async () => { try { await api('POST', '/api/auth/logout'); } catch (e) { /* cookie may already be gone */ } state.me = null; resetSession(); toast(t('common.signed_out')); location.hash = '#/feed'; } })
       ]);
       root.appendChild(links);
     } else if (state.me) {
@@ -1072,8 +1101,12 @@
           const result = await api(profile.viewer.following ? 'DELETE' : 'POST', '/api/users/' + encodeURIComponent(profile.handle) + '/follow');
           profile.viewer.following = result.following;
           profile.followers = result.followers;
-          await render(false);
-        } catch (e) { toast(e.message); follow.disabled = false; }
+          follow.textContent = t(result.following ? 'profile.unfollow' : 'profile.follow');
+          follow.setAttribute('aria-pressed', String(result.following));
+          follow.classList.toggle('btn-secondary', result.following);
+          const fresh = statsBlock(); stats.replaceWith(fresh); stats = fresh;
+        } catch (e) { toast(e.message); }
+        follow.disabled = false;
       } });
       root.appendChild(follow);
     } else {
@@ -1159,6 +1192,7 @@
       if (!window.confirm(t('settings.delete_confirm'))) return;
       try { await api('DELETE', '/api/users/me'); } catch (e) { if (e.status !== 401) { toast(e.message); return; } }
       state.me = null;
+      resetSession();
       location.hash = '#/feed';
     } }));
   }
@@ -1167,6 +1201,7 @@
 
   function authView(root, mode) {
     const signup = mode === 'signup';
+    if (state.me) { navigate(state.check.challenge ? '#/check' : '#/feed'); return; }
     root.appendChild(el('h1', { text: t(signup ? 'auth.signup_title' : 'auth.login_title') }));
     root.appendChild(el('p', { class: 'lede', text: t(signup ? 'auth.signup_intro' : 'auth.login_intro') }));
     const handle = el('input', { type: 'text', id: 'a-handle', maxlength: '40', autocomplete: 'username', autocapitalize: 'none' });
@@ -1184,7 +1219,9 @@
           ? await api('POST', '/api/auth/signup', { handle: handle.value, password: password.value, confirmed16Plus: age.checked, language: locale, accountType: brand.checked ? 'Brand' : 'Person', displayName: displayName.value })
           : await api('POST', '/api/auth/login', { handle: handle.value, password: password.value });
         renderShell();
-        location.hash = state.check.challenge ? '#/check' : '#/feed';
+        const back = state.returnTo && !/^#\/(login|signup)/.test(state.returnTo) ? state.returnTo : null;
+        state.returnTo = null;
+        navigate(back || (state.check.challenge ? '#/check' : '#/feed'));
       } catch (e) { error.textContent = e.message; error.hidden = false; submit.disabled = false; }
     } }, [
       el('div', { class: 'field' }, [el('label', { for: 'a-handle', text: t('auth.handle') }), handle, signup ? el('p', { class: 'hint', text: t('auth.handle_hint') }) : null]),
@@ -1200,7 +1237,7 @@
       ])
     ]);
     root.appendChild(form);
-    setTimeout(() => handle.focus(), 0);
+    handle.focus();
   }
 
   // ---------- boot ----------
@@ -1215,6 +1252,7 @@
     document.documentElement.lang = locale;
     document.documentElement.dir = t('meta.dir') === 'rtl' ? 'rtl' : 'ltr';
     for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+    for (const node of document.querySelectorAll('[data-i18n-aria]')) node.setAttribute('aria-label', t(node.dataset.i18nAria));
     $('lang').value = locale;
     $('lang').addEventListener('change', (event) => switchLocale(event.target.value).catch((e) => { console.warn(e); $('lang').value = locale; toast(t('error.network')); }));
     $('file').addEventListener('change', onFileChosen);

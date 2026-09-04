@@ -40,8 +40,8 @@ public static class ChallengeResolver
                 .SetProperty(c => c.ResolvedAt, now)
                 .SetProperty(c => c.WinnerPostId, winner == null ? null : winner.Id), ct);
 
-        challenge.ResolvedAt = now;
-        challenge.WinnerPostId = winner?.Id;
+        // Whoever won the claim wrote the row; everyone reads it back rather than trusting their own pick.
+        await db.Entry(challenge).ReloadAsync(ct);
         if (claimed == 0)
         {
             return false;

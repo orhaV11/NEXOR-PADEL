@@ -121,6 +121,11 @@ public static class PostEndpoints
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.challenge_intent", challenge.Intent));
             }
 
+            if (challenge.BrandId == me.Id)
+            {
+                return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.brand_own_challenge"));
+            }
+
             if (await db.Posts.AnyAsync(p => p.ChallengeId == challenge.Id && p.UserId == me.Id, ct))
             {
                 return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_entered"));
@@ -147,8 +152,9 @@ public static class PostEndpoints
             var product = products[i];
             db.ProductLinks.Add(new ProductLink
             {
-                Id = Guid.NewGuid(), PostId = post.Id, Position = i, Label = product.Label.Trim(), Url = product.Url!.Trim(),
-                Price = string.IsNullOrWhiteSpace(product.Price) ? null : product.Price.Trim()
+                Id = Guid.NewGuid(), PostId = post.Id, Position = i,
+                Label = OutfitAnalyzer.SanitizeText(product.Label, multiline: false), Url = product.Url!.Trim(),
+                Price = OutfitAnalyzer.SanitizeText(product.Price, multiline: false) is { Length: > 0 } price ? price : null
             });
         }
 
@@ -163,8 +169,10 @@ public static class PostEndpoints
         }
         catch (DbUpdateException)
         {
-            // Two taps on "Post it" raced; the unique index on CheckId decided.
-            return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_posted"));
+            // Two taps on "Post it" raced; a unique index decided (one post per check, one entry per challenge).
+            db.ChangeTracker.Clear();
+            var posted = await db.Posts.AnyAsync(p => p.CheckId == check.Id, ct);
+            return Error(StatusCodes.Status409Conflict, localizer.Get(lang, posted ? "error.already_posted" : "error.already_entered"));
         }
 
         var dto = (await reader.ToDtosAsync([post], me.Id, ct))[0];
@@ -237,14 +245,19 @@ public static class PostEndpoints
         }
 
         // Dependents cascade at the database, but explicit deletes keep the behaviour obvious and SQLite-agnostic.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Fires.Where(f => f.PostId == id).ExecuteDeleteAsync(ct);
         await db.Comments.Where(c => c.PostId == id).ExecuteDeleteAsync(ct);
         await db.SavedPosts.Where(s => s.PostId == id).ExecuteDeleteAsync(ct);
         await db.ChallengeVotes.Where(v => v.PostId == id).ExecuteDeleteAsync(ct);
         await db.Reports.Where(r => r.PostId == id).ExecuteDeleteAsync(ct);
         await db.ProductLinks.Where(l => l.PostId == id).ExecuteDeleteAsync(ct);
+        // Nothing may keep pointing at a post that is gone: activity rows would link to a 404, a challenge to no winner.
+        await db.Notifications.Where(n => n.PostId == id).ExecuteDeleteAsync(ct);
+        await db.Challenges.Where(c => c.WinnerPostId == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
         db.Posts.Remove(post);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Results.NoContent();
     }
 
@@ -272,8 +285,11 @@ public static class PostEndpoints
 
             try
             {
+                // The row and the counter move together, so an unfire arriving mid-way cannot see one without the other.
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
                 await db.SaveChangesAsync(ct);
                 await db.Posts.Where(p => p.Id == id).ExecuteUpdateAsync(s => s.SetProperty(p => p.FireCount, p => p.FireCount + 1), ct);
+                await tx.CommitAsync(ct);
             }
             catch (DbUpdateException)
             {
@@ -380,7 +396,17 @@ public static class PostEndpoints
             Id = Guid.NewGuid(), PostId = id, ReporterId = me.Id,
             Reason = Truncate(OutfitAnalyzer.SanitizeOccasion(body.Reason), 200), CreatedAt = DateTime.UtcNow
         });
-        post.ReportCount += 1;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return Results.NoContent();   // the same person reported twice at once; one row is enough
+        }
+
+        // The count comes from the rows, so two reports landing together cannot both write "2".
+        post.ReportCount = await db.Reports.CountAsync(r => r.PostId == id, ct);
         if (post.ReportCount >= limits.Value.ReportsToHide)
         {
             post.Hidden = true;
@@ -447,8 +473,12 @@ public static class PostEndpoints
             await notifier.AddOnceAsync(post.UserId, NotificationType.Comment, me.Handle, id, null, ct);
         }
 
-        await db.SaveChangesAsync(ct);
-        await db.Posts.Where(p => p.Id == id).ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount + 1), ct);
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await db.SaveChangesAsync(ct);
+            await db.Posts.Where(p => p.Id == id).ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount + 1), ct);
+            await tx.CommitAsync(ct);
+        }
 
         var dto = new CommentDto(comment.Id, new UserRefDto(me.Handle, me.Name, me.AccountType.ToString()), comment.Text, true, true,
             DateTime.SpecifyKind(comment.CreatedAt, DateTimeKind.Utc));
@@ -475,11 +505,18 @@ public static class PostEndpoints
             return Error(StatusCodes.Status403Forbidden, localizer.Get(me.PreferredLanguage, "error.forbidden"));
         }
 
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Reports.Where(r => r.CommentId == id).ExecuteDeleteAsync(ct);
         db.Comments.Remove(comment);
         await db.SaveChangesAsync(ct);
-        await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
+        if (!comment.Hidden)
+        {
+            // A hidden comment already left the count when it was hidden.
+            await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
+        }
+
+        await tx.CommitAsync(ct);
         return Results.NoContent();
     }
 
@@ -513,7 +550,16 @@ public static class PostEndpoints
             Id = Guid.NewGuid(), CommentId = id, ReporterId = me.Id,
             Reason = Truncate(OutfitAnalyzer.SanitizeOccasion(body.Reason), 200), CreatedAt = DateTime.UtcNow
         });
-        comment.ReportCount += 1;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return Results.NoContent();
+        }
+
+        comment.ReportCount = await db.Reports.CountAsync(r => r.CommentId == id, ct);
         if (comment.ReportCount >= limits.Value.ReportsToHide && !comment.Hidden)
         {
             comment.Hidden = true;

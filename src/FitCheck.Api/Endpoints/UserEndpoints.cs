@@ -111,7 +111,10 @@ public static class UserEndpoints
         // Files first: if a row delete fails the user can retry, but an orphaned photo would have no owner to delete it.
         images.DeleteUser(id);
 
+        // All rows go or none do: a failure half-way must not leave counters decremented twice on a retry.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         var myPostIds = await db.Posts.Where(p => p.UserId == id).Select(p => p.Id).ToListAsync(ct);
+        var myChallengeIds = await db.Challenges.Where(c => c.BrandId == id).Select(c => c.Id).ToListAsync(ct);
 
         // Reactions this user gave to other people's posts come off their counters.
         var firedPosts = await db.Fires.Where(f => f.UserId == id && !myPostIds.Contains(f.PostId)).Select(f => f.PostId).ToListAsync(ct);
@@ -120,7 +123,7 @@ public static class UserEndpoints
             await db.Posts.Where(p => p.Id == postId && p.FireCount > 0).ExecuteUpdateAsync(s => s.SetProperty(p => p.FireCount, p => p.FireCount - 1), ct);
         }
 
-        var commentedPosts = await db.Comments.Where(c => c.UserId == id && !myPostIds.Contains(c.PostId)).GroupBy(c => c.PostId)
+        var commentedPosts = await db.Comments.Where(c => c.UserId == id && !c.Hidden && !myPostIds.Contains(c.PostId)).GroupBy(c => c.PostId)
             .Select(g => new { PostId = g.Key, Count = g.Count() }).ToListAsync(ct);
         foreach (var entry in commentedPosts)
         {
@@ -133,11 +136,16 @@ public static class UserEndpoints
         await db.ChallengeVotes.Where(v => v.UserId == id || myPostIds.Contains(v.PostId)).ExecuteDeleteAsync(ct);
         await db.SavedPosts.Where(s => s.UserId == id || myPostIds.Contains(s.PostId)).ExecuteDeleteAsync(ct);
         await db.ProductLinks.Where(l => myPostIds.Contains(l.PostId)).ExecuteDeleteAsync(ct);
-        await db.Notifications.Where(n => n.UserId == id).ExecuteDeleteAsync(ct);
+        // Own notifications, plus everyone else's that point at a post or challenge about to disappear.
+        await db.Notifications.Where(n => n.UserId == id
+                || (n.PostId != null && myPostIds.Contains(n.PostId.Value))
+                || (n.ChallengeId != null && myChallengeIds.Contains(n.ChallengeId.Value)))
+            .ExecuteDeleteAsync(ct);
         await db.Follows.Where(f => f.FollowerId == id || f.FollowedId == id).ExecuteDeleteAsync(ct);
+        await db.Challenges.Where(c => c.WinnerPostId != null && myPostIds.Contains(c.WinnerPostId.Value))
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
 
         // Challenges this brand opened disappear; other people's entries stay as plain posts.
-        var myChallengeIds = await db.Challenges.Where(c => c.BrandId == id).Select(c => c.Id).ToListAsync(ct);
         if (myChallengeIds.Count > 0)
         {
             await db.Posts.Where(p => p.ChallengeId != null && myChallengeIds.Contains(p.ChallengeId.Value))
@@ -150,6 +158,7 @@ public static class UserEndpoints
         await db.Checks.Where(c => c.UserId == id).ExecuteDeleteAsync(ct);
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         await Sessions.SignOutAsync(context);
         return Results.NoContent();
@@ -276,7 +285,14 @@ public static class UserEndpoints
         {
             db.Follows.Add(new Follow { FollowerId = me.Id, FollowedId = target.Id, CreatedAt = DateTime.UtcNow });
             await notifier.AddOnceAsync(target.Id, NotificationType.Follow, me.Handle, null, null, ct);
-            await db.SaveChangesAsync(ct);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Two taps raced; the primary key kept one row, which is the state the caller asked for.
+            }
         }
 
         return Results.Json(new FollowStateDto(await db.Follows.CountAsync(f => f.FollowedId == target.Id, ct), true), AppJson.Options);

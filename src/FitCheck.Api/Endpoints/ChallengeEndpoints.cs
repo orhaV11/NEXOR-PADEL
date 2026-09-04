@@ -149,7 +149,8 @@ public static class ChallengeEndpoints
         var brief = OutfitAnalyzer.SanitizeText(body.Brief, multiline: true);
         var prize = OutfitAnalyzer.SanitizeOccasion(body.Prize);
         var prizeUrl = string.IsNullOrWhiteSpace(body.PrizeUrl) ? null : body.PrizeUrl.Trim();
-        var endsAt = body.EndsAt?.ToUniversalTime();
+        // A timestamp without an offset is taken as UTC rather than the server's local zone.
+        var endsAt = body.EndsAt is { } raw ? (raw.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(raw, DateTimeKind.Utc) : raw.ToUniversalTime()) : (DateTime?)null;
         var intentKnown = Enum.TryParse<StyleIntent>(body.Intent, ignoreCase: true, out var intent) && Enum.IsDefined(intent);
         var valid = title.Length is > 0 and <= 80
                     && brief.Length is > 0 and <= 500
@@ -213,6 +214,11 @@ public static class ChallengeEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.vote_own"));
         }
 
+        if (challenge.BrandId == me.Id)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.brand_own_challenge"));
+        }
+
         var existing = await db.ChallengeVotes.FirstOrDefaultAsync(v => v.ChallengeId == id && v.UserId == me.Id, ct);
         if (existing is null)
         {
@@ -227,7 +233,17 @@ public static class ChallengeEndpoints
         // One "voted for your entry" per voter and entry, however many times the vote moves back and forth.
         await notifier.AddOnceAsync(post.UserId, NotificationType.Vote, me.Handle, post.Id, id, ct);
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Two votes from the same person raced; the first one stands and the second moves it below.
+            db.ChangeTracker.Clear();
+            await db.ChallengeVotes.Where(v => v.ChallengeId == id && v.UserId == me.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.PostId, post.Id).SetProperty(v => v.CreatedAt, now), ct);
+        }
         var votes = await db.ChallengeVotes.CountAsync(v => v.ChallengeId == id && v.PostId == post.Id, ct);
         return Results.Json(new VoteStateDto(post.Id, votes), AppJson.Options);
     }

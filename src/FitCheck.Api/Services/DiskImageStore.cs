@@ -63,7 +63,8 @@ public sealed class DiskImageStore : IImageStore
         }
 
         var full = Resolve(relativePath);
-        return File.Exists(full) ? new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, useAsync: true) : null;
+        // FileShare.Delete lets an account or post deletion succeed on Windows while a photo is still being streamed.
+        return File.Exists(full) ? new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 64 * 1024, useAsync: true) : null;
     }
 
     private string Resolve(string relativePath)

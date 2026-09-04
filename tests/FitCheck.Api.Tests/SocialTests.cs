@@ -337,6 +337,27 @@ public class SocialTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task Deleting_a_hidden_comment_does_not_lower_the_count_again()
+    {
+        var (owner, _, _) = await _app.NewUserAsync("hid_owner");
+        var (troll, _, _) = await _app.NewUserAsync("hid_troll");
+        var (friend, _, _) = await _app.NewUserAsync("hid_friend");
+        var postId = await _app.CheckAndPostAsync(owner);
+        var trollComment = (await Json(await troll.PostAsJsonAsync($"/api/posts/{postId}/comments", new { text = "meh" }))).GetProperty("id").GetGuid();
+        await friend.PostAsJsonAsync($"/api/posts/{postId}/comments", new { text = "love it" });
+        for (var i = 0; i < 3; i++)
+        {
+            var reporter = (await _app.NewUserAsync("hid_rep" + i)).Client;
+            await reporter.PostAsJsonAsync($"/api/comments/{trollComment}/report", new { reason = "rude" });
+        }
+
+        Assert.Equal(1, (await Json(await owner.GetAsync($"/api/posts/{postId}"))).GetProperty("commentCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent, (await troll.DeleteAsync($"/api/comments/{trollComment}")).StatusCode);
+        Assert.Equal(1, (await Json(await owner.GetAsync($"/api/posts/{postId}"))).GetProperty("commentCount").GetInt32());
+        Assert.Single((await _app.NewClient().GetFromJsonAsync<JsonElement>($"/api/posts/{postId}/comments")).EnumerateArray());
+    }
+
+    [Fact]
     public async Task Deleting_a_post_makes_the_photo_private_again()
     {
         var (owner, _, _) = await _app.NewUserAsync("del_owner");

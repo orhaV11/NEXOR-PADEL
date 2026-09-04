@@ -326,7 +326,7 @@ was written before building; what follows are the calls made while building it.
 
 ### Testing and verification
 
-- **119 xUnit tests** (up from 98): signup and login rules, the CSRF header, posting, fire, comments,
+- **122 xUnit tests** (up from 98): signup and login rules, the CSRF header, posting, fire, comments,
   saves, follows, feed tabs, reports, challenges and votes, winner resolution, notifications, deletion
   cascades and counters, social metrics. The Phase 1 tests were adapted to cookie sessions and all still
   pass.
@@ -336,6 +336,22 @@ was written before building; what follows are the calls made while building it.
   hand-off: the feed double-load race above, and the activity list showing handles where names belong.
 - **Not verified here, again: the real model.** The calibration script now signs up through the cookie
   flow; run it before inviting people.
+
+### Review before hand-off
+
+- **Two independent reviews, backend and client, ran against the finished build.** Neither found an
+  authorization hole. What they found was fixed: a hidden comment leaving the count twice when deleted,
+  double taps on follow, vote and report surfacing as 500s instead of the idempotent answer, account
+  deletion running outside a transaction, activity rows and the challenge winner still pointing at a
+  deleted post, a brand able to enter and vote in its own challenge, report counts written from memory
+  instead of rows, fire and comment counters moving in a second statement, product labels and
+  timestamps without an offset taken at face value, photos locked against deletion on Windows while
+  being streamed; on the client, private state surviving sign-out on a shared phone, a bad percent
+  escape in the URL crashing the router, a wrong password on the login page signing the person out, a
+  check failure losing its message after navigating away, the challenge dropped on "try another photo",
+  the toast under the iPhone home bar, `@handle` rendered backwards in Hebrew, and a dozen smaller
+  focus, fallback and copy issues. Three tests cover the backend fixes; the browser test covers the
+  client ones.
 
 ### Objections kept out of the code (owner wins)
 

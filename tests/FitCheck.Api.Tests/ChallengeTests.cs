@@ -125,6 +125,50 @@ public class ChallengeTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task A_brand_cannot_enter_or_vote_in_its_own_challenge()
+    {
+        var (brand, _, _) = await _app.NewUserAsync("ch_brand7", accountType: "Brand");
+        var (entrant, _, _) = await _app.NewUserAsync("ch_entrant7");
+        var challengeId = await OpenChallengeAsync(brand);
+
+        var ownCheck = await _app.CheckAsync(brand, intent: "Office");
+        var enter = await brand.PostAsJsonAsync("/api/posts", new { checkId = ownCheck, challengeId });
+        Assert.Equal(HttpStatusCode.BadRequest, enter.StatusCode);
+
+        var entryId = await _app.CheckAndPostAsync(entrant, intent: "Office", challengeId: challengeId);
+        var vote = await brand.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryId });
+        Assert.Equal(HttpStatusCode.BadRequest, vote.StatusCode);
+        Assert.Equal(0, (await brand.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}")).GetProperty("challenge").GetProperty("votes").GetInt32());
+    }
+
+    [Fact]
+    public async Task Deleting_the_winning_post_clears_the_winner_and_the_activity_that_pointed_at_it()
+    {
+        var (brand, _, _) = await _app.NewUserAsync("ch_brand6", accountType: "Brand");
+        var (entrant, _, _) = await _app.NewUserAsync("ch_entrant6");
+        var (voter, _, _) = await _app.NewUserAsync("ch_voter6");
+        var challengeId = await OpenChallengeAsync(brand);
+        var entryId = await _app.CheckAndPostAsync(entrant, intent: "Office", challengeId: challengeId);
+        await voter.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryId });
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Challenges.Where(c => c.Id == challengeId).ExecuteUpdateAsync(s => s.SetProperty(c => c.EndsAt, DateTime.UtcNow.AddHours(-1)));
+        }
+
+        var before = await voter.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.Equal(entryId, before.GetProperty("challenge").GetProperty("winnerPostId").GetGuid());
+        Assert.Equal(entryId, before.GetProperty("winner").GetProperty("id").GetGuid());
+
+        Assert.Equal(HttpStatusCode.NoContent, (await entrant.DeleteAsync($"/api/posts/{entryId}")).StatusCode);
+        var after = await voter.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.True(IsNull(after.GetProperty("challenge"), "winnerPostId"));
+        Assert.True(IsNull(after, "winner"));
+        var brandActivity = await brand.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.DoesNotContain(brandActivity.GetProperty("items").EnumerateArray(), n => !IsNull(n, "postId") && n.GetProperty("postId").GetGuid() == entryId);
+    }
+
+    [Fact]
     public async Task Winner_is_fixed_on_the_first_read_after_the_end_with_notifications_once()
     {
         var (brand, brandId, _) = await _app.NewUserAsync("ch_brand3", accountType: "Brand");

@@ -10,6 +10,7 @@
   "nav.challenges": "אתגרים",
   "nav.check": "בדיקה",
   "nav.activity": "פעילות",
+  "nav.main": "ראשי",
   "nav.profile": "פרופיל",
 
   "common.back": "חזרה",
@@ -57,6 +58,7 @@
   "post.fired": "בוער",
   "post.comments": "תגובות",
   "post.save": "לשמור",
+  "post.unsaved": "הוסר מהשמורים",
   "post.saved": "נשמר",
   "post.share": "לשתף",
   "post.share_text": "הלוק של {name} בקטגוריית {intent} קיבל {score}/10 ב-FitCheck",

@@ -10,6 +10,7 @@
   "nav.challenges": "Challenges",
   "nav.check": "Check",
   "nav.activity": "Activity",
+  "nav.main": "Main",
   "nav.profile": "Profile",
 
   "common.back": "Back",
@@ -57,6 +58,7 @@
   "post.fired": "On fire",
   "post.comments": "Comments",
   "post.save": "Save",
+  "post.unsaved": "Removed from saved",
   "post.saved": "Saved",
   "post.share": "Share",
   "post.share_text": "{name}'s {intent} look scored {score}/10 on FitCheck",

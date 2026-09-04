@@ -60,6 +60,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             post.HasIndex(p => new { p.UserId, p.CreatedAt });
             post.HasIndex(p => p.CreatedAt);
             post.HasIndex(p => p.ChallengeId);
+            // One entry per person per challenge, enforced where two taps cannot argue with it.
+            post.HasIndex(p => new { p.ChallengeId, p.UserId }).IsUnique().HasFilter("\"ChallengeId\" IS NOT NULL");
             post.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
             post.HasOne<OutfitCheck>().WithMany().HasForeignKey(p => p.CheckId).OnDelete(DeleteBehavior.Cascade);
             post.HasOne<Challenge>().WithMany().HasForeignKey(p => p.ChallengeId).OnDelete(DeleteBehavior.SetNull);

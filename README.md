@@ -81,7 +81,7 @@ checked, fired, commented or voted in the last 7 days.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-119 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, the
+122 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale matching, the
 Anthropic client against a scripted HTTP handler (request shape, single retry, refusal handling), and
 endpoint tests against the real app with a scripted vision client: signup and login rules, the CSRF header,
 uploads and 413/415/429/502, the daily and global caps, posting, fire, comments, saves, follows, the three
@@ -169,7 +169,7 @@ CSRF guard. Endpoints marked 🔒 need a session. Ids are GUIDs.
 | `GET /api/challenges` | `?state=open|ended` | Challenges with entry and vote counts, the top three entries and `viewer` (`isBrand, hasEntered, votedPostId, myEntryId`) |
 | `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now |
 | `GET /api/challenges/{id}` | — | `{ challenge, entriesByVotes, winner }`. Reading an ended challenge fixes its winner if that has not happened yet |
-| `POST /api/challenges/{id}/vote` 🔒 | `{ postId }` | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry |
+| `POST /api/challenges/{id}/vote` 🔒 | `{ postId }` | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry, and not by the brand that opened it |
 | `DELETE /api/challenges/{id}/vote` 🔒 | — | `{ votedPostId: null, votes }` |
 | `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won` |
 | `POST /api/notifications/read` 🔒 | — | 204, marks everything read |
@@ -230,8 +230,8 @@ and anything descriptive is dropped when the status is not `ok`.
 - **One of each per person.** Fire, save, follow, report and challenge vote are unique per person and
   target at the database level; repeating is idempotent, never a 500. You cannot follow yourself, report
   your own post, or vote for your own entry.
-- **Challenges are honest.** Only brand accounts open them; entries must match the challenge's intent;
-  votes are open until `endsAt`; the winner is the entry with the most votes (ties go to the earlier
+- **Challenges are honest.** Only brand accounts open them, and a brand neither enters nor votes in its
+  own; entries must match the challenge's intent; votes are open until `endsAt`; the winner is the entry with the most votes (ties go to the earlier
   entry), fixed once and notified once, even when two requests read the ended challenge at the same
   moment. The prize itself changes hands between the brand and the winner; the app takes no payments.
 - **Reports hide, people decide.** Three reports from different people hide a post or a comment from

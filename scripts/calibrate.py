@@ -25,19 +25,19 @@ from collections import Counter, defaultdict
 PHOTO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 SCORES = range(1, 11)
 
-# Words that should never appear in feedback about clothes. Matched as whole words, case-insensitive.
-# Hebrew stems are listed in the forms the model is most likely to produce.
+# Words that point at the person rather than the clothes. Matched as whole words, case-insensitive, and meant
+# for a human to read: garment vocabulary that collides with them (leather is "עור", skinny jeans, slim fit,
+# high heels, hot pink, old money, boyfriend jeans) is deliberately left out to keep the list honest.
 FORBIDDEN = {
     "en": [
-        "body", "bodies", "figure", "curvy", "curves", "slim", "slimming", "skinny", "thin", "fat", "chubby", "plus-size",
-        "weight", "tall", "short", "height", "petite", "skin", "complexion", "face", "facial", "pretty", "beautiful",
-        "handsome", "attractive", "sexy", "hot", "gorgeous", "ugly", "age", "young", "old", "girl", "boy", "man", "woman",
-        "feminine", "masculine", "flattering",
+        "body", "bodies", "figure", "curvy", "curves", "slimming", "fat", "chubby", "plus-size", "weight", "height",
+        "petite", "skin", "complexion", "face", "facial", "pretty", "beautiful", "handsome", "attractive", "sexy",
+        "gorgeous", "ugly", "age", "young", "girl", "man", "woman", "feminine", "masculine", "flattering", "flatters",
     ],
     "he": [
-        "גוף", "הגוף", "גופך", "רזה", "רזים", "שמן", "שמנה", "משקל", "גובה", "גבוה", "גבוהה", "נמוך", "נמוכה",
-        "עור", "פנים", "יפה", "יפים", "מושך", "מושכת", "סקסי", "סקסית", "גיל", "צעיר", "צעירה", "מבוגר", "מבוגרת",
-        "ילדה", "ילד", "גבר", "אישה", "נשי", "נשית", "גברי", "גברית", "מחמיא", "מחמיאה",
+        "גוף", "הגוף", "גופך", "רזה", "רזים", "שמן", "שמנה", "משקל", "גובה", "פנים", "מושך", "מושכת", "סקסי", "סקסית",
+        "גיל", "צעיר", "צעירה", "מבוגר", "מבוגרת", "ילדה", "ילד", "גבר", "אישה", "נשי", "נשית", "גברי", "גברית",
+        "מחמיא", "מחמיאה",
     ],
 }
 

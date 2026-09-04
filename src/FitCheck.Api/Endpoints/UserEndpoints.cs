@@ -62,7 +62,7 @@ public static class UserEndpoints
 
         if (body.DisplayName is not null)
         {
-            var name = body.DisplayName.Trim();
+            var name = OutfitAnalyzer.SanitizeText(body.DisplayName, multiline: false);
             if (name.Length > 40)
             {
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.profile_invalid"));
@@ -73,7 +73,7 @@ public static class UserEndpoints
 
         if (body.Bio is not null)
         {
-            var bio = body.Bio.Trim();
+            var bio = OutfitAnalyzer.SanitizeText(body.Bio, multiline: true);
             if (bio.Length > 160)
             {
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.profile_invalid"));

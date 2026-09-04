@@ -198,3 +198,148 @@ objections are noted, not acted on.
   thinking disabled answers in a few seconds and the loading screen is honest about waiting.
 - **The metrics endpoint is public.** No auth exists in Phase 1, and the endpoint is aggregate-only; the
   README says to protect it before the URL leaves the team.
+
+# Phase 2 — the feed
+
+Added after the owner tried the Phase 1 build and asked for the social layer now rather than after the
+`returnRate` gate: fire and followers, brands selling and running challenges the crowd decides, and a
+young, energetic feel. Then refined: it is a social app first, not a contest; nobody has to post to use
+it; the feed is for scrolling, reacting, commenting and taking inspiration. `PHASE2.md` is the plan that
+was written before building; what follows are the calls made while building it.
+
+## Decisions
+
+### Scope and gate
+
+- **The Phase 1 gate is overridden by the owner, and the Phase 1 metrics stay intact.** `returnRate` and
+  the whole first block of `/api/metrics/pilot` are computed exactly as before; a `social` block is added
+  next to them. The pilot question can still be answered.
+- **Comments are in.** The plan had left them out to keep moderation small; the owner asked for
+  "להגיב" explicitly. They are short (200 characters), never contain links that render as links, are
+  reportable, and the post's author can delete any comment under their look.
+- **No payments, no prize fulfilment, no DMs.** A challenge stores the prize as text plus an optional
+  https link; the brand and the winner sort out delivery between themselves. The app records who won.
+- **Still not in:** push, share images, native wrappers, sign-in with Apple or Google, closet features.
+
+### Accounts
+
+- **Cookie sessions replace the user id credential.** Signup and login set an HttpOnly, SameSite=Strict
+  cookie (Secure whenever the request was HTTPS, so the tunnel gets a Secure cookie and localhost still
+  works), 90 days sliding. Passwords go through ASP.NET Core's `PasswordHasher`. The Phase 1 "anyone with
+  the id can act" limitation is gone.
+- **CSRF is a required header, not an antiforgery token.** Every non-GET call under `/api` must carry
+  `X-Requested-With: FitCheck` or is refused before routing. A cross-site form cannot set that header, and
+  SameSite=Strict already keeps the cookie off cross-site requests; the header is the belt to that pair
+  of braces and costs one line in the client.
+- **Handles are Unicode letters, digits, dots and underscores, 2–40, unique case-insensitively**
+  (`HandleLower` column with a unique index), so a Hebrew handle works and "Noa" and "noa" cannot both
+  exist. A short reserved list (`me`, `admin`, `fitcheck`, `feed`, …) keeps handles out of route names.
+- **A wrong handle and a wrong password get the same 401 message**, and login is rate limited per client
+  address, so the login form cannot be used to enumerate accounts.
+- **No email address, so no password recovery.** Adding email meant adding delivery, verification and a
+  second secret; for a private pilot a lost password is a new account. Documented as a limitation.
+- **Brand is an account type chosen at signup**, not a verified status. Brands can open challenges and
+  attach product links to their own posts; people cannot. Nothing else differs. Verification is a later
+  problem.
+- **Streak = consecutive days with an OK check**, stored on the user and updated when a check succeeds.
+  It is a small daily hook that costs nothing and needs no job.
+
+### What goes public
+
+- **A check stays private; a post is a separate, explicit act.** The post sheet says what will be shown:
+  the photo, the intent, the score and the headline, plus a caption. The tip and the item breakdown are
+  the user's and never leave the check. Only `ok` checks can be posted, once each.
+- **Photos are served by exactly one route, `GET /api/posts/{id}/image`, and only for a visible post.**
+  The file stays under the private storage root; the route streams it with `Cache-Control: private`.
+  Deleting the post closes the door again. The Phase 1 "no plausible URL serves a photo" test still holds.
+- **Reads are public, writes need a session.** The feed, posts, comments, profiles and challenge boards
+  work signed out, so a link shared on WhatsApp opens for anyone. Everything that changes state asks to
+  sign in, and the client says so with one card instead of failing.
+- **Hidden posts remain visible to their author with an "under review" badge**, so a person whose look
+  was reported is not left guessing why nobody reacts.
+
+### Reactions and counters
+
+- **"Fire", not "like".** One per person per post, enforced by a unique index; repeating is idempotent.
+  Firing your own post is allowed (it is harmless and a plain refusal would be a strange first
+  experience), but it produces no notification.
+- **Fire and comment counts are denormalized and moved with conditional `ExecuteUpdate`**, so two
+  requests cannot double-count and a delete cannot go below zero; follower counts are cheap enough to
+  count live. Account deletion decrements the counters it touched on other people's posts.
+- **Notifications deduplicate per actor and target.** Unfire and fire again does not spam; a vote moved
+  back and forth notifies the entrant once. Actor names are looked up at read time, so a rename shows
+  through and a deleted account falls back to its handle.
+
+### Feed
+
+- **Three tabs, one query.** `fresh` is newest first; `top` is the most fire in the last 7 days, so an
+  early post cannot sit at the top forever; `following` is newest from people you follow and needs a
+  session. An intent filter sits on top of all three, because "show me date looks" is the inspiration use
+  case.
+- **Offset paging, page of 10, `nextOffset` in the response.** Cursor paging is the right thing at scale;
+  at pilot size offsets are simpler and let the client keep one number.
+
+### Challenges
+
+- **Brands only, 1 hour to 60 days, intent fixed at creation.** Entering locks the check's intent to the
+  challenge's, so the stylist scores the look against the brief the brand set.
+- **One vote per person per challenge, movable while open, never for your own entry.** Reads as a single
+  row per voter (unique index), so the count is always the number of people.
+- **The winner is fixed lazily, on the first read after `endsAt`, with a conditional claim.** A
+  `ResolvedAt is null` update guarded by the row's own state means two simultaneous reads produce one
+  winner and one set of notifications; there is no background job to run or forget. Most votes wins; a
+  tie goes to the earlier entry, which rewards showing up first.
+- **A challenge with no entries ends with no winner** and tells the brand so.
+
+### Safety
+
+- **Three reports from different people hide a post or a comment.** The threshold is configuration.
+  Reports keep the reporter's reason for a later human look; there is no admin screen yet, which the
+  README says plainly.
+- **Captions, comments, bios and challenge text go through the same sanitizer as the occasion**
+  (control characters stripped, length capped), and the client never puts user text through `innerHTML`.
+  Product, prize and website links must be `https://` so `javascript:` and `data:` URLs cannot be posted.
+- **Account deletion is one request and removes everything**: checks and photo files, posts, comments,
+  fire, saves, votes, follows, notifications received, and reports made. Notifications the person caused
+  for others stay as plain text under their handle; the challenge winner pointer is nulled if it pointed
+  at a deleted post, and their entries leave the leaderboard.
+
+### Client
+
+- **One hash-routed page (`app.js`) replaces the screen file.** Routes for the feed, a post, challenges,
+  a challenge, check, result, activity, profiles, saved, my checks, settings, login and signup. Every
+  render carries a token so a slow response cannot paint over a newer screen.
+- **Dark, high-contrast theme with one lime accent and one fire orange**, big display numerals for the
+  score, a bottom tab bar with the check button raised in the middle, a count-up score and a burst on
+  fire; all of it off under `prefers-reduced-motion`.
+- **Tapping the active tab refreshes it**, as phone feeds do. The feed loader carries a sequence number
+  so a refresh during a load cannot leave the list empty (found by the browser test: two loads used to
+  fight and the second gave up).
+- **The post sheet is on the result screen**, one tap from the score, with the challenge picker limited to
+  open challenges of the same intent and the product rows shown to brands only. A check can also be
+  posted later from "My checks".
+- **Names everywhere, handles underneath.** Display names are optional; the handle is the fallback and
+  the route (`#/u/handle`).
+- **Hebrew copy keeps the neutral forms** of Phase 1 ("מתחברים כדי להגיב", "שווה להיות הראשונים") and the
+  RTL layout mirrors through logical properties; scores and percentages come from `Intl` in the active
+  locale.
+
+### Testing and verification
+
+- **119 xUnit tests** (up from 98): signup and login rules, the CSRF header, posting, fire, comments,
+  saves, follows, feed tabs, reports, challenges and votes, winner resolution, notifications, deletion
+  cascades and counters, social metrics. The Phase 1 tests were adapted to cookie sessions and all still
+  pass.
+- **The browser test was rewritten for three people in three browser contexts** (a person in English, a
+  brand, and a Hebrew browser that mostly reads): 15 steps from signup to account deletion, including the
+  challenge ending (the database clock is moved) and photo privacy by URL. It found two real bugs before
+  hand-off: the feed double-load race above, and the activity list showing handles where names belong.
+- **Not verified here, again: the real model.** The calibration script now signs up through the cookie
+  flow; run it before inviting people.
+
+### Objections kept out of the code (owner wins)
+
+- **Building the feed before `returnRate` said so.** The owner decided the product is a social app; the
+  metric is still there for the pilot readout.
+- **Brand accounts are self-declared.** Anyone can tick the box. Fine for an invited pilot; verification
+  belongs with age assurance in the launch checklist.

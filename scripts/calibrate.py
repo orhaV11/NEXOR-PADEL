@@ -42,10 +42,16 @@ FORBIDDEN = {
 }
 
 
+# One cookie jar for the run: the account created below signs in through it, like the browser does.
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+
+
 def request(method, url, body=None, headers=None, timeout=90):
-    req = urllib.request.Request(url, data=body, method=method, headers=headers or {})
+    # Every non-GET call to the API needs this header (the CSRF guard); the cookie carries the session.
+    all_headers = {"X-Requested-With": "FitCheck", **(headers or {})}
+    req = urllib.request.Request(url, data=body, method=method, headers=all_headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with OPENER.open(req, timeout=timeout) as response:
             return response.status, response.read()
     except urllib.error.HTTPError as error:
         return error.code, error.read()
@@ -98,12 +104,14 @@ def main():
     if not photos:
         sys.exit(f"no photos in {args.folder}")
 
-    status, body = request("POST", f"{args.base}/api/users",
-                           json.dumps({"handle": "calibration", "confirmed16Plus": True, "language": languages[0]}).encode(),
+    # A throwaway account per run (the handle carries a random suffix); it is deleted at the end with its photos.
+    handle = "calib_" + uuid.uuid4().hex[:8]
+    status, body = request("POST", f"{args.base}/api/auth/signup",
+                           json.dumps({"handle": handle, "password": uuid.uuid4().hex, "confirmed16Plus": True,
+                                       "language": languages[0]}).encode(),
                            {"Content-Type": "application/json"})
     if status != 201:
         sys.exit(f"could not create user: {status} {body[:200]!r}")
-    user_id = json.loads(body)["id"]
 
     rows = []
     try:
@@ -113,7 +121,7 @@ def main():
                     with open(photo, "rb") as handle:
                         data = handle.read()
                     payload, content_type = multipart(
-                        {"userId": user_id, "intent": intent, "language": language}, "image", os.path.basename(photo), data)
+                        {"intent": intent, "language": language}, "image", os.path.basename(photo), data)
                     started = time.time()
                     status, body = request("POST", f"{args.base}/api/checks", payload, {"Content-Type": content_type})
                     elapsed = int((time.time() - started) * 1000)
@@ -138,7 +146,7 @@ def main():
                     print(f"{row['photo'][:28]:<28} {intent:<10} {language:<3} HTTP {status}  {str(row['status'] or row['error'])[:10]:<10} "
                           f"score {str(row['score'] or '-'):<3} match {str(row['intentMatch'] or '-'):<4} {elapsed:>6} ms  {row['headline'][:60]}{flag}")
     finally:
-        request("DELETE", f"{args.base}/api/users/{user_id}")
+        request("DELETE", f"{args.base}/api/users/me")
 
     ok = [r for r in rows if r["status"] == "ok"]
     print()

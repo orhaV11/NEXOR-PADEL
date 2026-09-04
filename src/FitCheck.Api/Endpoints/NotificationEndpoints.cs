@@ -22,16 +22,25 @@ public static class NotificationEndpoints
             return failure!;
         }
 
-        var items = await db.Notifications
+        var rows = await db.Notifications
             .Where(n => n.UserId == me.Id)
             .OrderByDescending(n => n.CreatedAt)
             .Take(50)
-            .Select(n => new NotificationDto(n.Id, n.Type, n.ActorHandle, n.PostId, n.ChallengeId, n.CreatedAt, n.ReadAt != null))
             .ToListAsync(ct);
+
+        // Notifications store the actor's handle; the display name is looked up now so renames show through.
+        var handles = rows.Select(n => n.ActorHandle.ToLowerInvariant()).Distinct().ToList();
+        var names = await db.Users
+            .Where(u => handles.Contains(u.HandleLower))
+            .Select(u => new { u.HandleLower, u.Handle, u.DisplayName })
+            .ToDictionaryAsync(u => u.HandleLower, u => PostReader.NameOf(u.Handle, u.DisplayName), ct);
+
+        var items = rows.Select(n => new NotificationDto(
+            n.Id, n.Type, n.ActorHandle,
+            names.TryGetValue(n.ActorHandle.ToLowerInvariant(), out var name) ? name : n.ActorHandle,
+            n.PostId, n.ChallengeId, DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc), n.ReadAt != null)).ToList();
         var unread = await db.Notifications.CountAsync(n => n.UserId == me.Id && n.ReadAt == null, ct);
-        var dto = new NotificationsDto(
-            items.Select(n => n with { CreatedAt = DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc) }).ToList(), unread);
-        return Results.Json(dto, AppJson.Options);
+        return Results.Json(new NotificationsDto(items, unread), AppJson.Options);
     }
 
     private static async Task<IResult> MarkReadAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)

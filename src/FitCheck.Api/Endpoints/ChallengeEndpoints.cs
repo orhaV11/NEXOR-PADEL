@@ -146,7 +146,7 @@ public static class ChallengeEndpoints
 
         var now = DateTime.UtcNow;
         var title = OutfitAnalyzer.SanitizeOccasion(body.Title);
-        var brief = (body.Brief ?? "").Trim();
+        var brief = OutfitAnalyzer.SanitizeText(body.Brief, multiline: true);
         var prize = OutfitAnalyzer.SanitizeOccasion(body.Prize);
         var prizeUrl = string.IsNullOrWhiteSpace(body.PrizeUrl) ? null : body.PrizeUrl.Trim();
         var endsAt = body.EndsAt?.ToUniversalTime();

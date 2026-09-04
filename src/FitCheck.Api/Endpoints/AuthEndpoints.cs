@@ -62,7 +62,7 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.password_short"));
         }
 
-        var displayName = string.IsNullOrWhiteSpace(body.DisplayName) ? null : body.DisplayName.Trim();
+        var displayName = OutfitAnalyzer.SanitizeText(body.DisplayName, multiline: false) is { Length: > 0 } cleanName ? cleanName : null;
         if (displayName is { Length: > 40 })
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.profile_invalid"));

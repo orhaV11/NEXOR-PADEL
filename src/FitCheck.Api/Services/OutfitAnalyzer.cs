@@ -128,6 +128,19 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
                "Evaluate the outfit in the photo against this intent and submit your feedback with the tool.";
     }
 
+    /// <summary>Free text people write for people (bios, briefs): control characters go, line breaks stay, quotes are kept.</summary>
+    public static string SanitizeText(string? text, bool multiline)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "";
+        }
+
+        var cleaned = new string(text.Select(c => c == '\n' && multiline ? c : char.IsControl(c) ? ' ' : c).ToArray());
+        var lines = cleaned.Split('\n').Select(line => string.Join(' ', line.Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+        return string.Join('\n', lines).Trim();
+    }
+
     public static string SanitizeOccasion(string? occasion)
     {
         if (string.IsNullOrWhiteSpace(occasion))

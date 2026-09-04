@@ -20,3 +20,7 @@ appsettings.Development.json
 
 # Test output
 TestResults/
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -120,7 +120,14 @@ function makeJpeg(page, w, h) {
 
 /** The photo button opens a file chooser (pickFile clicks the hidden input); answer it with a JPEG buffer. */
 async function choosePhoto(page, buttonSelector, buffer, name) {
+  // The check screen's photo button opens the media sheet (camera / library / clip); the library row is the picker.
+  if (buttonSelector === '#photo') {
+    await page.click('#photo');
+    await page.waitForSelector('#media-library');
+    buttonSelector = '#media-library';
+  }
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(buttonSelector)]);
+  if (await page.$('.sheet')) await page.waitForFunction(() => !document.querySelector('.sheet'));
   await chooser.setFiles({ name: name || 'outfit.jpg', mimeType: 'image/jpeg', buffer });
 }
 

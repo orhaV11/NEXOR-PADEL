@@ -375,6 +375,8 @@ export function requireSignIn(returnTo) {
   return false;
 }
 export async function signOut() {
+  // This browser's push subscription goes first, so the next person on the phone is not pinged about the last one.
+  try { const { unsubscribePush } = await import('./push.js'); await unsubscribePush(); } catch (e) { /* push is optional */ }
   try { await api('POST', '/api/auth/logout'); } catch (e) { /* cookie may already be gone */ }
   state.me = null; resetSession(); renderShell();
   toast(t('common.signed_out'));
@@ -844,6 +846,8 @@ export function openPostMenu(post, opts) {
   const canFeature = isBrand() && !post.isMine && (mentionsMe || post.challengeId) && !post.featuredBy;
   actionSheet(t('post.menu_title'), [
     { icon: 'share', text: t('post.share'), onclick: () => sharePost(post) },
+    // The story card is drawn by its own module, loaded on first use (it imports this one, so the import is lazy).
+    { icon: 'card', text: t('sharecard.action'), onclick: () => import('./sharecard.js').then((m) => m.openShareCard(m.lookFromPost(post))) },
     { icon: 'link', text: t('common.copy_link'), onclick: () => copyText(postUrl(post), t('post.copied')) },
     { icon: 'bookmark', text: post.saved ? t('post.unsave') : t('post.save'), onclick: () => toggleSave(post, opts.saveButton) },
     canFeature ? { icon: 'sparkle', text: t('post.feature'), onclick: async () => { if (await featurePost(post, true) && opts.onChange) opts.onChange(); } } : null,

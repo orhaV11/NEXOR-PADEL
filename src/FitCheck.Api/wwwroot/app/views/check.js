@@ -6,6 +6,7 @@
 import {
   register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark
 } from '../core.js';
+import { shareCardButton, lookFromCheck } from '../sharecard.js';
 
 const SCORE_COUNT_MS = 900;
 
@@ -446,9 +447,10 @@ register('result', async (root) => {
   container.appendChild(postArea);
   renderPostArea(postArea, result);
   container.appendChild(el('div', { class: 'row' }, [
-    el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')]),
-    el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) })
+    shareCardButton(lookFromCheck(result, state.check.previewUrl)),
+    el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));
+  container.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
 
   if (animate) {
     requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });

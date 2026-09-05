@@ -554,6 +554,10 @@ async function postIt(page, opts) {
     env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
   }).toString();
   assert.ok(/noa/.test(promoted), '--admin reports the handle: ' + promoted);
+  // The flag is read on every request; the client learns about it when it next loads the profile (a reload here).
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).isAdmin, true, 'promoted');
   const report = await dan.request.post(base + '/api/posts/' + post3 + '/report', { headers: { 'X-Requested-With': 'Orevosh' }, data: { reason: 'not an outfit' } });
   assert.ok(report.ok(), 'report ' + report.status());
   expected.push('GET /api/admin/queue -> 403');
@@ -640,6 +644,22 @@ async function postIt(page, opts) {
   assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 404);
   await go(brand, '#/u/nexor/community');
   await brand.waitForSelector('#view .empty');
+  // A moderator cannot delete the account while moderating: the owner runs --unadmin first, then it goes.
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#delete-account');
+  await noa.click('#delete-account');
+  await noa.waitForSelector('.sheet .btn-danger');
+  expected.push('DELETE /api/users/me -> 403');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('.s-account .alert:not([hidden])');
+  assert.ok((await text(noa, '.s-account .alert')).includes('--unadmin'), 'the refusal names the command');
+  const demoted = execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', '--unadmin', 'noa'], {
+    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
+  }).toString();
+  assert.ok(/noa/.test(demoted), '--unadmin reports the handle: ' + demoted);
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).isAdmin, false, 'demoted');
   await go(noa, '#/settings');
   await noa.waitForSelector('#delete-account');
   await noa.click('#delete-account');

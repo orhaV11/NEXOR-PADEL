@@ -85,7 +85,7 @@ last 7 days.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-243 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
+256 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules, the CSRF header, uploads and 413/415/429/502, the daily and
 global caps, clips (storage, Range streaming, deletion, limits), posting, fire, comments, saves, follows, the

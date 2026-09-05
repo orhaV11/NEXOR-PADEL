@@ -12,7 +12,7 @@ public sealed class Notifier(AppDbContext db, PushSender push)
 {
     public void Add(Guid userId, string type, string actorHandle, Guid? postId = null, Guid? challengeId = null)
     {
-        db.Notifications.Add(new Notification
+        var notification = new Notification
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -21,8 +21,10 @@ public sealed class Notifier(AppDbContext db, PushSender push)
             PostId = postId,
             ChallengeId = challengeId,
             CreatedAt = DateTime.UtcNow
-        });
-        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId));
+        };
+        db.Notifications.Add(notification);
+        // The job carries the row's id: the worker sends only once the row is committed, and never for a request that rolled back.
+        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId, notification.Id));
     }
 
     /// <summary>Same actor, same post, same type: one notification, not one per tap.</summary>

@@ -12,13 +12,19 @@ using WebPushSubscription = Lib.Net.Http.WebPush.PushSubscription;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>One push to send: the same facts as an activity row. The worker turns them into text in the recipient's language.</summary>
-public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId);
+/// <summary>
+/// One push to send: the same facts as an activity row. The worker turns them into text in the recipient's language.
+/// <paramref name="NotificationId"/> is the activity row the job announces; the worker waits for it to be committed and drops
+/// the job if it never is. Null for a push with no row behind it (the test ping).
+/// </summary>
+public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null);
 
 /// <summary>
 /// Sends Web Push messages in the background. <see cref="Notifier"/> drops a <see cref="PushJob"/> on the queue next to
 /// every activity row it writes; this worker picks it up after the request has moved on, so a slow or failing push
-/// service can never delay or fail a request. Nothing is queued when the VAPID keys are not configured.
+/// service can never delay or fail a request. The job is queued before the row is committed (the request saves after the
+/// notifier returns), so the worker first confirms the row exists, polling for a few seconds, and lets the job go when the
+/// request rolled back. Nothing is queued when the VAPID keys are not configured.
 /// </summary>
 public sealed class PushSender : BackgroundService
 {
@@ -29,6 +35,10 @@ public sealed class PushSender : BackgroundService
 
     /// <summary>A day: the phone is usually back online by then; older pings are stale anyway.</summary>
     public const int TimeToLiveSeconds = 86400;
+
+    /// <summary>How long the worker gives a request to commit its activity row: 20 looks, 250 ms apart, five seconds in all.</summary>
+    public const int ConfirmAttempts = 20;
+    public const int ConfirmIntervalMs = 250;
 
     private const int QueueCapacity = 2000;
 
@@ -44,15 +54,21 @@ public sealed class PushSender : BackgroundService
     private readonly ILogger<PushSender> _logger;
     private readonly PushOptions _options;
     private readonly VapidAuthentication? _vapid;
+    private readonly int _confirmAttempts;
+    private readonly TimeSpan _confirmInterval;
 
+    /// <summary>The last two parameters shorten the confirmation window for tests; the container leaves them at their defaults.</summary>
     public PushSender(
-        IServiceScopeFactory scopes, IHttpClientFactory httpClients, Localizer localizer, IOptions<PushOptions> options, ILogger<PushSender> logger)
+        IServiceScopeFactory scopes, IHttpClientFactory httpClients, Localizer localizer, IOptions<PushOptions> options, ILogger<PushSender> logger,
+        int confirmAttempts = ConfirmAttempts, int confirmIntervalMs = ConfirmIntervalMs)
     {
         _scopes = scopes;
         _httpClients = httpClients;
         _localizer = localizer;
         _logger = logger;
         _options = options.Value;
+        _confirmAttempts = Math.Max(1, confirmAttempts);
+        _confirmInterval = TimeSpan.FromMilliseconds(Math.Max(0, confirmIntervalMs));
         if (_options.Enabled)
         {
             try
@@ -174,10 +190,43 @@ public sealed class PushSender : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Whether the activity row the job announces has been committed. The request that queued the job usually saves within
+    /// milliseconds; a request that failed after queuing never does, and its push must not go out. A fresh scope each look, so
+    /// every read is a new query rather than a cached miss.
+    /// </summary>
+    private async Task<bool> NotificationCommittedAsync(Guid notificationId, CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            using (var scope = _scopes.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                if (await db.Notifications.AnyAsync(n => n.Id == notificationId, ct))
+                {
+                    return true;
+                }
+            }
+
+            if (attempt >= _confirmAttempts)
+            {
+                return false;
+            }
+
+            await Task.Delay(_confirmInterval, ct);
+        }
+    }
+
     private async Task SendAsync(PushJob job, CancellationToken ct)
     {
         if (_vapid is null)
         {
+            return;
+        }
+
+        if (job.NotificationId is { } notificationId && !await NotificationCommittedAsync(notificationId, ct))
+        {
+            _logger.LogInformation("Push {Type} to {UserId} dropped: its activity row {NotificationId} was never committed", job.Type, job.UserId, notificationId);
             return;
         }
 
@@ -228,6 +277,13 @@ public sealed class PushSender : BackgroundService
                 // The browser dropped the subscription (or the person revoked it): forget it.
                 await db.PushSubscriptions.Where(s => s.Id == subscription.Id).ExecuteDeleteAsync(ct);
                 _logger.LogInformation("Push subscription {Id} is gone ({Status}); removed", subscription.Id, (int)e.StatusCode);
+            }
+            catch (PushServiceClientException e) when (e.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                // The subscription was made against other VAPID keys (the pair was regenerated): it will never accept ours.
+                // Forget it; the client sees "not subscribed" and subscribes again with the current public key.
+                await db.PushSubscriptions.Where(s => s.Id == subscription.Id).ExecuteDeleteAsync(ct);
+                _logger.LogInformation("Push subscription {Id} refuses our VAPID keys ({Status}); removed", subscription.Id, (int)e.StatusCode);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

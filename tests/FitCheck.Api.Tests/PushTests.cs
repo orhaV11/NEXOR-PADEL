@@ -155,6 +155,16 @@ public class PushTests : IClassFixture<PushTests.PushApp>
         using var half = new TestApp { PushPublicKey = _fixture.PublicKey };
         var oneKey = await half.NewClient().GetFromJsonAsync<JsonElement>("/api/config");
         Assert.False(oneKey.TryGetProperty("pushPublicKey", out _));
+
+        // Both set, but not a key pair the sender can sign with: the key is not published either, or every browser would
+        // subscribe to pings that never come. The app still starts; only push is off.
+        using var broken = new TestApp { PushPublicKey = "not-a-key", PushPrivateKey = "not-a-key-either" };
+        var badPair = await broken.NewClient().GetFromJsonAsync<JsonElement>("/api/config");
+        Assert.False(badPair.TryGetProperty("pushPublicKey", out _));
+        Assert.Equal(broken.MaxVideoBytes, badPair.GetProperty("maxVideoBytes").GetInt64());
+        var (client, _, _) = await broken.NewUserAsync("badpair");
+        Assert.False((await State(client)).GetProperty("enabled").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/push/test", null)).StatusCode);
     }
 
     [Fact]
@@ -278,7 +288,8 @@ public class PushTests : IClassFixture<PushTests.PushApp>
         var request = Assert.Single(await Pushes.WaitForAsync(browser.Endpoint));
         Assert.Null(request.Topic);
         var payload = browser.Decrypt(request.Body);
-        Assert.Equal("Dana עוקב/ת אחריך עכשיו", payload.GetProperty("body").GetString());
+        // The same neutral phrasing as the activity list: what happened, then who.
+        Assert.Equal("עוקב חדש: Dana", payload.GetProperty("body").GetString());
         Assert.Equal("/#/u/pushfollower", payload.GetProperty("url").GetString());
         Assert.Equal("follow:pushfollower", payload.GetProperty("tag").GetString());
     }
@@ -365,6 +376,138 @@ public class PushTests : IClassFixture<PushTests.PushApp>
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.Empty(db.PushSubscriptions.Where(s => s.UserId == id || s.Endpoint == browser.Endpoint));
+    }
+
+    [Fact]
+    public async Task A_403_from_the_push_service_drops_the_subscription_like_a_gone_one()
+    {
+        // 401/403 means the subscription was made against other VAPID keys (the pair was regenerated): it will never take ours.
+        var (owner, _, _) = await App.NewUserAsync("pushrekeyed");
+        var (fan, _, _) = await App.NewUserAsync("pushrekeyedfan");
+        using var browser = new Browser("rekeyed");
+        await Subscribe(owner, browser);
+        var postId = await App.CheckAndPostAsync(owner);
+
+        Pushes.StatusCode = HttpStatusCode.Forbidden;
+        try
+        {
+            Assert.Equal(HttpStatusCode.OK, (await fan.PostAsync($"/api/posts/{postId}/fire", null)).StatusCode);
+            Assert.Single(await Pushes.WaitForAsync(browser.Endpoint));
+
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while ((await State(owner)).GetProperty("subscribed").GetBoolean() && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.False((await State(owner)).GetProperty("subscribed").GetBoolean());
+        }
+        finally
+        {
+            Pushes.StatusCode = HttpStatusCode.Created;
+        }
+
+        // The client sees "not subscribed" and subscribes again with the current key; until then nothing more is sent.
+        Assert.Equal(HttpStatusCode.Created, (await fan.PostAsJsonAsync($"/api/posts/{postId}/comments", new { text = "again?" })).StatusCode);
+        await Task.Delay(300);
+        Assert.Single(Pushes.Requests, r => r.Endpoint.ToString() == browser.Endpoint);
+    }
+
+    [Fact]
+    public async Task Endpoints_on_addresses_localhost_or_bare_names_are_refused()
+    {
+        var (client, _, _) = await App.NewUserAsync("hostrules");
+        using var browser = new Browser("hostrules");
+        var refused = new[]
+        {
+            "https://10.0.0.1/send/x", "https://127.0.0.1/send/x", "https://[::1]/send/x", "https://[2001:db8::1]/send/x",
+            "https://localhost/send/x", "https://LOCALHOST:8443/send/x", "https://push/send/x", "https://push./send/x"
+        };
+        foreach (var endpoint in refused)
+        {
+            Assert.False(PushEndpoints.IsValidSubscription(endpoint, browser.P256dh, browser.Auth), endpoint);
+            var response = await client.PostAsJsonAsync("/api/push/subscriptions", new { endpoint, p256dh = browser.P256dh, auth = browser.Auth });
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("That push subscription is missing its endpoint or keys.", (await Json(response)).GetProperty("error").GetString());
+        }
+
+        Assert.False((await State(client)).GetProperty("subscribed").GetBoolean());
+
+        // The real push services, and a fully qualified name with its trailing dot.
+        var accepted = new[]
+        {
+            "https://fcm.googleapis.com/fcm/send/abc", "https://web.push.apple.com/QWxs", "https://updates.push.services.mozilla.com/wpush/v2/x",
+            "https://push.example.test./trailing"
+        };
+        foreach (var endpoint in accepted)
+        {
+            Assert.True(PushEndpoints.IsValidSubscription(endpoint, browser.P256dh, browser.Auth), endpoint);
+        }
+    }
+
+    [Fact]
+    public async Task An_account_keeps_at_most_ten_subscriptions_and_the_oldest_makes_room()
+    {
+        var (client, id, _) = await App.NewUserAsync("manybrowsers");
+        var browsers = Enumerable.Range(0, PushEndpoints.MaxPerAccount + 2).Select(i => new Browser($"many{i}")).ToList();
+        try
+        {
+            List<string> Stored()
+            {
+                using var scope = App.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                return db.PushSubscriptions.Where(s => s.UserId == id).OrderBy(s => s.CreatedAt).Select(s => s.Endpoint).ToList();
+            }
+
+            foreach (var browser in browsers.Take(PushEndpoints.MaxPerAccount + 1))
+            {
+                await Subscribe(client, browser);
+                await Task.Delay(2);
+            }
+
+            // Eleven subscribes, ten rows: the first browser made room for the eleventh.
+            Assert.Equal(browsers.Skip(1).Take(PushEndpoints.MaxPerAccount).Select(b => b.Endpoint), Stored());
+
+            // A browser that is already there only refreshes its row; nothing else is evicted.
+            await Subscribe(client, browsers[5]);
+            Assert.Equal(browsers.Skip(1).Take(PushEndpoints.MaxPerAccount).Select(b => b.Endpoint), Stored());
+
+            // The twelfth evicts the next oldest.
+            await Subscribe(client, browsers[^1]);
+            Assert.Equal(browsers.Skip(2).Select(b => b.Endpoint), Stored());
+        }
+        finally
+        {
+            browsers.ForEach(b => b.Dispose());
+        }
+    }
+
+    [Fact]
+    public async Task A_job_whose_activity_row_never_appears_sends_nothing()
+    {
+        // The worker confirms the activity row before it sends. A shorter window here (ten looks, 100 ms apart) keeps the wait
+        // for the job that never gets its row bounded; the default is twenty looks, 250 ms apart.
+        using var app = new TestApp
+        {
+            PushPublicKey = _fixture.PublicKey, PushPrivateKey = _fixture.PrivateKey, PushConfirmAttempts = 10, PushConfirmIntervalMs = 100
+        };
+        app.Vision.Handler = _ => Payloads.Ok();
+        var (owner, ownerId, _) = await app.NewUserAsync("pushghost");
+        var (fan, _, _) = await app.NewUserAsync("pushghostfan", displayName: "Ghost Fan");
+        using var browser = new Browser("ghost");
+        await Subscribe(owner, browser);
+
+        // A job for a row that was never committed (the request rolled back after queuing it).
+        app.Services.GetRequiredService<PushSender>().Enqueue(new PushJob(ownerId, "fire", "pushghostfan", null, null, Guid.NewGuid()));
+        Assert.Empty(await app.PushHandler.WaitForAsync(browser.Endpoint, timeoutMs: 2500));
+
+        // The worker moved on: a real activity row still goes out, and so does the test ping, which has no row to wait for.
+        var postId = await app.CheckAndPostAsync(owner);
+        Assert.Equal(HttpStatusCode.OK, (await fan.PostAsync($"/api/posts/{postId}/fire", null)).StatusCode);
+        var request = Assert.Single(await app.PushHandler.WaitForAsync(browser.Endpoint));
+        Assert.Equal("Ghost Fan set your look on fire", browser.Decrypt(request.Body).GetProperty("body").GetString());
+        Assert.Equal(HttpStatusCode.Accepted, (await owner.PostAsync("/api/push/test", null)).StatusCode);
+        Assert.Equal(2, (await app.PushHandler.WaitForAsync(browser.Endpoint, count: 2)).Count);
     }
 
     [Fact]

@@ -60,6 +60,8 @@ public class DatabaseSetupTests : IDisposable
         Assert.Equal(db.Database.GetMigrations().OrderBy(m => m), db.Database.GetAppliedMigrations().OrderBy(m => m));
         Assert.Empty(db.Database.GetPendingMigrations());
         Assert.Empty(Directory.GetFiles(_root, "*.bak-*"));
+        // WAL, so readers never wait on a writer: the setup opens the file before Migrate() and so must set it itself.
+        Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
     }
 
     [Fact]
@@ -104,6 +106,8 @@ public class DatabaseSetupTests : IDisposable
         var backup = Assert.Single(backups);
         Assert.DoesNotContain("Suspended", Columns(backup, "Users"));
         Assert.Equal("pilot_user", Scalar(backup, "SELECT \"Handle\" FROM \"Users\""));
+        Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
+        Assert.Equal("delete", Scalar(backup, "PRAGMA journal_mode"));
 
         // A second start finds the history table and does nothing: no new copy, same schema.
         using (var db = Open(path))
@@ -117,17 +121,23 @@ public class DatabaseSetupTests : IDisposable
     }
 
     [Fact]
-    public void A_database_made_by_the_migrations_is_left_alone()
+    public void A_database_made_by_the_migrations_is_left_alone_and_switched_to_wal()
     {
         var path = Path.Combine(_root, "migrated.db");
         using (var db = Open(path))
         {
+            // The way the app's start reaches Migrate(): the connection is opened first to look at the file, which creates it,
+            // so EF's own creator (the one place EF sets WAL) never runs and the file is left with a rollback journal. A copy
+            // restored from --backup is in that mode too.
+            db.Database.OpenConnection();
             db.Database.Migrate();
+            db.Database.CloseConnection();
             db.Users.Add(NewUser(Guid.NewGuid(), "migrated_user"));
             db.SaveChanges();
         }
 
         var before = SchemaOf(path);
+        Assert.Equal("delete", Scalar(path, "PRAGMA journal_mode"));
         using (var db = Open(path))
         {
             DatabaseSetup.Apply(db, NullLogger.Instance);
@@ -136,6 +146,7 @@ public class DatabaseSetupTests : IDisposable
 
         Assert.Equal(before, SchemaOf(path));
         Assert.Empty(Directory.GetFiles(_root, "*.bak-*"));
+        Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
     }
 
     [Fact]
@@ -164,6 +175,37 @@ public class DatabaseSetupTests : IDisposable
         Assert.Single(Directory.GetFiles(app.Root, "test.db.bak-*"));
         Assert.Contains("Suspended", Columns(path, "Users"));
         Assert.Contains("PushSubscriptions", Names(path, "table"));
+    }
+
+    [Fact]
+    public async Task The_app_promotes_listed_accounts_at_start_and_reserves_their_handles()
+    {
+        // The owner signed up in an earlier run; now the handle is in Admin:Handles and the app restarts.
+        using var app = new TestApp { AdminHandles = "Owner_Mod" };
+        Directory.CreateDirectory(app.Root);
+        using (var db = Open(app.DatabasePath))
+        {
+            db.Database.Migrate();
+            db.Users.Add(NewUser(Guid.NewGuid(), "owner_mod", password: "password123"));
+            db.Users.Add(NewUser(Guid.NewGuid(), "bystander", password: "password123"));
+            db.SaveChanges();
+        }
+
+        var owner = app.NewClient();
+        var login = await owner.PostAsJsonAsync("/api/auth/login", new { handle = "owner_mod", password = "password123" });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.True((await login.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal("1", Scalar(app.DatabasePath, "SELECT \"IsAdmin\" FROM \"Users\" WHERE \"HandleLower\" = 'owner_mod'"));
+
+        var bystander = app.NewClient();
+        var other = await bystander.PostAsJsonAsync("/api/auth/login", new { handle = "bystander", password = "password123" });
+        Assert.False((await other.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await bystander.GetAsync("/api/admin/queue")).StatusCode);
+
+        // The listed handle is nobody else's to register, in any case.
+        var taken = await app.NewClient().PostAsJsonAsync("/api/auth/signup", new { handle = "OWNER_MOD", password = "password123", confirmed16Plus = true, language = "en" });
+        Assert.Equal(HttpStatusCode.Conflict, taken.StatusCode);
     }
 
     [Fact]
@@ -212,6 +254,81 @@ public class DatabaseSetupTests : IDisposable
 
         Assert.True(File.Exists(database));
         Assert.Null(storageCopy);
+    }
+
+    [Fact]
+    public void Backup_skips_a_file_that_vanishes_between_the_listing_and_the_copy()
+    {
+        var path = Path.Combine(_root, "vanish.db");
+        using (var db = Open(path))
+        {
+            db.Database.Migrate();
+        }
+
+        var storage = Path.Combine(_root, "storage");
+        Directory.CreateDirectory(Path.Combine(storage, "user1"));
+        File.WriteAllBytes(Path.Combine(storage, "user1", "check.jpg"), [1, 2, 3]);
+        // A link to a file that is not there: listed with the folder, gone by the time it is copied. Symbolic links need a
+        // privilege on some Windows setups; without one there is nothing to test here.
+        if (!TryLink(Path.Combine(storage, "user1", "gone.jpg"), Path.Combine(_root, "never-existed.jpg"), directory: false))
+        {
+            return;
+        }
+
+        var (database, storageCopy) = DatabaseSetup.Backup($"Data Source={path}", storage, Path.Combine(_root, "backups"));
+
+        Assert.True(File.Exists(database));
+        Assert.NotNull(storageCopy);
+        Assert.Equal([1, 2, 3], File.ReadAllBytes(Path.Combine(storageCopy!, "user1", "check.jpg")));
+        Assert.False(File.Exists(Path.Combine(storageCopy!, "user1", "gone.jpg")));
+    }
+
+    [Fact]
+    public void A_failing_storage_copy_leaves_no_partial_backup()
+    {
+        var path = Path.Combine(_root, "failing.db");
+        using (var db = Open(path))
+        {
+            db.Database.Migrate();
+        }
+
+        var storage = Path.Combine(_root, "storage");
+        Directory.CreateDirectory(Path.Combine(storage, "user1"));
+        File.WriteAllBytes(Path.Combine(storage, "user1", "check.jpg"), [1, 2, 3]);
+        // A folder that links back to the storage folder: the copy descends until the path is too long or too many links deep,
+        // which is a failure that is not a vanished file, after real files were already copied.
+        if (!TryLink(Path.Combine(storage, "loop"), storage, directory: true))
+        {
+            return;
+        }
+
+        var target = Path.Combine(_root, "backups");
+        Assert.ThrowsAny<IOException>(() => DatabaseSetup.Backup($"Data Source={path}", storage, target));
+
+        // Neither half is left behind: a listing of the backup folder must never show a copy that is missing its photos.
+        Assert.Empty(Directory.Exists(target) ? Directory.GetFileSystemEntries(target) : []);
+        Assert.Equal([1, 2, 3], File.ReadAllBytes(Path.Combine(storage, "user1", "check.jpg")));
+    }
+
+    private static bool TryLink(string link, string target, bool directory)
+    {
+        try
+        {
+            if (directory)
+            {
+                Directory.CreateSymbolicLink(link, target);
+            }
+            else
+            {
+                File.CreateSymbolicLink(link, target);
+            }
+
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return false;
+        }
     }
 
     private string Fresh(string name)
@@ -392,7 +509,8 @@ public class SecurityHeadersTests : IClassFixture<TestApp>
         var request = new HttpRequestMessage(HttpMethod.Get, "/healthz");
         request.Headers.Add("X-Forwarded-Proto", "https");
         var secure = await client.SendAsync(request);
-        Assert.Equal("max-age=31536000; includeSubDomains", Assert.Single(secure.Headers.GetValues("Strict-Transport-Security")));
+        // This host only: the owner may run the app on a bare domain next to subdomains that are not ours to pin.
+        Assert.Equal("max-age=31536000", Assert.Single(secure.Headers.GetValues("Strict-Transport-Security")));
     }
 
     [Fact]

@@ -219,21 +219,32 @@ public static class PostEndpoints
     /// moderator (the queue shows the look and its photo through the same routes as everyone else). A suspended author's
     /// looks are hidden and stay out of reach while their cookie is still alive: RequireUserAsync only runs on writes.
     /// </summary>
-    public static Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, HttpContext context, CancellationToken ct) =>
-        VisiblePostAsync(db, id, Sessions.UserId(context.User), AdminEndpoints.IsAdminViewer(context), ct);
-
-    /// <summary>The same rule without a request, so without the moderator allowance. On a route, prefer the overload with the context.</summary>
-    public static Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, CancellationToken ct) =>
-        VisiblePostAsync(db, id, viewerId, viewerIsAdmin: false, ct);
-
-    private static async Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, bool viewerIsAdmin, CancellationToken ct)
+    public static async Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, HttpContext context, CancellationToken ct)
     {
         var post = await db.Posts.FindAsync([id], ct);
-        if (post is null || !post.Hidden || viewerIsAdmin)
+        if (post is null || !post.Hidden)
         {
             return post;
         }
 
+        // Only a hidden look asks who is looking; the moderator flag is read off the row, never off the cookie.
+        if (await AdminEndpoints.IsAdminViewerAsync(context, db, ct))
+        {
+            return post;
+        }
+
+        return await VisibleToAuthorAsync(db, post, Sessions.UserId(context.User), ct);
+    }
+
+    /// <summary>The same rule without a request, so without the moderator allowance. On a route, prefer the overload with the context.</summary>
+    public static async Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, CancellationToken ct)
+    {
+        var post = await db.Posts.FindAsync([id], ct);
+        return post is null || !post.Hidden ? post : await VisibleToAuthorAsync(db, post, viewerId, ct);
+    }
+
+    private static async Task<Post?> VisibleToAuthorAsync(AppDbContext db, Post post, Guid? viewerId, CancellationToken ct)
+    {
         if (post.UserId != viewerId || await db.Users.AnyAsync(u => u.Id == post.UserId && u.Suspended, ct))
         {
             return null;

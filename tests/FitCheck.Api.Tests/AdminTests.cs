@@ -3,21 +3,20 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FitCheck.Api.Tests;
 
-/// <summary>An app with one moderator, "mod_one", in Admin:Handles.</summary>
+/// <summary>An app whose moderator, "mod_one", signs up like anyone else and is then promoted the way --admin does it.</summary>
 public sealed class AdminApp : TestApp
 {
     public const string Moderator = "mod_one";
-
-    public AdminApp()
-    {
-        AdminHandles = Moderator;
-    }
 }
 
-/// <summary>The moderation routes: the gate, the queue, hide/show/delete, and suspension with everything it takes along.</summary>
+/// <summary>
+/// The moderation routes: the gate, the queue, hide/show/delete, and suspension with everything it takes along; and how an
+/// account becomes a moderator (the flag on the row, the Admin:Handles sync, --admin/--unadmin) and what that protects.
+/// </summary>
 public class AdminTests : IClassFixture<AdminApp>
 {
     private readonly AdminApp _app;
@@ -49,7 +48,10 @@ public class AdminTests : IClassFixture<AdminApp>
         return read(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     }
 
-    /// <summary>The moderator's own client. The handle differs in case from the configured one on purpose: the list is case-insensitive.</summary>
+    /// <summary>
+    /// The moderator's own client: a normal signup, then the flag, as --admin sets it. The handle differs in case from the
+    /// promoted one on purpose: the command is case-insensitive, like handles everywhere.
+    /// </summary>
     private async Task<HttpClient> ModeratorAsync()
     {
         var client = _app.NewClient();
@@ -59,8 +61,35 @@ public class AdminTests : IClassFixture<AdminApp>
             return client;
         }
 
-        await _app.SignupAsync(client, "Mod_One");
+        var me = await _app.SignupAsync(client, "Mod_One");
+        Assert.False(me.GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("MOD_ONE"));
         return client;
+    }
+
+    /// <summary>Another moderator, promoted the same way, for the tests that need two.</summary>
+    private async Task<HttpClient> PromotedAsync(string handle)
+    {
+        var (client, _, _) = await _app.NewUserAsync(handle);
+        Assert.Equal(AdminChange.Changed, await _app.PromoteAsync(handle));
+        return client;
+    }
+
+    private static MultipartFormDataContent AvatarForm(byte[] image)
+    {
+        var file = new ByteArrayContent(image);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+        return new MultipartFormDataContent { { file, "image", "me.jpg" } };
+    }
+
+    private static async Task<JsonElement> OpenChallengeAsync(HttpClient brand, string title)
+    {
+        var response = await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title, brief = "Show us the look.", intent = "Office", prize = "A shirt", endsAt = DateTime.UtcNow.AddDays(3)
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return await Json(response);
     }
 
     private async Task<List<HttpClient>> ReportPostAsync(Guid postId, string prefix, int count, string reason = "spam")
@@ -122,7 +151,7 @@ public class AdminTests : IClassFixture<AdminApp>
     }
 
     [Fact]
-    public async Task Me_says_isAdmin_only_for_the_handles_in_the_list()
+    public async Task Me_says_isAdmin_only_for_promoted_accounts_and_the_flag_takes_effect_on_the_next_request()
     {
         var moderator = await ModeratorAsync();
         var me = await moderator.GetFromJsonAsync<JsonElement>("/api/auth/me");
@@ -135,7 +164,188 @@ public class AdminTests : IClassFixture<AdminApp>
         var login = await Json(await _app.NewClient().PostAsJsonAsync("/api/auth/login", new { handle = "me_plain", password = "password123" }));
         Assert.False(login.GetProperty("isAdmin").GetBoolean());
         Assert.Equal(HttpStatusCode.OK, (await moderator.GetAsync("/api/admin/queue")).StatusCode);
+
+        // The flag is read off the row every time: --unadmin shuts the door on the very next request of a live session, and
+        // --admin opens it, with no new cookie either way.
+        var second = await PromotedAsync("mod_flag");
+        Assert.Equal(HttpStatusCode.OK, (await second.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal(AdminChange.Changed, await _app.DemoteAsync("mod_flag"));
+        Assert.Equal(AdminChange.Unchanged, await _app.DemoteAsync("mod_flag"));
+        Assert.False((await second.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await second.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("mod_flag"));
+        Assert.Equal(AdminChange.Unchanged, await _app.PromoteAsync("mod_flag"));
+        Assert.Equal(HttpStatusCode.OK, (await second.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal(AdminChange.NotFound, await _app.PromoteAsync("nobody_at_all"));
     }
+
+    [Fact]
+    public async Task A_handle_in_the_admin_list_cannot_be_registered_by_anyone()
+    {
+        // The owner signs up first and lists the handle afterwards; from then on the handle is taken for everybody else, in
+        // any case, so nobody can register it and be promoted at the next restart.
+        using var app = new TestApp { AdminHandles = "Owner_Handle" };
+        var client = app.NewClient();
+        foreach (var handle in new[] { "owner_handle", "OWNER_HANDLE", "Owner_Handle" })
+        {
+            var refused = await client.PostAsJsonAsync("/api/auth/signup", new { handle, password = "password123", confirmed16Plus = true, language = "en" });
+            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+            Assert.Equal("That handle is taken.", await ErrorOf(refused));
+        }
+
+        var neighbour = await app.SignupAsync(app.NewClient(), "owner_handle2");
+        Assert.False(neighbour.GetProperty("isAdmin").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_sync_promotes_listed_accounts_that_exist_and_never_demotes()
+    {
+        var (listed, listedId, _) = await _app.NewUserAsync("Sync_Listed");
+        var (other, otherId, _) = await _app.NewUserAsync("sync_other");
+        Assert.Equal(HttpStatusCode.Forbidden, (await listed.GetAsync("/api/admin/queue")).StatusCode);
+
+        // What the start of the app runs after the migrations, with the list from Admin:Handles (case-insensitive, a handle
+        // that has not signed up yet is only a warning).
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(1, await AdminSync.PromoteListedAsync(db, ["SYNC_LISTED", "not_signed_up_yet"], NullLogger.Instance, CancellationToken.None));
+            Assert.Equal(0, await AdminSync.PromoteListedAsync(db, ["sync_listed"], NullLogger.Instance, CancellationToken.None));
+        }
+
+        Assert.True((await listed.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.OK, (await listed.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.False((await other.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync("/api/admin/queue")).StatusCode);
+
+        // A list without the handle (or an empty one) takes nothing away: removing a moderator is --unadmin, on purpose.
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(0, await AdminSync.PromoteListedAsync(db, ["someone_else_entirely"], NullLogger.Instance, CancellationToken.None));
+            Assert.Equal(0, await AdminSync.PromoteListedAsync(db, [], NullLogger.Instance, CancellationToken.None));
+            Assert.Equal([listedId], db.Users.Where(u => (u.Id == listedId || u.Id == otherId) && u.IsAdmin).Select(u => u.Id).ToArray());
+        }
+
+        Assert.True(FromDb(db => db.Users.Single(u => u.Id == listedId).IsAdmin));
+        Assert.False(FromDb(db => db.Users.Single(u => u.Id == otherId).IsAdmin));
+    }
+
+    [Fact]
+    public async Task A_moderator_cannot_delete_their_account_until_un_admined_and_the_freed_handle_carries_nothing()
+    {
+        var leaving = await PromotedAsync("mod_leaving");
+        var refused = await leaving.DeleteAsync("/api/users/me");
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Equal("Moderators can't delete their account while they moderate. Run --unadmin first.", await ErrorOf(refused));
+        // Still there, still signed in, still a moderator.
+        Assert.Equal(HttpStatusCode.OK, (await leaving.GetAsync("/api/admin/queue")).StatusCode);
+
+        Assert.Equal(AdminChange.Changed, await _app.DemoteAsync("mod_leaving"));
+        Assert.Equal(HttpStatusCode.NoContent, (await leaving.DeleteAsync("/api/users/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await leaving.GetAsync("/api/auth/me")).StatusCode);
+
+        // A stranger takes the freed handle: an ordinary account, whatever the handle used to be.
+        var (stranger, _, _) = await _app.NewUserAsync("mod_leaving");
+        Assert.False((await stranger.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("isAdmin").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await stranger.GetAsync("/api/admin/queue")).StatusCode);
+        var (victim, _, _) = await _app.NewUserAsync("mod_leaving_victim");
+        Assert.Equal(HttpStatusCode.Forbidden, (await stranger.PostAsync("/api/admin/users/mod_leaving_victim/suspend", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await victim.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Suspending_a_moderator_is_refused_with_the_command_that_does_it()
+    {
+        var moderator = await ModeratorAsync();
+        var other = await PromotedAsync("mod_protected");
+
+        var refused = await moderator.PostAsync("/api/admin/users/MOD_PROTECTED/suspend", null);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("Moderators are removed with the --unadmin command, not suspended.", await ErrorOf(refused));
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.False(FromDb(db => db.Users.Single(u => u.HandleLower == "mod_protected").Suspended));
+
+        // Once un-admined, the account is anyone's to suspend.
+        Assert.Equal(AdminChange.Changed, await _app.DemoteAsync("mod_protected"));
+        var suspended = await Json(await moderator.PostAsync("/api/admin/users/mod_protected/suspend", null));
+        Assert.True(suspended.GetProperty("suspended").GetBoolean());
+        await moderator.PostAsync("/api/admin/users/mod_protected/unsuspend", null);
+    }
+
+    [Fact]
+    public async Task Suspending_a_brand_closes_its_open_challenges_for_good()
+    {
+        var moderator = await ModeratorAsync();
+        var (brand, brandId, _) = await _app.NewUserAsync("susp_brand", accountType: "Brand");
+        var (entrant, _, _) = await _app.NewUserAsync("susp_entrant");
+        var (late, _, _) = await _app.NewUserAsync("susp_late");
+        var (voter, _, _) = await _app.NewUserAsync("susp_voter");
+        var challenge = await OpenChallengeAsync(brand, "Brand looks");
+        var challengeId = challenge.GetProperty("id").GetGuid();
+        var tag = challenge.GetProperty("tag").GetString()!;
+        var entryCheck = await _app.CheckAsync(entrant);
+        var entry = await _app.PostAsync(entrant, entryCheck, caption: $"in #{tag}");
+        Assert.Equal(challengeId, entry.GetProperty("challengeId").GetGuid());
+        var entryId = entry.GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, (await voter.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryId })).StatusCode);
+        var anonymous = _app.NewClient();
+        Assert.Contains((await anonymous.GetFromJsonAsync<JsonElement>("/api/challenges")).EnumerateArray(), c => c.GetProperty("id").GetGuid() == challengeId);
+
+        Assert.True((await Json(await moderator.PostAsync("/api/admin/users/susp_brand/suspend", null))).GetProperty("suspended").GetBoolean());
+
+        // Closed now, with no winner, and nothing goes out about it.
+        var row = FromDb(db => db.Challenges.Single(c => c.Id == challengeId));
+        Assert.NotNull(row.ResolvedAt);
+        Assert.Null(row.WinnerPostId);
+        var detail = await anonymous.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.False(detail.GetProperty("challenge").GetProperty("isOpen").GetBoolean());
+        Assert.True(IsNull(detail.GetProperty("challenge"), "winnerPostId"));
+        Assert.True(IsNull(detail, "winner"));
+        Assert.DoesNotContain((await anonymous.GetFromJsonAsync<JsonElement>("/api/challenges")).EnumerateArray(), c => c.GetProperty("id").GetGuid() == challengeId);
+        Assert.Contains((await anonymous.GetFromJsonAsync<JsonElement>("/api/challenges?state=ended")).EnumerateArray(), c => c.GetProperty("id").GetGuid() == challengeId);
+        Assert.DoesNotContain((await entrant.GetFromJsonAsync<JsonElement>("/api/notifications")).GetProperty("items").EnumerateArray(), n => n.GetProperty("type").GetString() == "won");
+        Assert.Equal(0, FromDb(db => db.Notifications.Count(n => n.UserId == brandId && n.Type == "ended")));
+
+        // The hashtag no longer enters anyone, and votes are closed.
+        var lateCheck = await _app.CheckAsync(late);
+        var latePost = await _app.PostAsync(late, lateCheck, caption: $"too late #{tag}");
+        Assert.True(IsNull(latePost, "challengeId"));
+        Assert.Equal(HttpStatusCode.BadRequest, (await late.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryId })).StatusCode);
+        // The entry itself is the entrant's look and stays up.
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync($"/api/posts/{entryId}")).StatusCode);
+
+        // Lifting the suspension does not reopen it, and reading it afterwards still crowns nobody.
+        await moderator.PostAsync("/api/admin/users/susp_brand/unsuspend", null);
+        detail = await anonymous.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.False(detail.GetProperty("challenge").GetProperty("isOpen").GetBoolean());
+        Assert.True(IsNull(detail, "winner"));
+        Assert.DoesNotContain((await anonymous.GetFromJsonAsync<JsonElement>("/api/challenges")).EnumerateArray(), c => c.GetProperty("id").GetGuid() == challengeId);
+        Assert.Null(FromDb(db => db.Challenges.Single(c => c.Id == challengeId).WinnerPostId));
+        // The brand is back and can open a new one.
+        Assert.Equal(HttpStatusCode.OK, (await _app.NewClient().PostAsJsonAsync("/api/auth/login", new { handle = "susp_brand", password = "password123" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_suspended_accounts_avatar_is_not_served_until_the_suspension_is_lifted()
+    {
+        var moderator = await ModeratorAsync();
+        var (user, _, _) = await _app.NewUserAsync("susp_face");
+        var me = await Json(await user.PostAsync("/api/users/me/avatar", AvatarForm(TestImages.Jpeg())));
+        var url = me.GetProperty("avatarUrl").GetString()!;
+        var anonymous = _app.NewClient();
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(url)).StatusCode);
+
+        await moderator.PostAsync("/api/admin/users/susp_face/suspend", null);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(url)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/api/users/susp_face/avatar")).StatusCode);
+
+        await moderator.PostAsync("/api/admin/users/susp_face/unsuspend", null);
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(url)).StatusCode);
+    }
+
+    private static bool IsNull(JsonElement element, string name) =>
+        !element.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null;
 
     [Fact]
     public async Task The_queue_lists_reported_looks_and_comments_newest_report_first_with_reasons_and_counts()
@@ -389,6 +599,7 @@ public class AdminTests : IClassFixture<AdminApp>
         var moderator = await ModeratorAsync();
         var self = await moderator.PostAsync($"/api/admin/users/{AdminApp.Moderator}/suspend", null);
         Assert.Equal(HttpStatusCode.BadRequest, self.StatusCode);
+        Assert.Contains("--unadmin", await ErrorOf(self));
         Assert.False((await moderator.GetFromJsonAsync<JsonElement>("/api/auth/me")).TryGetProperty("suspended", out _));
         Assert.Equal(HttpStatusCode.OK, (await moderator.GetAsync("/api/admin/queue")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await moderator.PostAsync("/api/admin/users/nobody_here/suspend", null)).StatusCode);

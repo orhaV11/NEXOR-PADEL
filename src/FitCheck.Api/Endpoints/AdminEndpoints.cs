@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
@@ -8,9 +7,11 @@ using Microsoft.Extensions.Options;
 namespace FitCheck.Api.Endpoints;
 
 /// <summary>
-/// The moderation queue, for the handles listed in Admin:Handles: reported looks and comments, hide/show/delete, and
-/// account suspension. Every route sits behind <see cref="GateAsync"/>, so a signed-in non-admin gets 403 before anything
-/// is looked up, on GET as much as on POST.
+/// The moderation queue, for the accounts with <see cref="AppUser.IsAdmin"/> set (by the Admin:Handles sync at start or the
+/// --admin command, see Data/AdminSync.cs): reported looks and comments, hide/show/delete, and account suspension. Every
+/// route sits behind <see cref="GateAsync"/>, so a signed-in non-admin gets 403 before anything is looked up, on GET as much
+/// as on POST. The gate reads the flag off the row it loads, never the handle in the cookie: a handle is something anyone
+/// can register once it is free.
 ///
 /// Suspension is one flag on the account plus the same Hidden flag reports use: on suspend every look and comment of the
 /// account goes hidden, on lift the ones the community did not hide on its own (fewer than Limits:ReportsToHide reports)
@@ -47,17 +48,15 @@ public static class AdminEndpoints
     public static IResult Error(int status, string message) => AuthEndpoints.Error(status, message);
 
     /// <summary>
-    /// Whether the request's cookie belongs to a moderator: the handle claim against Admin:Handles, read fresh on every
-    /// request so removing a handle from the list takes effect at once. Handles never change, so the claim is as good as
-    /// the row for a read; the admin routes themselves load the row.
+    /// Whether the request's cookie belongs to a moderator who could pass the gate: the row's flag, looked up now. One indexed
+    /// read, and only the callers that have a hidden look in hand pay for it (<see cref="PostEndpoints.VisiblePostAsync(AppDbContext, Guid, HttpContext, CancellationToken)"/>).
     /// </summary>
-    public static bool IsAdminViewer(HttpContext context)
+    public static async Task<bool> IsAdminViewerAsync(HttpContext context, AppDbContext db, CancellationToken ct)
     {
-        var handle = context.User.FindFirstValue(ClaimTypes.Name);
-        return handle is not null && context.RequestServices.GetRequiredService<IOptions<AdminOptions>>().Value.IsAdmin(handle);
+        return Sessions.UserId(context.User) is Guid viewerId && await db.Users.AnyAsync(u => u.Id == viewerId && u.IsAdmin && !u.Suspended, ct);
     }
 
-    /// <summary>The gate: the signed-in account (401 gone, 403 suspended, as everywhere) must be in Admin:Handles (403 otherwise).</summary>
+    /// <summary>The gate: the signed-in account (401 gone, 403 suspended, as everywhere) must carry the IsAdmin flag (403 otherwise).</summary>
     private static async ValueTask<object?> GateAsync(EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)
     {
         var context = invocation.HttpContext;
@@ -70,7 +69,7 @@ public static class AdminEndpoints
             return failure;
         }
 
-        if (!services.GetRequiredService<IOptions<AdminOptions>>().Value.IsAdmin(user.Handle))
+        if (!user.IsAdmin)
         {
             return Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.admin_only"));
         }
@@ -304,8 +303,7 @@ public static class AdminEndpoints
         return Results.Json(await UserDtosAsync(db, users, ct), AppJson.Options);
     }
 
-    private static async Task<IResult> SuspendAsync(
-        string handle, HttpContext context, AppDbContext db, IOptions<AdminOptions> admins, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> SuspendAsync(string handle, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
         var admin = Admin(context);
         var user = await UserEndpoints.FindByHandleAsync(db, handle, ct);
@@ -314,18 +312,24 @@ public static class AdminEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(admin.PreferredLanguage, "error.user_not_found"));
         }
 
-        // Moderators are not for each other to switch off, and not themselves either: that is a config change, not a tap.
-        if (user.Id == admin.Id || admins.Value.IsAdmin(user.Handle))
+        // Moderators are not for each other to switch off, and not themselves either (the gate makes the caller one): that is
+        // the --unadmin command on the box, not a tap.
+        if (user.IsAdmin)
         {
-            return Error(StatusCodes.Status400BadRequest, localizer.Get(admin.PreferredLanguage, "error.forbidden"));
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(admin.PreferredLanguage, "error.admin_protected"));
         }
 
         if (!user.Suspended)
         {
+            var now = DateTime.UtcNow;
             await using var tx = await db.Database.BeginTransactionAsync(ct);
             user.Suspended = true;
             // Every look goes under the same flag reports use, so no list query anywhere needs an account check.
             await db.Posts.Where(p => p.UserId == user.Id && !p.Hidden).ExecuteUpdateAsync(s => s.SetProperty(p => p.Hidden, true), ct);
+            // A brand's open challenges close now, with no winner and no notifications: the hashtag stops taking entries and
+            // nobody is crowned by an account that is locked out. The lift does not reopen them; the brand opens a new one.
+            await db.Challenges.Where(c => c.BrandId == user.Id && c.ResolvedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.ResolvedAt, now).SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
             // Comments too, and a comment that goes hidden leaves its post's count, as a reported one does.
             var visible = await db.Comments.Where(c => c.UserId == user.Id && !c.Hidden)
                 .GroupBy(c => c.PostId).Select(g => new { PostId = g.Key, Count = g.Count() }).ToListAsync(ct);

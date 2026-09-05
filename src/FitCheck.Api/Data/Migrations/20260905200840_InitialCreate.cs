@@ -31,6 +31,7 @@ namespace FitCheck.Api.Data.Migrations
                     StreakCount = table.Column<int>(type: "INTEGER", nullable: false),
                     LastCheckDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Suspended = table.Column<bool>(type: "INTEGER", nullable: false),
+                    IsAdmin = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>

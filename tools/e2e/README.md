@@ -26,5 +26,10 @@ accounts; the mention notification; a brand featuring the look and its Community
 creator's notification and Featured tab; Explore (trending tag, brand card, top look), search and the tag page;
 signing up in Hebrew and following a brand from the welcome screen; the For you feed and double-tap to fire;
 the Following feed; a challenge from brief to winner reached through Explore, with the winning entry featured
-through the challenge route; photo privacy by URL; the pilot metrics; deleting a look and an account; signing
-out and back in. The service worker is blocked in the test contexts so it never masks a live request.
+through the challenge route; photo privacy by URL; the pilot metrics; the in-app camera against Chromium's fake
+device (a photo, then a clip recorded in clip mode, its frame picked with the slider, the still judged, the story
+card drawn, the clip posted, streamed with Range and shown in the feed with its pill); the moderation queue (a
+report, hide, show again, suspend and lift, with Noa in `Admin:Handles`); the guidelines page; the push switch on
+a server without VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account;
+signing out and back in. The service worker is blocked in the test contexts so it never masks a live request; the
+browser is launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real.

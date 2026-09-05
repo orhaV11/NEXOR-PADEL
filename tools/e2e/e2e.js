@@ -66,6 +66,7 @@ let step = 'boot';
 
 async function person(browser, name, locale) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale, serviceWorkers: 'block' });
+  await context.grantPermissions(['camera', 'microphone'], { origin: base });
   const page = await context.newPage();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${step} ${name}] ` + m.text()); if (m.type() === 'warning') consoleWarnings.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push(`[${step} ${name}] pageerror: ` + e.message));
@@ -171,6 +172,7 @@ async function postIt(page, opts) {
     Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
     ConnectionStrings__Default: `Data Source=${DB}`,
     Storage__Root: path.join(DATA, 'storage'),
+    Admin__Handles__0: 'noa',
   }, path.join(DATA, 'api.log'));
 
   await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
@@ -178,7 +180,8 @@ async function postIt(page, opts) {
   const stubState = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
   assert.deepStrictEqual(stubState, [], `port ${STUB_PORT} is served by a stale stub with ${stubState.length} recorded requests; kill it first`);
 
-  const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+  // A fake camera and microphone stand in for the phone's, so the in-app camera and the clip recorder run for real.
+  const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
   const noa = await person(browser, 'noa', 'en-US');
   const brand = await person(browser, 'brand', 'en-US');
   const dan = await person(browser, 'dan', 'he-IL');
@@ -221,6 +224,7 @@ async function postIt(page, opts) {
   await noa.waitForSelector('#a-handle');
   assert.strictEqual(await count(noa, '#a-brand'), 0, 'no brand question at signup');
   assert.strictEqual(await count(noa, '#a-name'), 0, 'no display name at signup');
+  assert.strictEqual(await count(noa, '#a-guidelines'), 1, 'the community guidelines are one tap from signup');
   await noa.fill('#a-handle', 'noa');
   await noa.fill('#a-password', 'password123');
   await shot(noa, '03-signup-en');
@@ -467,7 +471,158 @@ async function postIt(page, opts) {
   assert.strictEqual(metrics.social.brands, 1);
 
   step = '10';
-  // 10. Noa deletes her first look, then her account; the brand's walls empty out; Dan signs out and back in.
+  // 10. The in-app camera (a fake device here): a photo, then a clip in clip mode; the frame is picked, the stylist judges
+  //     that still, the story card draws, the clip posts, streams with Range, and plays in the feed with its pill.
+  await go(noa, '#/check');
+  await noa.waitForSelector('#photo');
+  await noa.click('#photo');
+  await noa.waitForSelector('#media-camera');
+  await noa.click('#media-camera');
+  await noa.waitForSelector('.cam[data-phase="live"]', { timeout: 20000 });
+  assert.strictEqual(await hash(noa), '#/camera');
+  assert.strictEqual(await noa.isVisible('.tabbar'), false, 'the dock stays out of the viewfinder');
+  await shot(noa, '19-camera-en');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="preview"]');
+  await noa.click('#cam-use');
+  await noa.waitForFunction(() => location.hash === '#/check');
+  await noa.waitForSelector('#photo.has-image img');
+  await noa.click('#photo');
+  await noa.waitForSelector('#media-camera');
+  await noa.click('#media-camera');
+  await noa.waitForSelector('.cam[data-phase="live"]', { timeout: 20000 });
+  await noa.click('.cam-modes button:nth-child(2)');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="recording"]');
+  await noa.waitForTimeout(1600);
+  await shot(noa, '20-recording-en');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="preview"]', { timeout: 20000 });
+  await noa.click('#cam-use');
+  await noa.waitForFunction(() => location.hash === '#/check');
+  await noa.waitForSelector('#photo.has-clip video');
+  await noa.waitForSelector('#clip-frame');
+  await noa.click('.chip[data-intent=Streetwear]');
+  // Pick a frame in the middle of the clip: the slider seeks, and the change captures that frame as the still.
+  await noa.$eval('#clip-frame', (range) => {
+    range.value = String(Math.round(Number(range.max) / 2));
+    range.dispatchEvent(new Event('input', { bubbles: true }));
+    range.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await noa.waitForFunction(() => !document.getElementById('submit').disabled, null, { timeout: 15000 });
+  await shot(noa, '21-check-clip-en');
+  await noa.click('#submit');
+  await noa.waitForSelector('#result .score', { timeout: 30000 });
+  await noa.click('#share-card');
+  await noa.waitForSelector('#sc-card');
+  await noa.waitForFunction(() => { const i = document.getElementById('sc-card'); return !!i && i.complete && i.naturalWidth === 1080 && i.naturalHeight === 1920; }, null, { timeout: 30000 });
+  assert.ok((await noa.getAttribute('#sc-save', 'href')).startsWith('blob:'), 'the card is a saved image');
+  await shot(noa, '22-share-card-en');
+  await noa.keyboard.press('Escape');
+  await noa.waitForFunction(() => !document.querySelector('.sheet'));
+  const post3 = await postIt(noa, { caption: 'Filmed in the app #clip' });
+  const clipPost = await noa.request.get(base + '/api/posts/' + post3).then((r) => r.json());
+  assert.strictEqual(clipPost.videoUrl, '/api/posts/' + post3 + '/video');
+  const clipHead = await noa.request.get(base + clipPost.videoUrl, { headers: { Range: 'bytes=0-3' } });
+  assert.strictEqual(clipHead.status(), 206, 'a <video> seeks with Range');
+  assert.match(clipHead.headers()['content-range'], /^bytes 0-3\/\d+$/);
+  assert.match(clipHead.headers()['content-type'], /^video\//);
+  assert.strictEqual((await get(`${base}${clipPost.videoUrl}`)).status, 200, 'a public look\'s clip plays signed out');
+  // Home keeps its last list for ten minutes; a reload is the honest way to see what was posted since.
+  await go(dan, '#/');
+  await dan.reload();
+  await dan.waitForSelector('.card.has-clip', { timeout: 30000 });
+  assert.strictEqual(await count(dan, '.card.has-clip .clip-pill'), 1, 'clips are marked');
+  assert.ok(await dan.$('.card.has-clip video[poster]'), 'the picked frame is the poster');
+  assert.strictEqual(await count(dan, '.card.has-clip .card-media .sound'), 1, 'a sound toggle');
+  await shot(dan, '23-clip-card-he');
+  await go(dan, '#/u/noa');
+  await dan.waitForSelector('.grid a');
+  assert.strictEqual(await count(dan, '.grid a.is-clip'), 1, 'the grid marks the clip');
+  const clipFiles = [];
+  for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) clipFiles.push(user + '/' + f);
+  assert.strictEqual(clipFiles.length, 5, 'the clip and its still joined the store: ' + clipFiles.join(','));
+  assert.ok(clipFiles.some((f) => /\.(webm|mp4)$/.test(f)), 'the clip is on disk');
+  for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
+    assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);
+  }
+  assert.strictEqual((await getJson(`${base}/api/metrics/pilot`)).social.videos, 1);
+
+  step = '11';
+  // 11. Dan reports the clip; Noa is a moderator (Admin:Handles): the queue, hide, show again, suspend Dan, lift it.
+  const report = await dan.request.post(base + '/api/posts/' + post3 + '/report', { headers: { 'X-Requested-With': 'Orevosh' }, data: { reason: 'not an outfit' } });
+  assert.ok(report.ok(), 'report ' + report.status());
+  expected.push('GET /api/admin/queue -> 403');
+  const notAdmin = await dan.request.get(base + '/api/admin/queue');
+  assert.strictEqual(notAdmin.status(), 403, 'the queue is for moderators');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#moderation');
+  await noa.click('#moderation');
+  await noa.waitForFunction(() => location.hash === '#/admin');
+  await noa.waitForSelector('.adm-item[data-kind="post"]');
+  assert.strictEqual(await count(noa, '.adm-item'), 1);
+  assert.ok((await text(noa, '.adm-item .adm-reasons')).includes('not an outfit'));
+  await shot(noa, '24-admin-en');
+  await noa.click('.adm-item[data-kind="post"] button:has-text("Hide")');
+  await noa.waitForSelector('.adm-item[data-kind="post"] button:has-text("Show again")');
+  expected.push(`GET /api/posts/${post3} -> 404`);
+  assert.strictEqual((await dan.request.get(base + '/api/posts/' + post3)).status(), 404, 'hidden for everyone else');
+  assert.strictEqual((await noa.request.get(base + '/api/posts/' + post3 + '/video')).status(), 200, 'the moderator can still play it');
+  await noa.click('.adm-item[data-kind="post"] button:has-text("Show again")');
+  await noa.waitForFunction(() => !document.querySelector('.adm-item'));
+  assert.strictEqual((await dan.request.get(base + '/api/posts/' + post3)).status(), 200, 'back for everyone');
+  await noa.fill('#adm-q', 'dan');
+  await noa.press('#adm-q', 'Enter');
+  await noa.waitForSelector('#adm-users button:has-text("Suspend account")');
+  await noa.click('#adm-users button:has-text("Suspend account")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('#adm-users button:has-text("Lift suspension")');
+  expected.push('GET /api/auth/me -> 403');
+  assert.strictEqual((await dan.request.get(base + '/api/auth/me')).status(), 403, 'a suspended account is refused');
+  expected.push('GET /api/users/dan -> 404');
+  assert.strictEqual((await get(`${base}/api/users/dan`)).status, 404, 'and reads as missing');
+  await noa.click('#adm-users button:has-text("Lift suspension")');
+  await noa.waitForSelector('#adm-users button:has-text("Suspend account")');
+  assert.strictEqual((await get(`${base}/api/users/dan`)).status, 200);
+  // The refusal ended Dan's session; a reload shows him signed out, and he signs back in.
+  await dan.reload();
+  await dan.waitForSelector(settled);
+  await go(dan, '#/login');
+  await dan.waitForSelector('#a-handle');
+  await dan.fill('#a-handle', 'dan');
+  await dan.fill('#a-password', 'password123');
+  await dan.click('#a-submit');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector(settled);
+
+  step = '12';
+  // 12. The guidelines page, the push switch on a server without keys, and the production surface.
+  await go(dan, '#/guidelines');
+  assert.strictEqual(await text(dan, '#view h1'), 'כללי הקהילה');
+  assert.strictEqual(await count(dan, '.g-rules li'), 5);
+  await shot(dan, '25-guidelines-he');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#s-push');
+  await noa.waitForFunction(() => !document.getElementById('s-push-status').hidden);
+  assert.strictEqual(await text(noa, '#s-push-status'), 'Not set up on this server yet.');
+  assert.strictEqual(await noa.isDisabled('#s-push'), true);
+  assert.deepStrictEqual(await noa.request.get(base + '/api/push/state').then((r) => r.json()), { enabled: false, subscribed: false });
+  expected.push('POST /api/push/subscriptions -> 400');
+  assert.strictEqual((await noa.request.post(base + '/api/push/subscriptions', { headers: { 'X-Requested-With': 'Orevosh' }, data: { endpoint: 'https://push.example/x', p256dh: 'a', auth: 'b' } })).status(), 400);
+  const health = await get(`${base}/healthz`);
+  assert.strictEqual(health.status, 200);
+  assert.strictEqual(health.body.toString(), 'ok');
+  const config = await getJson(`${base}/api/config`);
+  assert.strictEqual(config.maxVideoSeconds, 30);
+  assert.strictEqual(config.pushPublicKey, undefined, 'no push key without VAPID keys');
+  const home = await get(`${base}/`);
+  assert.strictEqual(home.headers['x-content-type-options'], 'nosniff');
+  assert.strictEqual(home.headers['x-frame-options'], 'DENY');
+  assert.strictEqual(home.headers['strict-transport-security'], undefined, 'HSTS only over https');
+
+  step = '13';
+  // 13. Noa deletes her first look, then her account; the brand's walls empty out; Dan signs out and back in.
   await go(noa, '#/post/' + post1);
   await noa.waitForSelector('.menu-open');
   await noa.click('.menu-open');
@@ -492,6 +647,9 @@ async function postIt(page, opts) {
   assert.strictEqual(after.social.users, 2);
   assert.strictEqual(after.social.featured, 0);
   assert.strictEqual(after.social.mentions, 0);
+  assert.strictEqual(after.social.videos, 0, 'the clip left with the account');
+  expected.push(`GET /api/posts/${post3}/video -> 404`);
+  assert.strictEqual((await get(`${base}/api/posts/${post3}/video`)).status, 404);
   await go(brand, '#/u/nexor/featured');
   await brand.waitForSelector('#view .empty');
   await go(dan, '#/settings');

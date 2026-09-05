@@ -161,11 +161,38 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
 | `.install` | `--surface` radius 18, the mark 44px as the icon |
 | alerts | 1px `--accent` (info) / `--danger` (error) radius 12 |
 
+## 8b. Round 7 surfaces: the camera, clips, the story card, moderation
+
+- **The camera** (`views/camera.js`, `#/camera`): a full-bleed viewfinder with the masthead and the dock hidden. Chrome is
+  three 44px discs on translucent dark (close at the top start, timer and flip at the top end), a dashed 4:7 framing guide
+  with the hint under it (fades after 3s, back on tap), two mode pills (Photo / Clip) and **the shutter, which is the
+  ring**: 76px, the gradient stroke, a white disc inside. Tap = photo (a 120ms white flash). Hold, or tap in Clip mode,
+  and the disc becomes a red rounded square while the ring draws itself clockwise toward the 30-second cap, with a
+  "Recording · Ns" pill and a blinking red dot at the top. The countdown is the display face at 168px. The preview
+  after a capture is honest (`object-fit: contain`) with Retake (secondary) and Use it (gradient).
+- **Clips in cards** (`core.js` media helpers, `app.css`): a `<video>` in the same 4:5 box as a photo, poster = the picked
+  frame, muted autoplay when 60% visible (never more than two at once), a `.clip-pill` (the clip glyph + CLIP, caps
+  label style) at the top start corner of cards and grid tiles, and a 32px sound disc at the top end corner of cards
+  (44px hit area, icon `mute`/`sound`). Double-tap still fires; the sound disc stops propagation.
+- **The frame picker** (`views/check.js`): the clip paused in the photo box, one range slider under it in `--accent`,
+  "Clip · Ns" as a tag with the clip glyph, and a text button to remove the clip.
+- **The story card** (`app/sharecard.js`): 1080×1920, the stage with the lilac glow, the photo cover-fitted in a 936×1170
+  block with 48px corners, the score ring at r=160 straddling the photo's bottom-end corner (numeral Outfit 800 160,
+  "/10" under it), the headline Outfit 700 64 on two lines max, the intent as a caps pill, name + @handle, a hairline,
+  the wordmark 52px tall at the start edge and "Checked on OREVOSH" at the end edge. Mirrored for RTL. Shown in a sheet
+  with Share (when files can be shared) and Save image.
+- **Moderation** (`views/admin.js`): the queue as compact look cards (or the comment text with its author row), a meta line
+  with the report count, the reasons as small chips, Hidden/Suspended tags, and an action row of outlined pills; Delete
+  and Suspend confirm in a danger sheet. Reached from Settings, only for `isAdmin`.
+- **The guidelines** (`views/pages.js`): h1, the intro, five numbered rules with bold titles, "What we keep", a version
+  line. Linked under the 16+ checkbox on signup.
+
 ## 9. Motion
 
 Ring draw + flame pop on the check control; flame breathing on the loading screen; the score count-up on the result;
 the double-tap burst; a 120ms `scale(.985)` press on buttons; segment underline slides (transform, 200ms); sheets rise
-220ms; everything off under `prefers-reduced-motion`. Nothing else moves.
+220ms; the camera's ring draws while a clip records and its red dot blinks; the feed switch coin fades its fill in and pops
+its glyph; everything off under `prefers-reduced-motion`. Nothing else moves.
 
 ## 10. Where each rule lives
 

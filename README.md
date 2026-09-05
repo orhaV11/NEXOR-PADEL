@@ -1,8 +1,10 @@
 # OREVOSH
 
-A social app for looks. Pick where the outfit is going (date, office, streetwear…), add a photo, and a
-stylist scores it **relative to that intent**, lists what you are wearing, what works, and **the one tip**.
-The check is private. Post it and it joins a feed where people react with fire, comment, save and follow.
+A social app for looks. Pick where the outfit is going (date, office, streetwear…), add a photo or film a
+short clip with the in-app camera, and a stylist scores the look **relative to that intent**, lists what you
+are wearing, what works, and **the one tip**. The check is private. Post it and it joins a feed where people
+react with fire, comment, save and follow; clips play in the feed, and a story card carries the score to
+Instagram and TikTok.
 Tag the brands you wear with `@brand`, add `#tags`, and brands feature the community looks they love, open
 challenges with a prize, and tag products on their own looks. Browsing needs no account.
 
@@ -24,8 +26,13 @@ On Windows PowerShell the first line is `$env:ANTHROPIC_API_KEY="sk-ant-..."` (q
 variable lives only in that window.
 
 Open http://localhost:5000 (the port is printed on start). The SQLite database (`orevosh.db`) and the private
-photo folder (`storage/`) are created next to the project on first run; both are git-ignored. A `fitcheck.db`
+media folder (`storage/`) are created next to the project on first run; both are git-ignored. The schema is
+versioned with EF Core migrations and applied on start; a database from an earlier round (made before
+migrations existed) is upgraded in place after a `.bak-<stamp>` copy is written next to it. A `fitcheck.db`
 left over from an earlier build is simply unused and can be deleted.
+
+To put it on a server with your own domain, HTTPS, push notifications, backups and updates that keep
+everyone's data, follow [`DEPLOY.md`](DEPLOY.md).
 
 ### On a phone
 
@@ -60,18 +67,22 @@ last 7 days.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-181 tests: magic-byte detection, the disk image store, analyzer mapping and clamping, locale
+243 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules, the CSRF header, uploads and 413/415/429/502, the daily and
-global caps, posting, fire, comments, saves, follows, the feed tabs and the For you ranking, reports hiding
-content, challenges with votes and winner resolution, notifications, tags and mentions, featured looks,
-avatars, account-type switches, interests, Explore and search, account deletion removing files and fixing
-other people's counters, and the metrics math on a seeded dataset.
+global caps, clips (storage, Range streaming, deletion, limits), posting, fire, comments, saves, follows, the
+feed tabs and the For you ranking, reports hiding content, the moderation queue and suspensions, challenges
+with votes and winner resolution, notifications and Web Push (against a recording push service), tags and
+mentions, featured looks, avatars, account-type switches, interests, Explore and search, account deletion
+removing files and fixing other people's counters, the migrations and the pilot-database upgrade, backups,
+and the metrics math on a seeded dataset.
 
 There is also a browser test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real client in a
 phone viewport against the real API with only the Anthropic API stubbed, as three people (a person in English,
 a brand, and a person browsing in Hebrew), from signup and the welcome screen through posting with tags and
-mentions, featuring, Explore, a challenge and its winner, to deleting an account.
+mentions, featuring, Explore, a challenge and its winner, the in-app camera with a fake device (a photo, then
+a clip with its frame picked), the story card, the moderation queue and a suspension, the guidelines, the
+health and config routes, to deleting an account.
 
 ### Check the calibration before inviting people
 
@@ -92,12 +103,17 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 
 | Key | Default | Meaning |
 |---|---|---|
-| `ConnectionStrings:Default` | `Data Source=orevosh.db` | SQLite file, created on first run (`EnsureCreated`, no migrations). A relative path resolves against the project folder |
+| `ConnectionStrings:Default` | `Data Source=orevosh.db` | SQLite file. Migrations run on start (`Data/DatabaseSetup.cs`); a pre-migration pilot file is backed up and upgraded in place. A relative path resolves against the project folder |
 | `Anthropic:Model` | `claude-sonnet-5` | Must support forced tool use: Sonnet 5, Opus 5, the 4.x family, Haiku 4.5 |
 | `Anthropic:MaxTokens` | `1200` | Output budget for the tool call (Hebrew is token-heavy) |
 | `Anthropic:BaseUrl` | `https://api.anthropic.com` | Override to point at a stub in tests |
 | `Storage:Root` | `storage` | Private photo folder (checks and avatars). Relative paths resolve against the content root, never `wwwroot` |
-| `Storage:MaxImageBytes` | `6291456` | Upload limit for checks (6 MB). Avatars are capped at 2 MB. The client downscales first |
+| `Storage:MaxImageBytes` | `6291456` | Upload limit for the still of a check (6 MB). Avatars are capped at 2 MB. The client downscales first |
+| `Storage:MaxVideoBytes` | `41943040` | Upload limit for a look clip (40 MB) |
+| `Storage:MaxVideoSeconds` | `30` | Advisory clip length: the camera stops there and the picker refuses longer library clips. Returned by `/api/config` |
+| `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set |
+| `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
+| `Admin:Handles` | empty | Handles allowed into the moderation queue (`Admin__Handles__0=yourhandle`, `__1` for more) |
 | `Limits:ChecksPerDay` | `20` | Per-user cap over a rolling 24 hours |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users over a rolling 24 hours |
 | `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
@@ -122,7 +138,9 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST /api/auth/signup` | `{ handle, password, confirmed16Plus, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200. 400 invalid, 409 taken, 429 too many signups from one address |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
-| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests }` |
+| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin }`. A suspended account gets 403 and is signed out |
+| `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey? }`. No secrets |
+| `GET /healthz` | — | `ok` when the database answers, 503 otherwise. For the proxy and uptime checks |
 | `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https |
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
@@ -135,12 +153,13 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `GET /api/users/{handle}/community` | `?offset&limit` | Public posts that mention this account |
 | `GET /api/users/{handle}/featured` | `?offset&limit` | Brand: posts it featured. Person: their posts that were featured |
 | `POST` / `DELETE /api/users/{handle}/follow` 🔒 | — | `{ followers, following }`. 400 when following yourself |
-| `POST /api/checks` 🔒 | multipart: `intent`, `occasion?`, `language`, `image` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. 413 too large, 415 not JPEG/PNG/WebP, 429 over a cap (with `Retry-After`), 502 model failure |
+| `POST /api/checks` 🔒 | multipart: `intent`, `occasion?`, `language`, `image`, `video?` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok`. 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap (with `Retry-After`), 502 model failure |
 | `GET /api/checks/{id}` 🔒 | — | The check, owner only (404 otherwise) |
 | `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs |
-| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, createdAt, tags, mentions, featuredBy`. Hidden posts are visible to their author only |
+| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, createdAt, tags, mentions, featuredBy`. Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
-| `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again |
+| `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip |
+| `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted |
 | `POST` / `DELETE /api/posts/{id}/fire` 🔒 | — | `{ fireCount, fired }`. One per person; idempotent |
 | `POST` / `DELETE /api/posts/{id}/save` 🔒 | — | `{ saved }` |
 | `POST` / `DELETE /api/posts/{id}/feature` 🔒 | — | `{ featuredBy }`. Brands only; the post must mention the brand or be an entry in one of its challenges; one brand per post (409 when another brand was first); the author is notified |
@@ -159,6 +178,16 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST` / `DELETE /api/challenges/{id}/vote` 🔒 | `{ postId }` / — | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry, and not by the brand that opened it |
 | `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured` |
 | `POST /api/notifications/read` 🔒 | — | 204, marks everything read |
+| `GET /api/push/state` 🔒 | — | `{ enabled, subscribed }`: whether the server has VAPID keys, and whether this account has at least one subscription |
+| `POST /api/push/subscriptions` 🔒 | `{ endpoint, p256dh, auth }` (from `PushSubscription.toJSON()`) | `200` state. Upserts this browser's subscription for the account; 400 when push is off or the subscription is malformed |
+| `DELETE /api/push/subscriptions` 🔒 | `{ endpoint }` | 204 |
+| `POST /api/push/test` 🔒 | — | 202, sends a test notification to the caller's own browsers |
+| `GET /api/admin/queue` 🔒 | — | Moderators (`Admin:Handles`) only, 403 otherwise: reported looks and comments with counts, reasons and the author's state, plus counters |
+| `GET /api/admin/users?q=` 🔒 | — | Accounts by handle prefix (empty `q` lists suspended accounts) |
+| `POST /api/admin/posts/{id}/hide` / `unhide` 🔒 | — | Hide a look, or show it again (which also clears its reports) |
+| `DELETE /api/admin/posts/{id}` 🔒 | — | 204, removes the look, its check, photo and clip |
+| `POST /api/admin/comments/{id}/hide` / `unhide`, `DELETE /api/admin/comments/{id}` 🔒 | — | The same for comments |
+| `POST /api/admin/users/{handle}/suspend` / `unsuspend` 🔒 | — | A suspended account cannot sign in, reads as missing, and its looks and comments are hidden; lifting restores what the crowd had not hidden on its own |
 | `GET /api/metrics/pilot` | — | See above |
 
 ## How it is built
@@ -166,7 +195,10 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 ```
 FitCheck.sln
 src/FitCheck.Api/
-  Program.cs                      wiring, EnsureCreated, cookie auth, rate limiter, CSRF header check, static files
+  Program.cs                      wiring, migrations on start, cookie auth, rate limiter, CSRF header check,
+                                  security headers, static files, /api/config, /healthz, --vapid and --backup
+  Data/DatabaseSetup.cs           Migrate(), the pilot-database upgrade, the backup command
+  Data/Migrations/                the EF Core migrations (dotnet ef migrations add <Name> for the next one)
   Domain/                         StyleIntent, AppUser, OutfitCheck, OutfitFeedback, Social.cs (posts, tags, mentions,
                                   comments, fire, saves, follows, challenges, votes, notifications, reports), options
   Data/AppDbContext.cs            SQLite via EF Core; unique indexes carry the one-per-person rules
@@ -241,8 +273,11 @@ descriptive is dropped when the status is not `ok`.
 - **Brand accounts are self-declared.** Anyone can switch to brand mode in settings. Fine for an invited
   pilot; verification belongs in the launch checklist with age assurance.
 - **No password recovery.** Accounts have no email address, so a forgotten password means a new account.
-- **No moderation screen.** Hidden posts and comments stay hidden until someone clears `Hidden` and
-  `ReportCount` in the database. Featured looks are the brand's call with no review step.
+- **Moderation is a queue, not a team.** One or more handles in `Admin:Handles` see reported looks and
+  comments and can hide, delete and suspend. Featured looks are the brand's call with no review step.
+- **Clips are not transcoded.** iPhones record MP4 (H.264), which plays everywhere; Android Chrome records
+  WebM, which older iPhones cannot play. A public launch needs server-side transcoding (ffmpeg) to MP4, and
+  probably object storage for the files; the store interface is ready for it.
 - **The For you feed is a formula, not a recommender.** It ranks by fire, comments, follows, interests and
   recency; good enough for a pilot, and documented in `PHASE3.md`. Search is a prefix match on SQLite, fine at
   pilot scale.
@@ -257,15 +292,19 @@ descriptive is dropped when the status is not `ok`.
   must be behind HTTPS (the tunnel).
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run
   `scripts/calibrate.py` on real photos before judging scores.
-- **Photos stay on disk until the look or the account is deleted.** There is no retention job yet.
+- **Photos stay on disk until the look or the account is deleted; clips go with the look.** There is no
+  retention job yet, and clips are large: watch the disk (`DEPLOY.md`, "What to watch").
+- **Push needs an installed app on iPhone** (iOS 16.4+, added to the home screen). Android and desktop
+  Chrome work in the tab.
 - **The .NET project is still called `FitCheck.Api`.** A mechanical rename for when the repository gets its
   final name; nothing a user sees says FitCheck.
 
 ## Not in this version
 
-Direct messages, push notifications, share images, payments or prize fulfilment inside the app, native
-wrappers, sign-in with Apple or Google, closet memory, a blob store behind `IImageStore`, and a moderation
-dashboard. None of it is scaffolded on purpose.
+Direct messages, payments or prize fulfilment inside the app, native wrappers (the PWA installs; a
+Capacitor wrap is the next step), sign-in with Apple or Google, password reset by email (needs an email
+provider), closet memory, a blob store behind `IImageStore`, server-side transcoding, and real age
+assurance. None of it is scaffolded on purpose.
 
 ## Decisions
 

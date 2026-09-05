@@ -561,3 +561,57 @@ other app, find a way to present it that is ours.
 - **"Following" is now "Your circle".** The ring in the logo is your circle, so the feed is named after it, in both
   languages ("המעגל שלך"). Follower counts, the follow label and the empty states keep their words; only the feed's
   name changed. The route (`#/feed/following`) and the API tab (`following`) are unchanged.
+
+## Round 7 — the real thing: clips, the camera, push, moderation, the deploy kit (2026-09-05)
+
+The owner asked two things: is the idea good, and take the app to "the real thing": clips, creating photos and clips
+inside the app, and whatever else separates a pilot from a product. The answer to the first question is in the chat
+log and summarised under "Objections"; this section records what was built and why.
+
+### Decisions
+
+- **A clip is a look with a cover, not a new kind of post.** The stylist still judges one still (the frame the person
+  picks, which is also the clip's poster); the clip rides along on the same check and the same post. So every rule
+  about photos holds for clips unchanged: private until posted, stored only when the check is ok, one delete removes
+  it, never reachable by path, served only through `/api/posts/{id}/video` with Range support. Clips are capped at
+  40 MB (`Storage:MaxVideoBytes`) and 30 seconds (`Storage:MaxVideoSeconds`, enforced by the client; the server has no
+  ffmpeg to measure duration and does not pretend to). No server-side transcoding in this round: iPhones record H.264
+  MP4 which plays everywhere; Android Chrome records WebM, which older iPhones cannot play. That is the honest limit of
+  a no-ffmpeg pilot and the first thing to add for a public launch (DEPLOY.md lists it).
+- **The camera is the ring.** The in-app camera's shutter is the mark's ring: tap for a photo, hold and the ring draws
+  itself clockwise as the clip records toward the cap, the same motion as the check control. A framing guide asks for
+  the whole look, shoes included. No filters, on purpose: a filter that warms or fades the colors changes what the
+  stylist judges, and the score has to be about the clothes as they are.
+- **Frame picking is the person's call.** For a clip, a slider picks the judged frame (40% in by default, where people
+  are usually posed). It makes the check honest and gives the person control over their cover.
+- **Push is Web Push, no vendor.** VAPID keys the owner generates (`dotnet run -- --vapid`), subscriptions per browser,
+  a background sender that never blocks a request, in the person's language, deleted on 404/410. iPhone needs the app
+  on the home screen (iOS 16.4+); the switch in Settings says so instead of failing quietly.
+- **Moderation is a queue, not a dashboard.** Reported looks and comments with the reasons people gave, hide/show/
+  delete, and suspension. Admins are handles in `Admin:Handles`; a suspended account cannot sign in, its profile reads
+  as missing and its looks are hidden; lifting the suspension un-hides what the crowd had not hidden on its own. Unhiding
+  a look clears its reports so the same people can report it again if it recurs.
+- **Migrations from here on.** The schema is versioned with EF Core migrations and applied at start. A pilot database
+  made by `EnsureCreated` in earlier rounds is upgraded in place (a `.bak-<stamp>` copy first, missing tables and
+  columns added, then the history row), so the owner's test data survives this update and every update after it.
+- **The deploy kit is one `docker compose up`.** App container plus Caddy for automatic HTTPS on the owner's domain,
+  one data volume for the database and the media, `/healthz` for the proxy, `--backup` for a nightly copy, security
+  headers, and DEPLOY.md written for someone who has never run a server.
+- **The share card is the growth loop.** A story-sized image of the look with its score ring and the wordmark, saved
+  or shared from the result screen and the post menu. The people who will fill the feed are on Instagram and TikTok
+  today; the card goes where they are and carries the mark back.
+- **Community guidelines are in the app** and linked from signup: judge clothes not people, 16+, your own photos,
+  brands play fair, reports are acted on, what we keep and what deletion removes.
+
+### Objections kept out of the code (owner wins)
+
+- **On the idea.** The outfit check is the strong part: useful alone, on day one, with an empty feed. "A new social
+  network" is the hard part: attention lives on Instagram and TikTok, brands follow the audience, and an empty feed
+  kills a social app faster than any bug. The recommended path is stated in the chat: launch as the outfit-check app
+  with share cards for distribution, build density in one narrow community first, bring brands once there is an
+  audience to sell them, and measure retention before features. Clips multiply cost (storage, bandwidth, moderation) and
+  are kept short for that reason.
+- **Left out on purpose, named so nobody assumes it is there:** password reset (needs an email provider; wire one and it
+  is an afternoon), payments or checkout (product links stay links), native app store builds (the PWA installs today;
+  a Capacitor wrap is the next step), server-side transcoding (ffmpeg), object storage (the store interface is ready),
+  direct messages (moderation load), and real age assurance (self-declaration is a pilot measure).

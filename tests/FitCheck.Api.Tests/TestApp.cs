@@ -21,6 +21,11 @@ public class TestApp : WebApplicationFactory<Program>
     public int SignupsPerHourPerIp { get; init; } = 100000;
     public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
     public int ReportsToHide { get; init; } = 3;
+    /// <summary>VAPID keys; push is off (and /api/config carries no key) unless both are set.</summary>
+    public string? PushPublicKey { get; init; }
+    public string? PushPrivateKey { get; init; }
+    /// <summary>Stands in for the browsers' push services: records every push request and answers with <see cref="RecordingPushHandler.StatusCode"/>.</summary>
+    public RecordingPushHandler PushHandler { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,10 +37,22 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
+        if (PushPublicKey is not null)
+        {
+            builder.UseSetting("Push:PublicKey", PushPublicKey);
+        }
+
+        if (PushPrivateKey is not null)
+        {
+            builder.UseSetting("Push:PrivateKey", PushPrivateKey);
+        }
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();
             services.AddSingleton<IOutfitVisionClient>(Vision);
+            // Outgoing pushes go to the recorder instead of the network.
+            services.AddHttpClient(PushSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => PushHandler);
         });
     }
 
@@ -135,6 +152,79 @@ public class TestApp : WebApplicationFactory<Program>
         {
             // Best effort: temp folders are not worth a failing test.
         }
+    }
+}
+
+/// <summary>One push request as the push service would have seen it: the endpoint, the headers and the encrypted body.</summary>
+public sealed record PushRequest(Uri Endpoint, string? Authorization, string? ContentEncoding, string? Ttl, string? Topic, string? Urgency, byte[] Body);
+
+/// <summary>Stand-in for the push services. Records every request and answers with <see cref="StatusCode"/> (201 by default).</summary>
+public sealed class RecordingPushHandler : HttpMessageHandler
+{
+    private readonly List<PushRequest> _requests = [];
+    private readonly SemaphoreSlim _arrived = new(0);
+
+    public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.Created;
+
+    public IReadOnlyList<PushRequest> Requests
+    {
+        get
+        {
+            lock (_requests)
+            {
+                return _requests.ToList();
+            }
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_requests)
+        {
+            _requests.Clear();
+        }
+
+        while (_arrived.CurrentCount > 0 && _arrived.Wait(0))
+        {
+        }
+    }
+
+    /// <summary>Waits until at least <paramref name="count"/> requests for the endpoint have arrived, or the timeout passes.</summary>
+    public async Task<List<PushRequest>> WaitForAsync(string endpoint, int count = 1, int timeoutMs = 5000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (true)
+        {
+            var matching = Requests.Where(r => r.Endpoint.ToString() == endpoint).ToList();
+            if (matching.Count >= count)
+            {
+                return matching;
+            }
+
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero || !await _arrived.WaitAsync(remaining))
+            {
+                return matching;
+            }
+        }
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = request.Content is null ? [] : await request.Content.ReadAsByteArrayAsync(cancellationToken);
+        string? Header(string name) => request.Headers.TryGetValues(name, out var values) ? string.Join(", ", values) : null;
+        var record = new PushRequest(
+            request.RequestUri!,
+            request.Headers.Authorization?.ToString(),
+            request.Content?.Headers.ContentEncoding is { Count: > 0 } encodings ? string.Join(", ", encodings) : null,
+            Header("TTL"), Header("Topic"), Header("Urgency"), body);
+        lock (_requests)
+        {
+            _requests.Add(record);
+        }
+
+        _arrived.Release();
+        return new HttpResponseMessage(StatusCode) { Content = new StringContent("") };
     }
 }
 

@@ -14,6 +14,23 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+// `dotnet run -- --vapid` prints a fresh VAPID key pair for Web Push and exits; nothing else starts.
+if (args.Contains("--vapid"))
+{
+    var (publicKey, privateKey) = PushSender.GenerateVapidKeys();
+    Console.WriteLine("VAPID key pair for Web Push (NIST P-256). The private key is a secret: environment variables only, never appsettings.");
+    Console.WriteLine();
+    Console.WriteLine($"PUBLIC  {publicKey}");
+    Console.WriteLine($"PRIVATE {privateKey}");
+    Console.WriteLine();
+    Console.WriteLine("Set these before starting the server (PowerShell: $env:Push__PublicKey=\"...\"; bash: export Push__PublicKey=...):");
+    Console.WriteLine("  Push__PublicKey   = the PUBLIC line");
+    Console.WriteLine("  Push__PrivateKey  = the PRIVATE line");
+    Console.WriteLine("  Push__Subject     = mailto:you@example.com (a contact for the push services; optional)");
+    Console.WriteLine("Push is off until both keys are set. Changing them later drops every existing subscription; people turn notifications on again in Settings.");
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection(AnthropicOptions.Section));
@@ -63,6 +80,11 @@ builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(clien
     })
     // Trace-level HttpClient logging prints request headers; the key must never reach a log line.
     .RedactLoggedHeaders(["x-api-key"]);
+
+// Web Push: a named client for the push services and one background sender. Nothing is queued without VAPID keys.
+builder.Services.AddHttpClient(PushSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
+builder.Services.AddSingleton<PushSender>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<PushSender>());
 
 // Cookie sessions: HttpOnly, SameSite=Strict, Secure whenever the request came in over https (the tunnel does).
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

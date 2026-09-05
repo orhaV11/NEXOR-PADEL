@@ -4,8 +4,9 @@
 import {
   register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert
 } from '../core.js';
+import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush } from '../push.js';
 
-// The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label.
+// The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label, the push block.
 const CSS = `
 .s-section > * + * { margin-block-start: 10px; }
 .s-photo { display: flex; align-items: center; gap: 16px; }
@@ -15,6 +16,12 @@ const CSS = `
 .s-chips .chip { min-block-size: 44px; padding-inline: 16px; }
 .s-switch-text { display: grid; gap: 2px; min-inline-size: 0; }
 .s-switch-text b { font-weight: 600; }
+.s-push { border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-push .switch:has(input:disabled) .s-switch-text { color: var(--ink-2); }
+.s-push .switch input:disabled { opacity: 0.45; cursor: not-allowed; }
+.s-push-status { padding-inline: 2px; }
+.s-push-status.danger { color: var(--danger); }
+.s-push-test { min-block-size: 44px; }
 .s-account { display: flex; flex-direction: column; gap: 10px; border-block-start: 1px solid var(--line); padding-block-start: 18px; }
 `;
 let styled = false;
@@ -25,6 +32,84 @@ function ensureStyle() {
 }
 
 const field = (id, label, control) => el('div', { class: 'field' }, [el('label', { for: id, text: label }), control]);
+
+// ---------- push ----------
+
+/**
+ * "Notifications on your phone": a switch that reads its state from this browser's own push subscription, never from
+ * the server (which only knows endpoints). Off the happy path it explains itself in one line: install the app first on
+ * iPhone, blocked in the browser, not set up on this server, or not possible here. A small test button when it is on.
+ */
+function pushSection(ctx) {
+  const input = el('input', { type: 'checkbox', id: 's-push', name: 'push', disabled: true, 'aria-describedby': 's-push-status' });
+  const status = el('p', { class: 'hint s-push-status', id: 's-push-status', hidden: true });
+  const test = el('button', { type: 'button', class: 'btn btn-sm btn-secondary s-push-test', text: t('push.test'), hidden: true });
+  const label = el('label', { class: 'switch', for: 's-push' }, [
+    el('span', { class: 's-switch-text' }, [el('b', { text: t('push.title') }), el('span', { class: 'hint', text: t('push.hint') })]),
+    input
+  ]);
+  const setStatus = (text, danger) => { status.textContent = text || ''; status.hidden = !text; status.classList.toggle('danger', !!danger); };
+  const paint = (on) => { input.checked = on; test.hidden = !on; };
+  let locked = true;   // stays true when the browser cannot do it, so a tap never flips the switch
+  const setLocked = (value) => { locked = value; input.disabled = value; };
+
+  const support = pushSupport();
+  if (support === 'ready') {
+    getPushSubscription().then((sub) => {
+      if (ctx.stale()) return;
+      paint(!!sub);
+      setLocked(false);
+      if (sub) syncPush(sub);   // the endpoint follows whoever is signed in on this phone
+    });
+  } else {
+    paint(false);
+    const key = { ios_install: 'push.ios_hint', not_configured: 'push.not_configured', denied: 'push.denied' }[support] || 'push.unsupported';
+    setStatus(t(key), support === 'denied');
+  }
+
+  input.addEventListener('change', async () => {
+    if (locked) { input.checked = !input.checked; return; }
+    const wantOn = input.checked;
+    setLocked(true);
+    try {
+      if (wantOn) {
+        const sub = await enablePush();
+        if (ctx.stale()) return;
+        if (!sub) { paint(false); return; }   // the permission prompt was dismissed: nothing changed
+        paint(true);
+        setStatus('');
+        toast(t('push.enabled_toast'));
+      } else {
+        await disablePush();
+        if (ctx.stale()) return;
+        paint(false);
+        toast(t('push.disabled_toast'));
+      }
+    } catch (e) {
+      if (ctx.stale()) return;
+      paint(!wantOn);
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') { setStatus(t('push.denied'), true); return; }
+      toast(e.message || t('error.generic'));
+    } finally {
+      if (!ctx.stale() && !(typeof Notification !== 'undefined' && Notification.permission === 'denied')) setLocked(false);
+    }
+  });
+
+  test.addEventListener('click', async () => {
+    if (test.disabled) return;
+    test.disabled = true;
+    try {
+      await sendTestPush();
+      toast(t('push.test_sent'));
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      test.disabled = false;
+    }
+  });
+
+  return el('section', { class: 's-section s-push' }, [label, status, test]);
+}
 
 register('settings', async (root, params, ctx) => {
   setTopBar({ back: '#/me', title: t('settings.title') });
@@ -168,6 +253,8 @@ register('settings', async (root, params, ctx) => {
     error,
     save
   ]));
+
+  root.appendChild(pushSection(ctx));
 
   // ---------- sign out, delete ----------
 

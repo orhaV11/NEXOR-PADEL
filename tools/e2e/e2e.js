@@ -172,7 +172,6 @@ async function postIt(page, opts) {
     Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
     ConnectionStrings__Default: `Data Source=${DB}`,
     Storage__Root: path.join(DATA, 'storage'),
-    Admin__Handles__0: 'noa',
   }, path.join(DATA, 'api.log'));
 
   await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
@@ -549,7 +548,12 @@ async function postIt(page, opts) {
   assert.strictEqual((await getJson(`${base}/api/metrics/pilot`)).social.videos, 1);
 
   step = '11';
-  // 11. Dan reports the clip; Noa is a moderator (Admin:Handles): the queue, hide, show again, suspend Dan, lift it.
+  // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
+  //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
+  const promoted = execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', '--admin', 'noa'], {
+    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
+  }).toString();
+  assert.ok(/noa/.test(promoted), '--admin reports the handle: ' + promoted);
   const report = await dan.request.post(base + '/api/posts/' + post3 + '/report', { headers: { 'X-Requested-With': 'Orevosh' }, data: { reason: 'not an outfit' } });
   assert.ok(report.ok(), 'report ' + report.status());
   expected.push('GET /api/admin/queue -> 403');

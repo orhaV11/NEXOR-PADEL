@@ -138,7 +138,8 @@ public sealed record FeedDto(List<PostDto> Items, int? NextOffset);
 
 // ---- challenges ----
 
-public sealed record CreateChallengeRequest(string? Title, string? Brief, string? Intent, string? Prize, string? PrizeUrl, DateTime? EndsAt);
+/// <summary>Tag is optional: when missing it is derived from the title. Letters, digits and underscores, 2–30 characters, no #.</summary>
+public sealed record CreateChallengeRequest(string? Title, string? Brief, string? Intent, string? Prize, string? PrizeUrl, DateTime? EndsAt, string? Tag = null);
 
 public sealed record VoteRequest(Guid PostId);
 
@@ -150,6 +151,7 @@ public sealed record ChallengeDto(
     string Title,
     string Brief,
     StyleIntent Intent,
+    string Tag,
     string Prize,
     string? PrizeUrl,
     DateTime EndsAt,

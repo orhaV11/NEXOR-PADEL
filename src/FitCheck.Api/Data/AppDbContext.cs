@@ -120,6 +120,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             challenge.Property(c => c.Title).HasMaxLength(80).IsRequired();
             challenge.Property(c => c.Brief).HasMaxLength(500).IsRequired();
             challenge.Property(c => c.Intent).HasConversion<string>().HasMaxLength(32);
+            challenge.Property(c => c.Tag).HasMaxLength(30).IsRequired();
+            challenge.HasIndex(c => c.Tag);
             challenge.Property(c => c.Prize).HasMaxLength(200).IsRequired();
             challenge.Property(c => c.PrizeUrl).HasMaxLength(500);
             challenge.HasIndex(c => c.EndsAt);

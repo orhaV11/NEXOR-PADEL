@@ -58,12 +58,8 @@ public class ChallengeTests : IClassFixture<TestApp>
         var (entrant, _, _) = await _app.NewUserAsync("ch_entrant1");
         var challengeId = await OpenChallengeAsync(brand);
 
-        var wrongIntent = await _app.CheckAsync(entrant, intent: "Party");
-        var response = await entrant.PostAsJsonAsync("/api/posts", new { checkId = wrongIntent, challengeId });
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("Office", (await Json(response)).GetProperty("error").GetString());
-
-        var entryId = await _app.CheckAndPostAsync(entrant, intent: "Office", challengeId: challengeId);
+        // The challenge's intent is its theme, not a gate: any look can enter, the crowd decides what fits.
+        var entryId = await _app.CheckAndPostAsync(entrant, intent: "Party", challengeId: challengeId);
         var second = await _app.CheckAsync(entrant, intent: "Office");
         Assert.Equal(HttpStatusCode.Conflict, (await entrant.PostAsJsonAsync("/api/posts", new { checkId = second, challengeId })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await entrant.PostAsJsonAsync("/api/posts", new { checkId = second, challengeId = Guid.NewGuid() })).StatusCode);
@@ -122,6 +118,44 @@ public class ChallengeTests : IClassFixture<TestApp>
         var retracted = await Json(await voter.DeleteAsync($"/api/challenges/{challengeId}/vote"));
         Assert.True(IsNull(retracted, "votedPostId"));
         Assert.Equal(0, retracted.GetProperty("votes").GetInt32());
+    }
+
+    [Fact]
+    public async Task Posting_with_the_hashtag_enters_the_challenge_once()
+    {
+        var (brand, _, _) = await _app.NewUserAsync("ch_brand8", accountType: "Brand");
+        var (entrant, _, _) = await _app.NewUserAsync("ch_entrant8");
+        var (late, _, _) = await _app.NewUserAsync("ch_late8");
+        var created = await Json(await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title = "Linen week", brief = "Linen, head to toe.", intent = "Office", prize = "A linen shirt", endsAt = DateTime.UtcNow.AddDays(3)
+        }));
+        var challengeId = created.GetProperty("id").GetGuid();
+        Assert.Equal("linenweek", created.GetProperty("tag").GetString());
+
+        // A second open challenge from the same title gets a suffix instead of sharing the tag.
+        var again = await Json(await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title = "Linen week", brief = "Again.", intent = "Office", prize = "Socks", endsAt = DateTime.UtcNow.AddDays(3)
+        }));
+        Assert.Equal("linenweek2", again.GetProperty("tag").GetString());
+
+        // The hashtag in the caption is the entry; no challengeId needed, and any intent is welcome.
+        var first = await _app.PostAsync(entrant, await _app.CheckAsync(entrant, intent: "Casual"), caption: "Monday but soft #LinenWeek #office");
+        Assert.Equal(challengeId, first.GetProperty("challengeId").GetGuid());
+
+        // One entry per person: a second look with the tag is just a tagged look.
+        var secondLook = await _app.PostAsync(entrant, await _app.CheckAsync(entrant, intent: "Office"), caption: "Still linen #linenweek");
+        Assert.True(IsNull(secondLook, "challengeId"));
+        Assert.Contains("linenweek", secondLook.GetProperty("tags").EnumerateArray().Select(t => t.GetString()));
+
+        // The brand's own look with its hashtag does not enter its own challenge.
+        var own = await _app.PostAsync(brand, await _app.CheckAsync(brand, intent: "Office"), caption: "Our take #linenweek");
+        Assert.True(IsNull(own, "challengeId"));
+
+        var detail = await late.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.Equal(1, detail.GetProperty("challenge").GetProperty("entries").GetInt32());
+        Assert.Equal("linenweek", detail.GetProperty("challenge").GetProperty("tag").GetString());
     }
 
     [Fact]

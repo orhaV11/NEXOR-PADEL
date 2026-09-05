@@ -1,19 +1,15 @@
 {
   "meta.name": "English",
   "meta.dir": "ltr",
-
   "app.name": "OREVOSH",
   "app.tagline": "Your looks. Your people. Your brands.",
-
   "lang.label": "Language",
-
   "nav.main": "Main",
   "nav.home": "Home",
   "nav.explore": "Explore",
   "nav.check": "Check",
   "nav.activity": "Activity",
   "nav.profile": "Profile",
-
   "common.back": "Back",
   "common.cancel": "Cancel",
   "common.close": "Close",
@@ -31,7 +27,6 @@
   "common.refreshed": "Up to date",
   "common.signed_out": "Signed out",
   "common.not_found": "We couldn't find that.",
-
   "auth.login": "Sign in",
   "auth.signup": "Join",
   "auth.logout": "Sign out",
@@ -51,7 +46,6 @@
   "auth.submit_login": "Sign in",
   "auth.required_title": "Sign in to do that",
   "auth.required_body": "Checks, fire, comments and votes need an account. Browsing doesn't.",
-
   "welcome.title": "Welcome to OREVOSH",
   "welcome.styles_title": "What do you wear?",
   "welcome.styles_hint": "Pick a few. Your feed starts here, and you can change it any time in settings.",
@@ -59,7 +53,6 @@
   "welcome.brands_hint": "Follow a few and their looks and challenges land in your feed.",
   "welcome.done": "Take me in",
   "welcome.saved": "Saved. Your feed is ready.",
-
   "feed.title": "Home",
   "feed.foryou": "For you",
   "feed.following": "Following",
@@ -68,23 +61,20 @@
   "feed.empty_following": "Follow people and brands and their looks show up here.",
   "feed.following_locked": "Sign in to see the people you follow.",
   "feed.end": "You're all caught up.",
-
   "explore.title": "Explore",
   "explore.search_placeholder": "Search people, brands, #tags",
   "explore.trending": "Trending tags",
   "explore.brands": "Brands to follow",
   "explore.top": "Top looks this week",
-  "explore.challenges": "Brand challenges",
+  "explore.challenges": "Hashtag challenges",
   "explore.all_challenges": "All challenges",
   "explore.people": "People and brands",
   "explore.tags": "Tags",
   "explore.no_results": "Nothing found for \"{q}\".",
   "explore.empty": "Explore fills up as people post looks.",
   "explore.results_title": "Results for \"{q}\"",
-
   "tag.looks": "{n} looks",
   "tag.empty": "No looks with this tag yet. Add it to your next caption.",
-
   "post.fire": "Fire",
   "post.fired": "On fire",
   "post.comments": "Comments",
@@ -117,7 +107,6 @@
   "post.title": "Look",
   "post.tagged": "Tagged",
   "post.double_tap": "Double-tap to fire",
-
   "comments.title": "Comments",
   "comments.placeholder": "Say something kind and specific",
   "comments.send": "Post",
@@ -126,7 +115,6 @@
   "comments.report": "Report",
   "comments.report_confirm": "Report this comment?",
   "comments.signin": "Sign in to comment",
-
   "check.title": "Where is this outfit going?",
   "check.intent_label": "Intent",
   "check.occasion_label": "Occasion (optional)",
@@ -137,9 +125,8 @@
   "check.photo_processing": "Preparing the photo…",
   "check.submit": "Check my outfit",
   "check.entering": "Entering: {title}",
-  "check.intent_locked": "This challenge is for {intent} looks, so the intent is set.",
+  "check.intent_locked": "Any intent works; the crowd decides what fits.",
   "check.private_note": "The check is private. You decide afterwards whether to post it.",
-
   "intent.Casual": "Casual",
   "intent.Date": "Date",
   "intent.Streetwear": "Streetwear",
@@ -148,13 +135,10 @@
   "intent.Office": "Office",
   "intent.Party": "Party",
   "intent.Sport": "Sport",
-
   "verdict.works": "Works",
   "verdict.neutral": "Neutral",
   "verdict.weak": "Weak",
-
   "loading.line": "The stylist is looking.",
-
   "result.title": "Your check",
   "result.out_of": "/10",
   "result.intent_match": "Reads as {intent}",
@@ -177,15 +161,12 @@
   "result.post_intro": "The photo, the intent, the score and the headline go public. The tip and the breakdown stay yours.",
   "result.caption": "Caption",
   "result.caption_placeholder": "What's the story? #tags and @brands welcome",
-  "result.caption_hint": "Add #tags so people find it, and @mention the brands you're wearing.",
-  "result.challenge": "Enter a challenge",
-  "result.no_challenge": "Just the feed",
+  "result.caption_hint": "Add #tags so people find it, @mention the brands you're wearing, and a challenge's hashtag enters it.",
   "result.products": "Product links",
   "result.product_label": "Product",
   "result.product_url": "https://…",
   "result.product_price": "Price",
   "result.confirm_post": "Post",
-
   "challenges.title": "Challenges",
   "challenges.open": "Open",
   "challenges.ended": "Ended",
@@ -198,7 +179,7 @@
   "challenges.ended_at": "Ended {when}",
   "challenges.prize": "Prize",
   "challenges.see_prize": "See the prize",
-  "challenges.enter": "Enter with a check",
+  "challenges.enter": "Post a look with {tag}",
   "challenges.entered": "You're in",
   "challenges.by": "by {name}",
   "challenges.leaderboard": "Leaderboard",
@@ -207,8 +188,7 @@
   "challenges.vote_signin": "Sign in to vote",
   "challenges.no_entries": "No entries yet. Be the first.",
   "challenges.brief": "The brief",
-  "challenges.intro": "Brands set a brief and a prize. Enter with a check, the crowd votes, the winner is picked when time's up.",
-
+  "challenges.intro": "A brand picks a hashtag and a prize. Post a look with the hashtag to enter; the crowd votes and the winner is picked when time's up.",
   "newchallenge.title": "Open a challenge",
   "newchallenge.name": "Title",
   "newchallenge.brief": "Brief",
@@ -218,9 +198,8 @@
   "newchallenge.prize_placeholder": "A shirt of the winner's choice",
   "newchallenge.prize_url": "Prize link (optional, https)",
   "newchallenge.ends": "Ends at",
-  "newchallenge.hint": "Runs between 1 hour and 60 days. The crowd votes; the winner is fixed automatically when it ends.",
+  "newchallenge.hint": "Runs between 1 hour and 60 days. Anyone who posts with the hashtag is in; the crowd votes; the winner is fixed automatically when it ends.",
   "newchallenge.submit": "Open challenge",
-
   "activity.title": "Activity",
   "activity.empty": "Nothing yet. Post a look and see what happens.",
   "activity.fire": "{actor} set your look on fire",
@@ -233,7 +212,6 @@
   "activity.won": "You won {actor}'s challenge",
   "activity.mention": "{actor} tagged you in a look",
   "activity.featured": "{actor} featured your look",
-
   "profile.posts": "Looks",
   "profile.followers": "Followers",
   "profile.followers_n": "{n} followers",
@@ -260,7 +238,6 @@
   "profile.featured_empty_brand": "Feature community looks that mention you and they show up here.",
   "profile.featured_empty_person": "Looks a brand featured show up here.",
   "profile.featured_n": "{n} featured",
-
   "settings.title": "Settings",
   "settings.avatar": "Profile photo",
   "settings.avatar_change": "Change photo",
@@ -273,30 +250,25 @@
   "settings.interests": "Styles you wear",
   "settings.interests_hint": "Shapes your For you feed.",
   "settings.brand": "Brand account",
-  "settings.brand_hint": "Brands open challenges with prizes, tag products on their looks, and get a Community wall of every look that mentions them.",
+  "settings.brand_hint": "Brands get a Community wall of every look that mentions them, can feature the ones they love, and tag products on their own looks. Running a hashtag challenge with a prize is optional.",
   "settings.save": "Save changes",
   "settings.saved": "Saved",
   "settings.delete": "Delete my account and all photos",
   "settings.delete_confirm": "Delete your account, every check, every look and every photo? This can't be undone.",
-
   "saved.title": "Saved looks",
   "saved.empty": "Save looks you want to come back to. Only you see this.",
-
   "checks.title": "My checks",
   "checks.empty": "Your checks will show up here.",
   "checks.private": "Private",
-
   "pwa.install_title": "Add OREVOSH to your home screen",
   "pwa.install_body": "It opens full screen, like an app.",
   "pwa.install_ios": "Tap Share, then \"Add to Home Screen\".",
   "pwa.install": "Install",
   "pwa.later": "Not now",
   "pwa.offline": "You're offline. Showing what we have.",
-
   "error.network": "Couldn't reach OREVOSH. Check your connection and try again.",
   "error.generic": "Something went wrong. Please try again.",
   "error.image_read": "Couldn't read that photo. Try another one.",
-
   "a11y.score": "Score {score} out of 10",
   "a11y.photo_preview": "Your outfit photo",
   "a11y.intent_group": "Where the outfit is going",
@@ -304,16 +276,16 @@
   "a11y.look_by": "{intent} look by {name}",
   "a11y.unread": "{n} unread",
   "a11y.search": "Search",
-
   "tag.looks_one": "1 look",
-
   "post.votes_one": "1 vote",
-
   "challenges.entries_one": "1 entry",
   "challenges.votes_one": "1 vote",
-
   "profile.followers_n_one": "1 follower",
   "profile.featured_n_one": "1 featured",
-
-  "a11y.unread_one": "1 unread"
+  "a11y.unread_one": "1 unread",
+  "auth.brand_hint": "Brands get a Community wall, can feature looks and tag products.",
+  "check.entering_hint": "Keep {tag} in your caption and this look is in.",
+  "challenges.tag_hint": "Post with {tag} to enter",
+  "newchallenge.tag": "Hashtag",
+  "newchallenge.tag_hint": "Looks posted with this hashtag while the challenge is open are the entries. Letters, numbers and underscores."
 }

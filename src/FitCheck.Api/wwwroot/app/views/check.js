@@ -16,7 +16,6 @@ register('check', async (root) => {
   root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
   if (ck.busy) { root.appendChild(loadingBlock()); return; }   // a check is in flight; the result view takes over when it lands
-  if (ck.challenge && ck.intent !== ck.challenge.intent) ck.intent = ck.challenge.intent;
 
   const form = el('form', { class: 'stack', novalidate: true, onsubmit: (event) => { event.preventDefault(); submitCheck(); } });
   root.appendChild(form);
@@ -25,7 +24,7 @@ register('check', async (root) => {
     form.appendChild(el('div', { class: 'alert between', id: 'challenge-banner' }, [
       el('div', {}, [
         el('b', { text: t('check.entering', { title: ck.challenge.title }) }),
-        el('div', { class: 'muted', style: 'font-size: 13px; margin-block-start: 2px;', text: t('check.intent_locked', { intent: intentLabel(ck.challenge.intent) }) })
+        el('div', { class: 'muted', style: 'font-size: 13px; margin-block-start: 2px;', text: t('check.entering_hint', { tag: '#' + ck.challenge.tag }) })
       ]),
       el('button', { type: 'button', class: 'btn btn-secondary btn-sm', style: 'flex: none;', text: t('common.cancel'), onclick: () => { ck.challenge = null; navigate('#/check'); } })
     ]));
@@ -35,7 +34,6 @@ register('check', async (root) => {
   for (const intent of INTENTS) {
     chips.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-intent': intent, 'aria-pressed': String(ck.intent === intent), text: intentLabel(intent),
-      disabled: !!ck.challenge && ck.challenge.intent !== intent,
       onclick: () => {
         ck.intent = intent;
         for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.intent === intent));
@@ -259,12 +257,10 @@ function renderPostArea(area, result) {
  */
 function openPostSheet(area, result) {
   if (!requireSignIn('#/result')) return;
-  const pending = state.check.challenge && state.check.challenge.intent === result.intent ? state.check.challenge : null;
-
+  // Entering a challenge is just its hashtag in the caption; the server links the look while the challenge is open.
+  const pending = state.check.challenge;
   const caption = el('textarea', { id: 'caption', maxlength: '140', rows: '3', autocomplete: 'off', placeholder: t('result.caption_placeholder') });
-  const select = el('select', { id: 'challenge-pick' });
-  select.appendChild(el('option', { value: '', text: t('result.no_challenge') }));
-  if (pending) { select.appendChild(el('option', { value: pending.id, text: pending.title })); select.value = pending.id; }
+  if (pending && pending.tag) caption.value = '#' + pending.tag + ' ';
 
   const productRows = [];
   let productsField = null;
@@ -288,7 +284,6 @@ function openPostSheet(area, result) {
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),
-    el('div', { class: 'field' }, [el('label', { for: 'challenge-pick', text: t('result.challenge') }), select]),
     productsField,
     error,
     el('div', { class: 'row' }, [confirm, cancel])
@@ -301,7 +296,7 @@ function openPostSheet(area, result) {
       .filter((r) => r.label.value.trim() || r.url.value.trim())
       .map((r) => ({ label: r.label.value.trim(), url: r.url.value.trim(), price: r.price.value.trim() || null }));
     try {
-      const post = await api('POST', '/api/posts', { checkId: result.id, caption: caption.value, challengeId: select.value || null, products });
+      const post = await api('POST', '/api/posts', { checkId: result.id, caption: caption.value, products });
       state.resultPostId = post.id;
       result.postId = post.id;
       state.check.challenge = null;
@@ -317,24 +312,7 @@ function openPostSheet(area, result) {
     }
   });
 
-  loadChallengeOptions(select, result.intent, pending);
-}
-
-/** Fills the challenge select with the open challenges this person can still enter with a look of this intent. */
-async function loadChallengeOptions(select, intent, pending) {
-  let open;
-  try { open = await api('GET', '/api/challenges?state=open'); }
-  catch (e) { return; }   // the feed still works without challenges; the preselected one stays and the server has the last word
-  if (!document.contains(select)) return;
-  const current = select.value;
-  const notMine = (c) => !(c.viewer && (c.viewer.hasEntered || c.viewer.isBrand)) && !(c.brand && isMe(c.brand.handle));
-  const options = (Array.isArray(open) ? open : []).filter((c) => c.intent === intent && notMine(c));
-  while (select.options.length > 1) select.remove(1);
-  for (const c of options) {
-    select.appendChild(el('option', { value: c.id, text: c.brand ? c.title + ' · ' + t('challenges.by', { name: c.brand.name }) : c.title }));
-  }
-  select.value = options.some((c) => c.id === current) ? current : '';
-  if (pending && select.value === '' && !options.some((c) => c.id === pending.id)) state.check.challenge = null;   // ended, entered or not ours any more
+  requestAnimationFrame(() => { if (document.contains(caption)) { caption.focus(); caption.setSelectionRange(caption.value.length, caption.value.length); } });
 }
 
 function animateScore(node, target) {

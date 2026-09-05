@@ -112,6 +112,10 @@ public sealed class Challenge
     public string Title { get; set; } = "";
     public string Brief { get; set; } = "";
     public StyleIntent Intent { get; set; }
+
+    /// <summary>The hashtag that enters a look: post with #tag while the challenge is open and you are in. Lower case, no #.</summary>
+    public string Tag { get; set; } = "";
+
     public string Prize { get; set; } = "";
     public string? PrizeUrl { get; set; }
     public DateTime EndsAt { get; set; }

@@ -51,7 +51,8 @@ function byLine(c, extra) {
   return el('div', { class: 'challenge-meta' }, [
     avatar(brand, 'sm'),
     el('a', { class: 'ch-by', href: profilePath(brand.handle), text: t('challenges.by', { name: brand.name }) }),
-    el('span', { class: 'tag', text: intentLabel(c.intent) })
+    el('span', { class: 'tag', text: intentLabel(c.intent) }),
+    c.tag ? el('a', { class: 'tag accent', href: '#/tag/' + encodeURIComponent(c.tag), text: '#' + c.tag }) : null
   ].concat(extra || []));
 }
 
@@ -89,10 +90,10 @@ function enterButton(c) {
   }
   if (viewer.isBrand) return null;
   return el('button', {
-    type: 'button', class: 'btn btn-secondary', 'data-enter': c.id, text: t('challenges.enter'),
+    type: 'button', class: 'btn btn-secondary', 'data-enter': c.id, text: t('challenges.enter', { tag: '#' + c.tag }),
     onclick: () => {
-      state.check.challenge = { id: c.id, title: c.title, intent: c.intent };
-      state.check.intent = c.intent;
+      state.check.challenge = { id: c.id, title: c.title, intent: c.intent, tag: c.tag };
+      if (!state.check.intent) state.check.intent = c.intent;
       if (!requireSignIn('#/check')) return;
       navigate('#/check');
     }
@@ -326,6 +327,11 @@ register('new-challenge', async (root, params, ctx) => {
     onclick: () => { intent = i; for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.intent === intent)); }
   })));
   const title = el('input', { type: 'text', maxlength: '80', id: 'nc-title', autocomplete: 'off' });
+  const hashtag = el('input', { type: 'text', maxlength: '31', id: 'nc-tag', autocomplete: 'off', autocapitalize: 'none', placeholder: '#' });
+  // The hashtag follows the title until the brand edits it by hand.
+  let tagTouched = false;
+  hashtag.addEventListener('input', () => { tagTouched = hashtag.value.trim().length > 0; });
+  title.addEventListener('input', () => { if (!tagTouched) hashtag.value = '#' + title.value.toLowerCase().replace(/[^\p{L}\p{N}_]/gu, '').slice(0, 30); });
   const brief = el('textarea', { maxlength: '500', id: 'nc-brief', placeholder: t('newchallenge.brief_placeholder') });
   const prize = el('input', { type: 'text', maxlength: '200', id: 'nc-prize', placeholder: t('newchallenge.prize_placeholder'), autocomplete: 'off' });
   const prizeUrl = el('input', { type: 'url', maxlength: '500', id: 'nc-url', placeholder: 'https://', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
@@ -355,6 +361,7 @@ register('new-challenge', async (root, params, ctx) => {
           brief: brief.value.trim(),
           intent,
           prize: prize.value.trim(),
+          tag: hashtag.value.trim().replace(/^#/, '') || null,
           prizeUrl: prizeUrl.value.trim() || null,
           endsAt: when && !Number.isNaN(when.getTime()) ? when.toISOString() : null
         });
@@ -368,6 +375,7 @@ register('new-challenge', async (root, params, ctx) => {
     }
   }, [
     el('div', { class: 'field' }, [el('label', { for: 'nc-title', text: t('newchallenge.name') }), title]),
+    el('div', { class: 'field' }, [el('label', { for: 'nc-tag', text: t('newchallenge.tag') }), hashtag, el('p', { class: 'hint', text: t('newchallenge.tag_hint') })]),
     el('div', { class: 'field' }, [el('span', { class: 'label', id: 'nc-intent-label', text: t('newchallenge.intent') }), chips]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-brief', text: t('newchallenge.brief') }), brief]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-prize', text: t('newchallenge.prize') }), prize]),

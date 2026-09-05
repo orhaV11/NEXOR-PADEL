@@ -116,11 +116,6 @@ public static class PostEndpoints
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.challenge_closed"));
             }
 
-            if (challenge.Intent != check.Intent)
-            {
-                return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.challenge_intent", challenge.Intent));
-            }
-
             if (challenge.BrandId == me.Id)
             {
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.brand_own_challenge"));
@@ -129,6 +124,27 @@ public static class PostEndpoints
             if (await db.Posts.AnyAsync(p => p.ChallengeId == challenge.Id && p.UserId == me.Id, ct))
             {
                 return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_entered"));
+            }
+        }
+
+        // Hashtag entry: a look posted with an open challenge's tag enters it, once per person. The challenge's intent is
+        // its theme, not a gate; the crowd decides what fits.
+        var captionTags = CaptionParser.Tags(caption);
+        if (challenge is null && captionTags.Count > 0)
+        {
+            var open = await db.Challenges
+                .Where(c => c.ResolvedAt == null && c.EndsAt > DateTime.UtcNow && captionTags.Contains(c.Tag))
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync(ct);
+            foreach (var candidate in open)
+            {
+                if (candidate.BrandId == me.Id || await db.Posts.AnyAsync(p => p.ChallengeId == candidate.Id && p.UserId == me.Id, ct))
+                {
+                    continue;
+                }
+
+                challenge = candidate;
+                break;
             }
         }
 

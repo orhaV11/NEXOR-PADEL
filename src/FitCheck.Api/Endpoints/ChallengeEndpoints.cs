@@ -68,6 +68,7 @@ public static class ChallengeEndpoints
             challenge.Title,
             challenge.Brief,
             challenge.Intent,
+            challenge.Tag,
             challenge.Prize,
             challenge.PrizeUrl,
             DateTime.SpecifyKind(challenge.EndsAt, DateTimeKind.Utc),
@@ -168,6 +169,20 @@ public static class ChallengeEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.challenge_invalid"));
         }
 
+        // The hashtag is how a look enters. It comes from the form or from the title, and it is unique among open challenges.
+        var requestedTag = CaptionParser.Tags("#" + (string.IsNullOrWhiteSpace(body.Tag) ? "" : body.Tag.Trim().TrimStart('#'))).FirstOrDefault()
+                           ?? CaptionParser.Tags("#" + new string(title.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray())).FirstOrDefault();
+        // A title with nothing tag-worthy in it ("T", "!!!") still gets a usable hashtag.
+        requestedTag ??= "challenge";
+
+        var openTags = (await db.Challenges.Where(c => c.EndsAt > now && c.ResolvedAt == null).Select(c => c.Tag).ToListAsync(ct)).ToHashSet();
+        var tag = requestedTag;
+        for (var n = 2; openTags.Contains(tag); n++)
+        {
+            var suffix = n.ToString();
+            tag = requestedTag[..Math.Min(requestedTag.Length, 30 - suffix.Length)] + suffix;
+        }
+
         var challenge = new Challenge
         {
             Id = Guid.NewGuid(),
@@ -175,6 +190,7 @@ public static class ChallengeEndpoints
             Title = title,
             Brief = brief,
             Intent = intent,
+            Tag = tag,
             Prize = prize,
             PrizeUrl = prizeUrl,
             EndsAt = endsAt!.Value,

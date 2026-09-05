@@ -137,7 +137,7 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST` / `DELETE /api/users/{handle}/follow` 🔒 | — | `{ followers, following }`. 400 when following yourself |
 | `POST /api/checks` 🔒 | multipart: `intent`, `occasion?`, `language`, `image` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. 413 too large, 415 not JPEG/PNG/WebP, 429 over a cap (with `Retry-After`), 502 model failure |
 | `GET /api/checks/{id}` 🔒 | — | The check, owner only (404 otherwise) |
-| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; `challengeId` must be open and match the check's intent; `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs |
+| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs |
 | `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, createdAt, tags, mentions, featuredBy`. Hidden posts are visible to their author only |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
 | `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again |
@@ -154,7 +154,7 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `GET /api/search?q=` | — | `{ users, tags }` for a 1–40 character query: handle prefix or display-name substring (brands first), tag prefix |
 | `GET /api/tags/{tag}/posts` | `?offset&limit` | Public posts carrying the tag, newest first |
 | `GET /api/challenges` | `?state=open\|ended` | Challenges with entry and vote counts, the top three entries and `viewer` (`isBrand, hasEntered, votedPostId, myEntryId`) |
-| `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now |
+| `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt, tag? }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now. `tag` is the entry hashtag (derived from the title when missing, made unique among open challenges) |
 | `GET /api/challenges/{id}` | — | `{ challenge, entriesByVotes, winner }`. Reading an ended challenge fixes its winner if that has not happened yet |
 | `POST` / `DELETE /api/challenges/{id}/vote` 🔒 | `{ postId }` / — | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry, and not by the brand that opened it |
 | `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured` |
@@ -221,10 +221,10 @@ descriptive is dropped when the status is not `ok`.
   unknown handles are dropped, and every mentioned account is told exactly once.
 - **Featuring is earned.** A brand can feature a look only when the look mentions the brand or entered one of
   its challenges, and one brand per look. The creator is told. Undoing is the featuring brand's alone.
-- **Challenges are honest.** Only brand accounts open them, and a brand neither enters nor votes in its own;
-  entries must match the challenge's intent; the winner is the entry with the most votes (ties go to the
-  earlier entry), fixed once and notified once. The prize changes hands between the brand and the winner; the
-  app takes no payments.
+- **Challenges are a hashtag.** A brand picks a hashtag and a prize; a look posted with the hashtag while the
+  challenge is open is an entry, one per person, any intent. A brand neither enters nor votes in its own; the
+  winner is the entry with the most votes (ties go to the earlier entry), fixed once and notified once. The
+  prize changes hands between the brand and the winner; the app takes no payments.
 - **Reports hide, people decide.** Three reports from different people hide a post or a comment from everyone
   but its author, who sees an "under review" badge.
 - **Sessions are cookies, writes need a header.** HttpOnly, SameSite=Strict, Secure over HTTPS, 90 days

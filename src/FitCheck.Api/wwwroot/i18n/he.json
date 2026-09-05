@@ -1,19 +1,15 @@
 {
   "meta.name": "עברית",
   "meta.dir": "rtl",
-
   "app.name": "OREVOSH",
   "app.tagline": "הלוקים שלך. האנשים שלך. המותגים שלך.",
-
   "lang.label": "שפה",
-
   "nav.main": "ראשי",
   "nav.home": "בית",
   "nav.explore": "גילוי",
   "nav.check": "בדיקה",
   "nav.activity": "פעילות",
   "nav.profile": "פרופיל",
-
   "common.back": "חזרה",
   "common.cancel": "ביטול",
   "common.close": "סגירה",
@@ -31,7 +27,6 @@
   "common.refreshed": "מעודכן",
   "common.signed_out": "התנתקת",
   "common.not_found": "לא מצאנו את זה.",
-
   "auth.login": "התחברות",
   "auth.signup": "הצטרפות",
   "auth.logout": "התנתקות",
@@ -51,7 +46,6 @@
   "auth.submit_login": "להתחבר",
   "auth.required_title": "צריך להתחבר בשביל זה",
   "auth.required_body": "בדיקות, אש, תגובות והצבעות דורשות חשבון. גלילה לא.",
-
   "welcome.title": "ברוכים הבאים ל-OREVOSH",
   "welcome.styles_title": "מה לובשים?",
   "welcome.styles_hint": "בוחרים כמה. הפיד מתחיל מכאן, ואפשר לשנות בכל רגע בהגדרות.",
@@ -59,7 +53,6 @@
   "welcome.brands_hint": "עוקבים אחרי כמה והלוקים והאתגרים שלהם מגיעים לפיד.",
   "welcome.done": "קחו אותי פנימה",
   "welcome.saved": "נשמר. הפיד מוכן.",
-
   "feed.title": "בית",
   "feed.foryou": "בשבילך",
   "feed.following": "עוקבים",
@@ -68,23 +61,20 @@
   "feed.empty_following": "עוקבים אחרי אנשים ומותגים והלוקים שלהם מופיעים כאן.",
   "feed.following_locked": "מתחברים כדי לראות את מי שעוקבים אחריהם.",
   "feed.end": "ראית הכול.",
-
   "explore.title": "גילוי",
   "explore.search_placeholder": "אנשים, מותגים, #תגיות",
   "explore.trending": "תגיות חמות",
   "explore.brands": "מותגים לעקוב אחריהם",
   "explore.top": "הלוקים של השבוע",
-  "explore.challenges": "אתגרי מותגים",
+  "explore.challenges": "אתגרי האשטג",
   "explore.all_challenges": "לכל האתגרים",
   "explore.people": "אנשים ומותגים",
   "explore.tags": "תגיות",
   "explore.no_results": "לא מצאנו כלום עבור \"{q}\".",
   "explore.empty": "הגילוי מתמלא ככל שאנשים מעלים לוקים.",
   "explore.results_title": "תוצאות עבור \"{q}\"",
-
   "tag.looks": "{n} לוקים",
   "tag.empty": "עדיין אין לוקים עם התגית הזו. שווה להוסיף אותה לכיתוב הבא.",
-
   "post.fire": "אש",
   "post.fired": "בוער",
   "post.comments": "תגובות",
@@ -117,7 +107,6 @@
   "post.title": "לוק",
   "post.tagged": "מתויגים",
   "post.double_tap": "לחיצה כפולה לאש",
-
   "comments.title": "תגובות",
   "comments.placeholder": "משהו נחמד וספציפי",
   "comments.send": "לפרסם",
@@ -126,7 +115,6 @@
   "comments.report": "לדווח",
   "comments.report_confirm": "לדווח על התגובה הזו?",
   "comments.signin": "מתחברים כדי להגיב",
-
   "check.title": "לאן הלוק הזה הולך?",
   "check.intent_label": "כוונה",
   "check.occasion_label": "אירוע (לא חובה)",
@@ -137,9 +125,8 @@
   "check.photo_processing": "מכינים את התמונה…",
   "check.submit": "לבדוק את הלוק",
   "check.entering": "כניסה לאתגר: {title}",
-  "check.intent_locked": "האתגר הזה הוא ללוקים של {intent}, אז הכוונה קבועה.",
+  "check.intent_locked": "כל כוונה מתאימה; הקהל מחליט מה עובד.",
   "check.private_note": "הבדיקה פרטית. אחר כך מחליטים אם להעלות אותה.",
-
   "intent.Casual": "קז'ואל",
   "intent.Date": "דייט",
   "intent.Streetwear": "סטריטוור",
@@ -148,13 +135,10 @@
   "intent.Office": "משרד",
   "intent.Party": "מסיבה",
   "intent.Sport": "ספורט",
-
   "verdict.works": "עובד",
   "verdict.neutral": "ניטרלי",
   "verdict.weak": "חלש",
-
   "loading.line": "הסטייליסט מסתכל.",
-
   "result.title": "הבדיקה שלך",
   "result.out_of": "/10",
   "result.intent_match": "משדר {intent}",
@@ -177,15 +161,12 @@
   "result.post_intro": "התמונה, הכוונה, הציון והכותרת יהיו ציבוריים. הטיפ והפירוט נשארים שלך.",
   "result.caption": "כיתוב",
   "result.caption_placeholder": "מה הסיפור? #תגיות ו-@מותגים מוזמנים",
-  "result.caption_hint": "מוסיפים #תגיות כדי שימצאו את הלוק, ומתייגים @מותגים שלובשים.",
-  "result.challenge": "להיכנס לאתגר",
-  "result.no_challenge": "רק לפיד",
+  "result.caption_hint": "מוסיפים #תגיות כדי שימצאו את הלוק, מתייגים @מותגים שלובשים, והאשטג של אתגר מכניס אליו.",
   "result.products": "קישורי מוצרים",
   "result.product_label": "מוצר",
   "result.product_url": "https://…",
   "result.product_price": "מחיר",
   "result.confirm_post": "להעלות",
-
   "challenges.title": "אתגרים",
   "challenges.open": "פתוחים",
   "challenges.ended": "הסתיימו",
@@ -198,7 +179,7 @@
   "challenges.ended_at": "הסתיים {when}",
   "challenges.prize": "פרס",
   "challenges.see_prize": "לראות את הפרס",
-  "challenges.enter": "להיכנס עם בדיקה",
+  "challenges.enter": "להעלות לוק עם {tag}",
   "challenges.entered": "בפנים",
   "challenges.by": "של {name}",
   "challenges.leaderboard": "טבלת המובילים",
@@ -207,8 +188,7 @@
   "challenges.vote_signin": "מתחברים כדי להצביע",
   "challenges.no_entries": "עדיין אין כניסות. שווה להיות ראשונים.",
   "challenges.brief": "התיאור",
-  "challenges.intro": "מותגים מגדירים תיאור ופרס. נכנסים עם בדיקה, הקהל מצביע, והזכייה נקבעת כשהזמן נגמר.",
-
+  "challenges.intro": "מותג בוחר האשטג ופרס. מעלים לוק עם ההאשטג כדי להיכנס, הקהל מצביע, והזכייה נקבעת כשהזמן נגמר.",
   "newchallenge.title": "לפתוח אתגר",
   "newchallenge.name": "כותרת",
   "newchallenge.brief": "תיאור",
@@ -218,9 +198,8 @@
   "newchallenge.prize_placeholder": "חולצה לבחירת הזוכה",
   "newchallenge.prize_url": "קישור לפרס (לא חובה, https)",
   "newchallenge.ends": "מסתיים ב",
-  "newchallenge.hint": "נמשך בין שעה ל-60 יום. הקהל מצביע, והזכייה נקבעת אוטומטית בסיום.",
+  "newchallenge.hint": "נמשך בין שעה ל-60 יום. מי שמעלה עם ההאשטג בפנים; הקהל מצביע; הזכייה נקבעת אוטומטית בסיום.",
   "newchallenge.submit": "לפתוח אתגר",
-
   "activity.title": "פעילות",
   "activity.empty": "עדיין כלום. מעלים לוק ורואים מה קורה.",
   "activity.fire": "אש מ-{actor} על הלוק שלך",
@@ -233,7 +212,6 @@
   "activity.won": "זכית באתגר של {actor}",
   "activity.mention": "תיוג מ-{actor} בלוק",
   "activity.featured": "הלוק שלך מוצג אצל {actor}",
-
   "profile.posts": "לוקים",
   "profile.followers": "עוקבים",
   "profile.followers_n": "{n} עוקבים",
@@ -260,7 +238,6 @@
   "profile.featured_empty_brand": "מציגים לוקים מהקהילה שמתייגים אתכם והם מופיעים כאן.",
   "profile.featured_empty_person": "לוקים שמותג הציג מופיעים כאן.",
   "profile.featured_n": "{n} מוצגים",
-
   "settings.title": "הגדרות",
   "settings.avatar": "תמונת פרופיל",
   "settings.avatar_change": "להחליף תמונה",
@@ -273,30 +250,25 @@
   "settings.interests": "סגנונות שלובשים",
   "settings.interests_hint": "מעצב את הפיד \"בשבילך\".",
   "settings.brand": "חשבון מותג",
-  "settings.brand_hint": "מותגים פותחים אתגרים עם פרסים, מתייגים מוצרים על הלוקים שלהם, ומקבלים קיר קהילה עם כל לוק שמתייג אותם.",
+  "settings.brand_hint": "מותגים מקבלים קיר קהילה עם כל לוק שמתייג אותם, יכולים להציג את הלוקים שהם אוהבים, ולתייג מוצרים על הלוקים שלהם. אתגר האשטג עם פרס הוא אופציה, לא חובה.",
   "settings.save": "לשמור שינויים",
   "settings.saved": "נשמר",
   "settings.delete": "למחוק את החשבון ואת כל התמונות",
   "settings.delete_confirm": "למחוק את החשבון, את כל הבדיקות, הלוקים והתמונות? אי אפשר לבטל את זה.",
-
   "saved.title": "לוקים שמורים",
   "saved.empty": "שומרים לוקים שרוצים לחזור אליהם. רק את/ה רואה את זה.",
-
   "checks.title": "הבדיקות שלי",
   "checks.empty": "הבדיקות שלך יופיעו כאן.",
   "checks.private": "פרטי",
-
   "pwa.install_title": "להוסיף את OREVOSH למסך הבית",
   "pwa.install_body": "נפתח במסך מלא, כמו אפליקציה.",
   "pwa.install_ios": "לוחצים על שיתוף ואז \"הוספה למסך הבית\".",
   "pwa.install": "להתקין",
   "pwa.later": "לא עכשיו",
   "pwa.offline": "אין חיבור. מציגים מה שיש.",
-
   "error.network": "לא הצלחנו להתחבר ל-OREVOSH. שווה לבדוק את החיבור ולנסות שוב.",
   "error.generic": "משהו השתבש. שווה לנסות שוב.",
   "error.image_read": "לא הצלחנו לקרוא את התמונה. שווה לנסות אחרת.",
-
   "a11y.score": "ציון {score} מתוך 10",
   "a11y.photo_preview": "תמונת הלוק שלך",
   "a11y.intent_group": "לאן הלוק הולך",
@@ -304,16 +276,16 @@
   "a11y.look_by": "לוק {intent} של {name}",
   "a11y.unread": "{n} שלא נקראו",
   "a11y.search": "חיפוש",
-
   "tag.looks_one": "לוק אחד",
-
   "post.votes_one": "הצבעה אחת",
-
   "challenges.entries_one": "כניסה אחת",
   "challenges.votes_one": "הצבעה אחת",
-
   "profile.followers_n_one": "עוקב אחד",
   "profile.featured_n_one": "אחד מוצג",
-
-  "a11y.unread_one": "אחת שלא נקראה"
+  "a11y.unread_one": "אחת שלא נקראה",
+  "auth.brand_hint": "מותגים מקבלים קיר קהילה, יכולים להציג לוקים ולתייג מוצרים.",
+  "check.entering_hint": "משאירים את {tag} בכיתוב והלוק בפנים.",
+  "challenges.tag_hint": "מעלים עם {tag} כדי להיכנס",
+  "newchallenge.tag": "האשטג",
+  "newchallenge.tag_hint": "לוקים שמועלים עם ההאשטג הזה בזמן שהאתגר פתוח הם הכניסות. אותיות, ספרות וקו תחתון."
 }

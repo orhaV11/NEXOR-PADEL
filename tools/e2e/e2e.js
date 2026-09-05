@@ -142,7 +142,6 @@ async function postIt(page, opts) {
   await page.click('#post-open');
   await page.waitForSelector('#post-confirm');
   if (opts.caption) await page.fill('#caption', opts.caption);
-  if (opts.challengeId !== undefined) await page.selectOption('#challenge-pick', opts.challengeId);
   if (opts.products) {
     const inputs = await page.$$('.products-grid input');
     assert.strictEqual(inputs.length, 9, 'three product rows for a brand');
@@ -391,6 +390,8 @@ async function postIt(page, opts) {
   await brand.click('a[href="#/new-challenge"]');
   await brand.waitForSelector('#nc-submit');
   await brand.fill('#nc-title', 'Date night in black');
+  assert.strictEqual(await brand.inputValue('#nc-tag'), '#datenightinblack', 'the hashtag follows the title');
+  await brand.fill('#nc-tag', '#blackdate');
   await brand.click('.chip:has-text("Date")');
   await brand.fill('#nc-brief', 'All-black date looks. Texture over logos.');
   await brand.fill('#nc-prize', 'A black shirt of your choice');
@@ -398,14 +399,24 @@ async function postIt(page, opts) {
   await brand.waitForFunction(() => /^#\/challenge\/[0-9a-f-]{36}$/.test(location.hash));
   const challengeId = (await hash(brand)).replace('#/challenge/', '');
   await brand.waitForSelector('.challenge-title');
+  assert.strictEqual(await text(brand, '.challenge-meta a.tag.accent'), '#blackdate');
   await shot(brand, '17-challenge-en');
+  // Entering is the hashtag: the button pre-fills it in the caption, no picker, no intent lock.
   await go(noa, '#/challenge/' + challengeId);
-  await noa.waitForSelector('button:has-text("Enter with a check")');
-  await noa.click('button:has-text("Enter with a check")');
+  await noa.waitForSelector('button[data-enter]');
+  assert.strictEqual(await text(noa, 'button[data-enter]'), 'Post a look with #blackdate');
+  await noa.click('button[data-enter]');
   await noa.waitForSelector('#photo');
-  assert.strictEqual(await noa.isDisabled('.chip[data-intent=Casual]'), true, 'intent locked to the challenge');
+  assert.strictEqual(await noa.isDisabled('.chip[data-intent=Casual]'), false, 'any intent can enter');
   await runCheck(noa, { buffer: bigJpeg, score: 7 });
-  const post2 = await postIt(noa, { caption: 'Black on black #datenight' });
+  await noa.click('#post-open');
+  await noa.waitForSelector('#post-confirm');
+  assert.strictEqual(await noa.inputValue('#caption'), '#blackdate ', 'the hashtag is pre-filled');
+  assert.strictEqual(await count(noa, '#challenge-pick'), 0, 'no challenge picker');
+  await noa.fill('#caption', '#blackdate Black on black');
+  await noa.click('#post-confirm');
+  await noa.waitForSelector('#post-link');
+  const post2 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
   await go(dan, '#/challenge/' + challengeId);
   await dan.waitForSelector('.lb-row .vote');
   await dan.click('.lb-row .vote');

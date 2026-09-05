@@ -57,6 +57,18 @@ if (!string.IsNullOrEmpty(connection.DataSource) && connection.DataSource != ":m
     connection.DataSource = Path.Combine(builder.Environment.ContentRootPath, connection.DataSource);
 }
 
+// Maintenance, no web host: `dotnet FitCheck.Api.dll --backup <dir>` writes a consistent copy of the database and the photo
+// folder into <dir> and exits. Local only (no auth: it is a shell on the box, see tools/backup.sh and DEPLOY.md).
+if (args is ["--backup", var backupDir])
+{
+    var configuredRoot = builder.Configuration.GetValue<string>("Storage:Root") ?? storageDefaults.Root;
+    var storageRoot = Path.IsPathRooted(configuredRoot) ? configuredRoot : Path.Combine(builder.Environment.ContentRootPath, configuredRoot);
+    var (databaseCopy, storageCopy) = DatabaseSetup.Backup(connection.ConnectionString, storageRoot, backupDir);
+    Console.WriteLine($"database: {databaseCopy}");
+    Console.WriteLine($"storage: {storageCopy ?? "none"}");
+    return;
+}
+
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection.ConnectionString));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -134,11 +146,9 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    // No migrations in this phase: the schema is created on first run. Delete the file to reset the pilot.
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
-}
+// The schema is versioned by EF Core migrations (Data/Migrations). Every start creates a new file, migrates an existing
+// one, or upgrades a pilot file from the rounds before migrations, keeping its rows; see DatabaseSetup.
+DatabaseSetup.Apply(app.Services, app.Logger);
 
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable)))
 {
@@ -146,6 +156,28 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVision
 }
 
 app.UseForwardedHeaders();
+
+// Security headers on every response, set when the response starts so nothing downstream (the exception handler clears
+// the response) drops them. HSTS only over https, which behind the proxy means X-Forwarded-Proto, read just above; a plain
+// http://localhost run never pins itself. No CSP yet: the fonts and the inline styles need one written first (DEPLOY.md).
+app.Use((context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()";
+        headers["X-Frame-Options"] = "DENY";
+        if (context.Request.IsHttps)
+        {
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+        }
+
+        return Task.CompletedTask;
+    });
+    return next(context);
+});
 
 // Unhandled exceptions become the same { error } shape as every other failure, in the caller's language.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>

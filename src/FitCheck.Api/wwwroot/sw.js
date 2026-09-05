@@ -1,7 +1,8 @@
 // OREVOSH service worker: the app shell is cached so the app opens instantly and works offline for what was
 // already loaded. The API and photos are never cached here; they always go to the network. Shell files are
 // fetched with cache: 'no-cache', so the browser revalidates them and a deploy is picked up as one consistent set.
-const VERSION = 'orevosh-shell-v2';
+// It also shows Web Push notifications and opens the app on the right screen when one is tapped.
+const VERSION = 'orevosh-shell-v3';
 const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/manifest.webmanifest', '/i18n/en.json', '/i18n/he.json'];
 
 self.addEventListener('install', (event) => {
@@ -32,4 +33,39 @@ self.addEventListener('fetch', (event) => {
       return response;
     }).catch(() => caches.match(cacheKey))
   );
+});
+
+// ---------- push ----------
+
+// The server sends { title, body, url, tag, type }. A push must show something (userVisibleOnly), so a payload that
+// cannot be read still becomes a plain OREVOSH notification that opens the activity list.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }
+  // Only a path on this origin ("//host" would be another site).
+  const url = typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//') ? data.url : '/#/activity';
+  const tag = data.tag || ((data.type || 'orevosh') + ':' + url);   // repeats about the same thing replace each other
+  event.waitUntil(self.registration.showNotification(data.title || 'OREVOSH', {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag,
+    data: { url }
+  }));
+});
+
+// Tap: bring the app that is already open to the front and send it to the screen, else open one there.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const path = (event.notification.data && event.notification.data.url) || '/#/activity';
+  const parsed = new URL(path, self.location.origin);
+  const target = parsed.origin === self.location.origin ? parsed.href : new URL('/#/activity', self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+    const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+    if (!open) return self.clients.openWindow(target);
+    return Promise.resolve(open.focus()).then((focused) => {
+      const client = focused || open;
+      return 'navigate' in client ? client.navigate(target).catch(() => self.clients.openWindow(target)) : self.clients.openWindow(target);
+    });
+  }));
 });

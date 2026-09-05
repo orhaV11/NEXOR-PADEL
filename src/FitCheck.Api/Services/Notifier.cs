@@ -4,8 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>Queues in-app notifications on the current unit of work. The caller saves.</summary>
-public sealed class Notifier(AppDbContext db)
+/// <summary>
+/// Queues in-app notifications on the current unit of work. The caller saves. Every row also becomes a push job for
+/// <see cref="PushSender"/>, which goes out in the background and neither blocks nor fails the request.
+/// </summary>
+public sealed class Notifier(AppDbContext db, PushSender push)
 {
     public void Add(Guid userId, string type, string actorHandle, Guid? postId = null, Guid? challengeId = null)
     {
@@ -19,6 +22,7 @@ public sealed class Notifier(AppDbContext db)
             ChallengeId = challengeId,
             CreatedAt = DateTime.UtcNow
         });
+        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId));
     }
 
     /// <summary>Same actor, same post, same type: one notification, not one per tap.</summary>

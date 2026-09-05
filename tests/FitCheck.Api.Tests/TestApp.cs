@@ -21,6 +21,8 @@ public class TestApp : WebApplicationFactory<Program>
     public int SignupsPerHourPerIp { get; init; } = 100000;
     public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
     public int ReportsToHide { get; init; } = 3;
+    /// <summary>One handle for Admin:Handles:0; empty means nobody is a moderator.</summary>
+    public string AdminHandles { get; init; } = "";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,6 +34,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
+        builder.UseSetting("Admin:Handles:0", AdminHandles);
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();

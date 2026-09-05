@@ -192,5 +192,9 @@ register('settings', async (root, params, ctx) => {
     renderShell();
     navigate('#/');
   });
-  root.appendChild(el('section', { class: 's-account' }, [logout, del, dangerError]));
+  // Moderators get the door to the queue here; the server decides who is one (Admin:Handles), the client only shows the door.
+  const moderation = state.me.isAdmin
+    ? el('div', { class: 'links' }, [el('a', { href: '#/admin', id: 'moderation' }, [t('settings.moderation'), el('span', { class: 'icon', icon: 'shield' })])])
+    : null;
+  root.appendChild(el('section', { class: 's-account' }, [moderation, logout, del, dangerError]));
 });

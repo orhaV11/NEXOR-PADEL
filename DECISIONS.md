@@ -544,3 +544,20 @@ request: a logo for OREVOSH. The logo came first and the system followed it.
 ### Objections kept out of the code (owner wins)
 
 - **Outfit has no Hebrew.** Heebo 800 carries Hebrew headings; the wordmark is a logo and stays Latin.
+
+## Round 6 — the feed switch (2026-09-05)
+
+The owner liked Ring of Fire and asked for one more thing: "For you / Following" at the top of Home looked like every
+other app, find a way to present it that is ours.
+
+### Decisions
+
+- **The switch is built from the two halves of the mark.** The flame is *For you* (what is catching fire, the ranked
+  feed) and the ring is *Your circle* (the people you follow). The current feed is **lit**: a gradient pill with the
+  word on it, the flame in fire, the ring in ink, and a rose glow. The other waits **cool** beside it: a gray glyph and
+  the word, no container. There is no underline (Instagram, TikTok, Threads) and no sliding thumb (the iOS segmented
+  control); switching re-renders Home and the newly lit coin fades its fill in and pops its glyph, the same pop as the
+  check control. The challenge list's Open/Ended pills reuse the same styles without glyphs.
+- **"Following" is now "Your circle".** The ring in the logo is your circle, so the feed is named after it, in both
+  languages ("המעגל שלך"). Follower counts, the follow label and the empty states keep their words; only the feed's
+  name changed. The route (`#/feed/following`) and the API tab (`following`) are unchanged.

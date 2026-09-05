@@ -33,7 +33,7 @@ Routes: `#/` and `#/feed[/following]`, `#/explore`, `#/search/:q`, `#/tag/:tag`,
 `#/check`, `#/result`, `#/activity`, `#/me`, `#/saved`, `#/checks`, `#/settings`, `#/login`, `#/signup`,
 `#/welcome` (onboarding after signup).
 
-- **Home:** two segments, *For you* and *Following*, intent chips under them. For you needs no account.
+- **Home:** the feed switch, *For you* (the flame) and *Your circle* (the ring, the people you follow), intent chips under it. For you needs no account.
 - **Explore:** search box (people, brands, tags); sections: Trending tags (7 days), Brands to follow, Top looks
   this week, Open challenges (with "all challenges" link).
 - **Signup:** handle, password, 16+. Nothing else. Then `#/welcome`: pick the styles you wear (intent chips,

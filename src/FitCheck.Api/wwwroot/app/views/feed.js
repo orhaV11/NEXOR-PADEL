@@ -1,4 +1,4 @@
-// Home: "For you" / "Following" segments, an intent chip row under them, then an edge-to-edge look list that
+// Home: the "For you" / "Your circle" switch, an intent chip row under it, then an edge-to-edge look list that
 // pages as you scroll and refreshes when you pull down. The intent filter lives in state.feed so it survives a
 // trip to a post and back; the tab comes from the route (#/ or #/feed/following).
 import {
@@ -16,12 +16,23 @@ function feedQuery(tab, intent, offset) {
   return '/api/feed?' + q.toString();
 }
 
+// The feed switch is built from the two halves of the mark: the flame is "For you" (what's catching fire), the ring is
+// "Your circle" (the people you follow). The current one is lit with the gradient; the other sits cool beside it. No
+// underline, no sliding thumb: switching re-renders the view, and the newly lit one pops in.
+const GLYPH = { foryou: 'flameFill', following: 'ring' };
+let justSwitched = false;
+
 /** The two segments. Tapping the other one navigates; tapping the current one is a no-op (the Home tab refreshes). */
 function segments(tab) {
+  const lit = justSwitched;
+  justSwitched = false;
   return el('div', { class: 'segments', role: 'group', 'aria-label': t('feed.title') }, ['foryou', 'following'].map((name) => el('button', {
-    type: 'button', class: 'segment', 'data-tab': name, 'aria-pressed': String(name === tab), text: t('feed.' + name),
-    onclick: () => { if (name !== tab) location.hash = feedPath(name); }
-  })));
+    type: 'button', class: 'segment' + (lit && name === tab ? ' just-lit' : ''), 'data-tab': name, 'aria-pressed': String(name === tab),
+    onclick: () => { if (name !== tab) { justSwitched = true; location.hash = feedPath(name); } }
+  }, [
+    el('span', { class: 'glyph', icon: GLYPH[name] }),
+    el('span', { text: t('feed.' + name) })
+  ])));
 }
 
 /** All + every intent as a horizontally scrolling chip row. onChange(intent) runs when the selection changes. */

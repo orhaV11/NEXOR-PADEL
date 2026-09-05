@@ -152,7 +152,7 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
 | `.btn-text` | `--accent`, underlined, 500 |
 | `.pill` | 36px outlined `--line`; `.pill.accent` gradient fill |
 | `.chip` | 40px pill, `--surface-2`, Heebo 500 14 `--ink-2`; pressed: `--accent` fill, `--accent-ink`, 700; disabled 35% |
-| `.segments` / `.segment` | Outfit 700 24 words on a hairline: active `--ink` with a 3px gradient underline, others `--ink-3` (no container) |
+| `.segments` / `.segment` | the feed switch: two coins named after the halves of the mark, the flame (For you) and the ring (Your circle), Outfit 700 17 with a 22px glyph. The current one is **lit**: a 44px gradient pill with the word in `--accent-ink`, the flame in `--fire`, the ring in ink, and a rose glow (`0 8px 22px rgba(255,143,177,.22)`); the other is **cool**: no container, word `--ink-2`, glyph `--ink-3`. No underline, no sliding thumb; on a switch the newly lit coin fades its fill in (220ms) and pops its glyph (`flame-pop`). The challenge list reuses the same pills without glyphs |
 | inputs | 50px, `--surface-2`, radius 12, no border, focus 2px `--accent` ring; textarea 96 |
 | `.switch` | pill track, `--grad` when on |
 | `.sheet` | `--surface`, 24px top radius, a 3px `--grad` top edge, 36×4 `--line` handle, title Outfit 700 20, rows 52px with `--accent` icons |

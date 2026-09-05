@@ -39,6 +39,7 @@ export const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && !win
 // icon and the double-tap burst are the same shape that breaks out of the ring in the logo.
 export const ICONS = {
   flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.15 22.5 C16.42 22.5 18.06 18.89 17.57 15.45 C17.08 11.84 15.6 9.87 14.78 7.9 C13.96 5.77 12.48 3.96 11.01 1.5 C10.84 3.8 10.02 6.09 9.2 8.23 C8.22 8.06 7.23 7.41 6.9 6.42 C6.08 8.55 6.25 12.33 6.9 15.45 C7.4 19.05 8.87 22.5 12.15 22.5 Z"/></svg>',
+  ring: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" aria-hidden="true"><circle cx="12" cy="12" r="7.6"/></svg>',
   flameFill: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.15 22.5 C16.42 22.5 18.06 18.89 17.57 15.45 C17.08 11.84 15.6 9.87 14.78 7.9 C13.96 5.77 12.48 3.96 11.01 1.5 C10.84 3.8 10.02 6.09 9.2 8.23 C8.22 8.06 7.23 7.41 6.9 6.42 C6.08 8.55 6.25 12.33 6.9 15.45 C7.4 19.05 8.87 22.5 12.15 22.5 Z"/></svg>',
   comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12z"/></svg>',
   bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',

@@ -1,18 +1,18 @@
 # Only src/FitCheck.Api is copied into the image; everything else just slows the build context down or must never
-# reach an image (local databases, photos, secrets).
+# reach an image (local databases, photos, secrets, backups and the pilot-upgrade copies, wherever they sit).
 **/bin/
 **/obj/
 **/storage/
 **/*.db
 **/*.db-*
 **/*.bak-*
+**/backups/
 **/node_modules/
 tools/e2e/node_modules/
 .claude/
 .git/
 .env
 .env.*
-backups/
 tests/
 tools/
 scripts/

@@ -83,7 +83,7 @@ Fill in:
 | `DOMAIN` | The name from step 2, e.g. `looks.example.com`. No `https://`. |
 | `ANTHROPIC_API_KEY` | Your key, `sk-ant-...`. |
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
-| `Admin__Handles__0` | The handle you will sign up with in step 7. That account gets the moderation queue. |
+| `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
 `Limits__ChecksPerDay=10` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
@@ -113,9 +113,40 @@ this machine yet, or port 80/443 closed by the provider's own firewall (check th
 
 ## 7. The first admin
 
-Sign up in the app with the handle you put in `Admin__Handles__0`. There is nothing else to do: the moderation
-queue (reported looks and comments, suspensions) appears in that account's menu. To add another moderator, add
-`Admin__Handles__1=theirhandle` to `.env` and `docker compose up -d` (the app restarts with the new settings).
+Moderation is a flag on an account, and only an account that exists can carry it, so the order matters:
+
+1. **Sign up in the app first**, with the handle you want to moderate with, like anyone else.
+2. Make that account a moderator, either way:
+   - add `Admin__Handles__0=<handle>` to `.env` and `docker compose up -d`: the app restarts and, at start, promotes
+     the existing account with that handle (it never demotes anyone), or
+   - without a restart: `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>`.
+
+Reload the app on the phone and the moderation queue (reported looks and comments, suspensions) is in that account's
+menu.
+
+A handle listed in `.env` cannot be registered by anyone, which is why the signup comes first: listed before you sign
+up, the handle is blocked for you too and signup says it is taken. (If that happens: remove the line, `docker compose
+up -d`, sign up, put the line back, `docker compose up -d`.)
+
+A co-moderator is added the same way and in the same order: they sign up, then `Admin__Handles__1=theirhandle` and
+`docker compose up -d`, or `--admin theirhandle`.
+
+Revoking is `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>`, and remove the handle from `.env` as
+well, or the next restart promotes it again. A moderator cannot be suspended from the queue and cannot delete their own
+account while the flag is on; both go through `--unadmin` first. `--admin` and `--unadmin` exit with code 1 when no
+account has the handle.
+
+The app has four maintenance commands. None starts the server; all run from `/opt/orevosh`:
+
+| Command | What it does |
+|---|---|
+| `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
+| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out) |
+| `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
+| `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |
+
+`docker compose exec` needs the app running. On a laptop the same commands are `dotnet run -- --admin <handle>` and so
+on (the README, "Maintenance commands").
 
 ## 8. Push notifications
 
@@ -126,29 +157,44 @@ docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid
 ```
 
 Paste the printed public and private key into `Push__PublicKey` and `Push__PrivateKey` in `.env`, then
-`docker compose up -d`. From that moment the app offers "turn on notifications". Keep the private key private: a
-new pair silently invalidates every existing subscription, so generate it once.
+`docker compose up -d`. From that moment the app offers "turn on notifications". Keep the private key private, and
+generate the pair once: a new pair invalidates every existing subscription (the push services answer 401 or 403 to
+it, the app drops the subscription on that answer, and people turn notifications on again in Settings).
 
 ## 9. Backups
 
-`tools/backup.sh` makes a consistent copy of the database (SQLite's own online copy, no need to stop anything) and
-a copy of the photo and clip folder, and puts both in `backups/` next to the code:
+`tools/backup.sh` makes a consistent copy of the database (SQLite's own online snapshot into one self-contained file,
+no need to stop anything) and a copy of the photo and clip folder, and puts both in `backups/` next to the code:
 
 ```bash
 tools/backup.sh
-ls backups/
-# orevosh-20260905033000.db   storage-20260905033000/
+ls -l backups/
+# -rw------- orevosh-20260905033000.db    drwx------ storage-20260905033000/
 ```
 
-Every night at 03:30, keeping the last 14 (edit `KEEP=` to change that):
+The copies hold every photo and clip people gave the app, so the script makes them readable by root only: it runs with
+`umask 077`, makes `backups/` mode `700`, and `chmod -R go-rwx` after the copies come out of the container (`docker cp`
+would otherwise keep the container's world-readable modes). Nothing stays on the data volume: the container's scratch
+folder is removed whether the run succeeds or fails halfway.
+
+Sizes: the database is small (megabytes for a pilot), a storage copy is the whole media folder. So the script keeps the
+last `KEEP` (default 14) database copies but only the last `KEEP_STORAGE` (default 2) storage copies. At the moment a
+backup runs the disk holds the live folder, the copy in flight on the volume, the two kept copies and the new one (the
+oldest goes only once the new one is complete): budget about five times the media folder for that moment and three
+times the rest of the time. `docker compose exec app du -sh /data/storage` says what the folder is today;
+`KEEP_STORAGE=1` shrinks the kept part.
+
+Every night at 03:30:
 
 ```bash
-(crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
+(crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 KEEP_STORAGE=2 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
 ```
 
-**A backup on the same disk is not a backup.** Copy `backups/` somewhere else at least weekly: `rclone` to any
-cloud drive, or from your laptop `scp -r root@looks.example.com:/opt/orevosh/backups ~/orevosh-backups`. The storage
-copy holds every photo and clip, so it grows with the pilot; the database is small.
+**A backup on the same disk is not a backup.** Copy `backups/` somewhere else at least weekly, and keep it as private
+there as it is here: to another Linux machine with `rsync -a` or `scp -rp`, which keep the modes (from your laptop:
+`scp -rp root@looks.example.com:/opt/orevosh/backups ~/orevosh-backups`), or encrypted to a cloud drive, which has no
+file permissions of its own (`rclone` with a `crypt` remote, or `tar cz backups | gpg -c -o backups-$(date +%F).tgz.gpg`
+before uploading).
 
 To put a backup back (this replaces what is live, it asks first):
 
@@ -182,9 +228,26 @@ which in the log:
   the normal path (`predates migrations: copied it to ... before upgrading` followed by `upgraded: ...`). The copy
   stays on the volume; delete it once you are happy (`docker compose exec app rm /data/orevosh.db.bak-...`).
 
-Moving such a pilot from a laptop to the server is exactly the restore path: copy the laptop's `orevosh.db` and
-`storage/` folder to the server (`scp`), then `tools/restore.sh ~/orevosh.db ~/storage`. The upgrade runs on the
-next start.
+### Moving your laptop pilot to the server
+
+**Stop the local app first** (Ctrl-C in the window running `dotnet run`). The database runs in WAL mode: while the app
+is open, its newest writes sit in `orevosh.db-wal` and `orevosh.db-shm` next to the file, and a copy of `orevosh.db`
+taken alone at that moment is missing them. The safe way does not depend on that at all: the app's own backup command
+writes one self-contained file whatever state the sidecars are in, and a copy of the media folder next to it:
+
+```bash
+cd src/FitCheck.Api
+dotnet run -- --backup backups        # the same line in PowerShell; prints "database: ..." and "storage: ..."
+```
+
+Copy that `.db` file and the `storage-<stamp>` folder to the server (`scp -rp src/FitCheck.Api/backups
+root@looks.example.com:~/pilot`), then restore them there:
+
+```bash
+tools/restore.sh ~/pilot/orevosh-<stamp>.db ~/pilot/storage-<stamp>
+```
+
+A pilot database from before migrations existed is upgraded on the next start as described above.
 
 If an update goes wrong, `docker compose logs app` shows the reason; the `.bak` copy and the nightly backup are the
 way back (`tools/restore.sh`), and `git checkout <previous commit> && docker compose build app && docker compose up -d`
@@ -193,12 +256,16 @@ returns to the old code.
 For developers: after changing the model, add a migration from the repository root with
 `dotnet ef migrations add <Name> --project src/FitCheck.Api --output-dir Data/Migrations` (`dotnet tool install -g
 dotnet-ef` once) and commit the generated files; `DatabaseSetupTests` checks that the migrations produce exactly the
-schema the model describes.
+schema the model describes. From this commit on every schema change is a new migration: `InitialCreate` is never
+regenerated again, because deployed databases carry its row in the migrations history and a regenerated one (a new
+id) would be pending on all of them and fail on its first `CREATE TABLE`. The app also switches every file database
+to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm` sidecars come from).
 
 ## 11. What to watch
 
-- **Disk.** Clips are up to 40 MB each and every backup copies the whole storage folder. `df -h /` weekly; `docker
-  system prune -f` removes old build layers. When the disk is the problem, the answer is object storage (below).
+- **Disk.** Clips are up to 40 MB each and a storage backup is the whole media folder, two of them kept (step 9).
+  `df -h /` weekly; `docker system prune -f` removes old build layers. When the disk is the problem, the answer is
+  object storage (below).
 - **Health.** `https://looks.example.com/healthz` returns `ok`; anything else, or no answer, is worth a look. A free
   uptime checker (UptimeRobot, Better Stack) can ping it every few minutes and email you. Docker also checks it
   itself: `docker compose ps` shows `(healthy)` or `(unhealthy)`.
@@ -214,9 +281,13 @@ schema the model describes.
 
 In place: HTTPS with automatic renewal; HttpOnly, Secure, SameSite=Strict session cookies; a CSRF header on every
 write; passwords hashed with ASP.NET Core's hasher; rate limits on signup, login and checks; photos and clips never
-served by path; uploads checked by their bytes, not their declared type; the app container runs as a non-root user
-with nothing published except through Caddy; and on every response `Strict-Transport-Security` (over https),
-`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
+served by path; uploads checked by their bytes, not their declared type; moderation as a flag on the account row, set
+only at start from `Admin:Handles` and by the `--admin` command, never by anything a request carries; push
+subscriptions only to public push-service names (a literal address, `localhost` or a single-label name is refused, so
+the app cannot be pointed at its own network) and at most 10 per account; the app container runs as a non-root user
+with nothing published except through Caddy; and on every response `Strict-Transport-Security: max-age=31536000`
+(over https, for this host only: no `includeSubDomains`, so nothing else under your domain is forced onto HTTPS by
+this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
 and a `Permissions-Policy` that keeps camera and microphone to the app itself.
 
 Still missing before a public launch, in rough order of importance:
@@ -225,9 +296,11 @@ Still missing before a public launch, in rough order of importance:
    provider (Postmark, Resend, SES) and a reset flow.
 2. **Age assurance.** The 16+ checkbox is self-declared. Integrate the Apple and Google age-signal APIs or a provider
    and gate signup on the result.
-3. **Server-side transcoding for clips.** Phones upload what they recorded (MP4 or WebM, up to 40 MB, 30 s); nothing
-   re-encodes it, so playback depends on the viewer's browser supporting the sender's codec and the files are
-   larger than they need to be. ffmpeg in a worker, or a video service, fixes both.
+3. **Server-side transcoding for clips.** Phones upload what they recorded (up to 40 MB, 30 s): iPhones record H.264
+   MP4, Chrome records H.264 MP4 when the device can and WebM otherwise, and a WebM clip from an Android phone does
+   not play on older iPhones. Nothing re-encodes it, so playback depends on the viewer's browser supporting the
+   sender's codec and the files are larger than they need to be. ffmpeg in a worker, or a video service, fixes both;
+   this is the launch item.
 4. **Object storage.** Photos and clips sit on the server's disk behind `IImageStore`. An S3-compatible bucket
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
 5. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need

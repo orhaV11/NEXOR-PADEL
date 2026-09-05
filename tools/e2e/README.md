@@ -29,7 +29,8 @@ the Following feed; a challenge from brief to winner reached through Explore, wi
 through the challenge route; photo privacy by URL; the pilot metrics; the in-app camera against Chromium's fake
 device (a photo, then a clip recorded in clip mode, its frame picked with the slider, the still judged, the story
 card drawn, the clip posted, streamed with Range and shown in the feed with its pill); the moderation queue (a
-report, hide, show again, suspend and lift, with Noa in `Admin:Handles`); the guidelines page; the push switch on
-a server without VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account;
-signing out and back in. The service worker is blocked in the test contexts so it never masks a live request; the
-browser is launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real.
+report with a reason picked from the list, hide, show again, suspend and lift; Noa is promoted with the `--admin`
+command after she signs up, the way a real owner is); the guidelines page; the push switch on a server without
+VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account; signing out and
+back in. The service worker is blocked in the test contexts so it never masks a live request; the browser is
+launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real.

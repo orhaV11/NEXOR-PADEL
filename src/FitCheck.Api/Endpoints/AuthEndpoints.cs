@@ -4,6 +4,7 @@ using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Endpoints;
 
@@ -33,12 +34,17 @@ public static partial class AuthEndpoints
     public static IResult Error(int status, string message) =>
         Results.Json(new ErrorDto(message), AppJson.Options, statusCode: status);
 
-    public static async Task<MeDto> ToMeAsync(AppDbContext db, AppUser user, CancellationToken ct)
+    /// <summary>
+    /// The signed-in user as the client keeps it. IsAdmin comes from Admin:Handles, read from the request's services rather
+    /// than injected, so every route that answers with "me" (signup, login, /me, the profile edits) says the same thing.
+    /// </summary>
+    public static async Task<MeDto> ToMeAsync(HttpContext context, AppDbContext db, AppUser user, CancellationToken ct)
     {
         var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
         var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var admin = context.RequestServices.GetRequiredService<IOptions<AdminOptions>>().Value;
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
-            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests);
+            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, admin.IsAdmin(user.Handle));
     }
 
     private static async Task<IResult> SignupAsync(
@@ -104,7 +110,7 @@ public static partial class AuthEndpoints
         }
 
         await Sessions.SignInAsync(context, user);
-        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
+        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
     private static async Task<IResult> LoginAsync(
@@ -126,6 +132,12 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status401Unauthorized, localizer.Get(user.PreferredLanguage, "error.login_failed"));
         }
 
+        // Only after the password checked out: a stranger probing handles learns nothing from this door being shut.
+        if (user.Suspended)
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.suspended"));
+        }
+
         if (verdict == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = hasher.HashPassword(user, body.Password ?? "");
@@ -133,7 +145,7 @@ public static partial class AuthEndpoints
         }
 
         await Sessions.SignInAsync(context, user);
-        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
+        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options);
     }
 
     private static async Task<IResult> LogoutAsync(HttpContext context, CancellationToken ct)
@@ -144,14 +156,13 @@ public static partial class AuthEndpoints
 
     private static async Task<IResult> MeAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
-        var user = await db.Users.FindAsync([Sessions.RequiredUserId(context.User)], ct);
+        // The account may be gone (401) or suspended (403) while the cookie lived on; either way the cookie goes with the answer.
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (user is null)
         {
-            // The account is gone but the cookie lived on.
-            await Sessions.SignOutAsync(context);
-            return Error(StatusCodes.Status401Unauthorized, localizer.Get(Localizer.Resolve(null, context.Request), "error.sign_in_required"));
+            return failure!;
         }
 
-        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
+        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options);
     }
 }

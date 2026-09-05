@@ -401,5 +401,8 @@
   "sharecard.error": "Couldn't draw the card. Try again.",
   "sharecard.making": "Drawing the card…",
   "settings.moderation": "Moderation",
-  "settings.about": "About"
+  "settings.about": "About",
+  "admin.forbidden": "Only OREVOSH moderators can open this.",
+  "admin.users_hint": "Suspended accounts are listed until you search.",
+  "admin.no_users": "No accounts match."
 }

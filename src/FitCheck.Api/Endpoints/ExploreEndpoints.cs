@@ -46,8 +46,9 @@ public static class ExploreEndpoints
             .Take(TrendingTagCount)
             .ToListAsync(ct);
 
+        // A suspended brand is off the front page along with its profile.
         var brands = await db.Users
-            .Where(u => u.AccountType == AccountType.Brand)
+            .Where(u => u.AccountType == AccountType.Brand && !u.Suspended)
             .Select(u => new RankedUser { User = u, Followers = db.Follows.Count(f => f.FollowedId == u.Id) })
             .OrderByDescending(x => x.Followers).ThenBy(x => x.User.HandleLower)
             .Take(BrandCount)
@@ -91,7 +92,7 @@ public static class ExploreEndpoints
         // SQLite's lower() only folds ASCII, so display names are matched in .NET: handles by prefix in SQL, every
         // named account loaded once (pilot scale) and compared case-insensitively for any script.
         var candidates = await db.Users
-            .Where(u => u.HandleLower.StartsWith(term) || u.DisplayName != null)
+            .Where(u => !u.Suspended && (u.HandleLower.StartsWith(term) || u.DisplayName != null))
             .Select(u => new RankedUser { User = u, Followers = db.Follows.Count(f => f.FollowedId == u.Id) })
             .ToListAsync(ct);
         var users = candidates

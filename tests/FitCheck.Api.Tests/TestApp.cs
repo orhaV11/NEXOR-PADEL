@@ -27,6 +27,8 @@ public class TestApp : WebApplicationFactory<Program>
     public string? PushPrivateKey { get; init; }
     /// <summary>Stands in for the browsers' push services: records every push request and answers with <see cref="RecordingPushHandler.StatusCode"/>.</summary>
     public RecordingPushHandler PushHandler { get; } = new();
+    /// <summary>One handle for Admin:Handles:0; empty means nobody is a moderator.</summary>
+    public string AdminHandles { get; init; } = "";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -39,6 +41,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
+        builder.UseSetting("Admin:Handles:0", AdminHandles);
         if (PushPublicKey is not null)
         {
             builder.UseSetting("Push:PublicKey", PushPublicKey);

@@ -45,23 +45,40 @@ public static class UserEndpoints
     public static bool IsHttpsUrl(string? url, int maxLength) =>
         url is not null && url.Length <= maxLength && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
 
-    /// <summary>Loads the signed-in user or answers 401 when the cookie outlived the account.</summary>
+    /// <summary>
+    /// Loads the signed-in user, or answers 401 when the cookie outlived the account and 403 when the account is suspended.
+    /// Both clear the cookie. Sessions are cookies, so this refusal on the next request is what a suspension enforces.
+    /// </summary>
     public static async Task<(AppUser? User, IResult? Failure)> RequireUserAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
         var user = await db.Users.FindAsync([Sessions.RequiredUserId(context.User)], ct);
-        if (user is not null)
+        if (user is null)
         {
-            return (user, null);
+            await Sessions.SignOutAsync(context);
+            return (null, Error(StatusCodes.Status401Unauthorized, localizer.Get(Localizer.Resolve(null, context.Request), "error.sign_in_required")));
         }
 
-        await Sessions.SignOutAsync(context);
-        return (null, Error(StatusCodes.Status401Unauthorized, localizer.Get(Localizer.Resolve(null, context.Request), "error.sign_in_required")));
+        if (user.Suspended)
+        {
+            await Sessions.SignOutAsync(context);
+            return (null, Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.suspended")));
+        }
+
+        return (user, null);
     }
 
-    private static Task<AppUser?> FindByHandleAsync(AppDbContext db, string handle, CancellationToken ct)
+    /// <summary>Any account by handle, suspended ones included: for the moderation routes and for undoing a follow.</summary>
+    public static Task<AppUser?> FindByHandleAsync(AppDbContext db, string handle, CancellationToken ct)
     {
         var lower = handle.ToLowerInvariant();
         return db.Users.FirstOrDefaultAsync(u => u.HandleLower == lower, ct);
+    }
+
+    /// <summary>An account as the public sees it: a suspended one answers like a missing one on every profile route.</summary>
+    private static Task<AppUser?> FindVisibleByHandleAsync(AppDbContext db, string handle, CancellationToken ct)
+    {
+        var lower = handle.ToLowerInvariant();
+        return db.Users.FirstOrDefaultAsync(u => u.HandleLower == lower && !u.Suspended, ct);
     }
 
     /// <summary>Parses an enum by name only, case-insensitively: "3" is neither a style intent nor an account type.</summary>
@@ -174,7 +191,7 @@ public static class UserEndpoints
         }
 
         await db.SaveChangesAsync(ct);
-        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
     }
 
     /// <summary>Replaces the profile photo. Detected from its bytes, capped at 2 MB, stored beside the person's checks.</summary>
@@ -251,7 +268,7 @@ public static class UserEndpoints
         // A new version is a new URL, so a day-long cache can never show the old photo.
         user.AvatarVersion = NextAvatarVersion(user.AvatarVersion);
         await db.SaveChangesAsync(ct);
-        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
     }
 
     private static async Task<IResult> DeleteAvatarAsync(
@@ -272,7 +289,7 @@ public static class UserEndpoints
             await db.SaveChangesAsync(ct);
         }
 
-        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
     }
 
     /// <summary>The second and last photo route. Public and cacheable for a day: the version in the URL changes when the photo does.</summary>
@@ -419,7 +436,7 @@ public static class UserEndpoints
 
     private static async Task<IResult> GetProfileAsync(string handle, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
-        var user = await FindByHandleAsync(db, handle, ct);
+        var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
@@ -453,7 +470,7 @@ public static class UserEndpoints
     private static async Task<IResult> ListPostsAsync(
         string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
-        var user = await FindByHandleAsync(db, handle, ct);
+        var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
@@ -476,7 +493,7 @@ public static class UserEndpoints
     private static async Task<IResult> ListCommunityAsync(
         string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
-        var user = await FindByHandleAsync(db, handle, ct);
+        var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
@@ -495,7 +512,7 @@ public static class UserEndpoints
     private static async Task<IResult> ListFeaturedAsync(
         string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
-        var user = await FindByHandleAsync(db, handle, ct);
+        var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
@@ -520,7 +537,7 @@ public static class UserEndpoints
             return failure!;
         }
 
-        var target = await FindByHandleAsync(db, handle, ct);
+        var target = await FindVisibleByHandleAsync(db, handle, ct);
         if (target is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.user_not_found"));

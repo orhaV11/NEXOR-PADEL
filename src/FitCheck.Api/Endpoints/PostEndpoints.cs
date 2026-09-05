@@ -214,10 +214,27 @@ public static class PostEndpoints
         return Results.Json(dto, AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
-    private static async Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, CancellationToken ct)
+    /// <summary>
+    /// A post the caller may see: a visible one for everyone; a hidden one for its author (who gets the badge) and for a
+    /// moderator (the queue shows the look and its photo through the same routes as everyone else). A suspended author's
+    /// looks are hidden and stay out of reach while their cookie is still alive: RequireUserAsync only runs on writes.
+    /// </summary>
+    public static Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, HttpContext context, CancellationToken ct) =>
+        VisiblePostAsync(db, id, Sessions.UserId(context.User), AdminEndpoints.IsAdminViewer(context), ct);
+
+    /// <summary>The same rule without a request, so without the moderator allowance. On a route, prefer the overload with the context.</summary>
+    public static Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, CancellationToken ct) =>
+        VisiblePostAsync(db, id, viewerId, viewerIsAdmin: false, ct);
+
+    private static async Task<Post?> VisiblePostAsync(AppDbContext db, Guid id, Guid? viewerId, bool viewerIsAdmin, CancellationToken ct)
     {
         var post = await db.Posts.FindAsync([id], ct);
-        if (post is null || (post.Hidden && post.UserId != viewerId))
+        if (post is null || !post.Hidden || viewerIsAdmin)
+        {
+            return post;
+        }
+
+        if (post.UserId != viewerId || await db.Users.AnyAsync(u => u.Id == post.UserId && u.Suspended, ct))
         {
             return null;
         }
@@ -228,7 +245,7 @@ public static class PostEndpoints
     private static async Task<IResult> GetAsync(Guid id, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
-        var post = await VisiblePostAsync(db, id, viewerId, ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Language(context, null), "error.post_not_found"));
@@ -242,7 +259,7 @@ public static class PostEndpoints
     /// <summary>The only way a photo leaves the server: through a post that is public right now.</summary>
     private static async Task<IResult> GetImageAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
     {
-        var post = await VisiblePostAsync(db, id, Sessions.UserId(context.User), ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Results.NotFound();
@@ -271,7 +288,7 @@ public static class PostEndpoints
     /// </summary>
     private static async Task<IResult> GetVideoAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
     {
-        var post = await VisiblePostAsync(db, id, Sessions.UserId(context.User), ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Results.NotFound();
@@ -303,19 +320,37 @@ public static class PostEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
         }
 
-        // The photo stays with the private check (it can be posted again); the clip was only ever for this post, and
-        // tens of megabytes should not sit on disk for a look its owner withdrew. Row first, file after the commit: a
-        // path to a missing file would show a broken player, an orphaned file goes with the account.
-        var videoPath = await db.Checks.Where(c => c.Id == post.CheckId).Select(c => c.VideoPath).FirstOrDefaultAsync(ct);
+        await RemovePostAsync(db, post, images, loggerFactory.CreateLogger(nameof(PostEndpoints)), purgeCheck: false, ct);
+        return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Takes a look down: every row that points at it, then the files. The owner's delete keeps the check and its photo
+    /// (the check is private again and can be posted afresh) but drops the clip, which only ever existed for this post
+    /// and should not sit on disk for a look its owner withdrew. A moderator's delete (<paramref name="purgeCheck"/>)
+    /// removes the check as well, photo and clip included, so the same content cannot simply be posted again. Set-based,
+    /// so a second delete racing this one finds nothing and answers like this one, never 500. Files go after the commit:
+    /// a row pointing at a missing file would show a broken player, while an orphaned file leaves with the account folder.
+    /// </summary>
+    public static async Task RemovePostAsync(AppDbContext db, Post post, IImageStore images, ILogger logger, bool purgeCheck, CancellationToken ct)
+    {
+        var id = post.Id;
+        var check = await db.Checks.Where(c => c.Id == post.CheckId).Select(c => new { c.ImagePath, c.VideoPath }).FirstOrDefaultAsync(ct);
+        var files = new List<string>();
+        if (!string.IsNullOrEmpty(check?.VideoPath))
+        {
+            files.Add(check.VideoPath);
+        }
+
+        if (purgeCheck && !string.IsNullOrEmpty(check?.ImagePath))
+        {
+            files.Add(check.ImagePath);
+        }
 
         // Dependents cascade at the database, but explicit deletes keep the behaviour obvious and SQLite-agnostic.
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        if (!string.IsNullOrEmpty(videoPath))
-        {
-            await db.Checks.Where(c => c.Id == post.CheckId).ExecuteUpdateAsync(s => s.SetProperty(c => c.VideoPath, (string?)null), ct);
-        }
-
         await db.Fires.Where(f => f.PostId == id).ExecuteDeleteAsync(ct);
+        await db.Reports.Where(r => r.CommentId != null && db.Comments.Any(c => c.Id == r.CommentId && c.PostId == id)).ExecuteDeleteAsync(ct);
         await db.Comments.Where(c => c.PostId == id).ExecuteDeleteAsync(ct);
         await db.SavedPosts.Where(s => s.PostId == id).ExecuteDeleteAsync(ct);
         await db.ChallengeVotes.Where(v => v.PostId == id).ExecuteDeleteAsync(ct);
@@ -326,24 +361,29 @@ public static class PostEndpoints
         // Nothing may keep pointing at a post that is gone: activity rows would link to a 404, a challenge to no winner.
         await db.Notifications.Where(n => n.PostId == id).ExecuteDeleteAsync(ct);
         await db.Challenges.Where(c => c.WinnerPostId == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
-        // Set-based, so a second delete racing this one finds nothing and answers 204 like this one, never 500.
         await db.Posts.Where(p => p.Id == id).ExecuteDeleteAsync(ct);
+        if (purgeCheck)
+        {
+            await db.Checks.Where(c => c.Id == post.CheckId).ExecuteDeleteAsync(ct);
+        }
+        else if (!string.IsNullOrEmpty(check?.VideoPath))
+        {
+            await db.Checks.Where(c => c.Id == post.CheckId).ExecuteUpdateAsync(s => s.SetProperty(c => c.VideoPath, (string?)null), ct);
+        }
+
         await tx.CommitAsync(ct);
 
-        if (!string.IsNullOrEmpty(videoPath))
+        foreach (var path in files)
         {
             try
             {
-                images.Delete(videoPath);
+                images.Delete(path);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // The look is gone and nothing points at the file any more; it leaves with the account folder.
-                loggerFactory.CreateLogger(nameof(PostEndpoints)).LogWarning(ex, "Post {PostId}: the clip {Path} could not be removed", id, videoPath);
+                logger.LogWarning(ex, "Post {PostId}: the file {Path} could not be removed", id, path);
             }
         }
-
-        return Results.NoContent();
     }
 
     private static async Task<IResult> FireAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
@@ -354,7 +394,7 @@ public static class PostEndpoints
             return failure!;
         }
 
-        var post = await VisiblePostAsync(db, id, me.Id, ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
@@ -417,7 +457,7 @@ public static class PostEndpoints
             return failure!;
         }
 
-        var post = await VisiblePostAsync(db, id, me.Id, ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
@@ -594,7 +634,7 @@ public static class PostEndpoints
     private static async Task<IResult> ListCommentsAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
-        var post = await VisiblePostAsync(db, id, viewerId, ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Language(context, null), "error.post_not_found"));
@@ -629,7 +669,7 @@ public static class PostEndpoints
             return failure!;
         }
 
-        var post = await VisiblePostAsync(db, id, me.Id, ct);
+        var post = await VisiblePostAsync(db, id, context, ct);
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
@@ -680,18 +720,27 @@ public static class PostEndpoints
             return Error(StatusCodes.Status403Forbidden, localizer.Get(me.PreferredLanguage, "error.forbidden"));
         }
 
+        await RemoveCommentAsync(db, comment, ct);
+        return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Removes a comment and its reports. A visible comment leaves its post's count here; a hidden one already did when it
+    /// was hidden. Set-based, so a racing second delete answers like the first.
+    /// </summary>
+    public static async Task RemoveCommentAsync(AppDbContext db, Comment comment, CancellationToken ct)
+    {
+        var id = comment.Id;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Reports.Where(r => r.CommentId == id).ExecuteDeleteAsync(ct);
         var removed = await db.Comments.Where(c => c.Id == id).ExecuteDeleteAsync(ct);
         if (removed > 0 && !comment.Hidden)
         {
-            // A hidden comment already left the count when it was hidden.
             await db.Posts.Where(p => p.Id == comment.PostId && p.CommentCount > 0)
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
         }
 
         await tx.CommitAsync(ct);
-        return Results.NoContent();
     }
 
     private static async Task<IResult> ReportCommentAsync(

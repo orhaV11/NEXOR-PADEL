@@ -55,6 +55,15 @@ function madeWithKey(sub, key) {
   return true;
 }
 
+/** True when this browser's subscription was made with the key this server uses now. A subscription that does not say cannot be judged and passes. */
+export function madeWithCurrentKey(sub) { return !!sub && madeWithKey(sub, state.config.pushPublicKey || ''); }
+
+/** A subscription from before a key rotation can never be pushed to: the server forgets it, then the browser drops it. Never throws. */
+export async function dropStalePush(sub) {
+  try { await api('DELETE', '/api/push/subscriptions', { endpoint: sub.endpoint }); } catch (e) { /* a 410 will clean it up later */ }
+  try { await sub.unsubscribe(); } catch (e) { /* already gone */ }
+}
+
 function subscriptionBody(sub) {
   const json = sub.toJSON();
   return { endpoint: json.endpoint, p256dh: json.keys && json.keys.p256dh, auth: json.keys && json.keys.auth };
@@ -73,10 +82,7 @@ export async function enablePush() {
   if (permission === 'denied') throw new Error(t('push.denied'));
   if (permission !== 'granted') return null;
   let sub = await reg.pushManager.getSubscription();
-  if (sub && !madeWithKey(sub, key)) {
-    try { await sub.unsubscribe(); } catch (e) { /* stale anyway */ }
-    sub = null;
-  }
+  if (sub && !madeWithKey(sub, key)) { await dropStalePush(sub); sub = null; }
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
   try {
     await api('POST', '/api/push/subscriptions', subscriptionBody(sub));

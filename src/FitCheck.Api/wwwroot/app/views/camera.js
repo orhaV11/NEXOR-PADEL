@@ -13,8 +13,14 @@ const MIN_CLIP_MS = 1000;   // a clip released before this keeps rolling to a se
 const GUIDE_MS = 3000;      // the framing guide fades after this; a tap brings it back
 const RING_R = 36;          // the 76px shutter ring: r 36, stroke 4
 const RING_C = 2 * Math.PI * RING_R;
-// The first container MediaRecorder can write: mp4 on Safari and new Chrome, else webm.
-const MIME_TYPES = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+// The first container MediaRecorder can write, asked for with explicit codecs so isTypeSupported can refuse: H.264 mp4 on
+// Safari and new Chrome (plays everywhere), else webm. Never a bare 'video/mp4': Chrome says yes to that and then writes
+// VP9 into the mp4, a file iPhones cannot play.
+const MIME_TYPES = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+const WEBM_TYPES = MIME_TYPES.filter((type) => type.startsWith('video/webm'));
+const MP4 = /^video\/mp4/i;
+const NOT_H264 = /vp0?9|vp8|av01/i;   // codecs an mp4 from this camera must never carry
+let warnedCodec = false;
 
 // The camera's own stylesheet. The shell (masthead, dock) steps out for this route; the stage is fixed and black.
 const CSS = `
@@ -51,7 +57,7 @@ html[data-route="camera"] .toast { inset-block-end: calc(236px + var(--safe-b));
 /* the bottom: mode pills, the shutter ring, a note; a soft dark fade so the white disc reads on a bright scene */
 .cam-bottom { position: absolute; inset-inline: 0; inset-block-end: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-block: 44px calc(18px + var(--safe-b)); background: linear-gradient(transparent, rgba(0, 0, 0, 0.55)); }
 .cam-modes { display: flex; gap: 6px; }
-.cam-modes button { min-block-size: 36px; min-inline-size: 72px; padding-inline: 14px; border: 0; border-radius: var(--pill); background: rgba(0, 0, 0, 0.45); color: rgba(255, 255, 255, 0.85); font-weight: 700; font-size: 13px; }
+.cam-modes button { min-block-size: 36px; min-inline-size: 72px; padding-inline: 14px; border: 0; border-radius: var(--pill); background: rgba(0, 0, 0, 0.55); color: #fff; font-weight: 700; font-size: 13px; }   /* the idle pill stays ≥ 4.5:1 on a bright scene */
 .cam-modes button[aria-pressed="true"] { background: #fff; color: #000; }
 .cam-modes button:disabled { opacity: 0.4; }
 .cam-shutter { position: relative; inline-size: 88px; block-size: 88px; padding: 0; border: 0; border-radius: 50%; background: transparent; display: grid; place-items: center; touch-action: none; -webkit-touch-callout: none; }
@@ -120,9 +126,10 @@ function mountCamera(root, initialMode) {
   const prefs = loadPrefs();
   let facing = prefs.cameraFacing === 'user' ? 'user' : 'environment';
   let mode = initialMode;
-  let phase = 'starting';       // starting | live | countdown | recording | preview | blocked
+  let phase = 'starting';       // starting | live | countdown | recording | stopping | preview | blocked
   let stream = null; let mirrored = false; let hasAudio = false;
-  let recorder = null; let chunks = []; let recStart = 0; let recFrame = 0; let recStopTimer = 0; let recordedMs = 0; let lastShownSecond = -1;
+  let openSeq = 0;              // only the newest open() keeps the stream it asked for; older ones stop theirs on arrival
+  let recorder = null; let chunks = []; let recStart = 0; let recFrame = 0; let recStopTimer = 0; let capTimer = 0; let recordedMs = 0; let lastShownSecond = -1;
   let holdTimer = 0; let countdownTimer = 0; let guideTimer = 0;
   let pressed = false; let pressStartedClip = false; let pointerHandled = false;
   let timerOn = false; let destroyed = false; let manyCameras = false;
@@ -133,7 +140,8 @@ function mountCamera(root, initialMode) {
   video.muted = true;
   const stage = el('div', { class: 'cam-stage', onclick: () => { if (phase === 'live') showGuide(); } }, [video]);
   const flash = el('div', { class: 'cam-flash', 'aria-hidden': 'true' });
-  const guide = el('div', { class: 'cam-guide hide', 'aria-hidden': 'true' }, [el('div', { class: 'box' }), el('p', { text: t('camera.guide') })]);
+  // The dotted frame is decorative; the hint under it stays in the accessibility tree (the box fades, the words remain).
+  const guide = el('div', { class: 'cam-guide hide' }, [el('div', { class: 'box', 'aria-hidden': 'true' }), el('p', { text: t('camera.guide') })]);
   const count = el('div', { class: 'cam-count', 'aria-hidden': 'true', hidden: true });
   const closeBtn = iconButton('x', t('camera.close'), leave);
   const timerBtn = iconButton('timer', t('camera.timer'), () => setTimer(!timerOn), { 'aria-pressed': 'false' });
@@ -162,15 +170,19 @@ function mountCamera(root, initialMode) {
   async function open() {
     if (destroyed) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { blocked('camera.unsupported'); return; }
+    const seq = ++openSeq;
     setPhase('starting');
     let next;
     try { next = await getStream(); }
     catch (e) {
-      if (destroyed) return;
+      if (destroyed || seq !== openSeq) return;   // a newer open() owns the screen now
       blocked(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.name === 'PermissionDeniedError') ? 'camera.denied' : 'camera.unsupported');
       return;
     }
-    if (destroyed || phase === 'preview' || document.hidden) { for (const track of next.getTracks()) track.stop(); return; }   // hidden: visibilitychange reopens
+    // A stream nobody wants any more is stopped on the spot, or the camera light stays on: an older open() resolving late,
+    // the view gone, a preview showing, or the page hidden (visibilitychange reopens).
+    if (destroyed || seq !== openSeq || phase === 'preview' || document.hidden) { for (const track of next.getTracks()) track.stop(); return; }
+    stopStream();
     stream = next;
     const track = stream.getVideoTracks()[0];
     const settings = track && track.getSettings ? track.getSettings() : {};
@@ -179,7 +191,7 @@ function mountCamera(root, initialMode) {
     stage.classList.toggle('mirror', mirrored);
     video.srcObject = stream;
     try { await video.play(); } catch (e) { /* muted autoplay is allowed; a refusal still shows frames on most browsers */ }
-    if (destroyed) { stopStream(); return; }
+    if (destroyed || seq !== openSeq) { if (stream === next) stopStream(); return; }
     setPhase('live');
     paintNote();
     showGuide();
@@ -222,16 +234,17 @@ function mountCamera(root, initialMode) {
     phase = next;
     cam.dataset.phase = next;
     const live = next === 'live' || next === 'countdown' || next === 'recording';
+    const busy = next === 'recording' || next === 'stopping';   // stopping: the recorder is flushing its last chunk; a second tap would cut the clip
     shutter.disabled = !live;
     top.hidden = next === 'preview';
     bottom.hidden = next === 'preview' || next === 'blocked';
-    rec.hidden = next !== 'recording';
+    rec.hidden = !busy;
     preview.hidden = next !== 'preview';
     stateLayer.hidden = next !== 'starting' && next !== 'blocked';
     if (next === 'starting') stateLayer.replaceChildren(el('div', { class: 'box' }, [el('span', { class: 'loading-mark', 'aria-hidden': 'true', style: 'margin: 0;' }), el('p', { text: t('camera.starting') })]));
-    for (const button of modes.children) button.disabled = next === 'recording' || next === 'countdown';
+    for (const button of modes.children) button.disabled = busy || next === 'countdown';
     timerBtn.hidden = next === 'blocked';
-    timerBtn.disabled = next === 'recording';
+    timerBtn.disabled = busy;
     flipBtn.hidden = next === 'blocked' || !manyCameras;
     flipBtn.disabled = next !== 'live';
     if (next !== 'live') hideGuide();
@@ -241,6 +254,7 @@ function mountCamera(root, initialMode) {
     setPhase('blocked');
     const library = el('button', { type: 'button', class: 'btn', text: t('camera.library'), onclick: () => fromLibrary(library) });
     stateLayer.replaceChildren(el('div', { class: 'box' }, [icon('camera'), el('p', { text: t(key) }), modes.hidden ? null : modes, library]));
+    announce(t(key));   // the message is on screen; the live region says it to assistive tech, which the state layer alone would not
   }
   function setMode(next) {
     mode = next;
@@ -333,25 +347,43 @@ function mountCamera(root, initialMode) {
     showPreview({ kind: 'photo', blob, url: URL.createObjectURL(blob) });
   }
 
-  function pickMime() {
-    for (const type of MIME_TYPES) { try { if (MediaRecorder.isTypeSupported(type)) return type; } catch (e) { /* next */ } }
+  function pickMime(types) {
+    for (const type of types) { try { if (MediaRecorder.isTypeSupported(type)) return type; } catch (e) { /* next */ } }
     return '';
   }
+  /** A started recorder on the stream, or null when the browser cannot record. Its events count only while it is the current one. */
+  function makeRecorder(type) {
+    let r;
+    try { r = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 4000000 } : undefined); }
+    catch (e) { return null; }
+    r.addEventListener('dataavailable', (event) => { if (r === recorder && event.data && event.data.size) chunks.push(event.data); });
+    r.addEventListener('stop', () => { if (r === recorder) onRecorded(); });
+    r.addEventListener('error', () => { if (r === recorder && phase === 'recording') stopRecording(true); });
+    try { r.start(250); } catch (e) { return null; }
+    return r;
+  }
+  /** The container of a recorded clip: 'video/mp4' (H.264 by construction, what check.js names clip.mp4) or 'video/webm'. */
+  const containerOf = (mime) => (MP4.test(mime || pickMime(MIME_TYPES)) ? 'video/mp4' : 'video/webm');
   function startRecording() {
     if (phase !== 'live' || !canRecord()) return;
-    const type = pickMime();
-    try { recorder = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 4000000 } : undefined); }
-    catch (e) { recorder = null; toast(t('camera.unsupported')); return; }
     chunks = []; recordedMs = 0; lastShownSecond = -1;
-    recorder.addEventListener('dataavailable', (event) => { if (event.data && event.data.size) chunks.push(event.data); });
-    recorder.addEventListener('stop', onRecorded);
-    recorder.addEventListener('error', () => { if (phase === 'recording') stopRecording(true); });
-    try { recorder.start(250); } catch (e) { recorder = null; toast(t('camera.unsupported')); return; }
+    let next = makeRecorder(pickMime(MIME_TYPES));
+    if (next && MP4.test(next.mimeType || '') && NOT_H264.test(next.mimeType)) {
+      // The browser agreed to H.264 and is writing VP9 (or VP8, AV1) into the mp4 anyway: that file does not play on iPhones.
+      // Start over in webm; a browser with no webm either cannot make a clip that travels, so it makes none.
+      try { next.stop(); } catch (e) { /* never really started */ }
+      const webm = pickMime(WEBM_TYPES);
+      if (!warnedCodec) { warnedCodec = true; console.warn('camera: MediaRecorder chose ' + next.mimeType + '; ' + (webm ? 'recording ' + webm + ' instead' : 'no webm to fall back to')); }
+      next = webm ? makeRecorder(webm) : null;
+    }
+    if (!next) { recorder = null; toast(t('camera.unsupported')); return; }
+    recorder = next;
     recStart = performance.now();
     setPhase('recording');
     shutter.classList.add('rec');
     shutter.setAttribute('aria-label', t('camera.stop'));
     tickRecording();
+    capTimer = setTimeout(() => stopRecording(true), maxMs() + 100);   // the ring's rAF loop enforces the cap; this stands in when frames are throttled
     announce(t('camera.recording', { s: fmtNumber(0) }));
   }
   function tickRecording() {
@@ -363,23 +395,31 @@ function mountCamera(root, initialMode) {
     if (elapsed >= max) { stopRecording(true); return; }
     recFrame = requestAnimationFrame(tickRecording);
   }
+  function clearRecTimers() {
+    clearTimeout(recStopTimer); recStopTimer = 0;
+    clearTimeout(capTimer); capTimer = 0;
+    cancelAnimationFrame(recFrame); recFrame = 0;
+  }
   function stopRecording(force) {
-    if (phase !== 'recording' || !recorder) return;
+    if (phase !== 'recording' || !recorder) return;   // 'stopping' lands here too: the recorder is flushing, and a second stop would truncate the clip
     const elapsed = performance.now() - recStart;
     if (!force && elapsed < MIN_CLIP_MS) {   // too short to be a clip: keep rolling to a second, then stop
       if (!recStopTimer) recStopTimer = setTimeout(() => { recStopTimer = 0; stopRecording(true); }, MIN_CLIP_MS - elapsed);
       return;
     }
-    clearTimeout(recStopTimer); recStopTimer = 0;
-    cancelAnimationFrame(recFrame);
+    clearRecTimers();
     recordedMs = Math.round(elapsed);
+    setPhase('stopping');   // the shutter is off until the 'stop' event has been handled
     if (recorder.state === 'inactive') { onRecorded(); return; }
     try { recorder.stop(); } catch (e) { onRecorded(); }
   }
+  /** The one end of a recording: after stop(), or when the recorder stopped on its own (a track ended, an error). */
   function onRecorded() {
     if (!recorder) return;   // already handled (a stop event after a direct call, or a recorder stopped on the way out)
-    const type = (recorder.mimeType || pickMime() || 'video/webm').split(';')[0];
-    const blob = new Blob(chunks, { type });
+    clearRecTimers();
+    // A recorder that stopped by itself never went through stopRecording: the clock is the duration then.
+    const ms = Math.min(recordedMs || Math.round(performance.now() - recStart), maxMs());
+    const blob = new Blob(chunks, { type: containerOf(recorder.mimeType) });
     recorder = null; chunks = [];
     shutter.classList.remove('rec');
     progress.setAttribute('stroke-dashoffset', String(RING_C));
@@ -387,7 +427,7 @@ function mountCamera(root, initialMode) {
     if (destroyed) return;
     announce(t('camera.stop'));
     if (!blob.size) { setPhase('live'); showGuide(); toast(t('error.video_read')); return; }
-    showPreview({ kind: 'clip', blob, url: URL.createObjectURL(blob), ms: Math.min(recordedMs, maxMs()) });
+    showPreview({ kind: 'clip', blob, url: URL.createObjectURL(blob), ms });
   }
 
   // ---- the preview ----
@@ -452,8 +492,8 @@ function mountCamera(root, initialMode) {
   window.addEventListener('pagehide', stopStream);
   function destroy() {
     destroyed = true;
-    clearTimeout(holdTimer); clearTimeout(countdownTimer); clearTimeout(guideTimer); clearTimeout(recStopTimer);
-    cancelAnimationFrame(recFrame);
+    clearTimeout(holdTimer); clearTimeout(countdownTimer); clearTimeout(guideTimer);
+    clearRecTimers();
     if (recorder && recorder.state !== 'inactive') { try { recorder.stop(); } catch (e) { /* already gone */ } }
     recorder = null;
     stopStream();

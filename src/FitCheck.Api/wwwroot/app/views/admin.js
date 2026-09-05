@@ -2,7 +2,7 @@
 // The server is the gate (403 for everyone else); this screen only opens the door for people the /me call says are
 // moderators. Every action reloads the queue: the list is what the server says is left to look at, nothing is kept here.
 import {
-  register, state, t, api, el, icon, avatar, brandMark, handleText, relative, fmtNumber, fmtCompact, setTopBar, signInPrompt, confirmSheet, toast,
+  register, state, t, hasMessage, api, el, icon, avatar, brandMark, handleText, relative, fmtNumber, fmtCompact, setTopBar, signInPrompt, confirmSheet, toast,
   postCard, emptyState, errorBlock, skeletonCards, isMe
 } from '../core.js';
 
@@ -41,6 +41,8 @@ function ensureStyle() {
 /** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
 const countArg = (n) => (n === 1 ? 1 : fmtCompact(n));
 const userPath = (handle) => '/api/admin/users/' + encodeURIComponent(handle);
+/** A reason as the app sends it (a report.<key> string) reads in the moderator's language; anything else (older reports, the API) is shown as given. */
+const reasonText = (r) => (/^[a-z_]+$/.test(r) && hasMessage('report.' + r) ? t('report.' + r) : r);
 
 /** A moderator's button: outlined, red for the destructive ones, 44px tall. Disabled while its call is in flight. */
 function actionButton(text, onclick, danger) {
@@ -87,7 +89,7 @@ function itemFoot(item, actions) {
     item.authorSuspended ? el('span', { class: 'tag rose', text: t('admin.suspended') }) : null
   ]);
   const reasons = item.reasons && item.reasons.length
-    ? el('div', { class: 'adm-reasons', role: 'group', 'aria-label': t('admin.reasons') }, item.reasons.map((r) => el('span', { class: 'adm-reason', title: r }, [el('bdi', { text: r })])))
+    ? el('div', { class: 'adm-reasons', role: 'group', 'aria-label': t('admin.reasons') }, item.reasons.map((r) => { const text = reasonText(r); return el('span', { class: 'adm-reason', title: text }, [el('bdi', { text })]); }))
     : null;
   return el('div', { class: 'adm-foot' }, [meta, reasons, el('div', { class: 'adm-actions' }, actions)]);
 }
@@ -166,7 +168,8 @@ register('admin', async (root, params, ctx) => {
       return;
     }
     if (ctx.stale()) return;
-    stats.textContent = t('admin.stats', { hidden: fmtNumber(data.hiddenPosts), comments: fmtNumber(data.hiddenComments), suspended: fmtNumber(data.suspendedUsers) });
+    const n = (count) => (count === 1 ? 1 : fmtNumber(count));   // 1 as a number, so the _one forms fire
+    stats.textContent = [t('admin.stats_looks', { n: n(data.hiddenPosts) }), t('admin.stats_comments', { n: n(data.hiddenComments) }), t('admin.stats_suspended', { n: n(data.suspendedUsers) })].join(' · ');
     const items = data.items || [];
     list.replaceChildren(...(items.length ? items.map((item) => queueItem(item, act)) : [emptyState(t('admin.empty'))]));
   }

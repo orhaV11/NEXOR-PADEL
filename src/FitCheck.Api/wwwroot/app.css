@@ -361,7 +361,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .card-media .sound:active::before { background: rgba(11, 11, 15, 0.8); }
 .card-media .sound .icon { position: relative; }
 .card-media .sound svg { inline-size: 18px; block-size: 18px; }
-.card-media .sound[aria-pressed="true"] { color: var(--accent); }
+.card-media .sound.on { color: var(--accent); }   /* sound on; under reduced motion, playing */
 /* §3 the score ring: a gradient ring around a surface disc, the numeral inside, "/10" under it */
 .score-badge {
   position: absolute; inset-block-end: -14px; inset-inline-end: 14px; z-index: 2;

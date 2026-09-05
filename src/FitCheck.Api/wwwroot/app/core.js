@@ -92,6 +92,8 @@ export function t(key, params) {
   return text;
 }
 export const getLocale = () => locale;
+/** True when the key has a string in the current locale or the default one (t() would warn and return the key otherwise). */
+export const hasMessage = (key) => !!((messages[locale] && key in messages[locale]) || (messages[DEFAULT_LOCALE] && key in messages[DEFAULT_LOCALE]));
 export const isRtl = () => t('meta.dir') === 'rtl';
 export const localeName = (code) => (messages[code] && messages[code]['meta.name']) || code;
 
@@ -333,7 +335,12 @@ export async function api(method, path, body) {
   let data = null;
   try { data = await response.json(); } catch (e) { data = null; }
   if (!response.ok) {
-    if (response.status === 401 && state.me && !/^\/api\/auth\/(login|signup)/.test(path)) { state.me = null; resetSession(); renderShell(); render(false); }
+    if (state.me && !/^\/api\/auth\//.test(path)) {
+      if (response.status === 401) signedOut();
+      // A suspended account is refused with 403 at every door, and /me answers 403 too (dropping the cookie): one look
+      // there, never more than one in flight, signs the person out here on the first refused action.
+      else if (response.status === 403) recheckMe();
+    }
     throw new ApiError(response.status, (data && data.error) || t('error.generic'));
   }
   if ((method === 'POST' && /^\/api\/posts\/?$/.test(path)) || (method === 'DELETE' && /^\/api\/posts\/[^/]+$/.test(path))) feedVersion.n += 1;
@@ -348,9 +355,17 @@ export async function loadConfig() {
   try { const c = await api('GET', '/api/config'); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
 }
 export async function loadMe() {
-  try { state.me = await api('GET', '/api/auth/me'); } catch (e) { if (e.status === 401) state.me = null; }
+  try { state.me = await api('GET', '/api/auth/me'); }
+  catch (e) {
+    // 401: no session. 403: the account is suspended and the server dropped the cookie with the answer. Both mean signed out here.
+    if (e.status === 401 || e.status === 403) { if (state.me) signedOut(); else state.me = null; }
+  }
   renderShell();
 }
+/** The server no longer has a session for this person: everything private goes and the screen redraws signed out. */
+function signedOut() { state.me = null; resetSession(); renderShell(); render(false); }
+let meCheck = null;
+function recheckMe() { if (!meCheck) meCheck = loadMe().finally(() => { meCheck = null; }); }
 export const isMe = (handle) => !!state.me && !!handle && state.me.handle.toLowerCase() === String(handle).toLowerCase();
 export const isBrand = () => !!state.me && state.me.accountType === 'Brand';
 
@@ -815,10 +830,22 @@ export async function copyText(text, doneMessage) {
   try { await navigator.clipboard.writeText(text); toast(doneMessage || t('common.copied')); }
   catch (e) { window.prompt(t('common.copy_link'), text); }
 }
+/** The reasons a report can give; each has a report.<key> string, and the moderation queue reads the key back through them. */
+export const REPORT_REASONS = ['not_outfit', 'nudity', 'person', 'spam', 'other'];
+/** "Why are you reporting this?": a sheet of the reasons. Resolves with the picked key, or null when the sheet was dismissed. */
+export function pickReportReason() {
+  return new Promise((resolve) => {
+    let picked = null;
+    const list = el('div', { class: 'sheet-list' });
+    const s = sheet({ title: t('report.title'), content: list, onClose: () => resolve(picked) });
+    for (const key of REPORT_REASONS) list.appendChild(el('button', { type: 'button', 'data-reason': key, text: t('report.' + key), onclick: () => { picked = key; s.close(); } }));
+  });
+}
 export async function reportPost(post) {
   if (!requireSignIn()) return;
-  if (!await confirmSheet(t('post.report'), t('post.report_confirm'), t('post.report'), true)) return;
-  try { await api('POST', '/api/posts/' + post.id + '/report', { reason: 'reported from app' }); toast(t('post.reported')); }
+  const reason = await pickReportReason();
+  if (!reason) return;
+  try { await api('POST', '/api/posts/' + post.id + '/report', { reason }); toast(t('post.reported')); }
   catch (e) { toast(e.message); }
 }
 export async function deletePost(post) {
@@ -883,11 +910,14 @@ export function frameToJpeg(video) {
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
 }
-function playClip(video) {
-  if (playingClips.has(video)) return;
-  if (playingClips.size >= MAX_PLAYING_CLIPS) pauseClip(playingClips.values().next().value);
-  playingClips.add(video);
-  video.muted = !clipSound;
+/** Plays a clip, muted unless sound is on for the session or the person asked for it; a refused unmuted play falls back to silent. */
+function playClip(video, withSound) {
+  if (!video.paused) return;
+  if (!playingClips.has(video)) {
+    if (playingClips.size >= MAX_PLAYING_CLIPS) pauseClip(playingClips.values().next().value);
+    playingClips.add(video);
+  }
+  video.muted = !(withSound || clipSound);
   const attempt = video.play();
   if (attempt && attempt.catch) attempt.catch(() => {
     // sound refused without a gesture on this page: play silent rather than not at all
@@ -902,7 +932,8 @@ function observeClip(video) {
   if (!clipObserver) {
     clipObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden) playClip(entry.target);
+        // Under reduced motion nothing starts by itself: the disc on the card is the play button. Leaving the screen still pauses.
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden) { if (!reducedMotion()) playClip(entry.target); }
         else pauseClip(entry.target);
       }
     }, { threshold: [0, 0.6] });
@@ -916,10 +947,16 @@ function observeClip(video) {
   }
   clipObserver.observe(video);
 }
+/**
+ * The disc on a clip: a plain button named for what a tap does, "Sound on" while muted and "Sound off" while not. Under
+ * reduced motion, where nothing autoplays, it is the play/pause control instead ("Play" / "Pause"). .on lights it either way.
+ */
 function paintSound(entry) {
-  entry.button.setAttribute('aria-label', t(clipSound ? 'video.mute' : 'video.unmute'));
-  entry.button.setAttribute('aria-pressed', String(clipSound));
-  entry.button.replaceChildren(icon(clipSound ? 'sound' : 'mute'));
+  const manual = reducedMotion();
+  const on = manual ? !entry.video.paused : clipSound;
+  entry.button.setAttribute('aria-label', t(manual ? (on ? 'video.pause' : 'video.play') : (on ? 'video.mute' : 'video.unmute')));
+  entry.button.classList.toggle('on', on);
+  entry.button.replaceChildren(icon(manual ? (on ? 'pause' : 'play') : (on ? 'sound' : 'mute')));
 }
 /** Sound for every clip on the page and the ones to come; the buttons repaint. */
 export function setClipSound(on) {
@@ -940,15 +977,23 @@ function clipVideo(post) {
   video.muted = !clipSound; video.defaultMuted = true; video.loop = true;
   return video;
 }
-/** The sound toggle beside a clip; registers the pair for the session-wide sound state and for autoplay. */
+/** The disc beside a clip; registers the pair for the session-wide sound state and for autoplay. */
 function clipControls(video) {
-  const button = el('button', { type: 'button', class: 'sound', onclick: (event) => { event.preventDefault(); event.stopPropagation(); setClipSound(!clipSound); } });
-  const entry = { video, button };
+  const entry = { video, button: null };
+  entry.button = el('button', { type: 'button', class: 'sound', onclick: (event) => {
+    event.preventDefault(); event.stopPropagation();
+    if (!reducedMotion()) { setClipSound(!clipSound); return; }
+    if (video.paused) playClip(video, true); else pauseClip(video);   // the tap is the gesture: the clip starts with sound
+    paintSound(entry);
+  } });
+  const repaint = () => paintSound(entry);
+  video.addEventListener('play', repaint);
+  video.addEventListener('pause', repaint);   // the observer pausing a clip that scrolled away, or a play the browser refused
   paintSound(entry);
   clips.add(entry);
   observeClip(video);
   onLeave(() => { clips.delete(entry); pauseClip(video); if (clipObserver) clipObserver.unobserve(video); });
-  return button;
+  return entry.button;
 }
 
 // ---------- looks: the score ring, the card, the grid ----------

@@ -3,7 +3,7 @@
 // flush edge-to-edge card, top bar with a back arrow).
 import {
   register, state, t, api, el, avatar, userRow, postCard, setTopBar, navigate, requireSignIn,
-  emptyState, skeletonCards, errorBlock, toast, confirmSheet, relative, fmtNumber, fmtCompact
+  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact
 } from '../core.js';
 
 let styled = false;
@@ -144,11 +144,11 @@ register('post', async (root, params, ctx) => {
 
   async function reportComment(c, button) {
     if (!requireSignIn()) return;
-    if (!await confirmSheet(t('comments.report'), t('comments.report_confirm'), t('comments.report'), true)) return;
-    if (ctx.stale()) return;
+    const reason = await pickReportReason();
+    if (!reason || ctx.stale()) return;
     if (button) button.disabled = true;
     try {
-      await api('POST', '/api/comments/' + encodeURIComponent(c.id) + '/report', { reason: 'reported from app' });
+      await api('POST', '/api/comments/' + encodeURIComponent(c.id) + '/report', { reason });
       if (ctx.stale()) return;
       toast(t('post.reported'));
     } catch (e) {

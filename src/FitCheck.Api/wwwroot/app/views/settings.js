@@ -4,7 +4,7 @@
 import {
   register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert
 } from '../core.js';
-import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush } from '../push.js';
+import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
 
 // The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label, the push block.
 const CSS = `
@@ -55,7 +55,10 @@ function pushSection(ctx) {
 
   const support = pushSupport();
   if (support === 'ready') {
-    getPushSubscription().then((sub) => {
+    getPushSubscription().then(async (sub) => {
+      // A subscription made with a VAPID key this server no longer uses would leave the switch on while every push fails:
+      // it goes on both sides, and the switch is off with its "Turn on" affordance.
+      if (sub && !madeWithCurrentKey(sub)) { await dropStalePush(sub); sub = null; }
       if (ctx.stale()) return;
       paint(!!sub);
       setLocked(false);
@@ -268,6 +271,7 @@ register('settings', async (root, params, ctx) => {
     if (!ok || ctx.stale()) return;
     del.disabled = true;
     dangerError.hidden = true;
+    await unsubscribePush();   // this browser's subscription goes first, while the session cookie is still there
     try {
       await api('DELETE', '/api/users/me');
     } catch (e) {

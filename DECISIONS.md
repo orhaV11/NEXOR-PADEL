@@ -466,3 +466,50 @@ plan written before building; what follows are the calls made while building it.
 - **Featured looks have no review.** A brand featuring a look is a brand endorsing it; if that is ever abused,
   reports still hide the look.
 - **The project folder still says FitCheck.** See above.
+
+# Phase 4 — the hashtag, and a look of our own
+
+The owner's notes after using Phase 3: the challenge picker on the post sheet is noise (challenges are a side idea
+for brands, not the product); the brand switch should not be explained through challenges; and the visuals felt like
+TikTok. "Let's find and create OREVOSH's own look, especially Explore and followers/following."
+
+## Decisions
+
+### Challenges are a hashtag
+
+- **A challenge is a hashtag a brand promotes.** The brand picks it (the form suggests one from the title; it is made
+  unique among open challenges with a numeric suffix rather than refused), and a look posted with that hashtag while
+  the challenge is open is an entry: once per person, any intent, never the brand's own look. The picker is gone from
+  the post sheet; the challenge page's button pre-fills the hashtag in the caption. `challengeId` is still accepted by
+  the API for older clients. The intent on a challenge is its theme, not a gate: the crowd decides what fits.
+- **Brand copy leads with community, featuring and products.** A hashtag challenge with a prize is one sentence at the
+  end, marked optional.
+
+### The look: Night Atelier
+
+- **Three directions were built and rendered on the real app with seeded content, then judged.** Paper Editorial (a
+  light magazine: paper, ink, serif, a text folio with an O seal), Night Atelier (a warm dark wall of mounted prints,
+  brass stamps, a floating text dock with a raised stamp), and The Wall (poster graphic: cream, colour blocks, stickers).
+  Three judges with different lenses (a creative director, a mobile product designer, a young Israeli TikTok user) scored
+  distinctiveness, chic, usability, RTL and feasibility. Atelier won on totals (117.5 / 114.5 / 111); each judge had a
+  different favourite, which is the point of the panel.
+- **What the system is:** aubergine-charcoal ground under a lamp gradient and a faint grain, ivory ink, brass as the one
+  accent and fire orange for reactions only; Instrument Serif (Frank Ruhl Libre for Hebrew) for the wordmark, headings and
+  every numeral that matters, Heebo for everything else; one signature shape everywhere, a square with its top-end corner
+  clipped round, which mirrors for free in Hebrew. Navigation is a floating opaque dock of four text destinations with the
+  check control as a raised, tilted brass stamp carrying the serif "O". Look cards are mounted prints with the score as a
+  stamp straddling the photo's bottom edge. Explore has a front page (kicker, title, dateline), a hero from the week's top
+  look, trending tags as a numbered index with dotted leaders, brands as a band of framed portraits, the top looks as a
+  staggered wall with gallery captions, and hashtag challenges as quiet tickets at the tail. Profile stats are a statline
+  and a colophon in serif numerals, not tiles; the follow control is the page's one big label under the handle. No pill
+  shapes, no glass, no gradient plus button, no 999px radius anywhere.
+- **Grafted from the runners-up:** Paper's Explore front, index and captions and the serif O monogram; Poster's full-height
+  tap blocks in the dock, outlined 42px action targets and the dashed "not yet" disabled button.
+- **Refused:** a light theme (the dark ground is the identity), the lilac accent (brass replaced it), tilted stickers and
+  colour-cycling shadows, and plate numerals over photos (two numbers per print).
+- **`DESIGN.md` is the system's reference**, kept in the repository so the next screen is designed inside it.
+
+### Objections kept out of the code (owner wins)
+
+- **Instrument Serif has no Hebrew.** Frank Ruhl Libre follows in the stack and sits on the same baseline at these
+  sizes; the wordmark stays Latin in both languages.

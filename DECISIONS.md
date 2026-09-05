@@ -513,3 +513,34 @@ TikTok. "Let's find and create OREVOSH's own look, especially Explore and follow
 
 - **Instrument Serif has no Hebrew.** Frank Ruhl Libre follows in the stack and sits on the same baseline at these
   sizes; the wordmark stays Latin in both languages.
+
+# Phase 5 — the logo, and Ring of Fire
+
+The owner's verdict on Night Atelier: more unique, yes, but the earlier vibe was better, younger and more "lit". And a
+request: a logo for OREVOSH. The logo came first and the system followed it.
+
+## Decisions
+
+- **Four logo concepts were drawn as pure geometry (no fonts), rendered on presentation sheets, and shown side by side:**
+  Ring of Fire (the O as a bold ring with one lick of flame breaking out), The Mirror (the O as a full-length mirror with a
+  spark), Volt (the V as a bolt that is also a check, ink + acid lime), and The Score Stamp (a tilted sticker holding a 10
+  whose 0 is the O). The owner chose **Ring of Fire** ("קטלני").
+- **Why it works as the mark:** it is the first letter, not a badge beside the name; the ring is the frame you step into
+  and the score lands inside it; the flame is the app's one currency, the fire reaction, so the logo is the moment a look
+  catches fire. It reads at 16px as ring + spark. The gradient runs cool-to-warm across the ring and the flame sits on the
+  mauve midpoint so orange against lilac stays crisp at favicon size. Sources live in `wwwroot/brand/`.
+- **The system is rebuilt around the logo, not the other way round.** Palette back to the Phase 3 stage (near-black,
+  lilac, rose, fire), with one rule added from the logo: the lilac-to-rose gradient is the only gradient and appears where
+  the ring appears (primary buttons, the score ring, the follow label, brand portrait rings, the sheet's edge); fire is
+  reserved for what caught fire. Type goes rounded geometric (Outfit) to match the lettering, Heebo for body and Hebrew.
+  Shapes are round again (pills are the lettering's own shape). The structure that made the previous round ours stays:
+  the floating text dock with the check control raised in the middle (now the mark itself, which draws its ring and pops
+  its flame when tapped), the Explore front page with a hero and a numbered index, the profile statline, hashtag
+  challenges at the tail. The gallery mood goes: no brass, serif, grain, frames or stamps.
+- **The score is a ring.** Every look's score sits in a small gradient ring at the photo's corner, the logo's own shape
+  with the number inside it, which is the sentence the concept was built on.
+- **`DESIGN.md` now describes Ring of Fire**; the Night Atelier brief is superseded and kept only in git history.
+
+### Objections kept out of the code (owner wins)
+
+- **Outfit has no Hebrew.** Heebo 800 carries Hebrew headings; the wordmark is a logo and stays Latin.

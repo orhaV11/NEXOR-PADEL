@@ -401,5 +401,7 @@
   "sharecard.error": "לא הצלחנו לצייר את הכרטיס. אפשר לנסות שוב.",
   "sharecard.making": "מציירים את הכרטיס…",
   "settings.moderation": "ניהול קהילה",
-  "settings.about": "אודות"
+  "settings.about": "אודות",
+  "sharecard.ios_hint": "באייפון, לוחצים לחיצה ארוכה על התמונה כדי לשמור אותה לתמונות.",
+  "guidelines.version": "גרסה {version} · {date}"
 }

@@ -401,5 +401,7 @@
   "sharecard.error": "Couldn't draw the card. Try again.",
   "sharecard.making": "Drawing the card…",
   "settings.moderation": "Moderation",
-  "settings.about": "About"
+  "settings.about": "About",
+  "sharecard.ios_hint": "On iPhone, press and hold the image to save it to Photos.",
+  "guidelines.version": "Version {version} · {date}"
 }

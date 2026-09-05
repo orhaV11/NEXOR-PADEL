@@ -10,6 +10,8 @@ const CSS = `
 .auth-check-text { display: grid; gap: 2px; }
 .auth-switch { text-align: center; }
 .auth-switch a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.auth-guidelines { margin-block-start: 0; padding-inline-start: 34px; }   /* under the 16+ text, past the box */
+.auth-guidelines .btn-text { font-size: 14px; padding-block: 0; }
 .w-step > * + * { margin-block-start: 10px; }
 .w-step h2 { font-family: var(--font-display); font-size: 20px; line-height: 1.15; font-weight: 800; color: var(--ink); }
 .w-chips .chip { min-block-size: 44px; padding-inline: 16px; }
@@ -88,6 +90,8 @@ function authView(mode) {
         age,
         el('span', { class: 'auth-check-text' }, [el('span', { text: t('auth.age') }), el('span', { class: 'hint', text: t('auth.privacy') })])
       ]) : null,
+      // The rules they are agreeing to, a link outside the label so tapping it never toggles the box.
+      signup ? el('p', { class: 'auth-guidelines' }, [el('a', { class: 'btn-text', id: 'a-guidelines', href: '#/guidelines', text: t('guidelines.link') })]) : null,
       error,
       submit,
       el('p', { class: 'hint auth-switch' }, [

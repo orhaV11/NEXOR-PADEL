@@ -404,5 +404,7 @@
   "settings.about": "אודות",
   "admin.forbidden": "רק צוות OREVOSH יכול לפתוח את זה.",
   "admin.users_hint": "עד שמחפשים, מוצגים כאן החשבונות המושעים.",
-  "admin.no_users": "אין חשבונות תואמים."
+  "admin.no_users": "אין חשבונות תואמים.",
+  "sharecard.ios_hint": "באייפון, לוחצים לחיצה ארוכה על התמונה כדי לשמור אותה לתמונות.",
+  "guidelines.version": "גרסה {version} · {date}"
 }

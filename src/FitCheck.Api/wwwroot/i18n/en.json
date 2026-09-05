@@ -404,5 +404,7 @@
   "settings.about": "About",
   "admin.forbidden": "Only OREVOSH moderators can open this.",
   "admin.users_hint": "Suspended accounts are listed until you search.",
-  "admin.no_users": "No accounts match."
+  "admin.no_users": "No accounts match.",
+  "sharecard.ios_hint": "On iPhone, press and hold the image to save it to Photos.",
+  "guidelines.version": "Version {version} · {date}"
 }

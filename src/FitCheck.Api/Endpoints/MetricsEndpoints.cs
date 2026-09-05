@@ -47,7 +47,10 @@ public static class MetricsEndpoints
             ActiveUsers7d: active.Count,
             // Mentions live on their posts, so a hidden look takes its mentions out of the count with it.
             Mentions: await db.PostMentions.CountAsync(m => db.Posts.Any(p => p.Id == m.PostId && !p.Hidden), ct),
-            Featured: await db.Posts.CountAsync(p => !p.Hidden && p.FeaturedByBrandId != null, ct));
+            Featured: await db.Posts.CountAsync(p => !p.Hidden && p.FeaturedByBrandId != null, ct),
+            // Looks posted with a clip. A clip on a check that was never posted, or whose post is hidden, is not a video in the feed.
+            Videos: await db.Posts.CountAsync(p => !p.Hidden && db.Checks.Any(c => c.Id == p.CheckId && c.VideoPath != null && c.VideoPath != ""), ct),
+            PushSubscriptions: await db.PushSubscriptions.CountAsync(ct));
 
         return Results.Ok(metrics with { Social = social });
     }

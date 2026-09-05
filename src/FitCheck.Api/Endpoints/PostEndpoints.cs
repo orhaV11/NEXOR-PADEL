@@ -21,6 +21,7 @@ public static class PostEndpoints
         posts.MapPost("/", CreateAsync).RequireAuthorization();
         posts.MapGet("/{id:guid}", GetAsync);
         posts.MapGet("/{id:guid}/image", GetImageAsync);
+        posts.MapGet("/{id:guid}/video", GetVideoAsync);
         posts.MapDelete("/{id:guid}", DeleteAsync).RequireAuthorization();
         posts.MapPost("/{id:guid}/fire", FireAsync).RequireAuthorization();
         posts.MapDelete("/{id:guid}/fire", UnfireAsync).RequireAuthorization();
@@ -264,7 +265,31 @@ public static class PostEndpoints
         return Results.Stream(stream, mediaType);
     }
 
-    private static async Task<IResult> DeleteAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    /// <summary>
+    /// The clip behind a look, under the same door as the photo: a visible post, or 404. Ranges are honoured so a
+    /// &lt;video&gt; can seek and Safari, which asks for bytes=0-1 first, can play at all.
+    /// </summary>
+    private static async Task<IResult> GetVideoAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
+    {
+        var post = await VisiblePostAsync(db, id, Sessions.UserId(context.User), ct);
+        if (post is null)
+        {
+            return Results.NotFound();
+        }
+
+        var videoPath = await db.Checks.Where(c => c.Id == post.CheckId).Select(c => c.VideoPath).FirstOrDefaultAsync(ct);
+        var stream = string.IsNullOrEmpty(videoPath) ? null : images.OpenRead(videoPath);
+        if (stream is null)
+        {
+            return Results.NotFound();
+        }
+
+        context.Response.Headers.CacheControl = "private, max-age=3600";
+        return Results.File(stream, VideoFormat.FromPath(videoPath!).MediaType, enableRangeProcessing: true);
+    }
+
+    private static async Task<IResult> DeleteAsync(
+        Guid id, HttpContext context, AppDbContext db, IImageStore images, ILoggerFactory loggerFactory, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -278,8 +303,18 @@ public static class PostEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
         }
 
+        // The photo stays with the private check (it can be posted again); the clip was only ever for this post, and
+        // tens of megabytes should not sit on disk for a look its owner withdrew. Row first, file after the commit: a
+        // path to a missing file would show a broken player, an orphaned file goes with the account.
+        var videoPath = await db.Checks.Where(c => c.Id == post.CheckId).Select(c => c.VideoPath).FirstOrDefaultAsync(ct);
+
         // Dependents cascade at the database, but explicit deletes keep the behaviour obvious and SQLite-agnostic.
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (!string.IsNullOrEmpty(videoPath))
+        {
+            await db.Checks.Where(c => c.Id == post.CheckId).ExecuteUpdateAsync(s => s.SetProperty(c => c.VideoPath, (string?)null), ct);
+        }
+
         await db.Fires.Where(f => f.PostId == id).ExecuteDeleteAsync(ct);
         await db.Comments.Where(c => c.PostId == id).ExecuteDeleteAsync(ct);
         await db.SavedPosts.Where(s => s.PostId == id).ExecuteDeleteAsync(ct);
@@ -294,6 +329,20 @@ public static class PostEndpoints
         // Set-based, so a second delete racing this one finds nothing and answers 204 like this one, never 500.
         await db.Posts.Where(p => p.Id == id).ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct);
+
+        if (!string.IsNullOrEmpty(videoPath))
+        {
+            try
+            {
+                images.Delete(videoPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // The look is gone and nothing points at the file any more; it leaves with the account folder.
+                loggerFactory.CreateLogger(nameof(PostEndpoints)).LogWarning(ex, "Post {PostId}: the clip {Path} could not be removed", id, videoPath);
+            }
+        }
+
         return Results.NoContent();
     }
 

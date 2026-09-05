@@ -21,12 +21,14 @@ public class TestApp : WebApplicationFactory<Program>
     public int SignupsPerHourPerIp { get; init; } = 100000;
     public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
     public int ReportsToHide { get; init; } = 3;
+    public long MaxVideoBytes { get; init; } = 40 * 1024 * 1024;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         Directory.CreateDirectory(Root);
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "test.db")}");
         builder.UseSetting("Storage:Root", StorageRoot);
+        builder.UseSetting("Storage:MaxVideoBytes", MaxVideoBytes.ToString());
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
         builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>Turns a page of posts into DTOs with four batched lookups, whatever the viewer's state.</summary>
+/// <summary>Turns a page of posts into DTOs with a handful of batched lookups, whatever the viewer's state.</summary>
 public sealed class PostReader(AppDbContext db)
 {
     public static string NameOf(string handle, string? displayName) =>
@@ -71,6 +71,14 @@ public sealed class PostReader(AppDbContext db)
             .GroupBy(l => l.PostId)
             .ToDictionary(g => g.Key, g => g.Select(l => new ProductLinkDto(l.Label, l.Url, l.Price)).ToList());
 
+        // Which looks carry a clip: one query over the page's checks, never one per post.
+        var checkIds = posts.Select(p => p.CheckId).Distinct().ToList();
+        var withClip = (await db.Checks
+                .Where(c => checkIds.Contains(c.Id) && c.VideoPath != null && c.VideoPath != "")
+                .Select(c => c.Id)
+                .ToListAsync(ct))
+            .ToHashSet();
+
         return posts.Select(p =>
         {
             var user = users.GetValueOrDefault(p.UserId) ?? new UserRefDto("?", "?", AccountType.Person.ToString());
@@ -96,7 +104,8 @@ public sealed class PostReader(AppDbContext db)
                 DateTime.SpecifyKind(p.CreatedAt, DateTimeKind.Utc),
                 tags.GetValueOrDefault(p.Id) ?? [],
                 mentions.GetValueOrDefault(p.Id) ?? [],
-                p.FeaturedByBrandId is Guid brandId ? users.GetValueOrDefault(brandId) : null);
+                p.FeaturedByBrandId is Guid brandId ? users.GetValueOrDefault(brandId) : null,
+                withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null);
         }).ToList();
     }
 }

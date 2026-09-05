@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>Stores photos as storage/&lt;userId&gt;/&lt;checkId&gt;.&lt;ext&gt; under a root that is outside wwwroot.</summary>
+/// <summary>Stores photos and clips as storage/&lt;userId&gt;/&lt;checkId&gt;.&lt;ext&gt; under a root that is outside wwwroot.</summary>
 public sealed class DiskImageStore : IImageStore
 {
     private readonly string _root;
@@ -26,6 +26,27 @@ public sealed class DiskImageStore : IImageStore
         var full = Resolve(relative);
         Directory.CreateDirectory(Path.GetDirectoryName(full)!);
         await File.WriteAllBytesAsync(full, bytes.ToArray(), ct);
+        return relative;
+    }
+
+    public async Task<string> SaveVideoAsync(Guid userId, Guid checkId, VideoFormat format, Stream content, CancellationToken ct)
+    {
+        var relative = Path.Combine(userId.ToString("N"), $"{checkId:N}.{format.Extension}");
+        var full = Resolve(relative);
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        try
+        {
+            // Copied through a 64 KB buffer: the clip goes from ASP.NET's request buffer to disk without being in memory whole.
+            await using var file = new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true);
+            await content.CopyToAsync(file, ct);
+        }
+        catch
+        {
+            // A half-written clip must never be served later as if it were whole.
+            File.Delete(full);
+            throw;
+        }
+
         return relative;
     }
 

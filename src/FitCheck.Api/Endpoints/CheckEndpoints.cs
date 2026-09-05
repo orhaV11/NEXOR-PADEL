@@ -14,7 +14,7 @@ public static class CheckEndpoints
     public const int OccasionMaxLength = 120;
     private static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
 
-    // Room for multipart boundaries and the small text fields around the image.
+    // Room for multipart boundaries and the small text fields around the image and the clip.
     private const long MultipartOverheadBytes = 256 * 1024;
 
     public static IEndpointRouteBuilder MapCheckEndpoints(this IEndpointRouteBuilder app)
@@ -44,7 +44,17 @@ public static class CheckEndpoints
         var request = context.Request;
         var maxBytes = storage.Value.MaxImageBytes;
         var maxMb = maxBytes / (1024 * 1024);
+        var maxVideoBytes = storage.Value.MaxVideoBytes;
+        var maxVideoMb = maxVideoBytes / (1024 * 1024);
+        var maxVideoSeconds = storage.Value.MaxVideoSeconds;
+        // Whether a clip rides along is only known once the form is parsed, so the body limit admits both and the
+        // per-file limits below decide. A body over the pair can only be an oversize clip in practice (the client
+        // downscales stills to 1280px), so that is the message, unless clips are switched off on this server.
+        var maxBodyBytes = maxBytes + maxVideoBytes + MultipartOverheadBytes;
         var headerLanguage = Localizer.Resolve(null, request);
+        var bodyTooLarge = maxVideoBytes > 0
+            ? localizer.Get(headerLanguage, "error.video_too_large", maxVideoMb, maxVideoSeconds)
+            : localizer.Get(headerLanguage, "error.image_too_large", maxMb);
 
         var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (user is null)
@@ -63,12 +73,12 @@ public static class CheckEndpoints
         var bodySizeFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (bodySizeFeature is { IsReadOnly: false })
         {
-            bodySizeFeature.MaxRequestBodySize = maxBytes + MultipartOverheadBytes;
+            bodySizeFeature.MaxRequestBodySize = maxBodyBytes;
         }
 
-        if (request.ContentLength > maxBytes + MultipartOverheadBytes)
+        if (request.ContentLength > maxBodyBytes)
         {
-            return UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, localizer.Get(headerLanguage, "error.image_too_large", maxMb));
+            return UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, bodyTooLarge);
         }
 
         IFormCollection form;
@@ -82,7 +92,7 @@ public static class CheckEndpoints
                            || ex.Message.Contains("too large", StringComparison.OrdinalIgnoreCase)
                            || ex is BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge };
             return tooLarge
-                ? UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, localizer.Get(headerLanguage, "error.image_too_large", maxMb))
+                ? UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, bodyTooLarge)
                 : UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(headerLanguage, "error.invalid_request"));
         }
 
@@ -130,6 +140,33 @@ public static class CheckEndpoints
             return UserEndpoints.Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(language, "error.image_format"));
         }
 
+        // An optional clip of the same look. The stylist never sees it: the still above is the frame the wearer picked
+        // for the check, and the clip is what gets posted next to the verdict. Only its size and container are checked
+        // here, in the same order as the photo's and before the cap, so a user at the cap still learns about a bad file.
+        // ASP.NET has already buffered a file this size to a temp file; it is never read into memory whole.
+        var clip = form.Files.GetFile("video");
+        VideoFormat? videoFormat = null;
+        if (clip is { Length: > 0 })
+        {
+            if (clip.Length > maxVideoBytes)
+            {
+                return UserEndpoints.Error(StatusCodes.Status413PayloadTooLarge, localizer.Get(language, "error.video_too_large", maxVideoMb, maxVideoSeconds));
+            }
+
+            var head = new byte[VideoFormat.SniffLength];
+            int sniffed;
+            await using (var probe = clip.OpenReadStream())
+            {
+                sniffed = await probe.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, ct);
+            }
+
+            videoFormat = VideoFormat.Detect(head.AsSpan(0, sniffed));
+            if (videoFormat is null)
+            {
+                return UserEndpoints.Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(language, "error.video_format"));
+            }
+        }
+
         var now = DateTime.UtcNow;
         var cap = limits.Value.ChecksPerDay;
         var windowStart = now - CapWindow;
@@ -171,7 +208,7 @@ public static class CheckEndpoints
         };
 
         // The photo is written only once the model has confirmed an outfit, so a rejected, unrecognised, failed or
-        // abandoned check never leaves a private image on disk.
+        // abandoned check never leaves a private image on disk. The clip follows the same rule, after the photo.
         var stopwatch = Stopwatch.StartNew();
         try
         {
@@ -185,6 +222,11 @@ public static class CheckEndpoints
                     check.Score = feedback.Score;
                     check.FeedbackJson = JsonSerializer.Serialize(feedback, AppJson.Options);
                     check.ImagePath = await images.SaveAsync(userId, check.Id, format, bytes, CancellationToken.None);
+                    if (clip is not null && videoFormat is not null)
+                    {
+                        check.VideoPath = await TryStoreClipAsync(images, userId, check.Id, videoFormat, clip, logger);
+                    }
+
                     UpdateStreak(user, now);
                     break;
                 case CheckStatus.NotOutfit:
@@ -223,6 +265,25 @@ public static class CheckEndpoints
         await db.SaveChangesAsync(CancellationToken.None);
 
         return Results.Json(CheckDto.FromEntity(check, localizer, null), AppJson.Options, statusCode: StatusCodes.Status201Created);
+    }
+
+    /// <summary>
+    /// Streams the clip from the request buffer into the store. A clip that cannot be written is not worth the check:
+    /// the verdict and the still are already in hand, so the failure is logged and the check goes out without a clip.
+    /// </summary>
+    private static async Task<string?> TryStoreClipAsync(
+        IImageStore images, Guid userId, Guid checkId, VideoFormat format, IFormFile clip, ILogger logger)
+    {
+        try
+        {
+            await using var source = clip.OpenReadStream();
+            return await images.SaveVideoAsync(userId, checkId, format, source, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Check {CheckId}: the clip could not be stored; the check keeps its still only", checkId);
+            return null;
+        }
     }
 
     /// <summary>Consecutive UTC days with an ok check. A missed day starts over; a second check today changes nothing.</summary>

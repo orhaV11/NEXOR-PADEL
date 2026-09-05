@@ -853,6 +853,102 @@ export function openPostMenu(post, opts) {
   ]);
 }
 
+// ---------- media: clips in cards ----------
+
+/**
+ * A clip in a card autoplays muted while at least 60% of it is on screen (one observer for every card on the page),
+ * pauses when it leaves, and at most two play at once: the oldest makes room. Sound is a session-wide choice: the first
+ * tap on a sound button unmutes the clip under it and every clip after it, until it is turned off again. The poster is
+ * the frame the stylist judged, so a card reads the same before the clip has loaded.
+ */
+const MAX_PLAYING_CLIPS = 2;
+const clips = new Set();            // { video, button } for every clip card in the page; dropped when its view goes
+const playingClips = new Set();
+let clipObserver = null;
+let clipSound = false;
+let clipVisibilityHooked = false;
+
+export const clipSoundOn = () => clipSound;
+/** The still that the video plays from: JPEG ≤ MAX_EDGE on the long edge, un-mirrored (a CSS mirror never reaches the canvas). */
+export function frameToJpeg(video) {
+  const w = video.videoWidth; const h = video.videoHeight;
+  if (!w || !h) return Promise.reject(new Error('no frame'));
+  const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w * scale)); canvas.height = Math.max(1, Math.round(h * scale));
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
+}
+function playClip(video) {
+  if (playingClips.has(video)) return;
+  if (playingClips.size >= MAX_PLAYING_CLIPS) pauseClip(playingClips.values().next().value);
+  playingClips.add(video);
+  video.muted = !clipSound;
+  const attempt = video.play();
+  if (attempt && attempt.catch) attempt.catch(() => {
+    // sound refused without a gesture on this page: play silent rather than not at all
+    if (!video.muted) { video.muted = true; const again = video.play(); if (again && again.catch) again.catch(() => {}); }
+  });
+}
+function pauseClip(video) {
+  playingClips.delete(video);
+  if (!video.paused) video.pause();
+}
+function observeClip(video) {
+  if (!clipObserver) {
+    clipObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden) playClip(entry.target);
+        else pauseClip(entry.target);
+      }
+    }, { threshold: [0, 0.6] });
+  }
+  if (!clipVisibilityHooked) {
+    clipVisibilityHooked = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { for (const v of [...playingClips]) pauseClip(v); return; }
+      for (const entry of clips) { clipObserver.unobserve(entry.video); clipObserver.observe(entry.video); }   // a fresh look at what is on screen
+    });
+  }
+  clipObserver.observe(video);
+}
+function paintSound(entry) {
+  entry.button.setAttribute('aria-label', t(clipSound ? 'video.mute' : 'video.unmute'));
+  entry.button.setAttribute('aria-pressed', String(clipSound));
+  entry.button.replaceChildren(icon(clipSound ? 'sound' : 'mute'));
+}
+/** Sound for every clip on the page and the ones to come; the buttons repaint. */
+export function setClipSound(on) {
+  clipSound = !!on;
+  for (const entry of clips) { entry.video.muted = !clipSound; paintSound(entry); }
+}
+/** The tiny glyph at a clip's top-start corner, in cards, grids and the wall. Decorative: the link's label already says "clip". */
+export function clipPill() {
+  return el('span', { class: 'clip-pill', 'aria-hidden': 'true' }, [icon('clip'), el('span', { text: t('video.clip') })]);
+}
+/** The card's <video>: the still as the poster, muted, looping, inline; only metadata up front (nothing on a data saver). */
+function clipVideo(post) {
+  const saveData = !!(navigator.connection && navigator.connection.saveData);
+  const video = el('video', {
+    src: post.videoUrl, poster: post.imageUrl, muted: true, loop: true, playsinline: true, 'webkit-playsinline': true,
+    preload: saveData ? 'none' : 'metadata', disablepictureinpicture: true, disableremoteplayback: true, 'aria-hidden': 'true', tabindex: '-1'
+  });
+  video.muted = !clipSound; video.defaultMuted = true; video.loop = true;
+  return video;
+}
+/** The sound toggle beside a clip; registers the pair for the session-wide sound state and for autoplay. */
+function clipControls(video) {
+  const button = el('button', { type: 'button', class: 'sound', onclick: (event) => { event.preventDefault(); event.stopPropagation(); setClipSound(!clipSound); } });
+  const entry = { video, button };
+  paintSound(entry);
+  clips.add(entry);
+  observeClip(video);
+  onLeave(() => { clips.delete(entry); pauseClip(video); if (clipObserver) clipObserver.unobserve(video); });
+  return button;
+}
+
+// ---------- looks: the score ring, the card, the grid ----------
+
 /**
  * The score ring on a photo: <span class="score-badge"><b>7</b><small>/10</small></span>, textContent "7/10". aria-hidden:
  * the link around the photo already says the score in its label.
@@ -878,10 +974,16 @@ export function postCard(post, opts) {
     el('span', { class: 'tag', text: intentLabel(post.intent) }),
     el('button', { type: 'button', class: 'icon-btn menu-open', 'aria-label': t('common.more'), onclick: () => openPostMenu(post, { saveButton: saveBtn, onDelete: opts.onDelete, onChange: opts.onChange }) }, [icon('more')])
   ]);
-  const photo = el('a', { class: 'card-photo', href: '#/post/' + post.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
-    el('img', { src: post.imageUrl, alt: '', loading: opts.eager ? 'eager' : 'lazy', decoding: 'async' }),
+  // A clip plays where the photo would be (its poster is the judged still); the clip glyph says so at the top-start corner.
+  const isClip = !!post.videoUrl;
+  const media = isClip ? clipVideo(post) : el('img', { src: post.imageUrl, alt: '', loading: opts.eager ? 'eager' : 'lazy', decoding: 'async' });
+  const photo = el('a', { class: 'card-photo' + (isClip ? ' is-clip' : ''), href: '#/post/' + post.id, 'aria-label': t(isClip ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
+    media,
+    isClip ? clipPill() : null,
     scoreBadge(post.score)
   ]);
+  // The sound button is a sibling of the link (a button inside a link is not a thing), in a wrapper that positions it.
+  const mediaNode = isClip ? el('div', { class: 'card-media' }, [photo, clipControls(media)]) : photo;
   doubleTap(photo, () => {
     if (!post.fired) toggleFire(post, fireBtn);
     if (!reducedMotion()) { const burst = el('span', { class: 'burst-flame', icon: 'flameFill' }); photo.appendChild(burst); setTimeout(() => burst.remove(), 750); }
@@ -905,7 +1007,7 @@ export function postCard(post, opts) {
     el('button', { type: 'button', class: 'action', 'aria-label': t('post.share'), onclick: () => sharePost(post) }, [icon('share')]),
     opts.votes !== undefined ? el('span', { class: 'tag accent end', text: t('post.votes', { n: fmtNumber(opts.votes) }) }) : null
   ]);
-  return el('article', { class: 'card', 'data-post': post.id }, [head, photo, body, actions]);
+  return el('article', { class: 'card' + (isClip ? ' has-clip' : ''), 'data-post': post.id }, [head, mediaNode, body, actions]);
 }
 
 /** A person or brand row with a follow button. card is UserCardDto ({ user, followers, posts, following }) or a bare UserRefDto. */
@@ -954,12 +1056,14 @@ export function followButton(handle, following, onChange, opts) {
  */
 export function postGrid(posts, opts) {
   opts = opts || {};
+  // A clip's tile is its poster (the judged still) with the clip glyph: grids stay light, the clip plays on the card.
   const print = (p) => [
     el('img', { src: p.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
+    p.videoUrl ? clipPill() : null,
     scoreBadge(p.score),
     p.hidden ? el('span', { class: 'tag private', text: t('post.hidden') }) : null
   ];
-  return el('div', { class: 'grid' + (opts.wall ? ' wall' : '') }, posts.map((p) => el('a', { href: '#/post/' + p.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name }) },
+  return el('div', { class: 'grid' + (opts.wall ? ' wall' : '') }, posts.map((p) => el('a', { href: '#/post/' + p.id, class: p.videoUrl ? 'is-clip' : null, 'aria-label': t(p.videoUrl ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name }) },
     opts.captions
       ? [el('figure', {}, print(p)), el('figcaption', {}, [el('span', { class: 'rank', 'aria-hidden': 'true' }), el('b', { text: p.user.name }), el('span', { text: intentLabel(p.intent) })])]
       : print(p))));

@@ -347,6 +347,21 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 /* the photo: rounded, no frame, the ring straddling its bottom-end corner */
 .card-photo { position: relative; display: block; overflow: visible; background: var(--surface-2); border-radius: 14px; }
 .card-photo img { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+/* a clip fills the same box; its poster is the judged still, so the card reads the same before the clip has loaded */
+.card-photo video { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; background: var(--surface-2); }
+.card-media { position: relative; }
+/* the clip glyph at the top-start corner: how a clip is told from a photo in a card, a grid and the wall */
+.clip-pill { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.7); color: var(--ink); pointer-events: none; }
+.clip-pill svg { inline-size: 12px; block-size: 12px; }
+.clip-pill span { font: var(--caps); font-size: 9.5px; letter-spacing: var(--caps-track); text-transform: uppercase; }
+[dir="rtl"] .clip-pill span { font-size: 11px; }
+/* the sound toggle: a 44px target at the photo's top-end corner, a 32px disc on a translucent dark ground; lilac once sound is on */
+.card-media .sound { position: absolute; inset-block-start: 4px; inset-inline-end: 4px; z-index: 3; inline-size: 44px; block-size: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.card-media .sound::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(11, 11, 15, 0.6); }
+.card-media .sound:active::before { background: rgba(11, 11, 15, 0.8); }
+.card-media .sound .icon { position: relative; }
+.card-media .sound svg { inline-size: 18px; block-size: 18px; }
+.card-media .sound[aria-pressed="true"] { color: var(--accent); }
 /* §3 the score ring: a gradient ring around a surface disc, the numeral inside, "/10" under it */
 .score-badge {
   position: absolute; inset-block-end: -14px; inset-inline-end: 14px; z-index: 2;
@@ -413,6 +428,11 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .grid .score-badge { inline-size: 30px; block-size: 30px; border-width: 2px; font-size: 15px; gap: 0; inset-block-end: -8px; inset-inline-end: 6px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }
 .grid .score-badge small { font-size: 6px; }
 .grid .private { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; background: rgba(11, 11, 15, 0.8); color: var(--ink-2); padding: 3px 8px; min-block-size: 0; z-index: 1; }
+/* clip tiles: the glyph alone (no room for the word); it steps aside for the author's "under review" tag */
+.grid video { aspect-ratio: 4 / 5; object-fit: cover; inline-size: 100%; border-radius: inherit; display: block; }
+.grid .clip-pill { inset-block-start: 6px; inset-inline-start: 6px; min-block-size: 20px; padding-inline: 5px; }
+.grid .clip-pill span { display: none; }
+.grid a:has(.private) .clip-pill { inset-inline-start: auto; inset-inline-end: 6px; }
 .profile-grid { padding-block: 16px 8px; }
 /* the wall (Explore's top looks): two staggered columns, the rank in the caption, the ring the only number on a print */
 .grid.wall { grid-template-columns: 1fr 1fr; gap: 24px 14px; padding-inline: 0; padding-block: 16px 44px; counter-reset: look 1; }   /* look #1 is the hero */

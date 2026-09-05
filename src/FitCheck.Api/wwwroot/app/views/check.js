@@ -1,12 +1,42 @@
-// Check and result: pick a photo, say where the outfit is going, let the stylist look, read the verdict, post the look.
-// Ported from the Phase 2 monolith onto the kit. The ids (#photo, #submit, #occasion, #check-error, #result, #post-open,
-// #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/.items/.working/.tip/.bar structure
-// are part of the browser test contract; keep them when changing the layout.
+// Check and result: add a photo or a clip (the camera, the library), say where the outfit is going, let the stylist look,
+// read the verdict, post the look. Ported from the Phase 2 monolith onto the kit. The ids (#photo, #submit, #occasion,
+// #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
+// .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
+// sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark
 } from '../core.js';
 
 const SCORE_COUNT_MS = 900;
+
+// The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy.
+const CSS = `
+.photo video { inline-size: 100%; block-size: 100%; object-fit: cover; background: #000; }
+.clip-tools { display: flex; flex-direction: column; gap: 10px; }
+.clip-tools > label { color: var(--ink-3); }
+.clip-tools input[type="range"] { inline-size: 100%; min-block-size: 44px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.clip-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.clip-row .tag { gap: 5px; }
+.clip-row .tag svg { inline-size: 12px; block-size: 12px; }
+.clip-row .btn-text { padding-block: 0; }
+`;
+let styled = false;
+function ensureStyle() {
+  if (styled) return;
+  styled = true;
+  document.head.appendChild(el('style', { text: CSS }));
+}
+
+/** Set by the check screen before it opens the camera, so "Use it" and the close button return with Back (no duplicate history entry). */
+export const cameraReturn = { fromCheck: false };
+
+// The frame of the current clip that is the still (ms into the clip); null until one is chosen. Module state, like the clip
+// it belongs to in state.check: it survives a trip to the camera and a language switch, and goes with the clip.
+let frameMs = null;
+let busyKind = 'photo';   // what the "preparing" label talks about while a library file is read
+let capturing = false;    // a frame is on its way to the canvas: the submit waits for it
+let captureSeq = 0;
+let seekSeq = 0;
 
 // ---------- check ----------
 
@@ -16,6 +46,7 @@ register('check', async (root) => {
   root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
   if (ck.busy) { root.appendChild(loadingBlock()); return; }   // a check is in flight; the result view takes over when it lands
+  ensureStyle();
 
   const form = el('form', { class: 'stack', novalidate: true, onsubmit: (event) => { event.preventDefault(); submitCheck(); } });
   root.appendChild(form);
@@ -49,7 +80,8 @@ register('check', async (root) => {
   });
   form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('check.occasion_label') }), occasion]));
 
-  form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: choosePhoto }));
+  form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: chooseMedia }));
+  form.appendChild(el('div', { id: 'clip-tools', class: 'clip-tools', hidden: true }));
   const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
   if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }
   form.appendChild(error);
@@ -70,17 +102,24 @@ function loadingBlock() {
   ]);
 }
 
-/** Paints the photo button from state: empty prompt, "preparing", or the preview with a replace hint. */
+/** Paints the photo button from state: empty prompt, "preparing", the photo, or the clip paused on its chosen frame (with the picker under it). */
 function renderPhoto() {
   const photo = $('photo');
   if (!photo) return;
   const ck = state.check;
-  const label = ck.photoBusy ? t('check.photo_processing') : t(ck.previewUrl ? 'check.photo_replace' : 'check.photo_add');
-  photo.classList.toggle('has-image', !!ck.previewUrl);
+  const hasMedia = !!(ck.previewUrl || ck.clipUrl);
+  const label = ck.photoBusy ? t(busyKind === 'clip' ? 'check.clip_processing' : 'check.photo_processing') : t(hasMedia ? 'check.media_replace' : 'check.media_add');
+  photo.classList.toggle('has-image', hasMedia);
+  photo.classList.toggle('has-clip', !!ck.clipUrl);
   photo.setAttribute('aria-label', label);
   photo.setAttribute('aria-busy', String(ck.photoBusy));
   photo.innerHTML = '';
-  if (ck.previewUrl) {
+  if (ck.clipUrl) {
+    const video = el('video', { src: ck.clipUrl, muted: true, playsinline: true, 'webkit-playsinline': true, preload: 'auto', 'aria-label': t('a11y.photo_preview') });
+    video.muted = true;
+    photo.appendChild(video);
+    photo.appendChild(el('span', { class: 'photo-replace', text: label }));
+  } else if (ck.previewUrl) {
     photo.appendChild(el('img', { src: ck.previewUrl, alt: t('a11y.photo_preview') }));
     photo.appendChild(el('span', { class: 'photo-replace', text: label }));
   } else {
@@ -90,47 +129,219 @@ function renderPhoto() {
       ck.photoBusy ? null : el('span', { class: 'hint', text: t('check.photo_hint') })
     ]));
   }
+  renderClipTools();
+}
+
+const seconds = (ms) => fmtNumber(Math.round(ms / 100) / 10);
+/** 40% into a clip longer than two seconds (people are usually posed by then), else the first frame. */
+const preselectMs = (clipMs) => (clipMs > 2000 ? Math.round(clipMs * 0.4) : 0);
+
+/**
+ * The frame picker: the clip sits in the photo box, paused on the chosen frame; the slider seeks it, and on release the
+ * frame goes to a canvas and becomes the still the stylist judges (and the clip's poster). Moving the slider only seeks;
+ * a capture that a newer one overtakes lands nowhere.
+ */
+function renderClipTools() {
+  const tools = $('clip-tools');
+  if (!tools) return;
+  const ck = state.check;
+  tools.innerHTML = '';
+  tools.hidden = !ck.clipUrl;
+  if (!ck.clipUrl) return;
+  const video = $('photo').querySelector('video');
+  const max = Math.max(100, Math.round(ck.clipMs));
+  if (frameMs === null) frameMs = preselectMs(ck.clipMs);
+  frameMs = Math.min(frameMs, max);
+  const range = el('input', { type: 'range', id: 'clip-frame', min: '0', max: String(max), step: '50', value: String(frameMs), 'aria-valuetext': t('check.clip_ready', { s: seconds(frameMs) }) });
+  range.addEventListener('input', () => { frameMs = Number(range.value); range.setAttribute('aria-valuetext', t('check.clip_ready', { s: seconds(frameMs) })); seekVideo(video, frameMs); });
+  range.addEventListener('change', () => { frameMs = Number(range.value); captureFrame(video, frameMs); });
+  tools.appendChild(el('label', { for: 'clip-frame', text: t('check.clip_frame') }));
+  tools.appendChild(range);
+  tools.appendChild(el('p', { class: 'hint', text: t('check.clip_frame_hint') }));
+  tools.appendChild(el('div', { class: 'clip-row' }, [
+    el('span', { class: 'tag' }, [icon('clip'), t('check.clip_ready', { s: seconds(ck.clipMs) })]),
+    el('button', { type: 'button', class: 'btn-text', id: 'clip-remove', text: t('check.clip_remove'), onclick: removeClip })
+  ]));
+  tools.appendChild(el('p', { class: 'hint', text: t('check.clip_note') }));
+  // Land on the frame: capture it when there is no still yet (a fresh clip), otherwise just show it.
+  const needStill = !ck.photo;
+  primeVideo(video).then(() => {
+    if (!document.contains(video)) return null;
+    return needStill ? captureFrame(video, frameMs) : seekVideo(video, frameMs);
+  }).catch(() => { if (document.contains(video)) showError(t('error.video_read')); });
+}
+
+/** Waits for the clip's metadata; a MediaRecorder webm has no duration until the browser has scanned it (the far seek does that). */
+async function primeVideo(video) {
+  if (video.readyState < 1) {
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadedmetadata', resolve, { once: true });
+      video.addEventListener('error', () => reject(new Error('video')), { once: true });
+      setTimeout(() => reject(new Error('timeout')), 15000);
+    });
+  }
+  if (!isFinite(video.duration)) {
+    await new Promise((resolve) => {
+      const done = () => { video.removeEventListener('durationchange', done); resolve(); };
+      video.addEventListener('durationchange', done);
+      setTimeout(done, 2000);
+      video.currentTime = 1e101;
+    });
+    video.currentTime = 0;
+  }
+  // Some browsers only paint frames onto a canvas after the element has played once; muted inline play is always allowed.
+  try { await video.play(); video.pause(); } catch (e) { /* frames draw anyway on the rest */ }
+}
+/** Seeks and resolves once the frame is there (false when a newer seek overtook this one). Never hangs on a broken file. */
+function seekVideo(video, ms) {
+  const mine = ++seekSeq;
+  return new Promise((resolve) => {
+    const limit = isFinite(video.duration) ? Math.max(0, video.duration * 1000 - 40) : ms;   // the very last frame is often blank
+    const target = Math.min(ms, limit) / 1000;
+    if (video.readyState >= 2 && Math.abs(video.currentTime - target) < 0.01 && !video.seeking) { resolve(mine === seekSeq); return; }
+    let settled = false;
+    const done = () => { if (settled) return; settled = true; video.removeEventListener('seeked', done); resolve(mine === seekSeq); };
+    video.addEventListener('seeked', done);
+    setTimeout(done, 4000);
+    try { video.currentTime = target; } catch (e) { done(); }
+  });
+}
+/** The chosen frame becomes the still: ck.photo (what the stylist judges) and ck.previewUrl (the clip's poster). */
+async function captureFrame(video, ms) {
+  const ck = state.check;
+  const mine = ++captureSeq;
+  capturing = true;
+  updateSubmit();
+  try {
+    const landed = await seekVideo(video, ms);
+    if (!landed || mine !== captureSeq || !document.contains(video)) return;
+    const blob = await frameToJpeg(video);
+    if (mine !== captureSeq || video.src !== ck.clipUrl) return;   // the clip changed under us
+    if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
+    ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob);
+  } catch (e) {
+    if (mine === captureSeq) showError(t('error.video_read'));
+  } finally {
+    if (mine === captureSeq) { capturing = false; updateSubmit(); }
+  }
 }
 
 function updateSubmit() {
   const submit = $('submit');
   const ck = state.check;
-  if (submit) submit.disabled = !(ck.intent && ck.photo) || ck.busy || ck.photoBusy;
+  if (submit) submit.disabled = !(ck.intent && ck.photo) || ck.busy || ck.photoBusy || capturing;
+}
+function showError(message) {
+  const node = $('check-error');   // looked up fresh: the view may have been re-rendered during a decode
+  if (node) { node.textContent = message; node.hidden = false; } else state.check.error = message;
+}
+function clearError() { const node = $('check-error'); if (node) node.hidden = true; }
+/** Drops the photo and the clip (and their URLs); the token retires any decode still running. */
+function clearMedia(ck) {
+  ck.photoToken += 1;
+  if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
+  if (ck.clipUrl) URL.revokeObjectURL(ck.clipUrl);
+  ck.photo = null; ck.previewUrl = null; ck.clip = null; ck.clipUrl = null; ck.clipMs = 0; ck.source = null; ck.photoBusy = false;
+  frameMs = null; capturing = false; captureSeq += 1; seekSeq += 1;
+}
+
+/** The photo button: the camera, a photo from the library, or a clip from the library. */
+function chooseMedia() {
+  if (state.check.busy) return;
+  const list = el('div', { class: 'sheet-list' });
+  const s = sheet({ title: t(state.check.previewUrl || state.check.clipUrl ? 'check.media_replace' : 'check.media_add'), content: list });
+  // Closing first, then acting: the picker's input.click() must run inside the tap that chose the row.
+  const row = (id, name, text, onclick) => el('button', { type: 'button', id, onclick: () => { s.close(); onclick(); } }, [icon(name), text]);
+  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
+  list.appendChild(row('media-library', 'image', t('check.from_library'), async () => { const file = await pickFile('file'); if (file) takePhotoFile(file); }));
+  list.appendChild(row('media-clip', 'clip', t('camera.clip') + ' · ' + t('check.from_library'), async () => { const file = await pickFile('clip-file'); if (file) takeClipFile(file); }));
 }
 
 /**
- * Opens the picker, then downscales the chosen file before it is kept. photoToken guards the race: a second pick, a
- * sign-out or "check another" while the first decode is still running makes the first result land nowhere.
+ * A photo from the library (or the camera's fallback): downscaled before it is kept. photoToken guards the race: a second
+ * pick, a sign-out or "check another" while the first decode is still running makes the first result land nowhere.
  */
-async function choosePhoto() {
+export async function takePhotoFile(file) {
   const ck = state.check;
-  if (ck.busy) return;
-  const file = await pickFile('file');
-  if (!file) return;
-  const errorNode = $('check-error');
-  if (errorNode) errorNode.hidden = true;
-  const token = ++ck.photoToken;
-  ck.photo = null; ck.photoBusy = true;
+  clearError();
+  clearMedia(ck);
+  const token = ck.photoToken;
+  busyKind = 'photo'; ck.photoBusy = true;
   renderPhoto(); updateSubmit();
   let blob = null;
   try { blob = await prepareImage(file, MAX_EDGE); } catch (e) { blob = null; }
   // prepareImage hands back the original when it cannot decode it; a file that is not an image is no use to anyone.
   if (blob === file && file.type && !file.type.startsWith('image/')) blob = null;
-  if (token !== ck.photoToken) return;
+  if (token !== ck.photoToken) return false;
   ck.photoBusy = false;
-  if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
-  if (blob) { ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob); }
+  if (blob) { ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob); ck.source = 'library'; }
+  else showError(t('error.image_read'));
+  renderPhoto(); updateSubmit();
+  return !!blob;
+}
+/** A clip from the library: within the byte cap, readable, within the seconds cap. Then the frame picker, 40% in. */
+export async function takeClipFile(file) {
+  const ck = state.check;
+  clearError();
+  clearMedia(ck);
+  const token = ck.photoToken;
+  busyKind = 'clip'; ck.photoBusy = true;
+  renderPhoto(); updateSubmit();
+  const maxSeconds = state.config.maxVideoSeconds;
+  let problem = null; let ms = 0; let url = null;
+  if (file.size > state.config.maxVideoBytes) problem = t('check.clip_too_large', { mb: fmtNumber(Math.round(state.config.maxVideoBytes / (1024 * 1024))) });
   else {
-    ck.photo = null; ck.previewUrl = null;
-    const node = $('check-error');   // looked up again: the view may have been re-rendered during the decode
-    if (node) { node.textContent = t('error.image_read'); node.hidden = false; } else ck.error = t('error.image_read');
+    url = URL.createObjectURL(file);
+    try { ms = await readClipDuration(url); } catch (e) { problem = t('error.video_read'); }
+    if (!problem && ms > maxSeconds * 1000 + 500) problem = t('check.clip_too_long', { s: seconds(ms), max: fmtNumber(maxSeconds) });
   }
+  if (token !== ck.photoToken) { if (url) URL.revokeObjectURL(url); return false; }
+  ck.photoBusy = false;
+  if (problem) { if (url) URL.revokeObjectURL(url); showError(problem); renderPhoto(); updateSubmit(); return false; }
+  ck.clip = file; ck.clipUrl = url; ck.clipMs = Math.round(ms); ck.source = 'library';
+  frameMs = preselectMs(ck.clipMs);
+  renderPhoto(); updateSubmit();
+  return true;
+}
+/** The camera hands over a photo (a JPEG blob) or a clip (blob + its length); a clip's first frame is preselected. */
+export function receiveCapture(capture) {
+  const ck = state.check;
+  clearMedia(ck);
+  ck.error = null;
+  if (capture.clip) { ck.clip = capture.clip; ck.clipUrl = URL.createObjectURL(capture.clip); ck.clipMs = Math.round(capture.clipMs || 0); frameMs = 0; }
+  else { ck.photo = capture.photo; ck.previewUrl = URL.createObjectURL(capture.photo); }
+  ck.source = 'camera';
+}
+/** The clip's length from its metadata, in ms. Rejects what the browser cannot read. */
+function readClipDuration(url) {
+  return new Promise((resolve, reject) => {
+    const probe = document.createElement('video');
+    probe.preload = 'metadata'; probe.muted = true; probe.playsInline = true;
+    let settled = false;
+    const finish = (ok, value) => { if (settled) return; settled = true; probe.removeAttribute('src'); probe.load(); if (ok) resolve(value); else reject(new Error('video')); };
+    probe.addEventListener('error', () => finish(false), { once: true });
+    probe.addEventListener('loadedmetadata', () => {
+      if (isFinite(probe.duration) && probe.duration > 0) { finish(true, probe.duration * 1000); return; }
+      // no duration in the container (a recorded webm): a far seek makes the browser find it
+      probe.addEventListener('durationchange', () => { if (isFinite(probe.duration) && probe.duration > 0) finish(true, probe.duration * 1000); });
+      setTimeout(() => finish(false), 5000);
+      probe.currentTime = 1e101;
+    }, { once: true });
+    setTimeout(() => finish(false), 15000);
+    probe.src = url;
+  });
+}
+function removeClip() {
+  clearError();
+  clearMedia(state.check);
   renderPhoto(); updateSubmit();
 }
+/** The upload name tells the server what to expect; the bytes are what it trusts. */
+function clipName(blob) { return /mp4|quicktime/i.test(blob.type || '') ? 'clip.mp4' : 'clip.webm'; }
 
 async function submitCheck() {
   const ck = state.check;
-  if (!ck.intent || !ck.photo || ck.busy || ck.photoBusy) return;
+  if (!ck.intent || !ck.photo || ck.busy || ck.photoBusy || capturing) return;
   ck.busy = true;
   updateSubmit();
   const root = view();
@@ -144,6 +355,7 @@ async function submitCheck() {
     form.append('occasion', ck.occasion.trim());
     form.append('language', getLocale());
     form.append('image', ck.photo, 'outfit.jpg');
+    if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
     state.result = await api('POST', '/api/checks', form);
     state.resultAnimated = false;
     state.resultPostId = null;
@@ -161,10 +373,9 @@ async function submitCheck() {
 function checkAnother(keepChallenge) {
   const ck = state.check;
   state.result = null; state.resultPostId = null; state.resultAnimated = false;
-  ck.photo = null; ck.photoBusy = false; ck.error = null; ck.photoToken += 1;
+  clearMedia(ck);
+  ck.error = null;
   if (!keepChallenge) ck.challenge = null;
-  if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
-  ck.previewUrl = null;
   navigate('#/check');
 }
 

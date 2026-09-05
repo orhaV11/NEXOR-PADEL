@@ -26,7 +26,9 @@ On Windows PowerShell the first line is `$env:ANTHROPIC_API_KEY="sk-ant-..."` (q
 variable lives only in that window.
 
 Open http://localhost:5000 (the port is printed on start). The SQLite database (`orevosh.db`) and the private
-media folder (`storage/`) are created next to the project on first run; both are git-ignored. The schema is
+media folder (`storage/`) are created next to the project on first run; both are git-ignored. The database runs
+in WAL mode, so `orevosh.db-wal` and `orevosh.db-shm` sit next to it while the app is open and hold its newest
+writes: stop the app before copying the file, or use `--backup` (below), never the `.db` alone. The schema is
 versioned with EF Core migrations and applied on start; a database from an earlier round (made before
 migrations existed) is upgraded in place after a `.bak-<stamp>` copy is written next to it. A `fitcheck.db`
 left over from an earlier build is simply unused and can be deleted.
@@ -49,6 +51,22 @@ ngrok http 5000
 
 Send the printed `https://…` URL to your pilot users. On iPhone: Share → "Add to Home Screen". On Android,
 Chrome offers "Install" by itself and the app shows a one-time hint.
+
+### Maintenance commands
+
+The same program runs four maintenance commands; each does its job and exits without starting the server. From
+`src/FitCheck.Api`, the lines are the same in bash and in PowerShell:
+
+```bash
+dotnet run -- --vapid                 # print a VAPID key pair for Web Push; set Push__PublicKey and Push__PrivateKey, restart
+dotnet run -- --backup backups        # a consistent copy of the database and the media folder into ./backups (git-ignored)
+dotnet run -- --admin yourhandle      # make an existing account a moderator: sign up with the handle first
+dotnet run -- --unadmin yourhandle    # take that away
+```
+
+`--admin` and `--unadmin` exit with code 1 when no account has the handle (sign up first, then run it again). On a
+server the same commands run inside the container, `docker compose exec app dotnet FitCheck.Api.dll --admin yourhandle`
+(`DEPLOY.md`, step 7).
 
 ### Read the pilot metrics
 
@@ -103,7 +121,7 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 
 | Key | Default | Meaning |
 |---|---|---|
-| `ConnectionStrings:Default` | `Data Source=orevosh.db` | SQLite file. Migrations run on start (`Data/DatabaseSetup.cs`); a pre-migration pilot file is backed up and upgraded in place. A relative path resolves against the project folder |
+| `ConnectionStrings:Default` | `Data Source=orevosh.db` | SQLite file, switched to WAL mode on start. Migrations run on start (`Data/DatabaseSetup.cs`); a pre-migration pilot file is backed up and upgraded in place. A relative path resolves against the project folder |
 | `Anthropic:Model` | `claude-sonnet-5` | Must support forced tool use: Sonnet 5, Opus 5, the 4.x family, Haiku 4.5 |
 | `Anthropic:MaxTokens` | `1200` | Output budget for the tool call (Hebrew is token-heavy) |
 | `Anthropic:BaseUrl` | `https://api.anthropic.com` | Override to point at a stub in tests |
@@ -111,9 +129,9 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Storage:MaxImageBytes` | `6291456` | Upload limit for the still of a check (6 MB). Avatars are capped at 2 MB. The client downscales first |
 | `Storage:MaxVideoBytes` | `41943040` | Upload limit for a look clip (40 MB) |
 | `Storage:MaxVideoSeconds` | `30` | Advisory clip length: the camera stops there and the picker refuses longer library clips. Returned by `/api/config` |
-| `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set |
+| `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set; a new pair drops every existing subscription (the push service answers 401/403 and the app deletes it) |
 | `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
-| `Admin:Handles` | empty | Handles allowed into the moderation queue (`Admin__Handles__0=yourhandle`, `__1` for more) |
+| `Admin:Handles` | empty | Handles promoted to moderator at start (`Admin__Handles__0=yourhandle`, `__1` for more): only an account that already exists is promoted, so sign up first, then list the handle and restart. The list never demotes (`--unadmin` does) and a listed handle can no longer be signed up. `--admin <handle>` does the same at any time without a restart |
 | `Limits:ChecksPerDay` | `20` | Per-user cap over a rolling 24 hours |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users over a rolling 24 hours |
 | `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
@@ -135,17 +153,17 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `POST /api/auth/signup` | `{ handle, password, confirmed16Plus, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200. 400 invalid, 409 taken, 429 too many signups from one address |
+| `POST /api/auth/signup` | `{ handle, password, confirmed16Plus, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200. 400 invalid, 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
-| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin }`. A suspended account gets 403 and is signed out |
+| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. A suspended account gets 403 and is signed out |
 | `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey? }`. No secrets |
 | `GET /healthz` | — | `ok` when the database answers, 503 otherwise. For the proxy and uptime checks |
 | `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https |
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
 | `GET /api/users/{handle}/avatar?v=` | — | The photo, `Cache-Control: public, max-age=86400` |
-| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check, photo, avatar, post, tag, mention, comment, fire, save, vote, follow and notification, and fixes other people's counters and featured marks |
+| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check, photo, avatar, post, tag, mention, comment, fire, save, vote, follow and notification, and fixes other people's counters and featured marks. 403 for a moderator: `--unadmin` first, or the freed handle would be promoted again on the next restart |
 | `GET /api/users/me/checks` 🔒 | — | Last 50 checks, newest first, each with `postId` when posted |
 | `GET /api/users/me/saved` 🔒 | `?offset&limit` | Saved posts, newest first |
 | `GET /api/users/{handle}` | — | Public profile: counts, best score, streak, `avatarUrl`, `featured`, `community`, `viewer.following` |
@@ -163,11 +181,11 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST` / `DELETE /api/posts/{id}/fire` 🔒 | — | `{ fireCount, fired }`. One per person; idempotent |
 | `POST` / `DELETE /api/posts/{id}/save` 🔒 | — | `{ saved }` |
 | `POST` / `DELETE /api/posts/{id}/feature` 🔒 | — | `{ featuredBy }`. Brands only; the post must mention the brand or be an entry in one of its challenges; one brand per post (409 when another brand was first); the author is notified |
-| `POST /api/posts/{id}/report` 🔒 | `{ reason? }` | 204. One report per person per post; at `Limits:ReportsToHide` the post is hidden |
+| `POST /api/posts/{id}/report` 🔒 | `{ reason? }` | 204. `reason` is one of `not_outfit`, `nudity`, `person`, `spam`, `other` (what the app's picker sends) or free text, kept to 200 characters. One report per person per post; at `Limits:ReportsToHide` the post is hidden |
 | `GET /api/posts/{id}/comments` | — | Comments, oldest first, hidden ones excluded |
 | `POST /api/posts/{id}/comments` 🔒 | `{ text }` | `201` comment (1–200 characters) |
 | `DELETE /api/comments/{id}` 🔒 | — | 204, by the comment's author or the post's author |
-| `POST /api/comments/{id}/report` 🔒 | `{ reason? }` | 204, same rule as posts |
+| `POST /api/comments/{id}/report` 🔒 | `{ reason? }` | 204, same rule and reasons as posts |
 | `GET /api/feed` | `?tab=foryou\|following\|top\|fresh&intent&offset&limit` | `{ items, nextOffset }`. `foryou` (default) ranks the last 30 days by fire, comments, people you follow, your interests and recency; `following` (🔒) is newest from people you follow; `top` is the most fire in 7 days; `fresh` is newest. `intent` filters. Limit 1–30 |
 | `GET /api/explore` | — | `{ trendingTags, brands, topLooks, challenges }`: tags from the last 7 days, brands by followers, top 6 looks by fire in 7 days, up to 5 open challenges |
 | `GET /api/search?q=` | — | `{ users, tags }` for a 1–40 character query: handle prefix or display-name substring (brands first), tag prefix |
@@ -179,15 +197,15 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured` |
 | `POST /api/notifications/read` 🔒 | — | 204, marks everything read |
 | `GET /api/push/state` 🔒 | — | `{ enabled, subscribed }`: whether the server has VAPID keys, and whether this account has at least one subscription |
-| `POST /api/push/subscriptions` 🔒 | `{ endpoint, p256dh, auth }` (from `PushSubscription.toJSON()`) | `200` state. Upserts this browser's subscription for the account; 400 when push is off or the subscription is malformed |
+| `POST /api/push/subscriptions` 🔒 | `{ endpoint, p256dh, auth }` (from `PushSubscription.toJSON()`) | `200` state. Upserts this browser's subscription for the account, at most 10 per account (the oldest make room); 400 when push is off, the subscription is malformed, or the endpoint is not a public push-service name (a literal address, `localhost` or a single-label host is refused). A subscription the push service answers 404/410 (gone) or 401/403 (made against other VAPID keys) to is deleted |
 | `DELETE /api/push/subscriptions` 🔒 | `{ endpoint }` | 204 |
 | `POST /api/push/test` 🔒 | — | 202, sends a test notification to the caller's own browsers |
-| `GET /api/admin/queue` 🔒 | — | Moderators (`Admin:Handles`) only, 403 otherwise: reported looks and comments with counts, reasons and the author's state, plus counters |
+| `GET /api/admin/queue` 🔒 | — | Moderators (accounts with the `isAdmin` flag) only, 403 otherwise: reported looks and comments with counts, reasons and the author's state, plus counters |
 | `GET /api/admin/users?q=` 🔒 | — | Accounts by handle prefix (empty `q` lists suspended accounts) |
 | `POST /api/admin/posts/{id}/hide` / `unhide` 🔒 | — | Hide a look, or show it again (which also clears its reports) |
 | `DELETE /api/admin/posts/{id}` 🔒 | — | 204, removes the look, its check, photo and clip |
 | `POST /api/admin/comments/{id}/hide` / `unhide`, `DELETE /api/admin/comments/{id}` 🔒 | — | The same for comments |
-| `POST /api/admin/users/{handle}/suspend` / `unsuspend` 🔒 | — | A suspended account cannot sign in, reads as missing, and its looks and comments are hidden; lifting restores what the crowd had not hidden on its own |
+| `POST /api/admin/users/{handle}/suspend` / `unsuspend` 🔒 | — | A suspended account cannot sign in, reads as missing, and its looks and comments are hidden; a suspended brand's open challenges are closed with no winner (lifting does not reopen them); lifting restores what the crowd had not hidden on its own. A moderator cannot be suspended (400): that is `--unadmin` on the box |
 | `GET /api/metrics/pilot` | — | See above |
 
 ## How it is built
@@ -196,8 +214,9 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 FitCheck.sln
 src/FitCheck.Api/
   Program.cs                      wiring, migrations on start, cookie auth, rate limiter, CSRF header check,
-                                  security headers, static files, /api/config, /healthz, --vapid and --backup
-  Data/DatabaseSetup.cs           Migrate(), the pilot-database upgrade, the backup command
+                                  security headers, static files, /api/config, /healthz, --vapid, --backup, --admin, --unadmin
+  Data/DatabaseSetup.cs           Migrate(), WAL, the pilot-database upgrade, the backup command
+  Data/AdminSync.cs               the Admin:Handles sync at start and the --admin / --unadmin commands
   Data/Migrations/                the EF Core migrations (dotnet ef migrations add <Name> for the next one)
   Domain/                         StyleIntent, AppUser, OutfitCheck, OutfitFeedback, Social.cs (posts, tags, mentions,
                                   comments, fire, saves, follows, challenges, votes, notifications, reports), options
@@ -259,6 +278,9 @@ descriptive is dropped when the status is not `ok`.
   prize changes hands between the brand and the winner; the app takes no payments.
 - **Reports hide, people decide.** Three reports from different people hide a post or a comment from everyone
   but its author, who sees an "under review" badge.
+- **Moderators are a flag on the account, not a handle.** `Admin:Handles` promotes existing accounts at start and
+  never demotes; `--admin` and `--unadmin` set and clear the flag at any time; a listed handle cannot be signed
+  up; a moderator cannot be suspended, and cannot delete the account until un-admined.
 - **Sessions are cookies, writes need a header.** HttpOnly, SameSite=Strict, Secure over HTTPS, 90 days
   sliding. Passwords are hashed with ASP.NET Core's `PasswordHasher`. Login and signup are rate limited per
   client address.
@@ -273,11 +295,13 @@ descriptive is dropped when the status is not `ok`.
 - **Brand accounts are self-declared.** Anyone can switch to brand mode in settings. Fine for an invited
   pilot; verification belongs in the launch checklist with age assurance.
 - **No password recovery.** Accounts have no email address, so a forgotten password means a new account.
-- **Moderation is a queue, not a team.** One or more handles in `Admin:Handles` see reported looks and
-  comments and can hide, delete and suspend. Featured looks are the brand's call with no review step.
-- **Clips are not transcoded.** iPhones record MP4 (H.264), which plays everywhere; Android Chrome records
-  WebM, which older iPhones cannot play. A public launch needs server-side transcoding (ffmpeg) to MP4, and
-  probably object storage for the files; the store interface is ready for it.
+- **Moderation is a queue, not a team.** Moderators (accounts flagged at start from `Admin:Handles`, or with
+  `--admin`) see reported looks and comments and can hide, delete and suspend. Featured looks are the brand's
+  call with no review step.
+- **Clips are not transcoded.** iPhones record MP4 (H.264), which plays everywhere; Chrome records H.264 MP4
+  only when the device can and WebM otherwise, so a clip from an Android phone may be WebM, which older iPhones
+  cannot play. Server-side transcoding (ffmpeg) to MP4 is the launch item, probably with object storage for the
+  files; the store interface is ready for it.
 - **The For you feed is a formula, not a recommender.** It ranks by fire, comments, follows, interests and
   recency; good enough for a pilot, and documented in `PHASE3.md`. Search is a prefix match on SQLite, fine at
   pilot scale.

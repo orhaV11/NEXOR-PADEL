@@ -615,3 +615,41 @@ log and summarised under "Objections"; this section records what was built and w
   is an afternoon), payments or checkout (product links stay links), native app store builds (the PWA installs today;
   a Capacitor wrap is the next step), server-side transcoding (ffmpeg), object storage (the store interface is ready),
   direct messages (moderation load), and real age assurance (self-declaration is a pilot measure).
+
+### After review
+
+The review that followed the hand-off changed a few rules. What changed and why, most important first:
+
+- **A moderator is a flag on the account, not a handle in a list.** `Admin:Handles` used to be the whole rule: whoever
+  held a listed handle held the queue. A handle is not an identity. Delete the account and anyone could sign up with the
+  freed handle and inherit the queue; list a handle before its owner signs up and whoever got there first would be the
+  moderator. Now `AppUser.IsAdmin` is on the row. `Admin:Handles` promotes existing accounts at start and never demotes;
+  a listed handle can no longer be signed up, so the owner signs up first, then lists the handle and restarts;
+  `--admin <handle>` and `--unadmin <handle>` set and clear the flag at any time without a restart. A moderator cannot be
+  suspended from the queue (moderators are not for each other to switch off; that is `--unadmin` on the box) and cannot
+  delete the account until un-admined (the freed handle, still in the list, would be promoted again on the next restart).
+- **Suspending a brand closes its open challenges**, with no winner and no notifications: the hashtag stops taking
+  entries, and nobody is crowned by an account that is locked out. Lifting the suspension does not reopen them; the brand
+  opens a new one.
+- **Push, hardened.** At most 10 subscriptions per account (the oldest make room for a new browser); an endpoint must be
+  a public push-service name, because a literal address, `localhost` or a single-label name would make this server post
+  signed requests at its own network; and a push service answering 401 or 403 (the subscription was made against other
+  VAPID keys) drops that subscription instead of failing at every notification.
+- **Clip codecs, corrected.** The camera asks the recorder for H.264 MP4 with explicit codecs and takes WebM only when
+  the device cannot, so Chrome records MP4 where it can, not only Safari. "Android Chrome records WebM" above was too
+  flat; the honest line is that a clip from an Android phone may be WebM, WebM does not play on older iPhones, and
+  transcoding is still the launch item.
+- **Backups are private.** They hold every photo and clip, and they landed world-readable. `tools/backup.sh` now writes
+  them readable by root only, keeps 14 copies of the database but only two of the media folder (a storage copy is the
+  whole folder), and leaves nothing on the data volume on any exit path. An off-site copy keeps the modes or is
+  encrypted; DEPLOY.md says how.
+- **WAL.** Every file database is switched to WAL mode at start: readers never wait on a writer, the push worker and a
+  request share the file, and `--backup` snapshots it while the app runs, into a single file in rollback mode so the
+  copy never grows sidecars of its own. The corollary for a laptop pilot: stop the app or use `--backup` before copying
+  the file, or the `-wal` sidecar's writes are left behind. Schema changes from here on are new migrations;
+  `InitialCreate` is never regenerated again.
+- **Report reasons are a list.** Not an outfit, nudity or sexual content, comments on the person rather than the
+  clothes, spam or a scam, something else: picked in a sheet instead of typed, so the same thing is reported with the
+  same word. The API still takes free text, kept to 200 characters.
+- **HSTS for this host only.** The header no longer carries `includeSubDomains`: the app decides HTTPS for its own name,
+  not for everything else the owner runs under the domain.

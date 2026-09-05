@@ -13,6 +13,11 @@ obj/
 storage/
 appsettings.Development.json
 
+# The copy the app writes next to a pilot database before upgrading it, and backups (tools/backup.sh, --backup)
+*.bak-*
+*.db.bak-*
+backups/
+
 # Secrets
 .env
 .env.*

@@ -45,14 +45,19 @@ public sealed class PushOptions
     public bool Enabled => !string.IsNullOrWhiteSpace(PublicKey) && !string.IsNullOrWhiteSpace(PrivateKey);
 }
 
-/// <summary>Who may open the moderation queue. Handles, case-insensitive. Environment variable Admin__Handles__0 etc.</summary>
+/// <summary>
+/// Handles promoted to moderator when the app starts (existing accounts only, see Data/AdminSync.cs) and kept from being
+/// registered by anyone else. Case-insensitive. Environment variable Admin__Handles__0 etc. Being a moderator is the
+/// persisted <see cref="AppUser.IsAdmin"/> flag; this list is only one way of setting it.
+/// </summary>
 public sealed class AdminOptions
 {
     public const string Section = "Admin";
 
     public List<string> Handles { get; set; } = [];
 
-    public bool IsAdmin(string handle) => Handles.Any(h => string.Equals(h.Trim(), handle, StringComparison.OrdinalIgnoreCase));
+    /// <summary>Whether the handle is on the list. Reserved at signup and promoted at start; nothing at request time reads it.</summary>
+    public bool Lists(string handle) => Handles.Any(h => string.Equals(h.Trim(), handle, StringComparison.OrdinalIgnoreCase));
 }
 
 public sealed class LimitsOptions

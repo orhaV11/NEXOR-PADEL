@@ -22,9 +22,16 @@ namespace FitCheck.Api.Data;
 /// Migrations live in <c>Data/Migrations</c>. After changing the model, from the repository root (once:
 /// <c>dotnet tool install -g dotnet-ef</c>):
 /// <code>dotnet ef migrations add &lt;Name&gt; --project src/FitCheck.Api --output-dir Data/Migrations</code>
-/// While nothing has shipped, regenerate the single initial migration instead of stacking: delete <c>Data/Migrations</c>
-/// and run the same command with the name <c>InitialCreate</c>. <c>DatabaseSetupTests</c> checks the migrations produce
-/// exactly the schema the model describes.
+/// Always add a new migration; never regenerate <c>InitialCreate</c>. Deployed databases carry its row in the history
+/// table, and a regenerated one (a new id) would be "pending" on every one of them and fail on the first CREATE TABLE.
+/// The last regeneration was the commit that added <c>Users.IsAdmin</c>, while no database from a migration had shipped.
+/// <c>DatabaseSetupTests</c> checks the migrations produce exactly the schema the model describes.
+/// </para>
+/// <para>
+/// Every file database is switched to WAL once the schema is current: readers never wait on a writer, the push worker and
+/// a request can share the file, and <c>--backup</c> snapshots it while the app runs. EF sets WAL only when its own creator
+/// makes the file; this class opens the connection first to look at the file (which creates it), so that never runs here,
+/// and a copy restored from <c>--backup</c> is written in rollback mode on purpose. Setting it every start is idempotent.
 /// </para>
 /// </summary>
 public static class DatabaseSetup
@@ -66,11 +73,26 @@ public static class DatabaseSetup
                 logger.LogInformation("Database {DataSource} is new: creating the schema from the migrations.", connection.DataSource);
                 db.Database.Migrate();
             }
+
+            EnsureWal(connection);
         }
         finally
         {
             db.Database.CloseConnection();
         }
+    }
+
+    /// <summary>WAL for file databases (idempotent, persisted in the file). An in-memory database has no journal to speak of.</summary>
+    private static void EnsureWal(SqliteConnection connection)
+    {
+        if (string.IsNullOrEmpty(connection.DataSource) || connection.DataSource.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode = WAL";
+        command.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -93,10 +115,47 @@ public static class DatabaseSetup
         if (Directory.Exists(storageRoot))
         {
             storage = Path.GetFullPath(Path.Combine(targetDir, $"storage-{stamp}"));
-            CopyDirectory(storageRoot, storage);
+            try
+            {
+                CopyDirectory(storageRoot, storage);
+            }
+            catch
+            {
+                // Half a backup is worse than none: a nightly job that keeps the database and loses the photos would look fine
+                // in a listing. Both halves go, then the failure reaches the caller (and the cron log).
+                TryDelete(storage);
+                TryDeleteFile(database);
+                throw;
+            }
         }
 
         return (database, storage);
+    }
+
+    private static void TryDelete(string directory)
+    {
+        try
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // The original failure is the one worth reporting.
+        }
+    }
+
+    private static void TryDeleteFile(string file)
+    {
+        try
+        {
+            File.Delete(file);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void UpgradePilotDatabase(AppDbContext db, SqliteConnection connection, ILogger logger)
@@ -208,8 +267,8 @@ public static class DatabaseSetup
 
     /// <summary>
     /// A consistent copy of the open database in one self-contained file. <c>VACUUM INTO</c> is a snapshot that never blocks
-    /// the app; the copy inherits WAL mode from the source (EF creates its files that way), which would spread it over
-    /// three files the moment it is opened, so it is switched to a rollback journal and closed for good.
+    /// the app; the copy inherits WAL mode from the source (<see cref="Apply(AppDbContext, ILogger)"/> puts every file there),
+    /// which would spread it over three files the moment it is opened, so it is switched to a rollback journal and closed for good.
     /// </summary>
     private static void Snapshot(SqliteConnection source, string target)
     {
@@ -263,17 +322,33 @@ public static class DatabaseSetup
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// A recursive copy of a folder the app is writing to. A look deleted, or an account removed, between the listing and the
+    /// copy is not a failed backup: what vanished is skipped. Anything else (disk full, a file that cannot be read) is fatal.
+    /// </summary>
     private static void CopyDirectory(string source, string target)
     {
         Directory.CreateDirectory(target);
         foreach (var file in Directory.EnumerateFiles(source))
         {
-            File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
+            try
+            {
+                File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
+            }
+            catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+            {
+            }
         }
 
         foreach (var directory in Directory.EnumerateDirectories(source))
         {
-            CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
+            try
+            {
+                CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
         }
     }
 }

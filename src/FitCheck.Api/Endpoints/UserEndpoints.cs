@@ -191,7 +191,7 @@ public static class UserEndpoints
         }
 
         await db.SaveChangesAsync(ct);
-        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
     }
 
     /// <summary>Replaces the profile photo. Detected from its bytes, capped at 2 MB, stored beside the person's checks.</summary>
@@ -268,7 +268,7 @@ public static class UserEndpoints
         // A new version is a new URL, so a day-long cache can never show the old photo.
         user.AvatarVersion = NextAvatarVersion(user.AvatarVersion);
         await db.SaveChangesAsync(ct);
-        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
     }
 
     private static async Task<IResult> DeleteAvatarAsync(
@@ -289,14 +289,18 @@ public static class UserEndpoints
             await db.SaveChangesAsync(ct);
         }
 
-        return Results.Json(await AuthEndpoints.ToMeAsync(context, db, user, ct), AppJson.Options);
+        return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
     }
 
-    /// <summary>The second and last photo route. Public and cacheable for a day: the version in the URL changes when the photo does.</summary>
+    /// <summary>
+    /// The second and last photo route. Public and cacheable for a day: the version in the URL changes when the photo does.
+    /// A suspended account reads as missing here as on every other profile route; a cached copy can outlive the suspension by
+    /// a day at most.
+    /// </summary>
     private static async Task<IResult> GetAvatarAsync(string handle, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
     {
         var lower = handle.ToLowerInvariant();
-        var avatarPath = await db.Users.Where(u => u.HandleLower == lower).Select(u => u.AvatarPath).FirstOrDefaultAsync(ct);
+        var avatarPath = await db.Users.Where(u => u.HandleLower == lower && !u.Suspended).Select(u => u.AvatarPath).FirstOrDefaultAsync(ct);
         if (avatarPath is null)
         {
             return Results.NotFound();
@@ -326,6 +330,13 @@ public static class UserEndpoints
         if (user is null)
         {
             return failure!;
+        }
+
+        // A moderator's handle freed by deletion could be registered by anyone; the flag goes with the row, so nothing would
+        // be inherited, but a handle in Admin:Handles would be promoted again on the next restart. Un-admin first, on purpose.
+        if (user.IsAdmin)
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.admin_delete"));
         }
 
         var id = user.Id;

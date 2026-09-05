@@ -14,6 +14,15 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+// Maintenance commands share the process with the server but never start it: `--vapid`, `--backup <dir>`, `--admin <handle>`
+// and `--unadmin <handle>`. Each is found by position, so extra arguments (a --urls, the design-time tooling's own flags)
+// do not turn a command into a server start.
+static string? ArgumentAfter(string[] args, string flag)
+{
+    var index = Array.IndexOf(args, flag);
+    return index < 0 ? null : index + 1 < args.Length ? args[index + 1] : "";
+}
+
 // `dotnet run -- --vapid` prints a fresh VAPID key pair for Web Push and exits; nothing else starts.
 if (args.Contains("--vapid"))
 {
@@ -28,7 +37,7 @@ if (args.Contains("--vapid"))
     Console.WriteLine("  Push__PrivateKey  = the PRIVATE line");
     Console.WriteLine("  Push__Subject     = mailto:you@example.com (a contact for the push services; optional)");
     Console.WriteLine("Push is off until both keys are set. Changing them later drops every existing subscription; people turn notifications on again in Settings.");
-    return;
+    return 0;
 }
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,14 +68,62 @@ if (!string.IsNullOrEmpty(connection.DataSource) && connection.DataSource != ":m
 
 // Maintenance, no web host: `dotnet FitCheck.Api.dll --backup <dir>` writes a consistent copy of the database and the photo
 // folder into <dir> and exits. Local only (no auth: it is a shell on the box, see tools/backup.sh and DEPLOY.md).
-if (args is ["--backup", var backupDir])
+if (ArgumentAfter(args, "--backup") is { } backupDir)
 {
+    if (backupDir.Length == 0)
+    {
+        Console.Error.WriteLine("Usage: --backup <directory>");
+        return 2;
+    }
+
     var configuredRoot = builder.Configuration.GetValue<string>("Storage:Root") ?? storageDefaults.Root;
     var storageRoot = Path.IsPathRooted(configuredRoot) ? configuredRoot : Path.Combine(builder.Environment.ContentRootPath, configuredRoot);
     var (databaseCopy, storageCopy) = DatabaseSetup.Backup(connection.ConnectionString, storageRoot, backupDir);
     Console.WriteLine($"database: {databaseCopy}");
     Console.WriteLine($"storage: {storageCopy ?? "none"}");
-    return;
+    return 0;
+}
+
+// `--admin <handle>` makes an existing account a moderator, `--unadmin <handle>` takes that away. The flag is on the row
+// (AppUser.IsAdmin): nothing a cookie carries can fake it, and nothing but these two commands and the Admin:Handles sync
+// at start writes it. Exit code 1 when there is no such account, so a script notices.
+var makeAdmin = ArgumentAfter(args, "--admin");
+var dropAdmin = ArgumentAfter(args, "--unadmin");
+if (makeAdmin is not null || dropAdmin is not null)
+{
+    var promote = makeAdmin is not null;
+    var handle = (promote ? makeAdmin : dropAdmin)!;
+    if (handle.Length == 0)
+    {
+        Console.Error.WriteLine(promote ? "Usage: --admin <handle>" : "Usage: --unadmin <handle>");
+        return 2;
+    }
+
+    AdminChange change;
+    try
+    {
+        change = await AdminSync.SetAdminAsync(connection.ConnectionString, handle, promote);
+    }
+    catch (SqliteException e)
+    {
+        Console.Error.WriteLine($"Could not open the database {connection.DataSource}: {e.Message.TrimEnd('.')}. Start the app once first.");
+        return 1;
+    }
+
+    switch (change)
+    {
+        case AdminChange.NotFound:
+            Console.Error.WriteLine($"No account has the handle {handle}. Sign up with it first, then run this again.");
+            return 1;
+        case AdminChange.Unchanged:
+            Console.WriteLine(promote ? $"{handle} was already a moderator." : $"{handle} was not a moderator.");
+            return 0;
+        default:
+            Console.WriteLine(promote
+                ? $"{handle} is now a moderator."
+                : $"{handle} is no longer a moderator. The account stays; its next request answers like anyone else's.");
+            return 0;
+    }
 }
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection.ConnectionString));
@@ -149,6 +206,8 @@ var app = builder.Build();
 // The schema is versioned by EF Core migrations (Data/Migrations). Every start creates a new file, migrates an existing
 // one, or upgrades a pilot file from the rounds before migrations, keeping its rows; see DatabaseSetup.
 DatabaseSetup.Apply(app.Services, app.Logger);
+// Then the moderators: every existing account whose handle is in Admin:Handles gets the flag (never the other way round).
+await AdminSync.ApplyAsync(app.Services, app.Logger);
 
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable)))
 {
@@ -159,7 +218,9 @@ app.UseForwardedHeaders();
 
 // Security headers on every response, set when the response starts so nothing downstream (the exception handler clears
 // the response) drops them. HSTS only over https, which behind the proxy means X-Forwarded-Proto, read just above; a plain
-// http://localhost run never pins itself. No CSP yet: the fonts and the inline styles need one written first (DEPLOY.md).
+// http://localhost run never pins itself, and the pin covers this host only: the owner may run the app on a bare domain
+// whose other subdomains are not ours to promise https for. No CSP yet: the fonts and the inline styles need one written
+// first (DEPLOY.md).
 app.Use((context, next) =>
 {
     context.Response.OnStarting(() =>
@@ -171,7 +232,7 @@ app.Use((context, next) =>
         headers["X-Frame-Options"] = "DENY";
         if (context.Request.IsHttps)
         {
-            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+            headers["Strict-Transport-Security"] = "max-age=31536000";
         }
 
         return Task.CompletedTask;
@@ -232,10 +293,12 @@ app.MapMetricsEndpoints();
 app.MapPushEndpoints();
 app.MapAdminEndpoints();
 
-// What the client needs before it does anything: upload limits and the push public key. No secrets, no auth.
-app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push) =>
+// What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
+// published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
+// to pings that never come.
+app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
-        push.Value.Enabled ? push.Value.PublicKey : null), AppJson.Options));
+        sender.Enabled ? push.Value.PublicKey : null), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached.
 app.MapGet("/healthz", async (AppDbContext db, HttpContext context, CancellationToken ct) =>
@@ -253,6 +316,7 @@ app.MapGet("/healthz", async (AppDbContext db, HttpContext context, Cancellation
 });
 
 app.Run();
+return 0;
 
 static Task WriteAuthError(HttpContext context, int status, string key)
 {

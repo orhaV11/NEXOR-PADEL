@@ -1,12 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Tests;
 
@@ -15,6 +19,8 @@ public class TestApp : WebApplicationFactory<Program>
 {
     public string Root { get; } = Path.Combine(Path.GetTempPath(), "fitcheck-tests", Guid.NewGuid().ToString("N"));
     public string StorageRoot => Path.Combine(Root, "storage");
+    public string DatabasePath => Path.Combine(Root, "test.db");
+    public string ConnectionString => $"Data Source={DatabasePath}";
     public FakeVisionClient Vision { get; } = new();
     public int ChecksPerDay { get; init; } = 20;
     public int ChecksPerDayGlobal { get; init; } = 100000;
@@ -27,13 +33,19 @@ public class TestApp : WebApplicationFactory<Program>
     public string? PushPrivateKey { get; init; }
     /// <summary>Stands in for the browsers' push services: records every push request and answers with <see cref="RecordingPushHandler.StatusCode"/>.</summary>
     public RecordingPushHandler PushHandler { get; } = new();
-    /// <summary>One handle for Admin:Handles:0; empty means nobody is a moderator.</summary>
+    /// <summary>How long the push worker waits for a job's activity row to be committed; shortened by the test that lets a row never appear.</summary>
+    public int PushConfirmAttempts { get; init; } = PushSender.ConfirmAttempts;
+    public int PushConfirmIntervalMs { get; init; } = PushSender.ConfirmIntervalMs;
+    /// <summary>
+    /// One handle for Admin:Handles:0; empty means the list is empty. The list reserves the handle at signup and promotes an
+    /// account that already exists when the host starts; a moderator for a running app is made with <see cref="PromoteAsync"/>.
+    /// </summary>
     public string AdminHandles { get; init; } = "";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         Directory.CreateDirectory(Root);
-        builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "test.db")}");
+        builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Storage:Root", StorageRoot);
         builder.UseSetting("Storage:MaxVideoBytes", MaxVideoBytes.ToString());
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
@@ -58,8 +70,23 @@ public class TestApp : WebApplicationFactory<Program>
             services.AddSingleton<IOutfitVisionClient>(Vision);
             // Outgoing pushes go to the recorder instead of the network.
             services.AddHttpClient(PushSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => PushHandler);
+            if (PushConfirmAttempts != PushSender.ConfirmAttempts || PushConfirmIntervalMs != PushSender.ConfirmIntervalMs)
+            {
+                // The same singleton the hosted-service registration in Program.cs resolves, with a shorter confirmation window.
+                services.RemoveAll<PushSender>();
+                services.AddSingleton(provider => new PushSender(
+                    provider.GetRequiredService<IServiceScopeFactory>(), provider.GetRequiredService<IHttpClientFactory>(),
+                    provider.GetRequiredService<Localizer>(), provider.GetRequiredService<IOptions<PushOptions>>(),
+                    provider.GetRequiredService<ILogger<PushSender>>(), PushConfirmAttempts, PushConfirmIntervalMs));
+            }
         });
     }
+
+    /// <summary>What <c>--admin &lt;handle&gt;</c> does, against this app's database: the flag on the row, case-insensitively.</summary>
+    public Task<AdminChange> PromoteAsync(string handle) => AdminSync.SetAdminAsync(ConnectionString, handle, isAdmin: true);
+
+    /// <summary>What <c>--unadmin &lt;handle&gt;</c> does.</summary>
+    public Task<AdminChange> DemoteAsync(string handle) => AdminSync.SetAdminAsync(ConnectionString, handle, isAdmin: false);
 
     /// <summary>A client with its own cookie jar and the CSRF header every state-changing call needs.</summary>
     public HttpClient NewClient()

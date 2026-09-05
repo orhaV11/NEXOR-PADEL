@@ -63,6 +63,9 @@ namespace FitCheck.Api.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("LastCheckDate")
                         .HasColumnType("TEXT");
 

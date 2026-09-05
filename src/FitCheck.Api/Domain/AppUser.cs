@@ -48,6 +48,13 @@ public sealed class AppUser
     /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
     public bool Suspended { get; set; }
 
+    /// <summary>
+    /// A moderator. Persisted, never derived from the handle at request time: the cookie carries a handle, and a handle is
+    /// something anyone can register once it is free. Set by the start-up sync for the handles in Admin:Handles (existing
+    /// accounts only, never demoted) and by the <c>--admin</c> / <c>--unadmin</c> commands; see Data/AdminSync.cs.
+    /// </summary>
+    public bool IsAdmin { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public string Name => string.IsNullOrWhiteSpace(DisplayName) ? Handle : DisplayName!;

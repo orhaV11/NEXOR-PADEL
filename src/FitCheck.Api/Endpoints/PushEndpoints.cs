@@ -17,6 +17,9 @@ public static class PushEndpoints
     public const int P256dhMaxLength = 200;
     public const int AuthMaxLength = 100;
 
+    /// <summary>Browsers per account. A person has a phone, a laptop, maybe a tablet; past ten it is a script, and the oldest row goes.</summary>
+    public const int MaxPerAccount = 10;
+
     public static IEndpointRouteBuilder MapPushEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/push").RequireAuthorization();
@@ -30,12 +33,13 @@ public static class PushEndpoints
     public static IResult Error(int status, string message) => AuthEndpoints.Error(status, message);
 
     /// <summary>
-    /// A browser's subscription looks like this or it is useless: an https push service URL, the client's uncompressed
-    /// P-256 point (65 bytes) and its 16-byte auth secret, both base64url. Everything else is refused before it is stored.
+    /// A browser's subscription looks like this or it is useless: an https push service URL on a real host name, the client's
+    /// uncompressed P-256 point (65 bytes) and its 16-byte auth secret, both base64url. Everything else is refused before it
+    /// is stored.
     /// </summary>
     public static bool IsValidSubscription(string? endpoint, string? p256dh, string? auth)
     {
-        if (!UserEndpoints.IsHttpsUrl(endpoint, EndpointMaxLength))
+        if (!UserEndpoints.IsHttpsUrl(endpoint, EndpointMaxLength) || !IsPushServiceHost(new Uri(endpoint!)))
         {
             return false;
         }
@@ -49,6 +53,17 @@ public static class PushEndpoints
         var secret = PushSender.FromBase64Url(auth);
         return point is { Length: 65 } && point[0] == 0x04 && secret is { Length: 16 };
     }
+
+    /// <summary>
+    /// The push services live on public DNS names (fcm.googleapis.com, web.push.apple.com, updates.push.services.mozilla.com,
+    /// ...). A literal address, localhost or a single-label name is not one of them; it is a way of making this server post
+    /// signed requests at something on its own network, and it is refused.
+    /// </summary>
+    public static bool IsPushServiceHost(Uri endpoint) =>
+        endpoint.HostNameType == UriHostNameType.Dns
+        && !endpoint.IsLoopback
+        && !string.Equals(endpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+        && endpoint.Host.Trim('.').Contains('.');
 
     private static async Task<IResult> StateAsync(HttpContext context, AppDbContext db, PushSender push, Localizer localizer, CancellationToken ct)
     {
@@ -86,6 +101,15 @@ public static class PushEndpoints
         // One row per browser endpoint. A browser that signs into another account takes its subscription along: the
         // person holding the phone is the one who should get its pings.
         var existing = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == endpoint, ct);
+
+        // At most MaxPerAccount browsers per account: with this one about to be the newest, the oldest of the others make room.
+        var others = db.PushSubscriptions.Where(s => s.UserId == me.Id && s.Endpoint != endpoint);
+        var excess = await others.CountAsync(ct) - (MaxPerAccount - 1);
+        if (excess > 0)
+        {
+            db.PushSubscriptions.RemoveRange(await others.OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).Take(excess).ToListAsync(ct));
+        }
+
         if (existing is null)
         {
             db.PushSubscriptions.Add(new PushSubscription

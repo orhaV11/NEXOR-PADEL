@@ -104,10 +104,12 @@ public static class ChallengeEndpoints
     {
         var viewerId = Sessions.UserId(context.User);
         var now = DateTime.UtcNow;
+        // Open is the same test as everywhere else (not resolved, not past its end): a challenge closed before its end, which
+        // a brand's suspension does, belongs with the ended ones.
         var ended = string.Equals(state, "ended", StringComparison.OrdinalIgnoreCase);
         var challenges = ended
-            ? await db.Challenges.Where(c => c.EndsAt <= now).OrderByDescending(c => c.EndsAt).Take(50).ToListAsync(ct)
-            : await db.Challenges.Where(c => c.EndsAt > now).OrderBy(c => c.EndsAt).Take(50).ToListAsync(ct);
+            ? await db.Challenges.Where(c => c.EndsAt <= now || c.ResolvedAt != null).OrderByDescending(c => c.EndsAt).Take(50).ToListAsync(ct)
+            : await db.Challenges.Where(c => c.EndsAt > now && c.ResolvedAt == null).OrderBy(c => c.EndsAt).Take(50).ToListAsync(ct);
 
         foreach (var challenge in challenges)
         {

@@ -35,20 +35,20 @@ public static partial class AuthEndpoints
         Results.Json(new ErrorDto(message), AppJson.Options, statusCode: status);
 
     /// <summary>
-    /// The signed-in user as the client keeps it. IsAdmin comes from Admin:Handles, read from the request's services rather
-    /// than injected, so every route that answers with "me" (signup, login, /me, the profile edits) says the same thing.
+    /// The signed-in user as the client keeps it. IsAdmin is the row's flag, so every route that answers with "me" (signup,
+    /// login, /me, the profile edits) says the same thing, and the same thing the admin gate says.
     /// </summary>
-    public static async Task<MeDto> ToMeAsync(HttpContext context, AppDbContext db, AppUser user, CancellationToken ct)
+    public static async Task<MeDto> ToMeAsync(AppDbContext db, AppUser user, CancellationToken ct)
     {
         var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
         var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-        var admin = context.RequestServices.GetRequiredService<IOptions<AdminOptions>>().Value;
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
-            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, admin.IsAdmin(user.Handle));
+            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin);
     }
 
     private static async Task<IResult> SignupAsync(
-        SignupRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, CancellationToken ct)
+        SignupRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, IOptions<AdminOptions> admins,
+        CancellationToken ct)
     {
         var language = Localizer.Resolve(body.Language, context.Request);
 
@@ -80,8 +80,11 @@ public static partial class AuthEndpoints
             ? parsed
             : AccountType.Person;
 
+        // A handle in Admin:Handles is the owner's, whether or not the owner has signed up yet (the sync at start promotes an
+        // existing account, so the owner signs up before listing it). To anyone else it is simply taken: nobody gets to
+        // register a handle that a later restart would promote.
         var handleLower = handle.ToLowerInvariant();
-        if (await db.Users.AnyAsync(u => u.HandleLower == handleLower, ct))
+        if (admins.Value.Lists(handle) || await db.Users.AnyAsync(u => u.HandleLower == handleLower, ct))
         {
             return Error(StatusCodes.Status409Conflict, localizer.Get(language, "error.handle_taken"));
         }
@@ -110,7 +113,7 @@ public static partial class AuthEndpoints
         }
 
         await Sessions.SignInAsync(context, user);
-        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
+        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
     private static async Task<IResult> LoginAsync(
@@ -145,7 +148,7 @@ public static partial class AuthEndpoints
         }
 
         await Sessions.SignInAsync(context, user);
-        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options);
+        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
     }
 
     private static async Task<IResult> LogoutAsync(HttpContext context, CancellationToken ct)
@@ -163,6 +166,6 @@ public static partial class AuthEndpoints
             return failure!;
         }
 
-        return Results.Json(await ToMeAsync(context, db, user, ct), AppJson.Options);
+        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
     }
 }

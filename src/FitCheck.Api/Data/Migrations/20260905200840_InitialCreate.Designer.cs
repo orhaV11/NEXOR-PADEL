@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitCheck.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260905155503_InitialCreate")]
+    [Migration("20260905200840_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -65,6 +65,9 @@ namespace FitCheck.Api.Data.Migrations
                     b.Property<string>("Interests")
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("LastCheckDate")
                         .HasColumnType("TEXT");

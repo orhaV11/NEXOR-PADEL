@@ -20,6 +20,39 @@ public sealed class StorageOptions
     public string Root { get; set; } = "storage";
 
     public long MaxImageBytes { get; set; } = 6 * 1024 * 1024;
+
+    /// <summary>A look clip. The client records at most <see cref="MaxVideoSeconds"/>; the server enforces bytes only.</summary>
+    public long MaxVideoBytes { get; set; } = 40 * 1024 * 1024;
+
+    /// <summary>Advisory for the client (recording cap and the picker's duration check). Returned by /api/config.</summary>
+    public int MaxVideoSeconds { get; set; } = 30;
+}
+
+/// <summary>Web Push (VAPID). Both keys empty means push is off and the client never offers it.</summary>
+public sealed class PushOptions
+{
+    public const string Section = "Push";
+
+    /// <summary>Base64url uncompressed P-256 public key, as handed to pushManager.subscribe.</summary>
+    public string PublicKey { get; set; } = "";
+
+    /// <summary>Base64url P-256 private key. Environment variable Push__PrivateKey; never in appsettings.</summary>
+    public string PrivateKey { get; set; } = "";
+
+    /// <summary>mailto: or https: contact for the push services.</summary>
+    public string Subject { get; set; } = "mailto:hello@orevosh.app";
+
+    public bool Enabled => !string.IsNullOrWhiteSpace(PublicKey) && !string.IsNullOrWhiteSpace(PrivateKey);
+}
+
+/// <summary>Who may open the moderation queue. Handles, case-insensitive. Environment variable Admin__Handles__0 etc.</summary>
+public sealed class AdminOptions
+{
+    public const string Section = "Admin";
+
+    public List<string> Handles { get; set; } = [];
+
+    public bool IsAdmin(string handle) => Handles.Any(h => string.Equals(h.Trim(), handle, StringComparison.OrdinalIgnoreCase));
 }
 
 public sealed class LimitsOptions

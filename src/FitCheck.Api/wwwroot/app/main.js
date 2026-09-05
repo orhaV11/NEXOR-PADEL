@@ -9,6 +9,9 @@ import './views/activity.js';
 import './views/profile.js';
 import './views/auth.js';
 import './views/settings.js';
+import './views/camera.js';
+import './views/admin.js';
+import './views/pages.js';
 
 boot().catch((e) => {
   console.error(e);

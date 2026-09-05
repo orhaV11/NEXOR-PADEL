@@ -18,7 +18,11 @@ export const state = {
   route: { name: 'feed', params: {} },
   returnTo: null,
   feed: { tab: 'foryou', intent: '' },
-  check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null },
+  // photo: the still the stylist judges (a JPEG blob). clip/clipUrl: an optional look clip (webm/mp4 blob) whose chosen
+  // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
+  check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null },
+  // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
+  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null },
   result: null,
   resultAnimated: false,
   resultPostId: null,
@@ -54,6 +58,17 @@ export const ICONS = {
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
   flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+  flip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v12H4z"/><path d="M9.5 13a2.5 2.5 0 0 1 4.3-1.8M14.5 13a2.5 2.5 0 0 1-4.3 1.8"/><path d="M14 9.5v2h-2M10 16.5v-2h2"/></svg>',
+  timer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6M12 2v3"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>',
+  card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 17h6"/><circle cx="12" cy="10" r="3"/></svg>',
   camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>',
@@ -328,6 +343,10 @@ export async function api(method, path, body) {
 /** Bumped whenever a look is created or deleted, so cached feeds know they are stale. */
 export const feedVersion = { n: 0 };
 
+/** Upload limits and the push key. A failure keeps the defaults: the server still enforces its own limits. */
+export async function loadConfig() {
+  try { const c = await api('GET', '/api/config'); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
+}
 export async function loadMe() {
   try { state.me = await api('GET', '/api/auth/me'); } catch (e) { if (e.status === 401) state.me = null; }
   renderShell();
@@ -339,7 +358,8 @@ export const isBrand = () => !!state.me && state.me.accountType === 'Brand';
 export function resetSession() {
   const ck = state.check;
   if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
-  Object.assign(ck, { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: ck.photoToken + 1, busy: false, challenge: null, error: null });
+  if (ck.clipUrl) URL.revokeObjectURL(ck.clipUrl);
+  Object.assign(ck, { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: ck.photoToken + 1, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null });
   state.result = null; state.resultAnimated = false; state.resultPostId = null; state.returnTo = null;
 }
 export function navigate(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
@@ -405,9 +425,9 @@ function tabFor(route) {
   const name = route.name;
   if (['feed', 'post'].includes(name)) return 'home';
   if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge'].includes(name)) return 'explore';
-  if (['check', 'result'].includes(name)) return 'check';
+  if (['check', 'result', 'camera'].includes(name)) return 'check';
   if (name === 'activity') return 'activity';
-  if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome'].includes(name)) return 'me';
+  if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome', 'admin'].includes(name)) return 'me';
   if (name === 'user') return isMe(route.params.handle) ? 'me' : '';
   return '';
 }
@@ -434,6 +454,9 @@ export function parseRoute(hash) {
     case 'new-challenge': return { name: 'new-challenge', params: {} };
     case 'check': return { name: 'check', params: {} };
     case 'result': return { name: 'result', params: {} };
+    case 'camera': return { name: 'camera', params: { mode: a === 'clip' ? 'clip' : 'photo' } };
+    case 'admin': return { name: 'admin', params: {} };
+    case 'guidelines': return { name: 'guidelines', params: {} };
     case 'activity': return { name: 'activity', params: {} };
     case 'me': return { name: 'me', params: {} };
     case 'saved': return { name: 'saved', params: {} };
@@ -1001,7 +1024,7 @@ export async function boot() {
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('service worker', e));
   }
-  await loadMe();
+  await Promise.all([loadMe(), loadConfig()]);
   if (state.me && matchLocale(state.me.language) && state.me.language !== locale && !prefs.language) await switchLocale(state.me.language);
   await render(true);
 }

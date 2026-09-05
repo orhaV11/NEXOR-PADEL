@@ -15,6 +15,13 @@ public sealed class OutfitCheck
     /// <summary>Path relative to the storage root, or empty once the file has been removed.</summary>
     public string ImagePath { get; set; } = "";
 
+    /// <summary>
+    /// A short clip of the same look (MP4 or WebM), relative to the storage root, when the check came from a clip. The
+    /// stylist judged the still in <see cref="ImagePath"/>, which is also the clip's poster. Null for photo checks and
+    /// once the file has been removed.
+    /// </summary>
+    public string? VideoPath { get; set; }
+
     /// <summary>One of <see cref="CheckStatus"/>.</summary>
     public string Status { get; set; } = CheckStatus.Error;
 

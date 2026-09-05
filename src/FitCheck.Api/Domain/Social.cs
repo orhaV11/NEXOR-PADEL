@@ -172,3 +172,18 @@ public sealed class Report
     public string Reason { get; set; } = "";
     public DateTime CreatedAt { get; set; }
 }
+
+/// <summary>
+/// A Web Push subscription for one browser of one account. The endpoint is the browser's push service URL; p256dh and
+/// auth are the client keys the payload is encrypted to. Gone browsers answer 404/410 and the row is dropped.
+/// </summary>
+public sealed class PushSubscription
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Endpoint { get; set; } = "";
+    public string P256dh { get; set; } = "";
+    public string Auth { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+}

@@ -17,7 +17,7 @@ public sealed record UpdateMeRequest(string? Language, string? DisplayName, stri
 /// <summary>The signed-in user, as the client keeps it in memory.</summary>
 public sealed record MeDto(
     Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
-    string? AvatarUrl = null, List<string>? Interests = null);
+    string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false);
 
 /// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
 public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null);
@@ -116,7 +116,8 @@ public sealed record PostDto(
     DateTime CreatedAt,
     List<string> Tags,
     List<UserRefDto> Mentions,
-    UserRefDto? FeaturedBy);
+    UserRefDto? FeaturedBy,
+    string? VideoUrl = null);
 
 public sealed record FeatureStateDto(UserRefDto? FeaturedBy);
 
@@ -174,6 +175,22 @@ public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, s
 
 public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 
+// ---- config, push, admin ----
+
+/// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
+public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey);
+
+public sealed record PushSubscribeRequest(string? Endpoint, string? P256dh, string? Auth);
+
+public sealed record PushStateDto(bool Enabled, bool Subscribed);
+
+/// <summary>One item of the moderation queue: a reported post or a reported comment, with the reasons people gave.</summary>
+public sealed record AdminReportDto(string Kind, Guid Id, int Reports, bool Hidden, List<string> Reasons, DateTime LastReportedAt, PostDto? Post, CommentDto? Comment, UserRefDto? Author, bool AuthorSuspended);
+
+public sealed record AdminQueueDto(List<AdminReportDto> Items, int HiddenPosts, int HiddenComments, int SuspendedUsers);
+
+public sealed record AdminUserDto(UserRefDto User, bool Suspended, int Posts, int Reports, DateTime CreatedAt);
+
 // ---- metrics ----
 
 public sealed record SocialMetricsDto(
@@ -188,7 +205,9 @@ public sealed record SocialMetricsDto(
     int Votes,
     int ActiveUsers7d,
     int Mentions = 0,
-    int Featured = 0);
+    int Featured = 0,
+    int Videos = 0,
+    int PushSubscriptions = 0);
 
 public sealed record PilotMetricsDto(
     int TotalChecks,

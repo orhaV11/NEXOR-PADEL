@@ -12,17 +12,24 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection(AnthropicOptions.Section));
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.Section));
 builder.Services.Configure<LimitsOptions>(builder.Configuration.GetSection(LimitsOptions.Section));
+builder.Services.Configure<PushOptions>(builder.Configuration.GetSection(PushOptions.Section));
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
 
-var maxImageBytes = builder.Configuration.GetValue<long?>("Storage:MaxImageBytes") ?? new StorageOptions().MaxImageBytes;
+// A check upload is a still plus, optionally, a clip; the form limit covers both and the per-request limit in
+// CheckEndpoints tightens it to what that request actually declares.
+var storageDefaults = new StorageOptions();
+var maxImageBytes = builder.Configuration.GetValue<long?>("Storage:MaxImageBytes") ?? storageDefaults.MaxImageBytes;
+var maxVideoBytes = builder.Configuration.GetValue<long?>("Storage:MaxVideoBytes") ?? storageDefaults.MaxVideoBytes;
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = maxImageBytes + 256 * 1024;
+    options.MultipartBodyLengthLimit = maxImageBytes + maxVideoBytes + 256 * 1024;
 });
 
 // Same rule as the photo root: a relative database path is anchored to the content root, so a restart from a
@@ -168,6 +175,28 @@ app.MapExploreEndpoints();
 app.MapChallengeEndpoints();
 app.MapNotificationEndpoints();
 app.MapMetricsEndpoints();
+app.MapPushEndpoints();
+app.MapAdminEndpoints();
+
+// What the client needs before it does anything: upload limits and the push public key. No secrets, no auth.
+app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push) =>
+    Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
+        push.Value.Enabled ? push.Value.PublicKey : null), AppJson.Options));
+
+// For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached.
+app.MapGet("/healthz", async (AppDbContext db, HttpContext context, CancellationToken ct) =>
+{
+    context.Response.Headers.CacheControl = "no-store";
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("SELECT 1", ct);
+        return Results.Text("ok");
+    }
+    catch (Exception)
+    {
+        return Results.Text("db unavailable", statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
 
 app.Run();
 

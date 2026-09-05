@@ -45,6 +45,9 @@ public sealed class AppUser
     /// <summary>UTC date of the latest ok check, midnight.</summary>
     public DateTime? LastCheckDate { get; set; }
 
+    /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
+    public bool Suspended { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public string Name => string.IsNullOrWhiteSpace(DisplayName) ? Handle : DisplayName!;

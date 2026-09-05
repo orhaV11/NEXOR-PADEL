@@ -19,6 +19,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<PostMention> PostMentions => Set<PostMention>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             check.Property(c => c.Occasion).HasMaxLength(120);
             check.Property(c => c.Language).HasMaxLength(16).IsRequired();
             check.Property(c => c.ImagePath).HasMaxLength(260).IsRequired();
+            check.Property(c => c.VideoPath).HasMaxLength(260);
             check.Property(c => c.Status).HasMaxLength(16).IsRequired();
             check.Property(c => c.PromptVersion).HasMaxLength(16).IsRequired();
             // Every user-facing query is "this user's checks, newest first"; the metrics endpoint groups on the same pair.
@@ -164,6 +166,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             comment.HasIndex(c => new { c.PostId, c.CreatedAt });
             comment.HasOne<Post>().WithMany().HasForeignKey(c => c.PostId).OnDelete(DeleteBehavior.Cascade);
             comment.HasOne<AppUser>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PushSubscription>(sub =>
+        {
+            sub.HasKey(s => s.Id);
+            sub.Property(s => s.Endpoint).HasMaxLength(1000).IsRequired();
+            sub.Property(s => s.P256dh).HasMaxLength(200).IsRequired();
+            sub.Property(s => s.Auth).HasMaxLength(100).IsRequired();
+            sub.HasIndex(s => s.Endpoint).IsUnique();
+            sub.HasIndex(s => s.UserId);
+            sub.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SavedPost>(saved =>

@@ -2,7 +2,7 @@
 // hero look, trending tags as a numbered index, the brands band, the staggered wall of top looks and the open
 // challenges as quiet tickets. All the rules live in app.css; this module only builds the DOM.
 import {
-  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, fmtDate, relative, intentLabel, PAGE, $
+  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, fmtDate, relative, intentLabel, PAGE, $, scoreBadge
 } from '../core.js';
 
 /** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
@@ -41,7 +41,7 @@ function section(title, content, action) {
 
 /** The brass score stamp a print carries, the same one postGrid and the card use. */
 function scoreStamp(post) {
-  return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(post.score), el('small', { text: t('result.out_of') })]);
+  return scoreBadge(post.score);
 }
 
 /** This week's look: a split hero from the first top look. The whole block is one link to the post. */

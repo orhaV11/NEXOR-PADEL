@@ -3,7 +3,7 @@
 // #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/.items/.working/.tip/.bar structure
 // are part of the browser test contract; keep them when changing the layout.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark
 } from '../core.js';
 
 const SCORE_COUNT_MS = 900;
@@ -59,9 +59,14 @@ register('check', async (root) => {
   updateSubmit();
 });
 
+/** While the stylist looks: the mark at 96px with its flame breathing (app.css animates .breathing); the pulse dot when index.html has no #mark-template. */
 function loadingBlock() {
+  const mark = logoMark(96);
   return el('div', { class: 'loading', role: 'status' }, [
-    el('div', {}, [el('div', { class: 'loading-mark', 'aria-hidden': 'true' }), el('p', { text: t('loading.line'), tabindex: '-1' })])
+    el('div', {}, [
+      mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
+      el('p', { text: t('loading.line'), tabindex: '-1' })
+    ])
   ]);
 }
 

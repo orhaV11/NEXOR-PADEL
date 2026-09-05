@@ -35,9 +35,11 @@ export const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
 export const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 export const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
+// flame / flameFill are the mark's lick (the flame path of brand/mark.svg, fitted upright into the 24-box): the reaction
+// icon and the double-tap burst are the same shape that breaks out of the ring in the logo.
 export const ICONS = {
-  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-6.6 0-3.4-2.2-5.3-3.6-7.2-.4 1.6-1.2 2.6-2.4 3.2C13 9 12.4 5.7 9.3 3c.2 3-1.5 4.5-2.8 6.4A7.3 7.3 0 0 0 5 15.4C5 19.1 7.6 22 12 22z"/></svg>',
-  flameFill: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-6.6 0-3.4-2.2-5.3-3.6-7.2-.4 1.6-1.2 2.6-2.4 3.2C13 9 12.4 5.7 9.3 3c.2 3-1.5 4.5-2.8 6.4A7.3 7.3 0 0 0 5 15.4C5 19.1 7.6 22 12 22z"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.15 22.5 C16.42 22.5 18.06 18.89 17.57 15.45 C17.08 11.84 15.6 9.87 14.78 7.9 C13.96 5.77 12.48 3.96 11.01 1.5 C10.84 3.8 10.02 6.09 9.2 8.23 C8.22 8.06 7.23 7.41 6.9 6.42 C6.08 8.55 6.25 12.33 6.9 15.45 C7.4 19.05 8.87 22.5 12.15 22.5 Z"/></svg>',
+  flameFill: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.15 22.5 C16.42 22.5 18.06 18.89 17.57 15.45 C17.08 11.84 15.6 9.87 14.78 7.9 C13.96 5.77 12.48 3.96 11.01 1.5 C10.84 3.8 10.02 6.09 9.2 8.23 C8.22 8.06 7.23 7.41 6.9 6.42 C6.08 8.55 6.25 12.33 6.9 15.45 C7.4 19.05 8.87 22.5 12.15 22.5 Z"/></svg>',
   comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12z"/></svg>',
   bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8M12 16V3M7 8l5-5 5 5"/></svg>',
@@ -195,6 +197,53 @@ export function avatar(user, opts) {
 export function brandMark(user) { return user && user.accountType === 'Brand' ? el('span', { class: 'brand-mark', text: t('profile.brand') }) : null; }
 export function handleText(handle) { return el('bdi', { dir: 'ltr', text: '@' + handle }); }
 
+// ---------- the mark and the wordmark ----------
+
+let brandSvgSeq = 0;
+/**
+ * A fresh copy of a brand SVG that index.html inlines in a <template> (#mark-template, #wordmark-template). Every copy
+ * gets its own gradient and mask ids, so several marks on one screen never resolve to another copy's paint server;
+ * <title>/<desc> go (the host element carries the accessible name). null when the template is not in the page.
+ */
+function cloneBrandSvg(templateId) {
+  const template = $(templateId);
+  const svg = template && template.content ? template.content.querySelector('svg') : null;
+  if (!svg) return null;
+  const copy = svg.cloneNode(true);
+  const suffix = '-' + (++brandSvgSeq);
+  const ids = new Map();
+  for (const node of copy.querySelectorAll('[id]')) { ids.set(node.id, node.id + suffix); node.id += suffix; }
+  if (ids.size) {
+    const rewrite = (value) => value.replace(/#([\w-]+)/g, (m, id) => (ids.has(id) ? '#' + ids.get(id) : m));
+    for (const node of copy.querySelectorAll('*')) {
+      for (const name of ['fill', 'stroke', 'mask', 'clip-path', 'filter', 'marker', 'href', 'xlink:href', 'style']) {
+        const value = node.getAttribute(name);
+        if (value && value.includes('#')) node.setAttribute(name, rewrite(value));
+      }
+    }
+  }
+  for (const node of copy.querySelectorAll('title, desc')) node.remove();
+  copy.setAttribute('aria-hidden', 'true');
+  copy.setAttribute('focusable', 'false');
+  return copy;
+}
+/** The mark (the ring with its lick of fire) as an SVG of the given size, or null when index.html has no #mark-template. */
+export function logoMark(size) {
+  const svg = cloneBrandSvg('mark-template');
+  if (svg && size) { svg.setAttribute('width', String(size)); svg.setAttribute('height', String(size)); }
+  return svg;
+}
+/** The masthead: the wordmark SVG when index.html provides it (a logo: it reads left-to-right in both languages), the name as text otherwise. */
+function wordmark() {
+  const node = el('a', { class: 'wordmark', href: '#/', 'aria-label': t('app.name') });
+  const svg = cloneBrandSvg('wordmark-template');
+  if (!svg) { node.textContent = 'OREVOSH'; return node; }
+  svg.removeAttribute('width'); svg.setAttribute('height', '22');   // 22px tall, the width follows the viewBox; app.css may restate it
+  node.appendChild(svg);
+  node.appendChild(el('span', { class: 'sr-only', text: 'OREVOSH' }));
+  return node;
+}
+
 /** #tags and @mentions become links; everything else stays text. known (optional) limits mention links to accounts that resolved. */
 export function richCaption(text, known) {
   const frag = document.createDocumentFragment();
@@ -320,14 +369,14 @@ export function setTopBar(opts) {
   inner.innerHTML = '';
   if (opts.back) inner.appendChild(iconButton('back', t('common.back'), () => { if (history.length > 1) history.back(); else location.hash = opts.back === true ? '#/' : opts.back; }, { class: 'icon-btn back' }));
   if (opts.title !== undefined) inner.appendChild(el('div', { class: 'top-title', text: opts.title }));
-  else inner.appendChild(el('a', { class: 'wordmark', href: '#/', 'aria-label': t('app.name'), text: 'OREVOSH' }));
+  else inner.appendChild(wordmark());
   inner.appendChild(el('div', { class: 'top-actions', id: 'top-actions' }, opts.actions || []));
 }
 function defaultTopBar() {
   topBarCustom = false;
   const inner = $('top-inner');
   inner.innerHTML = '';
-  inner.appendChild(el('a', { class: 'wordmark', href: '#/', 'aria-label': t('app.name'), text: 'OREVOSH' }));
+  inner.appendChild(wordmark());
   const actions = el('div', { class: 'top-actions', id: 'top-actions' });
   actions.appendChild(iconButton('globe', t('lang.label'), openLanguageSheet, { id: 'lang' }));
   if (!state.me) actions.appendChild(el('a', { id: 'top-auth', class: 'pill accent', href: '#/signup', text: t('auth.signup'), onclick: () => { state.returnTo = location.hash; } }));
@@ -780,6 +829,14 @@ export function openPostMenu(post, opts) {
   ]);
 }
 
+/**
+ * The score ring on a photo: <span class="score-badge"><b>7</b><small>/10</small></span>, textContent "7/10". aria-hidden:
+ * the link around the photo already says the score in its label.
+ */
+export function scoreBadge(score) {
+  return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(score) }), el('small', { text: t('result.out_of') })]);
+}
+
 /** A look card. opts: inChallenge, votes, onDelete, onChange, compact (no caption/match). */
 export function postCard(post, opts) {
   opts = opts || {};
@@ -799,7 +856,7 @@ export function postCard(post, opts) {
   ]);
   const photo = el('a', { class: 'card-photo', href: '#/post/' + post.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
     el('img', { src: post.imageUrl, alt: '', loading: opts.eager ? 'eager' : 'lazy', decoding: 'async' }),
-    el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(post.score), el('small', { text: t('result.out_of') })])
+    scoreBadge(post.score)
   ]);
   doubleTap(photo, () => {
     if (!post.fired) toggleFire(post, fireBtn);
@@ -842,7 +899,7 @@ export function userRow(card, opts) {
   if (!mine && card.user && opts.follow !== false) row.appendChild(followButton(user.handle, card.following, (r) => { card.following = r.following; card.followers = r.followers; }));
   return row;
 }
-/** The follow label: brass FOLLOW when it invites, outlined "✓ FOLLOWING" (the kit's check icon, in brass) when pressed. aria-pressed drives the state. */
+/** The follow label: gradient FOLLOW when it invites, outlined "✓ FOLLOWING" (the kit's check icon, in lilac) when pressed. aria-pressed drives the state. */
 export function followButton(handle, following, onChange, opts) {
   opts = opts || {};
   const btn = el('button', { type: 'button', class: 'btn btn-sm' + (following ? ' btn-secondary' : ''), 'aria-pressed': String(following) });
@@ -868,15 +925,14 @@ export function followButton(handle, following, onChange, opts) {
   return btn;
 }
 /**
- * A grid of framed prints. opts.wall → the two-column staggered atelier wall (class "grid wall"); opts.captions → each
- * cell is a > figure(img, stamp, private?) + figcaption(rank, name, intent), the rank drawn by a CSS counter.
+ * A grid of looks. opts.wall → the two-column staggered wall (class "grid wall"); opts.captions → each cell is
+ * a > figure(img, score ring, private?) + figcaption(rank, name, intent), the rank drawn by a CSS counter.
  */
 export function postGrid(posts, opts) {
   opts = opts || {};
-  const stamp = (p) => el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(p.score), el('small', { text: t('result.out_of') })]);
   const print = (p) => [
     el('img', { src: p.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
-    stamp(p),
+    scoreBadge(p.score),
     p.hidden ? el('span', { class: 'tag private', text: t('post.hidden') }) : null
   ];
   return el('div', { class: 'grid' + (opts.wall ? ' wall' : '') }, posts.map((p) => el('a', { href: '#/post/' + p.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name }) },
@@ -893,7 +949,7 @@ export function installBanner() {
   const ios = isIos() && !state.installPrompt;
   if (!state.installPrompt && !ios) return null;
   const node = el('div', { class: 'install' }, [
-    el('div', { class: 'mark', text: 'O', 'aria-hidden': 'true' }),
+    el('div', { class: 'mark', 'aria-hidden': 'true' }, [logoMark(44) || 'O']),
     el('div', { class: 'text' }, [el('b', { text: t('pwa.install_title') }), el('span', { text: ios ? t('pwa.install_ios') : t('pwa.install_body') })]),
     ios ? null : el('button', { type: 'button', class: 'btn btn-sm', text: t('pwa.install'), onclick: async () => { const p = state.installPrompt; if (!p) return; p.prompt(); try { await p.userChoice; } catch (e) { /* dismissed */ } state.installPrompt = null; node.remove(); } }),
     iconButton('x', t('pwa.later'), () => { savePrefs({ installDismissed: true }); node.remove(); })
@@ -902,6 +958,28 @@ export function installBanner() {
 }
 
 // ---------- boot ----------
+
+/**
+ * The check control in the dock: class "lit" on pointerdown (and Enter) makes app.css draw the ring and pop the flame;
+ * the class goes when the last of those animations ends, or after 800ms if none ran. Nothing under reduced motion.
+ */
+function litCheckControl(tab) {
+  if (!tab) return;
+  let timer = 0; let running = 0;
+  const unlit = () => { clearTimeout(timer); timer = 0; running = 0; tab.classList.remove('lit'); };
+  const light = () => {
+    if (reducedMotion()) return;
+    if (tab.classList.contains('lit')) { unlit(); void tab.offsetWidth; }   // tapped again mid-draw: start over
+    tab.classList.add('lit');
+    timer = setTimeout(unlit, 800);
+  };
+  tab.addEventListener('pointerdown', (event) => { if (event.button === 0) light(); });
+  tab.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.repeat) light(); });
+  tab.addEventListener('animationstart', () => { if (tab.classList.contains('lit')) running += 1; });
+  const ended = () => { if (tab.classList.contains('lit') && running > 0 && --running === 0) unlit(); };
+  tab.addEventListener('animationend', ended);
+  tab.addEventListener('animationcancel', ended);
+}
 
 export async function boot() {
   const prefs = loadPrefs();
@@ -915,6 +993,7 @@ export async function boot() {
       if (tab.getAttribute('href') === location.hash || (tab.dataset.tab === 'home' && (location.hash === '' || location.hash === '#/'))) { event.preventDefault(); state.forceRefresh = true; window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }); render(true); }
     });
   }
+  litCheckControl(document.querySelector('.tab.check'));
   window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); state.installPrompt = event; });
   const offline = () => { state.online = navigator.onLine; const bar = $('offline'); bar.hidden = state.online; bar.textContent = t('pwa.offline'); };
   window.addEventListener('online', offline); window.addEventListener('offline', offline); offline();

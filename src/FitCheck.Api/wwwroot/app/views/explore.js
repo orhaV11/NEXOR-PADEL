@@ -1,31 +1,16 @@
-// Explore, search and tag pages: what's trending, who to follow, the best looks this week, open brand challenges.
+// Explore, search and tag pages. Explore is the week's front page: kicker, title and dateline, the search rule, the
+// hero look, trending tags as a numbered index, the brands band, the staggered wall of top looks and the open
+// challenges as quiet tickets. All the rules live in app.css; this module only builds the DOM.
 import {
-  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, relative, intentLabel, PAGE, $
+  register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, fmtDate, relative, intentLabel, PAGE, $
 } from '../core.js';
 
-// The few rules the shared stylesheet does not have: tag chips as links, the compact challenge card, the tag count line.
-const CSS = `
-.x-section > * + * { margin-block-start: 10px; }
-.x-bleed { margin-inline: -16px; padding-inline: 16px; }
-a.chip.x-tag { display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; text-decoration: none; }
-.x-tag small { font-size: 12px; color: var(--ink-3); }
-.x-challenge { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; text-decoration: none; color: inherit; }
-.x-challenge:active { background: var(--surface-2); }
-.x-challenge > * + * { margin-block-start: 6px; }
-.x-challenge .x-title { font-family: var(--font-display); font-size: 18px; line-height: 1.15; font-weight: 800; min-inline-size: 0; overflow-wrap: anywhere; }
-.x-challenge .x-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--ink-3); }
-.x-count { padding-inline: 16px; font-size: 14px; color: var(--ink-3); }
-`;
-let styled = false;
-function ensureStyle() {
-  if (styled) return;
-  styled = true;
-  document.head.appendChild(el('style', { text: CSS }));
-}
+/** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
+const countArg = (n) => (n === 1 ? 1 : fmtCompact(n));
 
 // ---------- pieces ----------
 
-/** The search box. Submitting goes to the results route; nothing happens while typing. */
+/** The search rule. Submitting goes to the results route; nothing happens while typing. */
 function searchForm(value) {
   const input = el('input', {
     type: 'search', id: 'search', name: 'q', value: value || '', placeholder: t('explore.search_placeholder'), 'aria-label': t('a11y.search'),
@@ -40,23 +25,59 @@ function searchForm(value) {
   return el('form', { class: 'search', role: 'search', onsubmit }, [icon('search'), input]);
 }
 
+/** The front block: THIS WEEK · Explore · Issue · <today>, with the date in the locale's own words. */
+function front() {
+  return el('div', { class: 'x-front' }, [
+    el('p', { class: 'kicker', text: t('explore.kicker') }),
+    el('h1', { text: t('explore.title') }),
+    el('p', { class: 'dateline', text: t('explore.issue', { date: fmtDate(new Date().toISOString()) }) })
+  ]);
+}
+
 function section(title, content, action) {
   const head = action ? el('div', { class: 'section-head' }, [el('h2', { text: title }), action]) : el('h2', { text: title });
   return el('section', { class: 'x-section' }, [head].concat(content));
 }
 
-/** Tag chips linking to the tag page, with the look count as a suffix. Tags may be Hebrew, so each sits in its own bdi. */
-function tagChips(tags) {
-  return el('div', { class: 'chips' }, tags.map((item) => el('a', { class: 'chip x-tag', href: '#/tag/' + encodeURIComponent(item.tag) }, [
-    el('bdi', { text: '#' + item.tag }),
-    item.posts === undefined ? null : el('small', { text: t('tag.looks', { n: fmtCompact(item.posts) }) })
+/** The brass score stamp a print carries, the same one postGrid and the card use. */
+function scoreStamp(post) {
+  return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(post.score), el('small', { text: t('result.out_of') })]);
+}
+
+/** This week's look: a split hero from the first top look. The whole block is one link to the post. */
+function heroCard(post) {
+  const intent = intentLabel(post.intent);
+  const name = post.user.name;
+  return el('a', { class: 'x-hero', href: '#/post/' + post.id, 'aria-label': t('a11y.look_by', { intent, name }) }, [
+    el('figure', {}, [
+      el('img', { src: post.imageUrl, alt: '', decoding: 'async' }),
+      scoreStamp(post)
+    ]),
+    el('figcaption', {}, [
+      el('span', { class: 'kicker', text: t('explore.hero_kicker') }),
+      el('p', { class: 'x-hero-title', text: post.headline }),
+      el('p', { class: 'x-hero-by' }, [el('b', {}, [el('bdi', { text: name })]), ' · ', el('span', { text: intent })]),
+      el('span', { class: 'x-hero-more', text: t('explore.read_look') })
+    ])
+  ]);
+}
+
+/** Tags as a numbered index: rank, #tag, a dotted leader, the look count. Tags may be Hebrew, so each sits in its own bdi. */
+function tagIndex(tags) {
+  return el('ol', { class: 'index' }, tags.map((item, i) => el('li', {}, [
+    el('a', { href: '#/tag/' + encodeURIComponent(item.tag) }, [
+      el('span', { class: 'num', text: String(i + 1).padStart(2, '0') }),
+      el('bdi', { class: 'tag-name', text: '#' + item.tag }),
+      el('span', { class: 'lead', 'aria-hidden': 'true' }),
+      item.posts === undefined ? null : el('span', { class: 'count', text: t('tag.looks', { n: countArg(item.posts) }) })
+    ])
   ])));
 }
 
-/** A brand in the horizontal "Brands to follow" scroll: avatar, name, followers, follow button. card is a UserCardDto. */
+/** A brand in the "Brands to follow" band: the portrait (the large avatar), name, followers, follow label. card is a UserCardDto. */
 function brandCard(card) {
   const user = card.user;
-  const followers = (n) => t('profile.followers_n', { n: fmtCompact(n) });
+  const followers = (n) => t('profile.followers_n', { n: countArg(n) });
   const sub = el('span', { class: 'sub', text: followers(card.followers) });
   return el('div', { class: 'brand-card' }, [
     avatar(user, 'lg'),
@@ -69,9 +90,10 @@ function brandCard(card) {
   ]);
 }
 
-/** A compact open-challenge card: title, intent, brand, when it ends. The whole card links to the challenge. */
+/** An open-challenge ticket: the hashtag first, then title and intent, then brand and when it ends. The whole ticket links to the challenge. */
 function challengeCard(c) {
   return el('a', { class: 'x-challenge', href: '#/challenge/' + c.id }, [
+    c.tag ? el('bdi', { class: 'x-hash', dir: 'auto', text: '#' + c.tag }) : null,
     el('div', { class: 'between' }, [el('b', { class: 'x-title', text: c.title }), el('span', { class: 'tag', text: intentLabel(c.intent) })]),
     el('div', { class: 'x-meta' }, [
       el('span', { text: t('challenges.by', { name: c.brand.name }) }),
@@ -89,8 +111,7 @@ function lookCard(post, onDelete) {
 // ---------- explore ----------
 
 register('explore', async (root, params, ctx) => {
-  ensureStyle();
-  root.appendChild(el('h1', { text: t('explore.title') }));
+  root.appendChild(front());
   root.appendChild(searchForm(''));
   const holder = el('div', {}, [skeletonCards(1)]);
   root.appendChild(holder);
@@ -106,9 +127,11 @@ register('explore', async (root, params, ctx) => {
   const challenges = data.challenges || [];
   const frag = document.createDocumentFragment();
   if (!tags.length && !brands.length && !looks.length) frag.appendChild(emptyState(t('explore.empty')));
-  if (tags.length) frag.appendChild(section(t('explore.trending'), tagChips(tags)));
-  if (brands.length) frag.appendChild(section(t('explore.brands'), el('div', { class: 'people-scroll x-bleed' }, brands.map(brandCard))));
-  if (looks.length) frag.appendChild(section(t('explore.top'), postGrid(looks)));
+  // The first top look is the cover, right under the search; the wall starts from the second so nothing repeats.
+  if (looks[0]) frag.appendChild(heroCard(looks[0]));
+  if (tags.length) frag.appendChild(section(t('explore.trending'), tagIndex(tags)));
+  if (brands.length) frag.appendChild(section(t('explore.brands'), el('div', { class: 'band' }, brands.map(brandCard))));
+  if (looks.length > 1) frag.appendChild(section(t('explore.top'), postGrid(looks.slice(1, 7), { wall: true, captions: true })));
   // The challenges section always shows, so "All challenges" stays one tap away even before the first brief.
   frag.appendChild(section(t('explore.challenges'), [
     el('p', { class: 'muted', text: t('challenges.intro') }),
@@ -120,7 +143,6 @@ register('explore', async (root, params, ctx) => {
 // ---------- search ----------
 
 register('search', async (root, params, ctx) => {
-  ensureStyle();
   const q = (params.q || '').trim();
   const title = t('explore.results_title', { q });
   setTopBar({ back: true, title });
@@ -145,14 +167,13 @@ register('search', async (root, params, ctx) => {
   if (!users.length && !tags.length) { holder.replaceWith(nothing()); return; }
   const frag = document.createDocumentFragment();
   if (users.length) frag.appendChild(section(t('explore.people'), el('div', {}, users.map((card) => userRow(card)))));
-  if (tags.length) frag.appendChild(section(t('explore.tags'), tagChips(tags)));
+  if (tags.length) frag.appendChild(section(t('explore.tags'), tagIndex(tags)));
   holder.replaceWith(frag);
 });
 
 // ---------- tag ----------
 
 register('tag', async (root, params, ctx) => {
-  ensureStyle();
   const tag = params.tag || '';
   root.classList.add('flush');
   setTopBar({ back: true, title: '#' + tag });

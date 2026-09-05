@@ -336,7 +336,7 @@ async function postIt(page, opts) {
   assert.ok((await text(dan, 'a[href="#/tag/datenight"]')).includes('#datenight'));
   await dan.waitForSelector('.brand-card');
   assert.strictEqual(await text(dan, '.brand-card .name'), 'NEXOR');
-  assert.strictEqual(await count(dan, '.grid a'), 1, 'top look this week');
+  assert.strictEqual(await count(dan, 'a.x-hero'), 1, 'the week\'s top look is the Explore hero');
   await shot(dan, '13-explore-he');
   await dan.fill('#search', 'nex');
   await dan.press('#search', 'Enter');
@@ -376,7 +376,7 @@ async function postIt(page, opts) {
   await dan.waitForSelector('#view .empty');
   await go(dan, '#/u/noa');
   await dan.waitForSelector('#follow, .profile-head');
-  await dan.click('.profile-head ~ * button.btn, button.btn:has-text("לעקוב")');
+  await dan.click('#follow');
   await dan.waitForFunction(() => !!document.querySelector('button[aria-pressed="true"].btn'));
   await go(dan, '#/feed/following');
   await dan.waitForSelector('#view .card');

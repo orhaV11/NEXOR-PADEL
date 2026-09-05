@@ -403,6 +403,7 @@ export function onLeave(fn) { viewCleanup.push(fn); }
 
 export async function render(isNavigation) {
   state.route = parseRoute();
+  document.documentElement.dataset.route = state.route.name;   // CSS hooks per route, e.g. [data-route="post"] .composer
   const token = ++renderToken;
   const stale = () => token !== renderToken;
   for (const fn of viewCleanup.splice(0)) { try { fn(); } catch (e) { /* teardown must never block a render */ } }
@@ -784,8 +785,9 @@ export function postCard(post, opts) {
   opts = opts || {};
   const user = post.user;
   const saveBtn = el('button', { type: 'button', class: 'action save', 'aria-pressed': String(post.saved), 'aria-label': post.saved ? t('post.saved') : t('post.save'), onclick: () => toggleSave(post, saveBtn) }, [icon('bookmark')]);
+  // The visible caps labels (.lbl) are aria-hidden: the sr-only spans already say "On fire" / "Comments".
   const fireBtn = el('button', { type: 'button', class: 'action fire', 'aria-pressed': String(post.fired), onclick: () => toggleFire(post, fireBtn) },
-    [icon('flame'), el('span', { class: 'sr-only', text: post.fired ? t('post.fired') : t('post.fire') }), el('span', { class: 'count', text: fmtCompact(post.fireCount) })]);
+    [icon('flame'), el('span', { class: 'sr-only', text: post.fired ? t('post.fired') : t('post.fire') }), el('span', { class: 'count', text: fmtCompact(post.fireCount) }), el('span', { class: 'lbl', 'aria-hidden': 'true', text: t('post.fire') })]);
   const head = el('div', { class: 'card-head' }, [
     avatar(user),
     el('div', { class: 'who' }, [
@@ -817,7 +819,7 @@ export function postCard(post, opts) {
   ]);
   const actions = el('div', { class: 'actions' }, [
     fireBtn,
-    el('a', { class: 'action', href: '#/post/' + post.id }, [icon('comment'), el('span', { class: 'sr-only', text: t('post.comments') }), el('span', { class: 'count', text: fmtCompact(post.commentCount) })]),
+    el('a', { class: 'action comments', href: '#/post/' + post.id }, [icon('comment'), el('span', { class: 'sr-only', text: t('post.comments') }), el('span', { class: 'count', text: fmtCompact(post.commentCount) }), el('span', { class: 'lbl', 'aria-hidden': 'true', text: t('post.comments_label', { n: post.commentCount }) })]),
     saveBtn,
     el('button', { type: 'button', class: 'action', 'aria-label': t('post.share'), onclick: () => sharePost(post) }, [icon('share')]),
     opts.votes !== undefined ? el('span', { class: 'tag accent end', text: t('post.votes', { n: fmtNumber(opts.votes) }) }) : null
@@ -831,7 +833,7 @@ export function userRow(card, opts) {
   const user = card.user || card;
   const mine = isMe(user.handle);
   const sub = card.user
-    ? el('div', { class: 'sub' }, [handleText(user.handle), ' · ' + t('profile.followers_n', { n: fmtCompact(card.followers) })])
+    ? el('div', { class: 'sub' }, [handleText(user.handle), ' · ' + t('profile.followers_n', { n: card.followers === 1 ? 1 : fmtCompact(card.followers) })])
     : el('div', { class: 'sub' }, [handleText(user.handle)]);
   const row = el('div', { class: 'person' }, [
     avatar(user),
@@ -840,30 +842,47 @@ export function userRow(card, opts) {
   if (!mine && card.user && opts.follow !== false) row.appendChild(followButton(user.handle, card.following, (r) => { card.following = r.following; card.followers = r.followers; }));
   return row;
 }
-export function followButton(handle, following, onChange) {
-  const btn = el('button', { type: 'button', class: 'btn btn-sm' + (following ? ' btn-secondary' : ''), 'aria-pressed': String(following), text: t(following ? 'profile.unfollow' : 'profile.follow') });
+/** The follow label: brass FOLLOW when it invites, outlined "✓ FOLLOWING" (the kit's check icon, in brass) when pressed. aria-pressed drives the state. */
+export function followButton(handle, following, onChange, opts) {
+  opts = opts || {};
+  const btn = el('button', { type: 'button', class: 'btn btn-sm' + (following ? ' btn-secondary' : ''), 'aria-pressed': String(following) });
+  const paint = () => {
+    btn.innerHTML = '';
+    if (following) btn.appendChild(icon('check'));
+    btn.appendChild(document.createTextNode(t(following ? 'profile.unfollow' : 'profile.follow')));
+    btn.setAttribute('aria-pressed', String(following));
+    btn.classList.toggle('btn-secondary', following);
+  };
+  paint();
   btn.addEventListener('click', async () => {
     if (!requireSignIn()) return;
     btn.disabled = true;
     try {
       const result = await toggleFollow(handle, following);
       following = result.following;
-      btn.textContent = t(following ? 'profile.unfollow' : 'profile.follow');
-      btn.setAttribute('aria-pressed', String(following));
-      btn.classList.toggle('btn-secondary', following);
+      paint();
       if (onChange) onChange(result);
     } catch (e) { toast(e.message); }
     btn.disabled = false;
   });
   return btn;
 }
+/**
+ * A grid of framed prints. opts.wall → the two-column staggered atelier wall (class "grid wall"); opts.captions → each
+ * cell is a > figure(img, stamp, private?) + figcaption(rank, name, intent), the rank drawn by a CSS counter.
+ */
 export function postGrid(posts, opts) {
   opts = opts || {};
-  return el('div', { class: 'grid' + (opts.two ? ' two' : '') }, posts.map((p) => el('a', { href: '#/post/' + p.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name }) }, [
+  const stamp = (p) => el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(p.score), el('small', { text: t('result.out_of') })]);
+  const print = (p) => [
     el('img', { src: p.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
-    el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [fmtNumber(p.score), el('small', { text: t('result.out_of') })]),
+    stamp(p),
     p.hidden ? el('span', { class: 'tag private', text: t('post.hidden') }) : null
-  ])));
+  ];
+  return el('div', { class: 'grid' + (opts.wall ? ' wall' : '') }, posts.map((p) => el('a', { href: '#/post/' + p.id, 'aria-label': t('a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name }) },
+    opts.captions
+      ? [el('figure', {}, print(p)), el('figcaption', {}, [el('span', { class: 'rank', 'aria-hidden': 'true' }), el('b', { text: p.user.name }), el('span', { text: intentLabel(p.intent) })])]
+      : print(p))));
 }
 
 // ---------- install banner ----------

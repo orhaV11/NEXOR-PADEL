@@ -182,7 +182,7 @@ src/FitCheck.Api/
   Services/Localizer.cs           server messages (en/he) and Accept-Language matching
   Endpoints/                      auth, users, checks, posts (+ comments), feed, explore (+ search, tags), challenges,
                                   notifications, metrics
-  wwwroot/index.html, app.css     the shell and the design system (one lilac accent, logical properties for RTL)
+  wwwroot/index.html, app.css     the shell and the design system: Night Atelier, see DESIGN.md (logical properties for RTL)
   wwwroot/app/core.js             state, i18n, API, DOM kit, router, bottom sheets, gestures, look cards
   wwwroot/app/views/*.js          one module per screen: feed, post, explore, challenges, check, activity, profile,
                                   auth, settings
@@ -271,4 +271,4 @@ dashboard. None of it is scaffolded on purpose.
 
 Every judgment call made while building, and every place the brief and instinct disagreed, is in
 [`DECISIONS.md`](DECISIONS.md). The plans each phase was built from are in [`PHASE2.md`](PHASE2.md) and
-[`PHASE3.md`](PHASE3.md).
+[`PHASE3.md`](PHASE3.md); the visual system is [`DESIGN.md`](DESIGN.md).

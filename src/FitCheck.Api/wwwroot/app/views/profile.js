@@ -1,6 +1,7 @@
 // Profiles: #/u/:handle[/community|/featured] and #/me, plus the two private lists that hang off my profile,
-// #/saved and #/checks. The head (avatar, name, bio, website, six stats) is padded; the look grids under the
-// tabs run edge to edge and page as you scroll. Tabs are routes, so back returns to the previous tab.
+// #/saved and #/checks. The head (portrait, name, handle, the follow label), the bio, the statline and the colophon
+// are padded; the look grids under the tabs run edge to edge and page as you scroll. Tabs are routes, so back
+// returns to the previous tab.
 import {
   register, state, t, api, el, icon, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
   navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel
@@ -25,20 +26,58 @@ const handleTitle = (handle) => '\u2066@' + handle + '\u2069';
 const tabPath = (handle, tab) => '#/u/' + encodeURIComponent(handle) + (tab === 'looks' ? '' : '/' + tab);
 const settingsAction = () => el('a', { class: 'icon-btn', href: '#/settings', 'aria-label': t('profile.settings') }, [icon('settings')]);
 
-function stat(value, label, hot) {
-  return el('div', { class: 'stat' + (hot ? ' hot' : '') }, [el('b', { text: value }), el('span', { text: label })]);
+/** The count a plural key wants: the number 1 (so the _one form fires) or the formatted figure. */
+const countArg = (n) => (n === 1 ? 1 : fmtNumber(n));
+
+/**
+ * A colophon phrase with its numeral set upright: the first run of digits is wrapped in <b class={cls}>, the rest stays
+ * plain (italic through CSS). A _one form with no digit ("לוק אחד") comes back as one plain span.
+ */
+function numeralise(text, cls) {
+  const m = /\d[\d.,]*/.exec(text);
+  if (!m) return el('span', { text });
+  const after = text.slice(m.index + m[0].length);
+  return el('span', {}, [m.index ? text.slice(0, m.index) : null, el('b', { class: cls || null, text: m[0] }), after || null]);
+}
+
+/** The statline: followers · following · fire, each a serif numeral with a caps label, brass squares between them. */
+function statline(followers, following, fire) {
+  const item = (valueNode, label, cls) => el('span', { class: cls }, [valueNode, el('span', { class: 'lbl', text: label })]);
+  const sep = () => el('span', { class: 'sep', 'aria-hidden': 'true' });
+  return el('p', { class: 'statline' }, [
+    item(followers, t('profile.followers')),
+    sep(),
+    item(following, t('profile.following')),
+    sep(),
+    item(fire, t('profile.fire'), 'hot')
+  ]);
+}
+
+/** Looks · best score · day streak as one italic line; a streak past one day burns. */
+function colophon(profile) {
+  const best = profile.bestScore === undefined || profile.bestScore === null ? '–' : fmtNumber(profile.bestScore);
+  return el('p', { class: 'colophon' }, [
+    numeralise(t('profile.posts_n', { n: countArg(profile.posts) })),
+    ' · ',
+    numeralise(t('profile.best_n', { n: best })),
+    ' · ',
+    numeralise(t('profile.streak_n', { n: countArg(profile.streak) }), profile.streak > 1 && 'hot')
+  ]);
 }
 
 function headSkeleton() {
+  const clip = (r) => 'border-radius: var(--radius, 3px); border-start-end-radius: var(' + r + ');';
   return el('div', { 'aria-hidden': 'true', style: 'padding-inline: 16px;' }, [
     el('div', { class: 'profile-head' }, [
-      el('div', { class: 'skel', style: 'inline-size: 84px; block-size: 84px; border-radius: 50%; flex: none;' }),
+      el('div', { class: 'skel', style: 'inline-size: 84px; block-size: 84px; flex: none; ' + clip('--radius-clip, 16px') }),
       el('div', { class: 'who' }, [
-        el('div', { class: 'skel', style: 'block-size: 22px; inline-size: 55%;' }),
-        el('div', { class: 'skel', style: 'block-size: 12px; inline-size: 35%; margin-block-start: 10px;' })
+        el('div', { class: 'skel', style: 'block-size: 28px; inline-size: 55%;' }),
+        el('div', { class: 'skel', style: 'block-size: 12px; inline-size: 35%; margin-block-start: 10px;' }),
+        el('div', { class: 'skel', style: 'block-size: 44px; inline-size: 150px; max-inline-size: 100%; margin-block-start: 10px; ' + clip('--radius-clip-sm, 10px') })
       ])
     ]),
-    el('div', { class: 'stats', style: 'margin-block-start: 18px;' }, [0, 1, 2, 3, 4, 5].map(() => el('div', { class: 'skel', style: 'block-size: 58px;' })))
+    el('div', { class: 'skel', style: 'block-size: 24px; margin-block-start: 18px;' }),
+    el('div', { class: 'skel', style: 'block-size: 14px; inline-size: 60%; margin-block-start: 10px;' })
   ]);
 }
 
@@ -64,7 +103,7 @@ function gridList(container, opts) {
 }
 
 function websiteLink(url) {
-  return el('a', { class: 'challenge-link', href: url, target: '_blank', rel: 'noopener', style: 'display: inline-block; margin-block-start: 6px;', 'aria-label': t('profile.website') }, [
+  return el('a', { class: 'website', href: url, target: '_blank', rel: 'noopener', 'aria-label': t('profile.website') }, [
     el('bdi', { dir: 'ltr', text: url.replace(/^https?:\/\//i, '') })
   ]);
 }
@@ -107,44 +146,40 @@ async function profileView(root, handle, tab, ctx) {
 
   const brand = profile.accountType === 'Brand';
   const viewer = profile.viewer || {};
-  const head = el('div', { class: 'profile-head' }, [
-    avatar(profile, { size: 'lg', noLink: true }),
-    el('div', { class: 'who' }, [
-      el('h1', { class: 'name' }, [profile.name, brandMark(profile)]),
-      el('div', { class: 'sub' }, [handleText(profile.handle)]),
-      profile.bio ? el('p', { class: 'caption', dir: 'auto', style: 'margin-block-start: 6px;', text: profile.bio }) : null,
-      profile.website ? websiteLink(profile.website) : null
-    ])
-  ]);
 
-  // The followers figure is kept by hand so the follow button can update it without a reload.
+  // The followers figure is kept by hand so the follow label can update it without a reload.
   const followers = el('b', { text: fmtCompact(profile.followers) });
-  const stats = el('div', { class: 'stats' }, [
-    stat(fmtCompact(profile.posts), t('profile.posts')),
-    el('div', { class: 'stat' }, [followers, el('span', { text: t('profile.followers') })]),
-    stat(fmtCompact(profile.following), t('profile.following')),
-    stat(fmtCompact(profile.fireReceived), t('profile.fire'), true),
-    stat(profile.bestScore === undefined || profile.bestScore === null ? '–' : fmtNumber(profile.bestScore), t('profile.best')),
-    stat(fmtNumber(profile.streak), t('profile.streak'), profile.streak > 1)
-  ]);
 
-  let actions;
-  if (mine) {
-    actions = el('div', { class: 'links' }, [
-      el('a', { href: '#/saved' }, [t('profile.saved'), icon('bookmark')]),
-      el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
-      el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })
-    ]);
-  } else {
+  // Head: portrait, then name, handle and (on someone else's profile) the follow label right under the handle.
+  const who = el('div', { class: 'who' }, [
+    el('h1', { class: 'name' }, [profile.name, brandMark(profile)]),
+    el('div', { class: 'sub' }, [handleText(profile.handle)])
+  ]);
+  if (!mine) {
     const follow = followButton(profile.handle, !!viewer.following, (result) => {
       profile.followers = result.followers;
       followers.textContent = fmtCompact(result.followers);
     });
     follow.id = 'follow';
-    follow.classList.remove('btn-sm');   // full width under the stats, like the check button on a card
-    actions = el('div', {}, [follow]);
+    who.appendChild(follow);
   }
-  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, stats, actions]));
+  const head = el('div', { class: 'profile-head' }, [avatar(profile, { size: 'lg', noLink: true }), who]);
+
+  // Bio and website sit under the head at full width, pinned to the same edge as the name (CSS).
+  const bio = profile.bio || profile.website ? el('div', { class: 'profile-bio' }, [
+    profile.bio ? el('p', { class: 'caption', dir: 'auto', text: profile.bio }) : null,
+    profile.website ? websiteLink(profile.website) : null
+  ]) : null;
+
+  const stats = statline(followers, el('b', { text: fmtCompact(profile.following) }), el('b', { text: fmtCompact(profile.fireReceived) }));
+
+  // My own profile: the private lists and sign-out as an index list, between the colophon and the tabs.
+  const links = mine ? el('div', { class: 'links' }, [
+    el('a', { href: '#/saved' }, [t('profile.saved'), icon('bookmark')]),
+    el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
+    el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })
+  ]) : null;
+  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, bio, stats, colophon(profile), links]));
 
   // Looks for everyone; Community for brands; Featured for brands and for people a brand has featured.
   const available = ['looks'];

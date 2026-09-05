@@ -287,5 +287,16 @@
   "check.entering_hint": "משאירים את {tag} בכיתוב והלוק בפנים.",
   "challenges.tag_hint": "מעלים עם {tag} כדי להיכנס",
   "newchallenge.tag": "האשטג",
-  "newchallenge.tag_hint": "לוקים שמועלים עם ההאשטג הזה בזמן שהאתגר פתוח הם הכניסות. אותיות, ספרות וקו תחתון."
+  "newchallenge.tag_hint": "לוקים שמועלים עם ההאשטג הזה בזמן שהאתגר פתוח הם הכניסות. אותיות, ספרות וקו תחתון.",
+  "explore.kicker": "השבוע",
+  "explore.issue": "גיליון · {date}",
+  "explore.hero_kicker": "הלוק של השבוע",
+  "explore.read_look": "ללוק המלא",
+  "post.comments_label": "תגובות",
+  "post.comments_label_one": "תגובה",
+  "profile.posts_n": "{n} לוקים",
+  "profile.posts_n_one": "לוק אחד",
+  "profile.best_n": "ציון שיא {n}",
+  "profile.streak_n": "{n} ימים ברצף",
+  "profile.streak_n_one": "יום אחד ברצף"
 }

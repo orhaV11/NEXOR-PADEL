@@ -287,5 +287,16 @@
   "check.entering_hint": "Keep {tag} in your caption and this look is in.",
   "challenges.tag_hint": "Post with {tag} to enter",
   "newchallenge.tag": "Hashtag",
-  "newchallenge.tag_hint": "Looks posted with this hashtag while the challenge is open are the entries. Letters, numbers and underscores."
+  "newchallenge.tag_hint": "Looks posted with this hashtag while the challenge is open are the entries. Letters, numbers and underscores.",
+  "explore.kicker": "This week",
+  "explore.issue": "Issue · {date}",
+  "explore.hero_kicker": "This week's look",
+  "explore.read_look": "Read the look",
+  "post.comments_label": "Comments",
+  "post.comments_label_one": "Comment",
+  "profile.posts_n": "{n} looks",
+  "profile.posts_n_one": "1 look",
+  "profile.best_n": "Best score {n}",
+  "profile.streak_n": "Day streak {n}",
+  "profile.streak_n_one": "Day streak 1"
 }

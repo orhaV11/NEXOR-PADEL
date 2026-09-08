@@ -101,6 +101,7 @@ public sealed class Localizer
             ["email.reset_subject"] = "Reset your OREVOSH password",
             ["email.reset_body"] = "Someone asked to reset the password for @{0}. Tap this link within an hour to pick a new one:\n\n{1}\n\nIf this wasn't you, ignore this message and your password stays as it is.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
+            ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
         ["he"] = new()
         {
@@ -186,6 +187,7 @@ public sealed class Localizer
             ["email.reset_subject"] = "איפוס הסיסמה ב-OREVOSH",
             ["email.reset_body"] = "מישהו ביקש לאפס את הסיסמה של @{0}. לוחצים על הקישור תוך שעה כדי לבחור סיסמה חדשה:\n\n{1}\n\nאם זה לא מכם, מתעלמים והסיסמה נשארת כמו שהיא.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
+            ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         }
     };
 

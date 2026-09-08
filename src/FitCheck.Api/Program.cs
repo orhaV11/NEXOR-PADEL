@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using FitCheck.Api.Data;
@@ -198,6 +199,12 @@ var signupsPerHour = builder.Configuration.GetValue<int?>("Limits:SignupsPerHour
 var loginsPerQuarterHour = builder.Configuration.GetValue<int?>("Limits:LoginsPerQuarterHourPerIp") ?? limitDefaults.LoginsPerQuarterHourPerIp;
 // Recovery mail (forgot password, a verification link again) is a way to make this server spam an inbox; a few an hour is plenty.
 var recoveryPerHour = builder.Configuration.GetValue<int?>("Limits:RecoveryPerHourPerIp") ?? AuthEndpoints.RecoveryPerHourPerIpDefault;
+// Comments and reports are a brake on one account flooding a thread or burying the moderation queue: an hour's window per
+// signed-in account, so two people behind one router never share a bucket. The limiter runs after authentication (below)
+// so the cookie's principal is there to read; an unsigned call is refused by authorization before it reaches a limiter,
+// and the address is only the fallback for a route that is limited without being protected.
+var commentsPerHour = builder.Configuration.GetValue<int?>("Limits:CommentsPerHour") ?? limitDefaults.CommentsPerHour;
+var reportsPerHour = builder.Configuration.GetValue<int?>("Limits:ReportsPerHour") ?? limitDefaults.ReportsPerHour;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -210,15 +217,29 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(AuthEndpoints.RecoveryPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = recoveryPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    options.AddPolicy(PostEndpoints.CommentsPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = commentsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    options.AddPolicy(PostEndpoints.ReportsPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = reportsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
-        var localizer = context.HttpContext.RequestServices.GetRequiredService<Localizer>();
-        var path = context.HttpContext.Request.Path;
+        var http = context.HttpContext;
+        var localizer = http.RequestServices.GetRequiredService<Localizer>();
+        var path = http.Request.Path;
         var key = path.StartsWithSegments("/api/auth/login") ? "error.login_limited"
+            : path.StartsWithSegments("/api/auth/signup") ? "error.signup_limited"
             : path.StartsWithSegments("/api/auth/forgot") || path.StartsWithSegments("/api/users/me/email") ? "error.recovery_limited"
-            : "error.signup_limited";
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            new ErrorDto(localizer.Get(Localizer.Resolve(null, context.HttpContext.Request), key)), AppJson.Options, ct);
+            : "error.too_fast";
+        // The window limiters say when the next permit frees up; the client can show it or wait it out.
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            http.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        await http.Response.WriteAsJsonAsync(
+            new ErrorDto(localizer.Get(Localizer.Resolve(null, http.Request), key)), AppJson.Options, ct);
     };
 });
 
@@ -289,9 +310,11 @@ app.Use(async (context, next) =>
 });
 
 app.UseRouting();
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+// After authentication, so the per-account policies (comments, reports) can read the cookie's principal; after
+// authorization, so an unsigned call to a protected route is a 401 that never spends a permit.
+app.UseRateLimiter();
 
 // Only wwwroot is served. Photos live under Storage:Root, which is outside it; a post is the only door to one.
 app.UseDefaultFiles();
@@ -338,6 +361,10 @@ app.MapGet("/healthz", async (AppDbContext db, HttpContext context, Cancellation
 
 app.Run();
 return 0;
+
+/// <summary>Partition for the per-account limiters: the signed-in account, or the client address when there is none.</summary>
+static string AccountOrAddress(HttpContext context) =>
+    Sessions.UserId(context.User) is { } userId ? $"user:{userId:N}" : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
 
 static Task WriteAuthError(HttpContext context, int status, string key)
 {

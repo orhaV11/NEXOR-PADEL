@@ -33,8 +33,11 @@ versioned with EF Core migrations and applied on start; a database from an earli
 migrations existed) is upgraded in place after a `.bak-<stamp>` copy is written next to it. A `fitcheck.db`
 left over from an earlier build is simply unused and can be deleted.
 
-To put it on a server with your own domain, HTTPS, push notifications, backups and updates that keep
-everyone's data, follow [`DEPLOY.md`](DEPLOY.md).
+To put it on the internet, follow [`DEPLOY.md`](DEPLOY.md): Fly.io in 15 minutes with no server to manage
+(`fly launch`, `fly deploy`, about 5 USD a month; the repository's `fly.toml` does the rest), or your own server with
+Docker and Caddy for full control. Both give you a domain with HTTPS, push notifications, email for account recovery,
+backups, and updates that keep everyone's data. Every push runs the build, the tests and the browser test on GitHub
+Actions: [![CI](https://github.com/orhaV11/NEXOR-PADEL/actions/workflows/ci.yml/badge.svg)](https://github.com/orhaV11/NEXOR-PADEL/actions/workflows/ci.yml)
 
 ### On a phone
 
@@ -329,6 +332,11 @@ descriptive is dropped when the status is not `ok`.
 - **The limiters trust `X-Forwarded-For`.** Right behind the tunnel; if Kestrel is exposed directly, the
   global daily ceiling bounds the damage. Raise `Limits__SignupsPerHourPerIp` for a launch hour on a shared
   network.
+- **Comments and reports are rate limited per account.** 30 comments and 20 reports an hour
+  (`Limits__CommentsPerHour`, `Limits__ReportsPerHour`), answered with 429, "Slow down a little. Try again in a
+  bit." and a `Retry-After`. Fixed one-hour windows counted in memory: they reset when the app restarts and are per
+  process, one more reason to run one instance. A brake, not a spam filter: a patient flood stays under them, and the
+  queue and suspensions are the answer to that.
 - **Cookies are Secure only over HTTPS.** Plain `http://localhost` works for development; anything users reach
   must be behind HTTPS (the tunnel).
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run

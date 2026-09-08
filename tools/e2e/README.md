@@ -33,4 +33,8 @@ report with a reason picked from the list, hide, show again, suspend and lift; N
 command after she signs up, the way a real owner is); the guidelines page; the push switch on a server without
 VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account; signing out and
 back in. The service worker is blocked in the test contexts so it never masks a live request; the browser is
-launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real.
+launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real. The Round 8 steps add:
+the rubric v2 rings and the accessories read on the result and the look page (the stub answers 7/8/4, "Nothing on",
+"A thin black leather belt."); the wait for the clip the browser recorded as WebM to come back as H.264 MP4 (ffmpeg
+must be on the machine; `/api/config` says `transcoding: true`); account recovery with `Email__Host=log`, so the
+confirmation and reset links are read from `data/api.log`; and the pilot metrics read through a moderator's session.

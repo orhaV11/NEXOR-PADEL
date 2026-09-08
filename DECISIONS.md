@@ -696,3 +696,20 @@ fields, options, DTOs, stubs, routes and strings); this section is completed by 
   a script, not a spam filter; the queue and suspensions remain the answer to a patient flood.
 - **Metrics are behind the moderator flag.** `/api/metrics/pilot` answers through a moderator's session and 403 to
   anyone else, so the URL can leave the team without the numbers leaving with it; the browser test reads it that way.
+
+### Objections and notes kept out of the code (owner wins)
+
+- **On the rubric.** A partial breakdown from the model (two numbers of three) is dropped whole rather than shown with an
+  invented ring; the accessories list is cut to six pieces of forty characters; a verdict outside the four words reads
+  as neutral; and "add one" is kept even when the verdict is "adds", because a stylist may still name a piece. The
+  rule that a look with nothing on rarely earns above 7 outside Minimal and Sport is a rubric choice, not a fact; run
+  `scripts/calibrate.py` on real photos (it prints the sub-scores and the verdict spread) before trusting it.
+- **A password reset does not end other sessions.** Sessions are stateless cookies; a per-account stamp checked on
+  every request would close that and is a small follow-up. Until then, someone with an old cookie keeps it for up to
+  90 days after a reset.
+- **Nothing here has run on GitHub, Fly or a mail server yet.** The workflows, `fly.toml` and the SMTP sender were
+  built and tested against stand-ins (a recording mail sender, a fake Docker); the first push, the first `fly deploy`
+  and the first real email are the proof, and DEPLOY.md says where to look when one of them misbehaves.
+- **Clips from before this round** that were stored as WebM are re-encoded by the sweep at the next start; the
+  original serves until then.
+

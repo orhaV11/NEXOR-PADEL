@@ -1,8 +1,9 @@
 # OREVOSH
 
 A social app for looks. Pick where the outfit is going (date, office, streetwear…), add a photo or film a
-short clip with the in-app camera, and a stylist scores the look **relative to that intent**, lists what you
-are wearing, what works, and **the one tip**. The check is private. Post it and it joins a feed where people
+short clip with the in-app camera, and a stylist scores the look **relative to that intent**, breaks the score
+into fit, color and accessories, lists what you are wearing, what works, **the one tip**, and the one accessory
+that would finish the look. The check is private. Post it and it joins a feed where people
 react with fire, comment, save and follow; clips play in the feed, and a story card carries the score to
 Instagram and TikTok.
 Tag the brands you wear with `@brand`, add `#tags`, and brands feature the community looks they love, open
@@ -88,7 +89,7 @@ last 7 days.
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-256 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
+314 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules, the CSRF header, uploads and 413/415/429/502, the daily and
 global caps, clips (storage, Range streaming, deletion, limits), posting, fire, comments, saves, follows, the
@@ -136,6 +137,9 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Storage:FfmpegPath` | empty | The ffmpeg binary, with ffprobe next to it. Empty means `ffmpeg` on `PATH` |
 | `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set; a new pair drops every existing subscription (the push service answers 401/403 and the app deletes it) |
 | `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
+| `Email:Host` / `Port` / `User` / `Password` / `From` / `UseStartTls` | empty | SMTP for confirmation and reset links (`Email__Host` etc.; the password is environment only). Mail is on when Host and From are set; `Email__Host=log` writes the links to the log instead of sending |
+| `Email:PublicOrigin` | empty | The https origin used in links, e.g. `https://looks.example.com`; the request's own origin when empty |
+| `Limits:RecoveryPerHourPerIp` | `5` | Forgot-password and resend requests per client address per hour |
 | `Admin:Handles` | empty | Handles promoted to moderator at start (`Admin__Handles__0=yourhandle`, `__1` for more): only an account that already exists is promoted, so sign up first, then list the handle and restart. The list never demotes (`--unadmin` does) and a listed handle can no longer be signed up. `--admin <handle>` does the same at any time without a restart |
 | `Limits:ChecksPerDay` | `20` | Per-user cap over a rolling 24 hours |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users over a rolling 24 hours |
@@ -175,9 +179,13 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
 | `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. A suspended account gets 403 and is signed out |
+| `POST /api/auth/forgot` | `{ handleOrEmail }` | `202` always, same body whether or not the account exists; mails a reset link when the account has a confirmed email (5 per hour per address) |
+| `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
+| `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to; works signed out, signs nobody in |
+| `POST /api/users/me/email/resend` 🔒 | — | 204, a new confirmation link (5 per hour per address) |
 | `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey? }`. No secrets |
 | `GET /healthz` | — | `ok` when the database answers, 503 otherwise. For the proxy and uptime checks |
-| `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https |
+| `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests?, email? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https; `email` null leaves it, `""` clears it, a value stores it lower-cased (unique, never shown to others) and sends a confirmation link (400 when mail is off on this server, 409 when another account has it) |
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
 | `GET /api/users/{handle}/avatar?v=` | — | The photo, `Cache-Control: public, max-age=86400` |
@@ -272,8 +280,8 @@ descriptive is dropped when the status is not `ok`.
 - **Clothes, never the person.** The prompt forbids any reference to body, face, skin, age or gender, and the
   UI copy follows the same rule.
 - **Checks are private; posting is a separate choice.** Posting publishes the photo, the intent, the score,
-  the headline and your caption. The tip and the item breakdown never go public. Deleting the post makes the
-  photo private again.
+  the headline, your caption and the three sub-scores (fit, color, accessories). The tip, the items and the
+  accessories read never go public. Deleting the post makes the photo private again.
 - **Photos are never served by path.** Check photos and avatars live under `Storage:Root`, outside `wwwroot`.
   The post image route (visible posts only) and the avatar route are the only doors.
 - **16+ only, self-declared.** Signup fails without the checkbox. See the limitations below.
@@ -312,7 +320,9 @@ descriptive is dropped when the status is not `ok`.
   and Google age-signal APIs (or an equivalent provider) and gate account creation on the result.
 - **Brand accounts are self-declared.** Anyone can switch to brand mode in settings. Fine for an invited
   pilot; verification belongs in the launch checklist with age assurance.
-- **No password recovery.** Accounts have no email address, so a forgotten password means a new account.
+- **Password recovery needs a mail provider.** An account can carry an email (optional, confirmed by a link) and a
+  forgotten password is reset by a link that lives an hour; without `Email__*` settings the app says recovery is off
+  and writes the links to its log instead. A reset does not end sessions that are already signed in.
 - **Moderation is a queue, not a team.** Moderators (accounts flagged at start from `Admin:Handles`, or with
   `--admin`) see reported looks and comments and can hide, delete and suspend. Featured looks are the brand's
   call with no review step.
@@ -325,8 +335,8 @@ descriptive is dropped when the status is not `ok`.
 - **The For you feed is a formula, not a recommender.** It ranks by fire, comments, follows, interests and
   recency; good enough for a pilot, and documented in `PHASE3.md`. Search is a prefix match on SQLite, fine at
   pilot scale.
-- **Metrics are unauthenticated.** `/api/metrics/pilot` only returns aggregates, but put it behind a
-  password or an allow-list before the URL leaves the team.
+- **Metrics are for moderators.** `/api/metrics/pilot` answers only through a moderator's session (403 otherwise),
+  so the URL can leave the team; it still returns aggregates only.
 - **Single process, single SQLite file.** The in-flight reservation that closes the cap race lives in memory;
   run one instance.
 - **The limiters trust `X-Forwarded-For`.** Right behind the tunnel; if Kestrel is exposed directly, the

@@ -180,6 +180,8 @@ async function postIt(page, opts) {
     Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
     ConnectionStrings__Default: `Data Source=${DB}`,
     Storage__Root: path.join(DATA, 'storage'),
+    Email__Host: 'log',
+    Email__From: 'OREVOSH <noreply@example.test>',
   }, path.join(DATA, 'api.log'));
 
   await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
@@ -300,6 +302,12 @@ async function postIt(page, opts) {
   assert.strictEqual(await text(noa, '.result-headline'), 'Clean casual with one weak link');
   assert.deepStrictEqual(await noa.$$eval('.item-verdict', (n) => n.map((x) => x.textContent)), ['Works', 'Neutral', 'Weak']);
   assert.strictEqual(await noa.getAttribute('.bar', 'aria-valuenow'), '72');
+  // Rubric v2: three rings and the accessories read, with the one piece that would finish the look.
+  assert.deepStrictEqual(await noa.$$eval('#breakdown ul.breakdown li .score-badge b', (n) => n.map((x) => x.textContent)), ['7', '8', '4']);
+  assert.deepStrictEqual(await noa.$$eval('#breakdown .breakdown-label', (n) => n.map((x) => x.textContent)), ['Fit', 'Color', 'Accessories']);
+  assert.strictEqual(await text(noa, '#accessories .acc-verdict'), 'Nothing on');
+  assert.strictEqual(await count(noa, '#accessories .acc-verdict.missing'), 1);
+  assert.ok((await text(noa, '#accessories .acc-add')).includes('A thin black leather belt.'));
   await shot(noa, '08-result-en');
   await noa.click('#post-open');
   await noa.waitForSelector('#post-confirm');
@@ -318,6 +326,7 @@ async function postIt(page, opts) {
   await noa.waitForSelector('.person');
   assert.strictEqual(await text(noa, '.person .name'), 'NEXORBrand', 'tagged brand listed');
   assert.strictEqual(await text(noa, '.card .score-badge'), '7/10');
+  assert.deepStrictEqual(await noa.$$eval('#post-breakdown .score-badge b', (n) => n.map((x) => x.textContent)), ['7', '8', '4'], 'the breakdown is public with the score');
   await shot(noa, '10-post-en');
 
   step = '5';
@@ -478,8 +487,8 @@ async function postIt(page, opts) {
       assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
     }
   }
-  expected.push('GET /api/metrics/pilot -> 403');
-  assert.strictEqual((await get(`${base}/api/metrics/pilot`)).status, 403, 'the pilot metrics are for moderators');
+  assert.strictEqual((await get(`${base}/api/metrics/pilot`)).status, 401, 'the pilot metrics need a session');
+  assert.strictEqual((await dan.request.get(base + '/api/metrics/pilot')).status(), 403, 'and a moderator');
   const metrics = await metricsAs(noa);
   assert.strictEqual(metrics.social.mentions, 1);
   assert.strictEqual(metrics.social.featured, 2);
@@ -543,6 +552,18 @@ async function postIt(page, opts) {
   assert.match(clipHead.headers()['content-range'], /^bytes 0-3\/\d+$/);
   assert.match(clipHead.headers()['content-type'], /^video\//);
   assert.strictEqual((await get(`${base}${clipPost.videoUrl}`)).status, 200, 'a public look\'s clip plays signed out');
+  // ffmpeg is on this machine, so the worker re-encodes the WebM to H.264 MP4 at the same URL within seconds.
+  assert.strictEqual((await getJson(`${base}/api/config`)).transcoding, true, 'transcoding is on');
+  const transcodeStart = Date.now();
+  let clipType = '';
+  while (Date.now() - transcodeStart < 60000) {
+    clipType = (await get(`${base}${clipPost.videoUrl}`)).headers['content-type'] || '';
+    if (clipType.startsWith('video/mp4')) break;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  assert.ok(clipType.startsWith('video/mp4'), 'the clip became MP4: ' + clipType);
+  const mp4Bytes = (await get(`${base}${clipPost.videoUrl}`)).body;
+  assert.strictEqual(mp4Bytes.subarray(4, 8).toString('latin1'), 'ftyp', 'an MP4 container');
   // Home keeps its last list for ten minutes; a reload is the honest way to see what was posted since.
   await go(dan, '#/');
   await dan.reload();
@@ -557,7 +578,7 @@ async function postIt(page, opts) {
   const clipFiles = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) clipFiles.push(user + '/' + f);
   assert.strictEqual(clipFiles.length, 5, 'the clip and its still joined the store: ' + clipFiles.join(','));
-  assert.ok(clipFiles.some((f) => /\.(webm|mp4)$/.test(f)), 'the clip is on disk');
+  assert.ok(clipFiles.some((f) => /\.mp4$/.test(f)) && !clipFiles.some((f) => /\.webm$/.test(f)), 'the MP4 replaced the WebM on disk: ' + clipFiles.join(','));
   for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
     assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);
   }
@@ -637,6 +658,64 @@ async function postIt(page, opts) {
   assert.strictEqual(home.headers['x-frame-options'], 'DENY');
   assert.strictEqual(home.headers['strict-transport-security'], undefined, 'HSTS only over https');
 
+  // Account recovery. Mail goes to the log on this server (Email__Host=log), so the links are read from api.log.
+  const links = () => {
+    const log = fs.readFileSync(path.join(DATA, 'api.log'), 'utf8');
+    return [...log.matchAll(/https?:\/\/\S+\/#\/(verify|reset)\/([A-Za-z0-9_-]{43})/g)].map((m) => ({ kind: m[1], token: m[2] }));
+  };
+  assert.strictEqual((await getJson(`${base}/api/config`)).email, true, 'recovery is on');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#s-email');
+  await dan.fill('#s-email', 'Dan@Example.test');
+  await dan.click('#s-save');
+  await dan.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+  await dan.waitForFunction(() => /@/.test(document.getElementById('s-email').value));
+  assert.strictEqual((await me(dan)).email, 'dan@example.test', 'stored lower-cased');
+  assert.strictEqual((await me(dan)).emailVerified, false);
+  const verify = links().filter((l) => l.kind === 'verify').pop();
+  assert.ok(verify, 'a verification link was logged');
+  await go(dan, '#/verify/' + verify.token);
+  await dan.waitForSelector('#v-done');
+  assert.strictEqual((await me(dan)).emailVerified, true, 'confirmed from the link');
+  expected.push('POST /api/auth/verify-email -> 400');
+  await go(dan, '#/verify/' + verify.token);
+  await dan.waitForSelector('#v-invalid');
+  await shot(dan, '26-verify-he');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#logout');
+  await dan.click('#logout');
+  await dan.waitForFunction(() => !!document.getElementById('top-auth'));
+  await go(dan, '#/login');
+  await dan.waitForSelector('#a-forgot');
+  await dan.click('#a-forgot');
+  await dan.waitForSelector('#f-key');
+  await dan.fill('#f-key', 'dan');
+  await dan.click('#f-submit');
+  await dan.waitForSelector('#f-sent');
+  await shot(dan, '27-forgot-he');
+  const reset = links().filter((l) => l.kind === 'reset').pop();
+  assert.ok(reset, 'a reset link was logged');
+  await go(dan, '#/reset/' + reset.token);
+  await dan.waitForSelector('#r-password');
+  await dan.fill('#r-password', 'brand-new-pass-9');
+  await dan.click('#r-submit');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector(settled);
+  assert.strictEqual((await me(dan)).handle, 'dan', 'signed in by the reset');
+  // The link is single-use: the same token with another password is refused and the screen says so.
+  expected.push('POST /api/auth/reset -> 400');
+  await go(dan, '#/reset/' + reset.token);
+  await dan.waitForSelector('#r-password');
+  await dan.fill('#r-password', 'another-pass-10');
+  await dan.click('#r-submit');
+  await dan.waitForSelector('#r-invalid');
+  // an unknown handle gets the same answer, and nothing is mailed
+  const before = links().length;
+  const unknown = await dan.request.post(base + '/api/auth/forgot', { headers: { 'X-Requested-With': 'Orevosh' }, data: { handleOrEmail: 'nobody-here' } });
+  assert.strictEqual(unknown.status(), 202, 'the same answer for an unknown handle');
+  await new Promise((r) => setTimeout(r, 500));
+  assert.strictEqual(links().length, before, 'no link for an unknown handle');
+
   step = '13';
   // 13. Noa deletes her first look, then her account; the brand's walls empty out; Dan signs out and back in.
   await go(noa, '#/post/' + post1);
@@ -692,7 +771,7 @@ async function postIt(page, opts) {
   await dan.click('#a-submit');
   await dan.waitForSelector('form .alert:not([hidden])');
   assert.strictEqual(await text(dan, 'form .alert'), 'הכינוי או הסיסמה לא נכונים.');
-  await dan.fill('#a-password', 'password123');
+  await dan.fill('#a-password', 'brand-new-pass-9');
   await dan.click('#a-submit');
   await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await dan.reload();

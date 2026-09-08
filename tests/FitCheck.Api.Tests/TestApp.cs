@@ -48,6 +48,8 @@ public class TestApp : WebApplicationFactory<Program>
     public bool EmailEnabled { get; init; } = true;
     /// <summary>Stands in for the mail server: records every message the app sends, link included.</summary>
     public RecordingEmailSender Email { get; } = new();
+    /// <summary>Storage:Transcode. Off by default so the suite never waits on ffmpeg; TranscoderTests turn it on.</summary>
+    public bool Transcode { get; init; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -68,6 +70,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
         builder.UseSetting("Admin:Handles:0", AdminHandles);
+        builder.UseSetting("Storage:Transcode", Transcode ? "true" : "false");
         if (PushPublicKey is not null)
         {
             builder.UseSetting("Push:PublicKey", PushPublicKey);

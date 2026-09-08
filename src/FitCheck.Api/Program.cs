@@ -151,7 +151,9 @@ builder.Services.AddSingleton<IEmailSender>(provider =>
         ? new SmtpEmailSender(email, provider.GetRequiredService<ILogger<SmtpEmailSender>>())
         : new LogEmailSender(provider.GetRequiredService<ILogger<LogEmailSender>>(), email);
 });
+// Clips are re-encoded to H.264 MP4 by one background worker when ffmpeg is there (Storage:Transcode); /api/config says whether.
 builder.Services.AddSingleton<Transcoder>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<Transcoder>());
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {

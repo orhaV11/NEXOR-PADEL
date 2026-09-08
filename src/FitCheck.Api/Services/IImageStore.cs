@@ -84,6 +84,14 @@ public interface IImageStore
     /// </summary>
     Task<string> SaveVideoAsync(Guid userId, Guid checkId, VideoFormat format, Stream content, CancellationToken ct);
 
+    /// <summary>
+    /// Swaps a stored clip for its transcoded MP4: &lt;userId&gt;/&lt;checkId&gt;.mp4 is written whole (through a temporary file next
+    /// to it) before the old file goes, so a reader never finds a half clip and a failure leaves the old one in place. An
+    /// old clip that is an MP4 already is replaced under its own name. Returns the new relative path. A clip that is no
+    /// longer there (the look was deleted meanwhile) is not replaced: <see cref="FileNotFoundException"/>, nothing written.
+    /// </summary>
+    Task<string> ReplaceVideoAsync(string relativeOld, Stream mp4, CancellationToken ct);
+
     /// <summary>Removes one photo or clip. Missing files are not an error.</summary>
     void Delete(string relativePath);
 

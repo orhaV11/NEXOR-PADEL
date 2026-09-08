@@ -50,6 +50,44 @@ public sealed class DiskImageStore : IImageStore
         return relative;
     }
 
+    public async Task<string> ReplaceVideoAsync(string relativeOld, Stream mp4, CancellationToken ct)
+    {
+        var oldFull = Resolve(relativeOld);
+        if (!File.Exists(oldFull))
+        {
+            throw new FileNotFoundException("The clip to replace is no longer in the store.", relativeOld);
+        }
+
+        var relative = Path.ChangeExtension(relativeOld, ".mp4");
+        var full = Resolve(relative);
+        // Written next to the target, then renamed over it: the rename is atomic on the same file system, so the path either
+        // still holds the old clip or already holds the whole new one, never a partial file.
+        var part = full + ".part";
+        try
+        {
+            await using (var file = new FileStream(part, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true))
+            {
+                await mp4.CopyToAsync(file, ct);
+                await file.FlushAsync(ct);
+            }
+
+            File.Move(part, full, overwrite: true);
+        }
+        catch
+        {
+            File.Delete(part);
+            throw;
+        }
+
+        // The old file goes only now, and only when it is another file: an MP4 replaced under its own name is already gone.
+        if (!string.Equals(oldFull, full, StringComparison.Ordinal) && File.Exists(oldFull))
+        {
+            File.Delete(oldFull);
+        }
+
+        return relative;
+    }
+
     public async Task<string> SaveAvatarAsync(Guid userId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct)
     {
         var folder = Resolve(userId.ToString("N"));

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace FitCheck.Api.Services;
 
 /// <summary>
-/// Anthropic Messages API over a plain HttpClient: base64 image block + forced tool call.
+/// Anthropic Messages API over a plain HttpClient: base64 image block(s) + forced tool call.
 /// No SDK, so the request shape is spelled out here and the API key is read from the environment only.
 /// </summary>
 public sealed class AnthropicVisionClient(
@@ -99,21 +99,45 @@ public sealed class AnthropicVisionClient(
             new
             {
                 role = "user",
-                content = new object[]
-                {
-                    new
-                    {
-                        type = "image",
-                        source = new
-                        {
-                            type = "base64",
-                            media_type = request.MediaType,
-                            data = Convert.ToBase64String(request.ImageBytes.Span)
-                        }
-                    },
-                    new { type = "text", text = request.UserText }
-                }
+                content = BuildContent(request)
             }
+        }
+    };
+
+    /// <summary>
+    /// One image: the image block, then the text. Two (a comparison): a label, the first image, a label, the second image,
+    /// then the text, so the model can tell "Outfit A" from "Outfit B" by the words in front of each photo. The one-image
+    /// shape is byte-for-byte what it always was.
+    /// </summary>
+    private static object[] BuildContent(VisionRequest request)
+    {
+        if (!request.HasSecondImage)
+        {
+            return
+            [
+                ImageBlock(request.MediaType, request.ImageBytes),
+                new { type = "text", text = request.UserText }
+            ];
+        }
+
+        return
+        [
+            new { type = "text", text = "Outfit A:" },
+            ImageBlock(request.MediaType, request.ImageBytes),
+            new { type = "text", text = "Outfit B:" },
+            ImageBlock(request.MediaType2!, request.ImageBytes2),
+            new { type = "text", text = request.UserText }
+        ];
+    }
+
+    private static object ImageBlock(string mediaType, ReadOnlyMemory<byte> bytes) => new
+    {
+        type = "image",
+        source = new
+        {
+            type = "base64",
+            media_type = mediaType,
+            data = Convert.ToBase64String(bytes.Span)
         }
     };
 

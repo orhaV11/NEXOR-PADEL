@@ -5,15 +5,26 @@ namespace FitCheck.Api.Services;
 /// <summary>A tool the model is forced to call so the answer comes back as JSON matching our schema.</summary>
 public sealed record VisionTool(string Name, string Description, JsonElement InputSchema);
 
+/// <summary>
+/// One vision call: the instructions, one image and the tool the answer must come back through. A comparison ("which
+/// one?") carries a second image: when <see cref="MediaType2"/> is set the client sends both, labelled Outfit A and
+/// Outfit B, in that order. A request without one is sent exactly as it was before the second image existed.
+/// </summary>
 public sealed record VisionRequest(
     string SystemPrompt,
     string UserText,
     ReadOnlyMemory<byte> ImageBytes,
     string MediaType,
-    VisionTool Tool);
+    VisionTool Tool,
+    ReadOnlyMemory<byte> ImageBytes2 = default,
+    string? MediaType2 = null)
+{
+    /// <summary>True for a two-outfit request: a second image with its own media type rides along.</summary>
+    public bool HasSecondImage => MediaType2 is not null && !ImageBytes2.IsEmpty;
+}
 
 /// <summary>
-/// Sends one image plus instructions to a vision model and returns the tool call's input as raw JSON.
+/// Sends one image (or two, for a comparison) plus instructions to a vision model and returns the tool call's input as raw JSON.
 /// Mapping into <see cref="Domain.OutfitFeedback"/> is the analyzer's job, so this can be mocked with a plain payload.
 /// </summary>
 public interface IOutfitVisionClient

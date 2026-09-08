@@ -3,6 +3,10 @@
 Validates the request shape OREVOSH sends (headers, forced tool call, base64 image block) and answers
 with a tool_use block in the requested language. The very first request answers 529 so the client's
 single retry is exercised too. Anything malformed gets a 400 with the reason, so mistakes are loud.
+
+Two tools are understood: submit_outfit_feedback (a check: one image block, then the text) and pick_outfit
+(a "which one?" comparison: the label "Outfit A:", the first image, the label "Outfit B:", the second image,
+then the text). A comparison is answered with B winning, 6 to 8, in the requested language.
 """
 import base64
 import json
@@ -57,6 +61,31 @@ NOT_OUTFIT_EN = {
     "message": "This looks like a photo of a wall. Try one where the clothes are visible.",
 }
 
+# "Which one?": B wins, 6 to 8, with the reason and the tip.
+COMPARE_EN = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "Safe casual, a little flat",
+    "headline_b": "Sharper lines, clearer intent",
+    "reason": "Outfit B reads as the intent from across the room: the cropped jacket and the straight trousers give it a line, and the loafers finish it. Outfit A is fine, but the running shoes and the loose tee pull it toward the gym. B wins on coherence.",
+    "one_tip": "For Outfit A, swap the running shoes for plain white leather sneakers and tuck the tee.",
+}
+
+COMPARE_HE = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "קז'ואל בטוח, קצת שטוח",
+    "headline_b": "קווים חדים, כוונה ברורה",
+    "reason": "לוק B נקרא כמו הכוונה כבר מרחוק: הז'קט הקצר והמכנסיים הישרים נותנים לו קו, והלואפרים סוגרים אותו. לוק A בסדר, אבל נעלי הריצה והטישרט הרפויה מושכות אותו לכיוון חדר הכושר. B מנצח על קוהרנטיות.",
+    "one_tip": "בלוק A שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט ולהכניס את הטישרט.",
+}
+
+COMPARE_NOT_OUTFIT_EN = {
+    "status": "not_outfit", "winner": "a", "score_a": 1, "score_b": 1,
+    "headline_a": "", "headline_b": "", "reason": "", "one_tip": "",
+    "message": "Photo A looks like a wall. Try one where the clothes are visible.",
+}
+
+IMAGE_TYPES = ("image/jpeg", "image/png", "image/webp")
+
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # quiet
@@ -69,6 +98,25 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    @staticmethod
+    def _image(block, problems, label):
+        """Decodes one image block, noting what is wrong with it. Returns (bytes, media_type)."""
+        if block.get("type") != "image":
+            problems.append("%s is not an image block" % label)
+            return b"", ""
+        src = block.get("source", {})
+        media_type = src.get("media_type", "")
+        if src.get("type") != "base64" or media_type not in IMAGE_TYPES:
+            problems.append("%s source malformed" % label)
+        try:
+            image_bytes = base64.b64decode(src.get("data", ""))
+        except Exception:  # noqa: BLE001
+            problems.append("%s not base64" % label)
+            image_bytes = b""
+        if media_type == "image/jpeg" and image_bytes[:3] != b"\xff\xd8\xff":
+            problems.append("%s media_type says jpeg but bytes are not" % label)
+        return image_bytes, media_type
 
     def do_POST(self):
         if self.path != "/v1/messages":
@@ -88,59 +136,86 @@ class Handler(BaseHTTPRequestHandler):
         if "model" not in body or "max_tokens" not in body or "system" not in body:
             problems.append("missing model/max_tokens/system")
         tools = body.get("tools") or []
-        if len(tools) != 1 or "input_schema" not in tools[0] or tools[0].get("name") != "submit_outfit_feedback":
+        tool_name = tools[0].get("name") if len(tools) == 1 else None
+        compare = tool_name == "pick_outfit"
+        if len(tools) != 1 or "input_schema" not in tools[0] or tool_name not in ("submit_outfit_feedback", "pick_outfit"):
             problems.append("tools malformed")
         else:
-            # Rubric v2: the schema must ask for the breakdown and the accessories read, or the answer below would be ignored.
             required = (tools[0].get("input_schema") or {}).get("required") or []
-            if "breakdown" not in required or "accessories" not in required:
+            if compare:
+                for field in ("status", "winner", "score_a", "score_b", "headline_a", "headline_b", "reason", "one_tip"):
+                    if field not in required:
+                        problems.append("pick_outfit schema lacks " + field)
+            # Rubric v2: the schema must ask for the breakdown and the accessories read, or the answer below would be ignored.
+            elif "breakdown" not in required or "accessories" not in required:
                 problems.append("schema lacks the v2 fields (breakdown, accessories)")
         tc = body.get("tool_choice") or {}
-        if tc.get("type") != "tool" or tc.get("name") != "submit_outfit_feedback":
+        if tc.get("type") != "tool" or tc.get("name") != tool_name:
             problems.append("tool_choice not forced")
         msgs = body.get("messages") or []
         if len(msgs) != 1 or msgs[0].get("role") != "user":
             problems.append("messages malformed")
         content = msgs[0].get("content", []) if msgs else []
-        if len(content) != 2 or content[0].get("type") != "image" or content[1].get("type") != "text":
-            problems.append("content blocks malformed")
         image_bytes = b""
         media_type = ""
-        if content and content[0].get("type") == "image":
-            src = content[0].get("source", {})
-            media_type = src.get("media_type", "")
-            if src.get("type") != "base64" or media_type not in ("image/jpeg", "image/png", "image/webp"):
-                problems.append("image source malformed")
-            try:
-                image_bytes = base64.b64decode(src.get("data", ""))
-            except Exception:  # noqa: BLE001
-                problems.append("image not base64")
-            if media_type == "image/jpeg" and image_bytes[:3] != b"\xff\xd8\xff":
-                problems.append("media_type says jpeg but bytes are not")
+        image_bytes_b = b""
+        media_type_b = ""
+        user_text = ""
+        if compare:
+            # A comparison: "Outfit A:", image A, "Outfit B:", image B, the task text.
+            if len(content) != 5:
+                problems.append("comparison content must be 5 blocks, got %d" % len(content))
+            else:
+                if content[0].get("type") != "text" or content[0].get("text") != "Outfit A:":
+                    problems.append("block 0 must be the text 'Outfit A:'")
+                if content[2].get("type") != "text" or content[2].get("text") != "Outfit B:":
+                    problems.append("block 2 must be the text 'Outfit B:'")
+                if content[4].get("type") != "text":
+                    problems.append("block 4 must be the task text")
+                image_bytes, media_type = self._image(content[1], problems, "image A")
+                image_bytes_b, media_type_b = self._image(content[3], problems, "image B")
+                user_text = content[4].get("text", "")
+        else:
+            if len(content) != 2 or content[0].get("type") != "image" or content[1].get("type") != "text":
+                problems.append("content blocks malformed")
+            if content and content[0].get("type") == "image":
+                image_bytes, media_type = self._image(content[0], problems, "image")
+            user_text = content[1].get("text", "") if len(content) > 1 else ""
         if problems:
             sys.stderr.write("STUB REJECTED: %s\n" % problems)
             return self._fail(400, "; ".join(problems))
 
-        REQUESTS.append({
-            "model": body["model"], "max_tokens": body["max_tokens"], "thinking": body.get("thinking"),
+        record = {
+            "model": body["model"], "max_tokens": body["max_tokens"], "thinking": body.get("thinking"), "tool": tool_name,
             "system_head": body["system"][:80], "language_line": [l for l in body["system"].splitlines() if l.startswith("Write every")],
-            "user_text": content[1]["text"], "media_type": media_type, "image_len": len(image_bytes),
-        })
-        sys.stderr.write("STUB REQUEST #%d: %s bytes %s | %s\n" % (len(REQUESTS), len(image_bytes), media_type, content[1]["text"][:70]))
+            "user_text": user_text, "media_type": media_type, "image_len": len(image_bytes),
+        }
+        if compare:
+            record["media_type_b"] = media_type_b
+            record["image_len_b"] = len(image_bytes_b)
+        REQUESTS.append(record)
+        sys.stderr.write("STUB REQUEST #%d (%s): %s bytes %s%s | %s\n" % (
+            len(REQUESTS), tool_name, len(image_bytes), media_type,
+            (" + %s bytes %s" % (len(image_bytes_b), media_type_b)) if compare else "", user_text[:70]))
 
         # First request: simulate an overloaded API so the single retry gets exercised.
         if len(REQUESTS) == 1:
             return self._fail(529, "Overloaded")
 
         hebrew = "in Hebrew (he)" in body["system"]
-        payload = HE if hebrew else EN
-        # A tiny image (a few KB) stands in for a "not an outfit" photo.
-        if len(image_bytes) < 3000:
-            payload = NOT_OUTFIT_EN
+        if compare:
+            payload = COMPARE_HE if hebrew else COMPARE_EN
+            # A tiny image (a few KB) on either side stands in for a "not an outfit" photo.
+            if len(image_bytes) < 3000 or len(image_bytes_b) < 3000:
+                payload = COMPARE_NOT_OUTFIT_EN
+        else:
+            payload = HE if hebrew else EN
+            if len(image_bytes) < 3000:
+                payload = NOT_OUTFIT_EN
         response = {
             "id": "msg_stub", "type": "message", "role": "assistant", "model": body["model"],
             "stop_reason": "tool_use", "stop_sequence": None,
-            "content": [{"type": "tool_use", "id": "toolu_stub", "name": "submit_outfit_feedback", "input": payload}],
+            "content": [{"type": "tool_use", "id": "toolu_stub", "name": tool_name, "input": payload}],
             "usage": {"input_tokens": 1000, "output_tokens": 300},
         }
         out = json.dumps(response, ensure_ascii=False).encode("utf-8")

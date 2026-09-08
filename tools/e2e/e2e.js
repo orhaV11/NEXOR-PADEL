@@ -97,6 +97,14 @@ const hash = (page) => page.evaluate(() => location.hash);
 const text = (page, sel) => page.textContent(sel).then((s) => (s || '').trim());
 const count = async (page, sel) => (await page.$$(sel)).length;
 const me = async (page) => { const r = await page.request.get(base + '/api/auth/me'); return r.ok() ? await r.json() : null; };
+/** Runs one of the app's maintenance commands (--admin, --unadmin, --backup) against the test database, as an owner would on the box. */
+function maintenance(...args) {
+  return execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', ...args], {
+    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
+  }).toString();
+}
+/** The pilot metrics are for moderators; read them through a promoted person's session. */
+const metricsAs = async (page) => { const r = await page.request.get(base + '/api/metrics/pilot'); assert.strictEqual(r.status(), 200, 'metrics as a moderator'); return r.json(); };
 
 async function signup(page, handle, password) {
   await go(page, '#/signup');
@@ -243,6 +251,11 @@ async function postIt(page, opts) {
   await noa.waitForSelector(settled);
   assert.deepStrictEqual((await me(noa)).interests.sort(), ['Date', 'Streetwear']);
   assert.strictEqual(await noa.getAttribute('.tab[data-tab=home]', 'aria-current'), 'page');
+  // The owner makes Noa a moderator with the --admin command, after the account exists; the client sees it on its next load.
+  assert.ok(/noa/.test(maintenance('--admin', 'noa')), '--admin reports the handle');
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).isAdmin, true, 'promoted');
 
   step = '3';
   // 3. NEXOR signs up, skips the welcome, becomes a brand in settings and uploads an avatar.
@@ -259,6 +272,7 @@ async function postIt(page, opts) {
   await brand.click('#s-save');
   await brand.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
   await brand.waitForFunction(async () => true);
+  assert.ok(/nexor/.test(maintenance('--admin', 'nexor')), 'a second moderator, for the metrics after Noa leaves');
   const brandMe = await me(brand);
   assert.strictEqual(brandMe.accountType, 'Brand');
   assert.strictEqual(brandMe.name, 'NEXOR');
@@ -464,7 +478,9 @@ async function postIt(page, opts) {
       assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
     }
   }
-  const metrics = await getJson(`${base}/api/metrics/pilot`);
+  expected.push('GET /api/metrics/pilot -> 403');
+  assert.strictEqual((await get(`${base}/api/metrics/pilot`)).status, 403, 'the pilot metrics are for moderators');
+  const metrics = await metricsAs(noa);
   assert.strictEqual(metrics.social.mentions, 1);
   assert.strictEqual(metrics.social.featured, 2);
   assert.strictEqual(metrics.social.brands, 1);
@@ -545,19 +561,11 @@ async function postIt(page, opts) {
   for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
     assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);
   }
-  assert.strictEqual((await getJson(`${base}/api/metrics/pilot`)).social.videos, 1);
+  assert.strictEqual((await metricsAs(noa)).social.videos, 1);
 
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
   //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
-  const promoted = execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', '--admin', 'noa'], {
-    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
-  }).toString();
-  assert.ok(/noa/.test(promoted), '--admin reports the handle: ' + promoted);
-  // The flag is read on every request; the client learns about it when it next loads the profile (a reload here).
-  await noa.reload();
-  await noa.waitForSelector(settled);
-  assert.strictEqual((await me(noa)).isAdmin, true, 'promoted');
   const report = await dan.request.post(base + '/api/posts/' + post3 + '/report', { headers: { 'X-Requested-With': 'Orevosh' }, data: { reason: 'not an outfit' } });
   assert.ok(report.ok(), 'report ' + report.status());
   expected.push('GET /api/admin/queue -> 403');
@@ -653,10 +661,7 @@ async function postIt(page, opts) {
   await noa.click('.sheet .btn-danger');
   await noa.waitForSelector('.s-account .alert:not([hidden])');
   assert.ok((await text(noa, '.s-account .alert')).includes('--unadmin'), 'the refusal names the command');
-  const demoted = execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', '--unadmin', 'noa'], {
-    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
-  }).toString();
-  assert.ok(/noa/.test(demoted), '--unadmin reports the handle: ' + demoted);
+  assert.ok(/noa/.test(maintenance('--unadmin', 'noa')), '--unadmin reports the handle');
   await noa.reload();
   await noa.waitForSelector(settled);
   assert.strictEqual((await me(noa)).isAdmin, false, 'demoted');
@@ -667,7 +672,7 @@ async function postIt(page, opts) {
   await noa.click('.sheet .btn-danger');
   await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await noa.waitForFunction(() => !!document.getElementById('top-auth'));
-  const after = await getJson(`${base}/api/metrics/pilot`);
+  const after = await metricsAs(brand);
   assert.strictEqual(after.social.users, 2);
   assert.strictEqual(after.social.featured, 0);
   assert.strictEqual(after.social.mentions, 0);

@@ -104,7 +104,8 @@ docker compose logs -f app        # Ctrl-C to stop watching
 ```
 
 The app's log shows what happened to the database on start, for example
-`Database /data/orevosh.db is new: creating the schema from the migrations.` Then open `https://looks.example.com`
+`Database /data/orevosh.db is new: creating the schema from the migrations.`, and, since the image ships ffmpeg,
+`Transcoding is on: ffmpeg version ...` (clips are re-encoded to H.264 MP4 in the background; README, "Clips"). Then open `https://looks.example.com`
 on your phone. Caddy fetches the certificate on the first request (give it up to a minute). `https://looks.example.com/healthz`
 answers `ok` when the app can reach its database.
 
@@ -263,7 +264,8 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
 
 ## 11. What to watch
 
-- **Disk.** Clips are up to 40 MB each and a storage backup is the whole media folder, two of them kept (step 9).
+- **Disk.** Clips are up to 40 MB each as uploaded (the background re-encode to H.264 usually leaves a few MB, and the
+  original is gone once it is done) and a storage backup is the whole media folder, two of them kept (step 9).
   `df -h /` weekly; `docker system prune -f` removes old build layers. When the disk is the problem, the answer is
   object storage (below).
 - **Health.** `https://looks.example.com/healthz` returns `ok`; anything else, or no answer, is worth a look. A free
@@ -296,11 +298,12 @@ Still missing before a public launch, in rough order of importance:
    provider (Postmark, Resend, SES) and a reset flow.
 2. **Age assurance.** The 16+ checkbox is self-declared. Integrate the Apple and Google age-signal APIs or a provider
    and gate signup on the result.
-3. **Server-side transcoding for clips.** Phones upload what they recorded (up to 40 MB, 30 s): iPhones record H.264
-   MP4, Chrome records H.264 MP4 when the device can and WebM otherwise, and a WebM clip from an Android phone does
-   not play on older iPhones. Nothing re-encodes it, so playback depends on the viewer's browser supporting the
-   sender's codec and the files are larger than they need to be. ffmpeg in a worker, or a video service, fixes both;
-   this is the launch item.
+3. **Clips are transcoded inside the app container.** The image ships ffmpeg and the app re-encodes every uploaded
+   clip that is not H.264 MP4 already into one in the background (`Storage:Transcode`, on by default; the start log
+   says `Transcoding is on: ffmpeg version ...`), so a WebM from an Android phone plays on iPhones and the files are
+   smaller than what was uploaded; the original serves until the re-encode is done. It is one ffmpeg at a time in the
+   same process as the web server: fine for a pilot, and a separate worker or a video service is the answer at launch
+   scale, together with object storage (next).
 4. **Object storage.** Photos and clips sit on the server's disk behind `IImageStore`. An S3-compatible bucket
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
 5. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need

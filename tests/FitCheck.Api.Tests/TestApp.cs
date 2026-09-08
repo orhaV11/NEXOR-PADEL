@@ -41,6 +41,8 @@ public class TestApp : WebApplicationFactory<Program>
     /// account that already exists when the host starts; a moderator for a running app is made with <see cref="PromoteAsync"/>.
     /// </summary>
     public string AdminHandles { get; init; } = "";
+    /// <summary>Storage:Transcode. Off by default so the suite never waits on ffmpeg; TranscoderTests turn it on.</summary>
+    public bool Transcode { get; init; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -54,6 +56,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());
         builder.UseSetting("Admin:Handles:0", AdminHandles);
+        builder.UseSetting("Storage:Transcode", Transcode ? "true" : "false");
         if (PushPublicKey is not null)
         {
             builder.UseSetting("Push:PublicKey", PushPublicKey);

@@ -128,7 +128,9 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Storage:Root` | `storage` | Private photo folder (checks and avatars). Relative paths resolve against the content root, never `wwwroot` |
 | `Storage:MaxImageBytes` | `6291456` | Upload limit for the still of a check (6 MB). Avatars are capped at 2 MB. The client downscales first |
 | `Storage:MaxVideoBytes` | `41943040` | Upload limit for a look clip (40 MB) |
-| `Storage:MaxVideoSeconds` | `30` | Advisory clip length: the camera stops there and the picker refuses longer library clips. Returned by `/api/config` |
+| `Storage:MaxVideoSeconds` | `30` | Advisory clip length: the camera stops there and the picker refuses longer library clips. Returned by `/api/config`. The transcoder cuts a longer clip there |
+| `Storage:Transcode` | `true` | Re-encode clips to H.264 MP4 in the background with ffmpeg ("Clips" below). Nothing runs when ffmpeg is not found |
+| `Storage:FfmpegPath` | empty | The ffmpeg binary, with ffprobe next to it. Empty means `ffmpeg` on `PATH` |
 | `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set; a new pair drops every existing subscription (the push service answers 401/403 and the app deletes it) |
 | `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
 | `Admin:Handles` | empty | Handles promoted to moderator at start (`Admin__Handles__0=yourhandle`, `__1` for more): only an account that already exists is promoted, so sign up first, then list the handle and restart. The list never demotes (`--unadmin` does) and a listed handle can no longer be signed up. `--admin <handle>` does the same at any time without a restart |
@@ -140,6 +142,19 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 
 Any key can be overridden with an environment variable, e.g. `Limits__ChecksPerDay=5`. `ANTHROPIC_API_KEY`
 is read from the environment only.
+
+### Clips
+
+A clip is stored as uploaded (MP4 or WebM, whatever the phone recorded) and served from `/api/posts/{id}/video` at
+once. When `Storage:Transcode` is on and ffmpeg is found (`Storage:FfmpegPath`, else `ffmpeg` on `PATH`; the Docker
+image ships it), one background worker re-encodes every new clip that is not already H.264 in an MP4 into one: at
+most 1080 px wide, cut at `Storage:MaxVideoSeconds`, `libx264` veryfast CRF 26, yuv420p, faststart, AAC 96k when
+the clip has sound. The MP4 takes the original's place next to the still (`<userId>/<checkId>.mp4`, written whole
+before the old file goes) and the check points at it; until then, and whenever ffmpeg fails on a clip, the original
+serves as before. One ffmpeg at a time, two minutes each at most, and every start re-queues up to 200 clips that are
+not MP4 yet (oldest first), so a server that gets ffmpeg later catches up. The start log says which it is,
+`Transcoding is on: ffmpeg version ...` or `ffmpeg not found`, each clip logs one line with sizes and time, and
+`/api/config` reports `transcoding`.
 
 ## API
 
@@ -176,7 +191,7 @@ Streetwear, OldMoney, Minimal, Office, Party, Sport`.
 | `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs |
 | `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, createdAt, tags, mentions, featuredBy`. Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
-| `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip |
+| `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip. A WebM becomes `video/mp4` at the same URL once the background transcode is done (Configuration, "Clips") |
 | `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted |
 | `POST` / `DELETE /api/posts/{id}/fire` 🔒 | — | `{ fireCount, fired }`. One per person; idempotent |
 | `POST` / `DELETE /api/posts/{id}/save` 🔒 | — | `{ saved }` |
@@ -298,10 +313,12 @@ descriptive is dropped when the status is not `ok`.
 - **Moderation is a queue, not a team.** Moderators (accounts flagged at start from `Admin:Handles`, or with
   `--admin`) see reported looks and comments and can hide, delete and suspend. Featured looks are the brand's
   call with no review step.
-- **Clips are not transcoded.** iPhones record MP4 (H.264), which plays everywhere; Chrome records H.264 MP4
-  only when the device can and WebM otherwise, so a clip from an Android phone may be WebM, which older iPhones
-  cannot play. Server-side transcoding (ffmpeg) to MP4 is the launch item, probably with object storage for the
-  files; the store interface is ready for it.
+- **Clips are transcoded on the box, one at a time.** iPhones record MP4 (H.264), which plays everywhere; Chrome
+  records H.264 MP4 only when the device can and WebM otherwise, which older iPhones cannot play. With ffmpeg
+  present (`Storage:Transcode`, on by default; the Docker image has it) the app re-encodes every clip to H.264 MP4
+  in the background, and the WebM serves until that is done, seconds on a small VPS; without ffmpeg clips stay as
+  uploaded. It is the web process running one ffmpeg at a time: fine for a pilot; a separate worker or a video
+  service, probably with object storage for the files, is the launch-scale answer.
 - **The For you feed is a formula, not a recommender.** It ranks by fire, comments, follows, interests and
   recency; good enough for a pilot, and documented in `PHASE3.md`. Search is a prefix match on SQLite, fine at
   pilot scale.
@@ -327,8 +344,8 @@ descriptive is dropped when the status is not `ok`.
 
 Direct messages, payments or prize fulfilment inside the app, native wrappers (the PWA installs; a
 Capacitor wrap is the next step), sign-in with Apple or Google, password reset by email (needs an email
-provider), closet memory, a blob store behind `IImageStore`, server-side transcoding, and real age
-assurance. None of it is scaffolded on purpose.
+provider), closet memory, a blob store behind `IImageStore`, and real age assurance. None of it is scaffolded on
+purpose.
 
 ## Decisions
 

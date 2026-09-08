@@ -39,6 +39,7 @@ public static class CheckEndpoints
         IOptions<StorageOptions> storage,
         IOptions<LimitsOptions> limits,
         ILogger<OutfitAnalyzer> logger,
+        Transcoder transcoder,
         CancellationToken ct)
     {
         var request = context.Request;
@@ -263,6 +264,12 @@ public static class CheckEndpoints
 
         db.Checks.Add(check);
         await db.SaveChangesAsync(CancellationToken.None);
+
+        // After the commit, so the worker finds the row; it re-encodes the clip to H.264 MP4 in the background (a no-op without ffmpeg).
+        if (check.VideoPath is not null)
+        {
+            transcoder.Enqueue(check.Id);
+        }
 
         return Results.Json(CheckDto.FromEntity(check, localizer, null), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }

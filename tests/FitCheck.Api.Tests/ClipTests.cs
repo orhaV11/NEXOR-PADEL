@@ -427,6 +427,8 @@ public class ClipTests : IClassFixture<ClipTests.ClipApp>
         public Task<string> SaveVideoAsync(Guid userId, Guid checkId, VideoFormat format, Stream content, CancellationToken ct) =>
             throw new IOException("No space left on device");
 
+        public Task<string> ReplaceVideoAsync(string relativeOld, Stream mp4, CancellationToken ct) => inner.ReplaceVideoAsync(relativeOld, mp4, ct);
+
         public void Delete(string relativePath) => inner.Delete(relativePath);
         public void DeleteUser(Guid userId) => inner.DeleteUser(userId);
         public bool Exists(string relativePath) => inner.Exists(relativePath);

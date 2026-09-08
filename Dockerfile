@@ -10,10 +10,11 @@ COPY src/FitCheck.Api/ src/FitCheck.Api/
 RUN dotnet publish src/FitCheck.Api/FitCheck.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
-# curl is for the HEALTHCHECK only; the runtime image ships without it. /data is created here so the named volume made
-# from it belongs to the app user.
+# curl is for the HEALTHCHECK only; the runtime image ships without it. ffmpeg (with ffprobe) re-encodes clips to H.264 MP4 in
+# the background (Storage:Transcode, README "Clips"). /data is created here so the named volume made from it belongs to the
+# app user.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /data \
     && chown app:app /data

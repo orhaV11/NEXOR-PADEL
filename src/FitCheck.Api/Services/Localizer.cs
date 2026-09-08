@@ -110,6 +110,8 @@ public sealed class Localizer
             ["error.compare_two_photos"] = "Add both photos.",
             ["error.before_invalid"] = "The earlier look has to be one of yours.",
             ["error.comparison_not_found"] = "We couldn't find this comparison.",
+            ["error.billing_failed"] = "Checkout didn't open. Try again in a moment.",
+            ["error.billing_signature"] = "That event isn't signed by Stripe.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -206,6 +208,8 @@ public sealed class Localizer
             ["error.compare_two_photos"] = "צריך להוסיף את שתי התמונות.",
             ["error.before_invalid"] = "הלוק הקודם צריך להיות שלך.",
             ["error.comparison_not_found"] = "לא מצאנו את ההשוואה הזו.",
+            ["error.billing_failed"] = "התשלום לא נפתח. אפשר לנסות שוב עוד רגע.",
+            ["error.billing_signature"] = "האירוע הזה לא חתום על ידי Stripe.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         }

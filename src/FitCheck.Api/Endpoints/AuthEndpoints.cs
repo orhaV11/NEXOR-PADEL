@@ -50,8 +50,21 @@ public static partial class AuthEndpoints
     {
         var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
         var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        // The plan as the client should read it ("pro" only while the paid period runs) and the day's allowance: the cap
+        // for this plan, and what is spent of it, checks and comparisons over the same rolling 24 hours the check route
+        // counts, failed calls left out as there. The two option objects come from the app's container through the
+        // context (EF resolves application services as a fallback), so every route that answers with "me" keeps calling
+        // this with the same three arguments.
+        var now = DateTime.UtcNow;
+        var windowStart = now - TimeSpan.FromHours(24);
+        var checksToday = await db.Checks.CountAsync(c => c.UserId == user.Id && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct)
+            + await db.Comparisons.CountAsync(c => c.UserId == user.Id && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
+        var plans = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<PlanOptions>>(db).Value;
+        var limits = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<LimitsOptions>>(db).Value;
+        var (plan, proUntil) = BillingEndpoints.EffectivePlan(user, now);
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
-            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin, user.Email, user.EmailVerifiedAt is not null);
+            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin, user.Email, user.EmailVerifiedAt is not null,
+            plan, proUntil, user.Verified, checksToday, Plans.CapFor(user, plans, limits, now));
     }
 
     /// <summary>

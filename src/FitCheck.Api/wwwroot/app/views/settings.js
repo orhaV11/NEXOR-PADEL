@@ -2,7 +2,8 @@
 // delete for everything. Ported from the Phase 2 settingsView onto the kit: bottom sheets instead of confirm(),
 // the avatar upload with the client-side square crop, interests as chips, brand mode as a switch.
 import {
-  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert
+  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert,
+  proBadge, fmtDate
 } from '../core.js';
 import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
 
@@ -26,6 +27,9 @@ const CSS = `
 .s-email-status { padding-inline: 2px; }
 .s-email-status.ok { color: var(--ok); }
 .s-email-resend { padding-block: 0; align-self: flex-start; }
+.s-plan-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; min-block-size: 44px; }
+.s-plan-row b { font-weight: 700; font-size: 16px; }
+.s-plan-row .btn-text { margin-inline-start: auto; padding-block: 0; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -285,7 +289,21 @@ register('settings', async (root, params, ctx) => {
     }
   };
 
+  // ---------- plan ----------
+
+  // The current plan and the door to the Pro screen. Read-only here: Checkout (or --pro) is what changes it.
+  const isPro = me.plan === 'pro';
+  const planRow = el('div', { class: 'field s-plan', id: 's-plan' }, [
+    el('span', { class: 'label', text: t('settings.plan') }),
+    el('div', { class: 's-plan-row' }, [
+      isPro ? proBadge(me) : el('b', { id: 's-plan-name', text: t('settings.plan_free') }),
+      isPro && me.proUntil ? el('span', { class: 'hint', id: 's-plan-until', text: t('settings.plan_until', { date: fmtDate(me.proUntil) }) }) : null,
+      el('a', { class: 'btn-text', id: 's-plan-link', href: '#/pro', text: t(isPro ? 'settings.plan_about' : 'settings.plan_go') })
+    ])
+  ]);
+
   root.appendChild(el('form', { class: 'stack', novalidate: true, onsubmit }, [
+    planRow,
     field('s-name', t('settings.display_name'), name),
     field('s-bio', t('settings.bio'), bio),
     field('s-web', t('settings.website'), web),

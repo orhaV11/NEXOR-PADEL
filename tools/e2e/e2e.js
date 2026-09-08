@@ -181,6 +181,7 @@ async function postIt(page, opts) {
     ConnectionStrings__Default: `Data Source=${DB}`,
     Storage__Root: path.join(DATA, 'storage'),
     Email__Host: 'log',
+    Plans__FreeChecksPerDay: '5',
     Email__From: 'OREVOSH <noreply@example.test>',
   }, path.join(DATA, 'api.log'));
 
@@ -219,8 +220,21 @@ async function postIt(page, opts) {
   assert.strictEqual(await text(dan, '#view h1'), 'גילוי');
   await dan.waitForSelector('#search');
   await shot(dan, '02-explore-empty-he');
+  // A visitor checks first and signs up later: one guest check, then the result offers to keep it.
   await go(dan, '#/check');
-  assert.strictEqual(await text(dan, '.notice h3'), 'צריך להתחבר בשביל זה');
+  await dan.waitForSelector('#guest-banner');
+  assert.strictEqual(await text(dan, '#guest-banner h3'), 'קודם מנסים');
+  await dan.click('.chip[data-intent=Casual]');
+  await choosePhoto(dan, '#photo', await makeJpeg(dan, 900, 1200));
+  await dan.waitForFunction(() => !document.getElementById('submit').disabled);
+  await dan.click('#submit');
+  await dan.waitForSelector('#result .score', { timeout: 30000 });
+  await dan.waitForSelector('#guest-keep');
+  assert.strictEqual(await count(dan, '#post-open'), 0, 'a guest cannot post');
+  await shot(dan, '00-guest-result-he');
+  expected.push('POST /api/checks -> 429');
+  const secondGuest = await dan.request.post(base + '/api/checks', { headers: { 'X-Requested-With': 'Orevosh' }, multipart: { intent: 'Casual', language: 'he', image: { name: 'outfit.jpg', mimeType: 'image/jpeg', buffer: await makeJpeg(dan, 300, 400) } } });
+  assert.strictEqual(secondGuest.status(), 429, 'one free look per guest');
   await go(dan, '#/feed/following');
   assert.strictEqual(await text(dan, '.notice h3'), 'צריך להתחבר בשביל זה');
 
@@ -298,6 +312,11 @@ async function postIt(page, opts) {
   step = '4';
   // 4. Noa checks a look and posts it with a #tag and an @mention of the brand.
   const bigJpeg = await makeJpeg(noa, 1800, 2400);
+  assert.strictEqual((await getJson(`${base}/api/config`)).plans.freeChecksPerDay, 5);
+  await go(noa, '#/check');
+  await noa.waitForSelector('#checks-left');
+  assert.strictEqual(await text(noa, '#checks-left'), '5 of 5 checks left today');
+  assert.strictEqual(await count(noa, '#which-one'), 1, 'the comparison is one tap from the check');
   await runCheck(noa, { intent: 'Date', occasion: 'dinner with friends', buffer: bigJpeg, score: 7, beforeSubmit: () => shot(noa, '07-check-ready-en') });
   assert.strictEqual(await text(noa, '.result-headline'), 'Clean casual with one weak link');
   assert.deepStrictEqual(await noa.$$eval('.item-verdict', (n) => n.map((x) => x.textContent)), ['Works', 'Neutral', 'Weak']);
@@ -387,6 +406,8 @@ async function postIt(page, opts) {
   step = '7';
   // 7. Dan signs up in Hebrew, follows the brand from the welcome screen, sees the look in For you, double-taps to fire.
   await signup(dan, 'dan', 'password123');
+  const claimed = await dan.request.get(base + '/api/users/me/checks').then((r) => r.json());
+  assert.strictEqual(claimed.length, 1, 'the guest check now belongs to dan');
   await dan.waitForSelector('.person');
   assert.strictEqual(await text(dan, '.person .name'), 'NEXORמותג');
   await dan.click('.person .btn');
@@ -481,7 +502,7 @@ async function postIt(page, opts) {
   const storage = path.join(DATA, 'storage');
   const files = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) files.push(user + '/' + f);
-  assert.strictEqual(files.length, 3, 'two OK checks plus one avatar: ' + files.join(','));
+  assert.strictEqual(files.length, 4, 'three OK checks (one claimed from a guest) plus one avatar: ' + files.join(','));
   for (const rel of files) {
     for (const url of [`${base}/${rel}`, `${base}/storage/${rel}`, `${base}/wwwroot/${rel}`]) {
       assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
@@ -577,12 +598,45 @@ async function postIt(page, opts) {
   assert.strictEqual(await count(dan, '.grid a.is-clip'), 1, 'the grid marks the clip');
   const clipFiles = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) clipFiles.push(user + '/' + f);
-  assert.strictEqual(clipFiles.length, 5, 'the clip and its still joined the store: ' + clipFiles.join(','));
+  assert.strictEqual(clipFiles.length, 6, 'the clip and its still joined the store: ' + clipFiles.join(','));
   assert.ok(clipFiles.some((f) => /\.mp4$/.test(f)) && !clipFiles.some((f) => /\.webm$/.test(f)), 'the MP4 replaced the WebM on disk: ' + clipFiles.join(','));
   for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
     assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);
   }
   assert.strictEqual((await metricsAs(noa)).social.videos, 1);
+
+  // "Which one?": two photos, one verdict (the stub picks B), then the insights over Noa's checks and a search by piece.
+  await go(noa, '#/compare');
+  await noa.waitForSelector('#cmp-slot-a');
+  await noa.click('.chip[data-intent=Party]');
+  await choosePhoto(noa, '#cmp-slot-a', await makeJpeg(noa, 800, 1000), 'a.jpg');
+  await choosePhoto(noa, '#cmp-slot-b', await makeJpeg(noa, 800, 1000), 'b.jpg');
+  await noa.waitForFunction(() => !document.getElementById('cmp-submit').disabled);
+  await noa.click('#cmp-submit');
+  await noa.waitForSelector('#cmp-result .cmp-winner', { timeout: 30000 });
+  assert.strictEqual(await noa.getAttribute('#cmp-result .cmp-winner', 'data-side'), 'b');
+  await shot(noa, '28-compare-en');
+  await go(noa, '#/u/noa');
+  await noa.waitForSelector('#insights-link');
+  await noa.click('#insights-link');
+  await noa.waitForSelector('#insights-body');
+  await shot(noa, '29-insights-en');
+  await go(dan, '#/search/running');
+  await dan.waitForSelector('#search-looks .grid a');
+  assert.ok((await count(dan, '#search-looks .grid a')) >= 1, 'looks are found by the pieces in them');
+  // Pro: switched on by hand on this server (no Stripe keys), and the settings row says so.
+  await go(noa, '#/pro');
+  await noa.waitForSelector('#pro-manual');
+  assert.ok(/noa/.test(maintenance('--pro', 'noa', '1')), '--pro reports the handle');
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).plan, 'pro');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#s-plan');
+  assert.ok(await noa.$('#s-plan .pro-badge, #s-plan .badge, #s-plan b'), 'the plan row');
+  await go(noa, '#/pro');
+  await noa.waitForSelector('#pro-current');
+  await shot(noa, '30-pro-en');
 
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,

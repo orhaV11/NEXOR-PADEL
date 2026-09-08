@@ -95,7 +95,8 @@ register('check', async (root) => {
   form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('check.occasion_label') }), occasion]));
 
   form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: chooseMedia }));
-  // LEAD: which-one link goes here
+  // Two outfits, one verdict: the comparison has its own screen.
+  form.appendChild(el('p', { class: 'hint', style: 'text-align: center; margin-block-start: -4px;' }, [el('a', { class: 'btn-text', id: 'which-one', href: '#/compare', text: t('compare.title') })]));
   form.appendChild(el('div', { id: 'clip-tools', class: 'clip-tools', hidden: true }));
   const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
   if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }

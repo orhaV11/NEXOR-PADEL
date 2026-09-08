@@ -142,7 +142,15 @@ builder.Services.AddSingleton<CheckCapacity>();
 builder.Services.AddScoped<OutfitAnalyzer>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<PostReader>();
-builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
+// Mail: SMTP when Email:Host and Email:From are set, otherwise the log. Email:Host=log keeps mail "on" (links are minted
+// and the client offers recovery) while every message goes to the log instead of a server: local runs and the browser test.
+builder.Services.AddSingleton<IEmailSender>(provider =>
+{
+    var email = provider.GetRequiredService<IOptions<EmailOptions>>();
+    return email.Value.Enabled && !LogEmailSender.IsLogHost(email.Value)
+        ? new SmtpEmailSender(email, provider.GetRequiredService<ILogger<SmtpEmailSender>>())
+        : new LogEmailSender(provider.GetRequiredService<ILogger<LogEmailSender>>(), email);
+});
 builder.Services.AddSingleton<Transcoder>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
@@ -186,6 +194,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 var limitDefaults = new LimitsOptions();
 var signupsPerHour = builder.Configuration.GetValue<int?>("Limits:SignupsPerHourPerIp") ?? limitDefaults.SignupsPerHourPerIp;
 var loginsPerQuarterHour = builder.Configuration.GetValue<int?>("Limits:LoginsPerQuarterHourPerIp") ?? limitDefaults.LoginsPerQuarterHourPerIp;
+// Recovery mail (forgot password, a verification link again) is a way to make this server spam an inbox; a few an hour is plenty.
+var recoveryPerHour = builder.Configuration.GetValue<int?>("Limits:RecoveryPerHourPerIp") ?? AuthEndpoints.RecoveryPerHourPerIpDefault;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -195,10 +205,16 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(AuthEndpoints.LoginPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = loginsPerQuarterHour, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
+    options.AddPolicy(AuthEndpoints.RecoveryPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = recoveryPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var localizer = context.HttpContext.RequestServices.GetRequiredService<Localizer>();
-        var key = context.HttpContext.Request.Path.StartsWithSegments("/api/auth/login") ? "error.login_limited" : "error.signup_limited";
+        var path = context.HttpContext.Request.Path;
+        var key = path.StartsWithSegments("/api/auth/login") ? "error.login_limited"
+            : path.StartsWithSegments("/api/auth/forgot") || path.StartsWithSegments("/api/users/me/email") ? "error.recovery_limited"
+            : "error.signup_limited";
         await context.HttpContext.Response.WriteAsJsonAsync(
             new ErrorDto(localizer.Get(Localizer.Resolve(null, context.HttpContext.Request), key)), AppJson.Options, ct);
     };

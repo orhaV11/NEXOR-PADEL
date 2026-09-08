@@ -23,6 +23,9 @@ const CSS = `
 .s-push-status.danger { color: var(--danger); }
 .s-push-test { min-block-size: 44px; }
 .s-account { display: flex; flex-direction: column; gap: 10px; border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-email-status { padding-inline: 2px; }
+.s-email-status.ok { color: var(--ok); }
+.s-email-resend { padding-block: 0; align-self: flex-start; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -195,6 +198,44 @@ register('settings', async (root, params, ctx) => {
   const lang = el('select', { id: 's-lang', name: 'language' }, AVAILABLE_LOCALES.map((code) => el('option', { value: code, lang: code, text: localeName(code) })));
   lang.value = getLocale();
 
+  // ---------- email (recovery only, never shown to anyone) ----------
+
+  // No field where this server cannot mail the link: an address nobody can confirm would only be refused.
+  const emailInput = state.config.email ? el('input', {
+    type: 'text', id: 's-email', name: 'email', maxlength: '200', inputmode: 'email', autocomplete: 'email',
+    autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', dir: 'ltr', placeholder: t('welcome.email_placeholder'), value: me.email || ''
+  }) : null;
+  const emailStatus = el('p', { class: 'hint s-email-status', id: 's-email-status', hidden: true });
+  const resend = el('button', { type: 'button', class: 'btn-text s-email-resend', id: 's-email-resend', text: t('settings.email_resend'), hidden: true });
+  const paintEmail = () => {
+    const current = state.me;
+    if (!emailInput || !current.email) { emailStatus.hidden = true; resend.hidden = true; return; }
+    emailStatus.textContent = t(current.emailVerified ? 'settings.email_verified' : 'settings.email_unverified');
+    emailStatus.classList.toggle('ok', !!current.emailVerified);
+    emailStatus.hidden = false;
+    resend.hidden = !!current.emailVerified;
+  };
+  resend.addEventListener('click', async () => {
+    if (resend.disabled) return;
+    resend.disabled = true;
+    try {
+      await api('POST', '/api/users/me/email/resend');
+      toast(t('settings.email_sent'));
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      resend.disabled = false;
+    }
+  });
+  paintEmail();
+  const emailField = el('div', { class: 'field s-email' }, [
+    emailInput ? el('label', { for: 's-email', text: t('settings.email') }) : el('span', { class: 'label', text: t('settings.email') }),
+    emailInput,
+    el('p', { class: 'hint', text: t(emailInput ? 'settings.email_hint' : 'settings.email_off') }),
+    emailStatus,
+    resend
+  ]);
+
   const picked = new Set((me.interests || []).filter((intent) => INTENTS.includes(intent)));
   const chips = el('div', { class: 'chips s-chips', role: 'group', 'aria-labelledby': 's-interests-label' }, INTENTS.map((intent) => {
     const chip = el('button', { type: 'button', class: 'chip', 'data-intent': intent, 'aria-pressed': String(picked.has(intent)), text: intentLabel(intent) });
@@ -224,6 +265,7 @@ register('settings', async (root, params, ctx) => {
         displayName: name.value.trim(),
         bio: bio.value.trim(),
         website: web.value.trim(),
+        email: emailInput ? emailInput.value.trim() : null,   // null: leave it alone; "": clear it
         language,
         interests: INTENTS.filter((intent) => picked.has(intent)),
         accountType: brand.checked ? 'Brand' : 'Person'
@@ -235,6 +277,7 @@ register('settings', async (root, params, ctx) => {
       toast(t('settings.saved'));
       if (ctx.stale()) return;
       paintAvatar();   // the initials follow the display name
+      paintEmail();    // a new address starts unconfirmed, with the link on its way
     } catch (e) {
       showAlert(error, e.message);
     } finally {
@@ -246,6 +289,7 @@ register('settings', async (root, params, ctx) => {
     field('s-name', t('settings.display_name'), name),
     field('s-bio', t('settings.bio'), bio),
     field('s-web', t('settings.website'), web),
+    emailField,
     field('s-lang', t('settings.language'), lang),
     el('div', { class: 'field' }, [
       el('span', { class: 'label', id: 's-interests-label', text: t('settings.interests') }),

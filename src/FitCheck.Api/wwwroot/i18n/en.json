@@ -452,5 +452,6 @@
   "welcome.email_title": "An email, in case you get locked out",
   "welcome.email_hint": "Optional. It's only for password reset; nobody sees it.",
   "welcome.email_placeholder": "you@example.com",
-  "error.email_invalid": "That doesn't look like an email address."
+  "error.email_invalid": "That doesn't look like an email address.",
+  "auth.reset_again": "Ask for a new link"
 }

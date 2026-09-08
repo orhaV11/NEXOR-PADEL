@@ -452,5 +452,6 @@
   "welcome.email_title": "מייל, למקרה שננעלים בחוץ",
   "welcome.email_hint": "לא חובה. רק לאיפוס סיסמה; אף אחד לא רואה אותו.",
   "welcome.email_placeholder": "you@example.com",
-  "error.email_invalid": "זה לא נראה כמו כתובת מייל."
+  "error.email_invalid": "זה לא נראה כמו כתובת מייל.",
+  "auth.reset_again": "לבקש קישור חדש"
 }

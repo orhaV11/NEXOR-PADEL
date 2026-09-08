@@ -26,6 +26,33 @@ public sealed class StorageOptions
 
     /// <summary>Advisory for the client (recording cap and the picker's duration check). Returned by /api/config.</summary>
     public int MaxVideoSeconds { get; set; } = 30;
+
+    /// <summary>Re-encode clips to H.264 MP4 in the background when ffmpeg is available (WebM from Android cannot play on older iPhones).</summary>
+    public bool Transcode { get; set; } = true;
+
+    /// <summary>Path to the ffmpeg binary. Empty means look on PATH.</summary>
+    public string FfmpegPath { get; set; } = "";
+}
+
+/// <summary>Outgoing mail for verification and password reset links. Host and From empty means mail is off: links are logged instead.</summary>
+public sealed class EmailOptions
+{
+    public const string Section = "Email";
+
+    public string Host { get; set; } = "";
+    public int Port { get; set; } = 587;
+    public string User { get; set; } = "";
+
+    /// <summary>Environment only (Email__Password), never appsettings.</summary>
+    public string Password { get; set; } = "";
+
+    public string From { get; set; } = "";
+    public bool UseStartTls { get; set; } = true;
+
+    /// <summary>The public https origin used in links, e.g. https://looks.example.com. Empty means the request's own origin.</summary>
+    public string PublicOrigin { get; set; } = "";
+
+    public bool Enabled => !string.IsNullOrWhiteSpace(Host) && !string.IsNullOrWhiteSpace(From);
 }
 
 /// <summary>Web Push (VAPID). Both keys empty means push is off and the client never offers it.</summary>

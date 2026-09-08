@@ -20,8 +20,37 @@ public sealed class OutfitFeedback
     public List<string> Working { get; set; } = [];
     public string OneTip { get; set; } = "";
 
+    /// <summary>Three sub-scores behind the overall score (rubric v2). Null for checks made before it existed.</summary>
+    public ScoreBreakdown? Breakdown { get; set; }
+
+    /// <summary>The accessories read on their own (rubric v2). Null for checks made before it existed.</summary>
+    public AccessoriesFeedback? Accessories { get; set; }
+
     /// <summary>Only when status is not ok: short, friendly explanation.</summary>
     public string? Message { get; set; }
+}
+
+/// <summary>1–10 each: how the garments are cut and sit, the palette, and what finishes the look.</summary>
+public sealed class ScoreBreakdown
+{
+    public int Fit { get; set; }
+    public int Color { get; set; }
+    public int Accessories { get; set; }
+}
+
+/// <summary>Jewelry, bags, belts, hats, glasses, watches, scarves, visible socks: the pieces that finish a look.</summary>
+public sealed class AccessoriesFeedback
+{
+    /// <summary>adds | neutral | missing | clashes</summary>
+    public string Verdict { get; set; } = "neutral";
+
+    /// <summary>What the stylist saw, e.g. "gold hoops", "black leather belt".</summary>
+    public List<string> Present { get; set; } = [];
+
+    public string Note { get; set; } = "";
+
+    /// <summary>The one accessory that would finish this look for this intent, doable with common pieces.</summary>
+    public string AddOne { get; set; } = "";
 }
 
 public sealed class OutfitItem

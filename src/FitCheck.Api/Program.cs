@@ -47,6 +47,7 @@ builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(Stor
 builder.Services.Configure<LimitsOptions>(builder.Configuration.GetSection(LimitsOptions.Section));
 builder.Services.Configure<PushOptions>(builder.Configuration.GetSection(PushOptions.Section));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
 
 // A check upload is a still plus, optionally, a clip; the form limit covers both and the per-request limit in
 // CheckEndpoints tightens it to what that request actually declares.
@@ -141,6 +142,8 @@ builder.Services.AddSingleton<CheckCapacity>();
 builder.Services.AddScoped<OutfitAnalyzer>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<PostReader>();
+builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
+builder.Services.AddSingleton<Transcoder>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {
@@ -296,9 +299,9 @@ app.MapAdminEndpoints();
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
 // to pings that never come.
-app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender) =>
+app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
-        sender.Enabled ? push.Value.PublicKey : null), AppJson.Options));
+        sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached.
 app.MapGet("/healthz", async (AppDbContext db, HttpContext context, CancellationToken ct) =>

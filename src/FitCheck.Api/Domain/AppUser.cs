@@ -45,6 +45,12 @@ public sealed class AppUser
     /// <summary>UTC date of the latest ok check, midnight.</summary>
     public DateTime? LastCheckDate { get; set; }
 
+    /// <summary>Optional, for account recovery only. Lower-cased; unique among accounts that have one. Never shown to others.</summary>
+    public string? Email { get; set; }
+
+    /// <summary>Set when the person opened the verification link for the current address; cleared when the address changes.</summary>
+    public DateTime? EmailVerifiedAt { get; set; }
+
     /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
     public bool Suspended { get; set; }
 

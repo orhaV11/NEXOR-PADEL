@@ -29,6 +29,12 @@ public sealed class Post
 
     public DateTime? FeaturedAt { get; set; }
 
+    /// <summary>The rubric v2 sub-scores, copied at posting time like the headline. Null for looks checked before v2.</summary>
+    public int? FitScore { get; set; }
+
+    public int? ColorScore { get; set; }
+    public int? AccessoriesScore { get; set; }
+
     /// <summary>Denormalised so the feed never counts rows.</summary>
     public int FireCount { get; set; }
 
@@ -186,4 +192,34 @@ public sealed class PushSubscription
     public string Auth { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public DateTime? LastUsedAt { get; set; }
+}
+
+/// <summary>
+/// A one-time link: email verification or a password reset. Only the SHA-256 of the random token is stored, so a copy
+/// of the database cannot mint links. Used once, expires, and every open token of the same purpose is voided when a new
+/// one is issued.
+/// </summary>
+public sealed class AuthToken
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+
+    /// <summary>verify | reset</summary>
+    public string Purpose { get; set; } = "";
+
+    /// <summary>Base64url SHA-256 of the token the person received.</summary>
+    public string TokenHash { get; set; } = "";
+
+    /// <summary>The address the link went to, so a verification proves this address and not a later one.</summary>
+    public string? Email { get; set; }
+
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public static class AuthTokenPurpose
+{
+    public const string Verify = "verify";
+    public const string Reset = "reset";
 }

@@ -12,12 +12,19 @@ public sealed record SignupRequest(string? Handle, string? Password, bool Confir
 
 public sealed record LoginRequest(string? Handle, string? Password);
 
-public sealed record UpdateMeRequest(string? Language, string? DisplayName, string? Bio, string? Website, string? AccountType = null, List<string>? Interests = null);
+/// <summary>Email: null leaves it alone, "" clears it, a new address replaces it and starts a verification.</summary>
+public sealed record UpdateMeRequest(string? Language, string? DisplayName, string? Bio, string? Website, string? AccountType = null, List<string>? Interests = null, string? Email = null);
+
+public sealed record ForgotPasswordRequest(string? HandleOrEmail);
+
+public sealed record ResetPasswordRequest(string? Token, string? Password);
+
+public sealed record VerifyEmailRequest(string? Token);
 
 /// <summary>The signed-in user, as the client keeps it in memory.</summary>
 public sealed record MeDto(
     Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
-    string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false);
+    string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false, string? Email = null, bool EmailVerified = false);
 
 /// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
 public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null);
@@ -117,7 +124,11 @@ public sealed record PostDto(
     List<string> Tags,
     List<UserRefDto> Mentions,
     UserRefDto? FeaturedBy,
-    string? VideoUrl = null);
+    string? VideoUrl = null,
+    BreakdownDto? Breakdown = null);
+
+/// <summary>The rubric v2 sub-scores (1–10). On a post they were copied at posting time.</summary>
+public sealed record BreakdownDto(int Fit, int Color, int Accessories);
 
 public sealed record FeatureStateDto(UserRefDto? FeaturedBy);
 
@@ -178,7 +189,7 @@ public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 // ---- config, push, admin ----
 
 /// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
-public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey);
+public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false);
 
 public sealed record PushSubscribeRequest(string? Endpoint, string? P256dh, string? Auth);
 

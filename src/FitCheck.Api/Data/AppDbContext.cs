@@ -20,6 +20,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<PostMention> PostMentions => Set<PostMention>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+    public DbSet<AuthToken> AuthTokens => Set<AuthToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.PreferredLanguage).HasMaxLength(16).IsRequired();
             user.Property(u => u.AvatarPath).HasMaxLength(260);
             user.Property(u => u.Interests).HasMaxLength(200);
+            user.Property(u => u.Email).HasMaxLength(200);
+            user.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             user.Ignore(u => u.Name);
         });
 
@@ -177,6 +180,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             sub.HasIndex(s => s.Endpoint).IsUnique();
             sub.HasIndex(s => s.UserId);
             sub.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuthToken>(token =>
+        {
+            token.HasKey(t => t.Id);
+            token.Property(t => t.Purpose).HasMaxLength(16).IsRequired();
+            token.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
+            token.Property(t => t.Email).HasMaxLength(200);
+            token.HasIndex(t => t.TokenHash).IsUnique();
+            token.HasIndex(t => new { t.UserId, t.Purpose });
+            token.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SavedPost>(saved =>

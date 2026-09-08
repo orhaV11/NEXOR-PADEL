@@ -35,11 +35,14 @@ public class DatabaseSetupTests : IDisposable
             db.Database.Migrate();
         }
 
-        var expected = SchemaOf(byModel);
-        var actual = SchemaOf(byMigrations);
+        // The shape, not the CREATE text: a later migration adds its columns with ALTER TABLE, which appends them, while
+        // EnsureCreated writes them in model order. Same tables, columns, types, nullability, keys and indexes is the test.
+        var expected = StructureOf(byModel);
+        var actual = StructureOf(byMigrations);
 
         Assert.NotEmpty(expected);
         Assert.Equal(expected, actual);
+        Assert.Equal(Names(byModel, "table").Order(), Names(byMigrations, "table").Where(t => t != HistoryRepository.DefaultTableName).Order());
     }
 
     [Fact]

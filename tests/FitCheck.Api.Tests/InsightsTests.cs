@@ -93,7 +93,7 @@ public class InsightsTests : IClassFixture<TestApp>
         [
             "Your date looks score highest, 7.0 on average.",
             "Shoes are the weak link in 60% of your looks.",
-            "50% of your looks had nothing on. One piece finishes a look.",
+            "50% of your looks had no accessories. One piece finishes a look.",
             "3 days in a row. Keep it going."
         ], Lines(dto));
     }
@@ -160,7 +160,7 @@ public class InsightsTests : IClassFixture<TestApp>
         [
             "Your date looks score highest, 8.5 on average.",
             "Shoes are the weak link in 100% of your looks.",
-            "67% of your looks had nothing on. One piece finishes a look.",
+            "67% of your looks had no accessories. One piece finishes a look.",
             "2 days in a row. Keep it going."
         ], Lines(three));
     }

@@ -114,7 +114,7 @@ public sealed class Localizer
             ["error.billing_signature"] = "That event isn't signed by Stripe.",
             ["insights.line_best"] = "Your {0} looks score highest, {1} on average.",
             ["insights.line_weak"] = "{0} are the weak link in {1}% of your looks.",
-            ["insights.line_accessories"] = "{0}% of your looks had nothing on. One piece finishes a look.",
+            ["insights.line_accessories"] = "{0}% of your looks had no accessories. One piece finishes a look.",
             ["insights.line_streak"] = "{0} days in a row. Keep it going.",
             ["insights.cat_shoes"] = "Shoes",
             ["insights.cat_top"] = "Tops",

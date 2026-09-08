@@ -105,4 +105,10 @@ public sealed class LimitsOptions
 
     /// <summary>Reports that hide a post pending review.</summary>
     public int ReportsToHide { get; set; } = 3;
+
+    /// <summary>Comments one account may post per hour. A brake on flooding, not a product limit: nobody hits it by hand.</summary>
+    public int CommentsPerHour { get; set; } = 30;
+
+    /// <summary>Reports one account may file per hour, looks and comments together. Keeps one person from burying the queue.</summary>
+    public int ReportsPerHour { get; set; } = 20;
 }

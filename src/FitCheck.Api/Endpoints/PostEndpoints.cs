@@ -12,6 +12,11 @@ public static class PostEndpoints
     public const int CaptionMaxLength = 140;
     public const int CommentMaxLength = 200;
     public const int MaxProducts = 3;
+
+    /// <summary>Rate-limit policies (Program.cs): per signed-in account, an hour's window, Limits:CommentsPerHour and Limits:ReportsPerHour.</summary>
+    public const string CommentsPolicy = "comments";
+    public const string ReportsPolicy = "reports";
+
     private const int DefaultPage = 20;
     private const int MaxPage = 30;
 
@@ -27,15 +32,15 @@ public static class PostEndpoints
         posts.MapDelete("/{id:guid}/fire", UnfireAsync).RequireAuthorization();
         posts.MapPost("/{id:guid}/save", SaveAsync).RequireAuthorization();
         posts.MapDelete("/{id:guid}/save", UnsaveAsync).RequireAuthorization();
-        posts.MapPost("/{id:guid}/report", ReportAsync).RequireAuthorization();
+        posts.MapPost("/{id:guid}/report", ReportAsync).RequireAuthorization().RequireRateLimiting(ReportsPolicy);
         posts.MapPost("/{id:guid}/feature", FeatureAsync).RequireAuthorization();
         posts.MapDelete("/{id:guid}/feature", UnfeatureAsync).RequireAuthorization();
         posts.MapGet("/{id:guid}/comments", ListCommentsAsync);
-        posts.MapPost("/{id:guid}/comments", AddCommentAsync).RequireAuthorization();
+        posts.MapPost("/{id:guid}/comments", AddCommentAsync).RequireAuthorization().RequireRateLimiting(CommentsPolicy);
 
         var comments = app.MapGroup("/api/comments");
         comments.MapDelete("/{id:guid}", DeleteCommentAsync).RequireAuthorization();
-        comments.MapPost("/{id:guid}/report", ReportCommentAsync).RequireAuthorization();
+        comments.MapPost("/{id:guid}/report", ReportCommentAsync).RequireAuthorization().RequireRateLimiting(ReportsPolicy);
 
         return app;
     }

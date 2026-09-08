@@ -653,3 +653,46 @@ The review that followed the hand-off changed a few rules. What changed and why,
   same word. The API still takes free text, kept to 200 characters.
 - **HSTS for this host only.** The header no longer carries `includeSubDomains`: the app decides HTTPS for its own name,
   not for everything else the owner runs under the domain.
+
+## Round 8 — accessories, recovery, clips that play everywhere, the internet (2026-09-08)
+
+The owner asked for the pieces Round 7 named as "left out on purpose", and for the app to be reachable by anyone with
+one command: a way back into an account, clips that play on every phone, a deploy that needs no server, checks on every
+push, and the pilot's numbers off the open internet. Four builders worked in parallel from one skeleton (the domain
+fields, options, DTOs, stubs, routes and strings); this section is completed by the lead after the merge.
+
+### Decisions
+
+- **Accessories are a dimension of the score, not a footnote.** The stylist now returns three sub-scores behind the
+  overall one (fit, color, accessories: `ScoreBreakdown`) and reads the accessories on their own (`AccessoriesFeedback`:
+  what it saw, a verdict of adds / neutral / missing / clashes, a note, and the one accessory that would finish the look
+  for this intent, doable with common pieces). The sub-scores are copied onto the post when it is published, so the feed
+  can show them; the accessory advice stays private with the tip, like the rest of the breakdown. Checks made before the
+  rubric changed have no breakdown and the client simply does not draw one; the prompt version is bumped so calibration
+  reports before and after can be compared.
+- **Recovery is by email, and email is optional.** An account can carry one address (lower-cased, unique among accounts
+  that have one, never shown to others), confirmed by a link; a forgotten password is reset by a link that lives an
+  hour. Both are single-use tokens in one table, and a request for recovery is rate limited and answered the same way
+  whether or not the handle exists. Mail goes over plain SMTP (`Email__*`, any provider: Resend, Postmark, a Gmail app
+  password for a pilot); with no provider set the app says so in the client and writes the links to its log, so a
+  laptop pilot keeps working and nothing pretends to send.
+- **Clips are transcoded to H.264 MP4 in the background** when ffmpeg is on the machine (`Storage:Transcode`, on by
+  default; `Storage:FfmpegPath` when it is not on the PATH), so a WebM from an Android phone plays on iPhones. The
+  upload is stored and served as it came, and replaced by the MP4 when the worker is done; `/api/config` says whether
+  transcoding is on, so the client can say what to expect. Without ffmpeg nothing changes, and DEPLOY.md's checklist
+  says how to add it to the image.
+- **Deploying is one command and needs no server.** `fly launch` with the repository's `fly.toml` (one small machine in
+  Frankfurt, one 3 GB volume at `/data`, HTTPS at the edge, `/healthz` as the check, never stopped for idleness), `fly
+  secrets set` for the key, `fly deploy --ha=false`; about 5 USD a month. The VPS path with Docker and Caddy stays as
+  the option for full control; both run the same image from the same Dockerfile, and DEPLOY.md opens with which to pick.
+- **Every push is checked.** GitHub Actions builds in Release with warnings as errors, runs the xUnit suite and runs the
+  browser test in Chromium with the Anthropic API stubbed, on every branch and pull request; a push to `main` or a `v*`
+  tag publishes the image to `ghcr.io/<owner>/orevosh`. The README carries the badge, so a red build is visible before
+  anyone deploys it.
+- **Comments and reports are rate limited per account.** 30 comments and 20 reports an hour, a 429 with "Slow down a
+  little. Try again in a bit." and a `Retry-After`. Per account, not per address: the cookie names the person, so two
+  people behind one router never share a bucket; the limiter runs after authentication for that reason, and an unsigned
+  call is a 401 that spends nobody's permits. Fixed windows in memory, like the signup and login brakes: enough against
+  a script, not a spam filter; the queue and suspensions remain the answer to a patient flood.
+- **Metrics are behind the moderator flag.** `/api/metrics/pilot` answers through a moderator's session and 403 to
+  anyone else, so the URL can leave the team without the numbers leaving with it; the browser test reads it that way.

@@ -1,0 +1,121 @@
+# Continuous checks on every push and pull request, on every branch: build the API (warnings are errors), run the xUnit
+# suite, and drive the real client in Chromium against the real API with only the Anthropic API stubbed (tools/e2e).
+# README.md carries this workflow's badge. Both jobs cache NuGet, and the browser job caches npm and Playwright's
+# Chromium, so a run stays well under ten minutes.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A newer push to the same branch cancels the run in flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  tests:
+    name: Build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release, warnings as errors)
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          if-no-files-found: ignore
+
+  browser:
+    name: Browser test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # ffmpeg is what the app transcodes clips with when it is on the PATH; the browser test records a clip.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      # tools/e2e keeps no lockfile (its .gitignore lists package-lock.json) and pins Playwright to an exact version, so
+      # `npm install` is deterministic and the caches key on package.json.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/e2e/package.json
+
+      - name: Install Playwright
+        run: npm install --no-audit --no-fund
+        working-directory: tools/e2e
+
+      - name: Cache Playwright's Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tools/e2e/package.json') }}
+
+      # The browser comes from Playwright itself (CHROMIUM_PATH stays unset); --with-deps adds the system libraries.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: tools/e2e
+
+      # A Debug build: e2e.js starts the API with `dotnet run --no-build`.
+      - name: Build
+        run: dotnet build
+
+      - name: Browser test
+        run: node e2e.js
+        working-directory: tools/e2e
+
+      # Every screenshot of the run, plus failed-<person>.png and .html when it stopped early.
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots
+          path: tools/e2e/shots
+          if-no-files-found: ignore

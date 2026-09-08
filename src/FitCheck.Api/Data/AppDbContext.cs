@@ -21,6 +21,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<PostMention> PostMentions => Set<PostMention>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<AuthToken> AuthTokens => Set<AuthToken>();
+    public DbSet<PostItem> PostItems => Set<PostItem>();
+    public DbSet<OutfitComparison> Comparisons => Set<OutfitComparison>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +41,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.AvatarPath).HasMaxLength(260);
             user.Property(u => u.Interests).HasMaxLength(200);
             user.Property(u => u.Email).HasMaxLength(200);
+            user.Property(u => u.Plan).HasMaxLength(16).IsRequired();
+            user.Property(u => u.BillingCustomerId).HasMaxLength(100);
+            user.HasIndex(u => u.BillingCustomerId);
             user.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             user.Ignore(u => u.Name);
         });
@@ -52,6 +57,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             check.Property(c => c.Language).HasMaxLength(16).IsRequired();
             check.Property(c => c.ImagePath).HasMaxLength(260).IsRequired();
             check.Property(c => c.VideoPath).HasMaxLength(260);
+            check.Property(c => c.GuestToken).HasMaxLength(64);
+            check.HasIndex(c => c.GuestToken);
             check.Property(c => c.Status).HasMaxLength(16).IsRequired();
             check.Property(c => c.PromptVersion).HasMaxLength(16).IsRequired();
             // Every user-facing query is "this user's checks, newest first"; the metrics endpoint groups on the same pair.
@@ -76,6 +83,34 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             post.HasOne<Challenge>().WithMany().HasForeignKey(p => p.ChallengeId).OnDelete(DeleteBehavior.SetNull);
             post.HasIndex(p => p.FeaturedByBrandId);
             post.HasOne<AppUser>().WithMany().HasForeignKey(p => p.FeaturedByBrandId).OnDelete(DeleteBehavior.SetNull);
+            post.HasIndex(p => p.BeforePostId);
+            post.HasOne<Post>().WithMany().HasForeignKey(p => p.BeforePostId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PostItem>(item =>
+        {
+            item.HasKey(i => new { i.PostId, i.Name });
+            item.Property(i => i.Name).HasMaxLength(60).IsRequired();
+            item.Property(i => i.Category).HasMaxLength(16).IsRequired();
+            item.HasIndex(i => i.Name);
+            item.HasOne<Post>().WithMany().HasForeignKey(i => i.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OutfitComparison>(comparison =>
+        {
+            comparison.HasKey(c => c.Id);
+            comparison.Property(c => c.Intent).HasConversion<string>().HasMaxLength(32);
+            comparison.Property(c => c.Occasion).HasMaxLength(120);
+            comparison.Property(c => c.Language).HasMaxLength(16).IsRequired();
+            comparison.Property(c => c.ImagePathA).HasMaxLength(260).IsRequired();
+            comparison.Property(c => c.ImagePathB).HasMaxLength(260).IsRequired();
+            comparison.Property(c => c.Winner).HasMaxLength(2).IsRequired();
+            comparison.Property(c => c.Status).HasMaxLength(16).IsRequired();
+            comparison.Property(c => c.PromptVersion).HasMaxLength(16).IsRequired();
+            comparison.Property(c => c.GuestToken).HasMaxLength(64);
+            comparison.HasIndex(c => new { c.UserId, c.CreatedAt });
+            comparison.HasIndex(c => c.GuestToken);
+            comparison.HasOne<AppUser>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PostTag>(tag =>

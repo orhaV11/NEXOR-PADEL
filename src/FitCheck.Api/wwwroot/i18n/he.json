@@ -2,7 +2,7 @@
   "meta.name": "עברית",
   "meta.dir": "rtl",
   "app.name": "OREVOSH",
-  "app.tagline": "הלוקים שלך. האנשים שלך. המותגים שלך.",
+  "app.tagline": "סטייליסט בכיס, וקהילה שמדליקה.",
   "lang.label": "שפה",
   "nav.main": "ראשי",
   "nav.home": "בית",
@@ -453,5 +453,16 @@
   "welcome.email_hint": "לא חובה. רק לאיפוס סיסמה; אף אחד לא רואה אותו.",
   "welcome.email_placeholder": "you@example.com",
   "error.email_invalid": "זה לא נראה כמו כתובת מייל.",
-  "auth.reset_again": "לבקש קישור חדש"
+  "auth.reset_again": "לבקש קישור חדש",
+  "app.slogan": "בודקים את הלוק.",
+  "compare.title": "איזה מהם?",
+  "pro.title": "OREVOSH פרו",
+  "insights.title": "התובנות שלך",
+  "today.title": "הלוק של היום",
+  "dash.title": "מספרים",
+  "legal.terms_title": "תנאי שימוש",
+  "legal.privacy_title": "פרטיות",
+  "guest.title": "קודם מנסים",
+  "verified.brand": "מותג מאומת",
+  "after.title": "אחרי הטיפ"
 }

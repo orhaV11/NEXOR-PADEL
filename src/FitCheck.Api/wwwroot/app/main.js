@@ -12,6 +12,12 @@ import './views/settings.js';
 import './views/camera.js';
 import './views/admin.js';
 import './views/pages.js';
+import './views/compare.js';
+import './views/pro.js';
+import './views/insights.js';
+import './views/today.js';
+import './views/legal.js';
+import './views/dashboard.js';
 
 boot().catch((e) => {
   console.error(e);

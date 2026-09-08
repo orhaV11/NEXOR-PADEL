@@ -2,7 +2,7 @@
   "meta.name": "English",
   "meta.dir": "ltr",
   "app.name": "OREVOSH",
-  "app.tagline": "Your looks. Your people. Your brands.",
+  "app.tagline": "A stylist in your pocket, and a community that lights it up.",
   "lang.label": "Language",
   "nav.main": "Main",
   "nav.home": "Home",
@@ -453,5 +453,16 @@
   "welcome.email_hint": "Optional. It's only for password reset; nobody sees it.",
   "welcome.email_placeholder": "you@example.com",
   "error.email_invalid": "That doesn't look like an email address.",
-  "auth.reset_again": "Ask for a new link"
+  "auth.reset_again": "Ask for a new link",
+  "app.slogan": "Check the look.",
+  "compare.title": "Which one?",
+  "pro.title": "OREVOSH Pro",
+  "insights.title": "Your insights",
+  "today.title": "Today's look",
+  "dash.title": "Numbers",
+  "legal.terms_title": "Terms of use",
+  "legal.privacy_title": "Privacy",
+  "guest.title": "Try it first",
+  "verified.brand": "Verified brand",
+  "after.title": "After the tip"
 }

@@ -22,7 +22,7 @@ export const state = {
   // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
   check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null },
   // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
-  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false },
+  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false } },
   result: null,
   resultAnimated: false,
   resultPostId: null,
@@ -442,9 +442,10 @@ function tabFor(route) {
   const name = route.name;
   if (['feed', 'post'].includes(name)) return 'home';
   if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge'].includes(name)) return 'explore';
-  if (['check', 'result', 'camera'].includes(name)) return 'check';
+  if (['check', 'result', 'camera', 'compare'].includes(name)) return 'check';
   if (name === 'activity') return 'activity';
-  if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome', 'admin', 'forgot', 'reset', 'verify'].includes(name)) return 'me';
+  if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights'].includes(name)) return 'me';
+  if (name === 'today') return 'home';
   if (name === 'user') return isMe(route.params.handle) ? 'me' : '';
   return '';
 }
@@ -472,7 +473,7 @@ export function parseRoute(hash) {
     case 'check': return { name: 'check', params: {} };
     case 'result': return { name: 'result', params: {} };
     case 'camera': return { name: 'camera', params: { mode: a === 'clip' ? 'clip' : 'photo' } };
-    case 'admin': return { name: 'admin', params: {} };
+    case 'admin': return { name: a === 'metrics' ? 'admin-metrics' : 'admin', params: {} };
     case 'guidelines': return { name: 'guidelines', params: {} };
     case 'activity': return { name: 'activity', params: {} };
     case 'me': return { name: 'me', params: {} };
@@ -485,6 +486,12 @@ export function parseRoute(hash) {
     case 'forgot': return { name: 'forgot', params: {} };
     case 'reset': return { name: 'reset', params: { token: a || '' } };
     case 'verify': return { name: 'verify', params: { token: a || '' } };
+    case 'compare': return { name: 'compare', params: { id: a || '' } };
+    case 'pro': return { name: 'pro', params: {} };
+    case 'insights': return { name: 'insights', params: {} };
+    case 'today': return { name: 'today', params: {} };
+    case 'terms': return { name: 'terms', params: {} };
+    case 'privacy': return { name: 'privacy', params: {} };
     default: return { name: 'feed', params: { tab: 'foryou' } };
   }
 }

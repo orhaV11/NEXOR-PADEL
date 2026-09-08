@@ -3,7 +3,18 @@ namespace FitCheck.Api.Domain;
 public sealed class OutfitCheck
 {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
+
+    /// <summary>The owner, or null while the check belongs to a guest (see <see cref="GuestToken"/>).</summary>
+    public Guid? UserId { get; set; }
+
+    /// <summary>
+    /// A guest's check: the random token from the guest cookie that made it. Signing up with that cookie claims the
+    /// check (UserId set, token cleared, ClaimedAt stamped); unclaimed guest checks and their photos expire within a day.
+    /// </summary>
+    public string? GuestToken { get; set; }
+
+    public DateTime? ClaimedAt { get; set; }
+
     public StyleIntent Intent { get; set; }
 
     /// <summary>Free text from the wearer, at most 120 characters.</summary>

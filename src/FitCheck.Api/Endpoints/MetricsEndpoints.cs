@@ -39,7 +39,8 @@ public static class MetricsEndpoints
         // feedback comes along for the rubric v2 sub-scores, which live nowhere else.
         var checks = await db.Checks
             .Where(c => c.Status == CheckStatus.Ok)
-            .Select(c => new { c.UserId, c.CreatedAt, c.Score, c.LatencyMs, c.Language, c.PromptVersion, c.FeedbackJson })
+            .Where(c => c.UserId != null)
+            .Select(c => new { UserId = c.UserId!.Value, c.CreatedAt, c.Score, c.LatencyMs, c.Language, c.PromptVersion, c.FeedbackJson })
             .ToListAsync(ct);
 
         var metrics = Compute(checks.Select(c => new MetricRow(c.UserId, c.CreatedAt, c.Score ?? 0, c.LatencyMs, c.Language, c.PromptVersion, BreakdownOf(c.FeedbackJson))));
@@ -47,7 +48,7 @@ public static class MetricsEndpoints
         var now = DateTime.UtcNow;
         var since = now - ReturnWindow;
         var active = new HashSet<Guid>();
-        active.UnionWith(await db.Checks.Where(c => c.CreatedAt >= since).Select(c => c.UserId).Distinct().ToListAsync(ct));
+        active.UnionWith(await db.Checks.Where(c => c.CreatedAt >= since && c.UserId != null).Select(c => c.UserId!.Value).Distinct().ToListAsync(ct));
         active.UnionWith(await db.Fires.Where(f => f.CreatedAt >= since).Select(f => f.UserId).Distinct().ToListAsync(ct));
         active.UnionWith(await db.Comments.Where(c => c.CreatedAt >= since).Select(c => c.UserId).Distinct().ToListAsync(ct));
         active.UnionWith(await db.ChallengeVotes.Where(v => v.CreatedAt >= since).Select(v => v.UserId).Distinct().ToListAsync(ct));

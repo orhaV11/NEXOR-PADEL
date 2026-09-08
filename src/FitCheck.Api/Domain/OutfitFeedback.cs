@@ -65,3 +65,26 @@ public sealed class OutfitItem
 
     public string Note { get; set; } = "";
 }
+
+/// <summary>The stylist's answer to "which one?": both outfits scored for the same intent, a winner, and why in one breath.</summary>
+public sealed class ComparisonFeedback
+{
+    public string Status { get; set; } = CheckStatus.Ok;
+
+    /// <summary>a | b</summary>
+    public string Winner { get; set; } = "a";
+
+    public int ScoreA { get; set; }
+    public int ScoreB { get; set; }
+    public string HeadlineA { get; set; } = "";
+    public string HeadlineB { get; set; } = "";
+
+    /// <summary>Two or three sentences: what decides it, for this intent.</summary>
+    public string Reason { get; set; } = "";
+
+    /// <summary>One change that would make the loser win, or the winner better.</summary>
+    public string OneTip { get; set; } = "";
+
+    /// <summary>Only when status is not ok.</summary>
+    public string? Message { get; set; }
+}

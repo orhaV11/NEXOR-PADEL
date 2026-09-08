@@ -91,8 +91,8 @@ public sealed class LimitsOptions
 {
     public const string Section = "Limits";
 
-    /// <summary>Per-user cap over a rolling 24 hours. Cost control, not a product feature.</summary>
-    public int ChecksPerDay { get; set; } = 20;
+    /// <summary>The ceiling per account over a rolling 24 hours, whatever the plan says (Plans:ProChecksPerDay is clamped to it). Cost control.</summary>
+    public int ChecksPerDay { get; set; } = 30;
 
     /// <summary>Ceiling across all users over a rolling 24 hours, so a leaked URL cannot run up an unbounded bill.</summary>
     public int ChecksPerDayGlobal { get; set; } = 1000;
@@ -111,4 +111,49 @@ public sealed class LimitsOptions
 
     /// <summary>Reports one account may file per hour, looks and comments together. Keeps one person from burying the queue.</summary>
     public int ReportsPerHour { get; set; } = 20;
+}
+
+/// <summary>Who may check how often. Every check is a paid model call, so free is a taste and Pro is the habit.</summary>
+public sealed class PlanOptions
+{
+    public const string Section = "Plans";
+
+    /// <summary>Checks (and comparisons) per rolling 24 hours for a free account.</summary>
+    public int FreeChecksPerDay { get; set; } = 3;
+
+    /// <summary>For a Pro account. Limits:ChecksPerDayGlobal still caps everyone together.</summary>
+    public int ProChecksPerDay { get; set; } = 30;
+
+    /// <summary>For a guest (no account yet), per guest cookie and per client address.</summary>
+    public int GuestChecksPerDay { get; set; } = 1;
+
+    /// <summary>Shown on the Pro screen, e.g. "₪19 / month" or "$5 / month". Empty hides the price.</summary>
+    public string ProPriceText { get; set; } = "";
+
+    /// <summary>Whether "which one?" comparisons and the insights need Pro.</summary>
+    public bool CompareNeedsPro { get; set; } = false;
+}
+
+/// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>
+public sealed class BillingOptions
+{
+    public const string Section = "Billing";
+
+    /// <summary>manual | stripe</summary>
+    public string Provider { get; set; } = "manual";
+
+    /// <summary>Environment only (Billing__StripeSecretKey). sk_test_ keys work against Stripe's test mode.</summary>
+    public string StripeSecretKey { get; set; } = "";
+
+    /// <summary>The recurring price for Pro (price_...).</summary>
+    public string StripePriceId { get; set; } = "";
+
+    /// <summary>Signs the webhook events (whsec_...). Environment only.</summary>
+    public string StripeWebhookSecret { get; set; } = "";
+
+    /// <summary>Checkout returns to this origin (+ /#/pro?checkout=success|cancel). Empty means the request's origin.</summary>
+    public string PublicOrigin { get; set; } = "";
+
+    public bool StripeEnabled => Provider.Equals("stripe", StringComparison.OrdinalIgnoreCase)
+        && !string.IsNullOrWhiteSpace(StripeSecretKey) && !string.IsNullOrWhiteSpace(StripePriceId) && !string.IsNullOrWhiteSpace(StripeWebhookSecret);
 }

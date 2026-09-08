@@ -51,6 +51,21 @@ public sealed class AppUser
     /// <summary>Set when the person opened the verification link for the current address; cleared when the address changes.</summary>
     public DateTime? EmailVerifiedAt { get; set; }
 
+    /// <summary>free | pro. Pro raises the daily check cap and unlocks the comparison and the insights; see PlanOptions.</summary>
+    public string Plan { get; set; } = "free";
+
+    /// <summary>When the paid period ends (null for free). Checked on every request that needs Pro.</summary>
+    public DateTime? ProUntil { get; set; }
+
+    /// <summary>The billing provider's customer id, when a checkout ever happened. Never shown.</summary>
+    public string? BillingCustomerId { get; set; }
+
+    /// <summary>Date of birth from signup (UTC date). Sixteen and over only; earlier accounts have null and their checkbox.</summary>
+    public DateTime? BirthDate { get; set; }
+
+    /// <summary>A brand the owner confirmed by hand (--verify). Shown as a check next to the brand mark.</summary>
+    public bool Verified { get; set; }
+
     /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
     public bool Suspended { get; set; }
 

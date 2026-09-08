@@ -29,6 +29,9 @@ public sealed class Post
 
     public DateTime? FeaturedAt { get; set; }
 
+    /// <summary>"After the tip": the earlier look this one improves on. Shown as the score before and after. SetNull when it goes.</summary>
+    public Guid? BeforePostId { get; set; }
+
     /// <summary>The rubric v2 sub-scores, copied at posting time like the headline. Null for looks checked before v2.</summary>
     public int? FitScore { get; set; }
 
@@ -222,4 +225,42 @@ public static class AuthTokenPurpose
 {
     public const string Verify = "verify";
     public const string Reset = "reset";
+}
+
+/// <summary>An item the stylist named on a posted look ("black boots", shoes), lower-cased, so looks can be searched by piece.</summary>
+public sealed class PostItem
+{
+    public Guid PostId { get; set; }
+    public string Name { get; set; } = "";
+    public string Category { get; set; } = "other";
+}
+
+/// <summary>
+/// "Which one?": two photos of two outfits for the same intent, one stylist call, one winner. Private like a check; not
+/// postable. Belongs to a user or, like a check, to a guest until claimed.
+/// </summary>
+public sealed class OutfitComparison
+{
+    public Guid Id { get; set; }
+    public Guid? UserId { get; set; }
+    public string? GuestToken { get; set; }
+    public DateTime? ClaimedAt { get; set; }
+    public StyleIntent Intent { get; set; }
+    public string? Occasion { get; set; }
+    public string Language { get; set; } = "en";
+    public string ImagePathA { get; set; } = "";
+    public string ImagePathB { get; set; } = "";
+
+    /// <summary>a | b, or empty when the status is not ok.</summary>
+    public string Winner { get; set; } = "";
+
+    /// <summary>One of CheckStatus.</summary>
+    public string Status { get; set; } = CheckStatus.Error;
+
+    /// <summary>Serialized ComparisonFeedback (camelCase). Null unless status is ok or not_outfit.</summary>
+    public string? FeedbackJson { get; set; }
+
+    public string PromptVersion { get; set; } = "";
+    public int LatencyMs { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

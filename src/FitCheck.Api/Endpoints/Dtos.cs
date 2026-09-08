@@ -8,7 +8,8 @@ public sealed record ErrorDto(string Error);
 
 // ---- auth and users ----
 
-public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName);
+/// <summary>BirthDate: "yyyy-MM-dd". Required from Round 9 (16 and over); Confirmed16Plus stays for older clients.</summary>
+public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null);
 
 public sealed record LoginRequest(string? Handle, string? Password);
 
@@ -24,10 +25,11 @@ public sealed record VerifyEmailRequest(string? Token);
 /// <summary>The signed-in user, as the client keeps it in memory.</summary>
 public sealed record MeDto(
     Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
-    string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false, string? Email = null, bool EmailVerified = false);
+    string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false, string? Email = null, bool EmailVerified = false,
+    string Plan = "free", DateTime? ProUntil = null, bool Verified = false, int ChecksToday = 0, int ChecksPerDay = 0);
 
 /// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
-public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null);
+public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null, bool Verified = false);
 
 /// <summary>A person or brand in a list: search results, brands to follow.</summary>
 public sealed record UserCardDto(UserRefDto User, int Followers, int Posts, bool Following);
@@ -97,7 +99,8 @@ public sealed record CheckDto(
 
 public sealed record ProductLinkDto(string Label, string Url, string? Price);
 
-public sealed record CreatePostRequest(Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products);
+/// <summary>BeforePostId: "after the tip" — one of your own earlier looks this one improves on.</summary>
+public sealed record CreatePostRequest(Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products, Guid? BeforePostId = null);
 
 public sealed record ReportRequest(string? Reason);
 
@@ -125,7 +128,11 @@ public sealed record PostDto(
     List<UserRefDto> Mentions,
     UserRefDto? FeaturedBy,
     string? VideoUrl = null,
-    BreakdownDto? Breakdown = null);
+    BreakdownDto? Breakdown = null,
+    BeforeDto? Before = null);
+
+/// <summary>The earlier look an "after the tip" post improves on: its score and photo, for the before/after strip.</summary>
+public sealed record BeforeDto(Guid PostId, int Score, string ImageUrl);
 
 /// <summary>The rubric v2 sub-scores (1–10). On a post they were copied at posting time.</summary>
 public sealed record BreakdownDto(int Fit, int Color, int Accessories);
@@ -136,7 +143,8 @@ public sealed record FeatureStateDto(UserRefDto? FeaturedBy);
 
 public sealed record ExploreDto(List<TagDto> TrendingTags, List<UserCardDto> Brands, List<PostDto> TopLooks, List<ChallengeDto> Challenges);
 
-public sealed record SearchDto(List<UserCardDto> Users, List<TagDto> Tags);
+/// <summary>Posts: looks whose stylist-named items match the query ("black boots"), newest first, up to 12.</summary>
+public sealed record SearchDto(List<UserCardDto> Users, List<TagDto> Tags, List<PostDto>? Posts = null);
 
 public sealed record FireStateDto(int FireCount, bool Fired);
 
@@ -189,7 +197,24 @@ public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 // ---- config, push, admin ----
 
 /// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
-public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false);
+public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null);
+
+/// <summary>Billing: true when Stripe Checkout is live; false means Pro is granted by hand (--pro) and the Pro screen says so.</summary>
+public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int GuestChecksPerDay, string ProPriceText, bool CompareNeedsPro, bool Billing);
+
+// ---- comparisons, insights, today ----
+
+public sealed record ComparisonDto(Guid Id, StyleIntent Intent, string? Occasion, string Language, DateTime CreatedAt, int LatencyMs, string Status, ComparisonFeedback? Feedback, string ImageUrlA, string ImageUrlB);
+
+/// <summary>What your checks say about you. Lines are ready sentences in your language; the numbers are for tiles.</summary>
+public sealed record InsightsDto(int Checks, double? AvgScore, int? BestScore, string? BestIntent, string? WeakestCategory, double? WeakestShare, double? AccessoriesMissingShare, int Streak, List<string> Lines);
+
+/// <summary>The daily prompt: a hashtag, a title and a hint in the caller's language, and the looks posted with it today.</summary>
+public sealed record TodayDto(string Tag, string Title, string Hint, StyleIntent? Intent, DateTime Date, List<PostDto> Posts, bool Posted);
+
+public sealed record CheckoutDto(string Url);
+
+public sealed record BillingStateDto(string Plan, DateTime? ProUntil, bool Billing, string ProPriceText);
 
 public sealed record PushSubscribeRequest(string? Endpoint, string? P256dh, string? Auth);
 

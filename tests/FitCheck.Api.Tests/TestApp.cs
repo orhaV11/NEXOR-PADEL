@@ -55,6 +55,13 @@ public class TestApp : WebApplicationFactory<Program>
     public RecordingEmailSender Email { get; } = new();
     /// <summary>Storage:Transcode. Off by default so the suite never waits on ffmpeg; TranscoderTests turn it on.</summary>
     public bool Transcode { get; init; }
+    /// <summary>Billing:Provider ("manual" by default, "stripe" with the three settings below for Checkout and the webhook).</summary>
+    public string BillingProvider { get; init; } = "manual";
+    public string StripeSecretKey { get; init; } = "";
+    public string StripePriceId { get; init; } = "";
+    public string StripeWebhookSecret { get; init; } = "";
+    /// <summary>Stands in for api.stripe.com: records every request (the form fields included) and answers with <see cref="RecordingStripeHandler.Response"/>.</summary>
+    public RecordingStripeHandler StripeHandler { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -87,6 +94,11 @@ public class TestApp : WebApplicationFactory<Program>
             builder.UseSetting("Push:PrivateKey", PushPrivateKey);
         }
 
+        builder.UseSetting("Billing:Provider", BillingProvider);
+        builder.UseSetting("Billing:StripeSecretKey", StripeSecretKey);
+        builder.UseSetting("Billing:StripePriceId", StripePriceId);
+        builder.UseSetting("Billing:StripeWebhookSecret", StripeWebhookSecret);
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();
@@ -105,6 +117,9 @@ public class TestApp : WebApplicationFactory<Program>
                     provider.GetRequiredService<Localizer>(), provider.GetRequiredService<IOptions<PushOptions>>(),
                     provider.GetRequiredService<ILogger<PushSender>>(), PushConfirmAttempts, PushConfirmIntervalMs));
             }
+
+            // Checkout Sessions go to the recorder instead of api.stripe.com; the base address and the redaction stay.
+            services.AddHttpClient(StripeClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => StripeHandler);
         });
     }
 
@@ -432,5 +447,68 @@ public static class TestImages
         }
 
         return bytes;
+    }
+}
+
+/// <summary>One request as Stripe would have seen it: the method and path, the bearer token, and the form fields in order.</summary>
+public sealed record StripeRequest(HttpMethod Method, Uri Uri, string? Authorization, List<KeyValuePair<string, string>> Form)
+{
+    /// <summary>The first value of a form field, or null when the request did not carry it.</summary>
+    public string? this[string name] => Form.FirstOrDefault(pair => pair.Key == name).Value;
+}
+
+/// <summary>
+/// Stand-in for api.stripe.com. Records every request the app sends and answers with <see cref="Response"/>: by default a
+/// created Checkout Session with a hosted-page URL; a test sets an error status and body to see the app refuse cleanly.
+/// </summary>
+public sealed class RecordingStripeHandler : HttpMessageHandler
+{
+    public const string DefaultCheckoutUrl = "https://checkout.stripe.com/c/pay/cs_test_recorded";
+
+    private readonly List<StripeRequest> _requests = [];
+
+    public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
+
+    /// <summary>The JSON body the next answers carry.</summary>
+    public string Response { get; set; } = $$"""{ "id": "cs_test_recorded", "object": "checkout.session", "url": "{{DefaultCheckoutUrl}}" }""";
+
+    public IReadOnlyList<StripeRequest> Requests
+    {
+        get
+        {
+            lock (_requests)
+            {
+                return _requests.ToList();
+            }
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_requests)
+        {
+            _requests.Clear();
+        }
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
+        var form = body.Length == 0 ? [] : body.Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair =>
+            {
+                var eq = pair.IndexOf('=');
+                var key = Uri.UnescapeDataString((eq < 0 ? pair : pair[..eq]).Replace('+', ' '));
+                var value = eq < 0 ? "" : Uri.UnescapeDataString(pair[(eq + 1)..].Replace('+', ' '));
+                return new KeyValuePair<string, string>(key, value);
+            })
+            .ToList();
+        var record = new StripeRequest(request.Method, request.RequestUri!, request.Headers.Authorization?.ToString(), form);
+        lock (_requests)
+        {
+            _requests.Add(record);
+        }
+
+        return new HttpResponseMessage(StatusCode) { Content = new StringContent(Response, System.Text.Encoding.UTF8, "application/json") };
     }
 }

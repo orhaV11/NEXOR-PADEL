@@ -15,9 +15,9 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-// Maintenance commands share the process with the server but never start it: `--vapid`, `--backup <dir>`, `--admin <handle>`
-// and `--unadmin <handle>`. Each is found by position, so extra arguments (a --urls, the design-time tooling's own flags)
-// do not turn a command into a server start.
+// Maintenance commands share the process with the server but never start it: `--vapid`, `--backup <dir>`, `--admin <handle>`,
+// `--unadmin <handle>` and `--pro <handle> <months|off>`. Each is found by position, so extra arguments (a --urls, the
+// design-time tooling's own flags) do not turn a command into a server start.
 static string? ArgumentAfter(string[] args, string flag)
 {
     var index = Array.IndexOf(args, flag);
@@ -130,6 +130,50 @@ if (makeAdmin is not null || dropAdmin is not null)
     }
 }
 
+// `--pro <handle> <months>` puts an existing account on Pro for that many months (31 days each, from now) and
+// `--pro <handle> off` takes it back to free: the same two fields Checkout and its webhook write when Stripe is on
+// (AppUser.Plan, AppUser.ProUntil), from a shell on the box, while the app runs or not. Exit code 1 when there is no
+// such account, so a script notices.
+if (ArgumentAfter(args, "--pro") is { } proHandle)
+{
+    var proIndex = Array.IndexOf(args, "--pro");
+    var proValue = proIndex + 2 < args.Length ? args[proIndex + 2] : "";
+    var proOff = string.Equals(proValue, "off", StringComparison.OrdinalIgnoreCase);
+    var proMonths = 0;
+    if (proHandle.Length == 0 || (!proOff && !(int.TryParse(proValue, NumberStyles.None, CultureInfo.InvariantCulture, out proMonths) && proMonths is >= 1 and <= 120)))
+    {
+        Console.Error.WriteLine("Usage: --pro <handle> <months|off>");
+        return 2;
+    }
+
+    var proUntil = proOff ? (DateTime?)null : DateTime.UtcNow.AddDays(31.0 * proMonths);
+    AdminChange proChange;
+    try
+    {
+        proChange = await AdminSync.SetProAsync(connection.ConnectionString, proHandle, proUntil);
+    }
+    catch (SqliteException e)
+    {
+        Console.Error.WriteLine($"Could not open the database {connection.DataSource}: {e.Message.TrimEnd('.')}. Start the app once first.");
+        return 1;
+    }
+
+    switch (proChange)
+    {
+        case AdminChange.NotFound:
+            Console.Error.WriteLine($"No account has the handle {proHandle}. Sign up with it first, then run this again.");
+            return 1;
+        case AdminChange.Unchanged:
+            Console.WriteLine($"{proHandle} was not on Pro.");
+            return 0;
+        default:
+            Console.WriteLine(proOff
+                ? $"{proHandle} is back on Free."
+                : $"{proHandle} is on Pro until {proUntil:yyyy-MM-dd} (UTC). Run --pro {proHandle} off to end it early.");
+            return 0;
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection.ConnectionString));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -173,6 +217,17 @@ builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(clien
 builder.Services.AddHttpClient(PushSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddSingleton<PushSender>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<PushSender>());
+
+// Stripe, when Billing:Provider is stripe: one named client for Checkout Sessions (the webhook needs none). Nothing is
+// sent while the provider is manual; the routes answer 400 instead.
+builder.Services.AddHttpClient(StripeClient.HttpClientName, client =>
+    {
+        client.BaseAddress = new Uri(StripeClient.BaseUrl);
+        client.Timeout = TimeSpan.FromSeconds(20);
+    })
+    // The secret key travels as a bearer token; trace-level logging must not print it.
+    .RedactLoggedHeaders(["Authorization"]);
+builder.Services.AddSingleton<StripeClient>();
 
 // Cookie sessions: HttpOnly, SameSite=Strict, Secure whenever the request came in over https (the tunnel does).
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -314,6 +369,8 @@ app.Use(async (context, next) =>
     var method = context.Request.Method;
     if (context.Request.Path.StartsWithSegments("/api")
         && !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method) && !HttpMethods.IsOptions(method)
+        // Stripe posts its events without our header; the webhook's own signature check stands in for it (BillingEndpoints).
+        && !context.Request.Path.Equals(BillingEndpoints.WebhookPath, StringComparison.OrdinalIgnoreCase)
         && context.Request.Headers[Sessions.RequestHeader] != Sessions.RequestHeaderValue)
     {
         await WriteAuthError(context, StatusCodes.Status403Forbidden, "error.forbidden");

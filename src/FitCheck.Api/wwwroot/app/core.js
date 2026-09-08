@@ -213,6 +213,8 @@ export function avatar(user, opts) {
   return el('a', { ...attrs, href: '#/u/' + encodeURIComponent(user.handle) }, [inner]);
 }
 export function brandMark(user) { return user && user.accountType === 'Brand' ? el('span', { class: 'brand-mark', text: t('profile.brand') }) : null; }
+/** A small PRO pill for the signed-in person (MeDto carries plan; UserRefDto does not, so cards never show one). */
+export function proBadge(user) { return user && user.plan === 'pro' ? el('span', { class: 'tag accent pro-badge', text: t('pro.badge') }) : null; }
 export function handleText(handle) { return el('bdi', { dir: 'ltr', text: '@' + handle }); }
 
 // ---------- the mark and the wordmark ----------
@@ -478,7 +480,8 @@ export function register(name, handler) { handlers[name] = handler; }
 
 export function parseRoute(hash) {
   const safeDecode = (part) => { try { return decodeURIComponent(part); } catch (e) { return part; } };
-  const parts = (hash === undefined ? location.hash : hash).replace(/^#\/?/, '').split('/').filter(Boolean).map(safeDecode);
+  // A query part (#/pro?checkout=success, as Checkout returns) belongs to the view, not the route: it is cut before matching.
+  const parts = (hash === undefined ? location.hash : hash).replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean).map(safeDecode);
   const [head, a, b] = parts;
   switch (head || 'feed') {
     case 'feed': return { name: 'feed', params: { tab: a === 'following' ? 'following' : 'foryou' } };

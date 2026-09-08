@@ -97,4 +97,45 @@ public static class AdminSync
         await db.SaveChangesAsync(ct);
         return AdminChange.Changed;
     }
+
+    /// <summary>
+    /// Behind <c>--pro</c>: an end date puts the account on Pro until then (Plan = pro, ProUntil = until); null takes it
+    /// back to free (Plan = free, ProUntil = null). Same database rules as <see cref="SetAdminAsync"/>: it must exist,
+    /// the handle is matched case-insensitively. Unchanged when asked to end a Pro the account never had.
+    /// </summary>
+    public static async Task<AdminChange> SetProAsync(string connectionString, string handle, DateTime? until, CancellationToken ct = default)
+    {
+        var connection = new SqliteConnectionStringBuilder(connectionString);
+        if (!connection.DataSource.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
+        {
+            connection.Mode = SqliteOpenMode.ReadWrite;
+        }
+
+        await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection.ConnectionString).Options);
+        var lower = handle.Trim().TrimStart('@').ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.HandleLower == lower, ct);
+        if (user is null)
+        {
+            return AdminChange.NotFound;
+        }
+
+        if (until is null)
+        {
+            if (user.Plan == Services.Plans.Free && user.ProUntil is null)
+            {
+                return AdminChange.Unchanged;
+            }
+
+            user.Plan = Services.Plans.Free;
+            user.ProUntil = null;
+        }
+        else
+        {
+            user.Plan = Services.Plans.Pro;
+            user.ProUntil = DateTime.SpecifyKind(until.Value, DateTimeKind.Utc);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return AdminChange.Changed;
+    }
 }

@@ -517,5 +517,15 @@
   "compare.a11y_score": "{outfit}: {score} out of 10",
   "compare.pro_title": "Which one? is for Pro",
   "compare.pro_body": "Compare two outfits for the same occasion and let the stylist pick.",
-  "compare.go_pro": "See OREVOSH Pro"
+  "compare.go_pro": "See OREVOSH Pro",
+  "insights.open": "Your insights",
+  "insights.empty": "Check three looks and this fills up.",
+  "insights.progress": "{n} of 3 checked so far",
+  "insights.checks": "Checks",
+  "insights.average": "Average",
+  "insights.best": "Best",
+  "insights.lines": "What they say",
+  "insights.based_on": "From your last {n} checks",
+  "insights.again": "Check another look",
+  "explore.looks_with": "Looks with {q}"
 }

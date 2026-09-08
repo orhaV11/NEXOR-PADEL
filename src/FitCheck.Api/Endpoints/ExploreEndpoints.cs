@@ -16,6 +16,9 @@ public static class ExploreEndpoints
     private const int SearchResultCount = 10;
     private const int SearchMaxLength = 40;
 
+    /// <summary>Looks found by a stylist-named item ("black boots"): a short grid under the people and the tags.</summary>
+    private const int ItemResultCount = 12;
+
     public static IEndpointRouteBuilder MapExploreEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/explore", ExploreAsync);
@@ -73,7 +76,7 @@ public static class ExploreEndpoints
         return Results.Json(dto, AppJson.Options);
     }
 
-    private static async Task<IResult> SearchAsync(HttpContext context, AppDbContext db, Localizer localizer, string? q, CancellationToken ct)
+    private static async Task<IResult> SearchAsync(HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, string? q, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var query = (q ?? "").Trim();
@@ -86,7 +89,7 @@ public static class ExploreEndpoints
         var term = NormalizeTerm(query);
         if (term.Length == 0)
         {
-            return Results.Json(new SearchDto([], []), AppJson.Options);
+            return Results.Json(new SearchDto([], [], []), AppJson.Options);
         }
 
         // SQLite's lower() only folds ASCII, so display names are matched in .NET: handles by prefix in SQL, every
@@ -113,9 +116,28 @@ public static class ExploreEndpoints
             .Take(SearchResultCount)
             .ToListAsync(ct);
 
-        var dto = new SearchDto(await CardsAsync(db, users, viewerId, ct), tags.Select(x => new TagDto(x.Tag, x.Posts)).ToList());
+        // Looks by piece: a stylist-named item that contains the term. PostItems are stored lower-cased, so the lowered
+        // term meets them, and "%" or "_" typed by a person are literal. Visible looks by accounts that are not
+        // suspended, newest first, a short grid's worth.
+        var pattern = "%" + EscapeLike(term) + "%";
+        var posts = await db.Posts
+            .Where(p => !p.Hidden
+                        && db.PostItems.Any(i => i.PostId == p.Id && EF.Functions.Like(i.Name, pattern, "\\"))
+                        && db.Users.Any(u => u.Id == p.UserId && !u.Suspended))
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(ItemResultCount)
+            .ToListAsync(ct);
+
+        var dto = new SearchDto(
+            await CardsAsync(db, users, viewerId, ct),
+            tags.Select(x => new TagDto(x.Tag, x.Posts)).ToList(),
+            await reader.ToDtosAsync(posts, viewerId, ct));
         return Results.Json(dto, AppJson.Options);
     }
+
+    /// <summary>A search term made literal inside a LIKE pattern (escape character "\"): "%", "_" and "\" match themselves.</summary>
+    public static string EscapeLike(string term) =>
+        term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     /// <summary>Visible posts carrying a tag, newest first. An unknown tag is an empty page, never a 404.</summary>
     private static async Task<IResult> TagPostsAsync(string tag, HttpContext context, AppDbContext db, PostReader reader, int? offset, int? limit, CancellationToken ct)

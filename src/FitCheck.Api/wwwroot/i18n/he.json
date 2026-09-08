@@ -517,5 +517,15 @@
   "compare.a11y_score": "{outfit}: {score} מתוך 10",
   "compare.pro_title": "\"איזה מהם?\" זה לפרו",
   "compare.pro_body": "משווים שני לוקים לאותו אירוע ונותנים לסטייליסט לבחור.",
-  "compare.go_pro": "ל-OREVOSH פרו"
+  "compare.go_pro": "ל-OREVOSH פרו",
+  "insights.open": "התובנות שלך",
+  "insights.empty": "בודקים שלושה לוקים וזה מתמלא.",
+  "insights.progress": "{n} מתוך 3 נבדקו עד עכשיו",
+  "insights.checks": "בדיקות",
+  "insights.average": "ממוצע",
+  "insights.best": "הכי גבוה",
+  "insights.lines": "מה הן אומרות",
+  "insights.based_on": "מ-{n} הבדיקות האחרונות שלך",
+  "insights.again": "לבדוק עוד לוק",
+  "explore.looks_with": "לוקים עם {q}"
 }

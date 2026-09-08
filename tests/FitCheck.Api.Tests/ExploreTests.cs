@@ -359,4 +359,133 @@ public class ExploreTests : IClassFixture<TestApp>
         Assert.True(mine.GetProperty("items")[0].GetProperty("fired").GetBoolean());
         Assert.True(mine.GetProperty("items")[1].GetProperty("isMine").GetBoolean());
     }
+
+    // ---- looks by piece (PostItems) ----
+
+    /// <summary>A scripted answer whose items are the given (name, category) pairs; the rest is <see cref="Payloads.Ok"/>'s.</summary>
+    private static JsonElement ItemsPayload(params (string Name, string Category)[] items)
+    {
+        var list = string.Join(",", items.Select(i => $$"""{ "name": {{JsonSerializer.Serialize(i.Name)}}, "category": "{{i.Category}}", "verdict": "neutral", "note": "" }"""));
+        return Payloads.Parse($$"""
+            {
+              "status": "ok", "score": 7, "intent_match": 70, "headline": "Seeded", "vibe": "seeded",
+              "items": [{{list}}], "working": ["Seeded"], "one_tip": "Seeded."
+            }
+            """);
+    }
+
+    private async Task<List<(string Name, string Category)>> ItemsOfAsync(Guid postId)
+    {
+        using var scope = _app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.PostItems.Where(i => i.PostId == postId).OrderBy(i => i.Name).Select(i => new ValueTuple<string, string>(i.Name, i.Category)).ToListAsync();
+    }
+
+    [Fact]
+    public async Task Posting_writes_the_stylists_items_lower_cased_capped_and_distinct_and_deleting_the_look_removes_them()
+    {
+        var longName = "A " + new string('x', 70);
+        _app.Vision.Handler = _ => ItemsPayload(
+            ("Black Boots", "shoes"), ("black boots", "shoes"), ("  White   Tee ", "top"), ("Dark jeans", "bottom"), (longName, "outerwear"),
+            ("Gold hoops", "accessory"), ("Beige trench", "outerwear"), ("Silk scarf", "hat"), ("Leather belt", "accessory"), ("Wool coat", "outerwear"), ("Extra one", "other"));
+        var (owner, _, _) = await _app.NewUserAsync("ex_items_owner");
+        var postId = await _app.CheckAndPostAsync(owner);
+
+        var items = await ItemsOfAsync(postId);
+        // Eleven named, one a duplicate by case, so ten distinct; the first eight are kept, in lower case, one space between words.
+        Assert.Equal(8, items.Count);
+        var names = items.Select(i => i.Name).ToList();
+        Assert.Contains("black boots", names);
+        Assert.Contains("white tee", names);
+        Assert.Contains("dark jeans", names);
+        Assert.Contains("gold hoops", names);
+        Assert.Contains("beige trench", names);
+        Assert.Contains("silk scarf", names);
+        Assert.Contains("leather belt", names);
+        Assert.DoesNotContain("wool coat", names);
+        Assert.DoesNotContain("extra one", names);
+        Assert.All(names, n => Assert.Equal(n.ToLowerInvariant(), n));
+        var cut = Assert.Single(names, n => n.StartsWith("a xxx", StringComparison.Ordinal));
+        Assert.Equal(60, cut.Length);
+        Assert.Equal("shoes", items.Single(i => i.Name == "black boots").Category);
+        // A category the stylist invents is stored as "other".
+        Assert.Equal("other", items.Single(i => i.Name == "silk scarf").Category);
+
+        // The look's items go with the look; the check keeps its own feedback.
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync($"/api/posts/{postId}")).StatusCode);
+        Assert.Empty(await ItemsOfAsync(postId));
+    }
+
+    [Fact]
+    public async Task Search_finds_looks_by_item_newest_first_without_hidden_or_suspended_ones_and_caps_at_twelve()
+    {
+        _app.Vision.Handler = _ => ItemsPayload(("Black leather boots", "shoes"), ("White tee", "top"));
+        var (owner, _, _) = await _app.NewUserAsync("ex_item_owner");
+        var (banned, bannedId, _) = await _app.NewUserAsync("ex_item_banned");
+        var (other, _, _) = await _app.NewUserAsync("ex_item_other");
+
+        var posted = new List<Guid>();
+        for (var i = 0; i < 14; i++)
+        {
+            posted.Add(await _app.CheckAndPostAsync(owner));
+        }
+
+        var hidden = posted[5];
+        await UpdatePostAsync(hidden, p => p.Hidden = true);
+        var bannedPost = await _app.CheckAndPostAsync(banned);
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == bannedId)).Suspended = true;
+            await db.SaveChangesAsync();
+        }
+
+        _app.Vision.Handler = _ => ItemsPayload(("Red dress", "dress"));
+        var dress = await _app.CheckAndPostAsync(other);
+
+        var result = await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/search?q=BOOTS");
+        var ids = Ids(result.GetProperty("posts"));
+        // Thirteen visible looks by the owner match; the twelve newest come back, newest first; the hidden one and the
+        // suspended account's look never do, and neither does a look whose pieces do not carry the term.
+        var visible = posted.Where(id => id != hidden).ToList();
+        visible.Reverse();
+        Assert.Equal(visible.Take(12), ids);
+        Assert.DoesNotContain(hidden, ids);
+        Assert.DoesNotContain(bannedPost, ids);
+        Assert.DoesNotContain(dress, ids);
+        Assert.Equal("/api/posts/" + ids[0] + "/image", result.GetProperty("posts")[0].GetProperty("imageUrl").GetString());
+        Assert.Equal("ex_item_owner", result.GetProperty("posts")[0].GetProperty("user").GetProperty("handle").GetString());
+
+        // A piece is matched anywhere in its name, in either case; the dress answers to its own word.
+        Assert.Equal(12, Ids((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/search?q=leather")).GetProperty("posts")).Count);
+        Assert.Equal([dress], Ids((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/search?q=%23Red")).GetProperty("posts")));
+        Assert.Empty((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/search?q=sandals")).GetProperty("posts").EnumerateArray());
+
+        // Signed in, the viewer's own state rides along as in every list of looks.
+        await other.PostAsync($"/api/posts/{ids[0]}/fire", null);
+        var mine = await other.GetFromJsonAsync<JsonElement>("/api/search?q=boots");
+        Assert.True(mine.GetProperty("posts")[0].GetProperty("fired").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Search_by_item_takes_percent_and_underscore_as_letters()
+    {
+        _app.Vision.Handler = _ => ItemsPayload(("100% cotton tee", "top"), ("wide_leg jeans", "bottom"), ("Plain sneakers", "shoes"));
+        var (owner, _, _) = await _app.NewUserAsync("ex_item_escape");
+        var postId = await _app.CheckAndPostAsync(owner);
+        var client = _app.NewClient();
+
+        async Task<List<Guid>> Find(string q) => Ids((await client.GetFromJsonAsync<JsonElement>("/api/search?q=" + Uri.EscapeDataString(q))).GetProperty("posts"));
+
+        Assert.Equal([postId], await Find("100%"));
+        Assert.Equal([postId], await Find("wide_leg"));
+        // "_" is not "any one character" and "%" is not "anything": the near misses stay misses.
+        Assert.Empty(await Find("100_"));
+        Assert.Empty(await Find("wide%leg"));
+        Assert.Empty(await Find("plain%sneakers"));
+        Assert.Empty(await Find("plai_ sneakers"));
+        // A bare wildcard on its own finds only names that carry the character.
+        Assert.Equal([postId], await Find("%"));
+        Assert.Equal([postId], await Find("_"));
+    }
 }

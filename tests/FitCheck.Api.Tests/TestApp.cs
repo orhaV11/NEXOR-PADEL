@@ -41,10 +41,24 @@ public class TestApp : WebApplicationFactory<Program>
     /// account that already exists when the host starts; a moderator for a running app is made with <see cref="PromoteAsync"/>.
     /// </summary>
     public string AdminHandles { get; init; } = "";
+    /// <summary>
+    /// Mail on (Email:Host and Email:From set, so links are minted and the client offers recovery) or off, as a server
+    /// without SMTP settings runs. Either way every message lands in <see cref="Email"/> and nothing is sent.
+    /// </summary>
+    public bool EmailEnabled { get; init; } = true;
+    /// <summary>Stands in for the mail server: records every message the app sends, link included.</summary>
+    public RecordingEmailSender Email { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         Directory.CreateDirectory(Root);
+        Email.Enabled = EmailEnabled;
+        if (EmailEnabled)
+        {
+            builder.UseSetting("Email:Host", "smtp.test.invalid");
+            builder.UseSetting("Email:From", "OREVOSH <noreply@test.invalid>");
+        }
+
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Storage:Root", StorageRoot);
         builder.UseSetting("Storage:MaxVideoBytes", MaxVideoBytes.ToString());
@@ -68,6 +82,9 @@ public class TestApp : WebApplicationFactory<Program>
         {
             services.RemoveAll<IOutfitVisionClient>();
             services.AddSingleton<IOutfitVisionClient>(Vision);
+            // Outgoing mail goes to the recorder instead of SMTP or the log.
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(Email);
             // Outgoing pushes go to the recorder instead of the network.
             services.AddHttpClient(PushSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => PushHandler);
             if (PushConfirmAttempts != PushSender.ConfirmAttempts || PushConfirmIntervalMs != PushSender.ConfirmIntervalMs)
@@ -184,6 +201,75 @@ public class TestApp : WebApplicationFactory<Program>
         {
             // Best effort: temp folders are not worth a failing test.
         }
+    }
+}
+
+/// <summary>
+/// Stand-in for the mail server. Records every message; <see cref="Fail"/> makes the next sends throw, the way a mail
+/// server that is down would. Forgot-password mail goes out in the background, so <see cref="WaitForAsync"/> waits for it.
+/// </summary>
+public sealed class RecordingEmailSender : IEmailSender
+{
+    private readonly List<EmailMessage> _sent = [];
+    private readonly SemaphoreSlim _arrived = new(0);
+
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>While true, every send throws (after recording nothing).</summary>
+    public bool Fail { get; set; }
+
+    public IReadOnlyList<EmailMessage> Sent
+    {
+        get
+        {
+            lock (_sent)
+            {
+                return _sent.ToList();
+            }
+        }
+    }
+
+    /// <summary>Messages to one address, in the order they were sent.</summary>
+    public List<EmailMessage> To(string address) => Sent.Where(m => m.To == address).ToList();
+
+    /// <summary>Waits until at least <paramref name="count"/> messages to the address have arrived, or the timeout passes.</summary>
+    public Task<List<EmailMessage>> WaitForAsync(string address, int count = 1, int timeoutMs = 5000) =>
+        WaitForAsync(m => m.To == address, count, timeoutMs);
+
+    /// <summary>Waits until at least <paramref name="count"/> messages matching the predicate have arrived, or the timeout passes.</summary>
+    public async Task<List<EmailMessage>> WaitForAsync(Func<EmailMessage, bool> predicate, int count = 1, int timeoutMs = 5000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (true)
+        {
+            var matching = Sent.Where(predicate).ToList();
+            if (matching.Count >= count)
+            {
+                return matching;
+            }
+
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero || !await _arrived.WaitAsync(remaining))
+            {
+                return matching;
+            }
+        }
+    }
+
+    public Task SendAsync(EmailMessage message, CancellationToken ct)
+    {
+        if (Fail)
+        {
+            throw new IOException("The mail server is not answering.");
+        }
+
+        lock (_sent)
+        {
+            _sent.Add(message);
+        }
+
+        _arrived.Release();
+        return Task.CompletedTask;
     }
 }
 

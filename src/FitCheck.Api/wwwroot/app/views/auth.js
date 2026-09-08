@@ -1,8 +1,10 @@
 // Auth and onboarding: sign in, join (handle, password and the 16+ line, nothing else) and the welcome screen
-// that follows a signup: pick the styles you wear, follow a few brands, then in. Both auth pages are public;
-// a signed-in person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
+// that follows a signup: pick the styles you wear, an email in case you get locked out, follow a few brands, then in.
+// Recovery lives here too: forgot (a handle or email, always "the link is on its way"), reset (the link from the mail,
+// a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
+// person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: the two-line checkbox text, bigger onboarding steps and chips.
@@ -17,6 +19,7 @@ const CSS = `
 .w-chips .chip { min-block-size: 44px; padding-inline: 16px; }
 .w-people { display: flex; flex-direction: column; }
 .w-actions { display: flex; flex-direction: column; gap: 8px; }
+.auth-links { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -25,7 +28,7 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: CSS }));
 }
 
-const AUTH_ROUTE = /^#\/(login|signup|welcome)(\/|$)/;
+const AUTH_ROUTE = /^#\/(login|signup|welcome|forgot|reset|verify)(\/|$)/;
 /** Where to go once signed in: the page that asked for the sign-in, unless that was an auth page itself. Clears it. */
 function takeReturnTo() {
   const back = state.returnTo && !AUTH_ROUTE.test(state.returnTo) ? state.returnTo : null;
@@ -94,6 +97,8 @@ function authView(mode) {
       signup ? el('p', { class: 'auth-guidelines' }, [el('a', { class: 'btn-text', id: 'a-guidelines', href: '#/guidelines', text: t('guidelines.link') })]) : null,
       error,
       submit,
+      // The way back in without the password: only where this server can mail a link (the page says so otherwise).
+      signup ? null : el('p', { class: 'hint auth-switch' }, [el('a', { href: '#/forgot', id: 'a-forgot', text: t('auth.forgot') })]),
       el('p', { class: 'hint auth-switch' }, [
         t(signup ? 'auth.have_account' : 'auth.no_account') + ' ',
         el('a', { href: signup ? '#/login' : '#/signup', text: t(signup ? 'auth.login' : 'auth.signup') })
@@ -128,7 +133,15 @@ register('welcome', async (root, params, ctx) => {
     return chip;
   }));
 
-  // Step 2 fills in once Explore answers; it stays hidden when there are no brands (or the endpoint is not there yet).
+  // Step 2: an address for getting back in, only where this server can mail the link. Optional, saved with the styles.
+  const emailInput = state.config.email ? el('input', {
+    type: 'text', id: 'w-email', name: 'email', maxlength: '200', inputmode: 'email', autocomplete: 'email',
+    autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', dir: 'ltr', enterkeyhint: 'done',
+    placeholder: t('welcome.email_placeholder'), 'aria-label': t('settings.email'), value: state.me.email || ''
+  }) : null;
+  const emailError = el('p', { class: 'alert danger', role: 'alert', hidden: true });
+
+  // Step 3 fills in once Explore answers; it stays hidden when there are no brands (or the endpoint is not there yet).
   const brands = el('section', { class: 'w-step', hidden: true });
 
   let busy = false;
@@ -139,12 +152,23 @@ register('welcome', async (root, params, ctx) => {
     if (busy) return;
     busy = true; done.disabled = true; skip.disabled = true;
     const interests = INTENTS.filter((intent) => picked.has(intent));
-    if (interests.length) {
+    const email = emailInput ? emailInput.value.trim() : '';
+    const emailChanged = !!emailInput && email !== (state.me.email || '');
+    if (interests.length || emailChanged) {
+      const body = {};
+      if (interests.length) body.interests = interests;
+      if (emailChanged) body.email = email;
       try {
-        const me = await api('PATCH', '/api/users/me', { interests });
+        const me = await api('PATCH', '/api/users/me', body);
         if (me) state.me = me;
         toast(t('welcome.saved'));
-      } catch (e) { toast(e.message); }
+      } catch (e) {
+        if (ctx.stale()) return;
+        // Stay, with the reason: an address with a typo is fixed here, not lost.
+        if (emailChanged) showAlert(emailError, e.message); else toast(e.message);
+        busy = false; done.disabled = false; skip.disabled = false;
+        return;
+      }
       if (ctx.stale()) return;
     }
     leave();
@@ -156,6 +180,14 @@ register('welcome', async (root, params, ctx) => {
     el('p', { class: 'hint', text: t('welcome.styles_hint') }),
     chips
   ]));
+  if (emailInput) {
+    root.appendChild(el('section', { class: 'w-step', id: 'w-email-step' }, [
+      el('h2', { text: t('welcome.email_title') }),
+      el('p', { class: 'hint', text: t('welcome.email_hint') }),
+      el('div', { class: 'field' }, [emailInput]),
+      emailError
+    ]));
+  }
   root.appendChild(brands);
   root.appendChild(el('div', { class: 'w-actions' }, [done, skip]));
 
@@ -171,4 +203,135 @@ register('welcome', async (root, params, ctx) => {
     brands.appendChild(el('div', { class: 'w-people' }, cards.map((card) => userRow(card))));
     brands.hidden = false;
   })();
+});
+
+// ---------- forgot / reset / verify ----------
+
+const loginLink = () => el('p', { class: 'hint auth-switch' }, [el('a', { href: '#/login', text: t('auth.login') })]);
+
+// A handle or an email, and always the same answer: the server never says whether it knows the account.
+register('forgot', async (root, params, ctx) => {
+  if (state.me) { redirect('#/'); return; }
+  ensureStyle();
+  setTopBar({ back: '#/login', actions: [langButton()] });
+  root.appendChild(el('h1', { text: t('auth.forgot_title') }));
+
+  if (!state.config.email) {
+    root.appendChild(el('p', { class: 'alert', id: 'f-disabled', text: t('auth.forgot_disabled') }));
+    root.appendChild(loginLink());
+    return;
+  }
+
+  const key = el('input', {
+    type: 'text', id: 'f-key', name: 'username', maxlength: '200', autocomplete: 'username', inputmode: 'email',
+    autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'send'
+  });
+  const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
+  const submit = el('button', { type: 'submit', class: 'btn', id: 'f-submit', text: t('auth.forgot_submit') });
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    const value = key.value.trim();
+    if (submit.disabled) return;
+    if (!value) { key.focus(); return; }
+    submit.disabled = true;
+    error.hidden = true;
+    try {
+      await api('POST', '/api/auth/forgot', { handleOrEmail: value });
+      if (ctx.stale()) return;
+      const sent = el('p', { class: 'alert', id: 'f-sent', role: 'status' , text: t('auth.forgot_sent') });
+      form.replaceWith(el('div', { class: 'stack' }, [sent, loginLink()]));
+      sent.setAttribute('tabindex', '-1');
+      sent.focus();
+    } catch (e) {
+      if (ctx.stale()) return;
+      showAlert(error, e.message);
+      submit.disabled = false;
+    }
+  };
+  const form = el('form', { class: 'stack', novalidate: true, onsubmit }, [
+    el('div', { class: 'field' }, [el('label', { for: 'f-key', text: t('auth.forgot_field') }), key]),
+    error,
+    submit,
+    loginLink()
+  ]);
+  root.appendChild(el('p', { class: 'lede', text: t('auth.forgot_hint') }));
+  root.appendChild(form);
+  key.focus();
+});
+
+// The link from the mail: a new password, then in. A link the server refuses gets the way to a new one.
+register('reset', async (root, params, ctx) => {
+  ensureStyle();
+  setTopBar({ back: '#/login', actions: [langButton()] });
+  root.appendChild(el('h1', { text: t('auth.reset_title') }));
+  const token = params.token || '';
+
+  const invalid = () => {
+    root.appendChild(el('p', { class: 'alert danger', id: 'r-invalid', role: 'alert', text: t('auth.reset_invalid') }));
+    root.appendChild(el('p', { class: 'auth-links' }, [el('a', { class: 'btn-text', href: '#/forgot', id: 'r-again', text: t('auth.reset_again') })]));
+  };
+  if (!token) { invalid(); return; }
+
+  const password = el('input', { type: 'password', id: 'r-password', name: 'password', maxlength: '200', autocomplete: 'new-password', enterkeyhint: 'go' });
+  const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
+  const submit = el('button', { type: 'submit', class: 'btn', id: 'r-submit', text: t('auth.reset_submit') });
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    if (submit.disabled) return;
+    // The same rule as signup, checked here first: a server 400 then means the link, not the password.
+    if (password.value.length < 8) { showAlert(error, t('auth.password_hint')); return; }
+    submit.disabled = true;
+    error.hidden = true;
+    try {
+      const me = await api('POST', '/api/auth/reset', { token, password: password.value });
+      // Whoever was signed in on this phone is not this person any more: their private state goes with them.
+      if (state.me && me && state.me.id !== me.id) resetSession();
+      state.me = me;
+      renderShell();
+      toast(t('auth.reset_done'));
+      if (ctx.stale()) return;
+      navigate('#/');
+    } catch (e) {
+      if (ctx.stale()) return;
+      if (e.status === 400) { form.remove(); invalid(); return; }
+      showAlert(error, e.message);
+      submit.disabled = false;
+    }
+  };
+  const form = el('form', { class: 'stack', novalidate: true, onsubmit }, [
+    el('div', { class: 'field' }, [
+      el('label', { for: 'r-password', text: t('auth.password') }),
+      password,
+      el('p', { class: 'hint', text: t('auth.password_hint') })
+    ]),
+    error,
+    submit
+  ]);
+  root.appendChild(form);
+  password.focus();
+});
+
+// The link from the verification mail. Works signed out (the link names the account) and never signs anyone in.
+register('verify', async (root, params, ctx) => {
+  ensureStyle();
+  setTopBar({ back: state.me ? '#/settings' : '#/', actions: [langButton()] });
+  root.appendChild(el('h1', { text: t('auth.verify_title') }));
+  const next = () => el('p', { class: 'auth-links' }, [
+    el('a', { class: 'btn-text', href: state.me ? '#/settings' : '#/login', id: 'v-next', text: t(state.me ? 'settings.title' : 'auth.login') })
+  ]);
+
+  let me = null;
+  try {
+    me = await api('POST', '/api/auth/verify-email', { token: params.token || '' });
+  } catch (e) {
+    if (ctx.stale()) return;
+    root.appendChild(el('p', { class: 'alert danger', id: 'v-invalid', role: 'alert', text: e.status === 400 ? t('auth.verify_invalid') : e.message }));
+    root.appendChild(next());
+    return;
+  }
+  if (ctx.stale()) return;
+  // The confirmed account is the one signed in here: Settings shows it confirmed without a reload.
+  if (me && state.me && state.me.id === me.id) { state.me = me; renderShell(); }
+  root.appendChild(el('p', { class: 'alert', id: 'v-done', role: 'status', text: t('auth.verify_done') }));
+  root.appendChild(next());
 });

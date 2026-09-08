@@ -12,6 +12,9 @@ public static partial class AuthEndpoints
 {
     public const string SignupPolicy = "signup";
     public const string LoginPolicy = "login";
+    /// <summary>Forgot-password and verification-resend requests: a fixed window per client address (Limits:RecoveryPerHourPerIp).</summary>
+    public const string RecoveryPolicy = "recovery";
+    public const int RecoveryPerHourPerIpDefault = 5;
     public const int PasswordMinLength = 8;
 
     // Handles appear in URLs and in notifications; letters in any script, digits, dot and underscore.
@@ -28,6 +31,11 @@ public static partial class AuthEndpoints
         group.MapPost("/login", LoginAsync).RequireRateLimiting(LoginPolicy);
         group.MapPost("/logout", LogoutAsync);
         group.MapGet("/me", MeAsync).RequireAuthorization();
+        // Recovery: all three are public. The two that take a token are not rate-limited beyond the global brake: a token
+        // is 256 random bits, and a person retyping a password must not be locked out of their own link.
+        group.MapPost("/forgot", ForgotAsync).RequireRateLimiting(RecoveryPolicy);
+        group.MapPost("/reset", ResetAsync);
+        group.MapPost("/verify-email", VerifyEmailAsync);
         return app;
     }
 
@@ -43,7 +51,37 @@ public static partial class AuthEndpoints
         var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
         var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
-            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin);
+            PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin, user.Email, user.EmailVerifiedAt is not null);
+    }
+
+    /// <summary>
+    /// Mints a verification token for the account's current address (voiding the open ones), saves, and mails the link.
+    /// The token is saved before the mail goes out, so a send that fails leaves an address the person can ask a link for
+    /// again; the caller answers 502 error.email_send_failed when this returns false.
+    /// </summary>
+    public static async Task<bool> SendVerificationAsync(
+        HttpContext context, AppDbContext db, AppUser user, IEmailSender email, IOptions<EmailOptions> options, Localizer localizer, ILogger logger, CancellationToken ct)
+    {
+        if (user.Email is null)
+        {
+            throw new InvalidOperationException("No address to verify.");
+        }
+
+        var token = await RecoveryTokens.IssueAsync(db, user.Id, AuthTokenPurpose.Verify, user.Email, ct);
+        await db.SaveChangesAsync(ct);
+
+        var link = RecoveryTokens.VerifyLink(RecoveryTokens.Origin(context.Request, options.Value), token);
+        var message = new EmailMessage(user.Email, localizer.Get(user.PreferredLanguage, "email.verify_subject"), localizer.Get(user.PreferredLanguage, "email.verify_body", user.Handle, link));
+        try
+        {
+            await email.SendAsync(message, ct);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Verification mail for {UserId} could not be sent", user.Id);
+            return false;
+        }
     }
 
     private static async Task<IResult> SignupAsync(
@@ -155,6 +193,110 @@ public static partial class AuthEndpoints
     {
         await Sessions.SignOutAsync(context);
         return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Always 202 with an empty body, whatever the handle or address stands for: an answer that differed would list who
+    /// has an account. The mail goes out only for an account that is not suspended and whose address is verified, and it
+    /// goes out in the background so the answer takes the same time either way and never waits on a mail server.
+    /// </summary>
+    private static async Task<IResult> ForgotAsync(
+        ForgotPasswordRequest body, HttpContext context, AppDbContext db, IEmailSender email, IOptions<EmailOptions> options, Localizer localizer,
+        ILoggerFactory loggerFactory, CancellationToken ct)
+    {
+        var key = body.HandleOrEmail?.Trim() ?? "";
+        AppUser? user = null;
+        if (key.Length is > 0 and <= RecoveryTokens.MaxEmailLength)
+        {
+            if (key.Contains('@'))
+            {
+                var address = key.ToLowerInvariant();
+                user = await db.Users.FirstOrDefaultAsync(u => u.Email == address, ct);
+            }
+            else
+            {
+                user = await UserEndpoints.FindByHandleAsync(db, key, ct);
+            }
+        }
+
+        if (email.Enabled && user is { Suspended: false, Email: not null, EmailVerifiedAt: not null })
+        {
+            var token = await RecoveryTokens.IssueAsync(db, user.Id, AuthTokenPurpose.Reset, user.Email, ct);
+            await db.SaveChangesAsync(ct);
+            var link = RecoveryTokens.ResetLink(RecoveryTokens.Origin(context.Request, options.Value), token);
+            var message = new EmailMessage(user.Email, localizer.Get(user.PreferredLanguage, "email.reset_subject"), localizer.Get(user.PreferredLanguage, "email.reset_body", user.Handle, link));
+            var logger = loggerFactory.CreateLogger(typeof(AuthEndpoints));
+            var userId = user.Id;
+            // The sender is a singleton and the message is a value: nothing scoped is touched after the request ends.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await email.SendAsync(message, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Reset mail for {UserId} could not be sent", userId);
+                }
+            }, CancellationToken.None);
+        }
+
+        return Results.Accepted();
+    }
+
+    /// <summary>
+    /// A valid reset token plus a password: the password changes, every reset token of the account is spent, and the
+    /// person is signed in. A suspended account gets the same refusal as a bad token, so the door says nothing new.
+    /// </summary>
+    private static async Task<IResult> ResetAsync(
+        ResetPasswordRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, CancellationToken ct)
+    {
+        var language = Localizer.Resolve(null, context.Request);
+        var token = await RecoveryTokens.FindValidAsync(db, body.Token, AuthTokenPurpose.Reset, ct);
+        var user = token is null ? null : await db.Users.FindAsync([token.UserId], ct);
+        if (token is null || user is null || user.Suspended)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.token_invalid"));
+        }
+
+        // The link stays valid past a password the rule refuses: the person fixes the password, not the link.
+        var password = body.Password ?? "";
+        if (password.Length < PasswordMinLength || password.Length > 200)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.password_short"));
+        }
+
+        var now = DateTime.UtcNow;
+        user.PasswordHash = hasher.HashPassword(user, password);
+        await RecoveryTokens.VoidOpenAsync(db, user.Id, AuthTokenPurpose.Reset, now, ct);
+        token.UsedAt = now;
+        await db.SaveChangesAsync(ct);
+
+        await Sessions.SignInAsync(context, user);
+        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
+    }
+
+    /// <summary>
+    /// Marks the address verified when the token is open and was issued for the address the account still has (a link
+    /// mailed to an earlier address proves nothing about the current one). Works signed out: the token names the user,
+    /// and nobody is signed in by it.
+    /// </summary>
+    private static async Task<IResult> VerifyEmailAsync(
+        VerifyEmailRequest body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    {
+        var language = Localizer.Resolve(null, context.Request);
+        var token = await RecoveryTokens.FindValidAsync(db, body.Token, AuthTokenPurpose.Verify, ct);
+        var user = token is null ? null : await db.Users.FindAsync([token.UserId], ct);
+        if (token is null || user is null || user.Email is null || token.Email != user.Email)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.token_invalid"));
+        }
+
+        var now = DateTime.UtcNow;
+        user.EmailVerifiedAt = now;
+        token.UsedAt = now;
+        await db.SaveChangesAsync(ct);
+        return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
     }
 
     private static async Task<IResult> MeAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)

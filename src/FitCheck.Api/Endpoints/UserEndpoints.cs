@@ -3,6 +3,7 @@ using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Endpoints;
 
@@ -23,6 +24,7 @@ public static class UserEndpoints
         // The form is read by hand, so the antiforgery filter has nothing to validate; the X-Requested-With check covers CSRF.
         group.MapPost("/me/avatar", UploadAvatarAsync).DisableAntiforgery().RequireAuthorization();
         group.MapDelete("/me/avatar", DeleteAvatarAsync).RequireAuthorization();
+        group.MapPost("/me/email/resend", ResendVerificationAsync).RequireAuthorization().RequireRateLimiting(AuthEndpoints.RecoveryPolicy);
         group.MapGet("/me/checks", ListMyChecksAsync).RequireAuthorization();
         group.MapGet("/me/saved", ListSavedAsync).RequireAuthorization();
         group.MapGet("/{handle}", GetProfileAsync);
@@ -103,12 +105,55 @@ public static class UserEndpoints
             : db.Posts.Where(p => !p.Hidden && p.UserId == user.Id && p.FeaturedByBrandId != null);
 
     private static async Task<IResult> UpdateMeAsync(
-        UpdateMeRequest body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+        UpdateMeRequest body, HttpContext context, AppDbContext db, Localizer localizer, IEmailSender email, IOptions<EmailOptions> emailOptions,
+        ILoggerFactory loggerFactory, CancellationToken ct)
     {
         var (user, failure) = await RequireUserAsync(context, db, localizer, ct);
         if (user is null)
         {
             return failure!;
+        }
+
+        // Email: null leaves it, "" clears it (with the verification and every open link), a new address replaces it
+        // unverified and gets a link. Checked first, so nothing else changes when the address is refused.
+        var newAddress = false;
+        if (body.Email is not null)
+        {
+            var trimmed = body.Email.Trim();
+            if (trimmed.Length == 0)
+            {
+                if (user.Email is not null)
+                {
+                    user.Email = null;
+                    user.EmailVerifiedAt = null;
+                    await RecoveryTokens.VoidOpenAsync(db, user.Id, AuthTokenPurpose.Verify, DateTime.UtcNow, ct);
+                }
+            }
+            else
+            {
+                // An address nobody can confirm is not worth keeping: with mail off the field is refused, not stored.
+                if (!email.Enabled)
+                {
+                    return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.email_disabled"));
+                }
+
+                if (!RecoveryTokens.TryNormalizeEmail(trimmed, out var address))
+                {
+                    return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.email_invalid"));
+                }
+
+                if (address != user.Email)
+                {
+                    if (await db.Users.AnyAsync(u => u.Email == address && u.Id != user.Id, ct))
+                    {
+                        return Error(StatusCodes.Status409Conflict, localizer.Get(user.PreferredLanguage, "error.email_taken"));
+                    }
+
+                    user.Email = address;
+                    user.EmailVerifiedAt = null;
+                    newAddress = true;
+                }
+            }
         }
 
         if (body.Language is not null)
@@ -190,8 +235,51 @@ public static class UserEndpoints
             user.Interests = interests.Count == 0 ? null : string.Join(',', interests);
         }
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException) when (newAddress)
+        {
+            // Two accounts raced for the same address; the unique index decided.
+            return Error(StatusCodes.Status409Conflict, localizer.Get(user.PreferredLanguage, "error.email_taken"));
+        }
+
+        if (newAddress && !await AuthEndpoints.SendVerificationAsync(context, db, user, email, emailOptions, localizer, loggerFactory.CreateLogger(typeof(UserEndpoints)), ct))
+        {
+            // The address and its link are saved: "Send the link again" in Settings is the retry.
+            return Error(StatusCodes.Status502BadGateway, localizer.Get(user.PreferredLanguage, "error.email_send_failed"));
+        }
+
         return Results.Json(await AuthEndpoints.ToMeAsync(db, user, ct), AppJson.Options);
+    }
+
+    /// <summary>A fresh verification link for the address on the account (the earlier links stop working). 204 when it went out.</summary>
+    private static async Task<IResult> ResendVerificationAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, IEmailSender email, IOptions<EmailOptions> emailOptions, ILoggerFactory loggerFactory, CancellationToken ct)
+    {
+        var (user, failure) = await RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        if (!email.Enabled)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.email_disabled"));
+        }
+
+        if (user.Email is null || user.EmailVerifiedAt is not null)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.invalid_request"));
+        }
+
+        if (!await AuthEndpoints.SendVerificationAsync(context, db, user, email, emailOptions, localizer, loggerFactory.CreateLogger(typeof(UserEndpoints)), ct))
+        {
+            return Error(StatusCodes.Status502BadGateway, localizer.Get(user.PreferredLanguage, "error.email_send_failed"));
+        }
+
+        return Results.NoContent();
     }
 
     /// <summary>Replaces the profile photo. Detected from its bytes, capped at 2 MB, stored beside the person's checks.</summary>
@@ -395,6 +483,8 @@ public static class UserEndpoints
 
         await db.Posts.Where(p => p.UserId == id).ExecuteDeleteAsync(ct);
         await db.Checks.Where(c => c.UserId == id).ExecuteDeleteAsync(ct);
+        // The recovery links cascade with the row, but a link that outlived its account would be a way back in; explicit.
+        await db.AuthTokens.Where(t => t.UserId == id).ExecuteDeleteAsync(ct);
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);

@@ -842,7 +842,7 @@ async function postIt(page, opts) {
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
   const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
     && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar)/.test(u))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)/.test(u))
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));

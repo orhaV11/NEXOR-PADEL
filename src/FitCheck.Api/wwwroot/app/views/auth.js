@@ -1,4 +1,4 @@
-// Auth and onboarding: sign in, join (handle, password and the 16+ line, nothing else) and the welcome screen
+// Auth and onboarding: sign in, join (handle, password and the date of birth, nothing else) and the welcome screen
 // that follows a signup: pick the styles you wear, an email in case you get locked out, follow a few brands, then in.
 // Recovery lives here too: forgot (a handle or email, always "the link is on its way"), reset (the link from the mail,
 // a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
@@ -7,13 +7,19 @@ import {
   register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession
 } from '../core.js';
 
-// The few rules the shared stylesheet does not have: the two-line checkbox text, bigger onboarding steps and chips.
+// The few rules the shared stylesheet does not have: the date field, the agreement line, bigger onboarding steps and chips.
 const CSS = `
-.auth-check-text { display: grid; gap: 2px; }
 .auth-switch { text-align: center; }
 .auth-switch a { color: var(--accent); text-decoration: none; font-weight: 500; }
-.auth-guidelines { margin-block-start: 0; padding-inline-start: 34px; }   /* under the 16+ text, past the box */
-.auth-guidelines .btn-text { font-size: 14px; padding-block: 0; }
+/* the date field, dressed like the text fields (the shared rule lists types and a date input is not one): a date is a
+   numeral, so its fields keep their order in Hebrew and sit at the end edge; color-scheme keeps the picker dark */
+.auth-dob { inline-size: 100%; min-block-size: 50px; border: 0; border-radius: var(--radius-sm); background: var(--surface-2); padding-block: 10px; padding-inline: 14px; font-size: 16px; font-family: inherit; color: var(--ink); outline: none; -webkit-appearance: none; appearance: none; color-scheme: dark; direction: ltr; text-align: start; }
+[dir="rtl"] .auth-dob { text-align: end; }
+.auth-dob:focus-visible { outline: none; }
+.auth-dob::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.8; }
+.auth-dob::-webkit-date-and-time-value { text-align: inherit; }
+.auth-agree { text-align: center; line-height: 1.5; }
+.auth-agree a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(179, 157, 255, 0.5); font-weight: 500; white-space: nowrap; }
 .w-step > * + * { margin-block-start: 10px; }
 .w-step h2 { font-family: var(--font-display); font-size: 20px; line-height: 1.15; font-weight: 800; color: var(--ink); }
 .w-chips .chip { min-block-size: 44px; padding-inline: 16px; }
@@ -36,6 +42,21 @@ function takeReturnTo() {
   return back || '#/';
 }
 const langButton = () => iconButton('globe', t('lang.label'), openLanguageSheet, { id: 'lang' });
+/** Today as the date input wants it (yyyy-MM-dd), in the phone's own calendar day: nobody is stopped on their birthday. */
+function isoToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+/** A message with elements in its {slots}: the text around them stays text, so the translation orders the links. */
+function richText(key, slots) {
+  const nodes = [];
+  for (const part of t(key).split(/(\{\w+\})/)) {
+    const slot = part.length > 2 && part.startsWith('{') && part.endsWith('}') ? part.slice(1, -1) : null;
+    if (slot && slots[slot]) nodes.push(slots[slot]);
+    else if (part) nodes.push(part);
+  }
+  return nodes;
+}
 
 // ---------- sign in / join ----------
 
@@ -54,7 +75,11 @@ function authView(mode) {
       type: 'password', id: 'a-password', name: 'password', maxlength: '200',
       autocomplete: signup ? 'new-password' : 'current-password', enterkeyhint: 'go'
     });
-    const age = signup ? el('input', { type: 'checkbox', id: 'a-age', name: 'age' }) : null;
+    // The date of birth replaces the 16+ checkbox: the server decides (16 on the day; "yyyy-MM-dd" is what the picker
+    // sends whatever the locale) and its message shows here like any other. max stops the picker at today.
+    const dob = signup ? el('input', {
+      type: 'date', id: 'a-dob', name: 'bday', class: 'auth-dob', autocomplete: 'bday', max: isoToday(), min: '1900-01-01', enterkeyhint: 'go'
+    }) : null;
     const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
     const submit = el('button', { type: 'submit', class: 'btn', id: 'a-submit', text: t(signup ? 'auth.submit_signup' : 'auth.submit_login') });
 
@@ -65,7 +90,7 @@ function authView(mode) {
       error.hidden = true;
       try {
         const me = signup
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, confirmed16Plus: age.checked, language: getLocale() })
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, language: getLocale() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
         renderShell();
@@ -89,14 +114,19 @@ function authView(mode) {
         password,
         signup ? el('p', { class: 'hint', text: t('auth.password_hint') }) : null
       ]),
-      signup ? el('label', { class: 'checkline', for: 'a-age' }, [
-        age,
-        el('span', { class: 'auth-check-text' }, [el('span', { text: t('auth.age') }), el('span', { class: 'hint', text: t('auth.privacy') })])
+      signup ? el('div', { class: 'field' }, [
+        el('label', { for: 'a-dob', text: t('auth.dob') }),
+        dob,
+        el('p', { class: 'hint', text: t('auth.dob_hint') })
       ]) : null,
-      // The rules they are agreeing to, a link outside the label so tapping it never toggles the box.
-      signup ? el('p', { class: 'auth-guidelines' }, [el('a', { class: 'btn-text', id: 'a-guidelines', href: '#/guidelines', text: t('guidelines.link') })]) : null,
       error,
       submit,
+      // What they are agreeing to: the terms, the privacy policy and the guidelines, each one tap away and back.
+      signup ? el('p', { class: 'hint auth-agree', id: 'a-agree' }, richText('auth.agree', {
+        terms: el('a', { href: '#/terms', id: 'a-terms', text: t('auth.agree_terms') }),
+        privacy: el('a', { href: '#/privacy', id: 'a-privacy', text: t('auth.agree_privacy') }),
+        guidelines: el('a', { href: '#/guidelines', id: 'a-guidelines', text: t('guidelines.link') })
+      })) : null,
       // The way back in without the password: only where this server can mail a link (the page says so otherwise).
       signup ? null : el('p', { class: 'hint auth-switch' }, [el('a', { href: '#/forgot', id: 'a-forgot', text: t('auth.forgot') })]),
       el('p', { class: 'hint auth-switch' }, [

@@ -148,6 +148,8 @@ register('admin', async (root, params, ctx) => {
   });
   const hint = el('p', { class: 'hint', text: t('admin.users_hint') });
   const people = el('div', { id: 'adm-users' });
+  // The pilot's numbers, one tap away for the same people who can read them.
+  root.appendChild(el('p', {}, [el('a', { class: 'btn-text', id: 'adm-metrics', href: '#/admin/metrics', text: t('dash.open') })]));
   root.appendChild(stats);
   root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { text: t('admin.queue') }), list]));
   root.appendChild(el('section', { class: 'adm-section adm-users' }, [

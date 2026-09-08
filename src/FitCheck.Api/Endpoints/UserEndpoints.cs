@@ -563,7 +563,8 @@ public static class UserEndpoints
                 Following: viewerId is Guid v && await db.Follows.AnyAsync(f => f.FollowerId == v && f.FollowedId == user.Id, ct)),
             AvatarUrl: PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion),
             Featured: await FeaturedPosts(db, user).CountAsync(ct),
-            Community: await MentioningPosts(db, user.Id).CountAsync(ct));
+            Community: await MentioningPosts(db, user.Id).CountAsync(ct),
+            Verified: user.Verified);
 
         return Results.Json(profile, AppJson.Options);
     }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
@@ -103,12 +104,6 @@ public static partial class AuthEndpoints
     {
         var language = Localizer.Resolve(body.Language, context.Request);
 
-        // No account without the self-declaration. Real age assurance comes before public launch.
-        if (!body.Confirmed16Plus)
-        {
-            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.age_required"));
-        }
-
         var handle = body.Handle?.Trim() ?? "";
         if (!HandleRegex().IsMatch(handle) || ReservedHandles.Contains(handle))
         {
@@ -140,6 +135,15 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status409Conflict, localizer.Get(language, "error.handle_taken"));
         }
 
+        // The date of birth decides, and it is required: the 16+ checkbox older clients still send is ignored. Checked
+        // last, in the form's order (handle, password, then the date), so the person fixes the top field first. Real age
+        // assurance comes before public launch; until then the date is stored and never shown to anyone.
+        var (birthDate, birthError) = ParseBirthDate(body.BirthDate, DateOnly.FromDateTime(DateTime.UtcNow));
+        if (birthError is not null)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, birthError));
+        }
+
         var user = new AppUser
         {
             Id = Guid.NewGuid(),
@@ -148,6 +152,7 @@ public static partial class AuthEndpoints
             AccountType = accountType,
             DisplayName = displayName,
             Confirmed16Plus = true,
+            BirthDate = birthDate!.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             PreferredLanguage = language,
             CreatedAt = DateTime.UtcNow
         };
@@ -165,6 +170,39 @@ public static partial class AuthEndpoints
 
         await Sessions.SignInAsync(context, user);
         return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
+    }
+
+    public const int MinimumAge = 16;
+    private static readonly DateOnly EarliestBirthDate = new(1900, 1, 1);
+
+    /// <summary>
+    /// The signup date of birth: "yyyy-MM-dd" (what an &lt;input type="date"&gt; sends), no later than today (UTC) and no
+    /// earlier than 1900, and at least sixteen years ago. Returns the date, or the error key to answer 400 with:
+    /// error.birthdate_required (missing or blank), error.birthdate_invalid (unreadable, in the future, before 1900) or
+    /// error.underage. The boundary is the birthday itself: someone turning sixteen today gets in.
+    /// </summary>
+    public static (DateOnly? Date, string? Error) ParseBirthDate(string? raw, DateOnly today)
+    {
+        var text = raw?.Trim() ?? "";
+        if (text.Length == 0)
+        {
+            return (null, "error.birthdate_required");
+        }
+
+        if (!DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            || date > today || date < EarliestBirthDate)
+        {
+            return (null, "error.birthdate_invalid");
+        }
+
+        // Sixteen years after a 29 February is a leap year too (bar 2100, when AddYears lands on the 28th and the birthday
+        // counts from 1 March), so the boundary is the birthday itself.
+        if (date > today.AddYears(-MinimumAge))
+        {
+            return (null, "error.underage");
+        }
+
+        return (date, null);
     }
 
     private static async Task<IResult> LoginAsync(

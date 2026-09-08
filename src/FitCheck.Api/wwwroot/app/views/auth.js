@@ -4,7 +4,7 @@
 // a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
 // person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: the two-line checkbox text, bigger onboarding steps and chips.
@@ -69,6 +69,8 @@ function authView(mode) {
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
         renderShell();
+        // A check made as a guest on this phone follows the person in (one cheap call; 0 is the usual answer).
+        await claimGuestChecks();
         if (ctx.stale()) return;                         // they moved on meanwhile; the session is in place either way
         if (signup) navigate('#/welcome');               // returnTo stays for the welcome screen to honour
         else navigate(takeReturnTo());

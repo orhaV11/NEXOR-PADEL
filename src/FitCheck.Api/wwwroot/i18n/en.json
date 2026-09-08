@@ -464,5 +464,15 @@
   "legal.privacy_title": "Privacy",
   "guest.title": "Try it first",
   "verified.brand": "Verified brand",
-  "after.title": "After the tip"
+  "after.title": "After the tip",
+  "insights.open": "Your insights",
+  "insights.empty": "Check three looks and this fills up.",
+  "insights.progress": "{n} of 3 checked so far",
+  "insights.checks": "Checks",
+  "insights.average": "Average",
+  "insights.best": "Best",
+  "insights.lines": "What they say",
+  "insights.based_on": "From your last {n} checks",
+  "insights.again": "Check another look",
+  "explore.looks_with": "Looks with {q}"
 }

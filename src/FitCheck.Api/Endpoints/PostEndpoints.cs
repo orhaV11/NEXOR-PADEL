@@ -202,6 +202,9 @@ public static class PostEndpoints
             }
         }
 
+        // The stylist's item names go on the look (lower-cased, distinct, up to 8) so Explore can find it by piece.
+        PostItems.AddFrom(db, post.Id, feedback);
+
         if (challenge is not null && challenge.BrandId != me.Id)
         {
             notifier.Add(challenge.BrandId, NotificationType.Entry, me.Handle, post.Id, challenge.Id);

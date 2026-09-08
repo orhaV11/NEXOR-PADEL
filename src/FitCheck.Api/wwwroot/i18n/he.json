@@ -464,5 +464,15 @@
   "legal.privacy_title": "פרטיות",
   "guest.title": "קודם מנסים",
   "verified.brand": "מותג מאומת",
-  "after.title": "אחרי הטיפ"
+  "after.title": "אחרי הטיפ",
+  "insights.open": "התובנות שלך",
+  "insights.empty": "בודקים שלושה לוקים וזה מתמלא.",
+  "insights.progress": "{n} מתוך 3 נבדקו עד עכשיו",
+  "insights.checks": "בדיקות",
+  "insights.average": "ממוצע",
+  "insights.best": "הכי גבוה",
+  "insights.lines": "מה הן אומרות",
+  "insights.based_on": "מ-{n} הבדיקות האחרונות שלך",
+  "insights.again": "לבדוק עוד לוק",
+  "explore.looks_with": "לוקים עם {q}"
 }

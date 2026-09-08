@@ -179,7 +179,9 @@ async function profileView(root, handle, tab, ctx) {
     el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
     el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })
   ]) : null;
-  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, bio, stats, colophon(profile), links]));
+  // My own profile: what my checks say, one link right under the statline (views/insights.js draws the page and styles the link).
+  const insights = mine ? el('a', { class: 'insights-link', id: 'insights-link', href: '#/insights' }, [icon('sparkle'), el('span', { text: t('insights.open') })]) : null;
+  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, bio, stats, insights, colophon(profile), links]));
 
   // Looks for everyone; Community for brands; Featured for brands and for people a brand has featured.
   const available = ['looks'];

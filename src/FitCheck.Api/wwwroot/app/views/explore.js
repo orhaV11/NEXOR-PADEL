@@ -164,10 +164,13 @@ register('search', async (root, params, ctx) => {
 
   const users = data.users || [];
   const tags = data.tags || [];
-  if (!users.length && !tags.length) { holder.replaceWith(nothing()); return; }
+  const posts = data.posts || [];
+  if (!users.length && !tags.length && !posts.length) { holder.replaceWith(nothing()); return; }
   const frag = document.createDocumentFragment();
   if (users.length) frag.appendChild(section(t('explore.people'), el('div', {}, users.map((card) => userRow(card)))));
   if (tags.length) frag.appendChild(section(t('explore.tags'), tagIndex(tags)));
+  // Looks whose stylist-named pieces match the term ("black boots"), a print grid under the people and the tags.
+  if (posts.length) frag.appendChild(section(t('explore.looks_with', { q }), el('div', { id: 'search-looks', style: 'margin-inline: -14px;' }, [postGrid(posts)])));
   holder.replaceWith(frag);
 });
 

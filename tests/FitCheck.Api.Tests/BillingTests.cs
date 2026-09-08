@@ -14,6 +14,7 @@ public sealed class ManualBillingApp : TestApp
     public ManualBillingApp()
     {
         ChecksPerDay = 30;
+        FreeChecksPerDay = 3;
     }
 }
 
@@ -27,6 +28,7 @@ public sealed class StripeBillingApp : TestApp
     public StripeBillingApp()
     {
         ChecksPerDay = 30;
+        FreeChecksPerDay = 3;
         BillingProvider = "stripe";
         StripeSecretKey = SecretKey;
         StripePriceId = PriceId;

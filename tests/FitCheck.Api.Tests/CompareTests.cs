@@ -15,11 +15,20 @@ namespace FitCheck.Api.Tests;
 /// to the owner only, the shared daily allowance with checks, the Pro gate, the statuses that keep no photo, and what an
 /// account deletion takes with it.
 /// </summary>
-public class CompareTests : IClassFixture<TestApp>
+/// <summary>The real plan world: three free checks a day (the shared TestApp keeps the old twenty for the older suites).</summary>
+public sealed class CompareApp : TestApp
+{
+    public CompareApp()
+    {
+        FreeChecksPerDay = 3;
+    }
+}
+
+public class CompareTests : IClassFixture<CompareApp>
 {
     private readonly TestApp _app;
 
-    public CompareTests(TestApp app)
+    public CompareTests(CompareApp app)
     {
         _app = app;
         _app.Vision.Handler = _ => OutfitComparerTests.Pick();

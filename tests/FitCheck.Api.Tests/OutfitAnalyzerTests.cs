@@ -182,9 +182,150 @@ public class OutfitAnalyzerTests
     {
         var schema = OutfitAnalyzer.ToolSchema;
         var required = schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList();
-        Assert.Equal(["status", "score", "intent_match", "headline", "vibe", "items", "working", "one_tip"], required);
+        Assert.Equal(["status", "score", "intent_match", "headline", "vibe", "items", "working", "one_tip", "breakdown", "accessories"], required);
         Assert.Equal("submit_outfit_feedback", OutfitAnalyzer.ToolName);
-        Assert.Equal("v1", OutfitAnalyzer.PromptVersion);
+        Assert.Equal("v2", OutfitAnalyzer.PromptVersion);
+
+        var breakdown = schema.GetProperty("properties").GetProperty("breakdown");
+        Assert.Equal(["fit", "color", "accessories"], breakdown.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList());
+        Assert.Equal(1, breakdown.GetProperty("properties").GetProperty("fit").GetProperty("minimum").GetInt32());
+        Assert.Equal(10, breakdown.GetProperty("properties").GetProperty("accessories").GetProperty("maximum").GetInt32());
+
+        var accessories = schema.GetProperty("properties").GetProperty("accessories");
+        Assert.Equal(["verdict", "present", "note", "add_one"], accessories.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList());
+        Assert.Equal(["adds", "neutral", "missing", "clashes"], accessories.GetProperty("properties").GetProperty("verdict").GetProperty("enum").EnumerateArray().Select(x => x.GetString()).ToList());
+        Assert.Equal("string", accessories.GetProperty("properties").GetProperty("present").GetProperty("items").GetProperty("type").GetString());
+    }
+
+    // ---- rubric v2: the breakdown and the accessories read ----
+
+    [Fact]
+    public void Maps_the_breakdown_and_the_accessories_read()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse("""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "items": [], "working": [], "one_tip": "t",
+              "breakdown": { "fit": 7, "color": 8, "accessories": 4 },
+              "accessories": { "verdict": "missing", "present": [], "note": "Nothing on, so the look never quite finishes.", "add_one": "A thin black leather belt." } }
+            """));
+
+        var breakdown = Assert.IsType<ScoreBreakdown>(feedback.Breakdown);
+        Assert.Equal(7, breakdown.Fit);
+        Assert.Equal(8, breakdown.Color);
+        Assert.Equal(4, breakdown.Accessories);
+
+        var accessories = Assert.IsType<AccessoriesFeedback>(feedback.Accessories);
+        Assert.Equal("missing", accessories.Verdict);
+        Assert.Empty(accessories.Present);
+        Assert.Equal("Nothing on, so the look never quite finishes.", accessories.Note);
+        Assert.Equal("A thin black leather belt.", accessories.AddOne);
+    }
+
+    [Fact]
+    public void Breakdown_sub_scores_are_clamped_and_tolerate_sloppy_numbers()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse("""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "items": [], "working": [], "one_tip": "t",
+              "breakdown": { "fit": 15, "color": "8", "accessories": -3 } }
+            """));
+
+        var breakdown = Assert.IsType<ScoreBreakdown>(feedback.Breakdown);
+        Assert.Equal(10, breakdown.Fit);
+        Assert.Equal(8, breakdown.Color);
+        Assert.Equal(1, breakdown.Accessories);
+        Assert.Null(feedback.Accessories);
+    }
+
+    [Fact]
+    public void A_v1_payload_maps_to_null_v2_fields()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Ok());
+
+        Assert.Equal(CheckStatus.Ok, feedback.Status);
+        Assert.Null(feedback.Breakdown);
+        Assert.Null(feedback.Accessories);
+    }
+
+    [Theory]
+    [InlineData("\"breakdown\": \"high\"")]
+    [InlineData("\"breakdown\": { \"fit\": 7, \"color\": 8 }")]
+    [InlineData("\"breakdown\": { \"fit\": 7, \"color\": \"eight\", \"accessories\": 4 }")]
+    [InlineData("\"breakdown\": null")]
+    public void A_breakdown_that_is_not_three_numbers_is_dropped_whole(string breakdown)
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse($$"""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "items": [], "working": [], "one_tip": "t", {{breakdown}} }
+            """));
+
+        Assert.Null(feedback.Breakdown);
+    }
+
+    [Fact]
+    public void Accessories_verdict_is_normalised_and_the_present_list_is_capped()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse("""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "items": [], "working": [], "one_tip": "t",
+              "accessories": { "verdict": " Clashes ", "present": ["gold hoops", "", 7, "a very long description of a brown leather belt with a brass buckle", "watch", "scarf", "hat", "bag", "socks", "glasses"],
+                               "note": " Too much going on. ", "add_one": "" } }
+            """));
+
+        var accessories = Assert.IsType<AccessoriesFeedback>(feedback.Accessories);
+        Assert.Equal("clashes", accessories.Verdict);
+        Assert.Equal(OutfitAnalyzer.MaxPresent, accessories.Present.Count);
+        Assert.Equal("gold hoops", accessories.Present[0]);
+        Assert.Equal("a very long description of a brown leath", accessories.Present[1]);
+        Assert.All(accessories.Present, piece => Assert.True(piece.Length <= OutfitAnalyzer.MaxPresentLength));
+        Assert.Equal(["gold hoops", "a very long description of a brown leath", "watch", "scarf", "hat", "bag"], accessories.Present);
+        Assert.Equal("Too much going on.", accessories.Note);
+        Assert.Equal("", accessories.AddOne);
+
+        var unknown = OutfitAnalyzer.MapToolInput(Payloads.Parse("""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "items": [], "working": [], "one_tip": "t",
+              "accessories": { "verdict": "amazing", "present": "hat", "note": "n", "add_one": "x" } }
+            """));
+        Assert.Equal("neutral", unknown.Accessories!.Verdict);
+        Assert.Empty(unknown.Accessories.Present);
+    }
+
+    [Theory]
+    [InlineData("not_outfit")]
+    [InlineData("rejected")]
+    public void Non_ok_statuses_drop_the_breakdown_and_the_accessories_read(string status)
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse($$"""
+            { "status": "{{status}}", "score": 6, "intent_match": 40, "headline": "", "vibe": "", "items": [], "working": [], "one_tip": "", "message": "m",
+              "breakdown": { "fit": 7, "color": 8, "accessories": 4 },
+              "accessories": { "verdict": "adds", "present": ["hat"], "note": "n", "add_one": "" } }
+            """));
+
+        Assert.Equal(status, feedback.Status);
+        Assert.Null(feedback.Breakdown);
+        Assert.Null(feedback.Accessories);
+    }
+
+    [Fact]
+    public void System_prompt_carries_the_accessories_rubric_and_keeps_rule_1_for_fit()
+    {
+        var prompt = OutfitAnalyzer.BuildSystemPrompt("en");
+
+        Assert.Contains("ACCESSORIES", prompt);
+        Assert.Contains("jewelry, bags, belts, hats, glasses, watches, scarves, hair pieces, visible socks", prompt);
+        Assert.Contains("Not the phone", prompt);
+        Assert.Contains("adds (accessories 7-10)", prompt);
+        Assert.Contains("neutral (5-6)", prompt);
+        Assert.Contains("missing (3-4)", prompt);
+        Assert.Contains("clashes (1-4)", prompt);
+        Assert.Contains("Empty only when the verdict is adds", prompt);
+        Assert.Contains("Never list something you cannot see", prompt);
+        Assert.Contains("THE BREAKDOWN", prompt);
+        Assert.Contains("fit is about clothes, never about the body", prompt);
+        Assert.Contains("The overall score weighs four things", prompt);
+        Assert.Contains("rarely earns above 7 outside Minimal and Sport", prompt);
+        // The hard rules and the calibration line are still there, word for word.
+        Assert.Contains("Judge clothes, never the person.", prompt);
+        Assert.Contains("Never mention brands you cannot actually see. Never invent items that are not visible.", prompt);
+        Assert.Contains("A 6 is not an insult.", prompt);
+        // The new user-facing fields are written in the wearer's language too.
+        Assert.Contains("accessories.present, accessories.note, accessories.add_one) in English (en)", prompt);
     }
 
     [Fact]

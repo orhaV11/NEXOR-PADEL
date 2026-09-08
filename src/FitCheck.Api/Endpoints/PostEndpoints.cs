@@ -159,6 +159,10 @@ public static class PostEndpoints
             Score = check.Score ?? feedback.Score,
             IntentMatch = feedback.IntentMatch,
             Headline = feedback.Headline.Length > 160 ? feedback.Headline[..160] : feedback.Headline,
+            // The rubric v2 sub-scores go public with the score; a check from before v2 has none and the post shows none.
+            FitScore = feedback.Breakdown?.Fit,
+            ColorScore = feedback.Breakdown?.Color,
+            AccessoriesScore = feedback.Breakdown?.Accessories,
             Caption = caption,
             ChallengeId = challenge?.Id,
             CreatedAt = DateTime.UtcNow

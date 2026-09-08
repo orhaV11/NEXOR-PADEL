@@ -3,7 +3,7 @@
 // flush edge-to-edge card, top bar with a back arrow).
 import {
   register, state, t, api, el, avatar, userRow, postCard, setTopBar, navigate, requireSignIn,
-  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact
+  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow
 } from '../core.js';
 
 let styled = false;
@@ -55,6 +55,14 @@ register('post', async (root, params, ctx) => {
   }
   cardWrap.appendChild(postCard(post, cardOpts));
   root.appendChild(cardWrap);
+
+  // ---- the breakdown (rubric v2): public like the score, right under the card's headline; a look from before v2 has none ----
+  if (post.breakdown) {
+    root.appendChild(el('section', { class: 'post-section', id: 'post-breakdown', 'aria-labelledby': 'post-breakdown-title' }, [
+      el('h2', { id: 'post-breakdown-title', text: t('result.breakdown') }),
+      breakdownRow(post.breakdown)
+    ]));
+  }
 
   // ---- tagged accounts ----
   if (Array.isArray(post.mentions) && post.mentions.length) {

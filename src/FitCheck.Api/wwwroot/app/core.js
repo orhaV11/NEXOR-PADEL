@@ -1009,6 +1009,21 @@ export function scoreBadge(score) {
   return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(score) }), el('small', { text: t('result.out_of') })]);
 }
 
+/**
+ * The rubric v2 sub-scores (fit, color, accessories) as three small rings in a row, the .score-badge look in flow with
+ * the label under each: the result screen and the look page share it. A screen reader hears "Fit 7/10". Null when there
+ * is no breakdown (checks and looks from before v2), so callers can append it unconditionally.
+ */
+export function breakdownRow(breakdown) {
+  if (!breakdown) return null;
+  const cell = (key, value) => el('li', { 'data-part': key }, [
+    el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(value) }), el('small', { text: t('result.out_of') })]),
+    el('span', { class: 'breakdown-label', text: t('result.' + key) }),
+    el('span', { class: 'sr-only', text: ' ' + fmtNumber(value) + t('result.out_of') })
+  ]);
+  return el('ul', { class: 'breakdown', 'aria-label': t('result.breakdown') }, [cell('fit', breakdown.fit), cell('color', breakdown.color), cell('accessories', breakdown.accessories)]);
+}
+
 /** A look card. opts: inChallenge, votes, onDelete, onChange, compact (no caption/match). */
 export function postCard(post, opts) {
   opts = opts || {};

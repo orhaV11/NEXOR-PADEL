@@ -79,7 +79,9 @@ public class AnthropicVisionClientTests
         var tool = Assert.Single(root.GetProperty("tools").EnumerateArray());
         Assert.Equal(OutfitAnalyzer.ToolName, tool.GetProperty("name").GetString());
         Assert.False(string.IsNullOrEmpty(tool.GetProperty("description").GetString()));
-        Assert.Equal(8, tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
+        // The analyzer's schema goes over verbatim (10 required fields since rubric v2 added breakdown and accessories).
+        Assert.Equal(OutfitAnalyzer.ToolSchema.GetProperty("required").GetArrayLength(), tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
+        Assert.Equal(10, tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
 
         Assert.Equal("tool", root.GetProperty("tool_choice").GetProperty("type").GetString());
         Assert.Equal(OutfitAnalyzer.ToolName, root.GetProperty("tool_choice").GetProperty("name").GetString());

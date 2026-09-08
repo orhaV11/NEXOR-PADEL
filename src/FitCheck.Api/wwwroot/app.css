@@ -420,6 +420,26 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
   background: var(--fire); animation: spark 500ms ease-out forwards; pointer-events: none;
 }
 @keyframes spark { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(4.5); opacity: 0; } }
+/* the breakdown (rubric v2): three sub-score rings in a row, the same ring as the card's but in flow, a caps label under each; the result screen and the look page */
+.breakdown { display: flex; justify-content: flex-start; gap: 28px; list-style: none; margin: 0; padding: 0; }
+.breakdown li { display: flex; flex-direction: column; align-items: center; gap: 8px; min-inline-size: 56px; }
+.breakdown .score-badge { position: static; box-shadow: none; }
+.breakdown-label { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
+[dir="rtl"] .breakdown-label { font-size: 12.5px; }
+/* the accessories read: a verdict pill (green when they make it, fire when they fight it, quiet otherwise), the pieces seen as small chips, the note, the one to add as a tip block */
+.acc-body > * + * { margin-block-start: 12px; }
+.acc-verdict { display: inline-flex; align-items: center; min-block-size: 30px; padding-inline: 12px; border-radius: var(--pill); border: 1px solid currentColor; font-size: 13px; font-weight: 600; }
+.acc-verdict.adds { color: var(--ok); }
+.acc-verdict.clashes { color: var(--fire); }
+.acc-verdict.neutral, .acc-verdict.missing { color: var(--ink-3); }
+.acc-present { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.acc-present .lbl { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); margin-inline-end: 4px; }
+[dir="rtl"] .acc-present .lbl { font-size: 12.5px; }
+.acc-present .chip { min-block-size: 30px; padding-inline: 10px; font-size: 13px; color: var(--ink); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+.acc-present .none { color: var(--ink-3); font-size: 14px; }
+.acc-note { color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.acc-add .lbl { display: block; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--accent); margin-block-end: 4px; }
+[dir="rtl"] .acc-add .lbl { font-size: 12.5px; }
 
 /* ---------- grids and the wall ---------- */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-inline: 14px; }

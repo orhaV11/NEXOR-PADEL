@@ -23,6 +23,13 @@ EN = {
     ],
     "working": ["The palette is tight", "Proportions are balanced"],
     "one_tip": "Swap the running shoes for plain white leather sneakers.",
+    # rubric v2: the three sub-scores and the accessories read
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Nothing on, so the look stops at the clothes and never quite finishes.",
+        "add_one": "A thin black leather belt.",
+    },
 }
 
 HE = {
@@ -36,6 +43,12 @@ HE = {
     ],
     "working": ["הפלטה מצומצמת", "הפרופורציות מאוזנות"],
     "one_tip": "שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "בלי אקססוריז הלוק נעצר בבגדים ולא ממש נסגר.",
+        "add_one": "חגורת עור שחורה דקה.",
+    },
 }
 
 NOT_OUTFIT_EN = {
@@ -77,6 +90,11 @@ class Handler(BaseHTTPRequestHandler):
         tools = body.get("tools") or []
         if len(tools) != 1 or "input_schema" not in tools[0] or tools[0].get("name") != "submit_outfit_feedback":
             problems.append("tools malformed")
+        else:
+            # Rubric v2: the schema must ask for the breakdown and the accessories read, or the answer below would be ignored.
+            required = (tools[0].get("input_schema") or {}).get("required") or []
+            if "breakdown" not in required or "accessories" not in required:
+                problems.append("schema lacks the v2 fields (breakdown, accessories)")
         tc = body.get("tool_choice") or {}
         if tc.get("type") != "tool" or tc.get("name") != "submit_outfit_feedback":
             problems.append("tool_choice not forced")

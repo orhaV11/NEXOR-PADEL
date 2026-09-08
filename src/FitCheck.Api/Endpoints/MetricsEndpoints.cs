@@ -1,30 +1,48 @@
+using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
+using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitCheck.Api.Endpoints;
 
-/// <summary>The kill switch. returnRate decides whether the next phase gets built; the social block says whether the loop turns.</summary>
+/// <summary>
+/// The kill switch. returnRate decides whether the next phase gets built; the social block says whether the loop turns.
+/// Aggregates only, but they are the pilot's numbers: a moderator's session (the IsAdmin flag) is required to read them.
+/// </summary>
 public static class MetricsEndpoints
 {
     private static readonly TimeSpan ReturnWindow = TimeSpan.FromDays(7);
 
     public static IEndpointRouteBuilder MapMetricsEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/metrics/pilot", GetPilotAsync);
+        app.MapGet("/api/metrics/pilot", GetPilotAsync).RequireAuthorization();
         return app;
     }
 
-    private static async Task<IResult> GetPilotAsync(AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> GetPilotAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
+        // The same gate as /api/admin: a signed-in account (401 gone, 403 suspended) that carries the moderator flag.
+        var (viewer, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (viewer is null)
+        {
+            return failure!;
+        }
+
+        if (!viewer.IsAdmin)
+        {
+            return UserEndpoints.Error(StatusCodes.Status403Forbidden, localizer.Get(viewer.PreferredLanguage, "error.admin_only"));
+        }
+
         // Pilot scale (50 users, 20 checks/day cap): pulling the OK rows into memory is simpler than
-        // hand-rolling the second-check window in SQL, and it keeps the math readable and testable.
+        // hand-rolling the second-check window in SQL, and it keeps the math readable and testable. The stored
+        // feedback comes along for the rubric v2 sub-scores, which live nowhere else.
         var checks = await db.Checks
             .Where(c => c.Status == CheckStatus.Ok)
-            .Select(c => new { c.UserId, c.CreatedAt, c.Score, c.LatencyMs, c.Language, c.PromptVersion })
+            .Select(c => new { c.UserId, c.CreatedAt, c.Score, c.LatencyMs, c.Language, c.PromptVersion, c.FeedbackJson })
             .ToListAsync(ct);
 
-        var metrics = Compute(checks.Select(c => new MetricRow(c.UserId, c.CreatedAt, c.Score ?? 0, c.LatencyMs, c.Language, c.PromptVersion)));
+        var metrics = Compute(checks.Select(c => new MetricRow(c.UserId, c.CreatedAt, c.Score ?? 0, c.LatencyMs, c.Language, c.PromptVersion, BreakdownOf(c.FeedbackJson))));
 
         var now = DateTime.UtcNow;
         var since = now - ReturnWindow;
@@ -55,12 +73,39 @@ public static class MetricsEndpoints
         return Results.Ok(metrics with { Social = social });
     }
 
-    public sealed record MetricRow(Guid UserId, DateTime CreatedAt, int Score, int LatencyMs, string Language, string PromptVersion);
+    /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>
+    public sealed record MetricRow(Guid UserId, DateTime CreatedAt, int Score, int LatencyMs, string Language, string PromptVersion, ScoreBreakdown? Breakdown = null);
+
+    /// <summary>The sub-scores out of a stored feedback document; null when there are none or the document is unreadable.</summary>
+    public static ScoreBreakdown? BreakdownOf(string? feedbackJson)
+    {
+        if (string.IsNullOrEmpty(feedbackJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<OutfitFeedback>(feedbackJson, AppJson.Options)?.Breakdown;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     public static PilotMetricsDto Compute(IEnumerable<MetricRow> rows)
     {
         var list = rows.ToList();
         var byUser = list.GroupBy(r => r.UserId).ToList();
+        var withBreakdown = list.Where(r => r.Breakdown is not null).Select(r => r.Breakdown!).ToList();
+        var breakdownAverages = withBreakdown.Count == 0
+            ? null
+            : new BreakdownAveragesDto(
+                Math.Round(withBreakdown.Average(b => b.Fit), 2),
+                Math.Round(withBreakdown.Average(b => b.Color), 2),
+                Math.Round(withBreakdown.Average(b => b.Accessories), 2),
+                withBreakdown.Count);
 
         var returned = byUser.Count(g =>
         {
@@ -79,6 +124,7 @@ public static class MetricsEndpoints
             AvgLatencyMs: list.Count == 0 ? 0 : (int)Math.Round(list.Average(r => r.LatencyMs)),
             ScoreDistribution: scoreDistribution,
             ByLanguage: list.GroupBy(r => r.Language).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
-            ByPromptVersion: list.GroupBy(r => r.PromptVersion).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()));
+            ByPromptVersion: list.GroupBy(r => r.PromptVersion).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
+            BreakdownAverages: breakdownAverages);
     }
 }

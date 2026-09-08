@@ -105,7 +105,9 @@ public sealed class PostReader(AppDbContext db)
                 tags.GetValueOrDefault(p.Id) ?? [],
                 mentions.GetValueOrDefault(p.Id) ?? [],
                 p.FeaturedByBrandId is Guid brandId ? users.GetValueOrDefault(brandId) : null,
-                withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null);
+                withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null,
+                // The three columns are written together at posting time; a look from before rubric v2 has none.
+                p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null);
         }).ToList();
     }
 }

@@ -355,12 +355,31 @@ export async function loadConfig() {
   try { const c = await api('GET', '/api/config'); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
 }
 export async function loadMe() {
+  const before = state.me;
   try { state.me = await api('GET', '/api/auth/me'); }
   catch (e) {
     // 401: no session. 403: the account is suspended and the server dropped the cookie with the answer. Both mean signed out here.
     if (e.status === 401 || e.status === 403) { if (state.me) signedOut(); else state.me = null; }
   }
   renderShell();
+  // Just signed in (or booted signed in): a check made as a guest follows the person into the account. The guest cookie is
+  // HttpOnly, so there is no way to know beforehand; the call is cheap and a 0 is the usual answer.
+  if (!before && state.me) claimGuestChecks();
+}
+let claiming = null;
+/**
+ * POST /api/checks/claim: every check made under this browser's guest cookie becomes the signed-in account's, and the cookie
+ * goes. Resolves with the number claimed (0 when there was nothing, or when signed out); never rejects. One call in flight at a time.
+ */
+export function claimGuestChecks() {
+  if (!state.me) return Promise.resolve(0);
+  if (!claiming) {
+    claiming = api('POST', '/api/checks/claim')
+      .then((r) => (r && r.claimed) || 0)
+      .catch(() => 0)
+      .finally(() => { claiming = null; });
+  }
+  return claiming;
 }
 /** The server no longer has a session for this person: everything private goes and the screen redraws signed out. */
 function signedOut() { state.me = null; resetSession(); renderShell(); render(false); }
@@ -382,11 +401,12 @@ export function navigate(hash) { if (location.hash === hash) render(true); else 
 export function redirect(hash) { if (location.hash === hash) render(true); else location.replace(location.pathname + location.search + hash); }
 /** Shows a message in an alert element and moves focus to it, so screen readers announce it on every platform. */
 export function showAlert(node, message) { node.textContent = message; node.hidden = false; node.setAttribute('tabindex', '-1'); node.focus({ preventScroll: false }); }
-export function requireSignIn(returnTo) {
+/** True when signed in; otherwise remembers returnTo and goes to sign in. signup=true goes to the join page instead, quietly (the guest's "keep it" path). */
+export function requireSignIn(returnTo, signup) {
   if (state.me) return true;
   state.returnTo = returnTo || location.hash;
-  toast(t('auth.required_title'));
-  location.hash = '#/login';
+  if (!signup) toast(t('auth.required_title'));
+  location.hash = signup ? '#/signup' : '#/login';
   return false;
 }
 export async function signOut() {

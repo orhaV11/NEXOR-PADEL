@@ -464,5 +464,11 @@
   "legal.privacy_title": "Privacy",
   "guest.title": "Try it first",
   "verified.brand": "Verified brand",
-  "after.title": "After the tip"
+  "after.title": "After the tip",
+  "guest.hint": "One free check, no account. Sign up to keep it and post it.",
+  "guest.keep": "Sign up to keep it and post it",
+  "guest.kept": "Saved to your account.",
+  "check.left": "{n} of {cap} checks left today",
+  "check.left_one": "1 of {cap} checks left today",
+  "check.go_pro": "Go Pro for more"
 }

@@ -60,7 +60,8 @@ public class CheckEndpointTests : IClassFixture<TestApp>
 
         Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/checks/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/checks/{id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await _app.NewClient().GetAsync($"/api/checks/{id}")).StatusCode);
+        // The route is public since guests read their own check by cookie (Round 9); a stranger still gets the same 404.
+        Assert.Equal(HttpStatusCode.NotFound, (await _app.NewClient().GetAsync($"/api/checks/{id}")).StatusCode);
     }
 
     [Fact]
@@ -118,7 +119,8 @@ public class CheckEndpointTests : IClassFixture<TestApp>
 
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.True(response.Headers.RetryAfter?.Delta > TimeSpan.Zero);
-        Assert.Equal("You've reached today's limit of 20 checks. Come back tomorrow.", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        // The cap is the plan's (Plans:FreeChecksPerDay, 20 in this suite's app) and the refusal names the Pro cap (Round 9).
+        Assert.Equal("That's today's 20 free checks. Go Pro for 30 a day, or come back tomorrow.", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
 
         var (other, _, _) = await _app.NewUserAsync("uncapped1");
         Assert.Equal(HttpStatusCode.Created, (await other.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);

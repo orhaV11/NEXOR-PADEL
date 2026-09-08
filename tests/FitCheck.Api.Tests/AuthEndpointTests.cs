@@ -120,7 +120,8 @@ public class AuthEndpointTests : IClassFixture<TestApp>
     [Fact]
     public async Task Signed_out_writes_get_a_json_401_not_a_redirect()
     {
-        var response = await _app.NewClient().PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        // Posting a look needs a session (a check does not since Round 9: a visitor gets one as a guest).
+        var response = await _app.NewClient().PostAsJsonAsync("/api/posts", new { checkId = Guid.NewGuid() });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Equal("Sign in to continue.", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
@@ -205,7 +206,9 @@ public class AuthEndpointTests : IClassFixture<TestApp>
             await db.SaveChangesAsync();
         }
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
+        // The stale cookie is refused and dropped by the first refusal, whichever door it knocks on; with no cookie at all
+        // a check would be a guest's (Round 9), so the check goes first, while the cookie is still there.
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
     }
 }

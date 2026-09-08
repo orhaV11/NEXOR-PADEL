@@ -4,18 +4,27 @@
 // .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
 // sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame. The rubric v2
 // block is #breakdown (ul.breakdown with li[data-part=fit|color|accessories]) and #accessories (.acc-verdict.<verdict>,
-// .acc-present .chip, .acc-note, .acc-add.tip).
+// .acc-present .chip, .acc-note, .acc-add.tip). Round 9, guests: #guest-banner sits above the form when signed out, the
+// result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and #post-open
+// takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when none are left.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 
 const SCORE_COUNT_MS = 900;
 const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
 
-// The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy.
+// The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy. The guest
+// banner is a notice card with the display face; the cap line sits under the submit button with the private note.
 const CSS = `
 .photo video { inline-size: 100%; block-size: 100%; object-fit: cover; background: #000; }
+.guest-banner { display: grid; gap: 4px; margin-block-end: 16px; }
+.guest-banner h3 { font-family: var(--font-display); font-size: 20px; line-height: 1.15; font-weight: 800; margin: 0; }
+.guest-banner p { margin: 0; }
+.guest-banner .btn-text { min-block-size: 44px; padding-block: 0; justify-self: start; }
+.checks-left { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.checks-left .btn-text { font-size: 13px; min-block-size: 44px; padding-block: 0; }
 .clip-tools { display: flex; flex-direction: column; gap: 10px; }
 .clip-tools > label { color: var(--ink-3); }
 .clip-tools input[type="range"] { inline-size: 100%; min-block-size: 44px; margin: 0; accent-color: var(--accent); cursor: pointer; }
@@ -48,10 +57,11 @@ register('check', async (root) => {
   const ck = state.check;
   setTopBar({ title: t('check.title') });
   root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
-  if (!state.me) { root.appendChild(signInPrompt()); return; }
   if (ck.busy) { root.appendChild(loadingBlock()); return; }   // a check is in flight; the result view takes over when it lands
   ensureStyle();
 
+  // Signed out is not a wall any more: one check as a guest, and the account comes after the verdict.
+  if (!state.me) root.appendChild(guestBanner());
   const form = el('form', { class: 'stack', novalidate: true, onsubmit: (event) => { event.preventDefault(); submitCheck(); } });
   root.appendChild(form);
 
@@ -85,15 +95,42 @@ register('check', async (root) => {
   form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('check.occasion_label') }), occasion]));
 
   form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: chooseMedia }));
+  // LEAD: which-one link goes here
   form.appendChild(el('div', { id: 'clip-tools', class: 'clip-tools', hidden: true }));
   const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
   if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }
   form.appendChild(error);
   form.appendChild(el('button', { id: 'submit', class: 'btn', type: 'submit', text: t('check.submit') }));
+  const left = checksLeftLine();
+  if (left) form.appendChild(left);
   form.appendChild(el('p', { class: 'hint', text: t('check.private_note') }));
   renderPhoto();
   updateSubmit();
 });
+
+/** "Try it first": one free check, no account; signing up keeps it. A join link for the visitor who already used it. */
+function guestBanner() {
+  return el('div', { class: 'notice guest-banner', id: 'guest-banner' }, [
+    el('h3', { text: t('guest.title') }),
+    el('p', { class: 'muted', text: t('guest.hint') }),
+    el('a', { class: 'btn-text', id: 'guest-join', href: '#/signup', text: t('auth.signup'), onclick: () => { state.returnTo = '#/check'; } })
+  ]);
+}
+
+/**
+ * "{n} of {cap} checks left today" for a signed-in person, from MeDto.checksToday / checksPerDay (the server fills them in;
+ * 0 for the cap means unknown and the line stays out). At zero left, the way to more is the Pro screen.
+ */
+function checksLeftLine() {
+  const me = state.me;
+  if (!me || !(me.checksPerDay > 0)) return null;
+  const cap = me.checksPerDay;
+  const n = Math.max(0, cap - (me.checksToday || 0));
+  return el('p', { class: 'hint checks-left', id: 'checks-left' }, [
+    el('span', { text: t('check.left', { n, cap: fmtNumber(cap) }) }),
+    n === 0 ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
+  ]);
+}
 
 /** While the stylist looks: the mark at 96px with its flame breathing (app.css animates .breathing); the pulse dot when index.html has no #mark-template. */
 function loadingBlock() {
@@ -256,7 +293,8 @@ function chooseMedia() {
   const s = sheet({ title: t(state.check.previewUrl || state.check.clipUrl ? 'check.media_replace' : 'check.media_add'), content: list });
   // Closing first, then acting: the picker's input.click() must run inside the tap that chose the row.
   const row = (id, name, text, onclick) => el('button', { type: 'button', id, onclick: () => { s.close(); onclick(); } }, [icon(name), text]);
-  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
+  // LEAD: camera.js sends a signed-out visitor back to #/check; drop this guard when the camera opens to guests.
+  if (state.me) list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
   list.appendChild(row('media-library', 'image', t('check.from_library'), async () => { const file = await pickFile('file'); if (file) takePhotoFile(file); }));
   list.appendChild(row('media-clip', 'clip', t('camera.clip') + ' · ' + t('check.from_library'), async () => { const file = await pickFile('clip-file'); if (file) takeClipFile(file); }));
 }
@@ -353,6 +391,7 @@ async function submitCheck() {
   root.appendChild(loadingBlock());
   announce(t('loading.line'));
   focusHeading();
+  const wasSignedIn = !!state.me;
   try {
     const form = new FormData();
     form.append('intent', ck.intent);
@@ -361,14 +400,16 @@ async function submitCheck() {
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
     state.result = await api('POST', '/api/checks', form);
+    // A guest's check: the server named it by the guest cookie; it becomes the account's once the person signs up (the result screen claims it).
+    state.result.guest = !wasSignedIn;
     state.resultAnimated = false;
     state.resultPostId = null;
     ck.busy = false;
-    loadMe();   // streak may have moved
+    if (wasSignedIn) loadMe();   // streak and today's count may have moved
     navigate('#/result');
   } catch (e) {
     ck.busy = false;
-    ck.error = e && e.status === 401 ? null : (e && e.message ? e.message : t('error.generic'));   // a lost session already re-rendered
+    ck.error = e && e.status === 401 && wasSignedIn ? null : (e && e.message ? e.message : t('error.generic'));   // a lost session already re-rendered
     navigate('#/check');
   }
 }
@@ -490,7 +531,11 @@ function accessoriesSection(acc) {
   ]);
 }
 
-/** "Post it" until the check is public, then the link to the look. */
+/**
+ * "Post it" until the check is public, then the link to the look. A guest's check cannot be posted: "Sign up to keep it and
+ * post it" takes them to join with #/result as the way back, and once they are signed in the check is claimed and refreshed
+ * here, so Post it appears on the same result.
+ */
 function renderPostArea(area, result) {
   area.innerHTML = '';
   const postId = state.resultPostId || result.postId;
@@ -498,7 +543,41 @@ function renderPostArea(area, result) {
     area.appendChild(el('a', { class: 'btn', id: 'post-link', href: '#/post/' + encodeURIComponent(postId) }, [icon('check'), t('result.posted') + ' · ' + t('result.view_post')]));
     return;
   }
+  if (result.guest) {
+    if (!state.me) {
+      area.appendChild(el('button', { type: 'button', class: 'btn', id: 'guest-keep', text: t('guest.keep'), onclick: () => requireSignIn('#/result', true) }));
+      return;
+    }
+    // Signed in since: Post it shows disabled while the claim runs, then for real.
+    area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), disabled: true, 'aria-busy': 'true' }));
+    claimGuestResult(area, result);
+    return;
+  }
   area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), onclick: () => openPostSheet(area, result) }));
+}
+
+/**
+ * The guest's check follows the person into the account: claim (idempotent; loadMe may have done it already), then read the
+ * check back so its ownership and postId are the server's. Whatever happens, the result stops being a guest's after this:
+ * a claim that did not land shows Post it anyway and the server's own answer says why when it is tapped.
+ */
+async function claimGuestResult(area, result) {
+  if (result.claiming) return;
+  result.claiming = true;
+  let claimed = 0;
+  try {
+    claimed = await claimGuestChecks();
+    const fresh = await api('GET', '/api/checks/' + encodeURIComponent(result.id));
+    if (state.result !== result) return;
+    Object.assign(result, fresh);
+  } catch (e) {
+    if (state.result !== result) return;
+  } finally {
+    result.claiming = false;
+  }
+  result.guest = false;
+  if (claimed > 0) toast(t('guest.kept'));
+  if (document.contains(area)) renderPostArea(area, result);
 }
 
 /**
@@ -535,6 +614,7 @@ function openPostSheet(area, result) {
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),
+    // LEAD: after-the-tip picker goes here
     productsField,
     error,
     el('div', { class: 'row' }, [confirm, cancel])

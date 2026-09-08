@@ -464,5 +464,11 @@
   "legal.privacy_title": "פרטיות",
   "guest.title": "קודם מנסים",
   "verified.brand": "מותג מאומת",
-  "after.title": "אחרי הטיפ"
+  "after.title": "אחרי הטיפ",
+  "guest.hint": "בדיקה אחת בחינם, בלי חשבון. נרשמים כדי לשמור אותה ולפרסם.",
+  "guest.keep": "נרשמים כדי לשמור ולפרסם",
+  "guest.kept": "נשמר בחשבון שלך.",
+  "check.left": "נשארו {n} מתוך {cap} בדיקות להיום",
+  "check.left_one": "נשארה בדיקה אחת מתוך {cap} להיום",
+  "check.go_pro": "עוברים לפרו לעוד"
 }

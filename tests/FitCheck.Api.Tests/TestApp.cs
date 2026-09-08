@@ -23,6 +23,11 @@ public class TestApp : WebApplicationFactory<Program>
     public string ConnectionString => $"Data Source={DatabasePath}";
     public FakeVisionClient Vision { get; } = new();
     public int ChecksPerDay { get; init; } = 20;
+    /// <summary>
+    /// Plans:FreeChecksPerDay. The suite's fixtures were written when every account had Limits:ChecksPerDay, so the default
+    /// here matches it; the product default is 3, and GuestCheckTests sets it to see the plan cap.
+    /// </summary>
+    public int FreeChecksPerDay { get; init; } = 20;
     public int ChecksPerDayGlobal { get; init; } = 100000;
     public int SignupsPerHourPerIp { get; init; } = 100000;
     public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
@@ -65,6 +70,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Storage:Root", StorageRoot);
         builder.UseSetting("Storage:MaxVideoBytes", MaxVideoBytes.ToString());
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
+        builder.UseSetting("Plans:FreeChecksPerDay", FreeChecksPerDay.ToString());
         builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());

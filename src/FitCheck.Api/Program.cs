@@ -157,6 +157,9 @@ builder.Services.AddSingleton<IEmailSender>(provider =>
 // Clips are re-encoded to H.264 MP4 by one background worker when ffmpeg is there (Storage:Transcode); /api/config says whether.
 builder.Services.AddSingleton<Transcoder>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<Transcoder>());
+// A visitor's unclaimed check expires with its cookie: the sweeper removes day-old guest rows and their files, hourly and once at start.
+builder.Services.AddSingleton<GuestCheckSweeper>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<GuestCheckSweeper>());
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {
@@ -207,6 +210,9 @@ var recoveryPerHour = builder.Configuration.GetValue<int?>("Limits:RecoveryPerHo
 // and the address is only the fallback for a route that is limited without being protected.
 var commentsPerHour = builder.Configuration.GetValue<int?>("Limits:CommentsPerHour") ?? limitDefaults.CommentsPerHour;
 var reportsPerHour = builder.Configuration.GetValue<int?>("Limits:ReportsPerHour") ?? limitDefaults.ReportsPerHour;
+// A visitor's free check is one model call with no account behind it: Plans:GuestChecksPerDay per client address per day
+// on the anonymous check path (the per-cookie count is the handler's). A signed-in call is not limited here; its plan is.
+var guestChecksPerDay = builder.Configuration.GetValue<int?>("Plans:GuestChecksPerDay") ?? new PlanOptions().GuestChecksPerDay;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -225,6 +231,11 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(PostEndpoints.ReportsPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         AccountOrAddress(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = reportsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    options.AddPolicy(CheckEndpoints.GuestPolicy, context => Sessions.UserId(context.User) is not null
+        ? RateLimitPartition.GetNoLimiter("signed-in")
+        : RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, guestChecksPerDay), Window = TimeSpan.FromHours(24), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var http = context.HttpContext;
@@ -233,6 +244,7 @@ builder.Services.AddRateLimiter(options =>
         var key = path.StartsWithSegments("/api/auth/login") ? "error.login_limited"
             : path.StartsWithSegments("/api/auth/signup") ? "error.signup_limited"
             : path.StartsWithSegments("/api/auth/forgot") || path.StartsWithSegments("/api/users/me/email") ? "error.recovery_limited"
+            : path.StartsWithSegments("/api/checks") ? "error.guest_limit"
             : "error.too_fast";
         // The window limiters say when the next permit frees up; the client can show it or wait it out.
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))

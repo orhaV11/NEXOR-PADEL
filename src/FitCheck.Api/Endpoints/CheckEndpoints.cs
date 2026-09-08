@@ -12,6 +12,13 @@ namespace FitCheck.Api.Endpoints;
 public static class CheckEndpoints
 {
     public const int OccasionMaxLength = 120;
+
+    /// <summary>
+    /// The anonymous check path's brake: Plans:GuestChecksPerDay per client address per day (the per-token count lives in
+    /// the handler). A signed-in call passes through it unlimited; the plan cap is the handler's.
+    /// </summary>
+    public const string GuestPolicy = "guest";
+
     private static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
 
     // Room for multipart boundaries and the small text fields around the image and the clip.
@@ -23,8 +30,10 @@ public static class CheckEndpoints
 
         // The form is read by hand from the request, so the antiforgery filter has nothing to validate;
         // the X-Requested-With check in Program.cs covers CSRF for every state-changing call.
-        group.MapPost("/", CreateAsync).DisableAntiforgery().RequireAuthorization();
-        group.MapGet("/{id:guid}", GetAsync).RequireAuthorization();
+        // No session needed: a visitor gets one check as a guest (GuestChecks); the handler tells the two apart.
+        group.MapPost("/", CreateAsync).DisableAntiforgery().RequireRateLimiting(GuestPolicy);
+        group.MapPost("/claim", ClaimAsync).RequireAuthorization();
+        group.MapGet("/{id:guid}", GetAsync);
 
         return app;
     }
@@ -38,6 +47,7 @@ public static class CheckEndpoints
         Localizer localizer,
         IOptions<StorageOptions> storage,
         IOptions<LimitsOptions> limits,
+        IOptions<PlanOptions> plans,
         ILogger<OutfitAnalyzer> logger,
         Transcoder transcoder,
         CancellationToken ct)
@@ -57,13 +67,24 @@ public static class CheckEndpoints
             ? localizer.Get(headerLanguage, "error.video_too_large", maxVideoMb, maxVideoSeconds)
             : localizer.Get(headerLanguage, "error.image_too_large", maxMb);
 
-        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
-        if (user is null)
+        // Signed in: the account, with the usual refusals for a cookie that outlived it or a suspension. Signed out: a
+        // guest, named by the cookie when there is one (a token is minted at the cap check otherwise).
+        AppUser? user = null;
+        string? guestToken = null;
+        if (Sessions.UserId(context.User) is not null)
         {
-            return failure!;
-        }
+            var (found, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+            if (found is null)
+            {
+                return failure!;
+            }
 
-        var userId = user.Id;
+            user = found;
+        }
+        else
+        {
+            guestToken = GuestChecks.Read(context);
+        }
 
         if (!request.HasFormContentType)
         {
@@ -98,10 +119,13 @@ public static class CheckEndpoints
         }
 
         // The check's language is what the feedback is written in. A shipped locale in the form wins; anything
-        // else (missing, stale, unknown) falls back to the user's stored preference, never to a header guess.
+        // else (missing, stale, unknown) falls back to the user's stored preference, never to a header guess. A guest
+        // has no stored preference, so the header is the only default left.
         if (!Localizer.TryMatch(form["language"].ToString(), out var language))
         {
-            language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
+            language = user is not null
+                ? Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale
+                : headerLanguage;
         }
 
         if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
@@ -169,17 +193,62 @@ public static class CheckEndpoints
         }
 
         var now = DateTime.UtcNow;
-        var cap = limits.Value.ChecksPerDay;
         var windowStart = now - CapWindow;
-        // Failed calls do not count: a model outage must not eat the user's allowance.
-        var recent = await db.Checks
-            .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-            .OrderBy(c => c.CreatedAt)
-            .Select(c => c.CreatedAt)
-            .ToListAsync(ct);
+        int cap;
+        Guid reservationKey;
+        List<DateTime> recent;
+        if (user is not null)
+        {
+            // The plan's cap, never above Limits:ChecksPerDay. Comparisons are stylist calls too and share the allowance.
+            // Failed calls do not count: a model outage must not eat the user's allowance.
+            cap = Plans.CapFor(user, plans.Value, limits.Value, now);
+            reservationKey = user.Id;
+            var userId = user.Id;
+            var checkTimes = await db.Checks
+                .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
+                .Select(c => c.CreatedAt)
+                .ToListAsync(ct);
+            var comparisonTimes = await db.Comparisons
+                .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
+                .Select(c => c.CreatedAt)
+                .ToListAsync(ct);
+            recent = checkTimes.Concat(comparisonTimes).OrderBy(t => t).ToList();
+        }
+        else
+        {
+            // A guest: Plans:GuestChecksPerDay per cookie token (the address brake is the "guest" policy). Zero means
+            // guests are off on this server, and the door says sign in rather than "that was your free look".
+            cap = plans.Value.GuestChecksPerDay;
+            if (cap <= 0)
+            {
+                return UserEndpoints.Error(StatusCodes.Status401Unauthorized, localizer.Get(language, "error.sign_in_required"));
+            }
+
+            if (guestToken is null)
+            {
+                guestToken = GuestChecks.NewToken();
+                recent = [];
+            }
+            else
+            {
+                var token = guestToken;
+                var checkTimes = await db.Checks
+                    .Where(c => c.UserId == null && c.GuestToken == token && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
+                    .Select(c => c.CreatedAt)
+                    .ToListAsync(ct);
+                var comparisonTimes = await db.Comparisons
+                    .Where(c => c.UserId == null && c.GuestToken == token && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
+                    .Select(c => c.CreatedAt)
+                    .ToListAsync(ct);
+                recent = checkTimes.Concat(comparisonTimes).OrderBy(t => t).ToList();
+            }
+
+            reservationKey = GuestChecks.ReservationKey(guestToken);
+        }
+
         var storedGlobal = await db.Checks.CountAsync(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
 
-        var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
+        var verdict = capacity.TryReserve(reservationKey, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
         if (verdict == CapacityVerdict.UserCapReached)
         {
             if (recent.Count > 0)
@@ -188,7 +257,9 @@ public static class CheckEndpoints
                 context.Response.Headers.RetryAfter = Math.Max(retryAfter, 1).ToString();
             }
 
-            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.rate_limited", cap));
+            return user is not null
+                ? UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.plan_limit", cap, plans.Value.ProChecksPerDay))
+                : UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.guest_limit"));
         }
 
         if (verdict == CapacityVerdict.GlobalCapReached)
@@ -197,10 +268,19 @@ public static class CheckEndpoints
         }
 
         using var _ = reservation;
+        // The guest's cookie goes out with this answer whatever the verdict: from here the check is this visitor's to
+        // read, and to keep by signing up. A signed-in check carries no token.
+        if (user is null)
+        {
+            GuestChecks.Issue(context, guestToken!, now);
+        }
+
+        var owner = user?.Id ?? GuestChecks.StorageFolder;
         var check = new OutfitCheck
         {
             Id = Guid.NewGuid(),
-            UserId = userId,
+            UserId = user?.Id,
+            GuestToken = user is null ? guestToken : null,
             Intent = intent,
             Occasion = occasion.Length == 0 ? null : occasion,
             Language = language,
@@ -222,13 +302,17 @@ public static class CheckEndpoints
                 case CheckStatus.Ok:
                     check.Score = feedback.Score;
                     check.FeedbackJson = JsonSerializer.Serialize(feedback, AppJson.Options);
-                    check.ImagePath = await images.SaveAsync(userId, check.Id, format, bytes, CancellationToken.None);
+                    check.ImagePath = await images.SaveAsync(owner, check.Id, format, bytes, CancellationToken.None);
                     if (clip is not null && videoFormat is not null)
                     {
-                        check.VideoPath = await TryStoreClipAsync(images, userId, check.Id, videoFormat, clip, logger);
+                        check.VideoPath = await TryStoreClipAsync(images, owner, check.Id, videoFormat, clip, logger);
                     }
 
-                    UpdateStreak(user, now);
+                    if (user is not null)
+                    {
+                        UpdateStreak(user, now);
+                    }
+
                     break;
                 case CheckStatus.NotOutfit:
                     // Keep the friendly explanation; there is no outfit to remember.
@@ -279,12 +363,12 @@ public static class CheckEndpoints
     /// the verdict and the still are already in hand, so the failure is logged and the check goes out without a clip.
     /// </summary>
     private static async Task<string?> TryStoreClipAsync(
-        IImageStore images, Guid userId, Guid checkId, VideoFormat format, IFormFile clip, ILogger logger)
+        IImageStore images, Guid owner, Guid checkId, VideoFormat format, IFormFile clip, ILogger logger)
     {
         try
         {
             await using var source = clip.OpenReadStream();
-            return await images.SaveVideoAsync(userId, checkId, format, source, CancellationToken.None);
+            return await images.SaveVideoAsync(owner, checkId, format, source, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -306,18 +390,55 @@ public static class CheckEndpoints
         user.LastCheckDate = today;
     }
 
-    /// <summary>Owner only. A wrong owner gets the same 404 as a missing id, so ids do not leak existence.</summary>
+    /// <summary>
+    /// Everything the caller's guest cookie names becomes the caller's: the check made before signing up follows the
+    /// person into the account (and can be posted from here), and the cookie goes. 200 { claimed: 0 } when there was
+    /// nothing to claim, so the client can call it blind after every sign-in.
+    /// </summary>
+    private static async Task<IResult> ClaimAsync(
+        HttpContext context, AppDbContext db, IImageStore images, Localizer localizer, ILoggerFactory loggerFactory, CancellationToken ct)
+    {
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        var claimed = 0;
+        var token = GuestChecks.Read(context);
+        if (token is not null)
+        {
+            var logger = loggerFactory.CreateLogger(typeof(GuestChecks).FullName!);
+            claimed = await GuestChecks.ClaimAsync(db, images, token, user.Id, DateTime.UtcNow, logger, ct);
+            GuestChecks.Clear(context);
+            if (claimed > 0)
+            {
+                logger.LogInformation("Claim: {Count} guest row(s) now belong to {UserId}", claimed, user.Id);
+            }
+        }
+
+        return Results.Json(new ClaimResultDto(claimed), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The owner, or the guest whose cookie made it. Anyone else, and a wrong owner, gets the same 404 as a missing id,
+    /// so ids do not leak existence.
+    /// </summary>
     private static async Task<IResult> GetAsync(
         Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
         var userId = Sessions.UserId(context.User);
+        var guestToken = GuestChecks.Read(context);
         var check = await db.Checks.FirstOrDefaultAsync(c => c.Id == id, ct);
-        if (check is null || userId is null || check.UserId != userId)
+        var mine = check is not null
+            && ((userId is not null && check.UserId == userId)
+                || (check.UserId is null && guestToken is not null && check.GuestToken == guestToken));
+        if (!mine)
         {
             return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.check_not_found"));
         }
 
         var postId = await db.Posts.Where(p => p.CheckId == id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct);
-        return Results.Json(CheckDto.FromEntity(check, localizer, postId), AppJson.Options);
+        return Results.Json(CheckDto.FromEntity(check!, localizer, postId), AppJson.Options);
     }
 }

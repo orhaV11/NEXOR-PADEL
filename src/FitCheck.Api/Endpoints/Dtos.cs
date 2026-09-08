@@ -229,4 +229,11 @@ public sealed record PilotMetricsDto(
     Dictionary<string, int> ScoreDistribution,
     Dictionary<string, int> ByLanguage,
     Dictionary<string, int> ByPromptVersion,
-    SocialMetricsDto? Social = null);
+    SocialMetricsDto? Social = null,
+    BreakdownAveragesDto? BreakdownAverages = null);
+
+/// <summary>
+/// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
+/// Null on the metrics when no check has one yet, so a v1-only pilot reads as before.
+/// </summary>
+public sealed record BreakdownAveragesDto(double AvgFit, double AvgColor, double AvgAccessories, int Checks);

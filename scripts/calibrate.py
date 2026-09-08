@@ -127,24 +127,32 @@ def main():
                     elapsed = int((time.time() - started) * 1000)
                     row = {"photo": os.path.basename(photo), "intent": intent, "language": language, "http": status,
                            "elapsedMs": elapsed, "status": None, "score": None, "intentMatch": None, "headline": "",
-                           "oneTip": "", "items": 0, "forbidden": [], "error": None}
+                           "oneTip": "", "items": 0, "fit": None, "color": None, "accessories": None,
+                           "accessoriesVerdict": None, "forbidden": [], "error": None}
                     try:
                         parsed = json.loads(body)
                     except ValueError:
                         parsed = {}
                     if status == 201:
                         feedback = parsed.get("feedback") or {}
+                        # Rubric v2: the three sub-scores and the accessories verdict; absent on a v1 server.
+                        breakdown = feedback.get("breakdown") or {}
+                        accessories = feedback.get("accessories") or {}
                         row.update(status=parsed.get("status"), score=parsed.get("score"),
                                    intentMatch=feedback.get("intentMatch"), headline=feedback.get("headline", ""),
                                    oneTip=feedback.get("oneTip", ""), items=len(feedback.get("items") or []),
+                                   fit=breakdown.get("fit"), color=breakdown.get("color"),
+                                   accessories=breakdown.get("accessories"), accessoriesVerdict=accessories.get("verdict"),
                                    forbidden=scan_forbidden(feedback, language), feedback=feedback,
                                    latencyMs=parsed.get("latencyMs"))
                     else:
                         row["error"] = parsed.get("error") or body[:120].decode("utf-8", "replace")
                     rows.append(row)
                     flag = " !!" if row["forbidden"] else ""
+                    sub = "/".join(str(row[k] or "-") for k in ("fit", "color", "accessories"))
                     print(f"{row['photo'][:28]:<28} {intent:<10} {language:<3} HTTP {status}  {str(row['status'] or row['error'])[:10]:<10} "
-                          f"score {str(row['score'] or '-'):<3} match {str(row['intentMatch'] or '-'):<4} {elapsed:>6} ms  {row['headline'][:60]}{flag}")
+                          f"score {str(row['score'] or '-'):<3} f/c/a {sub:<8} acc {str(row['accessoriesVerdict'] or '-'):<8} "
+                          f"match {str(row['intentMatch'] or '-'):<4} {elapsed:>6} ms  {row['headline'][:60]}{flag}")
     finally:
         request("DELETE", f"{args.base}/api/users/me")
 
@@ -172,6 +180,15 @@ def main():
         headlines = [r["headline"] for r in ok]
         if len(set(headlines)) < len(headlines):
             print("WARNING: repeated headlines; the model is being generic.")
+        # Rubric v2: the sub-scores' means and how the accessories verdicts fall. A v1 server has neither.
+        with_breakdown = [r for r in ok if r["fit"] is not None]
+        if with_breakdown:
+            means = " ".join(f"{k} {sum(r[k] for r in with_breakdown) / len(with_breakdown):.1f}" for k in ("fit", "color", "accessories"))
+            print(f"\nsub-scores (mean over {len(with_breakdown)}): {means}")
+            verdicts = Counter(r["accessoriesVerdict"] or "-" for r in with_breakdown)
+            print("accessories: " + ", ".join(f"{v} {verdicts[v]}" for v in ("adds", "neutral", "missing", "clashes", "-") if verdicts.get(v)))
+            if len(with_breakdown) >= 5 and verdicts.get("neutral", 0) / len(with_breakdown) > 0.7:
+                print("WARNING: more than 70% of accessories verdicts are neutral. The rubric is not committing; tighten the ACCESSORIES text.")
     flagged = [r for r in rows if r["forbidden"]]
     if flagged:
         print("\nRULE 1 HITS (judge clothes, never the person). Read these before inviting anyone:")

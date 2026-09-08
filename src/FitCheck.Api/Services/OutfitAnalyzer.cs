@@ -6,11 +6,12 @@ namespace FitCheck.Api.Services;
 /// <summary>
 /// The product. Everything the model is told and everything we accept back lives here.
 /// Bump <see cref="PromptVersion"/> whenever the rubric, calibration or schema changes so score
-/// distributions can be compared across versions in /api/metrics/pilot.
+/// distributions can be compared across versions in /api/metrics/pilot. v2 added accessories as a dimension of the
+/// score and the three-part breakdown (fit, color, accessories).
 /// </summary>
 public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
 {
-    public const string PromptVersion = "v1";
+    public const string PromptVersion = "v2";
     public const string ToolName = "submit_outfit_feedback";
 
     private const string ToolDescription =
@@ -40,11 +41,33 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         - Coherence with the stated intent: does the outfit clearly read as that intent to a stranger.
         - One point of interest: is there something that makes the look memorable, or is it flat.
 
+        ACCESSORIES (their own verdict and sub-score, and a part of the overall score):
+        - What counts: jewelry, bags, belts, hats, glasses, watches, scarves, hair pieces, visible socks. Not the phone,
+          not the background, not anything you cannot actually see.
+        - Judge them relative to the stated intent and set accessories.verdict:
+          adds (accessories 7-10): chosen, proportioned, they finish the look.
+          neutral (5-6): present, harmless, not doing much.
+          missing (3-4): nothing on. Say what one piece would do for this intent.
+          clashes (1-4): they fight the palette, the era or the intent. Name the piece that clashes.
+        - accessories.present lists only pieces that are visible, as short names ("gold hoops", "black leather belt"),
+          at most six. Empty when nothing is on. Never list something you cannot see.
+        - accessories.note is one sentence on how they serve the intent.
+        - accessories.add_one is the single concrete accessory that finishes THIS look for THIS intent, doable with pieces
+          people commonly own ("a thin black leather belt", "small gold hoops"). Empty only when the verdict is adds.
+
+        THE BREAKDOWN (three sub-scores, integers 1-10):
+        - fit: how the garments are cut and sit, their lengths, widths and how layers stack. Rule 1 applies here in full:
+          fit is about clothes, never about the body wearing them.
+        - color: harmony, contrast, whether the palette is intentional.
+        - accessories: the number behind the accessories verdict above.
+
         SCORE CALIBRATION (relative to the stated intent):
         - 3-4: something clearly clashes with the intent or with itself.
         - 5-6: fine, ordinary, nothing wrong, nothing memorable. Most outfits land here. Do not inflate.
         - 7-8: clearly good; intentional; one or two strong choices.
         - 9-10: rare. Everything is deliberate and the look has a point of view.
+        The overall score weighs four things: fit and proportion, color, accessories, and coherence with the stated
+        intent. A look with nothing on rarely earns above 7 outside Minimal and Sport.
         Spread your scores honestly. A 6 is not an insult.
 
         THE ONE TIP:
@@ -53,7 +76,7 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         Be concrete ("swap the running shoes for a plain white leather sneaker"), never abstract ("elevate the look").
 
         LANGUAGE:
-        Write every user-facing field (headline, vibe, notes, working, one_tip, message) in {LANGUAGE_NAME} ({BCP47}).
+        Write every user-facing field (headline, vibe, notes, working, one_tip, message, accessories.present, accessories.note, accessories.add_one) in {LANGUAGE_NAME} ({BCP47}).
         Address the wearer directly, casual register. No emojis. No exclamation marks. {LANGUAGE_STYLE_NOTES}
         """;
 
@@ -94,14 +117,34 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
               "required": ["name","category","verdict","note"] } },
             "working": { "type": "array", "items": { "type": "string" }, "description": "2-3 specific things that work." },
             "one_tip": { "type": "string", "description": "The single highest-impact change, concrete and doable with common items." },
+            "breakdown": { "type": "object", "description": "The three sub-scores behind the overall score.",
+              "properties": {
+                "fit": { "type": "integer", "minimum": 1, "maximum": 10, "description": "How the garments are cut and sit. Clothes, never the body." },
+                "color": { "type": "integer", "minimum": 1, "maximum": 10 },
+                "accessories": { "type": "integer", "minimum": 1, "maximum": 10 } },
+              "required": ["fit","color","accessories"] },
+            "accessories": { "type": "object", "description": "The accessories read on their own, relative to the intent.",
+              "properties": {
+                "verdict": { "type": "string", "enum": ["adds","neutral","missing","clashes"] },
+                "present": { "type": "array", "items": { "type": "string" }, "description": "Short names of the visible pieces only. Empty when nothing is on." },
+                "note": { "type": "string", "description": "One sentence." },
+                "add_one": { "type": "string", "description": "One concrete accessory that finishes this look for this intent, doable with common pieces. Empty only when verdict is adds." } },
+              "required": ["verdict","present","note","add_one"] },
             "message": { "type": "string", "description": "Only when status is not ok: short, friendly explanation." }
           },
-          "required": ["status","score","intent_match","headline","vibe","items","working","one_tip"]
+          "required": ["status","score","intent_match","headline","vibe","items","working","one_tip","breakdown","accessories"]
         }
         """;
 
     private static readonly string[] Categories = ["top", "bottom", "dress", "outerwear", "shoes", "accessory", "other"];
     private static readonly string[] Verdicts = ["works", "neutral", "weak"];
+
+    /// <summary>The accessories verdicts, in the order the prompt names them. Anything else is read as neutral.</summary>
+    public static readonly string[] AccessoryVerdicts = ["adds", "neutral", "missing", "clashes"];
+
+    /// <summary>The "present" list is chips on the result screen: a handful of short names, never a paragraph.</summary>
+    public const int MaxPresent = 6;
+    public const int MaxPresentLength = 40;
 
     public static readonly JsonElement ToolSchema = JsonDocument.Parse(ToolSchemaJson).RootElement.Clone();
     public static readonly VisionTool Tool = new(ToolName, ToolDescription, ToolSchema);
@@ -190,7 +233,9 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
             OneTip = ReadString(input, "one_tip"),
             Message = NullIfEmpty(ReadString(input, "message")),
             Working = ReadStringArray(input, "working"),
-            Items = ReadItems(input)
+            Items = ReadItems(input),
+            Breakdown = ReadBreakdown(input),
+            Accessories = ReadAccessories(input)
         };
 
         if (status != CheckStatus.Ok)
@@ -203,9 +248,63 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
             feedback.OneTip = "";
             feedback.Working = [];
             feedback.Items = [];
+            feedback.Breakdown = null;
+            feedback.Accessories = null;
         }
 
         return feedback;
+    }
+
+    /// <summary>
+    /// The three sub-scores, each clamped to 1–10. Null when the model sent no breakdown object or left one of the three
+    /// out: three rings with a made-up number in one of them would be worse than no rings (older checks show none either).
+    /// </summary>
+    private static ScoreBreakdown? ReadBreakdown(JsonElement input)
+    {
+        if (!input.TryGetProperty("breakdown", out var breakdown) || breakdown.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var fit = ReadInt(breakdown, "fit", int.MinValue);
+        var color = ReadInt(breakdown, "color", int.MinValue);
+        var accessories = ReadInt(breakdown, "accessories", int.MinValue);
+        if (fit == int.MinValue || color == int.MinValue || accessories == int.MinValue)
+        {
+            return null;
+        }
+
+        return new ScoreBreakdown
+        {
+            Fit = Math.Clamp(fit, 1, 10),
+            Color = Math.Clamp(color, 1, 10),
+            Accessories = Math.Clamp(accessories, 1, 10)
+        };
+    }
+
+    /// <summary>
+    /// The accessories read: the verdict normalised to the four words (neutral when it is anything else), at most
+    /// <see cref="MaxPresent"/> visible pieces of at most <see cref="MaxPresentLength"/> characters each, the note and the
+    /// one to add. Null when the model sent no accessories object.
+    /// </summary>
+    private static AccessoriesFeedback? ReadAccessories(JsonElement input)
+    {
+        if (!input.TryGetProperty("accessories", out var accessories) || accessories.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var verdict = ReadString(accessories, "verdict").ToLowerInvariant();
+        return new AccessoriesFeedback
+        {
+            Verdict = Array.IndexOf(AccessoryVerdicts, verdict) >= 0 ? verdict : "neutral",
+            Present = ReadStringArray(accessories, "present")
+                .Select(piece => piece.Length > MaxPresentLength ? piece[..MaxPresentLength].TrimEnd() : piece)
+                .Take(MaxPresent)
+                .ToList(),
+            Note = ReadString(accessories, "note"),
+            AddOne = ReadString(accessories, "add_one")
+        };
     }
 
     private static List<OutfitItem> ReadItems(JsonElement input)

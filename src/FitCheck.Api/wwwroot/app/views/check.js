@@ -2,13 +2,16 @@
 // read the verdict, post the look. Ported from the Phase 2 monolith onto the kit. The ids (#photo, #submit, #occasion,
 // #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
 // .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
-// sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame.
+// sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame. The rubric v2
+// block is #breakdown (ul.breakdown with li[data-part=fit|color|accessories]) and #accessories (.acc-verdict.<verdict>,
+// .acc-present .chip, .acc-note, .acc-add.tip).
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 
 const SCORE_COUNT_MS = 900;
+const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
 
 // The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy.
 const CSS = `
@@ -417,6 +420,14 @@ register('result', async (root) => {
     el('h1', { class: 'result-headline', text: feedback.headline, style: 'margin-block-start: 16px;' }),
     feedback.vibe ? el('p', { class: 'vibe', text: feedback.vibe }) : null
   ]));
+  // Rubric v2: the three rings, then the accessories read. A check from before v2 has neither and shows neither.
+  if (feedback.breakdown) {
+    container.appendChild(el('div', { id: 'breakdown' }, [
+      el('h2', { text: t('result.breakdown') }),
+      el('div', { style: 'margin-block-start: 12px;' }, [breakdownRow(feedback.breakdown)])
+    ]));
+  }
+  if (feedback.accessories) container.appendChild(accessoriesSection(feedback.accessories));
   container.appendChild(el('div', {}, [
     el('div', { class: 'match-label' }, [el('span', { text: t('result.intent_match', { intent }) }), el('span', { text: fmtPercent(feedback.intentMatch / 100) })]),
     el('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(feedback.intentMatch), 'aria-label': t('result.intent_match', { intent }) }, [fill])
@@ -458,6 +469,27 @@ register('result', async (root) => {
   }
 });
 
+/**
+ * The accessories read: the verdict as a pill, the pieces the stylist saw as chips ("No accessories seen." when the list
+ * is empty), the one-sentence note, and the one to add as a tip block when the stylist named one.
+ */
+function accessoriesSection(acc) {
+  const verdict = ACCESSORY_VERDICTS.includes(acc.verdict) ? acc.verdict : 'neutral';
+  const present = (Array.isArray(acc.present) ? acc.present : []).filter((piece) => typeof piece === 'string' && piece.trim());
+  return el('section', { id: 'accessories', 'aria-labelledby': 'accessories-title' }, [
+    el('h2', { id: 'accessories-title', text: t('accessories.title') }),
+    el('div', { class: 'acc-body', style: 'margin-block-start: 12px;' }, [
+      el('span', { class: 'acc-verdict ' + verdict, text: t('accessories.' + verdict) }),
+      el('div', { class: 'acc-present' }, [
+        el('span', { class: 'lbl', text: t('accessories.present') }),
+        ...(present.length ? present.map((piece) => el('span', { class: 'chip', text: piece })) : [el('span', { class: 'none', text: t('accessories.none_seen') })])
+      ]),
+      acc.note ? el('p', { class: 'acc-note', text: acc.note }) : null,
+      acc.addOne ? el('div', { class: 'tip acc-add' }, [el('span', { class: 'lbl', text: t('accessories.add_one') }), el('p', { text: acc.addOne })]) : null
+    ])
+  ]);
+}
+
 /** "Post it" until the check is public, then the link to the look. */
 function renderPostArea(area, result) {
   area.innerHTML = '';
@@ -471,7 +503,8 @@ function renderPostArea(area, result) {
 
 /**
  * The post sheet: caption, an open challenge of the same intent (the one the check was started from is preselected),
- * product links for brands. Posting makes the photo, intent, score and headline public; the tip and breakdown stay private.
+ * product links for brands. Posting makes the photo, intent, score, sub-scores and headline public; the tip, the items and
+ * the accessories read stay private.
  */
 function openPostSheet(area, result) {
   if (!requireSignIn('#/result')) return;

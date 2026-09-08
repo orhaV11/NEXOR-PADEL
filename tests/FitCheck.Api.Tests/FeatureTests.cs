@@ -268,7 +268,8 @@ public class FeatureMetricsTests : IClassFixture<FeatureMetricsTests.MetricsApp>
             await db.Posts.Where(p => p.Id == hidden).ExecuteUpdateAsync(s => s.SetProperty(p => p.Hidden, true));
         }
 
-        var social = (await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("social");
+        await _app.PromoteAsync("mb_a");   // the pilot's numbers are for moderators
+        var social = (await a.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("social");
         Assert.Equal(2, social.GetProperty("posts").GetInt32());
         Assert.Equal(2, social.GetProperty("mentions").GetInt32());
         Assert.Equal(1, social.GetProperty("featured").GetInt32());

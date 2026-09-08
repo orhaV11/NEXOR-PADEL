@@ -396,6 +396,61 @@ public class AuthRecoveryTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task A_foreign_host_header_never_becomes_a_link()
+    {
+        // With no Email:PublicOrigin, links are built only for loopback hosts: a Host header a stranger chose gets no mail.
+        var browser = await VerifiedUserAsync("hosted", "hosted@example.com");
+        var before = _app.Email.To("hosted@example.com").Count;
+
+        var forged = Anonymous();
+        forged.DefaultRequestHeaders.Host = "evil.example";
+        Assert.Equal(HttpStatusCode.Accepted, (await forged.PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "hosted" })).StatusCode);
+        await Task.Delay(300);
+        Assert.Equal(before, _app.Email.To("hosted@example.com").Count);
+
+        browser.DefaultRequestHeaders.Host = "evil.example";
+        var change = await browser.PatchAsJsonAsync("/api/users/me", new { email = "hosted2@example.com" });
+        Assert.Equal(HttpStatusCode.BadGateway, change.StatusCode);
+        Assert.Empty(_app.Email.To("hosted2@example.com"));
+        Assert.DoesNotContain(_app.Email.Sent, m => m.Body.Contains("evil.example"));
+    }
+
+    [Fact]
+    public async Task Verification_mail_is_three_per_ten_minutes_per_account()
+    {
+        var (client, _) = await UserAsync("mailer");
+        for (var i = 1; i <= 3; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await client.PatchAsJsonAsync("/api/users/me", new { email = $"mailer{i}@example.com" })).StatusCode);
+            Assert.Single(_app.Email.To($"mailer{i}@example.com"));
+        }
+
+        // A fourth address minutes later: the brake, not another mail, and the third address stays on the account.
+        var again = await client.PatchAsJsonAsync("/api/users/me", new { email = "mailer4@example.com" });
+        Assert.Equal(HttpStatusCode.TooManyRequests, again.StatusCode);
+        Assert.Equal("Too many recovery requests. Try again in an hour.", await ErrorOf(again));
+        Assert.Empty(_app.Email.To("mailer4@example.com"));
+        Assert.Equal("mailer3@example.com", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("email").GetString());
+
+        var resend = await client.PostAsync("/api/users/me/email/resend", null);
+        Assert.Equal(HttpStatusCode.TooManyRequests, resend.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_reset_link_dies_when_the_address_changes()
+    {
+        var client = await VerifiedUserAsync("mover_reset", "mover_reset@example.com");
+        await Anonymous().PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "mover_reset" });
+        var token = TokenIn(Assert.Single(await ResetMailsAsync("mover_reset@example.com")), "reset");
+
+        // The address the link went to is gone from the account: the link proves nothing about the new one.
+        Assert.Equal(HttpStatusCode.OK, (await client.PatchAsJsonAsync("/api/users/me", new { email = "" })).StatusCode);
+        var reset = await Anonymous().PostAsJsonAsync("/api/auth/reset", new { token, password = "new password1" });
+        Assert.Equal(HttpStatusCode.BadRequest, reset.StatusCode);
+        Assert.Equal(TokenInvalid, await ErrorOf(reset));
+    }
+
+    [Fact]
     public async Task Recovery_requests_are_limited_per_client_address()
     {
         var address = NextAddress();

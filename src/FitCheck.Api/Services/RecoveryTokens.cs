@@ -114,12 +114,45 @@ public static partial class RecoveryTokens
         return true;
     }
 
-    /// <summary>The origin links are built on: Email:PublicOrigin when set, otherwise the request's own scheme and host.</summary>
-    public static string Origin(HttpRequest request, EmailOptions options)
+    /// <summary>
+    /// The origin links are built on: Email:PublicOrigin when set, else the request's own origin ONLY when its host is a
+    /// loopback name (a laptop, the test host). Any other host with no configured origin gets no link at all: a mailed
+    /// link must never be built from a Host header a stranger chose, since the token rides in that link.
+    /// </summary>
+    public static bool TryOrigin(HttpRequest request, EmailOptions options, out string origin)
     {
         var configured = options.PublicOrigin.Trim().TrimEnd('/');
-        return configured.Length > 0 ? configured : $"{request.Scheme}://{request.Host}";
+        if (configured.Length > 0)
+        {
+            origin = configured;
+            return true;
+        }
+
+        var host = request.Host.Host;
+        if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)
+            || host == "127.0.0.1" || host == "::1" || host == "[::1]")
+        {
+            origin = $"{request.Scheme}://{request.Host}";
+            return true;
+        }
+
+        origin = "";
+        return false;
     }
+
+    /// <summary>True when the account already had this many links of the purpose issued inside the window: the brake on mailing one inbox.</summary>
+    public static async Task<bool> IssuedAtLeastAsync(AppDbContext db, Guid userId, string purpose, TimeSpan window, int count, CancellationToken ct)
+    {
+        var since = DateTime.UtcNow - window;
+        return await db.AuthTokens.CountAsync(t => t.UserId == userId && t.Purpose == purpose && t.CreatedAt >= since, ct) >= count;
+    }
+
+    /// <summary>Three verification links per account every ten minutes and ten a day; three reset links an hour.</summary>
+    public static async Task<bool> ThrottledAsync(AppDbContext db, Guid userId, string purpose, CancellationToken ct) =>
+        purpose == AuthTokenPurpose.Reset
+            ? await IssuedAtLeastAsync(db, userId, purpose, TimeSpan.FromHours(1), 3, ct)
+            : await IssuedAtLeastAsync(db, userId, purpose, TimeSpan.FromMinutes(10), 3, ct)
+              || await IssuedAtLeastAsync(db, userId, purpose, TimeSpan.FromDays(1), 10, ct);
 
     public static string VerifyLink(string origin, string token) => $"{origin}/#/verify/{token}";
 

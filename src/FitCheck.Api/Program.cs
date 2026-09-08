@@ -320,6 +320,14 @@ DatabaseSetup.Apply(app.Services, app.Logger);
 // Then the moderators: every existing account whose handle is in Admin:Handles gets the flag (never the other way round).
 await AdminSync.ApplyAsync(app.Services, app.Logger);
 
+{
+    var mail = app.Services.GetRequiredService<IOptions<EmailOptions>>().Value;
+    if (mail.Enabled && string.IsNullOrWhiteSpace(mail.PublicOrigin))
+    {
+        app.Logger.LogWarning("Email is on but Email:PublicOrigin is not set: confirmation and reset links are only built for localhost hosts. Set it to the app's public https origin.");
+    }
+}
+
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable)))
 {
     app.Logger.LogWarning("{Variable} is not set: every outfit check will fail with 502 until it is.", AnthropicVisionClient.ApiKeyVariable);

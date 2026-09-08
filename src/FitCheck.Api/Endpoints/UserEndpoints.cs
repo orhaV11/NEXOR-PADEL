@@ -127,6 +127,7 @@ public static class UserEndpoints
                     user.Email = null;
                     user.EmailVerifiedAt = null;
                     await RecoveryTokens.VoidOpenAsync(db, user.Id, AuthTokenPurpose.Verify, DateTime.UtcNow, ct);
+                    await RecoveryTokens.VoidOpenAsync(db, user.Id, AuthTokenPurpose.Reset, DateTime.UtcNow, ct);
                 }
             }
             else
@@ -149,8 +150,15 @@ public static class UserEndpoints
                         return Error(StatusCodes.Status409Conflict, localizer.Get(user.PreferredLanguage, "error.email_taken"));
                     }
 
+                    // Every new address mails a link; one account cannot turn that into a stream at someone's inbox.
+                    if (await RecoveryTokens.ThrottledAsync(db, user.Id, AuthTokenPurpose.Verify, ct))
+                    {
+                        return Error(StatusCodes.Status429TooManyRequests, localizer.Get(user.PreferredLanguage, "error.recovery_limited"));
+                    }
+
                     user.Email = address;
                     user.EmailVerifiedAt = null;
+                    await RecoveryTokens.VoidOpenAsync(db, user.Id, AuthTokenPurpose.Reset, DateTime.UtcNow, ct);
                     newAddress = true;
                 }
             }
@@ -272,6 +280,11 @@ public static class UserEndpoints
         if (user.Email is null || user.EmailVerifiedAt is not null)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.invalid_request"));
+        }
+
+        if (await RecoveryTokens.ThrottledAsync(db, user.Id, AuthTokenPurpose.Verify, ct))
+        {
+            return Error(StatusCodes.Status429TooManyRequests, localizer.Get(user.PreferredLanguage, "error.recovery_limited"));
         }
 
         if (!await AuthEndpoints.SendVerificationAsync(context, db, user, email, emailOptions, localizer, loggerFactory.CreateLogger(typeof(UserEndpoints)), ct))

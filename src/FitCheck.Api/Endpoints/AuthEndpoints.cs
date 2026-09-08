@@ -80,10 +80,16 @@ public static partial class AuthEndpoints
             throw new InvalidOperationException("No address to verify.");
         }
 
+        if (!RecoveryTokens.TryOrigin(context.Request, options.Value, out var origin))
+        {
+            logger.LogError("No link origin for host {Host}: set Email:PublicOrigin to the app's public https origin", context.Request.Host);
+            return false;
+        }
+
         var token = await RecoveryTokens.IssueAsync(db, user.Id, AuthTokenPurpose.Verify, user.Email, ct);
         await db.SaveChangesAsync(ct);
 
-        var link = RecoveryTokens.VerifyLink(RecoveryTokens.Origin(context.Request, options.Value), token);
+        var link = RecoveryTokens.VerifyLink(origin, token);
         var message = new EmailMessage(user.Email, localizer.Get(user.PreferredLanguage, "email.verify_subject"), localizer.Get(user.PreferredLanguage, "email.verify_body", user.Handle, link));
         try
         {
@@ -232,11 +238,14 @@ public static partial class AuthEndpoints
             }
         }
 
-        if (email.Enabled && user is { Suspended: false, Email: not null, EmailVerifiedAt: not null })
+        // No link is ever built from a Host header a stranger chose, and no inbox gets more than three reset links an hour.
+        if (email.Enabled && user is { Suspended: false, Email: not null, EmailVerifiedAt: not null }
+            && RecoveryTokens.TryOrigin(context.Request, options.Value, out var origin)
+            && !await RecoveryTokens.ThrottledAsync(db, user.Id, AuthTokenPurpose.Reset, ct))
         {
             var token = await RecoveryTokens.IssueAsync(db, user.Id, AuthTokenPurpose.Reset, user.Email, ct);
             await db.SaveChangesAsync(ct);
-            var link = RecoveryTokens.ResetLink(RecoveryTokens.Origin(context.Request, options.Value), token);
+            var link = RecoveryTokens.ResetLink(origin, token);
             var message = new EmailMessage(user.Email, localizer.Get(user.PreferredLanguage, "email.reset_subject"), localizer.Get(user.PreferredLanguage, "email.reset_body", user.Handle, link));
             var logger = loggerFactory.CreateLogger(typeof(AuthEndpoints));
             var userId = user.Id;
@@ -267,7 +276,8 @@ public static partial class AuthEndpoints
         var language = Localizer.Resolve(null, context.Request);
         var token = await RecoveryTokens.FindValidAsync(db, body.Token, AuthTokenPurpose.Reset, ct);
         var user = token is null ? null : await db.Users.FindAsync([token.UserId], ct);
-        if (token is null || user is null || user.Suspended)
+        // A reset link proves the person read the address it went to; an address that changed since proves nothing.
+        if (token is null || user is null || user.Suspended || token.Email != user.Email)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.token_invalid"));
         }

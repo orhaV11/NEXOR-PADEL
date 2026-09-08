@@ -41,6 +41,10 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      # The transcoder tests run for real only when ffmpeg is on the PATH; without it they skip, which proves nothing.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Restore
         run: dotnet restore
 

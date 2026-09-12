@@ -683,13 +683,13 @@ public static class PostEndpoints
             .ToListAsync(ct);
         var userIds = comments.Select(c => c.UserId).Distinct().ToList();
         var users = await db.Users.Where(u => userIds.Contains(u.Id))
-            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType, u.AvatarPath, u.AvatarVersion })
+            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType, u.AvatarPath, u.AvatarVersion, u.Verified })
             .ToDictionaryAsync(u => u.Id, ct);
 
         var dtos = comments.Select(c =>
         {
             users.TryGetValue(c.UserId, out var u);
-            var user = u is null ? new UserRefDto("?", "?", "Person") : new UserRefDto(u.Handle, PostReader.NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), PostReader.AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion));
+            var user = u is null ? new UserRefDto("?", "?", "Person") : new UserRefDto(u.Handle, PostReader.NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), PostReader.AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion), u.Verified);
             var isMine = c.UserId == viewerId;
             return new CommentDto(c.Id, user, c.Text, isMine, isMine || post.UserId == viewerId, DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc));
         }).ToList();

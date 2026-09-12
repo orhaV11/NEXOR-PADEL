@@ -29,10 +29,12 @@ public sealed record DailyPrompt(
 }
 
 /// <summary>
-/// The daily rhythm without ephemeral content: thirty prompts, one a day by the UTC day of the year modulo thirty, so
-/// everyone on the app sees the same prompt on the same day and a prompt comes back about once a month. Nothing is
-/// stored: the posts carry the hashtag, the day decides the prompt. The copy keeps each language's register from the
-/// i18n files: Hebrew and Arabic in neutral, ungendered forms, Russian in the informal "ты".
+/// The daily rhythm without ephemeral content: thirty prompts, one a day by the count of UTC days since a fixed epoch
+/// modulo thirty, so everyone on the app sees the same prompt on the same day and a prompt comes back every thirty days,
+/// the turn of the year included (a day-of-the-year index would restart the cycle on 1 January and bring late
+/// December's prompts back within the week). Nothing is stored: the posts carry the hashtag, the day decides the prompt.
+/// The copy keeps each language's register from the i18n files: Hebrew and Arabic in neutral, ungendered forms, Russian
+/// in the informal "ты".
 /// </summary>
 public static class DailyPrompts
 {
@@ -160,8 +162,19 @@ public static class DailyPrompts
             "القطعة التي تُنقَذ من الحريق قبل أي شيء. البناء حولها.", "То единственное, что спасёшь из огня. Собери образ вокруг.")
     ];
 
-    /// <summary>The prompt for a UTC moment: the day of the year modulo the list, so a date always lands on the same one.</summary>
-    public static DailyPrompt For(DateTime utc) => All[utc.DayOfYear % All.Count];
+    /// <summary>
+    /// The day the count starts from: the last day of 2025, so through 2026 the index equals the day of the year and the
+    /// prompt calendar the pilot launched with holds; from there the count simply runs on across every year turn.
+    /// </summary>
+    private static readonly DateTime Epoch = new(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>The prompt for a UTC moment: whole days since the epoch modulo the list, so a date always lands on the same one.</summary>
+    public static DailyPrompt For(DateTime utc)
+    {
+        var days = (int)(DayOf(utc) - Epoch).TotalDays;
+        var n = All.Count;
+        return All[((days % n) + n) % n];   // a date before the epoch counts back through the list rather than out of it
+    }
 
     /// <summary>Midnight UTC of the day a moment falls on: the start of "today" for the posts that count.</summary>
     public static DateTime DayOf(DateTime utc) => DateTime.SpecifyKind(utc.Date, DateTimeKind.Utc);

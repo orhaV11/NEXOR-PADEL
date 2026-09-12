@@ -7,8 +7,12 @@ import { register, state, t, api, el, setTopBar, scoreBadge, postGrid, emptyStat
 
 /** Thumbnails on the strip; the page shows the whole day. */
 const STRIP_LOOKS = 8;
-/** How long a fetched prompt is reused on the strip, so Back from a look draws it at once, without a jump. */
-const CACHE_TTL = 5 * 60 * 1000;
+/**
+ * How long a fetched prompt is trusted on the strip before it is fetched again: the same ten minutes feed.js keeps a list
+ * and its scroll position for (its CACHE_TTL), so the two age together. Whatever the strip has is drawn at once anyway
+ * (below), so a restored list never moves under the reader while the strip is on its way.
+ */
+const CACHE_TTL = 10 * 60 * 1000;
 
 let cached = null;   // { data, at, version }
 
@@ -102,15 +106,18 @@ function stripContent(today) {
 
 /**
  * The Today strip for the top of For you. place(node) puts the built strip where the feed wants it; it is called at
- * once from a fresh cache (Back from a look lands where the reader was, nothing shifts) and otherwise when /api/today
- * answers. opts.force skips the cache (a pull to refresh, the Home tab tapped again). A failure calls nothing: the
- * feed goes on as if there were no prompt. Never throws.
+ * once with whatever the cache holds for this feed version (Back from a look lands where the reader was, nothing shifts:
+ * the feed restores its list and scroll position synchronously, so the strip must be there before that), and again when
+ * /api/today answers if the cached prompt is older than CACHE_TTL, replacing the strip in place. opts.force skips the
+ * cache (a pull to refresh, the Home tab tapped again). A failure calls nothing more: the feed goes on with what it has,
+ * or as if there were no prompt. Never throws.
  */
 export function todayStrip(ctx, place, opts) {
   ensureStyle();
   const build = (today) => el('section', { class: 'today-strip', id: 'today-strip', 'aria-labelledby': 'today-title' }, stripContent(today));
-  const fresh = !(opts && opts.force) && cached && cached.version === feedVersion.n && Date.now() - cached.at < CACHE_TTL;
-  if (fresh) { place(build(cached.data)); return; }
+  const known = !(opts && opts.force) && cached && cached.version === feedVersion.n ? cached : null;
+  if (known) place(build(known.data));
+  if (known && Date.now() - known.at < CACHE_TTL) return;
   api('GET', '/api/today')
     .then((today) => {
       if (!today || !today.tag) return;

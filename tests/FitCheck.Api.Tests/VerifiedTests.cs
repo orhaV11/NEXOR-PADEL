@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
@@ -67,5 +68,12 @@ public class VerifiedTests : IClassFixture<TestApp>
         var comment = await Json(await brand.PostAsJsonAsync($"/api/posts/{personPost}/comments", new { text = "Love it" }));
         Assert.True(comment.GetProperty("user").GetProperty("verified").GetBoolean());
         Assert.True((await brand.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("verified").GetBoolean());
+
+        // The comment list says the same as the comment's own answer (it builds its refs by hand, not through PostReader).
+        Assert.Equal(HttpStatusCode.Created, (await person.PostAsJsonAsync($"/api/posts/{personPost}/comments", new { text = "Thanks" })).StatusCode);
+        var listed = await _app.NewClient().GetFromJsonAsync<JsonElement>($"/api/posts/{personPost}/comments");
+        var byHandle = listed.EnumerateArray().ToDictionary(c => c.GetProperty("user").GetProperty("handle").GetString()!, c => c.GetProperty("user").GetProperty("verified").GetBoolean());
+        Assert.True(byHandle["vf_shop"]);
+        Assert.False(byHandle["vf_person"]);
     }
 }

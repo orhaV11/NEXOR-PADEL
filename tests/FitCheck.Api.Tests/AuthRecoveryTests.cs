@@ -72,6 +72,19 @@ public class AuthRecoveryTests : IClassFixture<TestApp>
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.ExpiresAt, DateTime.UtcNow.AddMinutes(-1)));
     }
 
+    /// <summary>Moves every link of the purpose (spent or not) back in time: the per-account brakes count links by when they were issued.</summary>
+    private async Task AgeLinksAsync(Guid userId, string purpose, TimeSpan by)
+    {
+        using var scope = _app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        foreach (var token in await db.AuthTokens.Where(t => t.UserId == userId && t.Purpose == purpose).ToListAsync())
+        {
+            token.CreatedAt -= by;
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task Setting_an_address_mails_a_link_and_the_link_verifies_it_signed_out()
     {
@@ -434,6 +447,76 @@ public class AuthRecoveryTests : IClassFixture<TestApp>
 
         var resend = await client.PostAsync("/api/users/me/email/resend", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, resend.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reset_mail_is_three_an_hour_per_account_whatever_the_client_address()
+    {
+        var client = await VerifiedUserAsync("brake_reset", "brake_reset@example.com");
+        var id = (await client.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("id").GetGuid();
+
+        // Three links go out, each request from its own client address so the per-address brake never speaks here.
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Equal(HttpStatusCode.Accepted, (await Anonymous().PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "brake_reset" })).StatusCode);
+        }
+
+        Assert.Equal(3, (await ResetMailsAsync("brake_reset@example.com", 3)).Count);
+
+        // The fourth within the hour: the same 202 (the door says nothing), by handle or by address, and no fourth mail.
+        Assert.Equal(HttpStatusCode.Accepted, (await Anonymous().PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "brake_reset" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await Anonymous().PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "Brake_Reset@example.com" })).StatusCode);
+        Assert.Equal(3, (await ResetMailsAsync("brake_reset@example.com", 4, timeoutMs: 300)).Count);
+
+        // An hour on, the inbox may hear from us again, and the newest link is the one that works.
+        await AgeLinksAsync(id, AuthTokenPurpose.Reset, TimeSpan.FromMinutes(61));
+        Assert.Equal(HttpStatusCode.Accepted, (await Anonymous().PostAsJsonAsync("/api/auth/forgot", new { handleOrEmail = "brake_reset" })).StatusCode);
+        var mails = await ResetMailsAsync("brake_reset@example.com", 4);
+        Assert.Equal(4, mails.Count);
+        Assert.Equal(HttpStatusCode.OK, (await Anonymous().PostAsJsonAsync("/api/auth/reset", new { token = TokenIn(mails[3], "reset"), password = "new password1" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Verification_mail_is_ten_a_day_per_account()
+    {
+        var (client, id) = await UserAsync("mailer_day");
+        var accepted = 0;
+        async Task<HttpResponseMessage> NextAddress() => await client.PatchAsJsonAsync("/api/users/me", new { email = $"mailer_day{accepted + 1}@example.com" });
+
+        // Three every ten minutes (the short brake), ten minutes apart, up to nine in the day.
+        for (var round = 0; round < 3; round++)
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                Assert.Equal(HttpStatusCode.OK, (await NextAddress()).StatusCode);
+                accepted++;
+            }
+
+            Assert.Equal(HttpStatusCode.TooManyRequests, (await NextAddress()).StatusCode);
+            await AgeLinksAsync(id, AuthTokenPurpose.Verify, TimeSpan.FromMinutes(11));
+        }
+
+        // The tenth of the day goes out; the eleventh is the day's ceiling, not the ten-minute one (only one link is that recent).
+        Assert.Equal(HttpStatusCode.OK, (await NextAddress()).StatusCode);
+        accepted++;
+        Assert.Equal(10, accepted);
+        var ceiling = await NextAddress();
+        Assert.Equal(HttpStatusCode.TooManyRequests, ceiling.StatusCode);
+        Assert.Equal("Too many recovery requests. Try again in an hour.", await ErrorOf(ceiling));
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsync("/api/users/me/email/resend", null)).StatusCode);
+        Assert.Equal("mailer_day10@example.com", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("email").GetString());
+        Assert.Empty(_app.Email.To("mailer_day11@example.com"));
+        for (var i = 1; i <= 10; i++)
+        {
+            Assert.Single(_app.Email.To($"mailer_day{i}@example.com"));
+        }
+
+        // Still the ceiling once the ten-minute window is clear; a day on, the door opens again.
+        await AgeLinksAsync(id, AuthTokenPurpose.Verify, TimeSpan.FromMinutes(11));
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await NextAddress()).StatusCode);
+        await AgeLinksAsync(id, AuthTokenPurpose.Verify, TimeSpan.FromHours(24));
+        Assert.Equal(HttpStatusCode.OK, (await NextAddress()).StatusCode);
+        Assert.Single(_app.Email.To("mailer_day11@example.com"));
     }
 
     [Fact]

@@ -239,7 +239,7 @@ public class Round10MigrationTests : IDisposable
     }
 }
 
-/// <summary>The routes the skeleton maps answer 501 in the app's error shape, behind the gates the builders will keep.</summary>
+/// <summary>The gates the skeleton mapped stay in front of the routes the builders filled in.</summary>
 public class Round10StubTests : IClassFixture<TestApp>
 {
     private readonly TestApp _app;
@@ -249,22 +249,7 @@ public class Round10StubTests : IClassFixture<TestApp>
         _app = app;
     }
 
-    [Theory]
-    [InlineData("/api/board")]
-    [InlineData("/api/board?week=2026-09-06")]
-    [InlineData("/api/board/hall")]
-    public async Task The_public_routes_answer_501_with_a_sentence_in_the_callers_language(string path)
-    {
-        var response = await _app.NewClient().GetAsync(path);
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("This part of OREVOSH isn't built yet.", body.GetProperty("error").GetString());
-
-        var hebrew = _app.NewClient();
-        hebrew.DefaultRequestHeaders.AcceptLanguage.ParseAdd("he-IL");
-        var translated = await (await hebrew.GetAsync(path)).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("החלק הזה של OREVOSH עדיין לא בנוי.", translated.GetProperty("error").GetString());
-    }
+    // Every public route of the skeleton is built now (ItemsTests, BoardTests); the 501 theory is gone with the stubs.
 
     [Fact]
     public async Task Tagging_items_needs_a_session_then_a_look_of_ones_own()
@@ -281,7 +266,7 @@ public class Round10StubTests : IClassFixture<TestApp>
     }
 
     [Fact]
-    public async Task Board_exclusion_is_for_moderators_then_answers_501()
+    public async Task Board_exclusion_is_for_moderators()
     {
         var postId = Guid.NewGuid();
         var anonymous = await _app.NewClient().PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" });
@@ -291,10 +276,11 @@ public class Round10StubTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Forbidden, (await person.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await person.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
 
+        // Past the gate the route is built (BoardTests): a look that does not exist is 404, one that was never off is 404.
         var (moderator, _, _) = await _app.NewUserAsync("r10_mod");
         Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("r10_mod"));
-        Assert.Equal(HttpStatusCode.NotImplemented, (await moderator.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotImplemented, (await moderator.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await moderator.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await moderator.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
     }
 }
 

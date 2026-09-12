@@ -241,6 +241,74 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
   a 10px check glyph (stroke 3.5) after the word, inside the pill, in the mark's rose; 12px on the profile head; titled
   "Verified brand" for hover and screen readers. Only `--verify` puts it there.
 
+## 8d. Round 10 surfaces: the pieces on a look, the weekly flames board
+
+- **The item editor** (`app/items.js`, `#items-editor`: on the post sheet under the "after the tip" picker, and in the
+  owner's "Edit items" sheet over the look's rows): the still at 220 wide in the 4:5 box (`#items-photo`, radius 12 on
+  `--surface-2`, a crosshair cursor, a 2px `--accent` ring while a row waits for its tap, the hint "Tap the photo on
+  running shoes…" under it), the dots over it, and one 52px row per piece (`li.items-row[data-source=Stylist|User]`):
+  a 26px numbered ring (2px `--ink-3`; the gradient with `--accent-ink` once the piece has a dot), name · brand · model
+  in 15 with a rose sparkle titled "Named by the stylist" on the stylist's rows, the "Place the dot" pill (caps 11;
+  `--accent` text and outline once placed, `--accent-tint` while placing) and a 44px remove. A stylist brand guess is a
+  line under the row head, "Looks like Nike?" in 600 with three 36px chips, Confirm / Edit / Not a brand; nothing goes
+  out as a brand until one is tapped. The open row's fields are 46px inputs (name, the seven category chips, the brand
+  with a listbox of the server's brands as 44px rows carrying the look count in 12.5 `--ink-3` and the BRAND mark,
+  the model, the store link with its hint); "Add an item" is a 40px pill with the tag glyph in `--accent` and "Up to
+  12 items on a look." beside it, disabled at twelve.
+- **The dots** (`.item-dot`, on the editor's preview and on the look page): a 44px hit area around a 22px ring (2px
+  `--ink` on a 72% `--bg` disc with a soft shadow) holding the piece's number in the display face at 11; the active one
+  takes the gradient. Placed by physical `left`/`top` percentages of the 4:5 box, because a photo does not mirror in
+  Hebrew; a drag moves one, the arrow keys nudge a focused one by 0.02, Enter on the photo places it at the centre.
+- **The look page** (`views/post.js`): the dots sit over the photo behind **the tag toggle** (`#items-toggle`), a 44px
+  target at the photo's physical bottom-left holding a 32px translucent pill with the tag glyph at 18 and the count in
+  the display face at 13, `--accent` while the dots show; the score ring keeps the bottom-right in both directions. It
+  appears only when a piece has a dot. Cards carry the same corner as a 22px `.item-count` pill (the glyph at 12, the
+  count in Outfit 700 11) when a look has items; prints stay the ring alone. Under the card, **"The look"**
+  (`#look-items`, a post section with the h2 and, for the owner, "Edit items" as a text button): the pieces as 52px rows
+  with the same 26px ring, name · brand · model (the first letter capitalised by CSS; the server keeps names
+  lower-case), the bag glyph in `--accent` when a store link waits, `--line-soft` hairlines between. A row or a dot
+  opens **the item sheet** (`#item-sheet`): a caps-label / value list (`dl.item-kv`: the brand as an `--accent` link to
+  its looks, the model, the category), "Named by the stylist" as a hint on a stylist row, the gradient `.btn` "Shop at
+  nike.com" with the bag glyph (`#item-shop`, a new tab through the out door), centred under it the honest line
+  "Leaves OREVOSH · This link may earn OREVOSH a commission." (`#item-leaves`) whenever a link exists, then "More looks
+  with Nike" as a full-width text button.
+- **The item pages** (`views/items.js`: `#/items/<brand>`, `#/items/<brand>/<category>`, `#/items?q=`): the top bar
+  titled "Looks with Nike · Shoes" (the server's spelling), the Explore search rule as the first block (`#items-search`,
+  submitting to `#/items?q=`), on a brand page the category chips as a scroll row with "All" first (the pressed one
+  `--accent` on `--accent-ink`, `#items-cats`), the brand's own account as a 52px row between hairlines with its avatar,
+  "More looks with Nike", the BRAND mark and a forward arrow (`#items-more`), then the print grid of §5 paging as you
+  scroll (`#items-grid`) and the empty state "No looks with this yet." spanning its columns.
+- **The board** (`views/board.js`, `#/board`, under Explore): the five boards as the feed's coins (§8), Looks / People /
+  Rising / By intent / Stylist's picks, wrapping onto a second row (five never fit one phone row, and a hidden coin would
+  be a hidden board). The head: WEEK OF … in caps `--accent`, "Hall of flame" with the trophy glyph at the end, "Closes
+  in 2 days 5 hours" in Outfit 800 26 recomputed every minute (two units at most, in the locale's own words; "This week
+  is closed" on an archive week), the sponsor as an outlined block (radius 12: PRESENTED BY in caps `--ink-3` with the
+  name in `--accent-2`, the prize line in 15, the site's host with the link glyph), the rules line, and Previous /
+  Next week as 40px pills. The reader's own place is a fire pill (`#board-me`: 44px, `--fire` on `--fire-tint`, Outfit
+  700 16, the flame): "You're #2", "You finished #2 this week" once closed. On By intent, the feed's intent chips
+  (`#board-intents`). Each place is a row (`.board-row[data-rank]`): **the medal** (`.rank-medal`, a 36px disc in
+  Outfit 800 16, tabular, `direction: ltr`; the first three burn on the flame gradient, `--fire` → `--fire-2`, with
+  ink `#1a0a04` and an orange glow, the rest sit on `--surface-2`), the fires that counted in `--fire` display 15 with
+  the flame, "Score 9/10" as a tag on picks, then the compact look card of §5 or, on People, the person row with the
+  looks posted and the fires at the end in 12.5 `--ink-3`. The empty and error states centre with the hall link under
+  them.
+- **The hall** (`#/board/hall`, `#hall`): one section per closed week, "Week of …" as the h2, its top three looks as
+  three 4:5 prints (radius 12) with a 28px medal at the top-start corner (`.hall-tile`), the name in Outfit 700 14 and
+  the fires under each; a look that is gone is a `--surface-2` tile saying so (`.hall-gone`); the week's top person as a
+  row with the medal (`.hall-person`).
+- **The Explore strip** (`#board-strip`, right after the search rule): a section head "This week's board" with "See the
+  board" at the end, then the top three of the looks board as the same three prints with their medals and the fires
+  under them; absent while the board is empty.
+- **The reset card** (`#board-reset`, on For you above the Today strip, the first 24 hours of a week): a card in the
+  feed's rhythm (`--surface`, radius 18, `margin: 0 14px 20px`, the card shadow), the flame at 20 in `--fire` and "The
+  board reset. A new week starts now." in Outfit 700 18, two text links ("See the board", "See last week's winners"),
+  and a close (`#board-reset-dismiss`) that remembers the dismissal for the week in `localStorage`.
+- **The profile badge** (`#profile-badge`, inside the name next to the brand mark, and on Me): a 24px pill on the flame
+  gradient with ink `#1a0a04`, the flame glyph at 12 and "#1 · LOOKS" in Heebo 700 11 caps, a link to the hall, titled
+  "Finished #1 on Looks last week"; worn for the week after, then gone.
+- Fire stays a reaction's colour: the medals and the badge burn because a place on the board *is* fire that counted.
+  No motion was added for any of it (§9 stands as written).
+
 ## 9. Motion
 
 Ring draw + flame pop on the check control; flame breathing on the loading screen; the score count-up on the result;

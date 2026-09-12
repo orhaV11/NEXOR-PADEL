@@ -971,108 +971,167 @@ What the review raised and the round kept as it was:
   that clips were designed for (autoplay muted, the sound disc opt-in), and would pull the loop away from the check
   toward a video app the world already has. Named here so nobody assumes it is planned.
 
-## Round 10 — items on a look, the weekly flames board (2026-09-12 → )
+## Round 10 — items on a look, the weekly flames board (2026-09-12)
 
 The owner asked for items on a post ("tap the pants: Nike pants, the model, the store link"; typed by the person, or
 suggested by the stylist when a mark is visible) and a weekly flames board (a top ten that is a competition and grows
-from there); sounds on posts stay rejected (Round 9). Builders work in parallel from one skeleton; the lead rewrites
-this section after the merge, from the code.
+from there); sounds on posts stay rejected (Round 9). The lead wrote a skeleton first (`a09948b`: the schema and its
+migration, the options with the plan's defaults, the DTOs, the routes answering 501 behind their real gates, the
+server strings in four languages, the stub views and routes, 78 client keys, a clock and a counter seam; 440 → 470
+tests), so that four builders could work in parallel from fixed edges: items on the server, items on the client, the
+board on the server, the board on the client, each against the other's contract rather than the other's code. The
+lead merged the four; this section is written from the merged code, after the fact, by the docs builder.
 
-### Round 10 skeleton (the lead, before the builders)
+### Decisions
 
-The shared contract. Everything here compiles, migrates and is tested; nothing here is the feature.
+- **A tag is the person's word.** The pieces on a look are what their owner typed or confirmed: a name, a category, a
+  brand, a model, a store link and a dot on the photo, twelve at most (`PostItems.MaxTagged`), edited on the post
+  sheet and later under "Edit items", as one whole list each time (`PATCH /api/posts/{id}/items` replaces; a row
+  left out is gone). `PostItems.Apply` is the one validation of that list, at posting and afterwards, so the two
+  doors cannot drift: a typed name is one to forty characters after the stylist's own normalisation, a stylist name
+  sent back unchanged may still be sixty, the category is one of the analyzer's seven, the brand forty, the model
+  sixty, and every refusal is a 400 that writes nothing. A row remembers who named it (`Source`): the stylist's row
+  stays the stylist's while only its brand, model, link, dot or confirmation change, and becomes the person's the
+  moment its name or category does. Nothing verifies a brand or a model against anything; the README says so.
+- **The stylist suggests a brand only when a mark is visible, and only the person publishes it.** Rubric v3 adds one
+  field to every item the stylist names, `brand_seen`, with one rule in the schema and a BRANDS section in the
+  prompt: a brand whose mark, logo or unmistakable signature is visible on that piece, null otherwise, never a guess
+  from style, cut, colour or price ("a wrong brand is the one mistake this app cannot afford"). The mapping cuts it
+  to forty characters and reads "null", "none", "unknown" and "n/a" as no brand. It rides in the stored feedback and
+  on `GET /api/checks/{id}`, and **the server never copies it onto a look**: `PostItems.FromFeedback` writes the
+  stylist's names with no brand, and a brand reaches a row only inside the person's list. The post sheet shows the
+  guess as "Looks like Nike?" with Confirm, Edit and Not a brand and sends nothing as a brand until one is tapped;
+  Confirm sends the guess with `confirmed: true`, Edit prefills the field and counts as confirmed only while the
+  typed brand still equals the guess, Not a brand drops it. The server stores `confirmed` true only with a brand on a
+  row that is still the stylist's; a typed row has no suggestion to accept, whatever the client says. The stub
+  answers `brand_seen` null everywhere and "Nike" on the English running shoes, and refuses a schema without the
+  field, like the v2 fields before it.
+- **One door for links, so they can be decorated, counted and revoked.** A store link is stored as given (absolute,
+  `http` or `https`, a host, no user info, so `nike.com@evil.example` is refused like `javascript:`) and is never the
+  `href` a person taps: the item sheet sends everyone through `GET /api/items/{id}/out`, which answers a 302 to the
+  stored link with the parameters `Affiliate:Hosts` names for its host appended after the link's own query and before
+  its fragment, `Referrer-Policy: no-referrer` (the store learns nothing about the look or the person) and
+  `Cache-Control: no-store` (every tap reaches the door and is counted in `item_outs`), and 404 for a link on a
+  hidden look. The parameters live in configuration and are added at the door, never written to the row, so joining,
+  changing or leaving a programme is one setting for every link at once; the door is rate limited to sixty taps a
+  minute per address (the `out` policy) so a script cannot run the tally up. The security-headers middleware learned
+  one thing for it: a route that set `Referrer-Policy` first keeps it; every other response still gets the default.
+- **The disclosure shows whenever a link exists.** "Leaves OREVOSH · This link may earn OREVOSH a commission." sits
+  under every "Shop at {host}", listed host or not, because a person deciding whether to tap should not need to know
+  which programmes the owner joined this month, and a line that appears only on some links teaches people to look for
+  its absence. `Affiliate:Disclosure` was bound in the skeleton for a client that would read it; the client does not,
+  and the README says the setting is bound and not read rather than pretending it is a switch.
+- **Fires count from people who use the app, capped per pair.** A fire is worth a place on the board only when the
+  firer has made an `ok` check by the week's end (`Board:MinChecksToCount`, 1), when their account was two days old at
+  the moment of the fire (`Board:NewAccountDays`), when the look is not their own, and while it is within the first
+  three fires from that person on that author's looks in the week (`Board:MaxPerFirerPerAuthor`), read in time order
+  so a person's first fires on an author are the ones that count. A row's `fires` is that count, never `FireCount`.
+  Hidden looks and looks a moderator excluded are on no board before anything is counted. The rules raise the cost of
+  gaming, they do not make it impossible, and the README's limitations say the board's per-address protection is
+  nothing; the exclusion is the answer when it happens, and it is logged with who did it.
+- **The picks board is the one that cannot be gamed.** It ranks the looks posted that week by the stylist's score;
+  counted fires break ties and age breaks the rest. No amount of fire moves a look past a better score, so the week
+  always has one list that money and friends cannot touch; it sits last among the five on purpose.
+- **A week closes once, by the closer, into the hall.** `BoardCloser` is a hosted service that runs at start and every
+  five minutes on the board's clock: every week that is over and has no `WeeklyWinners` rows is computed under the
+  rules and written in one save, every board and every rank, oldest first back to the week of the earliest fire, so
+  downtime over a weekend is caught up on the next start. The unique index on `(WeekStart, Board, Rank)` is the
+  idempotence guard: a second close of the same week, a restart or a second process, fails the constraint, the change
+  tracker is cleared, and the first run's rows stand. A week with no counted fires writes nothing and says so once
+  per process. Only the most recent ended week tells the looks board its places (`board_rank`, one per person with
+  their best rank, in the app and by push, the tap landing on `#/board`); a catch-up over older weeks is silent,
+  because "you finished #2 three weeks ago" is not news. There is no HTTP route and no command that closes a week:
+  the closer is the only writer, and the week label (the local first day as a UTC date) is the key the hall and the
+  badge read. The archive keeps a deleted look's place with its `PostId` set null; the person's rank stands.
+- **The badge is for the week after.** The top three of the looks board wear "#1 · Looks" next to their name, on `me`
+  and on the profile, for exactly the following week, read from the archive rows of the week before the current one
+  and nothing else; the week after that it is gone. A badge that never expires is a leaderboard that never resets.
+- **The sponsor is config, not self-service.** `Board:Sponsor:Name`, `Handle`, `PrizeText` and `Url` put "Presented
+  by" on the board while the name is set; the owner agrees a prize with a brand, verifies the account, and writes the
+  four lines. A form for brands to book a week would need a payment, a review and a calendar behind it that a pilot
+  does not have; a setting is the honest amount of process, as `--verify` is for the check.
+- **The board is coins, five tabs.** Looks, People, Rising, By intent (with the feed's intent chips) and Stylist's
+  picks as the feed's segment coins, wrapping onto a second row, because five never fit one phone row and a coin
+  hidden behind a swipe is a board nobody finds. Each place is a medal (the first three burn on the flame gradient,
+  the only place fire appears outside a reaction, because a place on the board is fire that counted), the fires that
+  counted, the score on picks, then the look card people already know or the person row. "Closes in 2 days 5 hours"
+  is recomputed on the client every minute from the server's `closesIn`, two units at most, in the locale's own words.
+  The board reaches the rest of the app in three small pieces rather than a tab of its own: the top three as a strip
+  at the top of Explore, a reset-day card on For you for the first twenty-four hours of a week (dismissed per week in
+  `localStorage`), and the badge on the profile.
+- **The week is cut in Asia/Jerusalem, on Sunday.** The board's week opens at local midnight on `Board:WeekStartsOn`
+  in `Board:TimeZone` and closes seven days later, the DTOs carry the two instants in UTC, and `?week=` takes a local
+  date (any day of the week names it) or a full instant, so the client can hand `weekStart` back unchanged instead of
+  slicing it to a date that, in the UTC evening, would name the week before. A midnight a DST change skips moves to
+  the first valid minute (Israel changes at 02:00, so never there), an unknown zone falls back to UTC with a warning,
+  and the whole thing reads the clock through `IClock` so a test can stand on the boundary hour or the DST week
+  without waiting. A pilot in Israel closes its week on Saturday night, which is when people are looking.
+- **Items at posting are a name match.** The post sheet has no row ids to send (the check has no rows yet), so
+  `POST /api/posts` matches the list to the stylist's would-be rows by normalised name: a stylist name sent back keeps
+  its source, anything else is the person's, and an invalid list refuses the post before anything is written so the
+  check stays postable. Without a list, the stylist's rows go on as Round 9 wrote them.
+- **The Round 10 migration is hand-edited, once.** `PostItems` was keyed on `(PostId, Name)`; it is now keyed on an id
+  and carries the brand, the model, the link, the source, the dot, the position and the confirmation. The generated
+  migration would have added the id column with one empty default and failed on the second row when SQLite rebuilt
+  the table around the new key, so an `UPDATE` mints a random id per row, sets the stylist as the source (nothing else
+  could have written a Round 9 row) and numbers the rows in insertion order before the rebuild. `Name` and its index
+  stay, so the search by piece works unchanged over old and new rows; the test builds a Round 9 file from the
+  migrations and starts the app on it. A pilot file from before migrations has no `PostItems` table and simply gets
+  one.
+- **Two counters, not two columns.** `item_outs` and `board_views` are rows in a `Counters` table incremented with an
+  upsert (`INSERT … ON CONFLICT DO UPDATE`), so two taps never race a read-modify-write and a restart forgets nothing;
+  the metrics read them and nothing decides anything on them. `itemsTagged` is counted from the rows instead: a piece
+  the person typed, or one carrying a brand or a link; the stylist's bare names are not tagging.
+- **The brand pages are a search, not a catalogue.** `GET /api/items` finds visible looks carrying one item row that
+  matches every filter given (a Nike bottom, not a Nike top on a look with pants), newest first, and echoes the brand
+  in the spelling most rows carry so the page can head itself; the brands list for the autocomplete merges spellings
+  in .NET (SQLite folds ASCII only) and attaches the brand account of the same name. There is no product database,
+  no image search and no marketplace behind any of it; the README's "Not in this version" says so.
+- **Sounds on posts, still no.** Nothing changed since Round 9: licensing, the muted feed, the loop.
+- **540 tests** (470 after the skeleton, 498 at the branch head the builders started from after the Round 9 review;
+  the four builders added 49 and replaced the skeleton's 501 rows): the migration over a Round 9 file, the tagging
+  rules as a validation matrix, the search, the brands list, the out door with the affiliate parameters and its
+  brake, every board rule, the Jerusalem midnight and the DST week, the closer's idempotence and catch-up, the badge
+  and the hall.
 
-- **Schema** (`Data/Migrations/20260912151344_Round10.cs`, applied at start like the others). `PostItems` is keyed on a
-  new `Id` (GUID) instead of `(PostId, Name)` and gains `Brand` (≤ 40), `Model` (≤ 60), `Url` (≤ 500, http(s), stored as
-  given), `Source` (`Stylist` | `User`), `X`/`Y` (0..1, the dot; null = listed, not placed), `Position`, `Confirmed`;
-  `Name` and `Category` stay as Round 9 wrote them and `IX_PostItems_Name` stays, so `/api/search` by piece works
-  unchanged over old and new rows. The migration is hand-edited: existing rows get a random id, `Source = Stylist` and
-  their position in insertion order *before* SQLite rebuilds the table around the new key (the generated migration alone
-  would copy one zero id into every row and fail on the second). New tables: `BoardExclusions { PostId (PK), ByUserId,
-  Reason ≤ 200, CreatedAt }`, `WeeklyWinners { Id, WeekStart (UTC date), Board, Rank, PostId?, UserId, Fires, Score? }`
-  with a unique index on `(WeekStart, Board, Rank)` (the closer's idempotence guard) and indexes on `(UserId, WeekStart)`
-  and `PostId`, and `Counters { Name (PK), Value }` for the two tallies the metrics read. `Notifications.Rank` (int?) for
-  `board_rank`. Indexes `PostItems(Brand)`, `PostItems(Category)`, `PostItems(PostId, Position)`, `Fires(CreatedAt)`.
-  Cascades: exclusions and winners go with the account; a deleted look sets `WeeklyWinner.PostId` null and the place
-  stays; `DELETE /api/users/me` deletes the new rows explicitly like every other table.
-- **Options.** `Board` → `BoardOptions { WeekStartsOn = Sunday, TimeZone = "Asia/Jerusalem", MinChecksToCount = 1,
-  MaxPerFirerPerAuthor = 3, NewAccountDays = 2, Size = 10, RisingDays = 30, Sponsor? { Name, Handle, PrizeText, Url } }`
-  (`Sponsor` is null until `Board:Sponsor:Name` is set). `Affiliate` → `AffiliateOptions { Disclosure = true, Hosts = {} }`;
-  `Hosts` maps a host to the query string `/api/items/{id}/out` appends (`"amazon.com": "tag=orevosh-20"`), matched
-  case-insensitively with subdomains (`AffiliateOptions.ParametersFor`); nothing is appended by default, on purpose.
-  Both are in `appsettings.json` with their defaults.
-- **Rubric v3.** `OutfitAnalyzer.PromptVersion = "v3"`; every `items[]` entry has `brand_seen` (string or null, required)
-  with the rule in the schema and a BRANDS section in the prompt: only a brand whose mark, logo or unmistakable signature
-  is visible, null otherwise, never a guess from style. `OutfitItem.BrandSeen` (≤ 40, the words "null"/"none"/"unknown"
-  read as null) rides in the stored feedback and on `GET /api/checks/{id}` as `brandSeen`. `PostItems.AddFrom` never
-  copies it: the brand reaches a row only through the person (`PATCH /api/posts/{id}/items`). The e2e stub answers
-  `brand_seen` (null everywhere, `"Nike"` on the English running shoes) and rejects a schema without it.
-- **DTOs** (`Endpoints/Dtos.cs`). `PostItemDto { id, name, category, brand?, model?, url?, host?, source, x?, y?,
-  confirmed }`; `PostItemInput` + `UpdateItemsRequest { items[] }`; `ItemsDto`, `BrandDto`, `BrandsDto`; `PostDto` gains
-  `items?` and `itemCount` (null and 0 until items-server reads them in `PostReader`); `BoardRowDto`, `BoardSponsorDto`,
-  `BoardMeDto`, `BoardDto { weekStart, weekEnd, closesIn (seconds), closed, looks, people, rising, intents{Intent: [..]},
-  picks, sponsor?, me? }`; `WeeklyWinnerDto`, `HallWeekDto`, `HallDto`; `BadgeDto { board, rank, weekStart }` on `MeDto`
-  and `ProfileDto` (null in the skeleton); `ExcludeRequest`, `BoardExclusionDto`; `NotificationDto.rank?`;
-  `SocialMetricsDto` gains `itemsTagged` (items with a brand, a link or a person as source), `itemOuts` and `boardViews`
-  (the two counters).
-- **Routes, answering 501** with `error.not_built` in the caller's language until filled: `PATCH /api/posts/{id}/items`
-  (session required), `GET /api/items?brand=&category=&q=`, `GET /api/items/brands?q=`, `GET /api/items/{id}/out`,
-  `GET /api/board?week=`, `GET /api/board/hall`, `POST /api/admin/board/exclude { postId, reason }` and
-  `DELETE /api/admin/board/exclude/{postId}` (behind the moderator gate, now `AdminEndpoints.GateAsync`, public).
-  `Endpoints/ItemEndpoints.cs` and `Endpoints/BoardEndpoints.cs` carry the contract in their doc comments; `Stubs.cs`
-  goes with the last stub.
-- **Server strings** in all four dictionaries: `error.not_built`, `error.item_not_found`, `error.item_invalid`,
-  `error.item_url_invalid`, `error.items_too_many {0}`, `error.item_position_invalid`, `error.board_week_invalid`,
-  `error.board_excluded`, `error.board_not_excluded`, `push.board_rank {0}` ("You finished #{0} this week"; the push
-  worker passes the rank there instead of the actor). The Arabic and Russian lines are plain copy by the lead and need
-  the same native review as the rest.
-- **Notification kind `board_rank`**: `NotificationType.BoardRank`, `Notification.Rank`, `Notifier.Add(..., rank:)`,
-  `PushJob.Rank`, the push line and its tap target (`/#/board`), the activity line `activity.board_rank` ("You finished
-  #{rank} this week") and its target on the client. No sender yet: the closer is the board-server builder's.
-- **Client.** Routes `#/board`, `#/board/hall` (`board-hall`), `#/items/<brand>/<category>` and `#/items?q=` (`items`;
-  the query belongs to the view) in `core.js`, under the Explore tab; stub views `views/board.js` and `views/items.js`
-  that draw the title and a "coming in this round" line; `ICONS.tag` next to the existing `ICONS.trophy`; 78 keys under
-  `items.*`, `board.*`, `hall.*`, `badge.*`, `affiliate.*` plus `activity.board_rank` in all four i18n files (707 keys
-  each, parity checked: same key set and placeholders as English; the `_one` forms carry no `{n}` by design).
-- **Seams for the builders.** `IClock` (`Services/Clock.cs`, `SystemClock` registered; the board's window math and the
-  closer read it, nothing else does) and `TestApp.Clock` (a `FakeClock` with a settable `Now`); `TestApp.Settings`
-  (any `"Section:Key"` override, e.g. `Board:TimeZone`, `Affiliate:Hosts:amazon.com`, `Board:Sponsor:Name`);
-  `Counters.IncrementAsync/ReadAsync` (an upsert, safe under concurrent requests); `PostItems.IsStoreUrl/HostOf` and
-  the length constants (`TypedNameMaxLength` 40, `BrandMaxLength` 40, `ModelMaxLength` 60, `UrlMaxLength` 500,
-  `MaxTagged` 12); `BoardName` (`looks | people | rising | picks | intent:<Intent>`); `AdminEndpoints.Admin(context)`
-  for the moderator's row inside the gate.
-- **File ownership, as the lead understands it** (the plan's five builders): *items-server* owns
-  `Endpoints/ItemEndpoints.cs`, `Services/PostItems.cs` (validation of the typed list), the items on cards and the post
-  in `Services/PostReader.cs`, the `itemsTagged` definition in `MetricsEndpoints.cs`, and `tests/ItemTests.cs`;
-  *items-client* owns `views/items.js`, the post sheet's tagging in `views/check.js` (chips pre-filled from the
-  stylist's items with "Looks like Nike? Confirm / Edit / Not a brand", brand autocomplete from `/api/items/brands`,
-  the dot on the preview), "The look" list, the dots behind the tag toggle and the item sheet in `views/post.js`, the
-  item-search reuse in `views/explore.js`, the items' CSS in `app.css`, and the `items.*`/`affiliate.*` copy it needs
-  beyond this set in `en`/`he`; *board-server* owns `Endpoints/BoardEndpoints.cs`, new `Services/Board*.cs` (the window
-  math in the configured zone, the eligibility rules, the five boards, the 60-second cache, the closer as a hosted
-  service registered in `Program.cs`), the badge on `MeDto`/`ProfileDto` in `UserEndpoints.cs`, and
-  `tests/BoardTests.cs`; *board-client* owns `views/board.js`, the "This week" strip in `views/explore.js`, the
-  reset-day card in `views/feed.js`, the badge in `views/profile.js`, the board's CSS, and the `board.*`/`hall.*`/`badge.*`
-  copy beyond this set in `en`/`he`; *phase 2* owns the `ar`/`ru` lines of whatever the four add, README/DEPLOY/this
-  section, the e2e, and the review. Shared files (`Dtos.cs`, `Social.cs`, `AppDbContext.cs`, `Localizer.cs`, `core.js`,
-  the migration) change through the lead.
-- **Not built on purpose, so nobody assumes it is:** `PostReader` reads no items (`items` null, `itemCount` 0); no
-  window math, no closer, no cache, no badge; `/out` redirects nothing; `itemOuts` and `boardViews` stay 0 until the
-  routes increment them.
-- **Tests: 440 → 470**, all green: the migration over a Round 9 file keeps its items and mints ids, the app starts on
-  such a file and the item search finds the migrated looks, every stub answers 501 behind its gate, the options bind
-  with the plan's defaults and take overrides, the clock can be set, counters persist and reach the metrics, posting
-  writes stylist rows with ids and order and never a brand while the check carries `brandSeen`, account and look
-  deletion take the board rows with them, the unique index refuses a second place, and `board_rank` carries its rank
-  through the row, the DTO and the push line.
+### How it was built, and what the builders left the lead
 
-### Objections to keep out of the code (from the plan; the lead confirms after the merge)
+- **Four builders, one skeleton, contracts instead of code.** The server builders wrote against the DTOs and the
+  routes' doc comments; the client builders wrote against `Dtos.cs` and `page.route` mocks, and verified their
+  screens in Chromium at 390 px in English and Hebrew against the real API answering 501 (empty states, no strip, no
+  card, no badge) and against mocked answers shaped from seeded looks. Each reported the routes, ids, log lines and
+  limits it settled; those reports are what the README's API rows are written from.
+- **Notes the merge kept as they were.** `CreatePostRequest` gained one defaulted `Items` parameter rather than a
+  second request; `AuthEndpoints.ToMeAsync` resolves `Board` through the DbContext the way it resolves the options,
+  one line; the client ignores `BoardMeDto.intent` because the DTO does not say which intent it names and derives the
+  reader's place on By intent from the chosen intent's rows instead; "Edit items" lives in the section head of "The
+  look", not in the look's "…" menu, because that menu is in `core.js` and a seam for it was not cut; the Explore
+  strip and the reset card read `/api/board` and so count as board views; the out limit is a constant
+  (`ItemEndpoints.OutsPerMinute`, 60), not a `Limits` option; the picks rows show both the fires that counted and the
+  score; the people rows carry no follow button (a bare user ref). The Arabic and Russian lines for the 99 new keys
+  are plain copy by the builders and need the same native review as the rest.
+- **Not verified in this round.** The browser test does not drive any Round 10 surface yet (`tools/e2e/README.md`
+  lists the hooks a run has to add; the stub already answers rubric v3); the closer's two-process race is covered by
+  code and review, not by a test, because one process serialises its own runs; no real affiliate programme has been
+  joined, so the appended parameters were checked against a listed `example.com` only; and whether the real model
+  fills `brand_seen` conservatively enough is a calibration question, to be read off `scripts/calibrate.py` on real
+  photos like every other rubric change.
 
-- The AI never publishes a brand: it suggests only when a mark is visible; the person confirms. Wrong attribution is the
-  one mistake a fashion app cannot afford.
-- Links leave through one door (`/out`) so the app can decorate, count and later revoke; the disclosure is always shown
-  when a link earns anything.
-- The board counts fires from people who use the app (a check), capped per pair, so friends cannot carry a look; the
-  stylist's picks board cannot be gamed at all.
-- Sounds on posts: not built (licensing, the muted feed, the core loop).
+### Objections kept out of the code (owner wins)
 
+- **Brand attribution by the AI beyond a visible mark.** A model can often tell a brand from a cut, a sole or a
+  stitch; the rubric forbids it. A brand the app names wrongly on someone's photo is an accusation, and a brand the
+  app names rightly without the person's say is still the app speaking for them. The mark has to be in the photo and
+  the person has to tap Confirm.
+- **Affiliate links on every item automatically.** A search that turned every tagged piece into a store link would
+  make the app a catalogue overnight. Links are the person's, one per piece, typed by hand; the programme parameters
+  are added only for hosts the owner listed, and the door is the only place they exist.
+- **A global leaderboard forever.** An all-time top ten rewards the first hundred people and nobody after them. The
+  board is a week, it resets, the hall keeps the weeks, and the badge lasts exactly one week.
+- **Buying fires.** Nothing in the app sells fire, boosts a look or lets a brand sponsor a place; a sponsor presents
+  the week and nothing on it. The rules that decide which fires count are settings, and the picks board answers to the
+  stylist alone.
+- **The board in the feed.** The feed stays one kind of thing (a look), as Round 9 decided for the follow-up strip.
+  The board is its own page under Explore, with a strip, a card on the first day and a badge as its only reach into
+  the rest of the app; ranks are not printed on cards in the feed.
+- **Sounds on posts.** Rejected in Round 9, still rejected.

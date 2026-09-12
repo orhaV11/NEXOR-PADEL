@@ -24,6 +24,8 @@ Pick where the outfit is going: a date, the office, streetwear, old money, minim
 
 Post it and it joins a feed where people react with fire, comment, save and follow. Clips play in the feed. A story card carries the score to Instagram and TikTok. Tag the brands you wear with @ and add #tags: brands feature the community looks they love, open challenges with a prize, and tag products on their own looks. Browsing needs no account.
 
+Tag the pieces on your look: the brand, the model, a store link, a dot on the photo. The stylist suggests a brand only when it can see the mark, and only you publish it. Looks are found by brand and shopped from the piece; a store link opens the store and says so. Every week the looks that caught the most fire land on the weekly flames board, five top tens that close Saturday night into a hall of flame.
+
 The stylist judges clothes, never the person. Nothing about body, face, skin, age or gender, ever. Photos are never reachable by a link; a deleted look makes its photo private again; deleting the account deletes everything, the same minute.
 
 English and Hebrew, and the stylist writes in your language.
@@ -32,7 +34,7 @@ Free gives you a few checks a day. OREVOSH Pro gives you 30 checks a day, "Which
 
 For people 16 and over.
 
-(1,171 characters)
+(1,694 characters)
 
 ### Hebrew
 
@@ -41,6 +43,8 @@ OREVOSH היא אפליקציה חברתית ללוקים.
 בוחרים לאן הלוק הולך: דייט, משרד, סטריט, אולד מאני, מינימל, מסיבה, ספורט. מוסיפים תמונה, או מצלמים קליפ קצר בתוך האפליקציה ובוחרים פריים. עשר שניות אחר כך סטייליסט נותן ללוק ציון מתוך 10 ביחס לאותה כוונה, מפרק אותו לגזרה, צבע ואקססוריז, מונה מה אתם לובשים, מה עובד, את הטיפ האחד ואת האקססורי האחד שיסגור את הלוק. הבדיקה פרטית. הפרסום הוא החלטה נפרדת.
 
 מפרסמים, והלוק נכנס לפיד שבו אנשים מגיבים באש, כותבים תגובות, שומרים ועוקבים. קליפים מתנגנים בפיד. כרטיס סטורי לוקח את הציון לאינסטגרם ולטיקטוק. מתייגים את המותגים שאתם לובשים עם @ ומוסיפים #תגיות: מותגים מציגים את הלוקים מהקהילה שהם אוהבים, פותחים אתגרים עם פרס ומתייגים מוצרים על הלוקים שלהם. כדי לגלוש לא צריך חשבון.
+
+מתייגים את הפריטים על הלוק: המותג, הדגם, קישור לחנות, נקודה על התמונה. הסטייליסט מציע מותג רק כשהלוגו נראה בתמונה, ורק אתם מפרסמים אותו. מוצאים לוקים לפי מותג וקונים מתוך הפריט; קישור לחנות פותח את החנות ואומר את זה. כל שבוע הלוקים שתפסו הכי הרבה אש עולים ללוח האש השבועי, חמישה טופ 10 שנסגרים במוצאי שבת להיכל האש.
 
 הסטייליסט שופט בגדים, אף פעם לא את האדם. שום מילה על גוף, פנים, עור, גיל או מגדר, אף פעם. תמונות לא נגישות בלינק; לוק שנמחק מחזיר את התמונה לפרטית; מחיקת החשבון מוחקת הכול, באותה דקה.
 
@@ -77,7 +81,9 @@ advertising, nothing is shared with data brokers, and there is no third-party an
 | data | collected? | why | notes |
 |---|---|---|---|
 | Photos and videos (the outfit photo, the clip) | yes, linked | app functionality: the check, and the post if the person posts it | The photo goes to the model provider (Anthropic) for the check; nothing else leaves the server. A rejected photo is deleted at once. |
-| User content (captions, comments, tags, mentions, product links, bio) | yes, linked | app functionality | Public when posted. |
+| User content (captions, comments, tags, mentions, product links, bio, the pieces tagged on a look: name, category, brand, model, store link, the dot's position) | yes, linked | app functionality | Public when posted. A brand on a piece is what the person typed or confirmed; the stylist's suggestion is never published on its own. |
+| Store-link taps | counted, not linked | app functionality | "Shop at …" leaves through the app's own redirect (`/api/items/{id}/out`): the store gets no referrer and nothing about the person, and the app keeps one anonymous tally of taps (`itemOuts`), no row per person. When the store's host is in the owner's affiliate list the redirect appends that programme's parameters and OREVOSH may earn a commission; the line under every store link says so ("Leaves OREVOSH · This link may earn OREVOSH a commission."). Declare no data shared with the store beyond the visit itself. |
+| The weekly board | derived, public | app functionality | Places are computed from public fires and posted looks (the rules are in the README); the week's winners are kept as an archive with the person's public handle, and a deleted look's place stays without the look. Not personal data beyond what posting already made public. |
 | Email address | optional, linked | account recovery (password reset link), nothing else | Never shown to others, never used for marketing. |
 | Date of birth | yes, linked | the 16+ rule (app functionality) | Asked at signup as a date, stored on the account, used only to refuse people under 16, never shown to anyone and never returned by the API. Neither form has a row named "date of birth": declare it as collected under the closest personal-information category, purpose app functionality, not shared. |
 | Name, handle, avatar | yes, linked | app functionality, public profile | The display name is optional. |
@@ -148,8 +154,10 @@ The Stripe checkout must not be reachable from the wrapped app, or the review fa
   private until the person posts. Posting, reacting and commenting need an account (16 and over: the signup form asks
   for a date of birth and refuses younger dates); browsing does not. User-generated content: every look and comment can
   be reported from its menu; three reports from different
-  people hide it from everyone but its author; moderators review a queue and can hide, delete and suspend. Account
-  deletion is in Settings and removes everything. Test account: @<handle> / <password>."
+  people hide it from everyone but its author; moderators review a queue and can hide, delete and suspend. A tagged
+  piece may carry a store link typed by the person: it opens the store in the browser through the app's own redirect,
+  and the app says under it that the link leaves OREVOSH and may earn a commission. Account deletion is in Settings
+  and removes everything. Test account: @<handle> / <password>."
 - **The UGC checklist Apple applies (guideline 1.2):** filtering of objectionable content (the model refuses nudity and
   non-outfit photos; comments are reported and hidden), a way to report (yes), **a way to block users (not in the app
   today: add "Block @handle" to the look's and the profile's menu before submitting, or expect a rejection)**, and

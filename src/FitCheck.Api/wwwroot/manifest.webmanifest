@@ -1,7 +1,7 @@
 {
   "name": "OREVOSH",
   "short_name": "OREVOSH",
-  "description": "Check your look with a stylist, post it, get fire, meet the brands you wear.",
+  "description": "A stylist in your pocket, and a community that lights it up.",
   "start_url": "/#/",
   "scope": "/",
   "display": "standalone",

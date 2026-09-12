@@ -1,0 +1,72 @@
+/* Shared by every template in this folder: the tokens of DESIGN.md §1, the two faces of §2 (Google Fonts when
+   reachable, the local copies in fonts/ otherwise), the stage, and the phone frame the covers, stories and store
+   screenshots put the app screenshots in. The templates set --w and --h to the size of the file being rendered
+   and size everything from those, so one template serves several formats. */
+@import url("fonts/fonts.css");
+
+:root {
+  --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
+  --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
+  --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+  --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+  --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
+  --accent-tint: rgba(179,157,255,.14);
+  --fire: #ff6a2b; --fire-2: #ffa83a; --ok: #5ee6a0; --danger: #ff5d7a;
+  --glow: rgba(179,157,255,.16);
+  --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
+  --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "DejaVu Sans", sans-serif;
+}
+/* Light grounds use the deeper pair of mark-light.svg so the ring never washes out (brand/CONCEPT.md §3). */
+.light {
+  --bg: #ffffff; --bg-2: #f7f6fb; --surface: #ffffff; --surface-2: #eeedf4;
+  --line: #dcdbe6; --line-soft: rgba(11,11,15,.08);
+  --ink: #0b0b0f; --ink-2: #4a4a58; --ink-3: #7f7f8e;
+  --accent: #7d5cff; --accent-2: #ff5c92; --accent-ink: #ffffff;
+  --grad: linear-gradient(135deg, #7d5cff 0%, #ff5c92 100%);
+  --glow: rgba(125,92,255,.12);
+}
+
+/* overflow: clip, not hidden: a decorative glow that spills past the edge must not make the document scrollable,
+   or an RTL page is captured scrolled to its end and everything shifts. */
+html, body { margin: 0; padding: 0; overflow: clip; }
+body {
+  width: var(--w); height: var(--h); position: relative;
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+/* The stage: the lilac glow at the top of every screen, nothing else (DESIGN.md §1, "Ground"). */
+body.stage { background-image: radial-gradient(90% 38% at 50% -8%, var(--glow), transparent 62%); }
+body.transparent { background: transparent; }
+
+.display { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.02; margin: 0; text-wrap: balance; }
+[dir=rtl] .display { font-family: "Heebo", var(--font-display); letter-spacing: 0; line-height: 1.12; }
+.tagline { font-family: var(--font-body); font-weight: 500; color: var(--ink-2); line-height: 1.35; margin: 0; }
+.caps { font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+/* Numerals are direction: ltr everywhere (DESIGN.md §2), or "04 / 05" reads as "05 / 04" in Hebrew. */
+.num { direction: ltr; unicode-bidi: isolate; }
+[dir=rtl] .caps { letter-spacing: .02em; }
+img { display: block; }
+/* The wordmark is a logo: it never mirrors (DESIGN.md §3). */
+.wordmark { direction: ltr; }
+
+/* The primary button of §8 as a static pill, for a CTA line. */
+.pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--grad); color: var(--accent-ink);
+  font-family: var(--font-body); font-weight: 700; white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(255,143,177,.25);
+}
+
+/* A phone, drawn in CSS: a rounded slab of --surface-2 with a hairline, the screen inside at the app's 390:844
+   viewport, the screenshot cover-fitted from the top. --pw is the phone's width; everything scales from it. */
+.phone {
+  width: var(--pw); box-sizing: border-box; padding: calc(var(--pw) * .027);
+  border-radius: calc(var(--pw) * .135); background: #1a1a22;
+  box-shadow: 0 0 0 1px #2b2b36, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(0,0,0,.55);
+}
+.light .phone { box-shadow: 0 0 0 1px #2b2b36, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(11,11,15,.28); }
+.phone .screen {
+  aspect-ratio: 390 / 844; overflow: hidden; background: #0b0b0f;
+  border-radius: calc(var(--pw) * .11);
+}
+.phone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }

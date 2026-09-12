@@ -5,6 +5,7 @@ import {
   register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, emptyState, announce, onLeave, feedVersion
 } from '../core.js';
 import { todayStrip } from './today.js';
+import { boardResetCard } from './board.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
 // The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
@@ -76,6 +77,8 @@ register('feed', async (root, params, ctx) => {
 
   const banner = installBanner();
   if (banner) root.appendChild(banner);
+  // "The board reset" on the first day of the week (views/board.js decides, and remembers a dismissal for the day): above the Today strip.
+  if (tab === 'foryou') boardResetCard(ctx, (card) => { const anchor = banner || root.querySelector('.sticky-tabs'); if (anchor && document.contains(anchor)) anchor.after(card); });
 
   // The pull indicator and the list share one block so the view rhythm adds a single gap under the chips.
   const body = el('div');

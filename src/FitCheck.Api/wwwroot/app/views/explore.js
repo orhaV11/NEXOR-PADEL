@@ -4,6 +4,7 @@
 import {
   register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, fmtDate, relative, intentLabel, PAGE, $, scoreBadge
 } from '../core.js';
+import { boardStrip } from './board.js';
 
 /** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
 const countArg = (n) => (n === 1 ? 1 : fmtCompact(n));
@@ -113,6 +114,7 @@ function lookCard(post, onDelete) {
 register('explore', async (root, params, ctx) => {
   root.appendChild(front());
   root.appendChild(searchForm(''));
+  root.appendChild(boardStrip(ctx));   // "This week": the top three of the looks board (views/board.js); hidden while the board is empty
   const holder = el('div', {}, [skeletonCards(1)]);
   root.appendChild(holder);
 

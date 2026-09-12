@@ -709,5 +709,9 @@
   "badge.board_picks": "اختيارات المصمم",
   "badge.board_intent": "بحسب الوجهة · {intent}",
   "affiliate.disclosure": "قد يكسب OREVOSH عمولة من هذا الرابط.",
-  "activity.board_rank": "المركز {rank} لك هذا الأسبوع"
+  "activity.board_rank": "المركز {rank} لك هذا الأسبوع",
+  "board.strip_title": "لوحة هذا الأسبوع",
+  "board.rank_label": "المركز {rank}",
+  "board.score": "التقييم {n}",
+  "hall.look_gone": "هذه الإطلالة لم تعد متاحة"
 }

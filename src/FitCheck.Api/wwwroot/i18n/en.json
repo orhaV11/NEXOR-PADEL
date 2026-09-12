@@ -709,5 +709,9 @@
   "badge.board_picks": "Stylist's picks",
   "badge.board_intent": "By intent · {intent}",
   "affiliate.disclosure": "This link may earn OREVOSH a commission.",
-  "activity.board_rank": "You finished #{rank} this week"
+  "activity.board_rank": "You finished #{rank} this week",
+  "board.strip_title": "This week's board",
+  "board.rank_label": "Rank {rank}",
+  "board.score": "Score {n}",
+  "hall.look_gone": "This look is no longer available"
 }

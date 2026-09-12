@@ -709,5 +709,9 @@
   "badge.board_picks": "הבחירות של הסטייליסט",
   "badge.board_intent": "לפי כיוון · {intent}",
   "affiliate.disclosure": "הקישור הזה עשוי להכניס עמלה ל-OREVOSH.",
-  "activity.board_rank": "סיימת במקום {rank} השבוע"
+  "activity.board_rank": "סיימת במקום {rank} השבוע",
+  "board.strip_title": "הלוח של השבוע",
+  "board.rank_label": "מקום {rank}",
+  "board.score": "ציון {n}",
+  "hall.look_gone": "הלוק הזה כבר לא זמין"
 }

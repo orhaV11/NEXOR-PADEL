@@ -709,5 +709,9 @@
   "badge.board_picks": "Выбор стилиста",
   "badge.board_intent": "По направлению · {intent}",
   "affiliate.disclosure": "По этой ссылке OREVOSH может получить комиссию.",
-  "activity.board_rank": "Твоё место на этой неделе: {rank}"
+  "activity.board_rank": "Твоё место на этой неделе: {rank}",
+  "board.strip_title": "Доска этой недели",
+  "board.rank_label": "Место {rank}",
+  "board.score": "Оценка {n}",
+  "hall.look_gone": "Этот образ больше недоступен"
 }

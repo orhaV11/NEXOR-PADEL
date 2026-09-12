@@ -726,5 +726,9 @@
   "items.search_hint": "מציאת לוקים לפי פריט, מותג או דגם.",
   "items.looks": "{n} לוקים",
   "items.looks_one": "לוק אחד",
-  "items.all": "הכול"
+  "items.all": "הכול",
+  "board.strip_title": "הלוח של השבוע",
+  "board.rank_label": "מקום {rank}",
+  "board.score": "ציון {n}",
+  "hall.look_gone": "הלוק הזה כבר לא זמין"
 }

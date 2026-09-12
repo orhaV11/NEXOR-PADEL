@@ -726,5 +726,9 @@
   "items.search_hint": "Найди образы по вещи, бренду или модели.",
   "items.looks": "{n} образов",
   "items.looks_one": "1 образ",
-  "items.all": "Все"
+  "items.all": "Все",
+  "board.strip_title": "Доска этой недели",
+  "board.rank_label": "Место {rank}",
+  "board.score": "Оценка {n}",
+  "hall.look_gone": "Этот образ больше недоступен"
 }

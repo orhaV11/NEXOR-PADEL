@@ -726,5 +726,9 @@
   "items.search_hint": "Find looks by piece, brand or model.",
   "items.looks": "{n} looks",
   "items.looks_one": "1 look",
-  "items.all": "All"
+  "items.all": "All",
+  "board.strip_title": "This week's board",
+  "board.rank_label": "Rank {rank}",
+  "board.score": "Score {n}",
+  "hall.look_gone": "This look is no longer available"
 }

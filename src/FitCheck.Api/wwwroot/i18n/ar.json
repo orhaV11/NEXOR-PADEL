@@ -726,5 +726,9 @@
   "items.search_hint": "اعثر على إطلالات بحسب القطعة أو الماركة أو الموديل.",
   "items.looks": "{n} إطلالات",
   "items.looks_one": "إطلالة واحدة",
-  "items.all": "الكل"
+  "items.all": "الكل",
+  "board.strip_title": "لوحة هذا الأسبوع",
+  "board.rank_label": "المركز {rank}",
+  "board.score": "التقييم {n}",
+  "hall.look_gone": "هذه الإطلالة لم تعد متاحة"
 }

@@ -6,6 +6,7 @@ import {
   register, state, t, api, el, icon, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
   navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel
 } from '../core.js';
+import { profileBadge } from './board.js';
 
 /** Three columns, so a page is whole rows; the server caps pages at 30 anyway. */
 const GRID_PAGE = 30;
@@ -152,7 +153,7 @@ async function profileView(root, handle, tab, ctx) {
 
   // Head: portrait, then name, handle and (on someone else's profile) the follow label right under the handle.
   const who = el('div', { class: 'who' }, [
-    el('h1', { class: 'name' }, [profile.name, brandMark(profile)]),
+    el('h1', { class: 'name' }, [profile.name, brandMark(profile), profileBadge(profile.badge || (mine && state.me ? state.me.badge : null))]),
     el('div', { class: 'sub' }, [handleText(profile.handle)])
   ]);
   if (!mine) {

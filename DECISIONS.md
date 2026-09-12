@@ -881,7 +881,7 @@ written from the code all stand as decided. What it changed, most important firs
   compare route, not "go Pro"; the client offers "Go Pro for more" only to a Free account at its cap. `/api/config`
   publishes `Plans:ProChecksPerDay` clamped to `Limits:ChecksPerDay` (what a Pro account really gets, what the Pro
   page promises), and the start log warns when the plan's number is above the ceiling. The `error.plan_limit` message
-  still names `Plans:ProChecksPerDay` as set.
+  on both routes quotes the same clamped number.
 - **A claim that cannot copy a file aborts.** A full disk or a file missing from the store used to save an owned row
   pointing at the guest folder, which account deletion and the sweeper would then miss. Now the fresh copies are
   removed, the rows and the cookie stay the guest's, the route answers 500 with a clear log line, and the client claims

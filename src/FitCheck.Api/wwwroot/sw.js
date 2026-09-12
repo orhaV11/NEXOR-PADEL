@@ -17,6 +17,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;               // live data and private photos: network only
+  if (url.pathname.startsWith('/landing/')) return;           // the static landing pages are their own documents, not the shell
   const isNavigation = event.request.mode === 'navigate';
   const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || SHELL.includes(url.pathname);
   if (!isNavigation && !isShell) return;                      // icons and the like: the browser handles them

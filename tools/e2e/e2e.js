@@ -332,7 +332,7 @@ async function postIt(page, opts) {
   // Rubric v2: three rings and the accessories read, with the one piece that would finish the look.
   assert.deepStrictEqual(await noa.$$eval('#breakdown ul.breakdown li .score-badge b', (n) => n.map((x) => x.textContent)), ['7', '8', '4']);
   assert.deepStrictEqual(await noa.$$eval('#breakdown .breakdown-label', (n) => n.map((x) => x.textContent)), ['Fit', 'Color', 'Accessories']);
-  assert.strictEqual(await text(noa, '#accessories .acc-verdict'), 'Nothing on');
+  assert.strictEqual(await text(noa, '#accessories .acc-verdict'), 'No accessories');
   assert.strictEqual(await count(noa, '#accessories .acc-verdict.missing'), 1);
   assert.ok((await text(noa, '#accessories .acc-add')).includes('A thin black leather belt.'));
   await shot(noa, '08-result-en');
@@ -706,6 +706,18 @@ async function postIt(page, opts) {
   await go(noa, '#/privacy');
   await noa.waitForSelector('#lg-privacy');
   assert.strictEqual(await count(noa, '#lg-privacy > li'), 10);
+  // The launch files: the landing pages are static documents and the link-preview card is served.
+  for (const [path, needle] of [['/landing/', 'Check the look.'], ['/landing/index.he.html', 'בודקים את הלוק.']]) {
+    const r = await get(base + path);
+    assert.strictEqual(r.status, 200, path);
+    assert.ok((r.headers['content-type'] || '').includes('text/html'), path + ' is html');
+    assert.ok(r.body.toString('utf8').includes(needle), path + ' carries the slogan');
+  }
+  const og = await get(base + '/brand/og-1200x630.png');
+  assert.strictEqual(og.status, 200);
+  assert.strictEqual(og.headers['content-type'], 'image/png');
+  const shellHtml = (await get(base + '/')).body.toString('utf8');
+  assert.ok(shellHtml.includes('og:image') && shellHtml.includes('twitter:card'), 'the shell carries the link-preview tags');
 
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,

@@ -476,9 +476,20 @@ async function postIt(page, opts) {
   assert.strictEqual(await noa.inputValue('#caption'), '#blackdate ', 'the hashtag is pre-filled');
   assert.strictEqual(await count(noa, '#challenge-pick'), 0, 'no challenge picker');
   await noa.fill('#caption', '#blackdate Black on black');
+  // "After the tip": her one earlier look is offered; picking it marks this look as the follow-up.
+  await noa.waitForSelector('#after-picker:not([hidden])');
+  assert.strictEqual(await count(noa, '#after-picker .after-opt.look'), 1, 'one earlier look to follow up on');
+  assert.strictEqual(await noa.getAttribute('#after-picker .after-opt.none', 'aria-checked'), 'true', 'not a follow-up by default');
+  await noa.click('#after-picker .after-opt.look');
+  await noa.waitForFunction(() => document.querySelector('#after-picker .after-opt.look').getAttribute('aria-checked') === 'true');
+  await shot(noa, '33-after-picker-en');
   await noa.click('#post-confirm');
   await noa.waitForSelector('#post-link');
   const post2 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
+  await go(noa, '#/post/' + post2);
+  await noa.waitForSelector('a.after-strip');
+  assert.strictEqual(await noa.getAttribute('a.after-strip', 'href'), '#/post/' + post1, 'the strip links the earlier look');
+  assert.ok((await text(noa, 'a.after-strip')).startsWith('After the tip'), 'the strip names the follow-up');
   await go(dan, '#/challenge/' + challengeId);
   await dan.waitForSelector('.lb-row .vote');
   await dan.click('.lb-row .vote');
@@ -645,6 +656,22 @@ async function postIt(page, opts) {
   await go(noa, '#/pro');
   await noa.waitForSelector('#pro-current');
   await shot(noa, '30-pro-en');
+
+  // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
+  await go(noa, '#/feed');
+  await noa.reload();
+  await noa.waitForSelector('#today-strip');
+  const todayTag = await noa.$eval('#today-strip', (n) => n.dataset.tag || (n.querySelector('#today-title') && n.querySelector('#today-title').textContent) || '');
+  assert.ok(todayTag, 'the strip names today\'s prompt');
+  await noa.click('#today-post');
+  await noa.waitForSelector('#challenge-banner');
+  assert.ok((await text(noa, '#challenge-banner')).startsWith('Entering: '), 'the daily prompt is entered like a challenge');
+  await go(noa, '#/today');
+  await noa.waitForSelector('.today-page');
+  await noa.waitForSelector('.today-count, .empty');
+  await shot(noa, '34-today-en');
+  await noa.reload();                                   // drops the entered prompt so later captions start clean
+  await noa.waitForSelector(settled);
 
   // Verified brands: the owner runs --verify; the check sits inside the brand mark on the profile and on the cards.
   assert.ok(/nexor/.test(maintenance('--verify', 'nexor')), '--verify reports the handle');
@@ -884,7 +911,7 @@ async function postIt(page, opts) {
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
   const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
     && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)/.test(u))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon/.test(u))
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));

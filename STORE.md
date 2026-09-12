@@ -87,7 +87,8 @@ advertising, nothing is shared with data brokers, and there is no third-party an
 | Crash data, performance data | no | — | Server logs keep the request path, the status and the client address for rate limiting (`X-Forwarded-For`), 30 days by default on the VPS setup. |
 | Push notification token | yes, if the person turns push on | app functionality | Web Push subscription endpoint; deleted when push is turned off or the push service reports it gone. |
 
-Also declare: **account creation is optional for browsing** and required for checking and posting; **account deletion
+Also declare: **account creation is optional for browsing and for one free check** and required for posting and for
+checking after that; **account deletion
 is in the app** (Settings → Delete account, one step, everything gone); **data can be deleted on request** at the
 support address.
 
@@ -137,8 +138,8 @@ The Stripe checkout must not be reachable from the wrapped app, or the review fa
 ## What to prepare for review
 
 - **A test account for the reviewer** (App Review Information → Sign-in required): a handle and password on the
-  production server with a few looks already posted, Pro switched on by hand (`pro.manual` is the current build's
-  path), and a second account that follows it so the Following feed is not empty. Reviewers do check whether the
+  production server with a few looks already posted, Pro switched on by hand (`dotnet run -- --pro <handle> <months>`
+  is the current build's path), and a second account that follows it so the Following feed is not empty. Reviewers do check whether the
   camera and the check work: leave the daily cap at its default so the account is not blocked mid-review.
 - **Notes for the reviewer**, in the "Notes" box (English):
   "OREVOSH lets people get a stylist's read of an outfit photo and share the look with a community. The stylist is

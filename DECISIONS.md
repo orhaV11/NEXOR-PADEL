@@ -830,14 +830,14 @@ This section is completed by the docs builder after the merge, from the code.
   answers with the app shell.
 - **422 tests** (up from 314), and the browser test now starts with a guest's check in Hebrew before anyone signs up.
 
-### Arriving in this round
+### Landed late in this round
 
-- **Arabic and Russian** are being added by another builder as this section is written: `ar.json` and `ru.json` for the
-  client, the server messages in `Localizer.cs`, and the locale lists. They were not in this checkout, so the README's
-  language line still says English and Hebrew and is the lead's to update when the files land. Both translations were
-  written by the builders and need a native review before they reach people; the daily prompts carry a title and a hint
-  in English and Hebrew only (`DailyPrompt.Title(language)` falls back to English), and the terms and the privacy
-  policy exist as i18n keys per language, so a new locale needs those written too or the page shows the English.
+- **Arabic and Russian**, everywhere Hebrew is: `ar.json` and `ru.json` for the client (all 629 keys, the same
+  placeholders and `_one` plurals, Western digits kept through `intlLocale()`), the server messages in `Localizer.cs`, the
+  locale lists, a Cairo face for Arabic and the system stack for Cyrillic, and the stub's answers in both languages. The
+  Arabic is Modern Standard in a light register that avoids gendered forms; the Russian is the informal "ты" throughout.
+  Both were written by the builders and need a native review before they reach people, the terms and the privacy policy
+  included. The daily prompts, the comparer's style notes and the service worker's precache follow in the same round.
 
 ### Objections kept out of the code (owner wins)
 

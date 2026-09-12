@@ -14,8 +14,8 @@ picks. **Insights** read your checks over time, looks are searchable by the piec
 daily prompt that runs on a hashtag, and a look can be posted as the follow-up to an earlier one, with both
 scores on the card.
 
-English is the default language, Hebrew (RTL) ships alongside it, and the stylist writes its feedback in the
-user's language. The web app installs to the home screen on iPhone and Android and behaves like a native app
+English is the default language; Hebrew (RTL), Arabic (RTL) and Russian ship alongside it, and the stylist writes its
+feedback in the user's language. The web app installs to the home screen on iPhone and Android and behaves like a native app
 (full screen, bottom tabs, pull to refresh, double-tap to fire, bottom sheets).
 
 ## Run it in 5 minutes
@@ -427,8 +427,8 @@ descriptive is dropped when the status is not `ok`.
   the code actually does, in each language, and are not legal advice; the governing-law line is a placeholder
   ("the place where the owner is based") and the contact address `hello@orevosh.app` must exist before the pages go
   live. Have a lawyer review both before launch.
-- **Translations need a native review.** Every language after English (Hebrew today, and the locales arriving in
-  this round) was written by the builders, the terms and the privacy policy included; a native speaker should read
+- **Translations need a native review.** Every language after English (Hebrew, Arabic and Russian) was written by the
+  builders, the terms and the privacy policy included; a native speaker should read
   each before it reaches people.
 - **The screenshots in the brand kit are test fixtures.** The store screenshots and the landing screens show the
   browser test's synthetic outfit and Chromium's fake camera. Replace them with real captures before any store

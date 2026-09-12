@@ -7,6 +7,10 @@ using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Tests;
 
@@ -14,12 +18,15 @@ namespace FitCheck.Api.Tests;
 /// Check before signing up (Round 9). A visitor gets one check as a guest: the row carries the token of an HttpOnly guest
 /// cookie instead of an owner, the guest reads it back with that cookie and nobody else can, and signing up claims it
 /// (owner set, photo moved into the account's folder, cookie gone) so it can be posted. Guests are capped per cookie and
-/// per client address; unclaimed rows expire with the cookie. Signed-in people are capped by their plan: three a day free,
-/// thirty for Pro, comparisons included.
+/// per client address, counting the looks actually given (a refused upload or a failed call is not one), with a separate
+/// brake on attempts per address; unclaimed rows expire with the cookie. Signed-in people are capped by their plan: three
+/// a day free, thirty for Pro, comparisons included.
 /// </summary>
 public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
 {
     private const string GuestLimit = "That was your free look. Sign up to keep checking, it takes ten seconds.";
+    private const string TooFast = "Slow down a little. Try again in a bit.";
+    private const string ServerError = "Something went wrong on our side. Please try again.";
 
     /// <summary>The product's caps (three free, thirty Pro, one guest), with Limits:ChecksPerDay raised so Pro can reach thirty.</summary>
     public sealed class PlansApp : TestApp
@@ -38,6 +45,100 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         {
             base.ConfigureWebHost(builder);
             builder.UseSetting("Plans:GuestChecksPerDay", "0");
+        }
+    }
+
+    /// <summary>The "guest" policy's brake on attempts lowered to three per address, so a test can see it without twenty uploads.</summary>
+    private sealed class ThreeAttemptsApp : TestApp
+    {
+        public ThreeAttemptsApp()
+        {
+            GuestAttemptsPerDay = 3;
+        }
+    }
+
+    /// <summary>The real app over a store that can refuse to write into an account's folder, the way a full disk would, while the guest folder keeps working.</summary>
+    private sealed class ClaimFailureApp : TestApp
+    {
+        public FailingAccountFolderStore Store => (FailingAccountFolderStore)Services.GetRequiredService<IImageStore>();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IImageStore>();
+                services.AddSingleton<IImageStore>(sp => new FailingAccountFolderStore(
+                    new DiskImageStore(sp.GetRequiredService<IOptions<StorageOptions>>(), sp.GetRequiredService<IHostEnvironment>())));
+            });
+        }
+    }
+
+    private sealed class FailingAccountFolderStore(DiskImageStore inner) : IImageStore
+    {
+        /// <summary>While true, every write into a folder that is not the guest folder throws.</summary>
+        public bool FailAccountWrites { get; set; }
+
+        public Task<string> SaveAsync(Guid userId, Guid checkId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct) =>
+            FailAccountWrites && userId != GuestChecks.StorageFolder
+                ? throw new IOException("No space left on device")
+                : inner.SaveAsync(userId, checkId, format, bytes, ct);
+
+        public Task<string> SaveVideoAsync(Guid userId, Guid checkId, VideoFormat format, Stream content, CancellationToken ct) =>
+            FailAccountWrites && userId != GuestChecks.StorageFolder
+                ? throw new IOException("No space left on device")
+                : inner.SaveVideoAsync(userId, checkId, format, content, ct);
+
+        public Task<string> ReplaceVideoAsync(string relativeOld, Stream mp4, CancellationToken ct) => inner.ReplaceVideoAsync(relativeOld, mp4, ct);
+        public void Delete(string relativePath) => inner.Delete(relativePath);
+        public void DeleteUser(Guid userId) => inner.DeleteUser(userId);
+        public bool Exists(string relativePath) => inner.Exists(relativePath);
+        public Stream? OpenRead(string relativePath) => inner.OpenRead(relativePath);
+        public Task<string> SaveAvatarAsync(Guid userId, ImageFormat format, ReadOnlyMemory<byte> bytes, CancellationToken ct) => inner.SaveAvatarAsync(userId, format, bytes, ct);
+    }
+
+    /// <summary>The real app with a transcoder that says it is available and records what is queued instead of running ffmpeg.</summary>
+    private sealed class RecordingTranscoderApp : TestApp
+    {
+        public RecordingTranscoder Transcoder => (RecordingTranscoder)Services.GetRequiredService<Transcoder>();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<Transcoder>();
+                services.AddSingleton<Transcoder>(sp => new RecordingTranscoder(
+                    sp.GetRequiredService<IServiceScopeFactory>(), sp.GetRequiredService<IImageStore>(),
+                    sp.GetRequiredService<IOptions<StorageOptions>>(), sp.GetRequiredService<ILogger<Transcoder>>()));
+            });
+        }
+    }
+
+    private sealed class RecordingTranscoder(IServiceScopeFactory scopes, IImageStore store, IOptions<StorageOptions> options, ILogger<Transcoder> logger)
+        : Transcoder(scopes, store, options, logger)
+    {
+        private readonly List<Guid> _queued = [];
+
+        public List<Guid> Queued
+        {
+            get
+            {
+                lock (_queued)
+                {
+                    return _queued.ToList();
+                }
+            }
+        }
+
+        public override bool Available => true;
+
+        public override void Enqueue(Guid checkId)
+        {
+            lock (_queued)
+            {
+                _queued.Add(checkId);
+            }
         }
     }
 
@@ -163,21 +264,114 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
     }
 
     [Fact]
-    public async Task A_second_cookie_from_the_same_address_is_429_and_a_signed_in_person_there_is_not()
+    public async Task The_address_counts_looks_given_a_refused_or_failed_attempt_is_not_the_free_look()
     {
-        var address = NextAddress();
-        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(address))).StatusCode);
+        // A photo the server refuses (413) spends nothing: the fixed file from the same phone is the look.
+        var guest = Guest(NextAddress());
+        var tooBig = await guest.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg(7 * 1024 * 1024)));
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, tooBig.StatusCode);
+        Assert.Null(GuestCookie(tooBig));
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(guest)).StatusCode);
 
-        // No cookie at all, same address: the "guest" policy answers before any handler runs, with the same message.
+        // A model outage (502) spends nothing either, for the address or for the cookie the failed attempt was issued.
+        var address = NextAddress();
+        var unlucky = Guest(address);
+        _app.Vision.Handler = _ => throw new VisionClientException("boom");
+        HttpResponseMessage failed;
+        try
+        {
+            failed = await CheckAsync(unlucky);
+        }
+        finally
+        {
+            _app.Vision.Handler = _ => Payloads.Ok();
+        }
+
+        Assert.Equal(HttpStatusCode.BadGateway, failed.StatusCode);
+        Assert.NotNull(GuestCookie(failed));
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(unlucky)).StatusCode);
+
+        // The second look from the address, with no cookie at all: that one is refused, the address had its look.
         var refused = await CheckAsync(Guest(address));
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
         Assert.Equal(GuestLimit, await ErrorAsync(refused));
-        Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        var retryAfter = refused.Headers.RetryAfter?.Delta;
+        Assert.True(retryAfter is { } delta && delta > TimeSpan.Zero && delta <= TimeSpan.FromHours(24), $"Retry-After: {retryAfter}");
         Assert.Null(GuestCookie(refused));
 
         // The brake is for the anonymous path only: an account behind the same router checks as usual.
         var member = Guest(address);
         await _app.SignupAsync(member, "gc_same_address");
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(member)).StatusCode);
+
+        // Not an outfit still cost a model call: it is the address's look, as it is the cookie's.
+        var deskAddress = NextAddress();
+        _app.Vision.Handler = _ => Payloads.NotOutfit();
+        try
+        {
+            Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(deskAddress))).StatusCode);
+        }
+        finally
+        {
+            _app.Vision.Handler = _ => Payloads.Ok();
+        }
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(Guest(deskAddress))).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_parallel_burst_of_cookieless_requests_from_one_address_gets_one_look()
+    {
+        var address = NextAddress();
+        _app.Vision.Handler = _ => { Thread.Sleep(300); return Payloads.Ok(); };
+        HttpResponseMessage[] responses;
+        try
+        {
+            responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => CheckAsync(Guest(address))));
+        }
+        finally
+        {
+            _app.Vision.Handler = _ => Payloads.Ok();
+        }
+
+        Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
+        foreach (var response in responses.Where(r => r.StatusCode == HttpStatusCode.TooManyRequests))
+        {
+            Assert.Equal(GuestLimit, await ErrorAsync(response));
+        }
+    }
+
+    [Fact]
+    public async Task The_brake_on_attempts_per_address_says_too_fast_never_that_the_look_was_given()
+    {
+        using var app = new ThreeAttemptsApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        var address = NextAddress();
+        var visitor = app.NewClient();
+        visitor.DefaultRequestHeaders.Add("X-Forwarded-For", address);
+
+        // Three refused uploads spend the address's attempts; the fourth is braked before any handler runs, and the message
+        // is the brake's, not "that was your free look": no look was given.
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, (await visitor.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg(7 * 1024 * 1024)))).StatusCode);
+        }
+
+        var braked = await CheckAsync(visitor);
+        Assert.Equal(HttpStatusCode.TooManyRequests, braked.StatusCode);
+        Assert.Equal(TooFast, await ErrorAsync(braked));
+        Assert.True(braked.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        Assert.Null(GuestCookie(braked));
+        Assert.Empty(app.Vision.Requests);
+
+        // Another address, and an account behind the braked one, check as usual.
+        var elsewhere = app.NewClient();
+        elsewhere.DefaultRequestHeaders.Add("X-Forwarded-For", NextAddress());
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(elsewhere)).StatusCode);
+        var member = app.NewClient();
+        member.DefaultRequestHeaders.Add("X-Forwarded-For", address);
+        await app.SignupAsync(member, "gc_behind_the_brake");
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(member)).StatusCode);
     }
 
@@ -413,9 +607,11 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         }
 
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(client)).StatusCode);   // the thirtieth
+        // A Pro account at its own ceiling hears the number, never "go Pro": it is Pro (the compare route says the same).
         var refused = await CheckAsync(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        Assert.Equal("That's today's 30 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(refused));
+        Assert.Equal("You've reached today's limit of 30 checks. Come back tomorrow.", await ErrorAsync(refused));
+        Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
 
         // A lapsed Pro is a free account again, three a day, and the thirty already made keep the door shut.
         using (var scope = _app.Services.CreateScope())
@@ -469,6 +665,163 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
     }
 
     [Fact]
+    public async Task A_claim_whose_copy_fails_is_a_500_that_leaves_the_rows_the_guests_and_the_cookie_in_place()
+    {
+        using var app = new ClaimFailureApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        var guest = app.NewClient();
+        guest.DefaultRequestHeaders.Add("X-Forwarded-For", NextAddress());
+        var response = await guest.PostAsync("/api/checks", TestClips.Form(TestClips.WebM(), fileName: "look.webm"));
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var id = (await Json(response)).GetProperty("id").GetGuid();
+        var token = TokenOf(GuestCookie(response)!);
+        var guestPhoto = Path.Combine(app.StorageRoot, GuestChecks.StorageFolder.ToString("N"), $"{id:N}.jpg");
+        var guestClip = Path.Combine(app.StorageRoot, GuestChecks.StorageFolder.ToString("N"), $"{id:N}.webm");
+        var userId = (await app.SignupAsync(guest, "gc_unlucky_keeper")).GetProperty("id").GetGuid();
+        var userFolder = Path.Combine(app.StorageRoot, userId.ToString("N"));
+
+        // The disk is full for the account's folder: nothing is saved, the copies are removed, the guest keeps everything.
+        app.Store.FailAccountWrites = true;
+        var failed = await guest.PostAsync("/api/checks/claim", null);
+        Assert.Equal(HttpStatusCode.InternalServerError, failed.StatusCode);
+        Assert.Equal(ServerError, await ErrorAsync(failed));
+        Assert.Null(GuestCookie(failed));   // not cleared: the cookie still names the rows
+        OutfitCheck row;
+        using (var scope = app.Services.CreateScope())
+        {
+            row = scope.ServiceProvider.GetRequiredService<AppDbContext>().Checks.AsNoTracking().Single(c => c.Id == id);
+        }
+
+        Assert.Null(row.UserId);
+        Assert.Equal(token, row.GuestToken);
+        Assert.Null(row.ClaimedAt);
+        Assert.StartsWith(GuestChecks.StorageFolder.ToString("N"), row.ImagePath);
+        Assert.StartsWith(GuestChecks.StorageFolder.ToString("N"), row.VideoPath);
+        Assert.True(File.Exists(guestPhoto));
+        Assert.True(File.Exists(guestClip));
+        Assert.False(Directory.Exists(userFolder));
+        Assert.Equal(HttpStatusCode.OK, (await guest.GetAsync($"/api/checks/{id}")).StatusCode);   // still theirs, by the cookie
+
+        // The next load claims again, and this time the disk answers.
+        app.Store.FailAccountWrites = false;
+        var claim = await guest.PostAsync("/api/checks/claim", null);
+        Assert.Equal(HttpStatusCode.OK, claim.StatusCode);
+        Assert.Equal(1, (await Json(claim)).GetProperty("claimed").GetInt32());
+        using (var scope = app.Services.CreateScope())
+        {
+            row = scope.ServiceProvider.GetRequiredService<AppDbContext>().Checks.AsNoTracking().Single(c => c.Id == id);
+        }
+
+        Assert.Equal(userId, row.UserId);
+        Assert.Equal(Path.Combine(userId.ToString("N"), $"{id:N}.jpg"), row.ImagePath);
+        Assert.Equal(Path.Combine(userId.ToString("N"), $"{id:N}.webm"), row.VideoPath);
+        Assert.True(File.Exists(Path.Combine(userFolder, $"{id:N}.jpg")));
+        Assert.True(File.Exists(Path.Combine(userFolder, $"{id:N}.webm")));
+        Assert.False(File.Exists(guestPhoto));
+        Assert.False(File.Exists(guestClip));
+    }
+
+    [Fact]
+    public async Task A_claim_of_a_check_whose_file_is_gone_is_a_500_and_the_row_stays_the_guests()
+    {
+        var guest = Guest();
+        var id = (await Json(await CheckAsync(guest))).GetProperty("id").GetGuid();
+        await _app.SignupAsync(guest, "gc_lost_file");
+        File.Delete(GuestFile(id));
+
+        var failed = await guest.PostAsync("/api/checks/claim", null);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, failed.StatusCode);
+        Assert.Equal(ServerError, await ErrorAsync(failed));
+        Assert.Null(GuestCookie(failed));
+        var row = Row(id);
+        Assert.Null(row.UserId);
+        Assert.NotNull(row.GuestToken);
+        Assert.StartsWith(GuestChecks.StorageFolder.ToString("N"), row.ImagePath);
+        // Nothing owned by the account points anywhere: the history is empty.
+        Assert.Empty((await guest.GetFromJsonAsync<JsonElement>("/api/users/me/checks")).EnumerateArray());
+    }
+
+    [Fact]
+    public async Task Account_deletion_removes_files_by_path_so_a_row_naming_the_guest_folder_goes_with_it()
+    {
+        var (client, userId, _) = await _app.NewUserAsync("gc_path_delete");
+        var checkId = Guid.NewGuid();
+        var comparisonId = Guid.NewGuid();
+        var guestFolder = GuestChecks.StorageFolder.ToString("N");
+        var paths = new[]
+        {
+            Path.Combine(guestFolder, $"{checkId:N}.jpg"), Path.Combine(guestFolder, $"{checkId:N}.webm"),
+            Path.Combine(guestFolder, $"{comparisonId:N}.jpg"), Path.Combine(guestFolder, $"{Guid.NewGuid():N}.jpg")
+        };
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Checks.Add(new OutfitCheck
+            {
+                Id = checkId, UserId = userId, ClaimedAt = DateTime.UtcNow, Intent = StyleIntent.Casual, Language = "en", Status = CheckStatus.Ok, Score = 6, PromptVersion = "v2",
+                CreatedAt = DateTime.UtcNow, ImagePath = paths[0], VideoPath = paths[1]
+            });
+            db.Comparisons.Add(new OutfitComparison
+            {
+                Id = comparisonId, UserId = userId, ClaimedAt = DateTime.UtcNow, Intent = StyleIntent.Date, Language = "en", Status = CheckStatus.Ok, Winner = "a", PromptVersion = "c1",
+                CreatedAt = DateTime.UtcNow, ImagePathA = paths[2], ImagePathB = paths[3]
+            });
+            await db.SaveChangesAsync();
+        }
+
+        foreach (var relative in paths)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(StorageFile(relative))!);
+            await File.WriteAllBytesAsync(StorageFile(relative), TestImages.Jpeg(64));
+        }
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/users/me")).StatusCode);
+
+        foreach (var relative in paths)
+        {
+            Assert.False(File.Exists(StorageFile(relative)), relative);
+        }
+
+        using var check = _app.Services.CreateScope();
+        Assert.Null(check.ServiceProvider.GetRequiredService<AppDbContext>().Checks.Find(checkId));
+        Assert.Null(check.ServiceProvider.GetRequiredService<AppDbContext>().Comparisons.Find(comparisonId));
+    }
+
+    [Fact]
+    public async Task A_guests_clip_waits_for_the_claim_before_it_is_queued_for_transcoding()
+    {
+        using var app = new RecordingTranscoderApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        var guest = app.NewClient();
+        guest.DefaultRequestHeaders.Add("X-Forwarded-For", NextAddress());
+
+        var response = await guest.PostAsync("/api/checks", TestClips.Form(TestClips.WebM(), fileName: "look.webm"));
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var id = (await Json(response)).GetProperty("id").GetGuid();
+        // Not queued at the check, and the sweep at start leaves a guest's WebM alone too (an owned one it queues).
+        Assert.Empty(app.Transcoder.Queued);
+        var (_, ownerId, _) = await app.NewUserAsync("gc_owned_clip");
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Checks.Add(new OutfitCheck
+            {
+                Id = Guid.NewGuid(), UserId = ownerId, Intent = StyleIntent.Casual, Language = "en", Status = CheckStatus.Ok, Score = 6, PromptVersion = "v2",
+                CreatedAt = DateTime.UtcNow, ImagePath = Path.Combine(ownerId.ToString("N"), "x.jpg"), VideoPath = Path.Combine(ownerId.ToString("N"), $"{Guid.NewGuid():N}.webm")
+            });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(1, await app.Transcoder.SweepAsync(CancellationToken.None));
+
+        // The claim moves the clip and only then hands it to the worker.
+        await app.SignupAsync(guest, "gc_clip_keeper");
+        Assert.Equal(1, (await Json(await guest.PostAsync("/api/checks/claim", null))).GetProperty("claimed").GetInt32());
+        Assert.Equal([id], app.Transcoder.Queued);
+    }
+
+    [Fact]
     public async Task With_guests_switched_off_the_anonymous_check_is_a_401()
     {
         using var app = new NoGuestsApp();
@@ -490,6 +843,7 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         Assert.Equal(3, plans.FreeChecksPerDay);
         Assert.Equal(30, plans.ProChecksPerDay);
         Assert.Equal(1, plans.GuestChecksPerDay);
+        Assert.Equal(20, plans.GuestAttemptsPerDay);
         Assert.Equal(TimeSpan.FromDays(1), GuestChecks.Lifetime);
     }
 }

@@ -57,9 +57,7 @@ public static partial class AuthEndpoints
         // context (EF resolves application services as a fallback), so every route that answers with "me" keeps calling
         // this with the same three arguments.
         var now = DateTime.UtcNow;
-        var windowStart = now - TimeSpan.FromHours(24);
-        var checksToday = await db.Checks.CountAsync(c => c.UserId == user.Id && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct)
-            + await db.Comparisons.CountAsync(c => c.UserId == user.Id && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
+        var checksToday = await Spend.CountForUserAsync(db, user.Id, now, ct);
         var plans = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<PlanOptions>>(db).Value;
         var limits = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<LimitsOptions>>(db).Value;
         var (plan, proUntil) = BillingEndpoints.EffectivePlan(user, now);

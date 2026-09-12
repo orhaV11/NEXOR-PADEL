@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
@@ -17,8 +18,6 @@ namespace FitCheck.Api.Endpoints;
 /// </summary>
 public static class CompareEndpoints
 {
-    private static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
-
     // Room for multipart boundaries and the small text fields around the two photos.
     private const long MultipartOverheadBytes = 256 * 1024;
 
@@ -159,29 +158,19 @@ public static class CompareEndpoints
             return problemB;
         }
 
-        // The allowance is one number for checks and comparisons together: the plan's cap, never above Limits:ChecksPerDay.
-        // Failed calls do not count, on either side: a model outage must not eat the user's allowance.
+        // The allowance is one number for checks and comparisons together (Spend counts both, for this route, the check
+        // route and the global ceiling alike): the plan's cap, never above Limits:ChecksPerDay. Failed calls do not count,
+        // on either side: a model outage must not eat the user's allowance.
         var cap = Plans.CapFor(user, plans.Value, limits.Value, now);
-        var windowStart = now - CapWindow;
-        var recentChecks = await db.Checks
-            .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-            .Select(c => c.CreatedAt)
-            .ToListAsync(ct);
-        var recentComparisons = await db.Comparisons
-            .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-            .Select(c => c.CreatedAt)
-            .ToListAsync(ct);
-        var recent = recentChecks.Concat(recentComparisons).OrderBy(t => t).ToList();
-        var storedGlobal = await db.Checks.CountAsync(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct)
-                           + await db.Comparisons.CountAsync(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
+        var recent = await Spend.RecentForUserAsync(db, userId, now, ct);
+        var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 
         var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
         if (verdict == CapacityVerdict.UserCapReached)
         {
-            if (recent.Count > 0)
+            if (Spend.RetryAfterSeconds(recent, cap, now) is { } retryAfter)
             {
-                var retryAfter = (int)Math.Ceiling((recent[0] + CapWindow - now).TotalSeconds);
-                context.Response.Headers.RetryAfter = Math.Max(retryAfter, 1).ToString();
+                context.Response.Headers.RetryAfter = retryAfter.ToString(CultureInfo.InvariantCulture);
             }
 
             // A free account hears what Pro would give it; a Pro account at its own ceiling just hears the number.

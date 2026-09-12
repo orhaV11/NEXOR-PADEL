@@ -29,6 +29,11 @@ public class TestApp : WebApplicationFactory<Program>
     /// </summary>
     public int FreeChecksPerDay { get; init; } = 20;
     public int ChecksPerDayGlobal { get; init; } = 100000;
+    /// <summary>
+    /// Plans:GuestAttemptsPerDay, the "guest" policy's brake on attempts per client address. Out of the way like the other
+    /// address brakes, so the suite exercises the handler's own guest count; GuestCheckTests lowers it to see the brake.
+    /// </summary>
+    public int GuestAttemptsPerDay { get; init; } = 100000;
     public int SignupsPerHourPerIp { get; init; } = 100000;
     public int LoginsPerQuarterHourPerIp { get; init; } = 100000;
     public int ReportsToHide { get; init; } = 3;
@@ -79,6 +84,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
         builder.UseSetting("Plans:FreeChecksPerDay", FreeChecksPerDay.ToString());
         builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
+        builder.UseSetting("Plans:GuestAttemptsPerDay", GuestAttemptsPerDay.ToString());
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());
         builder.UseSetting("Limits:LoginsPerQuarterHourPerIp", LoginsPerQuarterHourPerIp.ToString());
         builder.UseSetting("Limits:ReportsToHide", ReportsToHide.ToString());

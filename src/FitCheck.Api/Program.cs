@@ -228,6 +228,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddSingleton<Localizer>();
 builder.Services.AddSingleton<IImageStore, DiskImageStore>();
 builder.Services.AddSingleton<CheckCapacity>();
+// The per-address count of a guest's looks (Plans:GuestChecksPerDay), kept in memory next to the in-flight reservations.
+builder.Services.AddSingleton<GuestAddressCounter>();
 builder.Services.AddScoped<OutfitAnalyzer>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<PostReader>();
@@ -307,9 +309,11 @@ var recoveryPerHour = builder.Configuration.GetValue<int?>("Limits:RecoveryPerHo
 // and the address is only the fallback for a route that is limited without being protected.
 var commentsPerHour = builder.Configuration.GetValue<int?>("Limits:CommentsPerHour") ?? limitDefaults.CommentsPerHour;
 var reportsPerHour = builder.Configuration.GetValue<int?>("Limits:ReportsPerHour") ?? limitDefaults.ReportsPerHour;
-// A visitor's free check is one model call with no account behind it: Plans:GuestChecksPerDay per client address per day
-// on the anonymous check path (the per-cookie count is the handler's). A signed-in call is not limited here; its plan is.
-var guestChecksPerDay = builder.Configuration.GetValue<int?>("Plans:GuestChecksPerDay") ?? new PlanOptions().GuestChecksPerDay;
+// The anonymous check path's abuse brake: Plans:GuestAttemptsPerDay attempts per client address per day, whatever they
+// come to. A fixed window never hands a permit back, so this is not the guest's cap (a refused photo or a model outage
+// would spend it): the look itself, Plans:GuestChecksPerDay per cookie and per address, is counted by the handler from the
+// checks it actually stored. A signed-in call is not limited here; its plan is.
+var guestAttemptsPerDay = builder.Configuration.GetValue<int?>("Plans:GuestAttemptsPerDay") ?? new PlanOptions().GuestAttemptsPerDay;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -332,7 +336,7 @@ builder.Services.AddRateLimiter(options =>
         ? RateLimitPartition.GetNoLimiter("signed-in")
         : RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, guestChecksPerDay), Window = TimeSpan.FromHours(24), QueueLimit = 0 }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, guestAttemptsPerDay), Window = TimeSpan.FromHours(24), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var http = context.HttpContext;
@@ -341,7 +345,8 @@ builder.Services.AddRateLimiter(options =>
         var key = path.StartsWithSegments("/api/auth/login") ? "error.login_limited"
             : path.StartsWithSegments("/api/auth/signup") ? "error.signup_limited"
             : path.StartsWithSegments("/api/auth/forgot") || path.StartsWithSegments("/api/users/me/email") ? "error.recovery_limited"
-            : path.StartsWithSegments("/api/checks") ? "error.guest_limit"
+            // The "guest" policy on /api/checks is only the brake on attempts: error.guest_limit is the handler's, for a look
+            // that was actually given.
             : "error.too_fast";
         // The window limiters say when the next permit frees up; the client can show it or wait it out.
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))

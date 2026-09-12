@@ -2,10 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
+using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FitCheck.Api.Tests;
@@ -72,38 +75,77 @@ public class DatabaseSetupTests : IDisposable
     {
         var path = Path.Combine(_root, "pilot.db");
         var userId = Guid.NewGuid();
-        using (var db = Open(path))
-        {
-            db.Database.EnsureCreated();
-            db.Users.Add(NewUser(userId, "pilot_user"));
-            db.SaveChanges();
-        }
-
-        // What an earlier round's file looks like: no history table, a column and a table that did not exist yet, an index
-        // that was added later.
+        var checkId = Guid.NewGuid();
+        var postId = Guid.NewGuid();
+        // The Round 8 schema with no history table is what an EnsureCreated file from before Round 9 looks like: Checks.UserId
+        // NOT NULL (no guests yet), no Posts.BeforePostId and its ON DELETE SET NULL, no Comparisons. On top of that, what an
+        // even earlier round's file lacks: a column and a table that did not exist yet, an index that was added later.
+        CreateRound8Database(path);
+        SeedRound8Rows(path, userId, "pilot_user", checkId, postId);
         Execute(path, "ALTER TABLE \"Users\" DROP COLUMN \"Suspended\"");
         Execute(path, "DROP TABLE \"PushSubscriptions\"");
         Execute(path, "DROP INDEX \"IX_Checks_UserId_CreatedAt\"");
         Assert.DoesNotContain("Suspended", Columns(path, "Users"));
         Assert.DoesNotContain("PushSubscriptions", Names(path, "table"));
+        Assert.DoesNotContain("Comparisons", Names(path, "table"));
+        Assert.DoesNotContain("BeforePostId", Columns(path, "Posts"));
         Assert.DoesNotContain(HistoryRepository.DefaultTableName, Names(path, "table"));
+        Assert.Equal("1", Scalar(path, "SELECT \"notnull\" FROM pragma_table_info('Checks') WHERE name = 'UserId'"));
 
+        var log = new CapturingLogger();
         using (var db = Open(path))
         {
-            DatabaseSetup.Apply(db, NullLogger.Instance);
+            DatabaseSetup.Apply(db, log);
 
             var user = db.Users.Single(u => u.Id == userId);
             Assert.Equal("pilot_user", user.Handle);
             Assert.False(user.Suspended);
             Assert.Empty(db.PushSubscriptions.ToList());
             Assert.Equal(db.Database.GetMigrations().OrderBy(m => m), db.Database.GetAppliedMigrations().OrderBy(m => m));
+            // The rows rode through the table rebuilds: the check and the post that references it are still there.
+            Assert.Equal(userId, db.Checks.Single(c => c.Id == checkId).UserId);
+            Assert.Equal(checkId, db.Posts.Single(p => p.Id == postId).CheckId);
         }
 
         Assert.Contains("Suspended", Columns(path, "Users"));
         Assert.Contains("PushSubscriptions", Names(path, "table"));
+        Assert.Contains("Comparisons", Names(path, "table"));
         Assert.Contains("IX_Checks_UserId_CreatedAt", Names(path, "index"));
         Assert.Contains("IX_PushSubscriptions_Endpoint", Names(path, "index"));
+        Assert.Contains("IX_Checks_GuestToken", Names(path, "index"));
+        Assert.Equal("0", Scalar(path, "SELECT \"notnull\" FROM pragma_table_info('Checks') WHERE name = 'UserId'"));
         Assert.Equal(StructureOf(Fresh("reference.db")), StructureOf(path));
+        // Exactly the two shape changes Round 9 made on existing tables, and nothing else rebuilt.
+        var upgraded = Assert.Single(log.Lines, line => line.Contains(" upgraded: "));
+        Assert.Contains("1 column(s) altered (Checks.UserId nullable)", upgraded);
+        Assert.Contains("1 foreign key(s) added (FK_Posts_Posts_BeforePostId)", upgraded);
+        Assert.Contains("Users.Suspended", upgraded);
+        Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
+
+        // The upgraded file takes what Round 9 writes: a guest check with no owner, and a look that names an earlier look as
+        // its "before", which the new foreign key clears when that look goes.
+        var guestId = Guid.NewGuid();
+        var afterId = Guid.NewGuid();
+        using (var db = Open(path))
+        {
+            db.Checks.Add(new OutfitCheck
+            {
+                Id = guestId, UserId = null, GuestToken = GuestChecks.NewToken(), Intent = StyleIntent.Casual, Language = "en", Status = CheckStatus.Ok, Score = 7,
+                PromptVersion = "v2", CreatedAt = DateTime.UtcNow, ImagePath = Path.Combine(GuestChecks.StorageFolder.ToString("N"), $"{guestId:N}.jpg")
+            });
+            var afterCheck = Guid.NewGuid();
+            db.Checks.Add(new OutfitCheck { Id = afterCheck, UserId = userId, Intent = StyleIntent.Casual, Language = "en", Status = CheckStatus.Ok, Score = 8, PromptVersion = "v2", CreatedAt = DateTime.UtcNow });
+            db.Posts.Add(new Post { Id = afterId, UserId = userId, CheckId = afterCheck, Intent = StyleIntent.Casual, Score = 8, IntentMatch = 80, Headline = "after", BeforePostId = postId, CreatedAt = DateTime.UtcNow });
+            db.SaveChanges();
+        }
+
+        // Ids are bound, never spliced: the provider stores a Guid as upper-case text, and a lower-case literal matches nothing.
+        Assert.Equal("1", Scalar(path, "SELECT COUNT(*) FROM \"Checks\" WHERE \"Id\" = $id AND \"UserId\" IS NULL", ("$id", guestId)));
+        Execute(path, "DELETE FROM \"Posts\" WHERE \"Id\" = $id", ("$id", postId));
+        using (var db = Open(path))
+        {
+            Assert.Null(db.Posts.Single(p => p.Id == afterId).BeforePostId);
+        }
 
         var backups = Directory.GetFiles(_root, "pilot.db.bak-*");
         var backup = Assert.Single(backups);
@@ -153,18 +195,14 @@ public class DatabaseSetupTests : IDisposable
     }
 
     [Fact]
-    public async Task The_app_starts_on_a_pilot_database_and_its_people_can_still_sign_in()
+    public async Task The_app_starts_on_a_pilot_database_its_people_can_still_sign_in_and_a_guest_can_check()
     {
         using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
         Directory.CreateDirectory(app.Root);
         var path = Path.Combine(app.Root, "test.db");
-        using (var db = Open(path))
-        {
-            db.Database.EnsureCreated();
-            db.Users.Add(NewUser(Guid.NewGuid(), "veteran", password: "password123"));
-            db.SaveChanges();
-        }
-
+        CreateRound8Database(path);
+        SeedRound8Rows(path, Guid.NewGuid(), "veteran", Guid.NewGuid(), Guid.NewGuid(), password: "password123");
         Execute(path, "ALTER TABLE \"Users\" DROP COLUMN \"Suspended\"");
         Execute(path, "DROP TABLE \"PushSubscriptions\"");
 
@@ -175,9 +213,16 @@ public class DatabaseSetupTests : IDisposable
         var newcomer = await app.SignupAsync(app.NewClient(), "newcomer");
         Assert.Equal("newcomer", newcomer.GetProperty("handle").GetString());
 
+        // The round's guest check writes a row with no owner: the upgraded file must take it (Checks.UserId was NOT NULL).
+        var visitor = app.NewClient();
+        visitor.DefaultRequestHeaders.Add("X-Forwarded-For", "203.0.113.42");
+        var guestCheck = await visitor.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.Created, guestCheck.StatusCode);
+
         Assert.Single(Directory.GetFiles(app.Root, "test.db.bak-*"));
         Assert.Contains("Suspended", Columns(path, "Users"));
         Assert.Contains("PushSubscriptions", Names(path, "table"));
+        Assert.Contains("Comparisons", Names(path, "table"));
     }
 
     [Fact]
@@ -342,6 +387,53 @@ public class DatabaseSetupTests : IDisposable
         return path;
     }
 
+    /// <summary>The schema as the Round 8 migration left it, with the history table dropped: an EnsureCreated file from before Round 9.</summary>
+    private static void CreateRound8Database(string path)
+    {
+        using (var db = Open(path))
+        {
+            db.GetService<IMigrator>().Migrate("Round8");
+        }
+
+        Execute(path, $"DROP TABLE \"{HistoryRepository.DefaultTableName}\"");
+    }
+
+    /// <summary>
+    /// A user, an ok check and its post, written the way that schema stores them (the current model has columns it lacks,
+    /// so not through EF). The post references the check: a rebuild of Checks that cascaded would take it along.
+    /// </summary>
+    private static void SeedRound8Rows(string path, Guid userId, string handle, Guid checkId, Guid postId, string? password = null)
+    {
+        var now = DateTime.UtcNow;
+        var hash = password is null ? "x" : new PasswordHasher<AppUser>().HashPassword(new AppUser(), password);
+        Execute(path,
+            "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", " +
+            "\"PreferredLanguage\", \"StreakCount\", \"Suspended\", \"IsAdmin\", \"CreatedAt\") " +
+            "VALUES ($id, $handle, $lower, $hash, 'Person', 0, 1, 'en', 0, 0, 0, $now)",
+            ("$id", userId), ("$handle", handle), ("$lower", handle.ToLowerInvariant()), ("$hash", hash), ("$now", now));
+        Execute(path,
+            "INSERT INTO \"Checks\" (\"Id\", \"UserId\", \"Intent\", \"Language\", \"ImagePath\", \"Status\", \"PromptVersion\", \"LatencyMs\", \"CreatedAt\") " +
+            "VALUES ($id, $user, 'Casual', 'en', '', 'ok', 'v2', 0, $now)",
+            ("$id", checkId), ("$user", userId), ("$now", now));
+        Execute(path,
+            "INSERT INTO \"Posts\" (\"Id\", \"UserId\", \"CheckId\", \"Intent\", \"Score\", \"IntentMatch\", \"Headline\", \"FireCount\", \"CommentCount\", " +
+            "\"ReportCount\", \"Hidden\", \"CreatedAt\") VALUES ($id, $user, $check, 'Casual', 7, 70, 'before', 0, 0, 0, 0, $now)",
+            ("$id", postId), ("$user", userId), ("$check", checkId), ("$now", now));
+    }
+
+    /// <summary>Keeps every line the setup logs, so a test can say what the upgrade reported.</summary>
+    private sealed class CapturingLogger : ILogger
+    {
+        public List<string> Lines { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Lines.Add(formatter(state, exception));
+    }
+
     private static AppDbContext Open(string path) =>
         new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite($"Data Source={path}").Options);
 
@@ -385,9 +477,9 @@ public class DatabaseSetupTests : IDisposable
     }
 
     /// <summary>
-    /// Tables with their columns (name, declared type, NOT NULL, primary key) and indexes with their statements. An upgraded
-    /// table has its new columns appended with a DEFAULT, so its CREATE text differs from a fresh one while its shape is the
-    /// same; this is the shape.
+    /// Tables with their columns (name, declared type, NOT NULL, primary key), their foreign keys (columns, the table and
+    /// columns they point at, the ON DELETE rule) and indexes with their statements. An upgraded table has its new columns
+    /// appended with a DEFAULT, so its CREATE text differs from a fresh one while its shape is the same; this is the shape.
     /// </summary>
     private static List<string> StructureOf(string path)
     {
@@ -397,6 +489,8 @@ public class DatabaseSetupTests : IDisposable
         command.CommandText =
             "SELECT 'table ' || m.name || ' ' || c.name || ' ' || c.type || ' ' || c.\"notnull\" || ' ' || c.pk " +
             "FROM sqlite_master m JOIN pragma_table_info(m.name) c WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%' AND m.name <> $history " +
+            "UNION ALL SELECT 'fk ' || m.name || ' ' || f.\"from\" || ' -> ' || f.\"table\" || '.' || IFNULL(f.\"to\", '') || ' ' || f.on_delete " +
+            "FROM sqlite_master m JOIN pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%' AND m.name <> $history " +
             "UNION ALL SELECT 'index ' || name || ' ' || IFNULL(sql, '') FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' " +
             "ORDER BY 1";
         command.Parameters.AddWithValue("$history", HistoryRepository.DefaultTableName);
@@ -444,21 +538,31 @@ public class DatabaseSetupTests : IDisposable
         return names;
     }
 
-    private static void Execute(string path, string sql)
+    private static void Execute(string path, string sql, params (string Name, object Value)[] parameters)
     {
         using var connection = new SqliteConnection($"Data Source={path}");
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = sql;
+        foreach (var (name, value) in parameters)
+        {
+            command.Parameters.AddWithValue(name, value);
+        }
+
         command.ExecuteNonQuery();
     }
 
-    private static string? Scalar(string path, string sql)
+    private static string? Scalar(string path, string sql, params (string Name, object Value)[] parameters)
     {
         using var connection = new SqliteConnection($"Data Source={path}");
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = sql;
+        foreach (var (name, value) in parameters)
+        {
+            command.Parameters.AddWithValue(name, value);
+        }
+
         return command.ExecuteScalar()?.ToString();
     }
 

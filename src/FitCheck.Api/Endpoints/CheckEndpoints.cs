@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
@@ -14,12 +15,12 @@ public static class CheckEndpoints
     public const int OccasionMaxLength = 120;
 
     /// <summary>
-    /// The anonymous check path's brake: Plans:GuestChecksPerDay per client address per day (the per-token count lives in
-    /// the handler). A signed-in call passes through it unlimited; the plan cap is the handler's.
+    /// The anonymous check path's abuse brake: Plans:GuestAttemptsPerDay attempts per client address per day, whatever
+    /// they come to (429 error.too_fast beyond it). The guest's cap, Plans:GuestChecksPerDay per cookie and per address,
+    /// is the handler's and counts only the checks it stored. A signed-in call passes through it unlimited; the plan cap
+    /// is the handler's too.
     /// </summary>
     public const string GuestPolicy = "guest";
-
-    private static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
 
     // Room for multipart boundaries and the small text fields around the image and the clip.
     private const long MultipartOverheadBytes = 256 * 1024;
@@ -44,6 +45,7 @@ public static class CheckEndpoints
         IImageStore images,
         OutfitAnalyzer analyzer,
         CheckCapacity capacity,
+        GuestAddressCounter guestAddresses,
         Localizer localizer,
         IOptions<StorageOptions> storage,
         IOptions<LimitsOptions> limits,
@@ -193,31 +195,24 @@ public static class CheckEndpoints
         }
 
         var now = DateTime.UtcNow;
-        var windowStart = now - CapWindow;
         int cap;
         Guid reservationKey;
         List<DateTime> recent;
+        GuestAddressCounter.Reservation? addressReservation = null;
         if (user is not null)
         {
-            // The plan's cap, never above Limits:ChecksPerDay. Comparisons are stylist calls too and share the allowance.
-            // Failed calls do not count: a model outage must not eat the user's allowance.
+            // The plan's cap, never above Limits:ChecksPerDay. Comparisons are stylist calls too and share the allowance
+            // (Spend counts both). Failed calls do not count: a model outage must not eat the user's allowance.
             cap = Plans.CapFor(user, plans.Value, limits.Value, now);
             reservationKey = user.Id;
-            var userId = user.Id;
-            var checkTimes = await db.Checks
-                .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-                .Select(c => c.CreatedAt)
-                .ToListAsync(ct);
-            var comparisonTimes = await db.Comparisons
-                .Where(c => c.UserId == userId && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-                .Select(c => c.CreatedAt)
-                .ToListAsync(ct);
-            recent = checkTimes.Concat(comparisonTimes).OrderBy(t => t).ToList();
+            recent = await Spend.RecentForUserAsync(db, user.Id, now, ct);
         }
         else
         {
-            // A guest: Plans:GuestChecksPerDay per cookie token (the address brake is the "guest" policy). Zero means
-            // guests are off on this server, and the door says sign in rather than "that was your free look".
+            // A guest: Plans:GuestChecksPerDay per cookie token, from the rows, and the same per client address, from what
+            // this process stored (GuestAddressCounter: a refused upload or a failed call never spends an address's look;
+            // the "guest" policy in front of the route only brakes attempts). Zero means guests are off on this server,
+            // and the door says sign in rather than "that was your free look".
             cap = plans.Value.GuestChecksPerDay;
             if (cap <= 0)
             {
@@ -231,35 +226,42 @@ public static class CheckEndpoints
             }
             else
             {
-                var token = guestToken;
-                var checkTimes = await db.Checks
-                    .Where(c => c.UserId == null && c.GuestToken == token && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-                    .Select(c => c.CreatedAt)
-                    .ToListAsync(ct);
-                var comparisonTimes = await db.Comparisons
-                    .Where(c => c.UserId == null && c.GuestToken == token && c.CreatedAt >= windowStart && c.Status != CheckStatus.Error)
-                    .Select(c => c.CreatedAt)
-                    .ToListAsync(ct);
-                recent = checkTimes.Concat(comparisonTimes).OrderBy(t => t).ToList();
+                recent = await Spend.RecentForGuestAsync(db, guestToken, now, ct);
             }
 
             reservationKey = GuestChecks.ReservationKey(guestToken);
+
+            // Last in the branch, so nothing can throw between taking the slot and the lease below that gives it back.
+            var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!guestAddresses.TryReserve(address, cap, now, out addressReservation, out var addressRetryAfter))
+            {
+                if (addressRetryAfter is { } seconds)
+                {
+                    context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+                }
+
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.guest_limit"));
+            }
         }
 
-        var storedGlobal = await db.Checks.CountAsync(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error, ct);
+        // The address's slot, given back on every path but the stored, counted check below (Commit).
+        using var addressLease = addressReservation;
+        var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 
         var verdict = capacity.TryReserve(reservationKey, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
         if (verdict == CapacityVerdict.UserCapReached)
         {
-            if (recent.Count > 0)
+            if (Spend.RetryAfterSeconds(recent, cap, now) is { } retryAfter)
             {
-                var retryAfter = (int)Math.Ceiling((recent[0] + CapWindow - now).TotalSeconds);
-                context.Response.Headers.RetryAfter = Math.Max(retryAfter, 1).ToString();
+                context.Response.Headers.RetryAfter = retryAfter.ToString(CultureInfo.InvariantCulture);
             }
 
-            return user is not null
-                ? UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.plan_limit", cap, plans.Value.ProChecksPerDay))
-                : UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.guest_limit"));
+            // A free account hears what Pro would give it; a Pro account at its own ceiling just hears the number, as on
+            // the compare route; a guest hears that the look was the free one.
+            var message = user is null ? localizer.Get(language, "error.guest_limit")
+                : Plans.IsPro(user, now) ? localizer.Get(language, "error.rate_limited", cap)
+                : localizer.Get(language, "error.plan_limit", cap, plans.Value.ProChecksPerDay);
+            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 
         if (verdict == CapacityVerdict.GlobalCapReached)
@@ -348,9 +350,12 @@ public static class CheckEndpoints
 
         db.Checks.Add(check);
         await db.SaveChangesAsync(CancellationToken.None);
+        // Stored with a status that cost a model call: the address's look is spent. (The 502 above stored an error row and commits nothing.)
+        addressReservation?.Commit(now);
 
-        // After the commit, so the worker finds the row; it re-encodes the clip to H.264 MP4 in the background (a no-op without ffmpeg).
-        if (check.VideoPath is not null)
+        // After the commit, so the worker finds the row; it re-encodes the clip to H.264 MP4 in the background (a no-op without
+        // ffmpeg). A guest's clip waits until the check is claimed; the claim queues it.
+        if (check.VideoPath is not null && user is not null)
         {
             transcoder.Enqueue(check.Id);
         }
@@ -393,10 +398,11 @@ public static class CheckEndpoints
     /// <summary>
     /// Everything the caller's guest cookie names becomes the caller's: the check made before signing up follows the
     /// person into the account (and can be posted from here), and the cookie goes. 200 { claimed: 0 } when there was
-    /// nothing to claim, so the client can call it blind after every sign-in.
+    /// nothing to claim, so the client can call it blind after every sign-in. A file that cannot be moved leaves the rows
+    /// the guest's and the cookie in place, and answers 500: the client claims again on its next load.
     /// </summary>
     private static async Task<IResult> ClaimAsync(
-        HttpContext context, AppDbContext db, IImageStore images, Localizer localizer, ILoggerFactory loggerFactory, CancellationToken ct)
+        HttpContext context, AppDbContext db, IImageStore images, Transcoder transcoder, Localizer localizer, ILoggerFactory loggerFactory, CancellationToken ct)
     {
         var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (user is null)
@@ -409,7 +415,16 @@ public static class CheckEndpoints
         if (token is not null)
         {
             var logger = loggerFactory.CreateLogger(typeof(GuestChecks).FullName!);
-            claimed = await GuestChecks.ClaimAsync(db, images, token, user.Id, DateTime.UtcNow, logger, ct);
+            try
+            {
+                claimed = await GuestChecks.ClaimAsync(db, images, transcoder, token, user.Id, DateTime.UtcNow, logger, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Claim: the guest check(s) could not be moved into {UserId}'s folder; they stay the guest's, the cookie stays, and the client claims again on its next load", user.Id);
+                return UserEndpoints.Error(StatusCodes.Status500InternalServerError, localizer.Get(user.PreferredLanguage, "error.server"));
+            }
+
             GuestChecks.Clear(context);
             if (claimed > 0)
             {

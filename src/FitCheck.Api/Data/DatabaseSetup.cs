@@ -14,9 +14,10 @@ namespace FitCheck.Api.Data;
 /// <item>No file, or a file with no tables: <c>Migrate()</c> creates everything from the migrations.</item>
 /// <item>A file with <c>__EFMigrationsHistory</c>: <c>Migrate()</c> applies whatever is pending, usually nothing.</item>
 /// <item>A file with our tables but no history: a pilot database made by <c>EnsureCreated</c> in the rounds before migrations.
-/// It is copied to <c>&lt;file&gt;.bak-&lt;stamp&gt;</c> first, then every missing table, column and index is added from the
-/// EF model (never from a hand-written list, so this keeps working as the model grows), and the history table is written
-/// as if the migrations had run. From then on it is the second case.</item>
+/// It is copied to <c>&lt;file&gt;.bak-&lt;stamp&gt;</c> first, then every missing table, column, foreign key and index is
+/// added from the EF model and every column whose nullability differs from the model's is altered (never from a
+/// hand-written list, so this keeps working as the model grows), and the history table is written as if the migrations
+/// had run. From then on it is the second case.</item>
 /// </list>
 /// <para>
 /// Migrations live in <c>Data/Migrations</c>. After changing the model, from the repository root (once:
@@ -180,10 +181,14 @@ public static class DatabaseSetup
         var fromScratch = db.GetService<IMigrationsModelDiffer>().GetDifferences(null, relational);
 
         // Tables first (the differ orders them so referenced tables come before their referrers), then columns on the tables
-        // that were already there, then indexes, which may cover new columns.
+        // that were already there (added where missing, altered where the model says NULL and the file says NOT NULL or the
+        // other way round: Round 9 made Checks.UserId nullable for guest checks), then the foreign keys those tables lack
+        // (Round 9 added Posts.BeforePostId with ON DELETE SET NULL), then indexes, which may cover new columns.
         var operations = new List<MigrationOperation>();
         var created = new List<string>();
         var added = new List<string>();
+        var altered = new List<string>();
+        var linked = new List<string>();
         foreach (var operation in fromScratch.OfType<CreateTableOperation>().Where(o => !existingTables.Contains(o.Name)))
         {
             operations.Add(operation);
@@ -193,23 +198,61 @@ public static class DatabaseSetup
         foreach (var table in relational.Tables.Where(t => existingTables.Contains(t.Name)))
         {
             var columns = ExistingColumns(connection, table.Name);
-            foreach (var column in table.Columns.Where(c => !columns.Contains(c.Name)))
+            foreach (var column in table.Columns)
             {
-                operations.Add(AddColumn(table, column));
-                added.Add($"{table.Name}.{column.Name}");
+                if (!columns.TryGetValue(column.Name, out var notNull))
+                {
+                    operations.Add(AddColumn(table, column));
+                    added.Add($"{table.Name}.{column.Name}");
+                    continue;
+                }
+
+                var nullableInFile = !notNull;
+                if (nullableInFile != column.IsNullable)
+                {
+                    operations.Add(AlterColumn(table, column, wasNullable: nullableInFile));
+                    altered.Add($"{table.Name}.{column.Name} {(column.IsNullable ? "nullable" : "not null")}");
+                }
+            }
+
+            var foreignKeys = ExistingForeignKeys(connection, table.Name);
+            foreach (var foreignKey in table.ForeignKeyConstraints.Where(fk => !foreignKeys.Contains(Shape(fk))))
+            {
+                operations.Add(AddForeignKeyOperation.CreateFrom(foreignKey));
+                linked.Add(foreignKey.Name);
             }
         }
 
         operations.AddRange(fromScratch.OfType<CreateIndexOperation>().Where(o => !existingIndexes.Contains(o.Name)));
 
+        // An altered column or a new foreign key is a table rebuild for SQLite (EF's generator writes it: the rows are copied
+        // into a fresh table built from the model, the old one is dropped, the new one takes its name). Dropping a table
+        // while foreign keys are enforced (the provider's default) would run the referencing tables' ON DELETE actions on
+        // the rows being moved (Posts cascades from Checks), so enforcement is off around the batch, as Migrate() does; the
+        // pragma is a no-op inside a transaction, hence outside it, and the connection gets its setting back afterwards
+        // (it is pooled). The batch is one transaction, and a table that comes out of it with fewer rows than it went in
+        // with rolls the whole thing back: the copy next to the file is then the state of things.
         var commands = db.GetService<IMigrationsSqlGenerator>().Generate(operations, model);
         var history = db.GetService<IHistoryRepository>();
         var migrations = db.Database.GetMigrations().ToList();
-        using (var transaction = connection.BeginTransaction())
+        var counted = relational.Tables.Select(t => t.Name).Where(existingTables.Contains).ToList();
+        var foreignKeysWereOn = ForeignKeysEnabled(connection);
+        Execute(connection, null, "PRAGMA foreign_keys = 0");
+        try
         {
+            using var transaction = connection.BeginTransaction();
+            var before = RowCounts(connection, transaction, counted);
             foreach (var command in commands)
             {
                 Execute(connection, transaction, command.CommandText);
+            }
+
+            var after = RowCounts(connection, transaction, counted);
+            var lost = counted.Where(t => after[t] < before[t]).ToList();
+            if (lost.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"The upgrade of {dataSource} would lose rows in {string.Join(", ", lost.Select(t => $"{t} ({before[t]} -> {after[t]})"))}; rolled back, the file is untouched.");
             }
 
             Execute(connection, transaction, history.GetCreateIfNotExistsScript());
@@ -220,13 +263,65 @@ public static class DatabaseSetup
 
             transaction.Commit();
         }
+        finally
+        {
+            Execute(connection, null, foreignKeysWereOn ? "PRAGMA foreign_keys = 1" : "PRAGMA foreign_keys = 0");
+        }
 
         logger.LogInformation(
             "Database {DataSource} upgraded: {TableCount} table(s) created ({Tables}), {ColumnCount} column(s) added ({Columns}), " +
+            "{AlteredCount} column(s) altered ({Altered}), {ForeignKeyCount} foreign key(s) added ({ForeignKeys}), " +
             "{IndexCount} index(es) created; recorded {Migrations} as applied.",
             dataSource, created.Count, string.Join(", ", created), added.Count, string.Join(", ", added),
+            altered.Count, string.Join(", ", altered), linked.Count, string.Join(", ", linked),
             operations.Count(o => o is CreateIndexOperation), string.Join(", ", migrations));
     }
+
+    /// <summary>
+    /// An ALTER COLUMN for one model column whose nullability the file got wrong. SQLite cannot alter a column, so EF's
+    /// generator turns this into a rebuild of the table from the model; a column going NOT NULL keeps the same empty value
+    /// <see cref="AddColumn"/> would give it for the rows that hold NULL.
+    /// </summary>
+    private static AlterColumnOperation AlterColumn(ITable table, IColumn column, bool wasNullable)
+    {
+        var target = AddColumn(table, column);
+        return new AlterColumnOperation
+        {
+            Schema = table.Schema,
+            Table = table.Name,
+            Name = column.Name,
+            ClrType = target.ClrType,
+            ColumnType = target.ColumnType,
+            IsNullable = target.IsNullable,
+            DefaultValue = target.DefaultValue,
+            DefaultValueSql = target.DefaultValueSql,
+            ComputedColumnSql = target.ComputedColumnSql,
+            IsStored = target.IsStored,
+            MaxLength = target.MaxLength,
+            Precision = target.Precision,
+            Scale = target.Scale,
+            IsUnicode = target.IsUnicode,
+            IsFixedLength = target.IsFixedLength,
+            Collation = target.Collation,
+            Comment = target.Comment,
+            OldColumn = new AddColumnOperation
+            {
+                Schema = table.Schema,
+                Table = table.Name,
+                Name = column.Name,
+                ClrType = target.ClrType,
+                ColumnType = target.ColumnType,
+                IsNullable = wasNullable
+            }
+        };
+    }
+
+    /// <summary>A foreign key as both the file and the model can describe it: its columns, the table it points at and the columns there.</summary>
+    private static string Shape(IForeignKeyConstraint foreignKey) =>
+        Shape(foreignKey.Columns.Select(c => c.Name), foreignKey.PrincipalTable.Name, foreignKey.PrincipalColumns.Select(c => c.Name));
+
+    private static string Shape(IEnumerable<string> columns, string principalTable, IEnumerable<string> principalColumns) =>
+        $"{string.Join(",", columns)} -> {principalTable} ({string.Join(",", principalColumns)})".ToLowerInvariant();
 
     /// <summary>
     /// An ALTER TABLE ADD COLUMN for one model column. SQLite refuses a NOT NULL column without a default on a table that has
@@ -294,12 +389,67 @@ public static class DatabaseSetup
         return ReadNames(command);
     }
 
-    private static HashSet<string> ExistingColumns(SqliteConnection connection, string table)
+    /// <summary>The table's columns and whether each is NOT NULL.</summary>
+    private static Dictionary<string, bool> ExistingColumns(SqliteConnection connection, string table)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM pragma_table_info($table)";
+        command.CommandText = "SELECT name, \"notnull\" FROM pragma_table_info($table)";
         command.Parameters.AddWithValue("$table", table);
-        return ReadNames(command);
+        var columns = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            columns[reader.GetString(0)] = reader.GetInt64(1) != 0;
+        }
+
+        return columns;
+    }
+
+    /// <summary>The table's foreign keys in the shape <see cref="Shape(IForeignKeyConstraint)"/> gives the model's, so the two can be matched by what they join.</summary>
+    private static HashSet<string> ExistingForeignKeys(SqliteConnection connection, string table)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, \"table\", \"from\", IFNULL(\"to\", '') FROM pragma_foreign_key_list($table) ORDER BY id, seq";
+        command.Parameters.AddWithValue("$table", table);
+        var keys = new Dictionary<long, (string Principal, List<string> Columns, List<string> PrincipalColumns)>();
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                var id = reader.GetInt64(0);
+                if (!keys.TryGetValue(id, out var key))
+                {
+                    key = (reader.GetString(1), [], []);
+                    keys[id] = key;
+                }
+
+                key.Columns.Add(reader.GetString(2));
+                key.PrincipalColumns.Add(reader.GetString(3));
+            }
+        }
+
+        return keys.Values.Select(k => Shape(k.Columns, k.Principal, k.PrincipalColumns)).ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static bool ForeignKeysEnabled(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA foreign_keys";
+        return Convert.ToInt64(command.ExecuteScalar()) != 0;
+    }
+
+    private static Dictionary<string, long> RowCounts(SqliteConnection connection, SqliteTransaction transaction, IEnumerable<string> tables)
+    {
+        var counts = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        foreach (var table in tables)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = $"SELECT COUNT(*) FROM \"{table.Replace("\"", "\"\"")}\"";
+            counts[table] = (long)command.ExecuteScalar()!;
+        }
+
+        return counts;
     }
 
     private static HashSet<string> ReadNames(SqliteCommand command)
@@ -314,7 +464,7 @@ public static class DatabaseSetup
         return names;
     }
 
-    private static void Execute(SqliteConnection connection, SqliteTransaction transaction, string sql)
+    private static void Execute(SqliteConnection connection, SqliteTransaction? transaction, string sql)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;

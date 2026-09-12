@@ -443,7 +443,24 @@ public static class UserEndpoints
         var id = user.Id;
         var handle = user.Handle;
         // Files first (photos and the avatar share the folder): if a row delete fails the user can retry, but an
-        // orphaned photo would have no owner to delete it.
+        // orphaned photo would have no owner to delete it. By path as well as by folder: a check or comparison the account
+        // claimed from a guest was copied into the folder, but a row that still names a file elsewhere must not outlive
+        // "delete my account and photos" either. A missing file is not an error.
+        foreach (var check in await db.Checks.Where(c => c.UserId == id).Select(c => new { c.ImagePath, c.VideoPath }).ToListAsync(ct))
+        {
+            images.Delete(check.ImagePath);
+            if (!string.IsNullOrEmpty(check.VideoPath))
+            {
+                images.Delete(check.VideoPath);
+            }
+        }
+
+        foreach (var comparison in await db.Comparisons.Where(c => c.UserId == id).Select(c => new { c.ImagePathA, c.ImagePathB }).ToListAsync(ct))
+        {
+            images.Delete(comparison.ImagePathA);
+            images.Delete(comparison.ImagePathB);
+        }
+
         images.DeleteUser(id);
 
         // All rows go or none do: a failure half-way must not leave counters decremented twice on a retry.

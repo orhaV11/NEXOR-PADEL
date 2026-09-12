@@ -124,8 +124,18 @@ public sealed class PlanOptions
     /// <summary>For a Pro account. Limits:ChecksPerDayGlobal still caps everyone together.</summary>
     public int ProChecksPerDay { get; set; } = 30;
 
-    /// <summary>For a guest (no account yet), per guest cookie and per client address.</summary>
+    /// <summary>
+    /// For a guest (no account yet), per guest cookie and per client address: what is counted is a stored check (ok,
+    /// not_outfit or rejected, the ones that cost a model call), never a refused upload or a failed call.
+    /// </summary>
     public int GuestChecksPerDay { get; set; } = 1;
+
+    /// <summary>
+    /// The abuse brake on the anonymous check path: attempts (whatever their outcome) per client address per day, in the
+    /// "guest" rate-limit policy, answered 429 error.too_fast beyond it. Well above <see cref="GuestChecksPerDay"/> on
+    /// purpose, so a refused photo or a model outage never locks a shared address out of its look.
+    /// </summary>
+    public int GuestAttemptsPerDay { get; set; } = 20;
 
     /// <summary>Shown on the Pro screen, e.g. "₪19 / month" or "$5 / month". Empty hides the price.</summary>
     public string ProPriceText { get; set; } = "";

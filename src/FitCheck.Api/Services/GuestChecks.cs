@@ -68,11 +68,14 @@ public static class GuestChecks
 
     /// <summary>
     /// Moves every check and comparison carrying the token to the account: owner set, token cleared, ClaimedAt stamped,
-    /// photos and clips copied into the owner's folder (the old files go once the rows are saved, so a failure half-way
-    /// leaves rows that still point at files). Returns how many rows moved.
+    /// photos and clips copied into the owner's folder, the old files removed once the rows are saved, and each claimed clip
+    /// queued for the transcoder (which leaves a guest's clip alone until then). All or nothing: a file that cannot be
+    /// copied aborts the claim before anything is saved (the fresh copies are removed, the rows stay the guest's, the
+    /// caller answers 500 and the client claims again on its next load), so an owned row never points outside the
+    /// owner's folder, which is what account deletion and the sweeper rely on. Returns how many rows moved.
     /// </summary>
     public static async Task<int> ClaimAsync(
-        AppDbContext db, IImageStore images, string token, Guid userId, DateTime now, ILogger logger, CancellationToken ct)
+        AppDbContext db, IImageStore images, Transcoder transcoder, string token, Guid userId, DateTime now, ILogger logger, CancellationToken ct)
     {
         var checks = await db.Checks.Where(c => c.UserId == null && c.GuestToken == token).ToListAsync(ct);
         var comparisons = await db.Comparisons.Where(c => c.UserId == null && c.GuestToken == token).ToListAsync(ct);
@@ -86,27 +89,28 @@ public static class GuestChecks
         {
             foreach (var check in checks)
             {
+                check.ImagePath = (await CopyAsync(images, check.ImagePath, userId, copied, ct)) ?? "";
+                check.VideoPath = await CopyAsync(images, check.VideoPath, userId, copied, ct);
                 check.UserId = userId;
                 check.GuestToken = null;
                 check.ClaimedAt = now;
-                check.ImagePath = (await CopyAsync(images, check.ImagePath, userId, copied, logger, ct)) ?? "";
-                check.VideoPath = await CopyAsync(images, check.VideoPath, userId, copied, logger, ct);
             }
 
             foreach (var comparison in comparisons)
             {
+                comparison.ImagePathA = (await CopyAsync(images, comparison.ImagePathA, userId, copied, ct)) ?? "";
+                comparison.ImagePathB = (await CopyAsync(images, comparison.ImagePathB, userId, copied, ct)) ?? "";
                 comparison.UserId = userId;
                 comparison.GuestToken = null;
                 comparison.ClaimedAt = now;
-                comparison.ImagePathA = (await CopyAsync(images, comparison.ImagePathA, userId, copied, logger, ct)) ?? "";
-                comparison.ImagePathB = (await CopyAsync(images, comparison.ImagePathB, userId, copied, logger, ct)) ?? "";
             }
 
             await db.SaveChangesAsync(ct);
         }
         catch
         {
-            // The rows were not saved: the copies are orphans and the originals still serve.
+            // The rows were not saved: the copies are orphans and the originals still serve. The context still holds the
+            // half-moved rows; nothing saves them, the request ends here.
             foreach (var (_, fresh) in copied)
             {
                 TryDelete(images, fresh, logger);
@@ -120,16 +124,22 @@ public static class GuestChecks
             TryDelete(images, old, logger);
         }
 
+        foreach (var check in checks.Where(c => !string.IsNullOrEmpty(c.VideoPath)))
+        {
+            transcoder.Enqueue(check.Id);
+        }
+
         return checks.Count + comparisons.Count;
     }
 
     /// <summary>
     /// Copies one stored file (&lt;folder&gt;/&lt;id&gt;.&lt;ext&gt;) into the owner's folder under the same name through the
-    /// store's own doors, and returns the new relative path. A path that is empty, already the owner's, unreadable or not
-    /// in the store's shape is returned as it is: the row keeps pointing at what serves today.
+    /// store's own doors, and returns the new relative path. An empty path (a check that kept no photo) or one already in
+    /// the owner's folder is returned as it is. Anything else that cannot be copied, a file that is not in the store or a
+    /// path that is not in the store's shape included, throws: a claimed row must never keep a path outside its owner's folder.
     /// </summary>
     private static async Task<string?> CopyAsync(
-        IImageStore images, string? relative, Guid userId, List<(string Old, string New)> copied, ILogger logger, CancellationToken ct)
+        IImageStore images, string? relative, Guid userId, List<(string Old, string New)> copied, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(relative))
         {
@@ -139,46 +149,38 @@ public static class GuestChecks
         var name = Path.GetFileNameWithoutExtension(relative);
         var extension = Path.GetExtension(relative).TrimStart('.').ToLowerInvariant();
         var folder = Path.GetDirectoryName(relative) ?? "";
-        if (!Guid.TryParseExact(name, "N", out var id) || string.Equals(folder, userId.ToString("N"), StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(folder, userId.ToString("N"), StringComparison.OrdinalIgnoreCase))
         {
             return relative;
         }
 
-        try
+        if (!Guid.TryParseExact(name, "N", out var id))
         {
-            await using var source = images.OpenRead(relative);
-            if (source is null)
-            {
-                logger.LogWarning("Claim: {Path} is not in the store; the row keeps the path", relative);
-                return relative;
-            }
-
-            string fresh;
-            switch (extension)
-            {
-                case "jpg" or "png" or "webp":
-                {
-                    var format = extension switch { "jpg" => ImageFormat.Jpeg, "png" => ImageFormat.Png, _ => ImageFormat.WebP };
-                    using var buffer = new MemoryStream();
-                    await source.CopyToAsync(buffer, ct);
-                    fresh = await images.SaveAsync(userId, id, format, buffer.ToArray(), ct);
-                    break;
-                }
-                case "mp4" or "webm":
-                    fresh = await images.SaveVideoAsync(userId, id, VideoFormat.FromPath(relative), source, ct);
-                    break;
-                default:
-                    return relative;
-            }
-
-            copied.Add((relative, fresh));
-            return fresh;
+            throw new InvalidOperationException($"The stored path {relative} is not in the store's shape.");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+
+        await using var source = images.OpenRead(relative)
+                                 ?? throw new FileNotFoundException("The file to claim is not in the store.", relative);
+        string fresh;
+        switch (extension)
         {
-            logger.LogWarning(ex, "Claim: {Path} could not be moved into the account's folder; the row keeps the path", relative);
-            return relative;
+            case "jpg" or "png" or "webp":
+            {
+                var format = extension switch { "jpg" => ImageFormat.Jpeg, "png" => ImageFormat.Png, _ => ImageFormat.WebP };
+                using var buffer = new MemoryStream();
+                await source.CopyToAsync(buffer, ct);
+                fresh = await images.SaveAsync(userId, id, format, buffer.ToArray(), ct);
+                break;
+            }
+            case "mp4" or "webm":
+                fresh = await images.SaveVideoAsync(userId, id, VideoFormat.FromPath(relative), source, ct);
+                break;
+            default:
+                throw new InvalidOperationException($"The stored path {relative} is not a photo or a clip the store knows.");
         }
+
+        copied.Add((relative, fresh));
+        return fresh;
     }
 
     private static void TryDelete(IImageStore images, string relative, ILogger logger)

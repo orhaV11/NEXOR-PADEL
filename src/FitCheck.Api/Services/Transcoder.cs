@@ -16,6 +16,8 @@ namespace FitCheck.Api.Services;
 /// the store and only then points the check at the new path. A failure keeps the original, which serves as before. Nothing
 /// but the file extension records the state, so every start re-queues the clips that are not MP4 yet. Off without ffmpeg
 /// (Storage:FfmpegPath, else PATH) or with Storage:Transcode false, when <see cref="Enqueue"/> is a no-op.
+/// A guest's clip waits until the check is claimed (nothing plays it before: a guest cannot post), and the claim queues it;
+/// so the worker and the claim never move the same file at the same time.
 /// </summary>
 public class Transcoder : BackgroundService
 {
@@ -109,7 +111,7 @@ public class Transcoder : BackgroundService
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             pending = await db.Checks
-                .Where(c => c.VideoPath != null && c.VideoPath != "" && !EF.Functions.Like(c.VideoPath, "%.mp4"))
+                .Where(c => c.UserId != null && c.VideoPath != null && c.VideoPath != "" && !EF.Functions.Like(c.VideoPath, "%.mp4"))
                 .OrderBy(c => c.CreatedAt)
                 .Select(c => c.Id)
                 .Take(SweepLimit)
@@ -177,7 +179,16 @@ public class Transcoder : BackgroundService
         using (var scope = _scopes.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            videoPath = await db.Checks.Where(c => c.Id == checkId).Select(c => c.VideoPath).FirstOrDefaultAsync(ct);
+            var row = await db.Checks.Where(c => c.Id == checkId).Select(c => new { c.UserId, c.VideoPath }).FirstOrDefaultAsync(ct);
+            if (row is { UserId: null })
+            {
+                // A guest's clip: left where it is until the check is claimed, when the claim queues it again. Moving the file
+                // now could cross the claim's own copy of it and leave an owned row pointing at the guest folder.
+                _logger.LogDebug("Check {CheckId}: a guest's clip; transcoded once it is claimed", checkId);
+                return;
+            }
+
+            videoPath = row?.VideoPath;
         }
 
         if (string.IsNullOrEmpty(videoPath))

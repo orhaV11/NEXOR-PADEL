@@ -252,6 +252,11 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Transc
 // A visitor's unclaimed check expires with its cookie: the sweeper removes day-old guest rows and their files, hourly and once at start.
 builder.Services.AddSingleton<GuestCheckSweeper>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<GuestCheckSweeper>());
+// The weekly board (Round 10): the window math, the rules and the minute's cache in one instance; the closer writes the
+// archive rows every five minutes for any week that is over, and catches up after downtime.
+builder.Services.AddSingleton<Board>();
+builder.Services.AddSingleton<BoardCloser>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<BoardCloser>());
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {

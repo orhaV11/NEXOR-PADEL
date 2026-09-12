@@ -63,7 +63,9 @@ public static partial class AuthEndpoints
         var (plan, proUntil) = BillingEndpoints.EffectivePlan(user, now);
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,
             PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin, user.Email, user.EmailVerifiedAt is not null,
-            plan, proUntil, user.Verified, checksToday, Plans.CapFor(user, plans, limits, now));
+            plan, proUntil, user.Verified, checksToday, Plans.CapFor(user, plans, limits, now),
+            // Last week's place on the looks board (Round 10), worn for this week only; the board comes the same way as the options.
+            Badge: await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Board>(db).BadgeAsync(db, user.Id, ct));
     }
 
     /// <summary>

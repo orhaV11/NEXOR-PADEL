@@ -254,9 +254,6 @@ public class Round10StubTests : IClassFixture<TestApp>
     [InlineData("/api/items?q=boots")]
     [InlineData("/api/items/brands?q=ni")]
     [InlineData("/api/items/00000000-0000-0000-0000-000000000001/out")]
-    [InlineData("/api/board")]
-    [InlineData("/api/board?week=2026-09-06")]
-    [InlineData("/api/board/hall")]
     public async Task The_public_routes_answer_501_with_a_sentence_in_the_callers_language(string path)
     {
         var response = await _app.NewClient().GetAsync(path);
@@ -284,7 +281,7 @@ public class Round10StubTests : IClassFixture<TestApp>
     }
 
     [Fact]
-    public async Task Board_exclusion_is_for_moderators_then_answers_501()
+    public async Task Board_exclusion_is_for_moderators()
     {
         var postId = Guid.NewGuid();
         var anonymous = await _app.NewClient().PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" });
@@ -294,10 +291,11 @@ public class Round10StubTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Forbidden, (await person.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await person.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
 
+        // Past the gate the route is built (BoardTests): a look that does not exist is 404, one that was never off is 404.
         var (moderator, _, _) = await _app.NewUserAsync("r10_mod");
         Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("r10_mod"));
-        Assert.Equal(HttpStatusCode.NotImplemented, (await moderator.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotImplemented, (await moderator.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await moderator.PostAsJsonAsync("/api/admin/board/exclude", new { postId, reason = "spam" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await moderator.DeleteAsync($"/api/admin/board/exclude/{postId}")).StatusCode);
     }
 }
 

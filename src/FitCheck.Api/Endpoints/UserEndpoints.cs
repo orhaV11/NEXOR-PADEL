@@ -571,7 +571,7 @@ public static class UserEndpoints
         return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, user.Id, skip, take, ct), AppJson.Options);
     }
 
-    private static async Task<IResult> GetProfileAsync(string handle, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> GetProfileAsync(string handle, HttpContext context, AppDbContext db, Board board, Localizer localizer, CancellationToken ct)
     {
         var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
@@ -600,7 +600,9 @@ public static class UserEndpoints
             AvatarUrl: PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion),
             Featured: await FeaturedPosts(db, user).CountAsync(ct),
             Community: await MentioningPosts(db, user.Id).CountAsync(ct),
-            Verified: user.Verified);
+            Verified: user.Verified,
+            // Last week's place on the looks board (Round 10), worn for this week only.
+            Badge: await board.BadgeAsync(db, user.Id, ct));
 
         return Results.Json(profile, AppJson.Options);
     }

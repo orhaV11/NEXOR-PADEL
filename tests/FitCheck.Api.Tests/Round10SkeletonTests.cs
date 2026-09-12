@@ -250,10 +250,6 @@ public class Round10StubTests : IClassFixture<TestApp>
     }
 
     [Theory]
-    [InlineData("/api/items?brand=nike&category=shoes")]
-    [InlineData("/api/items?q=boots")]
-    [InlineData("/api/items/brands?q=ni")]
-    [InlineData("/api/items/00000000-0000-0000-0000-000000000001/out")]
     [InlineData("/api/board")]
     [InlineData("/api/board?week=2026-09-06")]
     [InlineData("/api/board/hall")]
@@ -271,8 +267,9 @@ public class Round10StubTests : IClassFixture<TestApp>
     }
 
     [Fact]
-    public async Task Tagging_items_needs_a_session_then_answers_501()
+    public async Task Tagging_items_needs_a_session_then_a_look_of_ones_own()
     {
+        // Built by the items builder (ItemsTests); the gate the skeleton mapped stays: a session first, then the look.
         var postId = Guid.NewGuid();
         var body = new { items = new[] { new { name = "black boots", category = "shoes", brand = "Nike" } } };
         var anonymous = await _app.NewClient().PatchAsJsonAsync($"/api/posts/{postId}/items", body);
@@ -280,7 +277,7 @@ public class Round10StubTests : IClassFixture<TestApp>
 
         var (client, _, _) = await _app.NewUserAsync("r10_tagger");
         var response = await client.PatchAsJsonAsync($"/api/posts/{postId}/items", body);
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -445,9 +442,9 @@ public class Round10SeamTests
 
         var post = await app.PostAsync(client, checkId);
         var postId = post.GetProperty("id").GetGuid();
-        // The card does not carry items until the items builder reads them; the fields are on the wire's shape, not filled.
-        Assert.False(post.TryGetProperty("items", out _));
-        Assert.Equal(0, post.GetProperty("itemCount").GetInt32());
+        // The card carries the stylist's pieces (items builder), bare: a name and a category each, never the brand seen.
+        Assert.Equal(3, post.GetProperty("itemCount").GetInt32());
+        Assert.All(post.GetProperty("items").EnumerateArray(), i => Assert.False(i.TryGetProperty("brand", out _)));
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

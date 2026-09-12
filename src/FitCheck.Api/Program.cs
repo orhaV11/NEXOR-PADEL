@@ -341,6 +341,10 @@ builder.Services.AddRateLimiter(options =>
         : RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, guestAttemptsPerDay), Window = TimeSpan.FromHours(24), QueueLimit = 0 }));
+    // Store links leave through /api/items/{id}/out: a minute's window per client address keeps a script from running the tally up.
+    options.AddPolicy(ItemEndpoints.OutPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = ItemEndpoints.OutsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var http = context.HttpContext;
@@ -408,7 +412,11 @@ app.Use((context, next) =>
     {
         var headers = context.Response.Headers;
         headers["X-Content-Type-Options"] = "nosniff";
-        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        // A route may tighten this before the response starts (/api/items/{id}/out sends no referrer at all); the default is only a default.
+        if (!headers.ContainsKey("Referrer-Policy"))
+        {
+            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        }
         headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()";
         headers["X-Frame-Options"] = "DENY";
         if (context.Request.IsHttps)

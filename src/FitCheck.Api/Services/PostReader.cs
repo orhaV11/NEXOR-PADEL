@@ -89,9 +89,16 @@ public sealed class PostReader(AppDbContext db)
                 .Select(p => new { p.Id, p.Score })
                 .ToDictionaryAsync(p => p.Id, p => new BeforeDto(p.Id, p.Score, $"/api/posts/{p.Id}/image"), ct);
 
+        // The pieces on each look, in their order (Round 10): every card carries them, so the tag toggle, the item sheet and
+        // the item search need no second read. One query over the page.
+        var items = (await db.PostItems.Where(i => postIds.Contains(i.PostId)).OrderBy(i => i.Position).ToListAsync(ct))
+            .GroupBy(i => i.PostId)
+            .ToDictionary(g => g.Key, g => g.Select(ItemDto).ToList());
+
         return posts.Select(p =>
         {
             var user = users.GetValueOrDefault(p.UserId) ?? new UserRefDto("?", "?", AccountType.Person.ToString());
+            var pieces = items.GetValueOrDefault(p.Id) ?? [];
             return new PostDto(
                 p.Id,
                 user,
@@ -118,7 +125,13 @@ public sealed class PostReader(AppDbContext db)
                 withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null,
                 // The three columns are written together at posting time; a look from before rubric v2 has none.
                 p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null,
-                p.BeforePostId is Guid beforeId ? befores.GetValueOrDefault(beforeId) : null);
+                p.BeforePostId is Guid beforeId ? befores.GetValueOrDefault(beforeId) : null,
+                pieces,
+                pieces.Count);
         }).ToList();
     }
+
+    /// <summary>One piece as the wire carries it: the raw link for the owner's sheet, its host for "Shop at {host}".</summary>
+    public static PostItemDto ItemDto(PostItem item) =>
+        new(item.Id, item.Name, item.Category, item.Brand, item.Model, item.Url, PostItems.HostOf(item.Url), item.Source, item.X, item.Y, item.Confirmed);
 }

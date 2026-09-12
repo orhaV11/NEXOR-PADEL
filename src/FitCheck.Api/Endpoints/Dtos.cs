@@ -113,8 +113,11 @@ public sealed record CheckDto(
 
 public sealed record ProductLinkDto(string Label, string Url, string? Price);
 
-/// <summary>BeforePostId: "after the tip" — one of your own earlier looks this one improves on.</summary>
-public sealed record CreatePostRequest(Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products, Guid? BeforePostId = null);
+/// <summary>
+/// BeforePostId: "after the tip" — one of your own earlier looks this one improves on. Items (Round 10): the pieces as the
+/// post sheet leaves them, the whole list (PostItems.Apply); absent, the stylist's names go on the look as before.
+/// </summary>
+public sealed record CreatePostRequest(Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products, Guid? BeforePostId = null, List<PostItemInput>? Items = null);
 
 public sealed record ReportRequest(string? Reason);
 

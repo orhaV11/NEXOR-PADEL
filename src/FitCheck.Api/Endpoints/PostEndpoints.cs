@@ -185,6 +185,20 @@ public static class PostEndpoints
             BeforePostId = body.BeforePostId,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Round 10: the post sheet may send the pieces as the person left them (the stylist's names confirmed, edited or
+        // dropped, a brand confirmed, a link, their own rows). That list is the whole list and replaces the stylist's; a
+        // row that keeps a stylist name stays the stylist's. Checked before anything is written.
+        List<PostItem>? items = null;
+        if (body.Items is not null)
+        {
+            var itemError = PostItems.Apply(post.Id, body.Items, PostItems.FromFeedback(post.Id, feedback), out items);
+            if (itemError is not null)
+            {
+                return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, itemError, PostItems.MaxTagged));
+            }
+        }
+
         db.Posts.Add(post);
         for (var i = 0; i < products.Count; i++)
         {
@@ -215,8 +229,16 @@ public static class PostEndpoints
             }
         }
 
-        // The stylist's item names go on the look (lower-cased, distinct, up to 8) so Explore can find it by piece.
-        PostItems.AddFrom(db, post.Id, feedback);
+        // The stylist's item names go on the look (lower-cased, distinct, up to 8) so Explore can find it by piece, unless
+        // the person sent their own list.
+        if (items is null)
+        {
+            PostItems.AddFrom(db, post.Id, feedback);
+        }
+        else
+        {
+            db.PostItems.AddRange(items);
+        }
 
         if (challenge is not null && challenge.BrandId != me.Id)
         {

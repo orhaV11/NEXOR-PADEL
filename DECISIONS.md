@@ -1110,8 +1110,9 @@ lead merged the four; this section is written from the merged code, after the fa
   (`ItemEndpoints.OutsPerMinute`, 60), not a `Limits` option; the picks rows show both the fires that counted and the
   score; the people rows carry no follow button (a bare user ref). The Arabic and Russian lines for the 99 new keys
   are plain copy by the builders and need the same native review as the rest.
-- **Not verified in this round.** The browser test does not drive any Round 10 surface yet (`tools/e2e/README.md`
-  lists the hooks a run has to add; the stub already answers rubric v3); the closer's two-process race is covered by
+- **Not verified in this round.** The browser test drives the editor, the look's items and sheet, the item pages, the
+  board and the Explore strip, but not a closed week (the closer has no HTTP trigger: the hall's weeks, the badge and
+  the `board_rank` line rest on `BoardTests`); the closer's two-process race is covered by
   code and review, not by a test, because one process serialises its own runs; no real affiliate programme has been
   joined, so the appended parameters were checked against a listed `example.com` only; and whether the real model
   fills `brand_seen` conservatively enough is a calibration question, to be read off `scripts/calibrate.py` on real

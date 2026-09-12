@@ -76,8 +76,8 @@ public sealed record BoardResult(
 /// </summary>
 public sealed class Board
 {
-    /// <summary>How long a computed week is served from memory. Real time, not the board's clock: it is about load.</summary>
-    public static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
+    /// <summary>How long a computed week is served from memory (Board:CacheSeconds). Real time, not the board's clock: it is about load.</summary>
+    public TimeSpan CacheTtl => TimeSpan.FromSeconds(Math.Max(0, _options.CacheSeconds));
 
     /// <summary>The places on the looks board that wear a badge the week after (<see cref="BadgeAsync"/>).</summary>
     public const int BadgeRanks = 3;
@@ -196,7 +196,7 @@ public sealed class Board
             }
         }
 
-        if (_cache.TryGetValue(week.FirstDay, out var cached) && Environment.TickCount64 - cached.At < CacheTtl.TotalMilliseconds)
+        if (CacheTtl > TimeSpan.Zero && _cache.TryGetValue(week.FirstDay, out var cached) && Environment.TickCount64 - cached.At < CacheTtl.TotalMilliseconds)
         {
             return cached.Result;
         }

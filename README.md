@@ -149,11 +149,12 @@ screen through posting with tags and mentions, featuring, Explore, a challenge a
 with a fake device (a photo, then a clip with its frame picked), the story card, a comparison, the insights, a
 search by piece, the Pro page, Today's look and a follow-up look, verified brands, the moderation queue and a
 suspension, the numbers page, the guidelines, the terms and the privacy policy, the health and config routes, to
-deleting an account. **The Round 10 surfaces are not in the script yet**: the item editor on the post sheet, the dots
-and the item sheet on the look page, the item pages, the board, the hall, the Explore strip and the badge were
-verified by their builders in Chromium by hand (against the stub, and against mocked answers where the other half
-had not landed), not by `e2e.js`; the stub already answers rubric v3 (`brand_seen`, "Nike" on the English running
-shoes) and refuses a schema without it. `tools/e2e/README.md` lists the hooks a Round 10 run has to drive.
+deleting an account. **Round 10 is in the script**: the item editor on the post sheet (the stylist's rows, the Nike guess confirmed, a dot placed),
+the look page's items, dots and item sheet, the item pages and the brands list, the board with its first-place medal and
+tabs, the empty hall and the Explore strip. The run starts the API with `Board__NewAccountDays=0`, `Board__MinChecksToCount=1`
+and `Board__CacheSeconds=0` because its accounts are minutes old and its fires must show at once. Not driven: a closed
+week (the closer has no HTTP trigger), so the hall's weeks, the badge and the `board_rank` line are covered by
+`BoardTests` only; the moderator's exclusion is covered by `BoardTests` and `Round10SkeletonTests`.
 
 ### Check the calibration before inviting people
 

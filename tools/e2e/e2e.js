@@ -184,6 +184,7 @@ async function postIt(page, opts) {
     Plans__FreeChecksPerDay: '5',
     Board__NewAccountDays: '0',
     Board__MinChecksToCount: '1',
+    Board__CacheSeconds: '0',
     Email__From: 'OREVOSH <noreply@example.test>',
   }, path.join(DATA, 'api.log'));
 

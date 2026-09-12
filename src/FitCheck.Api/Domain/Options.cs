@@ -201,6 +201,8 @@ public sealed class BoardOptions
 
     /// <summary>The rising board is for accounts created within this many days.</summary>
     public int RisingDays { get; set; } = 30;
+    /// <summary>How long a computed week is served from memory, in seconds; 0 recomputes on every read (tests, tiny pilots).</summary>
+    public int CacheSeconds { get; set; } = 60;
 
     /// <summary>The week's sponsor, when there is one (Board:Sponsor:Name and friends). Null when the section is absent.</summary>
     public BoardSponsorOptions? Sponsor { get; set; }

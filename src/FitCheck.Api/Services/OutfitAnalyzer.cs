@@ -97,6 +97,8 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
     {
         ["en"] = "",
         ["he"] = "Avoid gendered verb forms where possible: prefer 'שווה לנסות', 'אפשר להחליף', 'עובד יופי' over 'תנסה/תנסי'.",
+        ["ar"] = "Modern Standard Arabic, light and friendly, Western digits; avoid gendered second-person verbs: prefer 'يمكن تبديل', 'الأفضل تجربة', 'يعمل جيدًا' over 'جرّب/جرّبي'.",
+        ["ru"] = "Use the informal 'ты' consistently, never 'вы'; prefer imperatives and impersonal forms ('стоит попробовать', 'можно заменить') over gendered past-tense forms like 'надел/надела'.",
     };
 
     private const string ToolSchemaJson = """

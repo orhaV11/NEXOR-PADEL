@@ -48,6 +48,18 @@
   color-scheme: dark;
 }
 [dir="rtl"] { --caps-track: 0.02em; }   /* Hebrew has no capitals; tracking stays gentle and the labels step up to 12.5px */
+/* Arabic: Cairo (Google Fonts) carries the script for body and headings, Noto Sans Arabic and the system face follow; Outfit
+   keeps the Latin wordmark and every numeral. Russian: Heebo and Outfit have no Cyrillic, so the body is the system face and
+   headings fall from Outfit (Latin, numerals) to it per glyph. Both keep the rtl label rules above (Arabic has no capitals). */
+html[lang="ar"] {
+  --font-display: "Outfit", "Cairo", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Cairo", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+html[lang="ru"] {
+  --font-display: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html[lang="ru"] .tab > span[data-i18n] { font-size: 11px; letter-spacing: 0.04em; }   /* Cyrillic capitals run wide: ПРОФИЛЬ and СОБЫТИЯ stay inside their 70px dock columns */
 
 /* ---------- ground ---------- */
 *, *::before, *::after { box-sizing: border-box; }

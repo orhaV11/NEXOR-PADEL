@@ -182,6 +182,8 @@ async function postIt(page, opts) {
     Storage__Root: path.join(DATA, 'storage'),
     Email__Host: 'log',
     Plans__FreeChecksPerDay: '5',
+    Board__NewAccountDays: '0',
+    Board__MinChecksToCount: '1',
     Email__From: 'OREVOSH <noreply@example.test>',
   }, path.join(DATA, 'api.log'));
 
@@ -338,13 +340,47 @@ async function postIt(page, opts) {
   await shot(noa, '08-result-en');
   await noa.click('#post-open');
   await noa.waitForSelector('#post-confirm');
+  // Items: the stylist's pieces are rows on the sheet; the running shoes carry a brand guess that is never sent unconfirmed.
+  await noa.waitForSelector('#items-editor');
+  assert.ok((await count(noa, '#items-list > li.items-row[data-source=Stylist]')) >= 2, 'the stylist\'s items are rows');
+  await noa.waitForSelector('.items-suggest[data-brand="Nike"]:not([hidden])');
+  const shoesKey = await noa.$eval('.items-suggest[data-brand="Nike"]', (n) => n.closest('li.items-row').dataset.key);
+  await noa.click('.items-suggest[data-brand="Nike"] button[data-action=confirm]');
+  await noa.waitForFunction((k) => /Nike/.test(document.querySelector('li.items-row[data-key="' + k + '"] .txt').textContent), shoesKey);
+  await noa.click('li.items-row[data-key="' + shoesKey + '"] button.items-place');
+  await noa.waitForSelector('#items-photo.placing');
+  const box = await noa.$eval('#items-photo', (n) => { const r = n.getBoundingClientRect(); return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.75 }; });
+  await noa.mouse.click(box.x, box.y);
+  await noa.waitForSelector('li.items-row.placed');
+  await shot(noa, '35-items-editor-en');
   assert.strictEqual(await count(noa, '.products-grid'), 0, 'people do not get product links');
   await noa.fill('#caption', 'Dinner fit, thoughts? #datenight #DateNight @nexor @nobody');
   await shot(noa, '09-post-sheet-en');
   await noa.click('#post-confirm');
   await noa.waitForSelector('#post-link');
   const post1 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
-  await noa.click('#post-link');
+  await go(noa, '#/post/' + post1);
+  await noa.waitForSelector('#look-items:not([hidden]) li[data-item]');
+  const taggedShoes = await noa.$eval('#look-items li[data-item] button.look-item.placed .txt', (n) => n.textContent);
+  assert.ok(/Nike/.test(taggedShoes), 'the confirmed brand shows on the look: ' + taggedShoes);
+  await noa.waitForSelector('#items-toggle');
+  await noa.click('#items-toggle');
+  await noa.waitForSelector('#item-dots:not([hidden]) .item-dot[data-item]');
+  await noa.click('#item-dots .item-dot[data-item]');
+  await noa.waitForSelector('#item-sheet');
+  assert.ok((await text(noa, '#item-sheet')).includes('Nike'), 'the item sheet names the brand');
+  await shot(noa, '36-item-sheet-en');
+  await noa.keyboard.press('Escape');
+  await noa.waitForSelector('.sheet', { state: 'detached' });
+  // The item pages: looks with Nike, and the brands list.
+  const nikeLooks = await (await get(base + '/api/items?brand=nike')).body.toString('utf8');
+  assert.ok(nikeLooks.includes(post1), 'the look is found by its brand');
+  const brands = JSON.parse((await get(base + '/api/items/brands?q=ni')).body.toString('utf8'));
+  assert.ok(brands.items.some((b) => b.name === 'Nike'), 'Nike is a brand people wear');
+  await go(noa, '#/items/Nike');
+  await noa.waitForSelector('#view .grid a, #view .card');
+  await shot(noa, '37-items-page-en');
+  await go(noa, '#/post/' + post1);
   await noa.waitForSelector('#view .card');
   assert.strictEqual(await text(noa, '.card .headline'), 'Clean casual with one weak link');
   // @nobody is not an account, so it stays plain text; the tags and the brand become links.
@@ -719,6 +755,25 @@ async function postIt(page, opts) {
   const shellHtml = (await get(base + '/')).body.toString('utf8');
   assert.ok(shellHtml.includes('og:image') && shellHtml.includes('twitter:card'), 'the shell carries the link-preview tags');
 
+  // The weekly board: Dan's fire counted (he has a check; new accounts count in this run), so the looks board has rows.
+  await go(dan, '#/board');
+  await dan.waitForSelector('#board-tabs');
+  await dan.waitForSelector('.board-row[data-rank], #board-panel .empty');
+  assert.ok((await count(dan, '.board-row[data-rank]')) >= 1, 'a look is on this week\'s board');
+  assert.strictEqual(await count(dan, '.board-row[data-rank="1"] .rank-medal.top'), 1, 'first place wears the medal');
+  await shot(dan, '38-board-he');
+  await dan.click('#board-tabs .segment[data-tab=people]');
+  await dan.waitForSelector('.board-person, #board-panel .empty');
+  await dan.click('#board-tabs .segment[data-tab=picks]');
+  await dan.waitForSelector('.board-row[data-rank], #board-panel .empty');
+  await dan.click('#board-hall-link');
+  await dan.waitForFunction(() => location.hash === '#/board/hall');
+  await dan.waitForSelector('#hall, #view .empty');                 // no week has closed yet in this run: the empty hall
+  await go(noa, '#/explore');
+  await noa.reload();
+  await noa.waitForSelector('#board-strip .board-strip-row a');
+  await shot(noa, '39-explore-strip-en');
+
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
   //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
@@ -923,7 +978,7 @@ async function postIt(page, opts) {
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
   const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
     && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/api\/(today|feed)\b/.test(u))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/api\/(today|feed|board)\b/.test(u))
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));

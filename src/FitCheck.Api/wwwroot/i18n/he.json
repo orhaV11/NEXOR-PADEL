@@ -527,5 +527,18 @@
   "insights.lines": "מה הן אומרות",
   "insights.based_on": "מ-{n} הבדיקות האחרונות שלך",
   "insights.again": "לבדוק עוד לוק",
-  "explore.looks_with": "לוקים עם {q}"
+  "explore.looks_with": "לוקים עם {q}",
+  "today.kicker": "היום",
+  "today.post": "לפרסם את שלך",
+  "today.posted": "הלוק שלך בפנים",
+  "today.all": "כל הלוקים של היום",
+  "today.looks_label": "הלוקים של היום",
+  "today.empty": "עדיין אין לוקים היום. שלך יכול להיות הראשון.",
+  "today.looks": "{n} לוקים היום",
+  "today.looks_one": "לוק אחד היום",
+  "after.strip": "אחרי הטיפ · {a} ← {b}",
+  "after.strip_label": "אחרי הטיפ: מ-{a} ל-{b} מתוך 10. לפתוח את הלוק הקודם.",
+  "after.hint": "משפרים לוק קודם? בוחרים אותו והכרטיס מציג את שני הציונים.",
+  "after.none": "לא המשך של לוק",
+  "after.option": "{intent} · {score}/10"
 }

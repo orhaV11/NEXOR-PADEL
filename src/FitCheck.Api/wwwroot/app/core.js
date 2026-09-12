@@ -1054,6 +1054,28 @@ export function breakdownRow(breakdown) {
   return el('ul', { class: 'breakdown', 'aria-label': t('result.breakdown') }, [cell('fit', breakdown.fit), cell('color', breakdown.color), cell('accessories', breakdown.accessories)]);
 }
 
+// "After the tip": the strip on a look that improves on an earlier one. Its rules live here with the strip (app.css is
+// the lead's); the colour is the direction: --ok when the score went up, --ink-3 otherwise.
+document.head.appendChild(el('style', { text: [
+  '.after-strip { display: flex; align-items: center; gap: 10px; min-block-size: 44px; text-decoration: none; color: var(--ink-3); font-size: 13px; font-weight: 600; line-height: 1.3; }',
+  '.after-strip img { flex: none; inline-size: 44px; block-size: 44px; object-fit: cover; border-radius: 10px; background: var(--surface-2); }',
+  '.after-strip .after-text { min-inline-size: 0; unicode-bidi: plaintext; }',
+  '.after-strip.up { color: var(--ok); }'
+].join('\n') }));
+
+/**
+ * The "after the tip" strip between the headline and the caption: the earlier look's thumbnail (44px) and
+ * "After the tip · 6 → 7" with the score before and after. The whole strip is a link to the earlier look.
+ */
+export function afterStrip(post) {
+  const a = fmtNumber(post.before.score);
+  const b = fmtNumber(post.score);
+  return el('a', { class: 'after-strip' + (post.score > post.before.score ? ' up' : ''), href: '#/post/' + post.before.postId, 'aria-label': t('after.strip_label', { a, b }) }, [
+    el('img', { src: post.before.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
+    el('span', { class: 'after-text', 'aria-hidden': 'true', text: t('after.strip', { a, b }) })
+  ]);
+}
+
 /** A look card. opts: inChallenge, votes, onDelete, onChange, compact (no caption/match). */
 export function postCard(post, opts) {
   opts = opts || {};
@@ -1088,6 +1110,7 @@ export function postCard(post, opts) {
   const body = el('div', { class: 'card-body' }, [
     post.hidden ? el('p', { class: 'alert danger', text: t('post.hidden') + ' · ' + t('post.hidden_hint') }) : null,
     el('p', { class: 'headline', text: post.headline }),
+    post.before ? afterStrip(post) : null,
     post.caption ? el('p', { class: 'caption' }, [richCaption(post.caption, post.mentions)]) : null,
     post.featuredBy ? el('a', { class: 'featured', href: '#/u/' + encodeURIComponent(post.featuredBy.handle) + '/featured' }, [icon('sparkle'), t('post.featured_by', { name: post.featuredBy.name })]) : null,
     opts.compact ? null : el('div', { class: 'match' }, [

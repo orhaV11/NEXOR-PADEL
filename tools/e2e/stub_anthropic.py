@@ -1,7 +1,7 @@
 """Stub of the Anthropic Messages API for end-to-end runs without a real key.
 
 Validates the request shape OREVOSH sends (headers, forced tool call, base64 image block) and answers
-with a tool_use block in the requested language. The very first request answers 529 so the client's
+with a tool_use block in the requested language (English, Hebrew, Arabic or Russian). The very first request answers 529 so the client's
 single retry is exercised too. Anything malformed gets a 400 with the reason, so mistakes are loud.
 
 Two tools are understood: submit_outfit_feedback (a check: one image block, then the text) and pick_outfit
@@ -55,6 +55,44 @@ HE = {
     },
 }
 
+AR = {
+    "status": "ok", "score": 6, "intent_match": 58,
+    "headline": "كاجوال نظيف بحلقة ضعيفة واحدة",
+    "vibe": "عطلة هادئة",
+    "items": [
+        {"name": "تيشيرت أبيض", "category": "top", "verdict": "works", "note": "نظيف وبسيط."},
+        {"name": "جينز داكن", "category": "bottom", "verdict": "neutral", "note": "لا بأس، يؤدي الغرض."},
+        {"name": "حذاء ركض", "category": "shoes", "verdict": "weak", "note": "رياضي أكثر من اللازم لبقية الإطلالة."},
+    ],
+    "working": ["الألوان منسجمة", "النسب متوازنة"],
+    "one_tip": "الأفضل تبديل حذاء الركض بسنيكرز جلد أبيض بسيط.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "من دون إكسسوارات تتوقف الإطلالة عند الملابس ولا تكتمل.",
+        "add_one": "حزام جلد أسود رفيع.",
+    },
+}
+
+RU = {
+    "status": "ok", "score": 6, "intent_match": 58,
+    "headline": "Чистый кэжуал с одним слабым звеном",
+    "vibe": "спокойные выходные",
+    "items": [
+        {"name": "Белая футболка", "category": "top", "verdict": "works", "note": "Чисто и просто."},
+        {"name": "Тёмные джинсы", "category": "bottom", "verdict": "neutral", "note": "Нормально, своё дело делают."},
+        {"name": "Беговые кроссовки", "category": "shoes", "verdict": "weak", "note": "Слишком спортивные для остального."},
+    ],
+    "working": ["Палитра собранная", "Пропорции сбалансированы"],
+    "one_tip": "Стоит заменить беговые кроссовки на простые белые кожаные кеды.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Без аксессуаров образ останавливается на одежде и не дотягивает до конца.",
+        "add_one": "Тонкий чёрный кожаный ремень.",
+    },
+}
+
 NOT_OUTFIT_EN = {
     "status": "not_outfit", "score": 1, "intent_match": 0, "headline": "", "vibe": "",
     "items": [], "working": [], "one_tip": "",
@@ -76,6 +114,22 @@ COMPARE_HE = {
     "headline_b": "קווים חדים, כוונה ברורה",
     "reason": "לוק B נקרא כמו הכוונה כבר מרחוק: הז'קט הקצר והמכנסיים הישרים נותנים לו קו, והלואפרים סוגרים אותו. לוק A בסדר, אבל נעלי הריצה והטישרט הרפויה מושכות אותו לכיוון חדר הכושר. B מנצח על קוהרנטיות.",
     "one_tip": "בלוק A שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט ולהכניס את הטישרט.",
+}
+
+COMPARE_AR = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "كاجوال آمن، مسطّح قليلًا",
+    "headline_b": "خطوط أوضح، وجهة أوضح",
+    "reason": "الإطلالة B تُقرأ كالوجهة من بعيد: الجاكيت القصير والبنطال المستقيم يمنحانها خطًا، واللوفرز تكملها. الإطلالة A لا بأس بها، لكن حذاء الركض والتيشيرت الفضفاض يسحبانها نحو النادي الرياضي. B تفوز بالانسجام.",
+    "one_tip": "في الإطلالة A، الأفضل تبديل حذاء الركض بسنيكرز جلد أبيض بسيط وإدخال التيشيرت في البنطال.",
+}
+
+COMPARE_RU = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "Безопасный кэжуал, чуть плоский",
+    "headline_b": "Чётче линии, яснее направление",
+    "reason": "Образ B читается как направление издалека: укороченная куртка и прямые брюки дают ему линию, а лоферы завершают. Образ A нормальный, но беговые кроссовки и свободная футболка тянут его в сторону спортзала. B выигрывает за цельность.",
+    "one_tip": "В образе A стоит заменить беговые кроссовки на простые белые кожаные кеды и заправить футболку.",
 }
 
 COMPARE_NOT_OUTFIT_EN = {
@@ -202,14 +256,23 @@ class Handler(BaseHTTPRequestHandler):
         if len(REQUESTS) == 1:
             return self._fail(529, "Overloaded")
 
-        hebrew = "in Hebrew (he)" in body["system"]
+        # The system prompt names the language ("Write every user-facing field ... in Hebrew (he)"); answer in it.
+        system = body["system"]
+        if "in Hebrew (he)" in system:
+            answers, compare_answers = HE, COMPARE_HE
+        elif "in Arabic (ar)" in system:
+            answers, compare_answers = AR, COMPARE_AR
+        elif "in Russian (ru)" in system:
+            answers, compare_answers = RU, COMPARE_RU
+        else:
+            answers, compare_answers = EN, COMPARE_EN
         if compare:
-            payload = COMPARE_HE if hebrew else COMPARE_EN
+            payload = compare_answers
             # A tiny image (a few KB) on either side stands in for a "not an outfit" photo.
             if len(image_bytes) < 3000 or len(image_bytes_b) < 3000:
                 payload = COMPARE_NOT_OUTFIT_EN
         else:
-            payload = HE if hebrew else EN
+            payload = answers
             if len(image_bytes) < 3000:
                 payload = NOT_OUTFIT_EN
         response = {

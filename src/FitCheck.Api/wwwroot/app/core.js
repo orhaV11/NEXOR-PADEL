@@ -1,7 +1,7 @@
 // OREVOSH client core: state, i18n, API, DOM kit, router, shell, bottom sheets, gestures, look cards.
 // Views live in ./views/*.js and register their routes with register(). No build step; ES modules only.
 
-export const AVAILABLE_LOCALES = ['en', 'he'];   // adding a locale: drop i18n/<code>.json and add the code here
+export const AVAILABLE_LOCALES = ['en', 'he', 'ar', 'ru'];   // adding a locale: drop i18n/<code>.json and add the code here
 export const DEFAULT_LOCALE = 'en';
 export const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport'];
 export const PAGE = 10;
@@ -135,11 +135,13 @@ export async function switchLocale(code) {
 
 // ---------- formatting ----------
 
-const rtf = () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-export function fmtNumber(n) { return new Intl.NumberFormat(locale).format(n); }
-export function fmtCompact(n) { return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(n); }
-export function fmtPercent(fraction) { return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(fraction); }
-export function fmtDate(iso) { return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso)); }
+/** The locale for Intl: Arabic pins Western digits (the app's numerals are Latin everywhere), the others format as they are. */
+export const intlLocale = () => (locale === 'ar' ? 'ar-u-nu-latn' : locale);
+const rtf = () => new Intl.RelativeTimeFormat(intlLocale(), { numeric: 'auto' });
+export function fmtNumber(n) { return new Intl.NumberFormat(intlLocale()).format(n); }
+export function fmtCompact(n) { return new Intl.NumberFormat(intlLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n); }
+export function fmtPercent(fraction) { return new Intl.NumberFormat(intlLocale(), { style: 'percent', maximumFractionDigits: 0 }).format(fraction); }
+export function fmtDate(iso) { return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(new Date(iso)); }
 export function relative(iso) {
   const diff = (new Date(iso).getTime() - Date.now()) / 1000;
   const abs = Math.abs(diff);

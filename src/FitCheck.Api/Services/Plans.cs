@@ -15,9 +15,14 @@ public static class Plans
         string.Equals(user.Plan, Pro, StringComparison.OrdinalIgnoreCase) && (user.ProUntil is null || user.ProUntil > now);
 
     /// <summary>Checks (and comparisons) per rolling day for this account: the plan's cap, never above Limits:ChecksPerDay.</summary>
-    public static int CapFor(AppUser user, PlanOptions plans, LimitsOptions limits, DateTime now)
-    {
-        var planCap = IsPro(user, now) ? plans.ProChecksPerDay : plans.FreeChecksPerDay;
-        return Math.Max(0, Math.Min(planCap, limits.ChecksPerDay));
-    }
+    public static int CapFor(AppUser user, PlanOptions plans, LimitsOptions limits, DateTime now) =>
+        IsPro(user, now) ? ProCap(plans, limits) : Clamp(plans.FreeChecksPerDay, limits);
+
+    /// <summary>
+    /// What Pro really gets: Plans:ProChecksPerDay, never above Limits:ChecksPerDay. The number to publish and to promise
+    /// (the Pro page, the cap message), so a ceiling below the plan's cap is never advertised as more than it pays for.
+    /// </summary>
+    public static int ProCap(PlanOptions plans, LimitsOptions limits) => Clamp(plans.ProChecksPerDay, limits);
+
+    private static int Clamp(int planCap, LimitsOptions limits) => Math.Max(0, Math.Min(planCap, limits.ChecksPerDay));
 }

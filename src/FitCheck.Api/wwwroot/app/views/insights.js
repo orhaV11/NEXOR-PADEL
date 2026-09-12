@@ -1,11 +1,17 @@
 // What your checks say about you (#/insights): three tiles (how many checks, the average and the best score, the two
 // scores in the score ring), the sentences the server wrote in your language as a short list, and the way to the next
 // check. Under three checks the page is an invitation with a progress line instead. Private like the checks: signed
-// out it is a sign-in prompt. The numbers come ready from /api/users/me/insights; nothing is computed here.
+// out it is a sign-in prompt, and where the server keeps comparisons for Pro (plans.compareNeedsPro on /api/config)
+// the insights are Pro's too, so a free account sees the same Pro card as #/compare. The numbers come ready from
+// /api/users/me/insights; nothing is computed here.
 import { register, state, t, api, el, setTopBar, signInPrompt, emptyState, scoreBadge, fmtNumber } from '../core.js';
 
 /** Checks needed before the reading shows; the server sends no lines under it. */
 const MIN_CHECKS = 3;
+
+const isPro = () => !!state.me && state.me.plan === 'pro' && (!state.me.proUntil || new Date(state.me.proUntil) > new Date());
+/** The server answers 403 to a free account exactly when it does so for comparisons; the card is drawn before asking. */
+const needsPro = () => !!(state.config.plans && state.config.plans.compareNeedsPro) && !isPro();
 
 // The profile's link to this page is drawn by profile.js; its rule lives here with the rest of the insights look, at
 // module load so the profile never renders it unstyled.
@@ -71,6 +77,14 @@ register('insights', async (root, params, ctx) => {
   setTopBar({ back: '#/me', title: t('insights.title') });
   root.appendChild(el('h1', { class: 'sr-only', text: t('insights.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
+  if (needsPro()) {
+    root.appendChild(el('div', { class: 'notice', id: 'insights-pro' }, [
+      el('h3', { text: t('insights.pro_title') }),
+      el('p', { class: 'muted', text: t('insights.pro_body') }),
+      el('a', { class: 'btn', href: '#/pro', style: 'margin-block-start: 14px;', text: t('insights.go_pro') })
+    ]));
+    return;
+  }
   ensureStyle();
   const skel = el('div', { class: 'insights-skel', 'aria-hidden': 'true' }, [0, 1, 2].map(() => el('div', { class: 'skel' })));
   root.appendChild(skel);

@@ -37,9 +37,9 @@ public sealed class StripeBillingApp : TestApp
 }
 
 /// <summary>
-/// Plans and billing: the state route for free and Pro, Checkout refused without Stripe and the exact request that goes
-/// out with it, the webhook (signature, the three events, unknown ones) and its CSRF exemption, the --pro command
-/// through AdminSync, the plan fields on "me", and the plans block on /api/config.
+/// Plans and billing: the state route for free and Pro, Checkout refused without Stripe (and for an account that is Pro
+/// already) and the exact request that goes out with it, the webhook (signature, the four events, unknown ones) and its
+/// CSRF exemption, the --pro command through AdminSync, the plan fields on "me", and the plans block on /api/config.
 /// </summary>
 public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<StripeBillingApp>
 {
@@ -95,11 +95,44 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         data = new { @object = new { id = "cs_1", @object = "checkout.session", client_reference_id = reference, customer, metadata = new { userId = metadataUserId } } }
     };
 
-    private static object InvoicePaid(string customer, string billingReason = "subscription_cycle") => new
+    /// <summary>A renewal invoice as Stripe posts it: the customer, the reason and, with <paramref name="periodEnd"/>, one line naming the paid period.</summary>
+    private static object InvoicePaid(string customer, string billingReason = "subscription_cycle", DateTimeOffset? periodEnd = null) => new
     {
         id = "evt_invoice",
         type = "invoice.paid",
-        data = new { @object = new { id = "in_1", @object = "invoice", customer, billing_reason = billingReason } }
+        data = new
+        {
+            @object = new
+            {
+                id = "in_1", @object = "invoice", customer, billing_reason = billingReason,
+                lines = periodEnd is { } end
+                    ? new { @object = "list", data = new object[] { new { id = "il_1", @object = "line_item", period = new { start = end.AddDays(-30).ToUnixTimeSeconds(), end = end.ToUnixTimeSeconds() } } } }
+                    : null
+            }
+        }
+    };
+
+    /// <summary>
+    /// A subscription as customer.subscription.updated carries it: the status and, when given, the current period end on
+    /// the subscription itself (API versions before 2025-03-31) or on its item (since).
+    /// </summary>
+    private static object SubscriptionUpdated(string customer, string status, DateTimeOffset? periodEnd = null, bool onItems = false) => new
+    {
+        id = "evt_sub_updated",
+        type = "customer.subscription.updated",
+        data = new
+        {
+            @object = new
+            {
+                id = "sub_1", @object = "subscription", customer, status,
+                current_period_end = periodEnd is { } end && !onItems ? end.ToUnixTimeSeconds() : (long?)null,
+                items = new
+                {
+                    @object = "list",
+                    data = new object[] { new { id = "si_1", @object = "subscription_item", current_period_end = periodEnd is { } itemEnd && onItems ? itemEnd.ToUnixTimeSeconds() : (long?)null } }
+                }
+            }
+        }
     };
 
     private static object SubscriptionDeleted(string customer) => new
@@ -196,6 +229,25 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Null(returning["customer_email"]);
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await _stripe.NewClient().PostAsync("/api/billing/checkout", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Checkout_is_refused_for_an_account_that_is_already_pro()
+    {
+        var (client, id, handle) = await _stripe.NewUserAsync("bill_twice");
+        Assert.Equal(AdminChange.Changed, await AdminSync.SetProAsync(_stripe.ConnectionString, handle, DateTime.UtcNow.AddDays(20)));
+        _stripe.StripeHandler.Clear();
+
+        // A tab that still shows "Go Pro" cannot open a second subscription: 409, and nothing reaches Stripe.
+        var response = await client.PostAsync("/api/billing/checkout", null);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("You're already on Pro.", await ErrorOf(response));
+        Assert.Empty(_stripe.StripeHandler.Requests);
+
+        // A lapsed Pro is free again and may subscribe.
+        WithDb(_stripe, db => db.Users.Single(u => u.Id == id).ProUntil = DateTime.UtcNow.AddMinutes(-1));
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout", null)).StatusCode);
+        Assert.Single(_stripe.StripeHandler.Requests);
     }
 
     [Fact]
@@ -297,39 +349,122 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Equal("cus_bystander", other.BillingCustomerId);
         Assert.Equal("pro", (await Json(await otherClient.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
 
+        // Paying on top of a period still running (a --pro grant) adds the 35 days to its end; it never cuts it.
+        WithDb(_stripe, db => db.Users.Single(u => u.Id == id).ProUntil = DateTime.UtcNow.AddDays(100));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_promote"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(135));
+
         // An account that does not exist is not an error for Stripe: 200, nothing changes.
         Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(Guid.NewGuid().ToString("N"), null, "cus_nobody"))).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(null, null, "cus_nobody"))).StatusCode);
     }
 
     [Fact]
-    public async Task Webhook_invoice_paid_extends_from_the_later_of_now_and_the_end_date()
+    public async Task Webhook_invoice_paid_sets_the_end_from_the_invoice_period_and_never_stacks()
     {
         var (_, id, _) = await _stripe.NewUserAsync("bill_renew");
         var (_, lapsedId, _) = await _stripe.NewUserAsync("bill_lapsed");
+        var (_, giftedId, _) = await _stripe.NewUserAsync("bill_gifted");
         WithDb(_stripe, db =>
         {
             var running = db.Users.Single(u => u.Id == id);
             running.Plan = "pro"; running.ProUntil = DateTime.UtcNow.AddDays(10); running.BillingCustomerId = "cus_renew";
             var lapsed = db.Users.Single(u => u.Id == lapsedId);
             lapsed.Plan = "pro"; lapsed.ProUntil = DateTime.UtcNow.AddDays(-5); lapsed.BillingCustomerId = "cus_lapsed";
+            var gifted = db.Users.Single(u => u.Id == giftedId);
+            gifted.Plan = "pro"; gifted.ProUntil = DateTime.UtcNow.AddDays(100); gifted.BillingCustomerId = "cus_gifted";
         });
 
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew"))).StatusCode);
-        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(45));
+        // A renewal is paid through the period its line names, plus three days of slack: read from the invoice, not
+        // counted from the previous end date, so a cycle every ~30 days does not run ahead by the difference each time.
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(30);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(33));
 
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_lapsed"))).StatusCode);
+        // The same event again (Stripe retries until it sees a 2xx) names the same period: nothing stacks.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(33));
+
+        // The next cycle moves the end to its own period.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd.AddDays(30)))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(63));
+
+        // A lapsed account comes back for the period paid.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_lapsed", periodEnd: periodEnd))).StatusCode);
         var lapsedUser = UserOf(_stripe, lapsedId);
         Assert.Equal("pro", lapsedUser.Plan);
-        AssertAround(lapsedUser.ProUntil, DateTime.UtcNow.AddDays(35));
+        AssertAround(lapsedUser.ProUntil, DateTime.UtcNow.AddDays(33));
+
+        // A payment never shortens what is there: a --pro grant that runs past the period stays.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_gifted", periodEnd: periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, giftedId).ProUntil, DateTime.UtcNow.AddDays(100));
+
+        // An invoice naming no period (a hand-made event) is worth one period from now, not from the previous end.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_lapsed"))).StatusCode);
+        AssertAround(UserOf(_stripe, lapsedId).ProUntil, DateTime.UtcNow.AddDays(35));
 
         // The subscription's first invoice is the checkout that already granted the period: no second helping.
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", "subscription_create"))).StatusCode);
-        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(45));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", "subscription_create", periodEnd.AddDays(60)))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(63));
 
         // An unknown customer is 200 and changes nothing.
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_unknown"))).StatusCode);
-        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(45));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_unknown", periodEnd: periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(63));
+    }
+
+    [Fact]
+    public async Task Webhook_subscription_updated_follows_the_status()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_dunning");
+        var (_, freeId, _) = await _stripe.NewUserAsync("bill_dunning_free");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Plan = "pro"; u.ProUntil = DateTime.UtcNow.AddDays(40); u.BillingCustomerId = "cus_dunning";
+            db.Users.Single(x => x.Id == freeId).BillingCustomerId = "cus_dunning_free";
+        });
+
+        // A renewal that failed: collection stopped, and what is left is three days, not the forty granted on the promise of it.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "past_due"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(3));
+        Assert.Equal("pro", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+
+        // Unpaid after the retries, with less than the slack left: nothing moves.
+        WithDb(_stripe, db => db.Users.Single(x => x.Id == id).ProUntil = DateTime.UtcNow.AddDays(1));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "unpaid"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(1));
+
+        // The card was fixed: active again, paid through the subscription's current period plus the slack.
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(25);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "active", periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(28));
+
+        // Never shorter: an older period (a replayed or out-of-order event) changes nothing, nor does an active event naming none.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "active", periodEnd.AddDays(-10)))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(28));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "active"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(28));
+
+        // Paused: three days from now, however far the end date was.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "paused"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(3));
+
+        // Since Stripe's 2025-03-31 API version the period sits on the subscription's items: read there too.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "active", periodEnd.AddDays(30), onItems: true))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(58));
+
+        // A free account with a customer of its own is not made Pro by a failure; an active period does make it Pro.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning_free", "past_due"))).StatusCode);
+        Assert.Equal("free", UserOf(_stripe, freeId).Plan);
+        Assert.Null(UserOf(_stripe, freeId).ProUntil);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning_free", "active", periodEnd))).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, freeId).Plan);
+        AssertAround(UserOf(_stripe, freeId).ProUntil, DateTime.UtcNow.AddDays(28));
+
+        // Other statuses (incomplete here; a cancellation arrives as the deleted event) and unknown customers change nothing.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_dunning", "incomplete"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(58));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_nobody", "past_due"))).StatusCode);
     }
 
     [Fact]
@@ -472,6 +607,12 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
 
         var stripe = (await _stripe.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
         Assert.True(stripe.GetProperty("billing").GetBoolean());
+
+        // The Pro number published is what a Pro account really gets: Plans:ProChecksPerDay clamped to Limits:ChecksPerDay.
+        using var clamped = new TestApp { ChecksPerDay = 12, FreeChecksPerDay = 3 };
+        var clampedPlans = (await clamped.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
+        Assert.Equal(12, clampedPlans.GetProperty("proChecksPerDay").GetInt32());
+        Assert.Equal(3, clampedPlans.GetProperty("freeChecksPerDay").GetInt32());
 
         // The provider alone is not enough: without the three settings Stripe stays off.
         using var half = new TestApp { BillingProvider = "stripe", StripeSecretKey = "sk_test_only" };

@@ -1,7 +1,9 @@
-// The Pro screen: the pitch (the mark, a headline, three benefits), the price, and the way in. With Stripe live the
+// The Pro screen: the pitch (the mark, a headline, the benefits), the price, and the way in. With Stripe live the
 // button opens Checkout; while Pro is switched on by hand there is a calm note instead; someone who already has Pro
 // sees the end date. Checkout returns to #/pro?checkout=success (thanks, and "me" is reloaded until the webhook has
-// flipped the plan) or #/pro?checkout=cancel (just the screen again).
+// flipped the plan; no button meanwhile, a second tap would open a second subscription) or #/pro?checkout=cancel
+// (just the screen again). The benefits are what Pro really gives on this server: the cap from /api/config, and
+// comparisons and insights only where the server keeps them for Pro (plans.compareNeedsPro).
 import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave } from '../core.js';
 
 const CSS = `
@@ -69,8 +71,9 @@ register('pro', async (root, params, ctx) => {
 
   root.appendChild(el('ul', { class: 'pro-benefits' }, [
     benefit('ring', t('pro.benefit_checks', { n }), t('pro.benefit_checks_hint', { free: plans.freeChecksPerDay || 0 })),
-    benefit('flip', t('pro.benefit_compare'), t('pro.benefit_compare_hint')),
-    benefit('sparkle', t('pro.benefit_insights'), t('pro.benefit_insights_hint'))
+    // Sold only where they are Pro's: by default comparisons and insights are free and the pitch does not name them.
+    plans.compareNeedsPro ? benefit('flip', t('pro.benefit_compare'), t('pro.benefit_compare_hint')) : null,
+    plans.compareNeedsPro ? benefit('sparkle', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
   ]));
 
   if (plans.proPriceText) {
@@ -95,6 +98,8 @@ register('pro', async (root, params, ctx) => {
       return;
     }
     if (!plans.billing) { foot.appendChild(el('p', { class: 'notice', id: 'pro-manual', text: t('pro.manual') })); return; }
+    // Just paid and the webhook has not landed yet: the thanks note above says so, and there is no button to tap again.
+    if (result === 'success') return;
     const go = el('button', { type: 'button', class: 'btn', id: 'pro-go', text: t('pro.go') });
     go.addEventListener('click', async () => {
       if (go.disabled) return;
@@ -106,6 +111,8 @@ register('pro', async (root, params, ctx) => {
       } catch (e) {
         if (ctx.stale()) return;
         toast(e.message || t('error.generic'));
+        // 409: this account is Pro already and this tab did not know (loaded before the webhook flipped the plan).
+        if (e.status === 409) { await loadMe(); if (!ctx.stale()) paint(); return; }
         go.disabled = false;
         go.textContent = t('pro.go');
       }

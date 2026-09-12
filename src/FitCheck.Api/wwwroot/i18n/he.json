@@ -627,5 +627,8 @@
   "after.strip_label": "אחרי הטיפ: מ-{a} ל-{b} מתוך 10. לפתוח את הלוק הקודם.",
   "after.hint": "משפרים לוק קודם? בוחרים אותו והכרטיס מציג את שני הציונים.",
   "after.none": "לא המשך של לוק",
-  "after.option": "{intent} · {score}/10"
+  "after.option": "{intent} · {score}/10",
+  "insights.pro_title": "התובנות שלך הן לפרו",
+  "insights.pro_body": "הכוונה החזקה שלך, הפריט החלש, הרצף: מה הבדיקות שלך אומרות עליך, לאורך זמן.",
+  "insights.go_pro": "ל-OREVOSH פרו"
 }

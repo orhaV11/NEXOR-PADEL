@@ -140,7 +140,11 @@ public sealed class PlanOptions
     /// <summary>Shown on the Pro screen, e.g. "₪19 / month" or "$5 / month". Empty hides the price.</summary>
     public string ProPriceText { get; set; } = "";
 
-    /// <summary>Whether "which one?" comparisons and the insights need Pro.</summary>
+    /// <summary>
+    /// Whether "which one?" comparisons and the insights need Pro: POST /api/compare and GET /api/users/me/insights answer
+    /// 403 error.pro_required to a free account, and the Pro page lists both as benefits only then. Off by default: Pro is
+    /// a cap on a real cost, not a feature wall.
+    /// </summary>
     public bool CompareNeedsPro { get; set; } = false;
 }
 

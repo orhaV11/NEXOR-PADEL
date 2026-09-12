@@ -627,5 +627,8 @@
   "after.strip_label": "After the tip: from {a} to {b} out of 10. Open the earlier look.",
   "after.hint": "Improving on an earlier look? Pick it and the card shows both scores.",
   "after.none": "Not a follow-up",
-  "after.option": "{intent} · {score}/10"
+  "after.option": "{intent} · {score}/10",
+  "insights.pro_title": "Your insights are for Pro",
+  "insights.pro_body": "Your best intent, your weak piece, your streak: what your checks say about you, over time.",
+  "insights.go_pro": "See OREVOSH Pro"
 }

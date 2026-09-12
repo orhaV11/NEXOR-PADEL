@@ -304,7 +304,8 @@ starting `sk_test_`):
 1. A product "OREVOSH Pro" with one recurring monthly price; copy its id (`price_…`).
 2. An API secret key (Developers → API keys).
 3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to `checkout.session.completed`,
-   `invoice.paid` and `customer.subscription.deleted`; copy its signing secret (`whsec_…`).
+   `invoice.paid`, `customer.subscription.updated` and `customer.subscription.deleted`; copy its signing secret
+   (`whsec_…`).
 
 Then:
 
@@ -322,9 +323,12 @@ under `plans`, and the Pro page shows the button). What happens: "Go Pro" opens 
 subscription with the account id attached; Checkout returns to `/#/pro?checkout=success` (or `cancel`); Stripe posts
 the events to `/api/billing/webhook`, which is the one write that needs no session and no `X-Requested-With` header,
 because its `Stripe-Signature` header is the guard (a bad or old signature is answered 400 and shows in Stripe's
-dashboard). `checkout.session.completed` puts the account on Pro for 35 days (a month plus slack for slow events),
-`invoice.paid` on a renewal extends it by another 35, `customer.subscription.deleted` ends it now; a missed renewal
-simply lapses. Card details never reach the app, and the secret key is redacted from the app's logs.
+dashboard). `checkout.session.completed` puts the account on Pro for 35 days (a month plus slack for slow events) on
+top of any Pro it still has; `invoice.paid` on a renewal moves the end to the invoice's period end plus three days
+(from the event, never stacked on the previous end); `customer.subscription.updated` follows the subscription, `active`
+to its current period end plus three days, `past_due`, `unpaid` or `paused` down to three days from now at most;
+`customer.subscription.deleted` ends it now; a missed renewal simply lapses. An account that is Pro already cannot open
+a second Checkout (409). Card details never reach the app, and the secret key is redacted from the app's logs.
 
 To try it before people pay: keep test keys, install the Stripe CLI and run `stripe listen --forward-to
 localhost:5000/api/billing/webhook` (it prints a `whsec_` for the session; put that in `Billing__StripeWebhookSecret`),

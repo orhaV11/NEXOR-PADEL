@@ -627,5 +627,8 @@
   "after.strip_label": "بعد النصيحة: من {a} إلى {b} من 10. فتح الإطلالة السابقة.",
   "after.hint": "تحسين لإطلالة سابقة؟ مع اختيارها تعرض البطاقة النتيجتين.",
   "after.none": "ليست متابعة لإطلالة",
-  "after.option": "{intent} · {score}/10"
+  "after.option": "{intent} · {score}/10",
+  "insights.pro_title": "رؤى إطلالاتك لمشتركي Pro",
+  "insights.pro_body": "أفضل نيّة لديك، القطعة الأضعف، السلسلة: ما تقوله تقييماتك عنك مع الوقت.",
+  "insights.go_pro": "عرض OREVOSH Pro"
 }

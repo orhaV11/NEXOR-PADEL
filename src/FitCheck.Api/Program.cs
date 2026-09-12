@@ -375,6 +375,17 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVision
     app.Logger.LogWarning("{Variable} is not set: every outfit check will fail with 502 until it is.", AnthropicVisionClient.ApiKeyVariable);
 }
 
+{
+    var planOptions = app.Services.GetRequiredService<IOptions<PlanOptions>>().Value;
+    var limitOptions = app.Services.GetRequiredService<IOptions<LimitsOptions>>().Value;
+    if (planOptions.ProChecksPerDay > limitOptions.ChecksPerDay)
+    {
+        app.Logger.LogWarning(
+            "Plans:ProChecksPerDay ({ProCap}) is above Limits:ChecksPerDay ({Ceiling}): a Pro account gets the ceiling, and the ceiling is the number the Pro page and the cap message quote.",
+            planOptions.ProChecksPerDay, limitOptions.ChecksPerDay);
+    }
+}
+
 app.UseForwardedHeaders();
 
 // Security headers on every response, set when the response starts so nothing downstream (the exception handler clears
@@ -466,10 +477,11 @@ app.MapTodayEndpoints();
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
 // to pings that never come.
 app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder,
-        IOptions<PlanOptions> plans, IOptions<BillingOptions> billing) =>
+        IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
         sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available,
-        new PlansDto(plans.Value.FreeChecksPerDay, plans.Value.ProChecksPerDay, plans.Value.GuestChecksPerDay, plans.Value.ProPriceText,
+        // The Pro cap as a Pro account really gets it (clamped to Limits:ChecksPerDay): what the Pro page promises.
+        new PlansDto(plans.Value.FreeChecksPerDay, Plans.ProCap(plans.Value, limits.Value), plans.Value.GuestChecksPerDay, plans.Value.ProPriceText,
             plans.Value.CompareNeedsPro, billing.Value.StripeEnabled)), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached.

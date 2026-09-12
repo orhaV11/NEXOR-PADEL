@@ -5,14 +5,16 @@ using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitCheck.Api.Tests;
 
 /// <summary>
 /// What your checks say about you: the math over a seeded set of checks (intents, weak pieces, accessories, the
-/// streak), the sentences in the account's language, the empty case under three checks, the window and the session.
-/// Checks are written straight into the table so every field of the feedback is under the test's control.
+/// streak), the sentences in the account's language, the empty case under three checks, the window, the session, and
+/// the Pro gate that is on exactly when comparisons need Pro. Checks are written straight into the table so every
+/// field of the feedback is under the test's control.
 /// </summary>
 public class InsightsTests : IClassFixture<TestApp>
 {
@@ -209,5 +211,43 @@ public class InsightsTests : IClassFixture<TestApp>
         // No cookie, no numbers.
         var anonymous = await _app.NewClient().GetAsync("/api/users/me/insights");
         Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+    }
+
+    [Fact]
+    public async Task Insights_need_pro_exactly_when_comparisons_do()
+    {
+        // The default: Plans:CompareNeedsPro is off and a free account reads its own insights.
+        var (free, _, _) = await _app.NewUserAsync("ins_free");
+        Assert.Equal(HttpStatusCode.OK, (await free.GetAsync("/api/users/me/insights")).StatusCode);
+
+        // With the gate on, the same wall as "which one?": 403 in the account's language for a free account, the reading for Pro.
+        using var gated = new ProGatedInsightsApp();
+        var (client, id, handle) = await gated.NewUserAsync("ins_gated", language: "he");
+        var refused = await client.GetAsync("/api/users/me/insights");
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Equal("זה לפרו.", (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+
+        Assert.Equal(AdminChange.Changed, await AdminSync.SetProAsync(gated.ConnectionString, handle, DateTime.UtcNow.AddDays(31)));
+        Assert.Equal(0, (await client.GetFromJsonAsync<JsonElement>("/api/users/me/insights")).GetProperty("checks").GetInt32());
+
+        // A lapsed Pro is refused again.
+        using (var scope = gated.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == id)).ProUntil = DateTime.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/users/me/insights")).StatusCode);
+    }
+
+    /// <summary>The test host with Plans:CompareNeedsPro on: comparisons and the insights are Pro's.</summary>
+    private sealed class ProGatedInsightsApp : TestApp
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.UseSetting("Plans:CompareNeedsPro", "true");
+        }
     }
 }

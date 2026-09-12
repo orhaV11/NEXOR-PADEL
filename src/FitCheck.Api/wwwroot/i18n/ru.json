@@ -627,5 +627,8 @@
   "after.strip_label": "После совета: с {a} до {b} из 10. Открыть предыдущий образ.",
   "after.hint": "Улучшаешь прошлый образ? Выбери его, и карточка покажет обе оценки.",
   "after.none": "Не продолжение",
-  "after.option": "{intent} · {score}/10"
+  "after.option": "{intent} · {score}/10",
+  "insights.pro_title": "Твои инсайты только с Pro",
+  "insights.pro_body": "Твой лучший настрой, слабая вещь, серия: что твои проверки говорят о тебе со временем.",
+  "insights.go_pro": "Смотреть OREVOSH Pro"
 }

@@ -17,10 +17,15 @@ public static class BillingEndpoints
     public const string WebhookPath = "/api/billing/webhook";
 
     /// <summary>
-    /// A paid period is 35 days, not a month: Stripe bills every calendar month and the events can lag by hours, so a
-    /// few days of slack keeps a paying person from dropping to free on a slow renewal. A missed renewal still lapses.
+    /// What a completed Checkout grants: 35 days, not a month. Stripe bills every calendar month and the events can lag
+    /// by hours, so a few days of slack keeps a paying person from dropping to free on a slow renewal. From then on the
+    /// end date follows the period Stripe names (the invoice's lines, the subscription's current period) plus
+    /// <see cref="RenewalSlack"/>, never the previous end date, so nothing accrues; a missed renewal still lapses.
     /// </summary>
     public static readonly TimeSpan PaidPeriod = TimeSpan.FromDays(35);
+
+    /// <summary>Added to the period end Stripe names, and all that is left once collection has stopped (past due, unpaid, paused).</summary>
+    public static readonly TimeSpan RenewalSlack = TimeSpan.FromDays(3);
 
     public static IEndpointRouteBuilder MapBillingEndpoints(this IEndpointRouteBuilder app)
     {
@@ -70,6 +75,14 @@ public static class BillingEndpoints
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.billing_disabled"));
         }
 
+        // One subscription per account. A tab that still says "Go Pro" after the webhook flipped the plan must not open a
+        // second one on the same customer: Stripe would take it, both would bill, and cancelling either would end Pro here
+        // while the other keeps charging.
+        if (Plans.IsPro(user, DateTime.UtcNow))
+        {
+            return UserEndpoints.Error(StatusCodes.Status409Conflict, localizer.Get(user.PreferredLanguage, "error.already_pro"));
+        }
+
         var origin = Origin(context.Request, billing.Value);
         var request = new CheckoutSessionRequest(
             user.Id,
@@ -89,10 +102,10 @@ public static class BillingEndpoints
 
     /// <summary>
     /// Stripe's events. Nothing is stored per event and no event id is checked: every update here is monotonic enough
-    /// for a pilot (a repeated checkout.session.completed re-stamps the same 35 days from now, a repeated invoice.paid
-    /// over-extends by one period, a repeated subscription.deleted ends what already ended), and Stripe retries until
-    /// it sees a 2xx, so a handler that cannot find the account still answers 200 rather than asking for the same event
-    /// again. A bad signature is 400 so the dashboard shows it.
+    /// for a pilot (a repeated checkout.session.completed stacks one more period, a repeated invoice.paid or
+    /// customer.subscription.updated names the same period end and changes nothing, a repeated subscription.deleted ends
+    /// what already ended), and Stripe retries until it sees a 2xx, so a handler that cannot find the account still
+    /// answers 200 rather than asking for the same event again. A bad signature is 400 so the dashboard shows it.
     /// </summary>
     private static async Task<IResult> WebhookAsync(
         HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, ILogger<StripeClient> logger, CancellationToken ct)
@@ -139,8 +152,10 @@ public static class BillingEndpoints
                         break;
                     }
 
+                    // On top of a period still running (a --pro grant, or a stale tab's Checkout the 409 above did not
+                    // catch): paying never cuts what the account already had.
                     user.Plan = Plans.Pro;
-                    user.ProUntil = now + PaidPeriod;
+                    user.ProUntil = Later(user.ProUntil, now) + PaidPeriod;
                     var customer = StringOrId(payload, "customer");
                     if (!string.IsNullOrWhiteSpace(customer))
                     {
@@ -167,11 +182,60 @@ public static class BillingEndpoints
                         break;
                     }
 
-                    var from = user.ProUntil is { } until && until > now ? until : now;
+                    // Paid through the end of the period the invoice's lines name, plus slack; an invoice naming none is
+                    // worth a period from now. Never counted from the previous end date: a renewal every ~30 days would
+                    // otherwise run ahead by the difference each time. Never shorter than what is there.
+                    var paidUntil = PeriodEnd(payload) is { } periodEnd ? periodEnd + RenewalSlack : now + PaidPeriod;
                     user.Plan = Plans.Pro;
-                    user.ProUntil = from + PaidPeriod;
+                    user.ProUntil = Later(user.ProUntil, paidUntil);
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} is Pro until {Until:u} (invoice paid).", user.Handle, user.ProUntil);
+                    break;
+                }
+
+                case "customer.subscription.updated":
+                {
+                    var user = await FindByCustomerAsync(db, payload, logger, ct);
+                    if (user is null)
+                    {
+                        break;
+                    }
+
+                    var status = StringOrId(payload, "status");
+                    if (status is "active" or "trialing")
+                    {
+                        // Paid through the subscription's current period, plus slack; never shorter than what is there.
+                        if (CurrentPeriodEnd(payload) is not { } periodEnd)
+                        {
+                            break;
+                        }
+
+                        var until = periodEnd + RenewalSlack;
+                        if (user.ProUntil is { } running && running >= until)
+                        {
+                            break;
+                        }
+
+                        user.Plan = Plans.Pro;
+                        user.ProUntil = until;
+                        await db.SaveChangesAsync(ct);
+                        logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
+                    }
+                    else if (status is "past_due" or "unpaid" or "paused")
+                    {
+                        // Collection stopped without the subscription ending (Stripe's dunning can leave it like this for
+                        // good): what is left is the slack, not an end date that was granted on the promise of a payment.
+                        var cutoff = now + RenewalSlack;
+                        if (!Plans.IsPro(user, now) || (user.ProUntil is { } remaining && remaining <= cutoff))
+                        {
+                            break;
+                        }
+
+                        user.ProUntil = cutoff;
+                        await db.SaveChangesAsync(ct);
+                        logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
+                    }
+
                     break;
                 }
 
@@ -234,10 +298,77 @@ public static class BillingEndpoints
         return user;
     }
 
-    /// <summary>A string field, or the id of an expanded object in its place (Stripe expands "customer" on request).</summary>
+    /// <summary>The later of the end date on the row (null for never Pro) and a candidate.</summary>
+    private static DateTime Later(DateTime? current, DateTime candidate) =>
+        current is { } value && value > candidate ? value : candidate;
+
+    /// <summary>The end of the latest period an invoice's lines name (lines.data[*].period.end), or null without one.</summary>
+    private static DateTime? PeriodEnd(JsonElement invoice)
+    {
+        DateTime? end = null;
+        foreach (var line in ListItems(invoice, "lines"))
+        {
+            if (line.TryGetProperty("period", out var period) && UnixTime(period, "end") is { } lineEnd && (end is null || lineEnd > end))
+            {
+                end = lineEnd;
+            }
+        }
+
+        return end;
+    }
+
+    /// <summary>
+    /// A subscription's current_period_end: on the subscription itself up to Stripe's 2025-02 API versions, on each of its
+    /// items since (the latest counts). Null when the event carries neither.
+    /// </summary>
+    private static DateTime? CurrentPeriodEnd(JsonElement subscription)
+    {
+        var end = UnixTime(subscription, "current_period_end");
+        foreach (var item in ListItems(subscription, "items"))
+        {
+            if (UnixTime(item, "current_period_end") is { } itemEnd && (end is null || itemEnd > end))
+            {
+                end = itemEnd;
+            }
+        }
+
+        return end;
+    }
+
+    /// <summary>The objects of a Stripe list field (<c>{ "object": "list", "data": [...] }</c>); none when the field is missing or not a list.</summary>
+    private static IEnumerable<JsonElement> ListItems(JsonElement obj, string name)
+    {
+        if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(name, out var list) || list.ValueKind != JsonValueKind.Object
+            || !list.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (var item in data.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.Object)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    /// <summary>A Unix-seconds field as a UTC time, or null when it is missing, not a number, or not a time at all.</summary>
+    private static DateTime? UnixTime(JsonElement obj, string name)
+    {
+        if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt64(out var seconds) || seconds < 0 || seconds > 253402300799)
+        {
+            return null;
+        }
+
+        return DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime;
+    }
+
+    /// <summary>A string field, or the id of an expanded object in its place (Stripe expands "customer" on request); null off a non-object.</summary>
     private static string? StringOrId(JsonElement obj, string name)
     {
-        if (!obj.TryGetProperty(name, out var value))
+        if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(name, out var value))
         {
             return null;
         }

@@ -4,12 +4,14 @@ using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Endpoints;
 
 /// <summary>
 /// What your checks say about you: numbers for tiles and two to four ready sentences in your language, computed over
-/// your last ok checks. Private like the checks themselves. The item search that goes with it lives in ExploreEndpoints.
+/// your last ok checks. Private like the checks themselves, and behind Pro exactly when "which one?" comparisons are
+/// (Plans:CompareNeedsPro). The item search that goes with it lives in ExploreEndpoints.
 /// </summary>
 public static class InsightsEndpoints
 {
@@ -31,12 +33,19 @@ public static class InsightsEndpoints
     /// <summary>One ok check as the math sees it: the intent, the stored score and the parsed feedback (null when unreadable).</summary>
     public sealed record CheckRow(StyleIntent Intent, int? Score, OutfitFeedback? Feedback);
 
-    private static async Task<IResult> GetAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> GetAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, IOptions<PlanOptions> plans, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
         {
             return failure!;
+        }
+
+        // The one wall Pro may have, shared with comparisons: on only when the owner sells both (the Pro page then lists them).
+        if (plans.Value.CompareNeedsPro && !Plans.IsPro(me, DateTime.UtcNow))
+        {
+            return UserEndpoints.Error(StatusCodes.Status403Forbidden, localizer.Get(PostEndpoints.Language(context, me), "error.pro_required"));
         }
 
         var rows = await db.Checks

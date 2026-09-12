@@ -111,7 +111,7 @@ async function signup(page, handle, password) {
   await page.waitForSelector('#a-handle');
   await page.fill('#a-handle', handle);
   await page.fill('#a-password', password);
-  await page.check('#a-age');
+  await page.fill('#a-dob', '1990-01-01');
   await page.click('#a-submit');
   await page.waitForFunction(() => location.hash === '#/welcome');
   await page.waitForSelector(settled);
@@ -252,9 +252,17 @@ async function postIt(page, opts) {
   await noa.fill('#a-password', 'password123');
   await shot(noa, '03-signup-en');
   expected.push('POST /api/auth/signup -> 400');
+  expected.push('POST /api/auth/signup -> 400');
   await noa.click('#a-submit');
   await noa.waitForSelector('form .alert:not([hidden])');
-  await noa.check('#a-age');
+  assert.strictEqual(await text(noa, 'form .alert'), 'Add your date of birth.');
+  assert.strictEqual(await count(noa, '#a-age'), 0, 'the 16+ checkbox is gone: the date decides');
+  assert.strictEqual(await count(noa, '#a-agree #a-terms'), 1, 'terms are one tap from signup');
+  assert.strictEqual(await count(noa, '#a-agree #a-privacy'), 1, 'privacy is one tap from signup');
+  await noa.fill('#a-dob', '2015-01-01');
+  await noa.click('#a-submit');
+  await noa.waitForFunction(() => document.querySelector('form .alert') && !document.querySelector('form .alert').hidden && document.querySelector('form .alert').textContent.includes('16'));
+  await noa.fill('#a-dob', '1990-01-01');
   await noa.click('#a-submit');
   await noa.waitForFunction(() => location.hash === '#/welcome');
   await noa.waitForSelector('.chip[data-intent]');
@@ -637,6 +645,40 @@ async function postIt(page, opts) {
   await go(noa, '#/pro');
   await noa.waitForSelector('#pro-current');
   await shot(noa, '30-pro-en');
+
+  // Verified brands: the owner runs --verify; the check sits inside the brand mark on the profile and on the cards.
+  assert.ok(/nexor/.test(maintenance('--verify', 'nexor')), '--verify reports the handle');
+  await go(brand, '#/u/nexor');
+  await brand.reload();
+  await brand.waitForSelector('.profile-head .brand-mark.verified');
+  await go(dan, '#/search/nexor');
+  await dan.reload();
+  await dan.waitForSelector('.person .brand-mark.verified');
+  assert.ok(/nexor/.test(maintenance('--unverify', 'nexor')), '--unverify reports the handle');
+  await brand.reload();
+  await brand.waitForSelector('.profile-head .brand-mark');
+  assert.strictEqual(await count(brand, '.profile-head .brand-mark.verified'), 0, 'the check goes with the flag');
+  // The numbers page: a moderator's dashboard of the pilot metrics; a person gets the refusal.
+  await go(noa, '#/admin/metrics');
+  await noa.waitForSelector('#dash-return');
+  assert.ok((await count(noa, '#dash-scores li')) >= 1, 'the score distribution has bars');
+  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 14);
+  await shot(noa, '31-numbers-en');
+  expected.push('GET /api/metrics/pilot -> 403');
+  await go(dan, '#/admin/metrics');
+  await dan.waitForSelector('#dash-forbidden');
+  // Terms and privacy: ten sections each, a version line, the cross link; Hebrew is native copy.
+  await go(dan, '#/terms');
+  await dan.waitForSelector('#lg-terms');
+  assert.strictEqual(await count(dan, '#lg-terms > li'), 10);
+  assert.ok((await text(dan, '#lg-version')).includes('1'), 'the version line');
+  await shot(dan, '32-terms-he');
+  await dan.click('#lg-other');
+  await dan.waitForSelector('#lg-privacy');
+  assert.strictEqual(await count(dan, '#lg-privacy > li'), 10);
+  await go(noa, '#/privacy');
+  await noa.waitForSelector('#lg-privacy');
+  assert.strictEqual(await count(noa, '#lg-privacy > li'), 10);
 
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,

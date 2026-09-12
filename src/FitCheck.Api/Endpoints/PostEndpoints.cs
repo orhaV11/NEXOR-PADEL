@@ -83,6 +83,18 @@ public static class PostEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.check_not_postable"));
         }
 
+        // "After the tip": the earlier look this one improves on must be a visible look of the caller's own, and never
+        // the look of this very check; the card then shows the score before and after. Checked ahead of the one-post-per-
+        // check rule so a look can never be named as its own before.
+        if (body.BeforePostId is Guid beforeId)
+        {
+            var before = await db.Posts.Where(p => p.Id == beforeId).Select(p => new { p.UserId, p.CheckId, p.Hidden }).FirstOrDefaultAsync(ct);
+            if (before is null || before.UserId != me.Id || before.Hidden || before.CheckId == check.Id)
+            {
+                return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.before_invalid"));
+            }
+        }
+
         if (await db.Posts.AnyAsync(p => p.CheckId == check.Id, ct))
         {
             return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.already_posted"));
@@ -170,6 +182,7 @@ public static class PostEndpoints
             AccessoriesScore = feedback.Breakdown?.Accessories,
             Caption = caption,
             ChallengeId = challenge?.Id,
+            BeforePostId = body.BeforePostId,
             CreatedAt = DateTime.UtcNow
         };
         db.Posts.Add(post);

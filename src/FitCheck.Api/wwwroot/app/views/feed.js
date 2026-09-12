@@ -4,6 +4,7 @@
 import {
   register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, emptyState, announce, onLeave, feedVersion
 } from '../core.js';
+import { todayStrip } from './today.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
 // The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
@@ -94,6 +95,17 @@ register('feed', async (root, params, ctx) => {
   const remembered = cache.get(cacheKey());
   const forced = state.forceRefresh;
   state.forceRefresh = false;
+
+  // Today's look, under the chips on For you: the daily prompt and up to eight of the looks posted with its tag. It
+  // lands above the list when it is ready (at once from its cache, so Back from a look draws it without a jump; fetched
+  // again on a forced refresh); a failed /api/today leaves it out, the feed never waits.
+  let strip = null;
+  const placeStrip = (node) => {
+    if (ctx.stale() || !document.contains(body)) return;
+    if (strip && document.contains(strip)) strip.replaceWith(node); else body.before(node);
+    strip = node;
+  };
+  if (tab === 'foryou') todayStrip(ctx, placeStrip, { force: forced });
   const restore = !!remembered && !forced && remembered.version === feedVersion.n && Date.now() - remembered.at < CACHE_TTL;
   if (!restore) cache.delete(cacheKey());
 
@@ -113,6 +125,7 @@ register('feed', async (root, params, ctx) => {
   });
 
   pullToRefresh(indicator, async () => {
+    if (tab === 'foryou') todayStrip(ctx, placeStrip, { force: true });
     await list.refresh();
     if (!ctx.stale()) announce(t('common.refreshed'));
   });

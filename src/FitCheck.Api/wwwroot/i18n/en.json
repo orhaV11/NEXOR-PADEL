@@ -614,5 +614,18 @@
   "legal.privacy_9_title": "Your rights and changes",
   "legal.privacy_9": "You can see and change your profile in Settings and delete everything there. You can ask us for a copy of your data, or to correct or delete it, by writing to us. When this policy changes, the version and date change, and we tell you in the app about anything important.",
   "legal.privacy_10_title": "Contact",
-  "legal.privacy_10": "Privacy questions: hello@orevosh.app."
+  "legal.privacy_10": "Privacy questions: hello@orevosh.app.",
+  "today.kicker": "Today",
+  "today.post": "Post yours",
+  "today.posted": "You're in",
+  "today.all": "All of today's looks",
+  "today.looks_label": "Today's looks",
+  "today.empty": "No looks yet today. Yours could be the first.",
+  "today.looks": "{n} looks today",
+  "today.looks_one": "1 look today",
+  "after.strip": "After the tip · {a} → {b}",
+  "after.strip_label": "After the tip: from {a} to {b} out of 10. Open the earlier look.",
+  "after.hint": "Improving on an earlier look? Pick it and the card shows both scores.",
+  "after.none": "Not a follow-up",
+  "after.option": "{intent} · {score}/10"
 }

@@ -79,6 +79,16 @@ public sealed class PostReader(AppDbContext db)
                 .ToListAsync(ct))
             .ToHashSet();
 
+        // "After the tip": the earlier look's score and photo, one query over the page's before ids. A before look
+        // under review is left off (its photo answers 404 to everyone else); one that was deleted left null behind.
+        var beforeIds = posts.Where(p => p.BeforePostId != null).Select(p => p.BeforePostId!.Value).Distinct().ToList();
+        var befores = beforeIds.Count == 0
+            ? new Dictionary<Guid, BeforeDto>()
+            : await db.Posts
+                .Where(p => beforeIds.Contains(p.Id) && !p.Hidden)
+                .Select(p => new { p.Id, p.Score })
+                .ToDictionaryAsync(p => p.Id, p => new BeforeDto(p.Id, p.Score, $"/api/posts/{p.Id}/image"), ct);
+
         return posts.Select(p =>
         {
             var user = users.GetValueOrDefault(p.UserId) ?? new UserRefDto("?", "?", AccountType.Person.ToString());
@@ -107,7 +117,8 @@ public sealed class PostReader(AppDbContext db)
                 p.FeaturedByBrandId is Guid brandId ? users.GetValueOrDefault(brandId) : null,
                 withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null,
                 // The three columns are written together at posting time; a look from before rubric v2 has none.
-                p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null);
+                p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null,
+                p.BeforePostId is Guid beforeId ? befores.GetValueOrDefault(beforeId) : null);
         }).ToList();
     }
 }

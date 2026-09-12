@@ -1,12 +1,12 @@
 // Static pages: the community guidelines and what we keep. The intro, five rules as a numbered index (the rank in
 // lilac, the way Explore's trending index counts), the privacy section, and a colophon with the version, the date and a
 // way back. Public: no sign-in needed, so the signup form can link here.
-import { register, t, el, setTopBar, getLocale } from '../core.js';
+import { register, t, el, setTopBar, intlLocale } from '../core.js';
 
 const VERSION = '1';
 const DATED = '2026-09-05';   // both move together when the rules change
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
-const dated = () => new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));
+const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));
 
 const CSS = `
 .g-intro { unicode-bidi: isolate; }   /* UI text in the UI's language: .lede's plaintext would read the Latin "OREVOSH" it opens with as LTR */

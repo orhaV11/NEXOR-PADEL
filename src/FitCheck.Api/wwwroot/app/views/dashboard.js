@@ -3,7 +3,7 @@
 // community block as a tile grid, and two small lists (by language, by prompt version). No chart library. The server is
 // the gate (403 to anyone else); this page opens the door for the people /me says are moderators and shows the sign-in
 // prompt or the 403 line to everyone else.
-import { register, state, t, el, api, fmtNumber, getLocale, localeName, setTopBar, signInPrompt, errorBlock, skeletonCards } from '../core.js';
+import { register, state, t, el, api, fmtNumber, intlLocale, localeName, setTopBar, signInPrompt, errorBlock, skeletonCards } from '../core.js';
 
 // Tiles in the card voice; one hue for the bars (lilac, the data), text tokens for every number and label; bars 14px
 // thick with a 4px rounded data end and a square baseline, values at the tip, a hairline baseline, nothing else drawn.
@@ -42,13 +42,13 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: CSS }));
 }
 
-const percent = (fraction) => new Intl.NumberFormat(getLocale(), { style: 'percent', maximumFractionDigits: 0 }).format(fraction || 0);
+const percent = (fraction) => new Intl.NumberFormat(intlLocale(), { style: 'percent', maximumFractionDigits: 0 }).format(fraction || 0);
 /** Latency in the reader's units: under a second in milliseconds, otherwise seconds with one decimal. */
 function latency(ms) {
   const n = ms || 0;
   return n < 1000
-    ? new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'millisecond', maximumFractionDigits: 0 }).format(n)
-    : new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'second', maximumFractionDigits: 1 }).format(n / 1000);
+    ? new Intl.NumberFormat(intlLocale(), { style: 'unit', unit: 'millisecond', maximumFractionDigits: 0 }).format(n)
+    : new Intl.NumberFormat(intlLocale(), { style: 'unit', unit: 'second', maximumFractionDigits: 1 }).format(n / 1000);
 }
 /** The count a plural key wants: the number 1 (so the _one form fires) or the formatted figure. */
 const countArg = (n) => (n === 1 ? 1 : fmtNumber(n));
@@ -139,7 +139,7 @@ function draw(root, m, ctx, reload) {
   const refresh = el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'dash-refresh', text: t('dash.refresh') });
   refresh.addEventListener('click', () => { if (!refresh.disabled) { refresh.disabled = true; reload(); } });
   root.appendChild(el('footer', { class: 'dash-foot' }, [
-    el('span', { text: t('dash.as_of', { time: new Intl.DateTimeFormat(getLocale(), { timeStyle: 'short' }).format(new Date()) }) }),
+    el('span', { text: t('dash.as_of', { time: new Intl.DateTimeFormat(intlLocale(), { timeStyle: 'short' }).format(new Date()) }) }),
     refresh
   ]));
 }

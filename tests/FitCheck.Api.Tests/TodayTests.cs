@@ -56,7 +56,7 @@ public class TodayTests : IClassFixture<TestApp>
     }
 
     [Fact]
-    public void Every_prompt_has_a_hashtag_the_caption_parser_accepts_and_both_languages()
+    public void Every_prompt_has_a_hashtag_the_caption_parser_accepts_and_every_language()
     {
         var tags = DailyPrompts.All.Select(p => p.Tag).ToList();
         Assert.Equal(tags.Count, tags.Distinct(StringComparer.Ordinal).Count());
@@ -64,15 +64,30 @@ public class TodayTests : IClassFixture<TestApp>
         {
             Assert.Matches("^[a-z0-9_]{2,30}$", prompt.Tag);
             Assert.Equal([prompt.Tag], CaptionParser.Tags("#" + prompt.Tag + " today"));
-            Assert.False(string.IsNullOrWhiteSpace(prompt.TitleEn));
-            Assert.False(string.IsNullOrWhiteSpace(prompt.HintEn));
-            Assert.False(string.IsNullOrWhiteSpace(prompt.TitleHe));
-            Assert.False(string.IsNullOrWhiteSpace(prompt.HintHe));
-            Assert.Matches(new Regex(@"\p{IsHebrew}"), prompt.TitleHe);
-            Assert.Matches(new Regex(@"\p{IsHebrew}"), prompt.HintHe);
-            Assert.Equal(prompt.TitleEn, prompt.Title("en"));
-            Assert.Equal(prompt.TitleHe, prompt.Title("he"));
+            // Every shipped locale has its own title and hint, in its own script, and the picker returns exactly it.
+            foreach (var (locale, title, hint, script) in new[]
+            {
+                ("en", prompt.TitleEn, prompt.HintEn, @"\p{IsBasicLatin}"),
+                ("he", prompt.TitleHe, prompt.HintHe, @"\p{IsHebrew}"),
+                ("ar", prompt.TitleAr, prompt.HintAr, @"\p{IsArabic}"),
+                ("ru", prompt.TitleRu, prompt.HintRu, @"\p{IsCyrillic}"),
+            })
+            {
+                Assert.False(string.IsNullOrWhiteSpace(title), $"{prompt.Tag}: no {locale} title");
+                Assert.False(string.IsNullOrWhiteSpace(hint), $"{prompt.Tag}: no {locale} hint");
+                Assert.Matches(new Regex(script), title);
+                Assert.Matches(new Regex(script), hint);
+                Assert.DoesNotContain('!', title + hint);
+                Assert.Equal(title, prompt.Title(locale));
+                Assert.Equal(hint, prompt.Hint(locale));
+            }
+
+            // The four are four different lines, not one copied around.
+            Assert.Equal(4, new[] { prompt.TitleEn, prompt.TitleHe, prompt.TitleAr, prompt.TitleRu }.Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(4, new[] { prompt.HintEn, prompt.HintHe, prompt.HintAr, prompt.HintRu }.Distinct(StringComparer.Ordinal).Count());
             Assert.Equal(prompt.HintEn, prompt.Hint("fr"));
+            Assert.Equal(prompt.TitleEn, prompt.Title(""));
+            Assert.Equal(prompt.TitleRu, prompt.Title("RU"));
             Assert.True(prompt.Intent is null || Enum.IsDefined(prompt.Intent.Value));
         }
     }
@@ -137,5 +152,24 @@ public class TodayTests : IClassFixture<TestApp>
         var anonymous = await Json(await visitor.GetAsync("/api/today"));
         Assert.Equal(prompt.TitleHe, anonymous.GetProperty("title").GetString());
         Assert.Equal(prompt.Tag, anonymous.GetProperty("tag").GetString());
+    }
+
+    [Theory]
+    [InlineData("ar", "ar-EG")]
+    [InlineData("ru", "ru-RU")]
+    public async Task The_prompt_speaks_arabic_and_russian_too(string language, string acceptLanguage)
+    {
+        var prompt = DailyPrompts.For(DateTime.UtcNow);
+        var (client, _, _) = await _app.NewUserAsync("today_" + language, language: language);
+        var signedIn = await Json(await client.GetAsync("/api/today"));
+        Assert.Equal(prompt.Title(language), signedIn.GetProperty("title").GetString());
+        Assert.Equal(prompt.Hint(language), signedIn.GetProperty("hint").GetString());
+        Assert.NotEqual(prompt.TitleEn, signedIn.GetProperty("title").GetString());
+
+        var visitor = _app.NewClient();
+        visitor.DefaultRequestHeaders.AcceptLanguage.ParseAdd(acceptLanguage);
+        var anonymous = await Json(await visitor.GetAsync("/api/today"));
+        Assert.Equal(prompt.Title(language), anonymous.GetProperty("title").GetString());
+        Assert.Equal(prompt.Hint(language), anonymous.GetProperty("hint").GetString());
     }
 }

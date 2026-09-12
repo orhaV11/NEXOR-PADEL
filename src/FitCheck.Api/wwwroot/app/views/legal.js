@@ -6,13 +6,13 @@
 //
 // OWNER: have a lawyer review the terms and the privacy policy before launch. The copy describes what the app actually
 // does, in plain language; it is not legal advice, and the governing-law line in the terms is a placeholder.
-import { register, t, el, hasMessage, setTopBar, getLocale } from '../core.js';
+import { register, t, el, hasMessage, setTopBar, intlLocale } from '../core.js';
 
 const VERSION = '1';
 const DATED = '2026-09-08';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
-const dated = () => new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));
+const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));
 
 // The guidelines' shape: the number in lilac at the start, a bold title, body text in the caption voice.
 const CSS = `

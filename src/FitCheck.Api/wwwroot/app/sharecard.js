@@ -24,8 +24,9 @@ const COLOR = {
   bg: '#0b0b0f', surface2: '#1e1e27', ink: '#f4f4f7', ink2: '#b9b9c6', ink3: '#7f7f8e',
   accent: '#b39dff', rose: '#ff8fb1', tint: 'rgba(179, 157, 255, 0.16)', line: 'rgba(255, 255, 255, 0.1)'
 };
-const DISPLAY = '"Outfit", "Heebo", system-ui, sans-serif';
-const BODY = '"Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif';
+// The same stacks as app.css, with Cairo behind Heebo so Arabic draws in the face the page already loaded; Cyrillic falls to the system face, as on the page.
+const DISPLAY = '"Outfit", "Heebo", "Cairo", system-ui, sans-serif';
+const BODY = '"Heebo", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif';
 
 const pageDir = () => (document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr');
 /** The direction of a text by its first strong character (what unicode-bidi: plaintext does for headlines in the app); null when it has none. */

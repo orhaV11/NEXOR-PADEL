@@ -31,15 +31,13 @@ public class AuthEndpointTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Unauthorized, (await _app.NewClient().GetAsync("/api/auth/me")).StatusCode);
     }
 
+    /// <summary>Round 9: the date of birth decides (SignupDobTests); the 16+ checkbox older clients still send is ignored either way.</summary>
     [Fact]
-    public async Task Rejects_users_who_do_not_confirm_16_plus_in_their_language()
+    public async Task The_16_plus_checkbox_is_ignored_once_a_birth_date_is_given()
     {
-        var response = await _app.NewClient().PostAsJsonAsync("/api/auth/signup", new { handle = "young", password = "password123", confirmed16Plus = false, language = "he" });
+        var response = await _app.NewClient().PostAsJsonAsync("/api/auth/signup", new { handle = "young", password = "password123", confirmed16Plus = false, birthDate = "1990-01-01", language = "he" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Contains("16", error.GetProperty("error").GetString());
-        Assert.Contains("גיל", error.GetProperty("error").GetString());
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Theory]

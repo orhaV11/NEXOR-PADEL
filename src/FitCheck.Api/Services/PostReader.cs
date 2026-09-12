@@ -16,7 +16,7 @@ public sealed class PostReader(AppDbContext db)
         string.IsNullOrEmpty(avatarPath) ? null : $"/api/users/{Uri.EscapeDataString(handle)}/avatar?v={avatarVersion}";
 
     public static UserRefDto Ref(AppUser user) =>
-        new(user.Handle, NameOf(user.Handle, user.DisplayName), user.AccountType.ToString(), AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion));
+        new(user.Handle, NameOf(user.Handle, user.DisplayName), user.AccountType.ToString(), AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), user.Verified);
 
     /// <summary>User refs for a set of ids in one query. Missing ids are simply absent.</summary>
     public async Task<Dictionary<Guid, UserRefDto>> RefsAsync(IEnumerable<Guid> userIds, CancellationToken ct)
@@ -29,8 +29,8 @@ public sealed class PostReader(AppDbContext db)
 
         return await db.Users
             .Where(u => ids.Contains(u.Id))
-            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType, u.AvatarPath, u.AvatarVersion })
-            .ToDictionaryAsync(u => u.Id, u => new UserRefDto(u.Handle, NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion)), ct);
+            .Select(u => new { u.Id, u.Handle, u.DisplayName, u.AccountType, u.AvatarPath, u.AvatarVersion, u.Verified })
+            .ToDictionaryAsync(u => u.Id, u => new UserRefDto(u.Handle, NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion), u.Verified), ct);
     }
 
     public async Task<List<PostDto>> ToDtosAsync(

@@ -63,7 +63,7 @@ public class CapacityTests
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/signup")
             {
-                Content = JsonContent.Create(new { handle, password = "password123", confirmed16Plus = true, language = "en" })
+                Content = JsonContent.Create(new { handle, password = "password123", birthDate = "1990-01-01", language = "en" })
             };
             request.Headers.Add("X-Forwarded-For", address);
             return await client.SendAsync(request);

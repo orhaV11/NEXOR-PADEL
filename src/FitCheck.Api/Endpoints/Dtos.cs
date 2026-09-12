@@ -40,11 +40,14 @@ public sealed record AvatarDto(string? AvatarUrl);
 
 public sealed record ViewerProfileDto(bool IsMe, bool Following);
 
-/// <summary>Featured: for a brand, looks it featured; for a person, their looks that were featured. Community: looks mentioning this account.</summary>
+/// <summary>
+/// Featured: for a brand, looks it featured; for a person, their looks that were featured. Community: looks mentioning this
+/// account. Verified: the owner confirmed this brand by hand (--verify); the check next to the brand mark.
+/// </summary>
 public sealed record ProfileDto(
     string Handle, string Name, string AccountType, string? Bio, string? Website,
     int Posts, int Followers, int Following, int FireReceived, int? BestScore, int Streak, DateTime CreatedAt,
-    ViewerProfileDto Viewer, string? AvatarUrl = null, int Featured = 0, int Community = 0);
+    ViewerProfileDto Viewer, string? AvatarUrl = null, int Featured = 0, int Community = 0, bool Verified = false);
 
 public sealed record FollowStateDto(int Followers, bool Following);
 

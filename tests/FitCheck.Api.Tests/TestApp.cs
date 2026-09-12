@@ -143,8 +143,9 @@ public class TestApp : WebApplicationFactory<Program>
     public async Task<JsonElement> SignupAsync(
         HttpClient client, string handle, string password = "password123", string language = "en", string accountType = "Person", string? displayName = null)
     {
+        // Round 9: a date of birth is required (16 and over); the checkbox older clients sent is ignored.
         var response = await client.PostAsJsonAsync("/api/auth/signup",
-            new { handle, password, confirmed16Plus = true, language, accountType, displayName });
+            new { handle, password, confirmed16Plus = true, birthDate = "1990-01-01", language, accountType, displayName });
         if (response.StatusCode != HttpStatusCode.Created)
         {
             throw new InvalidOperationException($"signup {handle} failed: {response.StatusCode} {await response.Content.ReadAsStringAsync()}");

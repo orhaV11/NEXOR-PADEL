@@ -16,8 +16,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 // Maintenance commands share the process with the server but never start it: `--vapid`, `--backup <dir>`, `--admin <handle>`,
-// `--unadmin <handle>` and `--pro <handle> <months|off>`. Each is found by position, so extra arguments (a --urls, the
-// design-time tooling's own flags) do not turn a command into a server start.
+// `--unadmin <handle>`, `--verify <handle>`, `--unverify <handle>` and `--pro <handle> <months|off>`. Each is found by
+// position, so extra arguments (a --urls, the design-time tooling's own flags) do not turn a command into a server start.
 static string? ArgumentAfter(string[] args, string flag)
 {
     var index = Array.IndexOf(args, flag);
@@ -126,6 +126,48 @@ if (makeAdmin is not null || dropAdmin is not null)
             Console.WriteLine(promote
                 ? $"{handle} is now a moderator."
                 : $"{handle} is no longer a moderator. The account stays; its next request answers like anyone else's.");
+            return 0;
+    }
+}
+
+// `--verify <handle>` marks an existing account as a verified brand (the check next to its brand mark, everywhere the
+// account appears), `--unverify <handle>` takes that away. Only these two commands write the flag (AppUser.Verified):
+// the owner confirms by hand who is behind a brand account. Exit code 1 when there is no such account, so a script notices.
+var verifyHandle = ArgumentAfter(args, "--verify");
+var unverifyHandle = ArgumentAfter(args, "--unverify");
+if (verifyHandle is not null || unverifyHandle is not null)
+{
+    var verify = verifyHandle is not null;
+    var handle = (verify ? verifyHandle : unverifyHandle)!;
+    if (handle.Length == 0)
+    {
+        Console.Error.WriteLine(verify ? "Usage: --verify <handle>" : "Usage: --unverify <handle>");
+        return 2;
+    }
+
+    AdminChange change;
+    try
+    {
+        change = await AdminSync.SetVerifiedAsync(connection.ConnectionString, handle, verify);
+    }
+    catch (SqliteException e)
+    {
+        Console.Error.WriteLine($"Could not open the database {connection.DataSource}: {e.Message.TrimEnd('.')}. Start the app once first.");
+        return 1;
+    }
+
+    switch (change)
+    {
+        case AdminChange.NotFound:
+            Console.Error.WriteLine($"No account has the handle {handle}. Sign up with it first, then run this again.");
+            return 1;
+        case AdminChange.Unchanged:
+            Console.WriteLine(verify ? $"{handle} was already verified." : $"{handle} was not verified.");
+            return 0;
+        default:
+            Console.WriteLine(verify
+                ? $"{handle} is now a verified brand. The check shows next to its brand mark from its next request."
+                : $"{handle} is no longer verified.");
             return 0;
     }
 }

@@ -506,6 +506,11 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .grid figcaption b { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.15; color: var(--ink); unicode-bidi: isolate; min-inline-size: 0; overflow-wrap: anywhere; }   /* a Latin name in a Hebrew caption stays beside its rank */
 .grid figcaption > span:not(.rank) { grid-column: 2; color: var(--ink-3); font-size: 10.5px; }
 [dir="rtl"] .grid figcaption > span:not(.rank) { font-size: 12px; }
+/* a verified brand (--verify): the same mark with a small check inside it, in the mark's rose, after the word in both directions */
+.brand-mark.verified { display: inline-flex; align-items: center; gap: 3px; padding-inline-end: 4px; }
+.brand-mark.verified .icon { inline-size: 10px; block-size: 10px; }
+.brand-mark.verified .icon svg { inline-size: 10px; block-size: 10px; stroke-width: 3.5; }
+.profile-head .who .name .brand-mark.verified .icon, .profile-head .who .name .brand-mark.verified .icon svg { inline-size: 12px; block-size: 12px; }
 
 /* ---------- §6 explore: the front page, the hero, the index, the band, the tickets ---------- */
 .x-section > * + * { margin-block-start: 12px; }

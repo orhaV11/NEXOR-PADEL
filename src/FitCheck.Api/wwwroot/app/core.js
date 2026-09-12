@@ -212,7 +212,12 @@ export function avatar(user, opts) {
   if (opts.noLink) return el('span', attrs, [inner]);
   return el('a', { ...attrs, href: '#/u/' + encodeURIComponent(user.handle) }, [inner]);
 }
-export function brandMark(user) { return user && user.accountType === 'Brand' ? el('span', { class: 'brand-mark', text: t('profile.brand') }) : null; }
+/** The BRAND mark; a verified brand (the owner's --verify) carries a small check inside it, named for screen readers and on hover. */
+export function brandMark(user) {
+  if (!user || user.accountType !== 'Brand') return null;
+  if (!user.verified) return el('span', { class: 'brand-mark', text: t('profile.brand') });
+  return el('span', { class: 'brand-mark verified', title: t('verified.brand'), 'aria-label': t('verified.brand') }, [t('profile.brand'), icon('check')]);
+}
 /** A small PRO pill for the signed-in person (MeDto carries plan; UserRefDto does not, so cards never show one). */
 export function proBadge(user) { return user && user.plan === 'pro' ? el('span', { class: 'tag accent pro-badge', text: t('pro.badge') }) : null; }
 export function handleText(handle) { return el('bdi', { dir: 'ltr', text: '@' + handle }); }

@@ -260,7 +260,7 @@ public static class CheckEndpoints
             // the compare route; a guest hears that the look was the free one.
             var message = user is null ? localizer.Get(language, "error.guest_limit")
                 : Plans.IsPro(user, now) ? localizer.Get(language, "error.rate_limited", cap)
-                : localizer.Get(language, "error.plan_limit", cap, plans.Value.ProChecksPerDay);
+                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCap(plans.Value, limits.Value));
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 

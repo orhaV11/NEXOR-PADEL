@@ -698,7 +698,7 @@ async function postIt(page, opts) {
   await go(dan, '#/terms');
   await dan.waitForSelector('#lg-terms');
   assert.strictEqual(await count(dan, '#lg-terms > li'), 10);
-  assert.ok((await text(dan, '#lg-version')).includes('1'), 'the version line');
+  assert.ok((await text(dan, '#lg-version')).includes('2'), 'the version line');
   await shot(dan, '32-terms-he');
   await dan.click('#lg-other');
   await dan.waitForSelector('#lg-privacy');

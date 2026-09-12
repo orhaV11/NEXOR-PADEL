@@ -233,7 +233,7 @@ public class CompareTests : IClassFixture<CompareApp>
         var capped = await client.PostAsync("/api/compare", CompareForm(TestImages.Jpeg(), TestImages.Jpeg()));
         Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
         Assert.True(capped.Headers.RetryAfter?.Delta > TimeSpan.Zero);
-        Assert.Equal("That's today's 3 free checks. Go Pro for 30 a day, or come back tomorrow.", (await capped.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        Assert.Equal("That's today's 3 free checks. Go Pro for 20 a day, or come back tomorrow.", (await capped.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
 
         // Pro raises the cap (to Plans:ProChecksPerDay, never above Limits:ChecksPerDay); a lapsed Pro is free again.
         await SetPlanAsync(userId, Plans.Pro);

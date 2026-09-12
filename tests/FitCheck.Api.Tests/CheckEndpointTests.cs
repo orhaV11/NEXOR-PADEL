@@ -120,7 +120,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.True(response.Headers.RetryAfter?.Delta > TimeSpan.Zero);
         // The cap is the plan's (Plans:FreeChecksPerDay, 20 in this suite's app) and the refusal names the Pro cap (Round 9).
-        Assert.Equal("That's today's 20 free checks. Go Pro for 30 a day, or come back tomorrow.", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        Assert.Equal("That's today's 20 free checks. Go Pro for 20 a day, or come back tomorrow.", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
 
         var (other, _, _) = await _app.NewUserAsync("uncapped1");
         Assert.Equal(HttpStatusCode.Created, (await other.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);

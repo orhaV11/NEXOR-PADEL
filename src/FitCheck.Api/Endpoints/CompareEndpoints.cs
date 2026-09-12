@@ -176,7 +176,7 @@ public static class CompareEndpoints
             // A free account hears what Pro would give it; a Pro account at its own ceiling just hears the number.
             var message = Plans.IsPro(user, now)
                 ? localizer.Get(language, "error.rate_limited", cap)
-                : localizer.Get(language, "error.plan_limit", cap, plans.Value.ProChecksPerDay);
+                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCap(plans.Value, limits.Value));
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 

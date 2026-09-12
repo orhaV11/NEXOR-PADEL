@@ -50,6 +50,8 @@ export const ICONS = {
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8M12 16V3M7 8l5-5 5 5"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
   trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+  // Round 10: the item tag (a dot on the photo, "The look" list, the item pages) in the kit's stroke.
+  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="8" cy="8" r="1.6"/></svg>',
   bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 13H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
@@ -470,7 +472,7 @@ export function renderShell() {
 function tabFor(route) {
   const name = route.name;
   if (['feed', 'post'].includes(name)) return 'home';
-  if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge'].includes(name)) return 'explore';
+  if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge', 'board', 'board-hall', 'items'].includes(name)) return 'explore';
   if (['check', 'result', 'camera', 'compare'].includes(name)) return 'check';
   if (name === 'activity') return 'activity';
   if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights'].includes(name)) return 'me';
@@ -522,6 +524,10 @@ export function parseRoute(hash) {
     case 'today': return { name: 'today', params: {} };
     case 'terms': return { name: 'terms', params: {} };
     case 'privacy': return { name: 'privacy', params: {} };
+    // Round 10: #/board (a ?week=yyyy-MM-dd query belongs to the view), #/board/hall, #/items/<brand>/<category> and
+    // #/items?q=<term> (the query belongs to the view; brand and category are '' then).
+    case 'board': return { name: a === 'hall' ? 'board-hall' : 'board', params: {} };
+    case 'items': return { name: 'items', params: { brand: a || '', category: b || '' } };
     default: return { name: 'feed', params: { tab: 'foryou' } };
   }
 }

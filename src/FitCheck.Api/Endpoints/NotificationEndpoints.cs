@@ -40,7 +40,7 @@ public static class NotificationEndpoints
             var found = actors.TryGetValue(n.ActorHandle.ToLowerInvariant(), out var actor);
             return new NotificationDto(
                 n.Id, n.Type, n.ActorHandle, found ? actor.Name : n.ActorHandle, found ? actor.Avatar : null,
-                n.PostId, n.ChallengeId, DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc), n.ReadAt != null);
+                n.PostId, n.ChallengeId, DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc), n.ReadAt != null, n.Rank);
         }).ToList();
         var unread = await db.Notifications.CountAsync(n => n.UserId == me.Id && n.ReadAt == null, ct);
         return Results.Json(new NotificationsDto(items, unread), AppJson.Options);

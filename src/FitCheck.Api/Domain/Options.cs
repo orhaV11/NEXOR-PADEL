@@ -171,3 +171,87 @@ public sealed class BillingOptions
     public bool StripeEnabled => Provider.Equals("stripe", StringComparison.OrdinalIgnoreCase)
         && !string.IsNullOrWhiteSpace(StripeSecretKey) && !string.IsNullOrWhiteSpace(StripePriceId) && !string.IsNullOrWhiteSpace(StripeWebhookSecret);
 }
+
+/// <summary>
+/// The weekly flames board (Round 10): when a week starts and ends, which fires count, how long the lists are. The
+/// anti-gaming numbers are the product: fires from people who use the app (a check) and only a few per pair, so friends
+/// cannot carry a look.
+/// </summary>
+public sealed class BoardOptions
+{
+    public const string Section = "Board";
+
+    /// <summary>The first day of the board's week, in <see cref="TimeZone"/>.</summary>
+    public DayOfWeek WeekStartsOn { get; set; } = DayOfWeek.Sunday;
+
+    /// <summary>IANA zone the week is cut in. Israel's week starts on Sunday; the close is Saturday midnight there.</summary>
+    public string TimeZone { get; set; } = "Asia/Jerusalem";
+
+    /// <summary>A fire counts only when the firer has made at least this many checks. 0 turns the rule off.</summary>
+    public int MinChecksToCount { get; set; } = 1;
+
+    /// <summary>The most fires from one person on one author's looks that count in a week.</summary>
+    public int MaxPerFirerPerAuthor { get; set; } = 3;
+
+    /// <summary>Fires from accounts younger than this many days do not count.</summary>
+    public int NewAccountDays { get; set; } = 2;
+
+    /// <summary>Places on each board.</summary>
+    public int Size { get; set; } = 10;
+
+    /// <summary>The rising board is for accounts created within this many days.</summary>
+    public int RisingDays { get; set; } = 30;
+
+    /// <summary>The week's sponsor, when there is one (Board:Sponsor:Name and friends). Null when the section is absent.</summary>
+    public BoardSponsorOptions? Sponsor { get; set; }
+}
+
+/// <summary>A brand that presents the week: a name, its handle in the app when it has one, the prize line and a link.</summary>
+public sealed class BoardSponsorOptions
+{
+    public string Name { get; set; } = "";
+    public string Handle { get; set; } = "";
+    public string PrizeText { get; set; } = "";
+    public string Url { get; set; } = "";
+
+    public bool Enabled => !string.IsNullOrWhiteSpace(Name);
+}
+
+/// <summary>
+/// Store links leave the app through one door (/api/items/{id}/out) so they can be decorated, counted and revoked. Hosts
+/// maps a host to the query string appended when a link goes there ("amazon.com" → "tag=orevosh-20"); a link to a host
+/// that is not listed is redirected as given. Nothing is appended by default. Disclosure shows the commission line on
+/// links that earn one.
+/// </summary>
+public sealed class AffiliateOptions
+{
+    public const string Section = "Affiliate";
+
+    public bool Disclosure { get; set; } = true;
+
+    /// <summary>Host (matched case-insensitively, subdomains included by the builder's rule) → query parameters, no leading "?".</summary>
+    public Dictionary<string, string> Hosts { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The parameters for a host, or null when the host earns nothing.</summary>
+    public string? ParametersFor(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return null;
+        }
+
+        var key = host.Trim();
+        // "www.amazon.com" and "smile.amazon.com" are the listed host's; "notamazon.com" is not.
+        foreach (var (listed, parameters) in Hosts)
+        {
+            var name = listed.Trim();
+            if (name.Length > 0 && !string.IsNullOrWhiteSpace(parameters)
+                && (key.Equals(name, StringComparison.OrdinalIgnoreCase) || key.EndsWith("." + name, StringComparison.OrdinalIgnoreCase)))
+            {
+                return parameters.Trim().TrimStart('?', '&');
+            }
+        }
+
+        return null;
+    }
+}

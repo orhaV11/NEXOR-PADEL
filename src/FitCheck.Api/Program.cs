@@ -51,6 +51,8 @@ builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminO
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
 builder.Services.Configure<PlanOptions>(builder.Configuration.GetSection(PlanOptions.Section));
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.Section));
+builder.Services.Configure<BoardOptions>(builder.Configuration.GetSection(BoardOptions.Section));
+builder.Services.Configure<AffiliateOptions>(builder.Configuration.GetSection(AffiliateOptions.Section));
 
 // A check upload is a still plus, optionally, a clip; the form limit covers both and the per-request limit in
 // CheckEndpoints tightens it to what that request actually declares.
@@ -226,6 +228,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton<Localizer>();
+// The board's clock (Round 10): the week's window and the closer read it, so a test can move "now".
+builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IImageStore, DiskImageStore>();
 builder.Services.AddSingleton<CheckCapacity>();
 // The per-address count of a guest's looks (Plans:GuestChecksPerDay), kept in memory next to the in-flight reservations.
@@ -477,6 +481,8 @@ app.MapCompareEndpoints();
 app.MapBillingEndpoints();
 app.MapInsightsEndpoints();
 app.MapTodayEndpoints();
+app.MapItemEndpoints();
+app.MapBoardEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe

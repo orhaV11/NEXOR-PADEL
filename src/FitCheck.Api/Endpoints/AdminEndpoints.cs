@@ -57,7 +57,7 @@ public static class AdminEndpoints
     }
 
     /// <summary>The gate: the signed-in account (401 gone, 403 suspended, as everywhere) must carry the IsAdmin flag (403 otherwise).</summary>
-    private static async ValueTask<object?> GateAsync(EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)
+    public static async ValueTask<object?> GateAsync(EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)
     {
         var context = invocation.HttpContext;
         var services = context.RequestServices;
@@ -78,7 +78,7 @@ public static class AdminEndpoints
         return await next(invocation);
     }
 
-    private static AppUser Admin(HttpContext context) =>
+    public static AppUser Admin(HttpContext context) =>
         context.Items[AdminItem] as AppUser ?? throw new InvalidOperationException("Admin route reached without the gate.");
 
     // ---- the queue ----

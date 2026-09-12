@@ -23,6 +23,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<AuthToken> AuthTokens => Set<AuthToken>();
     public DbSet<PostItem> PostItems => Set<PostItem>();
     public DbSet<OutfitComparison> Comparisons => Set<OutfitComparison>();
+    public DbSet<BoardExclusion> BoardExclusions => Set<BoardExclusion>();
+    public DbSet<WeeklyWinner> WeeklyWinners => Set<WeeklyWinner>();
+    public DbSet<Counter> Counters => Set<Counter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,11 +92,47 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         modelBuilder.Entity<PostItem>(item =>
         {
-            item.HasKey(i => new { i.PostId, i.Name });
+            // Round 9 keyed the row on (PostId, Name); Round 10 gives every item its own id (a link, a dot, an edit need one)
+            // and keeps Name as an index, so the item search is as it was. The Round10 migration mints ids for the old rows.
+            item.HasKey(i => i.Id);
             item.Property(i => i.Name).HasMaxLength(60).IsRequired();
             item.Property(i => i.Category).HasMaxLength(16).IsRequired();
+            item.Property(i => i.Brand).HasMaxLength(40);
+            item.Property(i => i.Model).HasMaxLength(60);
+            item.Property(i => i.Url).HasMaxLength(500);
+            item.Property(i => i.Source).HasConversion<string>().HasMaxLength(16);
             item.HasIndex(i => i.Name);
+            item.HasIndex(i => i.Brand);
+            item.HasIndex(i => i.Category);
+            item.HasIndex(i => new { i.PostId, i.Position });
             item.HasOne<Post>().WithMany().HasForeignKey(i => i.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BoardExclusion>(exclusion =>
+        {
+            exclusion.HasKey(e => e.PostId);
+            exclusion.Property(e => e.Reason).HasMaxLength(200).IsRequired();
+            exclusion.HasIndex(e => e.ByUserId);
+            exclusion.HasOne<Post>().WithMany().HasForeignKey(e => e.PostId).OnDelete(DeleteBehavior.Cascade);
+            exclusion.HasOne<AppUser>().WithMany().HasForeignKey(e => e.ByUserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WeeklyWinner>(winner =>
+        {
+            winner.HasKey(w => w.Id);
+            winner.Property(w => w.Board).HasMaxLength(32).IsRequired();
+            // One row per place per board per week: the closer can run twice (a restart, a catch-up) and write once.
+            winner.HasIndex(w => new { w.WeekStart, w.Board, w.Rank }).IsUnique();
+            winner.HasIndex(w => new { w.UserId, w.WeekStart });
+            winner.HasIndex(w => w.PostId);
+            winner.HasOne<AppUser>().WithMany().HasForeignKey(w => w.UserId).OnDelete(DeleteBehavior.Cascade);
+            winner.HasOne<Post>().WithMany().HasForeignKey(w => w.PostId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Counter>(counter =>
+        {
+            counter.HasKey(c => c.Name);
+            counter.Property(c => c.Name).HasMaxLength(40);
         });
 
         modelBuilder.Entity<OutfitComparison>(comparison =>
@@ -142,6 +181,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Fire>(fire =>
         {
             fire.HasKey(f => new { f.PostId, f.UserId });
+            // The board reads a week's fires by time (Round 10); the metrics' 7-day window walks the same index.
+            fire.HasIndex(f => f.CreatedAt);
             fire.HasOne<Post>().WithMany().HasForeignKey(f => f.PostId).OnDelete(DeleteBehavior.Cascade);
             fire.HasOne<AppUser>().WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
         });

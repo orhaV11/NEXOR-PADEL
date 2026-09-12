@@ -17,7 +17,8 @@ namespace FitCheck.Api.Services;
 /// <paramref name="NotificationId"/> is the activity row the job announces; the worker waits for it to be committed and drops
 /// the job if it never is. Null for a push with no row behind it (the test ping).
 /// </summary>
-public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null);
+/// <summary>Rank: the place on the board for a board_rank push, where the line reads it instead of the actor's name.</summary>
+public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null, int? Rank = null);
 
 /// <summary>
 /// Sends Web Push messages in the background. <see cref="Notifier"/> drops a <see cref="PushJob"/> on the queue next to
@@ -148,6 +149,8 @@ public sealed class PushSender : BackgroundService
                 break;
             case NotificationType.Follow:
                 return $"/#/u/{Uri.EscapeDataString(job.ActorHandle)}";
+            case NotificationType.BoardRank:
+                return "/#/board";
         }
 
         if (job.PostId is { } postId)
@@ -250,8 +253,10 @@ public sealed class PushSender : BackgroundService
         var actor = await db.Users.Where(u => u.HandleLower == actorLower).Select(u => new { u.Handle, u.DisplayName }).FirstOrDefaultAsync(ct);
         var actorName = actor is null ? job.ActorHandle : PostReader.NameOf(actor.Handle, actor.DisplayName);
 
+        // "You finished #{0} this week" takes the rank where every other line takes the actor.
+        var argument = job.Type == NotificationType.BoardRank ? (job.Rank?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "") : actorName;
         var payload = JsonSerializer.Serialize(new PushPayload(
-            Title, _localizer.Get(recipient.PreferredLanguage, "push." + job.Type, actorName), UrlFor(job), TagFor(job), job.Type), AppJson.Options);
+            Title, _localizer.Get(recipient.PreferredLanguage, "push." + job.Type, argument), UrlFor(job), TagFor(job), job.Type), AppJson.Options);
 
         var client = new PushServiceClient(_httpClients.CreateClient(HttpClientName))
         {

@@ -7,7 +7,7 @@ import {
   pullToRefresh, announce, toast, renderShell
 } from '../core.js';
 
-const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured'];
+const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank'];
 
 let styled = false;
 /**
@@ -45,8 +45,9 @@ function sentenceKey(n) {
   return KNOWN_TYPES.includes(n.type) ? 'activity.' + n.type : null;
 }
 
-/** The look when there is one, else the challenge, else the person who did it. */
+/** The look when there is one, else the challenge, else the person who did it. A board place opens the board. */
 function target(n) {
+  if (n.type === 'board_rank') return '#/board';
   if (n.postId) return '#/post/' + n.postId;
   if (n.challengeId) return '#/challenge/' + n.challengeId;
   return '#/u/' + encodeURIComponent(n.actorHandle);
@@ -55,7 +56,8 @@ function target(n) {
 function row(n) {
   const actor = n.actorName || n.actorHandle;
   const key = sentenceKey(n);
-  const sentence = key ? t(key, { actor }) : actor + ' · ' + n.type;
+  // board_rank carries the place on the board (n.rank) where every other kind carries an actor.
+  const sentence = key ? t(key, { actor, rank: n.rank == null ? '' : String(n.rank) }) : actor + ' · ' + n.type;
   return el('li', { class: n.read ? null : 'unread' }, [
     avatar({ handle: n.actorHandle, name: actor, avatarUrl: n.actorAvatarUrl }),
     el('a', { href: target(n) }, [

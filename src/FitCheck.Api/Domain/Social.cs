@@ -156,6 +156,9 @@ public static class NotificationType
     public const string Comment = "comment";
     public const string Mention = "mention";
     public const string Featured = "featured";
+
+    /// <summary>"You finished #7 this week": sent by the board's closer (Round 10), the rank in <see cref="Notification.Rank"/>.</summary>
+    public const string BoardRank = "board_rank";
 }
 
 /// <summary>In-app activity only. No push, no email.</summary>
@@ -167,6 +170,10 @@ public sealed class Notification
     public string ActorHandle { get; set; } = "";
     public Guid? PostId { get; set; }
     public Guid? ChallengeId { get; set; }
+
+    /// <summary>The place on the board for a board_rank notification; null for every other kind.</summary>
+    public int? Rank { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
 }
@@ -227,12 +234,120 @@ public static class AuthTokenPurpose
     public const string Reset = "reset";
 }
 
-/// <summary>An item the stylist named on a posted look ("black boots", shoes), lower-cased, so looks can be searched by piece.</summary>
+/// <summary>Where an item on a look came from: indexed from the stylist's words at posting, or typed by the person.</summary>
+public enum ItemSource
+{
+    Stylist,
+    User
+}
+
+/// <summary>
+/// A piece on a posted look. Round 9 wrote one row per stylist-named item (Name lower-cased, Category) so looks can be
+/// searched by piece; Round 10 lets the person tag them: a brand, a model, a store link, a dot on the photo. The brand is
+/// never written by the stylist: <see cref="OutfitItem.BrandSeen"/> is only a suggestion the person confirms
+/// (<see cref="Confirmed"/>), and <see cref="Brand"/> stays null until they do or type one.
+/// </summary>
 public sealed class PostItem
 {
+    public Guid Id { get; set; }
     public Guid PostId { get; set; }
+
+    /// <summary>Lower-cased, one space between words, at most 60 characters (PostItems.NameMaxLength). The Round 9 search key.</summary>
     public string Name { get; set; } = "";
+
+    /// <summary>top | bottom | dress | outerwear | shoes | accessory | other.</summary>
     public string Category { get; set; } = "other";
+
+    /// <summary>At most 40 characters, as typed (case kept for display; the brand pages match case-insensitively).</summary>
+    public string? Brand { get; set; }
+
+    /// <summary>At most 60 characters.</summary>
+    public string? Model { get; set; }
+
+    /// <summary>http(s) only, at most 500 characters, stored as given. Leaves the app only through /api/items/{id}/out.</summary>
+    public string? Url { get; set; }
+
+    public ItemSource Source { get; set; }
+
+    /// <summary>The dot on the photo, 0..1 of the width and height. Null: listed under the caption, not placed.</summary>
+    public double? X { get; set; }
+
+    public double? Y { get; set; }
+
+    /// <summary>Order in the list, from 0.</summary>
+    public int Position { get; set; }
+
+    /// <summary>A stylist brand suggestion the person accepted. False for a brand they typed themselves.</summary>
+    public bool Confirmed { get; set; }
+}
+
+/// <summary>A moderator pulled a look off the weekly board. One row per look; removing the row puts it back.</summary>
+public sealed class BoardExclusion
+{
+    public Guid PostId { get; set; }
+    public Guid ByUserId { get; set; }
+
+    /// <summary>At most 200 characters.</summary>
+    public string Reason { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>The board names, as stored on <see cref="WeeklyWinner.Board"/>. Intent boards are "intent:" + the StyleIntent name.</summary>
+public static class BoardName
+{
+    public const string Looks = "looks";
+    public const string People = "people";
+    public const string Rising = "rising";
+    public const string Picks = "picks";
+    public const string IntentPrefix = "intent:";
+
+    public static string Intent(StyleIntent intent) => IntentPrefix + intent;
+}
+
+/// <summary>
+/// One place on one board of one closed week: the archive the closer writes at the week's end, once (the unique index on
+/// week, board and rank makes a second run a no-op). The profile badge for the following week reads it. PostId is null
+/// for the people board, and goes null when the look is deleted; the row stays.
+/// </summary>
+public sealed class WeeklyWinner
+{
+    public Guid Id { get; set; }
+
+    /// <summary>The week's first day, as a UTC date (midnight). The week runs in Board:TimeZone; this is its label.</summary>
+    public DateTime WeekStart { get; set; }
+
+    /// <summary>One of <see cref="BoardName"/>: looks | people | rising | intent:&lt;Intent&gt; | picks.</summary>
+    public string Board { get; set; } = "";
+
+    /// <summary>1-based.</summary>
+    public int Rank { get; set; }
+
+    public Guid? PostId { get; set; }
+    public Guid UserId { get; set; }
+
+    /// <summary>The fires that counted (after the eligibility rules), not the look's raw FireCount.</summary>
+    public int Fires { get; set; }
+
+    /// <summary>The stylist's score, for the picks board; null elsewhere.</summary>
+    public int? Score { get; set; }
+}
+
+/// <summary>Names of the <see cref="Counter"/> rows the metrics read.</summary>
+public static class CounterName
+{
+    /// <summary>Times a store link left the app through /api/items/{id}/out.</summary>
+    public const string ItemOuts = "item_outs";
+
+    /// <summary>Times the board was read.</summary>
+    public const string BoardViews = "board_views";
+}
+
+/// <summary>A named tally that survives a restart (an out-click, a board view). Incremented in place, never read for a decision.</summary>
+public sealed class Counter
+{
+    public string Name { get; set; } = "";
+    public long Value { get; set; }
 }
 
 /// <summary>

@@ -10,7 +10,8 @@ namespace FitCheck.Api.Services;
 /// </summary>
 public sealed class Notifier(AppDbContext db, PushSender push)
 {
-    public void Add(Guid userId, string type, string actorHandle, Guid? postId = null, Guid? challengeId = null)
+    /// <summary>Rank: the place on the board, for <see cref="NotificationType.BoardRank"/> only (the actor there is the person themselves).</summary>
+    public void Add(Guid userId, string type, string actorHandle, Guid? postId = null, Guid? challengeId = null, int? rank = null)
     {
         var notification = new Notification
         {
@@ -20,11 +21,12 @@ public sealed class Notifier(AppDbContext db, PushSender push)
             ActorHandle = actorHandle,
             PostId = postId,
             ChallengeId = challengeId,
+            Rank = rank,
             CreatedAt = DateTime.UtcNow
         };
         db.Notifications.Add(notification);
         // The job carries the row's id: the worker sends only once the row is committed, and never for a request that rolled back.
-        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId, notification.Id));
+        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId, notification.Id, rank));
     }
 
     /// <summary>Same actor, same post, same type: one notification, not one per tap.</summary>

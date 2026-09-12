@@ -82,8 +82,9 @@ fly secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 Secrets are environment variables, exactly the ones the `.env` file carries on a server: any setting from the README's
 configuration table goes in the same way (`fly secrets set Plans__FreeChecksPerDay=5`), and so do the push keys (step 7),
-the email settings ("Email for account recovery", below) and the plan and Stripe settings ("Plans and billing", below).
-Every `fly secrets set` restarts the machine with the new values; several in one command is one restart.
+the email settings ("Email for account recovery", below), the plan and Stripe settings ("Plans and billing", below) and
+the board and store-link settings ("The weekly board and store links", below). Every `fly secrets set` restarts the
+machine with the new values; several in one command is one restart.
 
 ### 5. Deploy
 
@@ -202,6 +203,10 @@ package is public; see "Continuous checks".
   3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1), the per-account ceiling `Limits__ChecksPerDay` and the
   global `Limits__ChecksPerDayGlobal` (1000) are the caps. Guest checks are calls nobody signed up for: `fly logs` shows
   `Guest sweep: …` once an hour with how many went unclaimed.
+- **The board:** a few minutes after the week closes (Saturday midnight in `Board__TimeZone`), `fly logs` shows
+  `Board: week 2026-09-06 closed, 38 rows`; a quiet week says `Board: week 2026-09-06 had no counted fires, nothing to
+  close` once; `Board: the close failed; it runs again in five minutes` is a warning worth reading, the next run
+  retries. The lines the closer, the moderator and the zone write are listed under "The weekly board and store links".
 - **Health from outside:** an uptime checker (UptimeRobot, Better Stack) on `https://<your-app-name>.fly.dev/healthz`.
   Fly restarts a machine whose own check keeps failing.
 - **Cost:** `fly dashboard` shows the month. A shared-cpu-1x with 512 MB is about 3 USD, the 3 GB volume about 0.45 USD,
@@ -345,6 +350,59 @@ terms tell people to write to you.
 Inside the store apps Apple and Google forbid this checkout (`STORE.md`, "Payments"): the wrapped app must hide the
 purchase or use the stores' billing.
 
+## The weekly board and store links
+
+Two things from Round 10 are settings. **The weekly flames board** is five top tens (looks, people, rising, by intent,
+the stylist's picks) for the week that is running, cut at local midnight in a time zone you pick, closed by the app
+itself into a hall of flame, with rules that decide which fires count so friends cannot carry a look. **Store links**
+on tagged pieces leave the app through one door, `/api/items/{id}/out`, which appends the parameters of an affiliate
+programme when the store's host is one you listed, sends no referrer to the store, and counts the tap. Nothing earns
+anything until you list a host. In `.env` on a server, `fly secrets set` on Fly:
+
+| Variable | What to put |
+|---|---|
+| `Board__TimeZone` | The IANA zone the week is cut in, `Asia/Jerusalem` by default: the week opens at local midnight and closes seven days later, and the archive is labelled by that day. Set it to where your people live **before the first week runs**; a change later moves every week's edges. A zone the machine does not know falls back to UTC with `Board: the time zone … is not known here; the week runs in UTC` in the start log (add `tzdata` to the image's `apt-get install` line if you see it) |
+| `Board__WeekStartsOn` | The week's first day, a day name, `Sunday` (Israel's week; the close is Saturday midnight) |
+| `Board__MinChecksToCount` | A fire counts only from someone with at least this many `ok` checks by the week's end, `1`. `0` turns the rule off |
+| `Board__MaxPerFirerPerAuthor` | The most fires from one person on one author's looks that count in a week, `3` (the first ones by time). `0` means unlimited |
+| `Board__NewAccountDays` | A fire from an account younger than this at the moment of the fire does not count, `2` |
+| `Board__Size` | Places on each board, `10` |
+| `Board__RisingDays` | The rising board lists the fired looks of accounts younger than this at the week's end, `30` |
+| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over |
+| `Affiliate__Hosts__<host>` | One line per programme you joined: `Affiliate__Hosts__amazon.com=tag=orevosh-20` appends `?tag=orevosh-20` (or `&tag=…`, before any `#fragment`) to every store link that leaves for `amazon.com` or a subdomain of it. Nothing is stored on the link: the parameters are added at the door, so joining, changing or leaving a programme is one line for every link at once. Leave every line out until you have joined a programme; with none, every link is redirected as given |
+| `Affiliate__Disclosure` | `true`. Bound, and nothing reads it yet: the item sheet shows "Leaves OREVOSH · This link may earn OREVOSH a commission." under every store link, listed host or not. Keep the line; programme terms and consumer law expect it |
+
+The host is a configuration key with a dot in it (`Affiliate:Hosts:amazon.com`), which the app reads as it reads every
+other key (a double underscore for each colon, the dot kept). A shell's `export` refuses a dot in a variable name, so
+put the line in `.env` or in `fly secrets set 'Affiliate__Hosts__amazon.com=tag=orevosh-20'`; if your Compose version
+refuses it too, set the host under `Affiliate:Hosts` in `src/FitCheck.Api/appsettings.json` before `docker compose
+build`.
+
+**What the app does on its own.** `BoardCloser` runs at start and every five minutes: every week that is over and has
+no archive rows yet is computed under the rules above and written in one save, oldest first back to the week of the
+earliest fire, so a server that was down over the weekend closes the missed week on its next start; the people on the
+looks board of the week that just ended are told their place in the app and by push ("You finished #2 this week");
+older weeks closed in a catch-up are silent. There is no route and no command that closes a week by hand. What the log
+says, in `docker compose logs app` or `fly logs`:
+
+- `Board: week 2026-09-06 closed, 38 rows`: the week is in the hall, the badges are on, the notifications went out.
+- `Board: week 2026-09-06 had no counted fires, nothing to close`: once per week per process; nothing written.
+- `Board: week 2026-09-06 was already closed by another run; nothing written`: two processes raced; the first one's
+  rows stand. You should never see it with one instance.
+- `Board: the close failed; it runs again in five minutes`, a warning with the exception: read it; the next run retries.
+- `Board: <look id> excluded by <moderator id>: <reason>` and `Board: <look id> put back by <moderator id>`: a moderator
+  pulled a look off the board through `POST /api/admin/board/exclude` (with `{ postId, reason }`) or put it back with
+  `DELETE /api/admin/board/exclude/<postId>`. There is no screen for it yet; a moderator's session and the CSRF header
+  do it from a terminal: `curl -X POST -b 'orevosh.session=…' -H 'X-Requested-With: Orevosh' -H 'Content-Type:
+  application/json' -d '{"postId":"…","reason":"bought fires"}' https://looks.example.com/api/admin/board/exclude`.
+- `Items: 3 on post <look id> by <user id>`: someone saved the pieces on their look.
+
+**What to know before people rely on it.** The board reads `/api/board` from memory for 60 seconds per process (the
+Explore strip and the reset card on Home read the same route, and every answered read counts as a `boardViews` in the
+metrics), the out door allows sixty taps a minute per client address, and both windows live in the one `app` process.
+A week's places, the hall and the badge appear a few minutes after midnight, not at the stroke of it. A moderator's
+exclusion changes the weeks still open; a week already in the hall keeps its rows.
+
 ## Continuous checks
 
 Two GitHub Actions workflows live in [`.github/workflows`](.github/workflows). They run on GitHub's machines when you
@@ -459,6 +517,8 @@ Fill in:
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
 | `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1), the brake on guest attempts (20) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
+| `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30) and the week's sponsor, by hand. The defaults are the pilot's; "The weekly board and store links" above. |
+| `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows either way. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
 `Plans__FreeChecksPerDay=5` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
@@ -611,6 +671,18 @@ which in the log:
   `upgraded: ...`, which names the tables created, the columns added and altered and the foreign keys added). The copy
   stays on the volume; delete it once you are happy (`docker compose exec app rm /data/orevosh.db.bak-...`).
 
+**Round 10 re-keys `PostItems`** (`20260912151344_Round10`). A database from Round 9 keyed the pieces on a look by
+`(PostId, Name)`; the migration gives every existing row its own id, marks it as the stylist's (`Source = Stylist`,
+nothing else could have written it) and numbers it in the order it was inserted, in a hand-written `UPDATE` that runs
+before SQLite rebuilds the table around the new key (the generated migration alone would have copied one empty id into
+every row and stopped at the second). Names and categories stay as they were, so the search by piece keeps finding the
+same looks; the new columns (brand, model, link, dot, confirmation) start empty. The same migration adds
+`BoardExclusions`, `WeeklyWinners` and `Counters`, and `Rank` on `Notifications`. It runs at the next start like every
+migration, so take the backup first (`tools/backup.sh`, or `--backup`): the rebuild copies the table, and a copy is
+what you want to have if the box loses power in the middle. A pilot file from before migrations existed has no
+`PostItems` table at all (it came in Round 9), so the upgrade path above simply creates it in its Round 10 shape; the
+tests cover both files.
+
 ### Moving your laptop pilot to the server
 
 **Stop the local app first** (Ctrl-C in the window running `dotnet run`). The database runs in WAL mode: while the app
@@ -661,6 +733,10 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
   (signed in as a moderator; anyone else gets the refusal), and `docker compose logs app | grep "Guest sweep"` says how
   many guest checks went unclaimed each hour.
 - **Memory.** A 1 GB server runs the app (about 150 MB) and Caddy comfortably; `docker stats` shows both.
+- **The board.** `docker compose logs app | grep "Board:"` after the week closes (Saturday midnight in
+  `Board__TimeZone`): `Board: week 2026-09-06 closed, 38 rows` is the normal line, `had no counted fires` a quiet
+  week, and the warning `Board: the close failed; it runs again in five minutes` is the one to read. The moderator's
+  exclusions log there too. "The weekly board and store links" lists every line.
 - **Updates to the server itself.** `apt-get update && apt-get upgrade -y` monthly, `reboot` when it asks.
 
 ## 12. What the app does for security, and what it does not yet
@@ -679,7 +755,10 @@ the app cannot be pointed at its own network) and at most 10 per account; the ap
 with nothing published except through Caddy; and on every response `Strict-Transport-Security: max-age=31536000`
 (over https, for this host only: no `includeSubDomains`, so nothing else under your domain is forced onto HTTPS by
 this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
-and a `Permissions-Policy` that keeps camera and microphone to the app itself.
+(`no-referrer` on the one route a store link leaves through, `/api/items/{id}/out`, which also answers
+`Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address) and a `Permissions-Policy`
+that keeps camera and microphone to the app itself. Store links themselves are stored only when they are `http(s)`
+with a host and no user info, and are never the `href` a person taps.
 
 Built, and waiting on a setting from you: account recovery works once `Email__*` points at a provider ("Email for
 account recovery"); Stripe Checkout runs once `Billing__*` is set and tested ("Plans and billing"); clip transcoding runs
@@ -764,3 +843,17 @@ Before the address leaves the team, in this order:
 15. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
     browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
     `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).
+16. **The board's week is your users' week.** `Board__TimeZone` and `Board__WeekStartsOn` (`Asia/Jerusalem`, `Sunday`)
+    cut the week and label the archive; set them to where your people live before the first week runs, because a
+    change later moves every week's edges. The morning after the first close, `grep "Board:"` in the log should show
+    `closed, N rows`, and `#/board/hall` the week ("The weekly board and store links").
+17. **Decide the sponsor.** `Board__Sponsor__Name` (with `Handle`, `PrizeText`, `Url`) puts "Presented by" on the board
+    with the prize; leave it unset until a brand has agreed to a prize with you, and unset it again when the week is
+    over. There is no self-service, so this is your word on the board.
+18. **Affiliate hosts only for programmes you joined, and keep the disclosure on.** One `Affiliate__Hosts__<host>` line
+    per programme whose terms you accepted; with none, nothing is appended and nobody earns anything. The commission
+    line shows under every store link (`Affiliate__Disclosure` is bound and not read yet): leave it, the programmes'
+    terms and consumer law expect it. The store gets no referrer from the app.
+19. **`--verify` the brands that tag products.** A brand account whose looks carry store links, and any brand that
+    sponsors a week, is one you have spoken to; the check inside its mark says so. Anyone else's brand and model on a
+    piece is their own word (README, "Known limitations"), and the queue is the answer when it is abused.

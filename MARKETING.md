@@ -8,10 +8,13 @@ store texts are in `STORE.md`; the landing page is `/landing/` (`/landing/index.
 
 OREVOSH is a social app for looks: a stylist in your pocket that scores an outfit out of 10 for where it is going, in
 ten seconds, with the breakdown and the one tip, and a community where the look gets fire, the brands you tag notice,
-and the score travels to your story. It is not a shopping app, not a body app, not a filter: it judges clothes, never
-the person, the check is private until you post, and orange means one thing only, that a look caught fire. For a
-person it answers "does this work for tonight?" before they leave the house; for a brand it is where the people who
-actually wear it post it.
+and the score travels to your story. Since Round 10 a look also says what is in it: the pieces are tagged by the
+person who wears them (the brand, the model, a store link, a dot on the photo; the stylist suggests a brand only when
+it can see the mark), and the week has a scoreboard, the flames board, five top tens that close Saturday night into a
+hall of flame. It is not a marketplace, not a body app, not a filter: a tagged piece links out to the store and the
+app sells nothing, it judges clothes, never the person, the check is private until you post, and orange means one
+thing only, that a look caught fire. For a person it answers "does this work for tonight?" before they leave the
+house; for a brand it is where the people who actually wear it post it, tag it and shop it.
 
 ## The slogan
 
@@ -53,9 +56,17 @@ carousel (square or 4:5 stills). The story templates are `story-1-check-the-look
 | 9 | reel | A brand's challenge: the brief, the prize, three entries, the vote. 12 s. | — | @brand opened a challenge. Post with #tag, the community votes. |
 | 10 | carousel | 3 slides of house rules from the guidelines: clothes never the person; private until you post; report and it's gone. | — | The rules are short. Clothes, never you. |
 
+Two more once the first week has closed, in the same voice:
+
+| # | format | what | template | caption |
+|---|---|---|---|---|
+| 11 | reel | Tap a dot on a look, the item sheet opens: brand, model, "Shop at". Then "Looks like Nike? Confirm" on the post sheet. 8 s. | — | Tap the pants. The brand, the model, the store. You tag it, not the app. |
+| 12 | carousel | The hall of flame: last week's top three looks with their medals, the #1 person. | — | The week closed Saturday night. Three looks, one hall. Yours next week. |
+
 Rhythm: one a day for the first ten days, stories on top as they come from users (repost every story card that tags
 the account, with the fire count). Every reel ends on the wordmark on the stage for one second; every caption's last
 line is the CTA (Link in bio / לינק בביו). Hebrew versions of every post go out the same day on the same account.
+From the second week on, Sunday's post is the hall: the top three looks of the week that closed, with their medals.
 
 ## A four-week launch, one narrow community
 
@@ -64,17 +75,21 @@ fashion or design school, one city's streetwear scene. The plan below says "the 
 
 **Week 0 (prep).** Production up (`DEPLOY.md`), the domain in the OG tags and the landing page, a calibration run on
 30 real photos (`scripts/calibrate.py`) so the scores spread and nothing in the feedback breaks rule 1. Ten seed looks
-posted by the team from real outfits, three brand accounts (small labels the campus wears, contacted with a two-line
+posted by the team from real outfits, every one with its pieces tagged (the brand and the model at least; a store link
+only where there is a real one), three brand accounts (small labels the campus wears, contacted with a two-line
 message and the brand story template, verified with `--verify` once you have spoken to them), one challenge opened
-with a real prize. A moderator on duty (`--admin`).
+with a real prize. The board's week set to the campus's zone (`Board__TimeZone`, `DEPLOY.md`) before the first Sunday,
+and no sponsor on the first week: the first hall should be earned, not presented. A moderator on duty (`--admin`).
 
 **Week 1 (twenty people).** Invite by hand: twenty people who post outfits already, one message each, no group blast.
 Ask for one check and one post; watch what they ask about and fix the copy. Post 1–5 from the list. Read
 `/api/metrics/pilot` daily: `returnRate`, checks per user, share rate.
 
-**Week 2 (two hundred).** The twenty invite five each. The first challenge closes and the winner gets the prize on
-camera (a reel). A story template with the campus's own hashtag. Post 6–10. Reach out to the campus's student media
-with one line and three screenshots. Fix the top three complaints before growing further.
+**Week 2 (two hundred).** The twenty invite five each. The first board week closes Saturday night: post the hall on
+Sunday (post 12) and tell the three people on it in person. The first challenge closes and the winner gets the prize
+on camera (a reel). A story template with the campus's own hashtag. Post 6–10. Reach out to the campus's student
+media with one line and three screenshots. Fix the top three complaints before growing further. If one of the three
+brands wants to present a week with a prize, week 3 is the first week to do it (`Board__Sponsor__*`, by hand).
 
 **Week 3 (the campus).** Posters with the mark and the slogan (`lockup-2400x1200-dark.png` prints well at A3) where
 people wait: the coffee line, the studio doors, the bus stop. A second challenge by a second brand. The story cards
@@ -96,6 +111,9 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
 | Post rate | posts ÷ OK checks | 30% | people trust the score in public |
 | Fire per post | fire ÷ posts in 7 days | 5 | the feed is alive without the team |
 | Brand pull | posts that mention a brand ÷ posts | 25% | the brand side has a reason to be here |
+| Tag rate | pieces a person tagged (`itemsTagged`) ÷ posts | 1 per post | people say what they wear without being asked |
+| Store pull | store-link taps (`itemOuts`) ÷ pieces with a link | 0.5 a week | a tagged piece is worth a tap; the number a brand will ask for |
+| Board pull | board reads (`boardViews`) ÷ people active in 7 days | 2 a week | the week has a rhythm; below 1 the board is decoration |
 | Rule-1 incidents | reports with reason `person` + calibration scan hits | 0 | the promise holds |
 
 ## What not to do
@@ -111,4 +129,11 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
 - Do not use exclamation marks, hype adjectives or emoji strings; do not use orange for anything but fire.
 - Do not open a second community before D7 retention holds in the first one.
 - Do not push Pro in the first four weeks; the habit comes first, the price after.
+- Do not buy, trade or ask for fires for the board, and do not let a brand do it: only fires from people with a check
+  count, three per person on one author's looks a week, and a moderator pulls a gamed look off the board. The
+  stylist's picks board answers to nobody's fires at all. A week bought is a week the hall is worth nothing.
+- Do not tag a brand on a piece you are not sure of, in a seed look or a post: the stylist only suggests a brand it can
+  see, and a wrong brand on someone's photo is the one mistake this app cannot afford.
+- Do not list an affiliate programme you have not joined, and do not hide the commission line under store links; the
+  programmes' terms and consumer law both expect it, and the app shows it under every store link on purpose.
 - Do not rely on the self-declared date of birth for anything that goes beyond the pilot (README, "Known limitations").

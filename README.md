@@ -7,7 +7,11 @@ that would finish the look. The check is private. Post it and it joins a feed wh
 react with fire, comment, save and follow; clips play in the feed, and a story card carries the score to
 Instagram and TikTok.
 Tag the brands you wear with `@brand`, add `#tags`, and brands feature the community looks they love, open
-challenges with a prize, and tag products on their own looks. Browsing needs no account, and neither does the
+challenges with a prize, and tag products on their own looks. **Tag the pieces** on your own look, the brand, the
+model, a store link and a dot on the photo (the stylist suggests a brand only when its mark is visible, and only you
+publish it), so a look can be found by brand and shopped from its item sheet; every week the looks that caught the
+most fire land on the **weekly flames board**, five top tens that close at Saturday midnight, Israel time, into a
+hall of flame. Browsing needs no account, and neither does the
 first check: a visitor gets one free look as a guest and keeps it by signing up. A free account gets a few checks
 a day; **OREVOSH Pro** raises that to 30. Two outfits for the same evening? **"Which one?"** scores both and
 picks. **Insights** read your checks over time, looks are searchable by the pieces in them, **Today's look** is a
@@ -84,7 +88,9 @@ The account commands exit with code 1 when no account has the handle (sign up fi
 usage error; a leading `@` on the handle is fine. `--verify` and `--pro` are the only things that write the verified
 flag and the plan by hand: no request can, and with `Billing:Provider` left at `manual` the `--pro` command is the
 whole upgrade path. On a server the same commands run inside the container, `docker compose exec app dotnet
-FitCheck.Api.dll --admin yourhandle` (`DEPLOY.md`, step 7).
+FitCheck.Api.dll --admin yourhandle` (`DEPLOY.md`, step 7). Round 10 adds no command: the weekly board closes itself
+in the background (`Services/BoardCloser.cs`, the log says when), a moderator pulls a look off it through the API, and
+affiliate programmes are settings (`Affiliate:Hosts`).
 
 ### Read the pilot metrics
 
@@ -96,7 +102,10 @@ curl -s -b 'orevosh.session=<a moderator’s cookie>' http://localhost:5000/api/
 The first block covers signed-in people's checks with `status = "ok"` (`returnRate` = users whose second OK check
 happened at most 7 days after their first ÷ users with at least one OK check; guest checks are left out). The
 `social` block counts users, brands, posts, fires, follows, comments, open and ended challenges, votes, mentions,
-featured looks, clips, push subscriptions, and people active in the last 7 days. The route answers only through a
+featured looks, clips, push subscriptions, people active in the last 7 days, and, since Round 10, `itemsTagged`
+(item rows a person touched: typed by them, or carrying a brand or a store link; the stylist's bare names are not
+tagging), `itemOuts` (store-link taps that left through `/api/items/{id}/out`) and `boardViews` (answered reads of
+`/api/board`), the last two read from the `Counters` table the routes increment. The route answers only through a
 moderator's session (below), and moderators see the same numbers drawn as a page at `#/admin/metrics` (one hero
 figure, the return rate; tiles; the score distribution as bars), linked from the moderation page.
 
@@ -106,7 +115,7 @@ figure, the return rate; tiles; the score distribution as bars), linked from the
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-468 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
+540 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules (the date of birth and the phone's own day among them), the CSRF
 header, uploads and 413/415/429/502, the plan caps, the ceiling and the global cap, what the allowances count and
@@ -121,8 +130,17 @@ comparisons (the comparer's prompt and mapping, the routes, the shared allowance
 list, billing (Checkout against a recording Stripe and its refusal for a Pro account, the signed webhook and its
 four events, the clamped Pro cap on `/api/config`, `--pro`), the insights gate, account recovery (the link origin,
 the per-account brakes, the address binding), account deletion removing files and fixing other people's counters,
-the migrations and the pilot-database upgrade (nullability and foreign keys included), backups, and the metrics
-math on a seeded dataset.
+the migrations and the pilot-database upgrade (nullability and foreign keys included), the Round 10 migration over a
+Round 9 file (every item keeps its name and gets an id, the stylist as its source and its order; the app starts on
+that file and the search by piece still finds the looks), items on a look (the stylist's rows at posting and never a
+brand while the check carries `brandSeen`, the tagging rules as a validation matrix with nothing written on a
+refusal, owner-only and hidden looks, the list on `POST /api/posts`, the item search and its paging, the brands list,
+the out door with the affiliate parameters and its brake, the metrics), rubric v3 (`brand_seen` mapped, the words
+"null" and "none" read as no brand), the weekly board (each eligibility rule, the pair cap, the tie order, the intent
+boards, the picks board, rising, exclusions and their lift, the week cut at midnight in Asia/Jerusalem and across a
+DST change, `?week=` by date and by instant, the counted reads, the 60-second cache, the sponsor and `me`, the
+closer's idempotence, catch-up and silence for old weeks, the badge and the hall), backups, and the metrics math on a
+seeded dataset.
 
 There is also a browser test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real client in a
 phone viewport against the real API with only the Anthropic API stubbed, as three people (a person in English,
@@ -131,7 +149,11 @@ screen through posting with tags and mentions, featuring, Explore, a challenge a
 with a fake device (a photo, then a clip with its frame picked), the story card, a comparison, the insights, a
 search by piece, the Pro page, Today's look and a follow-up look, verified brands, the moderation queue and a
 suspension, the numbers page, the guidelines, the terms and the privacy policy, the health and config routes, to
-deleting an account.
+deleting an account. **The Round 10 surfaces are not in the script yet**: the item editor on the post sheet, the dots
+and the item sheet on the look page, the item pages, the board, the hall, the Explore strip and the badge were
+verified by their builders in Chromium by hand (against the stub, and against mocked answers where the other half
+had not landed), not by `e2e.js`; the stub already answers rubric v3 (`brand_seen`, "Nike" on the English running
+shoes) and refuses a schema without it. `tools/e2e/README.md` lists the hooks a Round 10 run has to drive.
 
 ### Check the calibration before inviting people
 
@@ -183,8 +205,19 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Limits:LoginsPerQuarterHourPerIp` | `30` | Login attempts per client address per 15 minutes |
 | `Limits:CommentsPerHour` / `Limits:ReportsPerHour` | `30` / `20` | Per signed-in account, fixed one-hour windows in memory (429 `error.too_fast` with `Retry-After`) |
 | `Limits:ReportsToHide` | `3` | Reports from distinct people after which a post or comment is hidden |
+| `Board:WeekStartsOn` | `Sunday` | The first day of the board's week (a `DayOfWeek` name), in `Board:TimeZone` |
+| `Board:TimeZone` | `Asia/Jerusalem` | The IANA zone the week is cut in: it opens at local midnight on `WeekStartsOn` and closes seven days later (Saturday midnight in Israel); `weekStart` and `weekEnd` on the board are those instants in UTC. A zone this machine does not know falls back to UTC with a warning at start (`Board: the time zone … is not known here`) |
+| `Board:MinChecksToCount` | `1` | A fire counts only when the firer has made at least this many `ok` checks by the week's end (a check later in the week makes their earlier fires count). `0` turns the rule off |
+| `Board:MaxPerFirerPerAuthor` | `3` | The most fires from one person on one author's looks that count in a week; the first ones by time count, the rest do not. `0` or less means unlimited |
+| `Board:NewAccountDays` | `2` | A fire from an account younger than this at the moment of the fire does not count |
+| `Board:Size` | `10` | Places on each board |
+| `Board:RisingDays` | `30` | The rising board lists the fired looks of accounts younger than this at the week's end |
+| `Board:Sponsor:Name` / `Handle` / `PrizeText` / `Url` | empty | The week's sponsor, on the board only while `Name` is set: the name (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. Settings, not a form: there is no sponsor self-service |
+| `Affiliate:Disclosure` | `true` | Bound, and nothing reads it yet: the item sheet shows "Leaves OREVOSH · This link may earn OREVOSH a commission." under every store link, whatever this says |
+| `Affiliate:Hosts` | `{}` | Host → the query string `GET /api/items/{id}/out` appends when a link goes there, e.g. `"amazon.com": "tag=orevosh-20"` (`Affiliate__Hosts__amazon.com=tag=orevosh-20` as an environment variable); a listed host matches case-insensitively with its subdomains (`www.amazon.com` and `smile.amazon.com`, not `notamazon.com`). Empty by default: nothing is appended and no link earns anything until you list a programme you joined. The parameters are added at the door, never stored, so a change here changes every link at once |
 
-Any key can be overridden with an environment variable, e.g. `Plans__FreeChecksPerDay=5`. `ANTHROPIC_API_KEY`
+Any key can be overridden with an environment variable, e.g. `Plans__FreeChecksPerDay=5` (a double underscore stands
+for each colon; a key with a dot in it, `Affiliate__Hosts__amazon.com`, keeps the dot). `ANTHROPIC_API_KEY`
 is read from the environment only, and so should be every other secret (`Push__PrivateKey`, `Email__Password`,
 the three `Billing__Stripe*` keys).
 
@@ -220,7 +253,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
-| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks and comparisons in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap. A suspended account gets 403 and is signed out |
+| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks and comparisons in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. A suspended account gets 403 and is signed out |
 | `POST /api/auth/forgot` | `{ handleOrEmail }` | `202` always, same body whether or not the account exists; mails a reset link when the account has a confirmed email (5 per hour per address) |
 | `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
 | `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to, and only while that is still the account's address; works signed out, signs nobody in |
@@ -231,12 +264,12 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
 | `GET /api/users/{handle}/avatar?v=` | — | The photo, `Cache-Control: public, max-age=86400` |
-| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check and comparison, their photos and clips (by path, `ImagePath`/`VideoPath` and `ImagePathA`/`B`, as well as the account's folder), the avatar, every post, tag, mention, comment, fire, save, vote, follow and notification, and fixes other people's counters and featured marks. 403 for a moderator: `--unadmin` first, or the freed handle would be promoted again on the next restart |
+| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check and comparison, their photos and clips (by path, `ImagePath`/`VideoPath` and `ImagePathA`/`B`, as well as the account's folder), the avatar, every post, tag, mention, comment, fire, save, vote, follow and notification, the items on its looks, its board exclusions and its places in the hall (`WeeklyWinners`), and fixes other people's counters and featured marks. 403 for a moderator: `--unadmin` first, or the freed handle would be promoted again on the next restart |
 | `GET /api/users/me/checks` 🔒 | — | Last 50 checks, newest first, each with `postId` when posted |
 | `GET /api/users/me/saved` 🔒 | `?offset&limit` | Saved posts, newest first |
 | `GET /api/users/me/insights` 🔒 | — | `{ checks, avgScore, bestScore, bestIntent, weakestCategory, weakestShare, accessoriesMissingShare, streak, lines }` over the last 200 OK checks: the average (one decimal) and best score, the intent with the highest average among those checked at least twice (else the most checked), the item category most often called weak and its share of the looks that had items, the share of rubric-v2 checks with no accessories on, and two to four ready sentences in the caller's language. Under 3 checks only `checks` and `streak` are filled and `lines` is empty. 403 `error.pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro (the client shows the Pro card on `#/insights`). Private, like the checks |
 | `GET /api/users/me/comparisons` 🔒 | — | The caller's last 20 comparisons, newest first (the shape of `GET /api/compare/{id}`) |
-| `GET /api/users/{handle}` | — | Public profile: counts, best score, streak, `avatarUrl`, `verified`, `featured`, `community`, `viewer.following` |
+| `GET /api/users/{handle}` | — | Public profile: counts, best score, streak, `avatarUrl`, `verified`, `featured`, `community`, `viewer.following`, and `badge` (the same shape as on `me`: last week's top-three place on the looks board, this week only) |
 | `GET /api/users/{handle}/posts` | `?offset&limit` | That person's public posts |
 | `GET /api/users/{handle}/community` | `?offset&limit` | Public posts that mention this account |
 | `GET /api/users/{handle}/featured` | `?offset&limit` | Brand: posts it featured. Person: their posts that were featured |
@@ -247,11 +280,15 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/compare` 🔒 | multipart: `intent`, `occasion?`, `language`, `imageA`, `imageB` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v1`, the analyzer's rules and calibration) and one wins, `a` or `b`. Counts against the same daily allowance as a check; 400 `compare_two_photos` without both, 403 `pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro, and otherwise the same 413/415/429/502 as a check (at the cap a free account hears `error.plan_limit`, a Pro account `error.rate_limited`). `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
 | `GET /api/compare/{id}` 🔒 | — | The comparison, owner only (404 otherwise) |
 | `GET /api/compare/{id}/image/a` and `/b` 🔒 | — | The two photos, owner only, `Cache-Control: private`. The only route that serves them; 404 for a comparison that kept none |
-| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). At posting the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category), so `/api/search` finds it by piece; the item verdicts and notes stay private |
-| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
+| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item verdicts and notes stay private. With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name equals a stylist row's name (case-insensitively) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
+| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
 | `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip. A WebM becomes `video/mp4` at the same URL once the background transcode is done (Configuration, "Clips") |
-| `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted |
+| `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted, and so are the look's items (their search rows and store links with them) |
+| `PATCH /api/posts/{id}/items` 🔒 | `{ items: [{ id?, name?, category?, brand?, model?, url?, x?, y?, confirmed? }] }` | `200` the look's items, in the order sent. Owner only: another person's look and a hidden one answer 404 `error.post_not_found` alike. The list is the whole list, at most 12 (400 `error.items_too_many`, "Up to 12 items on a look."): a row not in it is removed, `items: []` clears the look, a missing body is 400 `error.item_invalid`. An input with `id` keeps that row (its name and category may be left out to keep them); one without an id whose name equals a not-yet-named stylist row's name re-attaches to it; anything else is a new row with source `User`. A stylist row stays the stylist's while only its brand, model, link, dot or confirmation change and becomes the person's once its name or category does. Rules, each a 400 with nothing written: a typed name 1–40 characters after normalisation (lower-cased, one space between words; a stylist name sent back unchanged may be up to 60), `category` one of the seven (a new row without one is `other`), `brand` ≤ 40, `model` ≤ 60 (`error.item_invalid`, also for a duplicate or unknown `id`); `url` absolute `http(s)`, ≤ 500, with a host and no user info, so `javascript:`, `data:`, `ftp:`, a relative path or `nike.com@evil.example` are refused (`error.item_url_invalid`); `x` and `y` both in 0..1 or both absent (`error.item_position_invalid`); `confirmed` is stored true only with a brand on a row that is still the stylist's. The stylist's `brandSeen` is never copied by the server: the client shows it as "Looks like Nike?" and sends it back as `brand` with `confirmed: true` when the person confirms, another brand with `confirmed: false` on Edit, and no brand on "Not a brand". Logs `Items: {Count} on post {PostId} by {UserId}` |
+| `GET /api/items` | `?brand&category&q&offset&limit` | `{ brand?, category?, q?, posts, nextOffset? }`: visible looks (not hidden, author not suspended) carrying **one item row that matches every filter given** (`brand=nike&category=bottom` is a Nike bottom, not a Nike top on a look with pants), newest first, paged like a feed (`limit` 1–30, 20 by default). `brand` matches case-insensitively and comes back in the spelling most rows carry ("Nike" for `?brand=nike`); `category` is exact and one of the seven (an unknown one is an empty page); `q` matches anywhere in the name or the model, `%` and `_` literal. No filter at all is an empty page, never everything; `brand` or `q` over 40 characters is 400 `error.search_invalid`. The client shows this under `#/items/<brand>`, `#/items/<brand>/<category>` and `#/items?q=` |
+| `GET /api/items/brands` | `?q` | `{ items: [{ name, looks, account? }] }` for the brand autocomplete: brands already on visible looks, merged across case in .NET (so "Nike" and "nike" are one, in any script) with the count of distinct looks, plus brand accounts (not suspended) whose handle starts with `q` or whose name contains it, a brand account of the same name riding on the tagged brand as its `account` (a user ref, `verified` included); by looks, then accounts first, then verified, then name; at most 20. Empty `q` is the top brands plus every brand account; over 40 characters is 400 `error.search_invalid` |
+| `GET /api/items/{id}/out` | — | **The one door a store link leaves through**: `302` to the item's `url` as stored (host case kept), with the parameters `Affiliate:Hosts` names for its host appended after the link's own query and before its `#fragment` (`?tag=…` or `&tag=…`), and `Referrer-Policy: no-referrer` and `Cache-Control: no-store` on the answer, so the store learns nothing about the look or the person and every tap is counted (`itemOuts` in the metrics; only taps that were redirected count). 404 `error.item_not_found` ("We couldn't find this item.") for a missing item, one without a link, or one on a hidden look; a moderator reviewing a hidden look reads the raw `url` on the DTO instead. Rate limited by the `out` policy: 60 a minute per client address, a fixed window in memory, 429 `error.too_fast` with `Retry-After` beyond it. The client opens it as `<a href target="_blank" rel="noopener">` ("Shop at nike.com") with "Leaves OREVOSH · This link may earn OREVOSH a commission." under it whenever a link exists |
 | `POST` / `DELETE /api/posts/{id}/fire` 🔒 | — | `{ fireCount, fired }`. One per person; idempotent |
 | `POST` / `DELETE /api/posts/{id}/save` 🔒 | — | `{ saved }` |
 | `POST` / `DELETE /api/posts/{id}/feature` 🔒 | — | `{ featuredBy }`. Brands only; the post must mention the brand or be an entry in one of its challenges; one brand per post (409 when another brand was first); the author is notified |
@@ -265,11 +302,15 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `GET /api/search?q=` | — | `{ users, tags, posts }` for a 1–40 character query: handle prefix or display-name substring (brands first), tag prefix, and up to 12 visible looks whose stylist-named items contain the term ("black boots"), newest first. The client shows the three under `#/search/<term>` |
 | `GET /api/tags/{tag}/posts` | `?offset&limit` | Public posts carrying the tag, newest first |
 | `GET /api/today` | — | `{ tag, title, hint, intent?, date, posts, posted }`: the day's prompt (one of 30 in `Services/DailyPrompts.cs`, picked by the count of UTC days since a fixed day, 31 December 2025, modulo thirty, so it turns over at midnight UTC, everyone sees the same one, and the cycle runs on across the year turn instead of restarting on 1 January), its title and hint in the caller's language, up to 60 visible looks posted today with its hashtag (newest first), and whether the caller posted one (a look under review still counts). Public |
+| `GET /api/board` | `?week` | `{ weekStart, weekEnd, closesIn, closed, looks, people, rising, intents, picks, sponsor?, me? }`: **the weekly flames board**, public. Without `week`, the week running now in `Board:TimeZone`; `week=yyyy-MM-dd` is a date in that zone and answers the week containing it (any day of the week names it), and a full ISO instant with a `T` (the `weekStart` a board answered) is taken as an instant, so a client can pass it back unchanged; anything else is 400 `error.board_week_invalid`. `weekStart` and `weekEnd` are the UTC instants of local midnight (Sunday 6 September 2026 in Israel is `2026-09-05T21:00:00Z`); `closesIn` is seconds until `weekEnd`, 0 once `closed`. Every row is `{ rank, fires, post?, user, looks?, score? }` with `fires` the fires that counted, not the look's `fireCount`: `looks` is the fired looks by counted fires (an earlier look first on a tie); `people` is the sum over each author's fired looks (ties to the older account; `looks` on a people row is how many they posted that week); `rising` is the looks board restricted to authors whose account is younger than `Board:RisingDays` at the week's end; `intents` is keyed by intent name (`"Date"`), only intents with a counted fire; `picks` is the looks **posted** this week by the stylist's `score`, counted fires and then age only breaking ties, `score` on the row. Ten places each (`Board:Size`). `post` is left off a row whose look is gone or under review; the place stays with the person. `sponsor` `{ name, handle?, prizeText?, url? }` only while `Board:Sponsor:Name` is set; `me` `{ looks?, people?, rising?, intent?, picks? }` is the caller's best place on each board, absent signed out or when on none (`intent` is the best across the intent boards, without saying which). A week that is over and closed answers from the archive (`closed: true`, `closesIn: 0`); anything else is computed and served from memory for 60 seconds per process; a future week is an empty board. Every answered read counts in `boardViews` (a 400 does not, and the Explore strip and the reset card read this route too) |
+| `GET /api/board/hall` | — | `{ weeks: [{ weekStart, weekEnd, winners: [{ board, rank, user, postId?, imageUrl?, fires, score? }] }] }`: **the hall of flame**, the closed weeks newest first, twelve at most, every place the closer wrote (`board` is `looks`, `people`, `rising`, `intent:<Intent>` or `picks`, in that order, then by rank). `imageUrl` (`/api/posts/{id}/image`) only while the look still exists and is not hidden; a deleted look's place stays with `postId` cleared. Not counted in `boardViews` |
+| `POST /api/admin/board/exclude` 🔒 | `{ postId, reason? }` | Moderators only (the same gate as the queue): `201 { postId, reason, by, createdAt }`, the look off every board of every computed week from now on and the board's cache dropped; `reason` trimmed and cut at 200. 400 `error.invalid_request` without a `postId`, 404 `error.post_not_found`, 409 `error.board_excluded` when it is already off. A hidden look can be excluded too. Logs `Board: {PostId} excluded by {UserId}: {Reason}`. Already-closed weeks are not rewritten |
+| `DELETE /api/admin/board/exclude/{postId}` 🔒 | — | 204, the look back on the board (cache dropped); 404 `error.board_not_excluded` when it was not off. Logs `Board: {PostId} put back by {UserId}` |
 | `GET /api/challenges` | `?state=open\|ended` | Challenges with entry and vote counts, the top three entries and `viewer` (`isBrand, hasEntered, votedPostId, myEntryId`) |
 | `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt, tag? }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now. `tag` is the entry hashtag (derived from the title when missing, made unique among open challenges) |
 | `GET /api/challenges/{id}` | — | `{ challenge, entriesByVotes, winner }`. Reading an ended challenge fixes its winner if that has not happened yet |
 | `POST` / `DELETE /api/challenges/{id}/vote` 🔒 | `{ postId }` / — | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry, and not by the brand that opened it |
-| `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured` |
+| `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read, rank? }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured, board_rank`. `board_rank` is written by the board's closer for everyone on the looks board of the week that just closed (one per person, their best place in `rank`, `actorHandle` their own handle, `postId` the look), shown as "You finished #{rank} this week" and pushed with the same line, the tap landing on `#/board`; older weeks closed in a catch-up are silent |
 | `POST /api/notifications/read` 🔒 | — | 204, marks everything read |
 | `GET /api/push/state` 🔒 | — | `{ enabled, subscribed }`: whether the server has VAPID keys, and whether this account has at least one subscription |
 | `POST /api/push/subscriptions` 🔒 | `{ endpoint, p256dh, auth }` (from `PushSubscription.toJSON()`) | `200` state. Upserts this browser's subscription for the account, at most 10 per account (the oldest make room); 400 when push is off, the subscription is malformed, or the endpoint is not a public push-service name (a literal address, `localhost` or a single-label host is refused). A subscription the push service answers 404/410 (gone) or 401/403 (made against other VAPID keys) to is deleted |
@@ -291,16 +332,19 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 ```
 FitCheck.sln
 src/FitCheck.Api/
-  Program.cs                      wiring, migrations on start, cookie auth, rate limiter (incl. the "guest" attempts brake), CSRF
-                                  header check (the Stripe webhook exempt), security headers, static files, /api/config,
-                                  /healthz, --vapid, --backup, --admin, --unadmin, --verify, --unverify, --pro
+  Program.cs                      wiring, migrations on start, cookie auth, rate limiter (incl. the "guest" attempts brake and the
+                                  "out" door's minute), CSRF header check (the Stripe webhook exempt), security headers (a route
+                                  may set Referrer-Policy first), static files, /api/config, /healthz, --vapid, --backup,
+                                  --admin, --unadmin, --verify, --unverify, --pro
   Data/DatabaseSetup.cs           Migrate(), WAL, the pilot-database upgrade, the backup command
   Data/AdminSync.cs               the Admin:Handles sync at start and the --admin/--unadmin, --verify/--unverify, --pro commands
   Data/Migrations/                the EF Core migrations (dotnet ef migrations add <Name> for the next one)
   Domain/                         StyleIntent, AppUser (plan, proUntil, birthDate, verified), OutfitCheck (guestToken,
-                                  claimedAt), OutfitFeedback (+ ComparisonFeedback), Social.cs (posts with beforePostId,
-                                  tags, mentions, comments, fire, saves, follows, challenges, votes, notifications, reports,
-                                  auth tokens, post items, comparisons), options (Plans, Billing, Email, Limits…)
+                                  claimedAt), OutfitFeedback (+ ComparisonFeedback; items carry brandSeen from rubric v3),
+                                  Social.cs (posts with beforePostId, tags, mentions, comments, fire, saves, follows,
+                                  challenges, votes, notifications with a rank, reports, auth tokens, post items with brand,
+                                  model, url, source and the dot, board exclusions, weekly winners, counters, comparisons),
+                                  options (Plans, Billing, Email, Limits, Board, Affiliate…)
   Data/AppDbContext.cs            SQLite via EF Core; unique indexes carry the one-per-person rules
   Services/OutfitAnalyzer.cs      ← the stylist: system prompt, intent guide, tool schema, PromptVersion, mapping
   Services/OutfitComparer.cs      ← "Which one?": two photos in one call, the same rules and calibration, PromptVersion cmp-v1
@@ -315,7 +359,13 @@ src/FitCheck.Api/
   Services/GuestChecks.cs         the guest cookie, the claim (rows and files move to the account, all or nothing), GuestCheckSweeper
                                   (hourly)
   Services/StripeClient.cs        one form POST that opens a Checkout Session, and the webhook signature check; no SDK
-  Services/PostItems.cs           the stylist's item names copied onto a look at posting, for the search by piece
+  Services/PostItems.cs           the stylist's item names copied onto a look at posting, for the search by piece, and Apply: the
+                                  one validation of the list a person tags (names, brand, model, the store link, the dot)
+  Services/Board.cs               the weekly board: the week's window in Board:TimeZone, which fires count, the five boards, the
+                                  60-second cache, the DTOs, the badge
+  Services/BoardCloser.cs         the hosted service that closes ended weeks into WeeklyWinners once and tells the looks board
+  Services/Counters.cs            the item_outs and board_views tallies, an upsert per hit
+  Services/Clock.cs               IClock, the one clock the board reads, so a test can move the week
   Services/DailyPrompts.cs        the 30 "Today's look" prompts, one a day by the count of UTC days since 31 Dec 2025, modulo 30
   Services/RecoveryTokens.cs      one-time links (hashed), the link origin rule, the per-account mail brakes
   Services/CaptionParser.cs       #tags and @mentions out of a caption
@@ -326,14 +376,18 @@ src/FitCheck.Api/
   Services/ChallengeResolver.cs   fixes the winner exactly once when a challenge has ended
   Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches
   Services/Localizer.cs           server messages (en/he) and Accept-Language matching
-  Endpoints/                      auth, users, checks (+ claim), compare, posts (+ comments), feed, explore (+ search, tags),
-                                  challenges, notifications, insights, today, billing, push, admin, metrics
+  Endpoints/                      auth, users, checks (+ claim), compare, posts (+ comments), items (tagging, the item search, the
+                                  brands list, the out door), board (the week, the hall, the moderator's exclusion), feed,
+                                  explore (+ search, tags), challenges, notifications, insights, today, billing, push, admin, metrics
   wwwroot/index.html, app.css     the shell (with the Open Graph and Twitter tags) and the design system: Ring of Fire, see
                                   DESIGN.md (logical properties for RTL)
   wwwroot/app/core.js             state, i18n, API, router, bottom sheets, gestures, look cards, the claim call, the brand mark
   wwwroot/app/views/*.js          one module per screen: feed, post, explore, challenges, check, camera, compare, pro, insights,
-                                  today, activity, profile, auth, settings, admin, dashboard (the numbers), pages, legal
+                                  today, activity, profile, auth, settings, admin, dashboard (the numbers), pages, legal,
+                                  items (the brand and search pages), board (the board, the hall, the Explore strip, the
+                                  reset card, the profile badge)
   wwwroot/app/after.js            the "after the tip" picker for the post sheet
+  wwwroot/app/items.js            the tagging editor of the post sheet and of "Edit items": the rows, the brand suggestion, the dot
   wwwroot/manifest.webmanifest,   the installable app; the service worker caches the shell only, never the API, and lets
   wwwroot/sw.js, wwwroot/icons/   /landing/ navigations through to the network
   wwwroot/i18n/en.json, he.json   UI strings (the terms and the privacy policy among them); add a locale by adding a file
@@ -385,9 +439,42 @@ descriptive is dropped when the status is not `ok`.
   `Billing:Provider`: with `manual`, the Pro page shows a note and nothing pretends to charge.
 - **Comparisons are private and never postable.** "Which one?" keeps both photos only when the stylist confirmed
   two outfits, serves them to the owner alone, and has no post route.
-- **Items are indexed from the stylist's words, never from captions.** At posting, the item names of the check are
-  copied onto the look (lower-cased, up to 8); a caption cannot put a look under "black boots". The verdicts and
-  notes stay private with the tip.
+- **Items are indexed from the stylist's words or the person's, never from captions.** At posting, the item names of
+  the check are copied onto the look (lower-cased, up to 8) unless the person tagged the pieces on the post sheet; a
+  caption cannot put a look under "black boots". A row keeps saying whether the stylist or the person named it
+  (`source`), and the verdicts and notes stay private with the tip.
+- **The stylist never publishes a brand; the person does.** Rubric v3 asks for `brand_seen` on every piece and only
+  for a mark, logo or unmistakable signature that is visible (null otherwise, never a guess from style, cut or
+  price); the server never copies it onto a look. The post sheet shows it as "Looks like Nike?" with Confirm, Edit
+  and Not a brand, and a brand reaches a row only through the person's own list: confirmed (a stylist row, a brand,
+  `confirmed: true`) or typed, in which case `confirmed` is false whatever was sent. A brand or a model on a look is
+  the person's word, never verified.
+- **Store links leave through one door.** A link is stored as given (`http(s)`, a host, no user info, 500 characters)
+  and is never the `href` a person taps: `GET /api/items/{id}/out` answers a 302 with the affiliate parameters for its
+  host from `Affiliate:Hosts` appended at the door, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`,
+  counts the tap, and refuses a hidden look. So a programme can be joined, changed or revoked in one setting for
+  every link at once, the store learns nothing about the look or the person, and the item sheet says "Leaves OREVOSH
+  · This link may earn OREVOSH a commission." under every store link, whether or not the host earns anything today.
+  Sixty taps a minute per address, then 429.
+- **A fire counts on the board only from someone who uses the app, and only a few per pair.** The week's fires are
+  read in time order and each counts only when the firer has made at least one `ok` check by the week's end
+  (`Board:MinChecksToCount`), when their account was at least two days old at the fire (`Board:NewAccountDays`),
+  when the look is not their own, and while it is within the first three fires from that person on that author's
+  looks in the week (`Board:MaxPerFirerPerAuthor`); the row's `fires` is that count, not `fireCount`. Hidden looks
+  and looks a moderator excluded are on no board. Friends cannot carry a look, and a fresh batch of accounts carries
+  nothing.
+- **The picks board cannot be gamed.** It ranks the looks posted that week by the stylist's score; counted fires and
+  then age only break ties, so no amount of fire moves a look past a better score.
+- **Moderators pull looks off the board; they cannot put anyone on it.** `POST /api/admin/board/exclude` takes a look
+  off every board that is computed from then on, with a reason, and the lift puts it back; both are logged with who
+  did it. A week already closed keeps its archive.
+- **A week closes once, by the closer, into the hall.** `BoardCloser` runs at start and every five minutes, finds
+  every week that is over and has no `WeeklyWinners` rows (back to the week of the earliest fire, so downtime is
+  caught up oldest first), and writes every board and rank of a week in one save; the unique index on
+  `(WeekStart, Board, Rank)` makes a second close of the same week a no-op, a week with no counted fires writes
+  nothing, and only the most recent ended week tells the looks board its places (`board_rank`, in the app and by
+  push). There is no HTTP route that closes a week. The badge the week after is read from those rows: the top
+  three of the looks board, on `me` and the profile, for one week.
 - **A follow-up is a strip on the card, not a post type.** `beforePostId` must be one of your own visible looks and
   not this check's own; the card shows "After the tip · 6 → 7" with a link to the earlier look, and the feed stays
   one kind of thing.
@@ -403,7 +490,8 @@ descriptive is dropped when the status is not `ok`.
 - **One endpoint deletes everything.** Account, checks, comparisons, photos and clips (by path as well as by
   folder), avatar, posts, tags, mentions, comments, fire, saves, votes, follows and notifications, with other
   people's counters and featured marks corrected.
-- **No hallucinated brands or items.** Instruction in the prompt; the model may only name what is visible.
+- **No hallucinated brands or items.** Instruction in the prompt; the model may only name what is visible, and a
+  brand only when its mark is (rubric v3, above).
 - **One of each per person.** Fire, save, follow, report and challenge vote are unique per person and target
   at the database level; repeating is idempotent, never a 500. You cannot follow yourself, report your own
   look, or vote for your own entry.
@@ -490,6 +578,26 @@ descriptive is dropped when the status is not `ok`.
   retention job yet, and clips are large: watch the disk (`DEPLOY.md`, "What to watch").
 - **Push needs an installed app on iPhone** (iOS 16.4+, added to the home screen). Android and desktop
   Chrome work in the tab.
+- **Brands and models on items are the person's word, or a confirmed guess; never verified.** A brand on a piece is
+  what its owner typed or confirmed, and the stylist's suggestion is a mark it saw in a photo, not a catalogue
+  lookup. The brand pages group looks by that word; a misspelt or made-up brand is its own page, and nothing checks
+  that a store link leads to the piece it is on. Reports and the queue are the answer to abuse, as for captions.
+- **Affiliate hosts are empty by default.** No link earns anything until `Affiliate:Hosts` lists a programme you
+  joined; the item sheet shows the commission line under every store link regardless (`Affiliate:Disclosure` is bound
+  and not read). Fill the list only with programmes whose terms you accepted; the app knows nothing about them.
+- **The board's per-address protection is nothing.** The eligibility rules are the guard (a check made, an account
+  two days old, three fires per pair); they raise the cost of gaming, they do not make it impossible, and the
+  moderator's exclusion is the answer when it happens. Only the out door has an address limit.
+- **The closer has no HTTP trigger.** A week closes when `BoardCloser` next runs (at start, then every five minutes),
+  so a week's places, the hall and the badge appear a few minutes after midnight; there is no route to close one by
+  hand. A week already in the hall keeps its rows if a moderator later un-hides or re-includes a look that would have
+  placed, and a week the closer found empty is remembered as empty for the life of the process, so a late change to a
+  past week is closed only after a restart.
+- **SQLite folds ASCII only.** The item search matches a brand with `COLLATE NOCASE` and the name or model with
+  `LIKE`, both of which fold Latin letters only: a Cyrillic or Hebrew brand typed in another case is a separate brand
+  on `#/items/<brand>`, while the brands list groups in .NET and merges them. Fine at pilot scale; a collation later.
+- **The board cache is per process.** A computed week is served from memory for 60 seconds (real time), dropped by
+  an exclusion; the out-door limiter is a memory window too. One more reason to run one instance.
 - **The .NET project is still called `FitCheck.Api`.** A mechanical rename for when the repository gets its
   final name; nothing a user sees says FitCheck.
 
@@ -497,8 +605,15 @@ descriptive is dropped when the status is not `ok`.
 
 - **No in-app cancel for Pro.** Stripe renews until the subscription is cancelled on Stripe's side (or by the owner);
   the app shows the end date and the terms say to write to us. A customer-portal link is the obvious next step.
-- **No block-user.** Reports and moderation exist; a person cannot mute or block another. Apple's UGC checklist
+- **No block-user, still.** Reports and moderation exist; a person cannot mute or block another. Apple's UGC checklist
   expects it before a store submission (`STORE.md`).
+- **No marketplace.** A tagged piece links out to a store through the out door; nothing is sold, carted or paid for
+  in the app, and no catalogue, price or stock is kept.
+- **No product catalogue search and no image search.** Looks are found by the brand, category, name and model
+  people typed (`GET /api/items`), not by a product database, a barcode or the photo itself; the stylist's brand
+  suggestion is a mark it saw, not a lookup.
+- **No sponsor self-service.** The week's sponsor is `Board:Sponsor:*` in the settings, set by the owner; a brand
+  cannot buy or book a week from the app.
 - **No native push.** Web Push works in the browser install; inside the Capacitor shells nothing arrives (APNs and
   FCM need a sender that does not exist yet, `mobile/README.md`).
 - **Sounds on posts, deliberately not built.** Music on looks would bring licensing, break the muted feed and pull

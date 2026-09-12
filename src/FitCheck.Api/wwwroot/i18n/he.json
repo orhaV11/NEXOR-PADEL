@@ -709,5 +709,22 @@
   "badge.board_picks": "הבחירות של הסטייליסט",
   "badge.board_intent": "לפי כיוון · {intent}",
   "affiliate.disclosure": "הקישור הזה עשוי להכניס עמלה ל-OREVOSH.",
-  "activity.board_rank": "סיימת במקום {rank} השבוע"
+  "activity.board_rank": "סיימת במקום {rank} השבוע",
+  "items.editor_title": "תיוג הפריטים",
+  "items.editor_hint": "שם לכל פריט, מותג אם ידוע, ונקודה על התמונה במקום שבו הוא נמצא.",
+  "items.place_hint": "הקשה על התמונה במקום של {name}. גרירת הנקודה מזיזה אותה.",
+  "items.unplace": "הסרת הנקודה",
+  "items.dot_label": "פריט {n}: {name}",
+  "items.unnamed": "פריט ללא שם",
+  "items.brand_placeholder": "למשל Nike",
+  "items.model_placeholder": "למשל Air Max 90",
+  "items.link_hint": "נפתח בלשונית חדשה דרך OREVOSH; על הלוק מופיע רק שם החנות.",
+  "items.edit_items": "עריכת פריטים",
+  "items.saved": "הפריטים נשמרו",
+  "items.empty_own": "עוד לא תויג כלום. הוסיפו את הפריטים כדי שאנשים ימצאו ויקנו את הלוק.",
+  "items.search_placeholder": "חיפוש פריטים, מותגים, דגמים",
+  "items.search_hint": "מציאת לוקים לפי פריט, מותג או דגם.",
+  "items.looks": "{n} לוקים",
+  "items.looks_one": "לוק אחד",
+  "items.all": "הכול"
 }

@@ -709,5 +709,22 @@
   "badge.board_picks": "Stylist's picks",
   "badge.board_intent": "By intent · {intent}",
   "affiliate.disclosure": "This link may earn OREVOSH a commission.",
-  "activity.board_rank": "You finished #{rank} this week"
+  "activity.board_rank": "You finished #{rank} this week",
+  "items.editor_title": "Tag the pieces",
+  "items.editor_hint": "Name each piece, add the brand if you know it, and drop a dot where it sits on the photo.",
+  "items.place_hint": "Tap the photo on {name}. Drag the dot to move it.",
+  "items.unplace": "Remove the dot",
+  "items.dot_label": "Item {n}: {name}",
+  "items.unnamed": "Unnamed piece",
+  "items.brand_placeholder": "e.g. Nike",
+  "items.model_placeholder": "e.g. Air Max 90",
+  "items.link_hint": "Opens in a new tab through OREVOSH; only the store's name shows on the look.",
+  "items.edit_items": "Edit items",
+  "items.saved": "Items saved",
+  "items.empty_own": "Nothing tagged yet. Add the pieces so people can find and shop the look.",
+  "items.search_placeholder": "Search pieces, brands, models",
+  "items.search_hint": "Find looks by piece, brand or model.",
+  "items.looks": "{n} looks",
+  "items.looks_one": "1 look",
+  "items.all": "All"
 }

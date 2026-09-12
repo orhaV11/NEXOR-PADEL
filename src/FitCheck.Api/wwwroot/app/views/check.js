@@ -14,6 +14,7 @@ import {
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { afterPicker } from '../after.js';
+import { itemsEditor } from '../items.js';
 
 const SCORE_COUNT_MS = 900;
 const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
@@ -622,10 +623,14 @@ function openPostSheet(area, result) {
   const cancel = el('button', { type: 'button', class: 'btn btn-ghost', text: t('common.cancel'), onclick: () => s.close() });
   // "After the tip": the caller's last looks to mark this one as a follow-up of (hidden until they are in; none for a first look).
   const after = afterPicker(result);
+  // Round 10, the items: the stylist's pieces as chips (a brand it saw waits for Confirm / Edit / Not a brand), the person's
+  // own additions, and the dot on the preview; value() goes with the post as items.
+  const items = itemsEditor(result, state.check.previewUrl);
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),
     after.node,
+    items.node,
     productsField,
     error,
     el('div', { class: 'row' }, [confirm, cancel])
@@ -638,7 +643,7 @@ function openPostSheet(area, result) {
       .filter((r) => r.label.value.trim() || r.url.value.trim())
       .map((r) => ({ label: r.label.value.trim(), url: r.url.value.trim(), price: r.price.value.trim() || null }));
     try {
-      const post = await api('POST', '/api/posts', { checkId: result.id, caption: caption.value, products, beforePostId: after.value() });
+      const post = await api('POST', '/api/posts', { checkId: result.id, caption: caption.value, products, beforePostId: after.value(), items: items.value() });
       state.resultPostId = post.id;
       result.postId = post.id;
       state.check.challenge = null;

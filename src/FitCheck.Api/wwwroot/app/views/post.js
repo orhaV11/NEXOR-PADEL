@@ -1,10 +1,16 @@
 // Post detail: the look, who was tagged in it, its challenge votes, the comments, and a sticky composer.
 // Ported from the Phase 2 monolith's postView onto the Phase 3 kit (bottom sheets instead of window.confirm,
 // flush edge-to-edge card, top bar with a back arrow).
+// Round 10, the items on the look: "The look" (#look-items) lists the pieces under the card (name · brand · model; a
+// row opens the item sheet #item-sheet with brand, model, category, "Shop at {host}" (#item-shop → /api/items/{id}/out
+// in a new tab) and the leaves-and-commission line); the dots (.item-dot[data-item]) sit over the photo behind the tag
+// toggle (#items-toggle); the owner's "Edit items" (#items-edit) opens the same editor as the post sheet in #items-sheet
+// and saves with PATCH /api/posts/{id}/items (#items-save).
 import {
-  register, state, t, api, el, avatar, userRow, postCard, setTopBar, navigate, requireSignIn,
+  register, state, t, api, el, icon, avatar, userRow, postCard, setTopBar, navigate, requireSignIn, sheet,
   emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow
 } from '../core.js';
+import { itemsEditor, itemLine, hostOf, hasDot, categoryLabel } from '../items.js';
 
 let styled = false;
 function ensureStyle() {
@@ -52,9 +58,120 @@ register('post', async (root, params, ctx) => {
   function refreshCard() {
     cardWrap.replaceChildren(postCard(post, cardOpts));
     syncCount();
+    mountDots();
   }
   cardWrap.appendChild(postCard(post, cardOpts));
   root.appendChild(cardWrap);
+
+  // ---- the look: the pieces under the caption, the dots over the photo behind the tag toggle ----
+  let items = Array.isArray(post.items) ? post.items : [];
+  let dotsShown = false;
+
+  /**
+   * The dots live beside the photo link (a button inside a link is not a thing), in the same .card-media wrapper a clip
+   * uses, at their X/Y of the 4:5 box; physical left/top, since a photo does not mirror in Hebrew. Hidden until the tag
+   * toggle at the photo's bottom-start corner shows them; the toggle carries the count the card's own badge showed.
+   */
+  function mountDots() {
+    const photo = cardWrap.querySelector('.card-photo');
+    if (!photo) return;
+    let media = photo.closest('.card-media');
+    if (!media) { media = el('div', { class: 'card-media' }); photo.replaceWith(media); media.appendChild(photo); }
+    for (const old of media.querySelectorAll('.item-dots, .items-toggle, .item-count')) old.remove();
+    const placed = items.filter(hasDot);
+    if (!placed.length) return;
+    const layer = el('div', { class: 'item-dots', id: 'item-dots', hidden: !dotsShown }, placed.map((item) => {
+      const n = items.indexOf(item) + 1;
+      return el('button', {
+        type: 'button', class: 'item-dot', id: 'item-dot-' + n, 'data-item': item.id, style: 'left:' + (item.x * 100).toFixed(1) + '%;top:' + (item.y * 100).toFixed(1) + '%',
+        'aria-label': t('items.dot_label', { n: fmtNumber(n), name: item.name }), onclick: () => openItemSheet(item)
+      }, [el('span', { text: fmtNumber(n) })]);
+    }));
+    const toggle = el('button', { type: 'button', class: 'items-toggle', id: 'items-toggle', 'aria-pressed': String(dotsShown), 'aria-label': t(dotsShown ? 'items.toggle_hide' : 'items.toggle') }, [
+      icon('tag'), el('span', { class: 'n', text: fmtNumber(items.length) })
+    ]);
+    toggle.addEventListener('click', () => {
+      dotsShown = !dotsShown;
+      layer.hidden = !dotsShown;
+      toggle.setAttribute('aria-pressed', String(dotsShown));
+      toggle.setAttribute('aria-label', t(dotsShown ? 'items.toggle_hide' : 'items.toggle'));
+    });
+    media.appendChild(layer);
+    media.appendChild(toggle);
+  }
+
+  /** The item sheet: brand (a link to its looks), model, category, "Shop at {host}" through /api/items/{id}/out, and the honest line under it. */
+  function openItemSheet(item) {
+    const host = item.url ? hostOf(item) : '';
+    const kv = [];
+    if (item.brand) kv.push(el('dt', { text: t('items.brand') }), el('dd', {}, [el('a', { href: '#/items/' + encodeURIComponent(item.brand), text: item.brand })]));
+    if (item.model) kv.push(el('dt', { text: t('items.model') }), el('dd', { text: item.model }));
+    kv.push(el('dt', { text: t('items.category') }), el('dd', { text: categoryLabel(item.category) }));
+    const content = el('div', { class: 'stack item-sheet' }, [
+      el('dl', { class: 'item-kv' }, kv),
+      item.source === 'Stylist' ? el('p', { class: 'hint', text: t('items.by_stylist') }) : null,
+      // The link leaves through the server's one door, in a new tab, with no way back into this window.
+      item.url && host ? el('a', { class: 'btn', id: 'item-shop', href: '/api/items/' + encodeURIComponent(item.id) + '/out', target: '_blank', rel: 'noopener' }, [icon('bag'), t('items.shop_at', { host })]) : null,
+      item.url && host ? el('p', { class: 'hint item-leaves', id: 'item-leaves' }, [el('span', { text: t('items.leaves') }), ' · ', el('span', { text: t('affiliate.disclosure') })]) : null,
+      item.brand ? el('a', { class: 'btn-text', id: 'item-more', href: '#/items/' + encodeURIComponent(item.brand), text: t('items.more_looks', { brand: item.brand }) }) : null
+    ]);
+    const s = sheet({ title: item.name, content });
+    s.panel.id = 'item-sheet';
+    s.panel.dataset.item = item.id;
+  }
+
+  const lookSection = el('section', { class: 'post-section', id: 'look-items', 'aria-labelledby': 'look-items-title', hidden: true });
+  root.appendChild(lookSection);
+  function renderItems() {
+    const own = !!post.isMine;
+    lookSection.hidden = !items.length && !own;
+    if (lookSection.hidden) { lookSection.replaceChildren(); mountDots(); return; }
+    const head = el('div', { class: 'section-head' }, [
+      el('h2', { id: 'look-items-title', text: t('items.title') }),
+      own ? el('button', { type: 'button', class: 'btn-text', id: 'items-edit', text: t('items.edit_items'), onclick: openItemsEditor }) : null
+    ]);
+    const list = items.length
+      ? el('ul', { class: 'look-items' }, items.map((item, i) => el('li', { 'data-item': item.id }, [
+        el('button', { type: 'button', class: 'look-item' + (hasDot(item) ? ' placed' : ''), onclick: () => openItemSheet(item) }, [
+          el('span', { class: 'num', 'aria-hidden': 'true', text: fmtNumber(i + 1) }),
+          el('span', { class: 'txt' }, itemLine(item)),
+          item.url ? icon('bag') : null
+        ])
+      ])))
+      : el('p', { class: 'hint', text: t('items.empty_own') });
+    lookSection.replaceChildren(head, list);
+    mountDots();
+  }
+
+  /** "Edit items": the post sheet's editor over this look's rows and photo; the answer replaces the list here. */
+  function openItemsEditor() {
+    if (!requireSignIn()) return;
+    const editor = itemsEditor({ items }, post.imageUrl);
+    const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
+    const save = el('button', { type: 'button', class: 'btn', id: 'items-save', text: t('items.save') });
+    const cancel = el('button', { type: 'button', class: 'btn btn-ghost', text: t('common.cancel'), onclick: () => s.close() });
+    const s = sheet({ title: t('items.edit_items'), content: el('div', { class: 'stack' }, [editor.node, error, el('div', { class: 'row' }, [save, cancel])]) });
+    s.panel.id = 'items-sheet';
+    save.addEventListener('click', async () => {
+      save.disabled = true; error.hidden = true;
+      try {
+        const answer = await api('PATCH', '/api/posts/' + encodeURIComponent(id) + '/items', { items: editor.value() });
+        if (ctx.stale()) return;
+        items = Array.isArray(answer) ? answer : (answer && Array.isArray(answer.items)) ? answer.items : [];
+        post.items = items;
+        post.itemCount = items.length;
+        s.close();
+        toast(t('items.saved'));
+        renderItems();
+      } catch (e) {
+        if (ctx.stale()) return;
+        error.textContent = e && e.message ? e.message : t('error.generic');
+        error.hidden = false;
+        save.disabled = false;
+      }
+    });
+  }
+  renderItems();
 
   // ---- the breakdown (rubric v2): public like the score, right under the card's headline; a look from before v2 has none ----
   if (post.breakdown) {

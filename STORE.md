@@ -56,14 +56,16 @@ OREVOSH היא אפליקציה חברתית ללוקים.
   `outfit,style,stylist,fashion,ootd,look,fit,wardrobe,brands,streetwear,date,office,clothes,feedback` (99).
   Hebrew locale: `אאוטפיט,לוק,סטייל,סטייליסט,אופנה,בגדים,מותגים,סטריט,דייט,ארון`.
 - **Categories:** App Store primary Lifestyle, secondary Social Networking. Google Play: Lifestyle (tag "Fashion").
-- **Age rating.** The app's own rule is 16 and over, declared at signup and repeated in the guidelines. Answer the
+- **Age rating.** The app's own rule is 16 and over: signup asks for a date of birth (16 on the day; a younger date is
+  refused with "OREVOSH is for people 16 and over"), and the rule is repeated in the guidelines, the terms and the
+  privacy policy. Answer the
   rating questionnaires as they are: user-generated content that is moderated, user interaction, no gambling, no
   violence, no unrestricted web access, and the "Mature/Suggestive" questions as "none" (the stylist refuses nudity and
   deletes the photo). The App Store's current tiers are 4+, 9+, 13+, 16+ and 18+: pick **16+** so the store agrees with
   the app. On Play the IARC questionnaire produces the ratings per region (expect Teen / PEGI 12 or 16); set the
   target audience to 16 and over in the "Target audience and content" section, which also keeps the listing out of the
-  Designed for Families programme. Age is self-declared in the app (README, "Known limitations"): say so if asked, and
-  plan the platform age-signal APIs before any push beyond the pilot.
+  Designed for Families programme. The date of birth is self-declared (anyone can type a date; README, "Known
+  limitations"): say so if asked, and plan the platform age-signal APIs before any push beyond the pilot.
 - **Made for kids:** no. **Contains ads:** no. **In-app purchases:** yes, if Pro is offered inside the wrapped app (see
   "Payments" below).
 
@@ -77,7 +79,7 @@ advertising, nothing is shared with data brokers, and there is no third-party an
 | Photos and videos (the outfit photo, the clip) | yes, linked | app functionality: the check, and the post if the person posts it | The photo goes to the model provider (Anthropic) for the check; nothing else leaves the server. A rejected photo is deleted at once. |
 | User content (captions, comments, tags, mentions, product links, bio) | yes, linked | app functionality | Public when posted. |
 | Email address | optional, linked | account recovery (password reset link), nothing else | Never shown to others, never used for marketing. |
-| Date of birth / age | yes, linked | the 16+ rule | The current build asks for a 16+ self-declaration checkbox at signup; when the signup form asks for a birth date instead, declare "Date of birth" and say it is used only for the age rule and never shown. Declare whichever the build you submit actually asks for. |
+| Date of birth | yes, linked | the 16+ rule (app functionality) | Asked at signup as a date, stored on the account, used only to refuse people under 16, never shown to anyone and never returned by the API. Neither form has a row named "date of birth": declare it as collected under the closest personal-information category, purpose app functionality, not shared. |
 | Name, handle, avatar | yes, linked | app functionality, public profile | The display name is optional. |
 | User ID | yes, linked | app functionality | An internal GUID. |
 | Purchase history | only with Pro | app functionality | Stripe on the web; StoreKit / Play Billing in the wrapped app (below). Card details never reach the app. |
@@ -142,8 +144,9 @@ The Stripe checkout must not be reachable from the wrapped app, or the review fa
   "OREVOSH lets people get a stylist's read of an outfit photo and share the look with a community. The stylist is
   an AI model that judges only the clothes: it is instructed never to comment on body, face, skin, age or gender, and
   it refuses photos with nudity, sexual content or an apparent minor (the photo is deleted immediately). Checks are
-  private until the person posts. Posting, reacting and commenting need an account (16+, declared at signup); browsing
-  does not. User-generated content: every look and comment can be reported from its menu; three reports from different
+  private until the person posts. Posting, reacting and commenting need an account (16 and over: the signup form asks
+  for a date of birth and refuses younger dates); browsing does not. User-generated content: every look and comment can
+  be reported from its menu; three reports from different
   people hide it from everyone but its author; moderators review a queue and can hide, delete and suspend. Account
   deletion is in Settings and removes everything. Test account: @<handle> / <password>."
 - **The UGC checklist Apple applies (guideline 1.2):** filtering of objectionable content (the model refuses nudity and

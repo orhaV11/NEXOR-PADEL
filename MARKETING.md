@@ -65,7 +65,8 @@ fashion or design school, one city's streetwear scene. The plan below says "the 
 **Week 0 (prep).** Production up (`DEPLOY.md`), the domain in the OG tags and the landing page, a calibration run on
 30 real photos (`scripts/calibrate.py`) so the scores spread and nothing in the feedback breaks rule 1. Ten seed looks
 posted by the team from real outfits, three brand accounts (small labels the campus wears, contacted with a two-line
-message and the brand story template), one challenge opened with a real prize. A moderator on duty (`--admin`).
+message and the brand story template, verified with `--verify` once you have spoken to them), one challenge opened
+with a real prize. A moderator on duty (`--admin`).
 
 **Week 1 (twenty people).** Invite by hand: twenty people who post outfits already, one message each, no group blast.
 Ask for one check and one post; watch what they ask about and fix the copy. Post 1–5 from the list. Read
@@ -101,11 +102,13 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
 
 - Do not buy followers, run giveaways for follows, or seed the feed with stock photos: the feed must be the campus,
   and the first hundred people can tell.
-- Do not post body, face or transformation content, "rate my body" formats, or before/after: it breaks rule 1 and the
-  ad platforms' policies both.
+- Do not post body, face or transformation content, "rate my body" formats, or body before/after: it breaks rule 1
+  and the ad platforms' policies both. (The app's own "After the tip" strip compares two outfits' scores, never a
+  body; if it appears in a post, it is two looks side by side.)
 - Do not show a real person's check without asking, even a friend's, even at 9/10. Story cards are the person's to post.
-- Do not promise brand partnerships that do not exist; brand accounts are self-declared until verification ships.
+- Do not promise brand partnerships that do not exist; a brand account carries the verified check only after the owner
+  ran `--verify` for it, and every other brand account is self-declared.
 - Do not use exclamation marks, hype adjectives or emoji strings; do not use orange for anything but fire.
 - Do not open a second community before D7 retention holds in the first one.
 - Do not push Pro in the first four weeks; the habit comes first, the price after.
-- Do not rely on age self-declaration for anything that goes beyond the pilot (README, "Known limitations").
+- Do not rely on the self-declared date of birth for anything that goes beyond the pilot (README, "Known limitations").

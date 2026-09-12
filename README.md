@@ -36,7 +36,10 @@ media folder (`storage/`) are created next to the project on first run; both are
 in WAL mode, so `orevosh.db-wal` and `orevosh.db-shm` sit next to it while the app is open and hold its newest
 writes: stop the app before copying the file, or use `--backup` (below), never the `.db` alone. The schema is
 versioned with EF Core migrations and applied on start; a database from an earlier round (made before
-migrations existed) is upgraded in place after a `.bak-<stamp>` copy is written next to it. A `fitcheck.db`
+migrations existed) is upgraded in place after a `.bak-<stamp>` copy is written next to it: missing tables,
+columns, foreign keys and indexes are added, and a column whose nullability differs from the model is altered (a
+table rebuild), with foreign keys off during the batch and a rollback (keeping the `.bak`) if any table would lose
+rows; the log line names the altered columns and the added foreign keys. A `fitcheck.db`
 left over from an earlier build is simply unused and can be deleted.
 
 To put it on the internet, follow [`DEPLOY.md`](DEPLOY.md): Fly.io in 15 minutes with no server to manage
@@ -103,20 +106,23 @@ figure, the return rate; tiles; the score distribution as bars), linked from the
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-422 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
+468 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
-scripted vision client: signup and login rules (the date of birth among them), the CSRF header, uploads and
-413/415/429/502, the plan caps, the ceiling and the global cap, guest checks (the cookie, one per cookie and per
-address, the claim at signup and login, the sweep), clips (storage, Range streaming, deletion, limits), posting
+scripted vision client: signup and login rules (the date of birth and the phone's own day among them), the CSRF
+header, uploads and 413/415/429/502, the plan caps, the ceiling and the global cap, what the allowances count and
+the `Retry-After` they name, guest checks (the cookie, one per cookie and per address counted from looks given, the
+brake on attempts, the claim at signup and login and a claim that cannot copy a file, the sweep), clips (storage,
+Range streaming, deletion, limits), posting
 (with the before/after link), fire, comments, saves, follows, the feed tabs and the For you ranking, reports
 hiding content, the moderation queue and suspensions, challenges with votes and winner resolution, the daily
-prompt, notifications and Web Push (against a recording push service), tags and mentions, featured looks,
+prompt across the year turn, notifications and Web Push (against a recording push service), tags and mentions, featured looks,
 verified brands, avatars, account-type switches, interests, Explore, search by name, tag and item, "Which one?"
 comparisons (the comparer's prompt and mapping, the routes, the shared allowance), the insights math on a seeded
-list, billing (Checkout against a recording Stripe, the signed webhook and its three events, `--pro`), account
-recovery (the link origin, the per-account brakes, the address binding), account deletion removing files and
-fixing other people's counters, the migrations and the pilot-database upgrade, backups, and the metrics math on
-a seeded dataset.
+list, billing (Checkout against a recording Stripe and its refusal for a Pro account, the signed webhook and its
+four events, the clamped Pro cap on `/api/config`, `--pro`), the insights gate, account recovery (the link origin,
+the per-account brakes, the address binding), account deletion removing files and fixing other people's counters,
+the migrations and the pilot-database upgrade (nullability and foreign keys included), backups, and the metrics
+math on a seeded dataset.
 
 There is also a browser test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real client in a
 phone viewport against the real API with only the Anthropic API stubbed, as three people (a person in English,
@@ -162,16 +168,17 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Email:PublicOrigin` | empty | The https origin the links in mails carry, e.g. `https://looks.example.com`. **Required on any host that is not localhost**: a link is never built from the request's `Host` header (a stranger could choose it), so with mail on and this empty only a laptop run gets links, the start log warns, and a request for one on a real host is logged as an error and answered 502 (`error.email_send_failed`) or, for a forgotten password, silently not sent |
 | `Limits:RecoveryPerHourPerIp` | `5` | Forgot-password and resend requests per client address per hour. On top of it, per account: three confirmation links per ten minutes and ten a day, three reset links an hour (429 `error.recovery_limited` on the resend and the address change; a forgotten password is always 202 and simply not mailed) |
 | `Admin:Handles` | empty | Handles promoted to moderator at start (`Admin__Handles__0=yourhandle`, `__1` for more): only an account that already exists is promoted, so sign up first, then list the handle and restart. The list never demotes (`--unadmin` does) and a listed handle can no longer be signed up. `--admin <handle>` does the same at any time without a restart |
-| `Plans:FreeChecksPerDay` | `3` | Checks and comparisons together, per free account, over a rolling 24 hours (429 `error.plan_limit`, which names the Pro number) |
-| `Plans:ProChecksPerDay` | `30` | The same for a Pro account. Clamped to `Limits:ChecksPerDay`, and the clamped number is the one `/api/config` publishes and the Pro page and the cap message quote; a value above the ceiling is warned about at startup |
-| `Plans:GuestChecksPerDay` | `1` | Free checks for a visitor with no account, per guest cookie (`orevosh.guest`, one day) and, through the `guest` rate-limit policy, per client address per day (429 `error.guest_limit` either way). `0` turns guests off: `POST /api/checks` answers 401 signed out |
+| `Plans:FreeChecksPerDay` | `3` | Checks and comparisons together, per free account, over a rolling 24 hours (429 `error.plan_limit` with `Retry-After`, which names the Pro number) |
+| `Plans:ProChecksPerDay` | `30` | The same for a Pro account. Clamped to `Limits:ChecksPerDay`: the clamped number is the effective Pro cap, the one `/api/config` publishes (`plans.proChecksPerDay`), `me.checksPerDay` carries, and the Pro page and the check screen's cap line quote; a value above the ceiling is warned about at startup. The 429 `error.plan_limit` message names `Plans:ProChecksPerDay` as set |
+| `Plans:GuestChecksPerDay` | `1` | Free checks for a visitor with no account, per guest cookie (`orevosh.guest`, one day) and per client address, over a rolling 24 hours (429 `error.guest_limit` with `Retry-After` either way). What is counted is a stored check, `ok`, `not_outfit` or `rejected` (the ones that cost a model call): a refused upload (400/413/415), a 502 or a dropped connection never spends it, and `error.guest_limit` is only ever sent for a look actually given. The per-cookie count is read from the rows; the per-address count is in memory (`GuestAddressCounter`), so a restart forgets the day. `0` turns guests off: `POST /api/checks` answers 401 signed out, and the check screen shows the sign-in prompt with the submit disabled; with guests on, its hint carries this number |
+| `Plans:GuestAttemptsPerDay` | `20` | The brake on attempts: the `guest` rate-limit policy on `POST /api/checks`, a fixed 24-hour window per client address in memory for signed-out calls, whatever they come to, answering 429 `error.too_fast` with `Retry-After` beyond it. Well above `Plans:GuestChecksPerDay` on purpose, so a refused photo or a model outage never locks a shared address out of its look; a signed-in call passes through it unlimited |
 | `Plans:ProPriceText` | empty | Shown on the Pro page as the price, e.g. `₪19 / month`; empty hides it. Text only: the price itself is the Stripe price |
 | `Plans:CompareNeedsPro` | `false` | Whether "Which one?" and your insights need Pro (403 `error.pro_required` and a Pro card on `#/compare` and `#/insights` otherwise; the Pro page lists them as benefits only then). Off by default: Pro is a cap on a real cost, not a feature wall |
 | `Billing:Provider` | `manual` | `manual`: Pro is granted with `--pro`, and the Pro page shows a note instead of a checkout button. `stripe`: Checkout and the webhook are live once the three keys below are set; until they are, the routes answer 400 `error.billing_disabled` |
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
 | `Limits:ChecksPerDay` | `30` | The ceiling per account over a rolling 24 hours, whatever the plan says: `Plans:ProChecksPerDay` cannot exceed it. Counted including checks still in flight; failed calls do not count |
-| `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users and guests over a rolling 24 hours |
+| `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users and guests over a rolling 24 hours: checks and comparisons on both routes (`Services/Spend.cs`), calls in flight counted, failed calls left out (429 `error.rate_limited_global`) |
 | `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
 | `Limits:LoginsPerQuarterHourPerIp` | `30` | Login attempts per client address per 15 minutes |
 | `Limits:CommentsPerHour` / `Limits:ReportsPerHour` | `30` / `20` | Per signed-in account, fixed one-hour windows in memory (429 `error.too_fast` with `Retry-After`) |
@@ -210,7 +217,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `POST /api/auth/signup` | `{ handle, password, birthDate, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
+| `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
 | `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks and comparisons in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap. A suspended account gets 403 and is signed out |
@@ -218,24 +225,24 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
 | `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to, and only while that is still the account's address; works signed out, signs nobody in |
 | `POST /api/users/me/email/resend` 🔒 | — | 204, a new confirmation link (5 per hour per address, and per account three per ten minutes or ten a day: 429) |
-| `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey?, email, transcoding, plans: { freeChecksPerDay, proChecksPerDay, guestChecksPerDay, proPriceText, compareNeedsPro, billing } }`. `billing` is true only when Stripe Checkout is live. No secrets |
+| `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey?, email, transcoding, plans: { freeChecksPerDay, proChecksPerDay, guestChecksPerDay, proPriceText, compareNeedsPro, billing } }`. `plans.proChecksPerDay` is what a Pro account really gets (`Plans:ProChecksPerDay` clamped to `Limits:ChecksPerDay`); `billing` is true only when Stripe Checkout is live. No secrets |
 | `GET /healthz` | — | `ok` when the database answers, 503 otherwise. For the proxy and uptime checks |
 | `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests?, email? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https; `email` null leaves it, `""` clears it, a value stores it lower-cased (unique, never shown to others) and sends a confirmation link (400 when mail is off on this server, 409 when another account has it) |
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
 | `GET /api/users/{handle}/avatar?v=` | — | The photo, `Cache-Control: public, max-age=86400` |
-| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check, photo, avatar, post, tag, mention, comment, fire, save, vote, follow and notification, and fixes other people's counters and featured marks. 403 for a moderator: `--unadmin` first, or the freed handle would be promoted again on the next restart |
+| `DELETE /api/users/me` 🔒 | — | 204. Deletes the account, every check and comparison, their photos and clips (by path, `ImagePath`/`VideoPath` and `ImagePathA`/`B`, as well as the account's folder), the avatar, every post, tag, mention, comment, fire, save, vote, follow and notification, and fixes other people's counters and featured marks. 403 for a moderator: `--unadmin` first, or the freed handle would be promoted again on the next restart |
 | `GET /api/users/me/checks` 🔒 | — | Last 50 checks, newest first, each with `postId` when posted |
 | `GET /api/users/me/saved` 🔒 | `?offset&limit` | Saved posts, newest first |
-| `GET /api/users/me/insights` 🔒 | — | `{ checks, avgScore, bestScore, bestIntent, weakestCategory, weakestShare, accessoriesMissingShare, streak, lines }` over the last 200 OK checks: the average (one decimal) and best score, the intent with the highest average among those checked at least twice (else the most checked), the item category most often called weak and its share of the looks that had items, the share of rubric-v2 checks with no accessories on, and two to four ready sentences in the caller's language. Under 3 checks only `checks` and `streak` are filled and `lines` is empty. Private, like the checks |
+| `GET /api/users/me/insights` 🔒 | — | `{ checks, avgScore, bestScore, bestIntent, weakestCategory, weakestShare, accessoriesMissingShare, streak, lines }` over the last 200 OK checks: the average (one decimal) and best score, the intent with the highest average among those checked at least twice (else the most checked), the item category most often called weak and its share of the looks that had items, the share of rubric-v2 checks with no accessories on, and two to four ready sentences in the caller's language. Under 3 checks only `checks` and `streak` are filled and `lines` is empty. 403 `error.pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro (the client shows the Pro card on `#/insights`). Private, like the checks |
 | `GET /api/users/me/comparisons` 🔒 | — | The caller's last 20 comparisons, newest first (the shape of `GET /api/compare/{id}`) |
 | `GET /api/users/{handle}` | — | Public profile: counts, best score, streak, `avatarUrl`, `verified`, `featured`, `community`, `viewer.following` |
 | `GET /api/users/{handle}/posts` | `?offset&limit` | That person's public posts |
 | `GET /api/users/{handle}/community` | `?offset&limit` | Public posts that mention this account |
 | `GET /api/users/{handle}/featured` | `?offset&limit` | Brand: posts it featured. Person: their posts that were featured |
 | `POST` / `DELETE /api/users/{handle}/follow` 🔒 | — | `{ followers, following }`. 400 when following yourself |
-| `POST /api/checks` | multipart: `intent`, `occasion?`, `language`, `image`, `video?` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address per day (429 `error.guest_limit`; 401 `error.sign_in_required` when that setting is 0); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies (429 `error.plan_limit`, which names the Pro number, with `Retry-After`). `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok`. 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
-| `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder) and the cookie is dropped. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
+| `POST /api/checks` | multipart: `intent`, `occasion?`, `language`, `image`, `video?` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
+| `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder, a claimed clip queued for the transcoder) and the cookie is dropped. All or nothing: a file that cannot be copied (a full disk, a file missing from the store) answers 500 `error.server`, the rows stay the guest's and the cookie stays, and the client claims again on its next load. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
 | `GET /api/checks/{id}` | — | The check, for its owner or for the guest whose cookie made it (404 to anyone else, the same as a missing id) |
 | `POST /api/compare` 🔒 | multipart: `intent`, `occasion?`, `language`, `imageA`, `imageB` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v1`, the analyzer's rules and calibration) and one wins, `a` or `b`. Counts against the same daily allowance as a check; 400 `compare_two_photos` without both, 403 `pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro, and otherwise the same 413/415/429/502 as a check (at the cap a free account hears `error.plan_limit`, a Pro account `error.rate_limited`). `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
 | `GET /api/compare/{id}` 🔒 | — | The comparison, owner only (404 otherwise) |
@@ -249,7 +256,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST` / `DELETE /api/posts/{id}/save` 🔒 | — | `{ saved }` |
 | `POST` / `DELETE /api/posts/{id}/feature` 🔒 | — | `{ featuredBy }`. Brands only; the post must mention the brand or be an entry in one of its challenges; one brand per post (409 when another brand was first); the author is notified |
 | `POST /api/posts/{id}/report` 🔒 | `{ reason? }` | 204. `reason` is one of `not_outfit`, `nudity`, `person`, `spam`, `other` (what the app's picker sends) or free text, kept to 200 characters. One report per person per post; at `Limits:ReportsToHide` the post is hidden |
-| `GET /api/posts/{id}/comments` | — | Comments, oldest first, hidden ones excluded |
+| `GET /api/posts/{id}/comments` | — | Comments, oldest first, hidden ones excluded; each comment's `user` ref carries `verified` like every other ref |
 | `POST /api/posts/{id}/comments` 🔒 | `{ text }` | `201` comment (1–200 characters) |
 | `DELETE /api/comments/{id}` 🔒 | — | 204, by the comment's author or the post's author |
 | `POST /api/comments/{id}/report` 🔒 | `{ reason? }` | 204, same rule and reasons as posts |
@@ -257,7 +264,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `GET /api/explore` | — | `{ trendingTags, brands, topLooks, challenges }`: tags from the last 7 days, brands by followers, top 6 looks by fire in 7 days, up to 5 open challenges |
 | `GET /api/search?q=` | — | `{ users, tags, posts }` for a 1–40 character query: handle prefix or display-name substring (brands first), tag prefix, and up to 12 visible looks whose stylist-named items contain the term ("black boots"), newest first. The client shows the three under `#/search/<term>` |
 | `GET /api/tags/{tag}/posts` | `?offset&limit` | Public posts carrying the tag, newest first |
-| `GET /api/today` | — | `{ tag, title, hint, intent?, date, posts, posted }`: the day's prompt (one of 30 in `Services/DailyPrompts.cs`, picked by the UTC day of the year, so it turns over at midnight UTC and everyone sees the same one), its title and hint in the caller's language, up to 60 visible looks posted today with its hashtag (newest first), and whether the caller posted one (a look under review still counts). Public |
+| `GET /api/today` | — | `{ tag, title, hint, intent?, date, posts, posted }`: the day's prompt (one of 30 in `Services/DailyPrompts.cs`, picked by the count of UTC days since a fixed day, 31 December 2025, modulo thirty, so it turns over at midnight UTC, everyone sees the same one, and the cycle runs on across the year turn instead of restarting on 1 January), its title and hint in the caller's language, up to 60 visible looks posted today with its hashtag (newest first), and whether the caller posted one (a look under review still counts). Public |
 | `GET /api/challenges` | `?state=open\|ended` | Challenges with entry and vote counts, the top three entries and `viewer` (`isBrand, hasEntered, votedPostId, myEntryId`) |
 | `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt, tag? }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now. `tag` is the entry hashtag (derived from the title when missing, made unique among open challenges) |
 | `GET /api/challenges/{id}` | — | `{ challenge, entriesByVotes, winner }`. Reading an ended challenge fixes its winner if that has not happened yet |
@@ -269,8 +276,8 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `DELETE /api/push/subscriptions` 🔒 | `{ endpoint }` | 204 |
 | `POST /api/push/test` 🔒 | — | 202, sends a test notification to the caller's own browsers |
 | `GET /api/billing/state` 🔒 | — | `{ plan, proUntil, billing, proPriceText }`: the effective plan, whether Stripe Checkout is live, and the price text |
-| `POST /api/billing/checkout` 🔒 | — | `{ url }` of a Stripe Checkout Session (subscription, the Pro price, the account id as `client_reference_id` and `metadata.userId`, the confirmed email prefilled, an existing customer reused) that returns to `/#/pro?checkout=success` or `cancel`. 400 `error.billing_disabled` while the provider is `manual` or a key is missing, 502 `error.billing_failed` when Stripe did not answer with a page |
-| `POST /api/billing/webhook` | Stripe's event, raw | `200 { received: true }`. No session, no CSRF header: the `Stripe-Signature` header (`t=…,v1=…`, HMAC-SHA256 over `t.body` with `Billing:StripeWebhookSecret`, within five minutes of now) is the guard, 400 `error.billing_signature` otherwise. `checkout.session.completed` puts the account on Pro for 35 days from now and stores the customer id; `invoice.paid` (except the first, `subscription_create`) extends Pro by 35 days from the later of now and the current end; `customer.subscription.deleted` ends Pro now (the plan field keeps saying a subscription existed); every other event, and an event naming no account, is answered 200 so Stripe stops sending it. No event ids are kept: repeats re-stamp, over-extend by one period at worst, or end what already ended |
+| `POST /api/billing/checkout` 🔒 | — | `{ url }` of a Stripe Checkout Session (subscription, the Pro price, the account id as `client_reference_id` and `metadata.userId`, the confirmed email prefilled, an existing customer reused) that returns to `/#/pro?checkout=success` or `cancel`. 400 `error.billing_disabled` while the provider is `manual` or a key is missing, 409 `error.already_pro` for an account that is Pro (one subscription per account; a stale tab re-reads `me`), 502 `error.billing_failed` when Stripe did not answer with a page |
+| `POST /api/billing/webhook` | Stripe's event, raw | `200 { received: true }`. No session, no CSRF header: the `Stripe-Signature` header (`t=…,v1=…`, HMAC-SHA256 over `t.body` with `Billing:StripeWebhookSecret`, within five minutes of now) is the guard, 400 `error.billing_signature` otherwise. `checkout.session.completed` puts the account on Pro for 35 days on top of any period still running and stores the customer id; `invoice.paid` (except the first, `subscription_create`) moves the end to the invoice's period end plus three days, never below the current end (an invoice naming no period is worth 35 days from now); `customer.subscription.updated` follows the status (`active`/`trialing`: the current period end plus three days, never below the current end; `past_due`/`unpaid`/`paused`: three days from now at most); `customer.subscription.deleted` ends Pro now (the plan field keeps saying a subscription existed); every other event, and an event naming no account, is answered 200 so Stripe stops sending it. No event ids are kept: a repeated `checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends what already ended |
 | `GET /api/admin/queue` 🔒 | — | Moderators (accounts with the `isAdmin` flag) only, 403 otherwise: reported looks and comments with counts, reasons and the author's state, plus counters |
 | `GET /api/admin/users?q=` 🔒 | — | Accounts by handle prefix (empty `q` lists suspended accounts) |
 | `POST /api/admin/posts/{id}/hide` / `unhide` 🔒 | — | Hide a look, or show it again (which also clears its reports) |
@@ -284,7 +291,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 ```
 FitCheck.sln
 src/FitCheck.Api/
-  Program.cs                      wiring, migrations on start, cookie auth, rate limiter (incl. the "guest" policy), CSRF
+  Program.cs                      wiring, migrations on start, cookie auth, rate limiter (incl. the "guest" attempts brake), CSRF
                                   header check (the Stripe webhook exempt), security headers, static files, /api/config,
                                   /healthz, --vapid, --backup, --admin, --unadmin, --verify, --unverify, --pro
   Data/DatabaseSetup.cs           Migrate(), WAL, the pilot-database upgrade, the backup command
@@ -298,11 +305,18 @@ src/FitCheck.Api/
   Services/OutfitAnalyzer.cs      ← the stylist: system prompt, intent guide, tool schema, PromptVersion, mapping
   Services/OutfitComparer.cs      ← "Which one?": two photos in one call, the same rules and calibration, PromptVersion cmp-v1
   Services/AnthropicVisionClient  Messages API over HttpClient: base64 images + forced tool call, 60s timeout, one retry
-  Services/Plans.cs               IsPro (the flag and the end date) and CapFor (the plan's cap, never above Limits:ChecksPerDay)
-  Services/GuestChecks.cs         the guest cookie, the claim (rows and files move to the account), GuestCheckSweeper (hourly)
+  Services/Plans.cs               IsPro (the flag and the end date), CapFor (the plan's cap, never above Limits:ChecksPerDay) and
+                                  ProCap (the clamped Pro number /api/config publishes)
+  Services/Spend.cs               what the allowances count: stored checks and comparisons over the rolling day, per account, per
+                                  guest cookie and globally, me.checksToday, and the Retry-After that names the call whose expiry
+                                  frees a permit
+  Services/CheckCapacity.cs       the in-flight reservations that close the cap race, and GuestAddressCounter (the per-address
+                                  guest count, in memory)
+  Services/GuestChecks.cs         the guest cookie, the claim (rows and files move to the account, all or nothing), GuestCheckSweeper
+                                  (hourly)
   Services/StripeClient.cs        one form POST that opens a Checkout Session, and the webhook signature check; no SDK
   Services/PostItems.cs           the stylist's item names copied onto a look at posting, for the search by piece
-  Services/DailyPrompts.cs        the 30 "Today's look" prompts, one a day by the UTC day of the year
+  Services/DailyPrompts.cs        the 30 "Today's look" prompts, one a day by the count of UTC days since 31 Dec 2025, modulo 30
   Services/RecoveryTokens.cs      one-time links (hashed), the link origin rule, the per-account mail brakes
   Services/CaptionParser.cs       #tags and @mentions out of a caption
   Services/FeedRanker.cs          the For you score, a pure function
@@ -343,25 +357,30 @@ descriptive is dropped when the status is not `ok`.
 - **Clothes, never the person.** The prompt forbids any reference to body, face, skin, age or gender, and the
   UI copy follows the same rule.
 - **Checks are private; posting is a separate choice.** Posting publishes the photo, the intent, the score,
-  the headline, your caption and the three sub-scores (fit, color, accessories). The tip, the items and the
-  accessories read never go public. Deleting the post makes the photo private again.
+  the headline, your caption and the three sub-scores (fit, color, accessories), and indexes the stylist's item
+  names so people can find the look in search. The tip, the notes on each item and the accessories read stay
+  private. Deleting the post makes the photo private again.
 - **Photos are never served by path.** Check photos and avatars live under `Storage:Root`, outside `wwwroot`.
   The post image route (visible posts only) and the avatar route are the only doors.
 - **16+ by date of birth, self-declared.** Signup needs a birth date (16 on the day; nothing before 1900 or in the
   future), stored on the account and never returned by any route. A checkbox is not an age rule; a date is at
   least a rule. Still not age assurance: see the limitations below.
 - **A guest gets one check, and keeps it by signing up.** The first wow comes before the account: signed out,
-  `POST /api/checks` works once per guest cookie and once per address a day, the result offers "Sign up to keep it
-  and post it", and the claim at signup or login makes the check an ordinary one (posting, history, deletion).
-  Unclaimed guest checks and their photos are swept after a day (the log says `Guest sweep: …`). Guests cannot
-  post, compare, or read anyone else's check.
+  `POST /api/checks` works once per guest cookie and once per address over a rolling day, counted from looks
+  actually given (a refused upload, a model outage or a dropped connection spends nothing; attempts are braked
+  separately, twenty a day per address), the result offers "Sign up to keep it and post it", and the claim at signup
+  or login makes the check an ordinary one (posting, history, deletion), all or nothing: a claim that cannot copy a
+  file leaves the rows the guest's and runs again on the next load. Unclaimed guest checks and their photos are
+  swept after a day (the log says `Guest sweep: …`). Guests cannot post, compare, or read anyone else's check.
 - **Cost control.** Every check is a paid model call, so the caps are the product: 3 a day on Free, 30 on Pro, 1 as
-  a guest, checks and comparisons counted together over a rolling 24 hours (429 with a friendly message and
-  `Retry-After`), `Limits:ChecksPerDay` as the ceiling no plan exceeds, a global ceiling of 1000 a day, a 6 MB
-  upload cap, and the client downscales to 1280px JPEG (avatars to 320px) before uploading. In-flight calls count;
-  failed model calls do not.
+  a guest, checks and comparisons counted together over a rolling 24 hours (429 with a friendly message and a
+  `Retry-After` that names when a permit really frees up: a Free account is told what Pro gives, a Pro account at
+  its ceiling just hears the number), `Limits:ChecksPerDay` as the ceiling no plan exceeds, a global ceiling of 1000
+  a day across both routes, a 6 MB upload cap, and the client downscales to 1280px JPEG (avatars to 320px) before
+  uploading. In-flight calls count; failed model calls do not.
 - **Pro is a cap on a real cost, not a feature wall.** Pro raises the daily cap; comparisons and insights stay free
-  by default (`Plans:CompareNeedsPro`). Pro is a flag plus an end date on the account, written by Stripe's webhook
+  by default (`Plans:CompareNeedsPro`, and the Pro page names them as benefits only when that is on). The check
+  screen says how many checks are left today and offers "Go Pro for more" only to a Free account at its cap. Pro is a flag plus an end date on the account, written by Stripe's webhook
   or by `--pro`, never by a request; a lapsed period falls back to Free by itself. Stripe stays behind
   `Billing:Provider`: with `manual`, the Pro page shows a note and nothing pretends to charge.
 - **Comparisons are private and never postable.** "Which one?" keeps both photos only when the stylist confirmed
@@ -381,8 +400,9 @@ descriptive is dropped when the status is not `ok`.
 - **Bad input is refused.** Non-outfit photos get a friendly state. Nudity, sexual content or an apparent
   minor gets a neutral rejection: the photo is deleted immediately, nothing but the status is stored, and the
   model's own words are never shown. Only `ok` checks can be posted.
-- **One endpoint deletes everything.** Account, checks, photos, avatar, posts, tags, mentions, comments, fire,
-  saves, votes, follows and notifications, with other people's counters and featured marks corrected.
+- **One endpoint deletes everything.** Account, checks, comparisons, photos and clips (by path as well as by
+  folder), avatar, posts, tags, mentions, comments, fire, saves, votes, follows and notifications, with other
+  people's counters and featured marks corrected.
 - **No hallucinated brands or items.** Instruction in the prompt; the model may only name what is visible.
 - **One of each per person.** Fire, save, follow, report and challenge vote are unique per person and target
   at the database level; repeating is idempotent, never a 500. You cannot follow yourself, report your own
@@ -409,21 +429,23 @@ descriptive is dropped when the status is not `ok`.
   date. Before any public launch, integrate the Apple and Google age-signal APIs (or an equivalent provider) and
   gate account creation on the result.
 - **Guest checks cost money.** A visitor's free look is a real model call with no account behind it. The guard is
-  the cap per guest cookie and the brake per client address (`Plans:GuestChecksPerDay`, one a day each) plus the
-  global ceiling; a patient script that rotates addresses gets one check per address. Set `Plans__GuestChecksPerDay=0`
-  to close the door, and watch the model bill either way.
+  the cap per guest cookie and per client address (`Plans:GuestChecksPerDay`, one a day each, counted from looks
+  actually given; the per-address count lives in memory and a restart forgets the day), the brake on attempts per
+  address (`Plans:GuestAttemptsPerDay`, twenty a day) and the global ceiling; a patient script that rotates addresses
+  gets one check per address. Set `Plans__GuestChecksPerDay=0` to close the door, and watch the model bill either way.
 - **Brand accounts are self-declared; verification is by hand.** Anyone can switch to brand mode in settings, and
   only a brand the owner ran `--verify` for carries the check. There is no form to ask for it and no process
   behind it beyond the owner knowing who is behind the account.
-- **Stripe has not run against a live account.** Checkout, the webhook and its three events were built and tested
+- **Stripe has not run against a live account.** Checkout, the webhook and its four events were built and tested
   against a recording stand-in and signed test events; the first real subscription, renewal and cancellation are
   the proof. Run it in test mode (`sk_test_…`, the Stripe CLI forwarding to `/api/billing/webhook`) before the
   provider is switched to `stripe` on a server people pay on. No event ids are stored, so a replayed
-  `invoice.paid` over-extends by one period; acceptable for a pilot, not for scale.
+  `checkout.session.completed` stacks one period (renewals are read from the event and repeat harmlessly);
+  acceptable for a pilot, not for scale.
 - **The pilot upgrade path is a command.** With `Billing:Provider` at `manual` the Pro page says Pro is switched on
   by hand, and the owner runs `--pro <handle> <months>`; there is no in-app request or cancel, and a person ends
   Pro by writing to the owner (the terms say so).
-- **The legal pages need a lawyer.** `#/terms` and `#/privacy` (version 1, dated 2026-09-08) are written from what
+- **The legal pages need a lawyer.** `#/terms` and `#/privacy` (version 2, dated 2026-09-12) are written from what
   the code actually does, in each language, and are not legal advice; the governing-law line is a placeholder
   ("the place where the owner is based") and the contact address `hello@orevosh.app` must exist before the pages go
   live. Have a lawyer review both before launch.
@@ -450,8 +472,8 @@ descriptive is dropped when the status is not `ok`.
   pilot scale.
 - **Metrics are for moderators.** `/api/metrics/pilot` answers only through a moderator's session (403 otherwise),
   so the URL can leave the team; it still returns aggregates only, and guest checks are left out of them.
-- **Single process, single SQLite file.** The in-flight reservation that closes the cap race lives in memory;
-  run one instance.
+- **Single process, single SQLite file.** The in-flight reservation that closes the cap race, the per-address
+  guest count and the brake on guest attempts live in memory; run one instance.
 - **The limiters trust `X-Forwarded-For`.** Right behind the tunnel; if Kestrel is exposed directly, the
   global daily ceiling bounds the damage. Raise `Limits__SignupsPerHourPerIp` for a launch hour on a shared
   network.

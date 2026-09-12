@@ -77,7 +77,8 @@ objections are noted, not acted on.
   not eat the user's allowance, while `not_outfit` and `rejected` did cost a model call and do count.
   `CheckCapacity` holds an in-memory reservation from the cap check until the row is stored, so a burst
   of parallel uploads cannot all slip under the count. The 429 carries a `Retry-After` header computed
-  from the oldest counted check.
+  from the oldest counted check (since Round 9's review: from the call whose expiry actually frees a permit, the
+  (count − cap + 1)th oldest; the two are the same only while the count equals the cap).
 - **Two more cost guards beyond the brief's per-user cap,** because the tunnel URL goes to 50 phones and a
   per-user cap keyed on a free-to-mint id is not a bound on spend: a global ceiling
   (`Limits:ChecksPerDayGlobal`, 1000 a day, its own 429 message) and a per-address signup limit
@@ -593,7 +594,8 @@ log and summarised under "Objections"; this section records what was built and w
   a look clears its reports so the same people can report it again if it recurs.
 - **Migrations from here on.** The schema is versioned with EF Core migrations and applied at start. A pilot database
   made by `EnsureCreated` in earlier rounds is upgraded in place (a `.bak-<stamp>` copy first, missing tables and
-  columns added, then the history row), so the owner's test data survives this update and every update after it.
+  columns added, then the history row; Round 9's review added foreign keys, nullability and a rollback to it), so the
+  owner's test data survives this update and every update after it.
 - **The deploy kit is one `docker compose up`.** App container plus Caddy for automatic HTTPS on the owner's domain,
   one data volume for the database and the media, `/healthz` for the proxy, `--backup` for a nightly copy, security
   headers, and DEPLOY.md written for someone who has never run a server.
@@ -730,21 +732,25 @@ This section is completed by the docs builder after the merge, from the code.
   mark gets a real verdict with no account: `POST /api/checks` needs no session, the answer sets `orevosh.guest`
   (HttpOnly, SameSite=Strict, a random token, one day), the row keeps the token where an owner would be, and the result
   screen offers "Sign up to keep it and post it". Signing up or in claims everything the cookie names (`POST
-  /api/checks/claim`: owner set, token cleared, the photo and clip moved into the account's folder; the client calls it
-  after signup, after login and at every signed-in boot, and a `0` is the usual answer). What nobody claims expires
+  /api/checks/claim`: owner set, token cleared, the photo and clip moved into the account's folder, all or nothing; the
+  client calls it after signup, after login and at every signed-in boot, and a `0` is the usual answer). What nobody claims expires
   with the cookie: `GuestCheckSweeper` removes day-old guest rows and their files, hourly and at start, and says so in
   the log (`Guest sweep: …`). It is **capped per cookie and per address because it costs money**:
-  `Plans:GuestChecksPerDay` (1) per token in the handler and per client address in a rate-limit policy of its own, on
-  top of the global ceiling, and `0` closes the door (the check screen asks to sign in). A guest can read their own
+  `Plans:GuestChecksPerDay` (1) per token from the rows and per client address from an in-memory count
+  (`GuestAddressCounter`), both counting looks actually given (a refused upload, a model outage or a dropped connection
+  spends nothing, and `error.guest_limit` is only sent for a look given); attempts are braked separately by the `guest`
+  rate-limit policy (`Plans:GuestAttemptsPerDay`, twenty a day per address, 429 `error.too_fast`), on top of the global
+  ceiling, and `0` closes the door (the check screen asks to sign in and keeps the submit disabled). A guest can read their own
   check and nothing else: no posting, no comparison, no history. The pilot metrics leave guest checks out, so
   `returnRate` still means what it meant.
 - **Pro is a cap on a real cost, not a feature wall.** Every check is a model call, so the plan is the daily number:
-  three on Free, thirty on Pro, `Limits:ChecksPerDay` as the ceiling no plan exceeds, checks and comparisons counted
-  together over the same rolling day, failed calls left out. Comparisons and insights stay free by default
+  three on Free, thirty on Pro, `Limits:ChecksPerDay` as the ceiling no plan exceeds (the clamped number is what
+  `/api/config` publishes and the Pro page promises), checks and comparisons counted together over the same rolling
+  day on both routes, failed calls left out. Comparisons and insights stay free by default
   (`Plans:CompareNeedsPro` is off): a cap is honest about what Pro pays for, a wall around a feature would be theatre.
   Pro is two fields on the account (`Plan`, `ProUntil`), written by Stripe's webhook or by `--pro`, never by a
   request; a lapsed period reads as Free by itself, and `MeDto` carries `plan`, `proUntil`, `checksToday` and
-  `checksPerDay` so the check screen can say "2 of 3 checks left today" and where Pro is.
+  `checksPerDay` so the check screen can say "2 of 3 checks left today" and, for a Free account at its cap, where Pro is.
 - **Stripe stays behind config so nothing pretends to charge.** `Billing:Provider` is `manual` until the owner has a
   Stripe account, a price and a tested webhook; with `manual`, the Pro page shows the benefits and a note that Pro is
   switched on by hand, `--pro <handle> <months|off>` is the upgrade path, and Checkout answers 400. With `stripe` and
@@ -752,9 +758,12 @@ This section is completed by the docs builder after the merge, from the code.
   form-encoded POST, no SDK: two calls do not earn a dependency) that returns to `#/pro?checkout=…`, and the webhook,
   the one write exempt from the CSRF header because Stripe cannot send it, is guarded by the `Stripe-Signature` HMAC
   with a five-minute tolerance. A paid period is 35 days, not a month, so a slow renewal event does not drop a paying
-  person to Free; the first `invoice.paid` is skipped because the checkout already counted it; a deleted subscription
-  moves the end date to now. No event ids are stored: the updates are monotonic enough for a pilot, and the README says
-  so.
+  person to Free, and a completed checkout stacks it on a period still running; the first `invoice.paid` is skipped
+  because the checkout already counted it. Ends come from Stripe's events, not from the previous end: `invoice.paid`
+  and `customer.subscription.updated` name the period (its end plus three days, never below what is there; `past_due`,
+  `unpaid` or `paused` trims to three days from now at most), `customer.subscription.deleted` ends Pro now, and an
+  account that is Pro cannot open a second Checkout (409). No event ids are stored: only a replayed
+  `checkout.session.completed` stacks, every other repeat names the same period, and the README says so.
 - **"Which one?" is one stylist call, two photos, one winner.** The comparer sends both images in one message with the
   analyzer's hard rules and the same calibration (an 8 here means what an 8 means on a check), a schema with a winner,
   two scores, two headlines, the reason and one tip that says which outfit it is for, and `PromptVersion` `cmp-v1`.
@@ -771,10 +780,13 @@ This section is completed by the docs builder after the merge, from the code.
   average and the best score, the intent that scores highest among those checked at least twice (else the most
   checked; ties are stable), the item category most often called weak and in what share of the looks, how often
   nothing was on, and two to four sentences written by the server in the person's language. One check says nothing
-  about a person, so the page shows "N of 3 checked so far" until then.
+  about a person, so the page shows "N of 3 checked so far" until then. Behind Pro exactly when comparisons are
+  (`Plans:CompareNeedsPro`): 403 `error.pro_required` and the same Pro card as `#/compare`.
 - **Today's look is a hashtag, not ephemeral content.** Thirty prompts in code (`Services/DailyPrompts.cs`, a tag, a
-  title and a hint in each language, an optional intent), one a day by the UTC day of the year modulo thirty, so
-  everyone sees the same one and a prompt comes back about once a month. Nothing is stored: `GET /api/today` reads the
+  title and a hint in each language, an optional intent), one a day by the count of UTC days since 31 December 2025
+  modulo thirty (through 2026 that is the day of the year, so the pilot's calendar holds), so everyone sees the same
+  one, a prompt comes back every thirty days, and the cycle runs on across the year turn instead of restarting on
+  1 January. Nothing is stored: `GET /api/today` reads the
   visible looks posted today with that hashtag, and "Post yours" enters the check with the tag prefilled exactly the
   way a challenge does. The strip sits at the top of For you (up to eight thumbnails) and `#/today` is the day's grid.
 - **Before/after is a strip on the card, not a separate post type, so the feed stays one kind of thing.** A post may
@@ -784,7 +796,8 @@ This section is completed by the docs builder after the merge, from the code.
   · 6 → 7" between the headline and the caption, green when the score went up, the whole strip a link to the earlier
   look; the post sheet offers the last five looks as a picker with "Not a follow-up" first and picked by default.
 - **The birth date replaces the checkbox, because a checkbox is not an age rule.** Signup requires `birthDate`
-  (`yyyy-MM-dd`, what a date input sends in every locale), sixteen on the day, not before 1900 and not in the future,
+  (`yyyy-MM-dd`, what a date input sends in every locale), sixteen on the day (the phone's own calendar day when the
+  client sends `today` within a day of UTC, else the UTC day), not before 1900 and not in the future,
   checked after the handle and the password so the person fixes the top field first; the errors are
   `birthdate_required`, `birthdate_invalid` and `underage`. The date is stored as a UTC date on the account and appears
   on no DTO; the checkbox older clients still send is accepted and ignored. Still self-declared, still not age
@@ -800,7 +813,9 @@ This section is completed by the docs builder after the merge, from the code.
 - **The legal pages are written from the code's facts.** `#/terms` and `#/privacy` are ten headed sections each, in
   the i18n files and written in each language rather than translated, saying what the app actually stores, sends to
   the model provider (the photo, the occasion, the note and the language; never a name, handle, email or birth date),
-  shows to whom, keeps for how long, and deletes; version 1, dated 2026-09-08, the contact `hello@orevosh.app`, and a
+  shows to whom, keeps for how long, and deletes; version 2, dated 2026-09-12 (the second version corrected, after
+  review, what a posted look carries and how the stylist's item names are used in search), the contact
+  `hello@orevosh.app`, and a
   governing-law line that is a placeholder ("the place where the owner is based"). They are linked from the agreement
   line under the signup button with the guidelines. The file says it in capitals: have a lawyer review them before
   launch.
@@ -828,7 +843,8 @@ This section is completed by the docs builder after the merge, from the code.
   installed. All of them say `https://looks.example.com` where the domain goes, and the go-live checklist lists the
   places to replace it. The service worker lets `/landing/` navigations through to the network, so a landing link never
   answers with the app shell.
-- **422 tests** (up from 314), and the browser test now starts with a guest's check in Hebrew before anyone signs up.
+- **468 tests** (up from 314; 422 before the review's fixes), and the browser test now starts with a guest's check in
+  Hebrew before anyone signs up.
 
 ### Landed late in this round
 
@@ -839,12 +855,103 @@ This section is completed by the docs builder after the merge, from the code.
   Both were written by the builders and need a native review before they reach people, the terms and the privacy policy
   included. The daily prompts, the comparer's style notes and the service worker's precache follow in the same round.
 
+### After review
+
+The review between the merge and the hand-off (2026-09-12) read the round against the code. It confirmed the shape: the
+guest check before the signup, Pro as a cap, comparisons private and unpostable, items indexed from the stylist's words,
+Today's look as a hashtag, the strip for a follow-up, the birth date, `--verify`, the numbers page and the legal pages
+written from the code all stand as decided. What it changed, most important first:
+
+- **The guest cap counts looks given, and attempts are braked separately.** The per-address half of
+  `Plans:GuestChecksPerDay` lived in a fixed-window rate-limit policy, which spent its one permit on a refused upload, a
+  502 or a dropped connection and then said "that was your free look" for a look never given. Now the handler counts
+  the address in memory (`GuestAddressCounter`: a slot reserved for the check in flight, counted only once a row is
+  stored with a status other than error), exactly as the per-cookie count reads the rows, and `error.guest_limit` is
+  only ever sent for a look given. The `guest` policy stays as the brake on attempts (`Plans:GuestAttemptsPerDay`,
+  twenty a day per address, 429 `error.too_fast`), well above the cap so a bad photo never locks a shared address out
+  of its look. A restart forgets the address count; the single-process limitation already said as much.
+- **One place counts the day.** `Services/Spend.cs` is what the allowances mean: stored checks and comparisons over the
+  rolling 24 hours, failed calls left out, for the account, the guest cookie, `me.checksToday` and the global ceiling.
+  The check route's global ceiling now counts comparisons as the compare route's did, so `Limits:ChecksPerDayGlobal`
+  means the same thing on both.
+- **`Retry-After` names the call whose expiry frees a permit.** The (count − cap + 1)th oldest, not the oldest: the
+  two are the same only while the count equals the cap, and a lapsed Pro or a lowered cap leaves more calls in the
+  window than the cap allows.
+- **A Pro account at its ceiling hears the number.** `error.rate_limited` with the cap on the check route, as on the
+  compare route, not "go Pro"; the client offers "Go Pro for more" only to a Free account at its cap. `/api/config`
+  publishes `Plans:ProChecksPerDay` clamped to `Limits:ChecksPerDay` (what a Pro account really gets, what the Pro
+  page promises), and the start log warns when the plan's number is above the ceiling. The `error.plan_limit` message
+  still names `Plans:ProChecksPerDay` as set.
+- **A claim that cannot copy a file aborts.** A full disk or a file missing from the store used to save an owned row
+  pointing at the guest folder, which account deletion and the sweeper would then miss. Now the fresh copies are
+  removed, the rows and the cookie stay the guest's, the route answers 500 with a clear log line, and the client claims
+  again on its next load; the transcoder leaves a guest's clip alone until the claim queues it, so the two never move
+  the same file. Account deletion deletes the rows' files by path as well as by folder.
+- **The pilot upgrade rebuilds tables.** Round 9 made `Checks.UserId` nullable and gave `Posts.BeforePostId` its
+  `ON DELETE SET NULL`; adding missing tables, columns and indexes covered neither. The upgrade now compares column
+  nullability and foreign keys with the model and emits the alter and add operations (a table rebuild in SQLite), with
+  foreign-key enforcement off around the batch as `Migrate()` does, and rolls the whole batch back, the `.bak` kept, if
+  any table would come out with fewer rows. The log line names the altered columns and the added foreign keys, and the
+  test builds the old file from the migrations up to Round 8 with the history table dropped.
+- **One subscription per account, ends from Stripe's events.** `POST /api/billing/checkout` answers 409
+  `error.already_pro` for an account that is Pro, so a stale tab cannot open a second subscription on the same
+  customer. `invoice.paid` used to add 35 days to the previous end, which ran ahead by the difference every cycle; it
+  now sets the end from the invoice's period plus three days of slack, never below what is there, and
+  `customer.subscription.updated` is handled (`active` or `trialing` to the period end plus slack; `past_due`,
+  `unpaid` or `paused` down to three days from now at most). A completed checkout stacks its 35 days on a period still
+  running instead of re-stamping it.
+- **Insights are behind Pro exactly when comparisons are.** `GET /api/users/me/insights` answers 403 when
+  `Plans:CompareNeedsPro` is on and the account is not Pro, `#/insights` shows the same Pro card as `#/compare`, and
+  the Pro page lists comparisons and insights as benefits only when the server keeps them for Pro: the page sells what
+  this server actually gives.
+- **The check screen honours guests off.** With `Plans:GuestChecksPerDay` at 0 a signed-out visitor gets the sign-in
+  prompt and a disabled submit instead of a free-check banner and a wasted upload; with guests on, the banner's hint
+  carries the server's number.
+- **The claim toast belongs to the claim.** "Saved to your account." is announced by the call that actually moved the
+  rows, with the count, and `me` is read again after it so the cap line counts the claimed check; the claim on the
+  result screen is one promise kept on the result, so a tab and Back during it no longer leaves Post it disabled.
+- **The privacy wording matched the code.** A posted look carries the score's breakdown, and the stylist's item names
+  are used to find the look in search; the tip, the notes on each item and the accessories read stay private. The
+  privacy policy, the post sheet and the guidelines still said the items never go public, which stopped being true with
+  the search by piece; the pages are version 2, dated 2026-09-12, in four languages.
+- **A comment's author ref carries `verified`**, like every other ref; the comment list had been built before the flag.
+- **The sixteen rule is measured on the phone's day.** Signup takes an optional `today`; when it is within a day of
+  the UTC date it is the day the rule and the not-in-the-future check use, so nobody is stopped on their birthday east
+  of Greenwich or let in the evening before it west. Anything else falls back to UTC; a self-declared date already
+  rests on the person's word, so a day of slack around midnight hands nobody anything the rule did not.
+- **The prompt calendar has an epoch.** `DailyPrompts.For` counts whole UTC days since 31 December 2025 modulo thirty
+  (through 2026 that equals the day of the year, so the pilot's calendar is unchanged), so late December's prompts do
+  not come back within the week of 1 January.
+
+What the review raised and the round kept as it was:
+
+- **No in-app cancel yet.** Still Stripe's side or `--pro off`, and the terms say to write to us; a customer-portal
+  link is the next step, not a fix.
+- **Webhook idempotency, accepted.** With the ends read from the events, only a replayed `checkout.session.completed`
+  can stack a period, and Stripe replays only what was not answered 2xx; an events table waits for money that is real.
+- **The comparison verdict is the model's call.** The winner is the one the stylist named; the server normalises the
+  word and falls back to the higher score only when the word is unusable (A on a tie). Deciding it from the two scores
+  ourselves would be a rule dressed as taste.
+- **The insights' lines are a subset on purpose.** The best intent always gets a line; the weak category, the missing
+  accessories and the streak get one only when they say something (nothing at 0%, no streak under two). A line for
+  every number would be the tiles read aloud.
+- **The Today cache edge.** The strip draws what it has and refetches in place once the cached prompt is older than
+  the feed's ten minutes, so across midnight UTC yesterday's prompt can show for those minutes until a refetch or a
+  pull to refresh. A daily hashtag can carry that; a clock-aligned refetch is not worth its own timer.
+- **`--verify` on a person.** The command sets the flag on the account with the handle, whatever its type, and the
+  client draws the check only inside the BRAND mark, so on a person it shows nowhere. The owner runs it by hand for
+  accounts they know; a type check would be a rule for a case the owner already controls.
+- **The 24px pill.** `.tag` (the intent label on a card, the PRO badge, "clip ready") stays at 24px: it is a label,
+  not a control, and the 44px rule in `DESIGN.md` is for touch targets.
+
 ### Objections kept out of the code (owner wins)
 
 - **A guest check is a model call with nobody behind it.** Kept because the first wow must come before the signup;
-  the cost is bounded per cookie, per address and globally, `Plans:GuestChecksPerDay=0` exists, and the README's
-  limitations say a script that rotates addresses gets one check per address.
-- **The webhook keeps no event ids.** A replayed `invoice.paid` over-extends by one period. Acceptable for a pilot,
+  the cost is bounded per cookie and per address (looks given, not attempts; attempts are braked separately) and
+  globally, `Plans:GuestChecksPerDay=0` exists, and the README's limitations say a script that rotates addresses gets
+  one check per address.
+- **The webhook keeps no event ids.** A replayed `checkout.session.completed` stacks one period; a replayed
+  `invoice.paid` or `customer.subscription.updated` names the same period and changes nothing. Acceptable for a pilot,
   named in the README; an events table is the fix when money is real.
 - **Stripe has not run against a live account.** Checkout and the webhook were built against a recording stand-in and
   signed test events; DEPLOY.md says to run test mode and the Stripe CLI before switching the provider.

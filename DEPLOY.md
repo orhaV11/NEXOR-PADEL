@@ -280,8 +280,9 @@ exceeds; checks and "Which one?" comparisons share the allowance. All of it is s
 | Variable | What to put |
 |---|---|
 | `Plans__FreeChecksPerDay` | Checks a day on Free. `3` by default: a taste, not the habit |
-| `Plans__ProChecksPerDay` | Checks a day on Pro, `30`. Cannot exceed `Limits__ChecksPerDay` |
-| `Plans__GuestChecksPerDay` | Free checks for a visitor with no account, `1`, per guest cookie and per client address a day. `0` turns guests off and the check screen asks to sign in |
+| `Plans__ProChecksPerDay` | Checks a day on Pro, `30`. Clamped to `Limits__ChecksPerDay`: the clamped number is the effective Pro cap, what `/api/config` publishes and the Pro page promises, and the start log warns when the plan's number is above the ceiling |
+| `Plans__GuestChecksPerDay` | Free checks for a visitor with no account, `1`, per guest cookie and per client address over a rolling day, counted from looks actually given (a refused photo, a model outage or a dropped connection spends nothing; the per-address count is in memory, so a restart forgets the day). `0` turns guests off and the check screen asks to sign in |
+| `Plans__GuestAttemptsPerDay` | The brake on attempts at the check route from a visitor, `20` per client address per 24 hours whatever they come to (429 `error.too_fast`). Well above the guest cap on purpose, so a refused photo never locks a shared address out of its look |
 | `Plans__ProPriceText` | What the Pro page shows as the price, e.g. `₪19 / month` or `$5 / month`. Text only; empty hides it |
 | `Plans__CompareNeedsPro` | `false`. Set `true` to keep "Which one?" for Pro accounts |
 | `Billing__Provider` | `manual` (the default) or `stripe` |
@@ -324,11 +325,14 @@ subscription with the account id attached; Checkout returns to `/#/pro?checkout=
 the events to `/api/billing/webhook`, which is the one write that needs no session and no `X-Requested-With` header,
 because its `Stripe-Signature` header is the guard (a bad or old signature is answered 400 and shows in Stripe's
 dashboard). `checkout.session.completed` puts the account on Pro for 35 days (a month plus slack for slow events) on
-top of any Pro it still has; `invoice.paid` on a renewal moves the end to the invoice's period end plus three days
-(from the event, never stacked on the previous end); `customer.subscription.updated` follows the subscription, `active`
-to its current period end plus three days, `past_due`, `unpaid` or `paused` down to three days from now at most;
-`customer.subscription.deleted` ends it now; a missed renewal simply lapses. An account that is Pro already cannot open
-a second Checkout (409). Card details never reach the app, and the secret key is redacted from the app's logs.
+top of any period still running and stores the customer id; `invoice.paid` (except the first, `subscription_create`,
+which the checkout already counted) moves the end to the invoice's period end plus three days, from the event and never
+below the current end; `customer.subscription.updated` follows the status, `active` or `trialing` to the current period
+end plus three days (never below the current end), `past_due`, `unpaid` or `paused` down to three days from now at most;
+`customer.subscription.deleted` ends it now; a missed renewal simply lapses. No event ids are kept: a repeated
+`checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends
+what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
+app, and the secret key is redacted from the app's logs.
 
 To try it before people pay: keep test keys, install the Stripe CLI and run `stripe listen --forward-to
 localhost:5000/api/billing/webhook` (it prints a `whsec_` for the session; put that in `Billing__StripeWebhookSecret`),
@@ -453,7 +457,7 @@ Fill in:
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
 | `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
-| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
+| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1), the brake on guest attempts (20) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
@@ -600,8 +604,11 @@ which in the log:
   nothing when there are none (`is at the current schema`).
 - **A pilot file from before migrations existed** (a database created by `dotnet run` in an earlier round, on a
   laptop or a tunnel setup): first copies it to `orevosh.db.bak-<timestamp>` next to it, then adds every missing
-  table, column and index without dropping a row, and records the migrations as applied so the next update takes
-  the normal path (`predates migrations: copied it to ... before upgrading` followed by `upgraded: ...`). The copy
+  table, column, foreign key and index and alters a column whose nullability differs from the model (a table
+  rebuild: the rows are copied into a fresh table), with foreign keys off during the batch and the whole batch rolled
+  back, the `.bak` kept, if any table would come out with fewer rows; then it records the migrations as applied so the
+  next update takes the normal path (`predates migrations: copied it to ... before upgrading` followed by
+  `upgraded: ...`, which names the tables created, the columns added and altered and the foreign keys added). The copy
   stays on the volume; delete it once you are happy (`docker compose exec app rm /data/orevosh.db.bak-...`).
 
 ### Moving your laptop pilot to the server
@@ -660,8 +667,9 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
 
 In place: HTTPS with automatic renewal; HttpOnly, Secure, SameSite=Strict session cookies, and a guest cookie of the
 same kind that lives a day; a CSRF header on every write, with the Stripe webhook the one exception and its signature
-the guard there; passwords hashed with ASP.NET Core's hasher; rate limits on signup, login, checks (per plan, and per
-address for guests), and per account on comments, reports and recovery mail; recovery links built only from
+the guard there; passwords hashed with ASP.NET Core's hasher; rate limits on signup, login, checks (per plan; for guests per cookie and per
+address, counted from looks given, with a brake on attempts per address), and per account on comments, reports and
+recovery mail; recovery links built only from
 `Email__PublicOrigin`, never from a request's `Host`; photos and clips never served by path; uploads checked by their
 bytes, not their declared type; moderation, verification and the plan as flags on the account row, set only at start
 from `Admin:Handles` and by the `--admin`, `--verify` and `--pro` commands (or Stripe's signed webhook for the plan),
@@ -692,8 +700,8 @@ Still missing before a public launch, in rough order of importance:
 4. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need
    nonces or hashes before a strict policy can go in without breaking the app.
 5. **Brand verification is by hand** (`--verify`, no form and no process behind it), and **one process only**: the
-   checks-per-day reservation and the rate limiters' windows live in memory, so run one `app` container (one machine
-   on Fly). Multiple instances need a shared store.
+   checks-per-day reservation, the per-address guest count and the rate limiters' windows live in memory, so run one
+   `app` container (one machine on Fly). Multiple instances need a shared store.
 6. **The rate limiters trust `X-Forwarded-For`**, which is right behind Caddy on the private compose network and
    behind Fly's edge; never publish port 8080 on a host.
 
@@ -729,8 +737,8 @@ Before the address leaves the team, in this order:
 9. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
    On Fly: the daily snapshots are on, plus a weekly `--backup` and `fly sftp get` of your own. Restore one once,
    before you need to.
-10. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 1, dated
-    2026-09-08, in both languages) describe what the code does in plain words and are not legal advice: the
+10. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 2, dated
+    2026-09-12, in both languages) describe what the code does in plain words and are not legal advice: the
     governing-law line is a placeholder, the contact address `hello@orevosh.app` must be a mailbox someone reads, and the
     stores want both pages at a public URL. The guidelines page (linked from signup with the two) says what gets
     reported and what happens to a report, what deletion removes, and that the photos are the person's own. Change
@@ -750,8 +758,9 @@ Before the address leaves the team, in this order:
 14. **Rate limits that fit the launch.** Signups per address (50 an hour), logins (30 per quarter hour), comments (30
     an hour per account) and reports (20 an hour per account) are pilot numbers; a launch party on one Wi-Fi needs
     `Limits__SignupsPerHourPerIp` raised for the evening, and the per-account ones (`Limits__CommentsPerHour`,
-    `Limits__ReportsPerHour`) are meant to stay where nobody meets them by hand. The guest brake is per address too:
-    one free check per address a day means a whole café shares one, which is the intended side.
+    `Limits__ReportsPerHour`) are meant to stay where nobody meets them by hand. The guest cap is per address too:
+    one free check per address a day means a whole café shares one, which is the intended side; it counts looks given,
+    so a refused photo does not spend the café's look, and `Plans__GuestAttemptsPerDay` (20) brakes attempts on top.
 15. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
     browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
     `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).

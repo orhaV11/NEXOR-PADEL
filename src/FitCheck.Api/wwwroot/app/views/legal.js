@@ -8,8 +8,8 @@
 // does, in plain language; it is not legal advice, and the governing-law line in the terms is a placeholder.
 import { register, t, el, hasMessage, setTopBar, intlLocale } from '../core.js';
 
-const VERSION = '1';
-const DATED = '2026-09-08';
+const VERSION = '2';
+const DATED = '2026-09-12';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
 const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));

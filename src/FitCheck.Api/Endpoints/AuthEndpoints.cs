@@ -141,8 +141,10 @@ public static partial class AuthEndpoints
 
         // The date of birth decides, and it is required: the 16+ checkbox older clients still send is ignored. Checked
         // last, in the form's order (handle, password, then the date), so the person fixes the top field first. Real age
-        // assurance comes before public launch; until then the date is stored and never shown to anyone.
-        var (birthDate, birthError) = ParseBirthDate(body.BirthDate, DateOnly.FromDateTime(DateTime.UtcNow));
+        // assurance comes before public launch; until then the date is stored and never shown to anyone. "Today" is the
+        // phone's own calendar day when the client sent one, so nobody is stopped on their sixteenth birthday east of
+        // Greenwich (or let in the evening before it, west); a day the server cannot vouch for falls back to UTC.
+        var (birthDate, birthError) = ParseBirthDate(body.BirthDate, TodayFor(body.Today, DateOnly.FromDateTime(DateTime.UtcNow)));
         if (birthError is not null)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, birthError));
@@ -180,8 +182,27 @@ public static partial class AuthEndpoints
     private static readonly DateOnly EarliestBirthDate = new(1900, 1, 1);
 
     /// <summary>
-    /// The signup date of birth: "yyyy-MM-dd" (what an &lt;input type="date"&gt; sends), no later than today (UTC) and no
-    /// earlier than 1900, and at least sixteen years ago. Returns the date, or the error key to answer 400 with:
+    /// The day the sixteen rule is measured on: the client's own calendar date ("yyyy-MM-dd", what its clock says) when
+    /// it is within one day of the server's UTC date, which is every real time zone (UTC-12 to UTC+14) on either side of
+    /// midnight; anything else, missing, unreadable or further off, is the UTC date. A self-declared date of birth is
+    /// already the person's word, so a day of slack around midnight hands nobody anything the rule did not.
+    /// </summary>
+    public static DateOnly TodayFor(string? clientToday, DateOnly utcToday)
+    {
+        var text = clientToday?.Trim() ?? "";
+        if (text.Length > 0
+            && DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)
+            && Math.Abs(local.DayNumber - utcToday.DayNumber) <= 1)
+        {
+            return local;
+        }
+
+        return utcToday;
+    }
+
+    /// <summary>
+    /// The signup date of birth: "yyyy-MM-dd" (what an &lt;input type="date"&gt; sends), no later than today (the day
+    /// <see cref="TodayFor"/> settled on) and no earlier than 1900, and at least sixteen years ago. Returns the date, or the error key to answer 400 with:
     /// error.birthdate_required (missing or blank), error.birthdate_invalid (unreadable, in the future, before 1900) or
     /// error.underage. The boundary is the birthday itself: someone turning sixteen today gets in.
     /// </summary>

@@ -156,7 +156,7 @@
   "result.posted": "Posted",
   "result.view_post": "See the look",
   "result.post_title": "Post this look",
-  "result.post_intro": "The photo, the intent, the score with its breakdown and the headline go public. The tip, the items and the accessories read stay yours.",
+  "result.post_intro": "The photo, the intent, the score with its breakdown and the headline go public, and the stylist's names for your pieces let people find the look in search. The tip, the stylist's notes on each piece and the accessories read stay yours.",
   "result.caption": "Caption",
   "result.caption_placeholder": "What's the story? #tags and @brands welcome",
   "result.caption_hint": "Add #tags so people find it, @mention the brands you're wearing, and a challenge's hashtag enters it.",
@@ -393,7 +393,7 @@
   "guidelines.rule5_title": "Report, and we act",
   "guidelines.rule5": "Three reports hide a look or a comment until a moderator has seen it. Repeat offenders are suspended.",
   "guidelines.privacy_title": "What we keep",
-  "guidelines.privacy": "Your checks are private until you post them. The stylist's tip and breakdown stay yours even after you post. Delete your account in Settings and everything goes: photos, clips, looks, comments, follows.",
+  "guidelines.privacy": "Your checks are private until you post them. Posting shares the score with its breakdown and lets people find the look by the pieces in it; the stylist's tip stays yours even after you post. Delete your account in Settings and everything goes: photos, clips, looks, comments, follows.",
   "sharecard.action": "Share card",
   "sharecard.title": "Your card",
   "sharecard.hint": "Save it and post it to your story. The mark on it says where the score came from.",
@@ -465,7 +465,7 @@
   "guest.title": "Try it first",
   "verified.brand": "Verified brand",
   "after.title": "After the tip",
-  "guest.hint": "One free check, no account. Sign up to keep it and post it.",
+  "guest.hint": "{n} free checks, no account. Sign up to keep them and post them.",
   "guest.keep": "Sign up to keep it and post it",
   "guest.kept": "Saved to your account.",
   "check.left": "{n} of {cap} checks left today",
@@ -600,7 +600,7 @@
   "legal.privacy_2_title": "What we send to the model provider",
   "legal.privacy_2": "To score a look we send the AI model provider the photo you check (or the frame you picked from a clip), the occasion, your note and your language. Never your name, handle, email or date of birth. What the provider does with it is covered by its own terms.",
   "legal.privacy_3_title": "Who sees what",
-  "legal.privacy_3": "A check is private: only you see it, until you post it. A posted look, its score, headline and caption are public to anyone with the link, signed in or not. The tip and the breakdown stay yours. Your email and date of birth are never shown to anyone. Moderators see reported content and account status, not private checks.",
+  "legal.privacy_3": "A check is private: only you see it, until you post it. A posted look, its score with its breakdown, headline and caption are public to anyone with the link, signed in or not, and the stylist's names for the pieces in it are used to find the look in search. The tip, the stylist's notes on each piece and the accessories read stay yours. Your email and date of birth are never shown to anyone. Moderators see reported content and account status, not private checks.",
   "legal.privacy_4_title": "How long we keep it",
   "legal.privacy_4": "Private checks stay until you delete them or your account. A check made as a guest, before signing up, is kept for a day and then deleted unless you signed up and claimed it. Posted looks stay until you delete them. Email links expire within a day (confirmation) or an hour (password reset). Server logs are kept only as long as running the service needs.",
   "legal.privacy_5_title": "Deleting",
@@ -630,5 +630,6 @@
   "after.option": "{intent} · {score}/10",
   "insights.pro_title": "Your insights are for Pro",
   "insights.pro_body": "Your best intent, your weak piece, your streak: what your checks say about you, over time.",
-  "insights.go_pro": "See OREVOSH Pro"
+  "insights.go_pro": "See OREVOSH Pro",
+  "guest.hint_one": "One free check, no account. Sign up to keep it and post it."
 }

@@ -128,6 +128,53 @@ public class SignupDobTests : IClassFixture<TestApp>
         Assert.Equal(expectedError is null, date.HasValue);
     }
 
+    [Theory]
+    [InlineData("2026-09-08", "2026-09-08")]     // the same day
+    [InlineData("2026-09-09", "2026-09-09")]     // east of Greenwich, past local midnight
+    [InlineData("2026-09-07", "2026-09-07")]     // west of Greenwich, the evening before
+    [InlineData("2026-09-10", "2026-09-08")]     // two days off: no time zone is there
+    [InlineData("2026-09-06", "2026-09-08")]
+    [InlineData("2027-09-08", "2026-09-08")]     // a clock a year out
+    [InlineData("garbage", "2026-09-08")]
+    [InlineData("2026-9-8", "2026-09-08")]
+    [InlineData("", "2026-09-08")]
+    [InlineData(null, "2026-09-08")]
+    public void The_day_is_the_phones_when_it_is_within_a_day_of_utc(string? clientToday, string expected)
+    {
+        var expectedDay = DateOnly.Parse(expected, System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(expectedDay, AuthEndpoints.TodayFor(clientToday, new DateOnly(2026, 9, 8)));
+        Assert.Equal(expectedDay, AuthEndpoints.TodayFor(clientToday is null ? null : " " + clientToday + " ", new DateOnly(2026, 9, 8)));
+    }
+
+    [Fact]
+    public async Task Sixteen_on_the_phones_own_day_gets_in_either_side_of_utc_midnight()
+    {
+        // East of Greenwich (Israel at 01:30): the phone is already on the birthday while the server is still on the eve.
+        var eastBirthday = Iso(Today.AddDays(1).AddYears(-16));
+        var refused = await SignupAsync("dob_east_utc", new { handle = "dob_east_utc", password = "password123", birthDate = eastBirthday, language = "en" });
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("OREVOSH is for people 16 and over.", await ErrorOf(refused));
+        var east = await SignupAsync("dob_east", new { handle = "dob_east", password = "password123", birthDate = eastBirthday, today = Iso(Today.AddDays(1)), language = "en" });
+        Assert.Equal(HttpStatusCode.Created, east.StatusCode);
+
+        // West of Greenwich (Los Angeles at 17:30): the server is on the birthday, the phone is still the evening before.
+        var west = await SignupAsync("dob_west", new { handle = "dob_west", password = "password123", birthDate = Iso(Today.AddYears(-16)), today = Iso(Today.AddDays(-1)), language = "he" });
+        Assert.Equal(HttpStatusCode.BadRequest, west.StatusCode);
+        Assert.Equal("OREVOSH היא לגילאי 16 ומעלה.", await ErrorOf(west));
+
+        // A day the server cannot vouch for (two days off, or unreadable) is ignored and the UTC date decides.
+        var farOff = await SignupAsync("dob_far", new { handle = "dob_far", password = "password123", birthDate = eastBirthday, today = Iso(Today.AddDays(2)), language = "en" });
+        Assert.Equal(HttpStatusCode.BadRequest, farOff.StatusCode);
+        Assert.Equal("OREVOSH is for people 16 and over.", await ErrorOf(farOff));
+        var unreadable = await SignupAsync("dob_odd_clock", new { handle = "dob_odd_clock", password = "password123", birthDate = Iso(Today.AddYears(-16)), today = "09/12/2026", language = "en" });
+        Assert.Equal(HttpStatusCode.Created, unreadable.StatusCode);
+
+        // The phone's day is also "today" for the not-in-the-future rule: born on it is fine to read, and far too young.
+        var newborn = await SignupAsync("dob_east_newborn", new { handle = "dob_east_newborn", password = "password123", birthDate = Iso(Today.AddDays(1)), today = Iso(Today.AddDays(1)), language = "en" });
+        Assert.Equal(HttpStatusCode.BadRequest, newborn.StatusCode);
+        Assert.Equal("OREVOSH is for people 16 and over.", await ErrorOf(newborn));
+    }
+
     [Fact]
     public void A_leap_day_birthday_turns_sixteen_on_the_29th()
     {

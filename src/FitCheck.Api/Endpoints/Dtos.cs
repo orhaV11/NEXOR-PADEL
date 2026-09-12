@@ -8,8 +8,12 @@ public sealed record ErrorDto(string Error);
 
 // ---- auth and users ----
 
-/// <summary>BirthDate: "yyyy-MM-dd". Required from Round 9 (16 and over); Confirmed16Plus stays for older clients.</summary>
-public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null);
+/// <summary>
+/// BirthDate: "yyyy-MM-dd". Required from Round 9 (16 and over); Confirmed16Plus stays for older clients. Today: the
+/// client's own calendar date ("yyyy-MM-dd", optional), the day the sixteen rule is measured on when it is within a day
+/// of the server's UTC date; missing, unreadable or further off, the UTC date is used.
+/// </summary>
+public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null, string? Today = null);
 
 public sealed record LoginRequest(string? Handle, string? Password);
 

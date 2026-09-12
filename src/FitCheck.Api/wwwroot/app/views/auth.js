@@ -4,7 +4,7 @@
 // a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
 // person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe
 } from '../core.js';
 
 // The few rules the shared stylesheet does not have: the date field, the agreement line, bigger onboarding steps and chips.
@@ -90,12 +90,16 @@ function authView(mode) {
       error.hidden = true;
       try {
         const me = signup
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, language: getLocale() })
+          // today: the phone's own calendar day, so the sixteen rule is measured on it and not on the server's UTC day.
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
         renderShell();
-        // A check made as a guest on this phone follows the person in (one cheap call; 0 is the usual answer).
-        await claimGuestChecks();
+        // A check made as a guest on this phone follows the person in (one cheap call; 0 is the usual answer). This is the
+        // claim that finds the rows, so the confirmation is announced here; the result screen's later claim finds nothing.
+        // The claimed check counts against today, so "me" is read again: the cap line must not promise a check the server refuses.
+        const claimed = await claimGuestChecks();
+        if (claimed > 0) { toast(t('guest.kept')); loadMe(); }
         if (ctx.stale()) return;                         // they moved on meanwhile; the session is in place either way
         if (signup) navigate('#/welcome');               // returnTo stays for the welcome screen to honour
         else navigate(takeReturnTo());

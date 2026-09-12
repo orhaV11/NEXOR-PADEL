@@ -4,11 +4,13 @@
 // .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
 // sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame. The rubric v2
 // block is #breakdown (ul.breakdown with li[data-part=fit|color|accessories]) and #accessories (.acc-verdict.<verdict>,
-// .acc-present .chip, .acc-note, .acc-add.tip). Round 9, guests: #guest-banner sits above the form when signed out, the
-// result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and #post-open
-// takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when none are left.
+// .acc-present .chip, .acc-note, .acc-add.tip). Round 9, guests: #guest-banner sits above the form when signed out (the
+// sign-in prompt instead, and the submit stays disabled, when the server has guests switched off: config.plans.guestChecksPerDay
+// is 0), the result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and
+// #post-open takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when a
+// Free account has none left.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { afterPicker } from '../after.js';
@@ -52,6 +54,11 @@ let capturing = false;    // a frame is on its way to the canvas: the submit wai
 let captureSeq = 0;
 let seekSeq = 0;
 
+/** How many checks a visitor gets with no account (Plans:GuestChecksPerDay from /api/config); 0 means the door is shut. */
+const guestChecks = () => Number((state.config.plans || {}).guestChecksPerDay) || 0;
+/** True when a signed-out visitor may submit a check on this server. */
+const guestsOn = () => guestChecks() > 0;
+
 // ---------- check ----------
 
 register('check', async (root) => {
@@ -61,8 +68,9 @@ register('check', async (root) => {
   if (ck.busy) { root.appendChild(loadingBlock()); return; }   // a check is in flight; the result view takes over when it lands
   ensureStyle();
 
-  // Signed out is not a wall any more: one check as a guest, and the account comes after the verdict.
-  if (!state.me) root.appendChild(guestBanner());
+  // Signed out is not a wall any more: a check as a guest, and the account comes after the verdict. Unless the server
+  // has guests switched off: then the wall is back, and the submit below stays disabled.
+  if (!state.me) root.appendChild(guestsOn() ? guestBanner() : signInPrompt());
   const form = el('form', { class: 'stack', novalidate: true, onsubmit: (event) => { event.preventDefault(); submitCheck(); } });
   root.appendChild(form);
 
@@ -110,18 +118,19 @@ register('check', async (root) => {
   updateSubmit();
 });
 
-/** "Try it first": one free check, no account; signing up keeps it. A join link for the visitor who already used it. */
+/** "Try it first": the server's number of free checks, no account; signing up keeps them. A join link for the visitor who already used it. */
 function guestBanner() {
   return el('div', { class: 'notice guest-banner', id: 'guest-banner' }, [
     el('h3', { text: t('guest.title') }),
-    el('p', { class: 'muted', text: t('guest.hint') }),
+    el('p', { class: 'muted', text: t('guest.hint', { n: guestChecks() }) }),
     el('a', { class: 'btn-text', id: 'guest-join', href: '#/signup', text: t('auth.signup'), onclick: () => { state.returnTo = '#/check'; } })
   ]);
 }
 
 /**
  * "{n} of {cap} checks left today" for a signed-in person, from MeDto.checksToday / checksPerDay (the server fills them in;
- * 0 for the cap means unknown and the line stays out). At zero left, the way to more is the Pro screen.
+ * 0 for the cap means unknown and the line stays out). At zero left, the way to more is the Pro screen, unless the person is
+ * on Pro already: at their own ceiling they just hear the number.
  */
 function checksLeftLine() {
   const me = state.me;
@@ -130,7 +139,7 @@ function checksLeftLine() {
   const n = Math.max(0, cap - (me.checksToday || 0));
   return el('p', { class: 'hint checks-left', id: 'checks-left' }, [
     el('span', { text: t('check.left', { n, cap: fmtNumber(cap) }) }),
-    n === 0 ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
+    n === 0 && me.plan !== 'pro' ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
   ]);
 }
 
@@ -272,7 +281,7 @@ async function captureFrame(video, ms) {
 function updateSubmit() {
   const submit = $('submit');
   const ck = state.check;
-  if (submit) submit.disabled = !(ck.intent && ck.photo) || ck.busy || ck.photoBusy || capturing;
+  if (submit) submit.disabled = !(ck.intent && ck.photo) || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn());
 }
 function showError(message) {
   const node = $('check-error');   // looked up fresh: the view may have been re-rendered during a decode
@@ -385,7 +394,7 @@ function clipName(blob) { return /mp4|quicktime/i.test(blob.type || '') ? 'clip.
 
 async function submitCheck() {
   const ck = state.check;
-  if (!ck.intent || !ck.photo || ck.busy || ck.photoBusy || capturing) return;
+  if (!ck.intent || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
   ck.busy = true;
   updateSubmit();
   const root = view();
@@ -550,42 +559,40 @@ function renderPostArea(area, result) {
       area.appendChild(el('button', { type: 'button', class: 'btn', id: 'guest-keep', text: t('guest.keep'), onclick: () => requireSignIn('#/result', true) }));
       return;
     }
-    // Signed in since: Post it shows disabled while the claim runs, then for real.
+    // Signed in since: Post it shows disabled while the claim runs, then for real. The claim is one promise on the result,
+    // so a view drawn again meanwhile (a tab and Back) repaints its own button when the same claim settles.
     area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), disabled: true, 'aria-busy': 'true' }));
-    claimGuestResult(area, result);
+    claimGuestResult(result).then(() => { if (document.contains(area)) renderPostArea(area, result); });
     return;
   }
   area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), onclick: () => openPostSheet(area, result) }));
 }
 
 /**
- * The guest's check follows the person into the account: claim (idempotent; loadMe may have done it already), then read the
- * check back so its ownership and postId are the server's. Whatever happens, the result stops being a guest's after this:
- * a claim that did not land shows Post it anyway and the server's own answer says why when it is tapped.
+ * The guest's check follows the person into the account: claim (idempotent; the signup or login already did it, and so
+ * does loadMe at boot, which is why the "Saved to your account" toast lives in auth.js with the count), then read the
+ * check back so its ownership and postId are the server's. Whatever happens, the result stops being a guest's once this
+ * settles: a claim that did not land shows Post it anyway and the server's own answer says why when it is tapped. One
+ * promise per result, kept on it, so every render that finds the claim in flight waits for the same one.
  */
-async function claimGuestResult(area, result) {
-  if (result.claiming) return;
-  result.claiming = true;
-  let claimed = 0;
-  try {
-    claimed = await claimGuestChecks();
-    const fresh = await api('GET', '/api/checks/' + encodeURIComponent(result.id));
-    if (state.result !== result) return;
-    Object.assign(result, fresh);
-  } catch (e) {
-    if (state.result !== result) return;
-  } finally {
-    result.claiming = false;
+function claimGuestResult(result) {
+  if (!result.claimPromise) {
+    result.claimPromise = (async () => {
+      try {
+        await claimGuestChecks();
+        const fresh = await api('GET', '/api/checks/' + encodeURIComponent(result.id));
+        if (state.result === result) Object.assign(result, fresh);
+      } catch (e) { /* the server answers for itself when Post it is tapped */ }
+      result.guest = false;
+    })();
   }
-  result.guest = false;
-  if (claimed > 0) toast(t('guest.kept'));
-  if (document.contains(area)) renderPostArea(area, result);
+  return result.claimPromise;
 }
 
 /**
  * The post sheet: caption, an open challenge of the same intent (the one the check was started from is preselected),
- * product links for brands. Posting makes the photo, intent, score, sub-scores and headline public; the tip, the items and
- * the accessories read stay private.
+ * product links for brands. Posting makes the photo, intent, score, sub-scores and headline public and lets the look be
+ * found in search by the stylist's item names; the tip, the notes on each item and the accessories read stay private.
  */
 function openPostSheet(area, result) {
   if (!requireSignIn('#/result')) return;

@@ -56,6 +56,33 @@ public class TodayTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public void A_prompt_comes_back_every_thirty_days_across_the_turn_of_the_year()
+    {
+        // Every 30-day window is the whole list, from late November into February, in an ordinary year and after a leap
+        // year (a day-of-the-year index restarted on 1 January and brought 27-31 December back on 1-5 January).
+        foreach (var start in new[] { new DateTime(2026, 11, 20, 0, 0, 0, DateTimeKind.Utc), new DateTime(2028, 11, 20, 0, 0, 0, DateTimeKind.Utc) })
+        {
+            for (var offset = 0; offset < 80; offset++)
+            {
+                var window = Enumerable.Range(0, 30).Select(i => DailyPrompts.For(start.AddDays(offset + i)).Tag).ToHashSet();
+                Assert.Equal(30, window.Count);
+            }
+        }
+
+        Assert.NotSame(DailyPrompts.For(new DateTime(2026, 12, 27, 12, 0, 0, DateTimeKind.Utc)), DailyPrompts.For(new DateTime(2027, 1, 1, 12, 0, 0, DateTimeKind.Utc)));
+        Assert.Same(DailyPrompts.For(new DateTime(2026, 12, 27, 12, 0, 0, DateTimeKind.Utc)), DailyPrompts.For(new DateTime(2027, 1, 26, 12, 0, 0, DateTimeKind.Utc)));
+
+        // Through 2026 the count keeps the day-of-the-year calendar the pilot launched with, and a day before the epoch
+        // still lands on a prompt.
+        var launchYear = new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc);
+        Assert.Same(DailyPrompts.All[launchYear.DayOfYear % DailyPrompts.All.Count], DailyPrompts.For(launchYear));
+        Assert.Same(DailyPrompts.All[1], DailyPrompts.For(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+        Assert.Same(DailyPrompts.All[0], DailyPrompts.For(new DateTime(2025, 12, 31, 23, 0, 0, DateTimeKind.Utc)));
+        Assert.Same(DailyPrompts.All[29], DailyPrompts.For(new DateTime(2025, 12, 30, 0, 0, 0, DateTimeKind.Utc)));
+        Assert.NotNull(DailyPrompts.For(new DateTime(2000, 6, 1, 0, 0, 0, DateTimeKind.Utc)));
+    }
+
+    [Fact]
     public void Every_prompt_has_a_hashtag_the_caption_parser_accepts_and_every_language()
     {
         var tags = DailyPrompts.All.Select(p => p.Tag).ToList();

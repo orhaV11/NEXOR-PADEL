@@ -107,7 +107,7 @@ def main():
     # A throwaway account per run (the handle carries a random suffix); it is deleted at the end with its photos.
     handle = "calib_" + uuid.uuid4().hex[:8]
     status, body = request("POST", f"{args.base}/api/auth/signup",
-                           json.dumps({"handle": handle, "password": uuid.uuid4().hex, "confirmed16Plus": True,
+                           json.dumps({"handle": handle, "password": uuid.uuid4().hex, "birthDate": "1990-01-01",
                                        "language": languages[0]}).encode(),
                            {"Content-Type": "application/json"})
     if status != 201:

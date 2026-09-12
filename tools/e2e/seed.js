@@ -24,7 +24,7 @@ async function main() {
     const ctx = await browser.newContext();
     const r = ctx.request;
     const h = handle + suffix;
-    const me = await r.post(base + '/api/auth/signup', { headers: H, data: { handle: h, password: 'password123', confirmed16Plus: true, language: opts.language || 'en' } });
+    const me = await r.post(base + '/api/auth/signup', { headers: H, data: { handle: h, password: 'password123', birthDate: '1990-01-01', language: opts.language || 'en' } });
     if (!me.ok()) throw new Error('signup ' + h + ' ' + me.status() + ' ' + await me.text());
     if (opts.brand || opts.name || opts.bio || opts.interests) {
       await r.patch(base + '/api/users/me', { headers: H, data: { accountType: opts.brand ? 'Brand' : 'Person', displayName: opts.name, bio: opts.bio, website: opts.website, interests: opts.interests } });

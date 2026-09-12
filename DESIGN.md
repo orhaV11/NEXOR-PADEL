@@ -185,7 +185,61 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
   with the report count, the reasons as small chips, Hidden/Suspended tags, and an action row of outlined pills; Delete
   and Suspend confirm in a danger sheet. Reached from Settings, only for `isAdmin`.
 - **The guidelines** (`views/pages.js`): h1, the intro, five numbered rules with bold titles, "What we keep", a version
-  line. Linked under the 16+ checkbox on signup.
+  line. Linked from the agreement line under the signup button, with the terms and the privacy policy (§8c).
+
+## 8c. Round 9 surfaces: guests, Pro, "Which one?", insights, Today, after the tip, the numbers, the legal pages
+
+- **The guest banner and the cap line** (`views/check.js`): signed out, a `.notice` sits above the check form with a
+  display-face title 20/800 ("Try it first"), a muted line and a 44px text button to join; nothing is walled. A guest's
+  result shows a gradient button "Sign up to keep it and post it" (`#guest-keep`) where Post it would be, and Post it
+  takes its place once the claim has run. Signed in, the cap line (`#checks-left`, hint voice) sits under the submit
+  button with the private note: "2 of 3 checks left today", and "Go Pro for more" as a text button when none are left.
+  The date field on signup (`.auth-dob`) is dressed like the text fields: `--surface-2`, radius 12, ltr numerals at the
+  end edge in Hebrew, a dark picker.
+- **"Which one?"** (`views/compare.js`, `#/compare`, linked as a text button under the check button): the intent chips
+  and the occasion as on the check, then two 4:5 slots side by side (`.cmp-slots`: dashed `--line` on `--surface`, radius
+  18, the letter A or B in a 28px translucent disc at the top start in Outfit 800 14, an image glyph in `--accent`, the
+  outfit's name Outfit 700 18, a hint);
+  with a photo in, the slot is the photo with a gradient "Replace" pill along its bottom. The verdict (`#/compare/<id>`):
+  two figures with 44px score rings, the winner's frame a 3px gradient border (`.cmp-frame`, padding-box on `--grad`) with
+  the rose glow and a WINNER caps pill at the top end, each side's name in caps (`--accent` for the winner) and its
+  headline Outfit 700 17; "A wins" Outfit 800 32; the reason 16/1.55 `--ink-2`; the one tip as the same pull quote on a
+  gradient bar (`.tip`); "Compare two more" as a ghost button. While the stylist looks, the breathing mark at 96px.
+- **Insights** (`views/insights.js`, `#/insights`, a sparkle link on the own profile): three tiles (`--surface`, radius
+  18, card shadow, 116 tall, caps label at the bottom): the count in Outfit 800 30, the average and the best score as
+  58px score rings in flow; the sentences as rows with a 6px gradient dot and `--line-soft` hairlines between; a footer
+  hint "From your last N checks" and a gradient "Check another look". Under three checks: the empty state with "N of 3
+  checked so far".
+- **The Pro page** (`views/pro.js`, `#/pro`, from Settings' plan row and the cap line): the mark at 68 on a `--bg` disc
+  with the halo, h1 34 "The stylist, every day.", a lede; three benefit rows (a 44px `--accent-tint` disc with a lilac
+  glyph: ring, flip, sparkle; title 17/700; hint 14 `--ink-2`) between hairlines; the price in Outfit 800 32 with
+  "Billed monthly" under it; then either the gradient "Go Pro" with "Payment runs on Stripe" (billing live), a `.notice`
+  saying Pro is switched on by hand (manual), or the PRO pill (`.tag.accent.pro-badge`) with "You're on Pro until…".
+  A `role=status` alert thanks on return from Checkout.
+- **The Today strip and page** (`views/today.js`): the strip is a card in the feed's rhythm (`--surface`, radius 18,
+  `margin: 0 14px 20px`) under the chips on For you: kicker TODAY · date in caps `--accent`, the title Outfit 700 21
+  (a link to `#/today`), the hint 14 `--ink-2`, the hashtag as an accent tag and "You're in" at the end, a scroll row
+  of up to eight 72×90 prints with 26px rings, then "Post yours" (a 36px pill in a 44px row) and "All of today's looks"
+  as a text link. The page is a front (title Outfit 800 28, hint 16, the tag and the intent), the CTA block with the
+  entering hint, the count, and the grid.
+- **After the tip** (`core.js` card, `app/after.js`): on the card, between the headline and the caption, a 44px strip
+  (`.after-strip`): a 44px thumbnail of the earlier look and "After the tip · 6 → 7" in 13/600 `--ink-3`, `--ok` when
+  the score went up, the whole strip a link to the earlier look. In the post sheet, under the caption: the label "After
+  the tip", a scroll row of radio options, "Not a follow-up" first (a 120-wide `--surface-2` pill, `--accent-tint` when
+  picked) then up to five 72×90 thumbnails with 28px rings, the picked one on a 2px `--accent` ring; a preview line
+  with the two scores (`--ok` when up). Hidden until the looks arrive, gone when there are none.
+- **The numbers page** (`views/dashboard.js`, `#/admin/metrics`, from the moderation page): the return rate as the hero
+  (`--surface` card, caps label, Outfit 800 48, a sub line), stat tiles (`auto-fill minmax(140px)`, radius 12, Outfit
+  700 24 with a small unit), the score distribution as a bar list of divs: rows of 22px with the score in tabular Outfit
+  at the start, a 14px bar in **one hue** (`--accent`) with a 4px rounded data end on a `--line` baseline, the count at
+  the tip, zero rows in `--ink-3`; the rubric averages and the community as tiles; two key → count lists in 44px rows;
+  a footer with "as of" and a secondary Refresh pill. No chart library, nothing else drawn.
+- **The legal pages** (`views/legal.js`, `#/terms`, `#/privacy`): the guidelines' shape: h1, a lede, ten numbered
+  sections with the number in `--accent` Outfit 800 26 at the start, a 17/700 title and 15/1.55 `--ink-2` body,
+  `--line-soft` hairlines; a footer with "Version 1 · date" and text links to the other page, the guidelines and back.
+- **The verified brand mark** (`core.js` `brandMark`): the same BRAND pill (9px caps, `--accent-2` text and outline) with
+  a 10px check glyph (stroke 3.5) after the word, inside the pill, in the mark's rose; 12px on the profile head; titled
+  "Verified brand" for hover and screen readers. Only `--verify` puts it there.
 
 ## 9. Motion
 

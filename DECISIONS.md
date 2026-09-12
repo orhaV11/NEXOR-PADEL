@@ -713,3 +713,154 @@ fields, options, DTOs, stubs, routes and strings); this section is completed by 
 - **Clips from before this round** that were stored as WebM are re-encoded by the sweep at the next start; the
   original serves until then.
 
+## Round 9 — the first wow before the signup, plans, "Which one?", trust, the launch kit (2026-09-08 → 2026-09-12)
+
+The owner asked for what separates a pilot from a thing people can find, try, come back to and pay for: a check
+before the account, a plan that pays for the model, a second stylist call ("Which one?"), reasons to come back
+(insights, a daily prompt, a follow-up look), the trust pieces a store and a lawyer ask about (a real age rule, verified
+brands, terms and a privacy policy, the pilot's numbers on a page), and everything a launch needs outside the app: a
+slogan, a brand kit, landing pages, store texts, a marketing plan and the store shells. Builders worked in parallel
+from one skeleton (`c480be5`: the schema and its migration, the options, the DTOs, the localizer keys, the empty views
+and routes), in two waves, and the lead merged and wired; the recovery hardening came from a review between the two.
+This section is completed by the docs builder after the merge, from the code.
+
+### Decisions
+
+- **The guest check comes first, because the first wow must come before the signup.** A visitor's first tap on the
+  mark gets a real verdict with no account: `POST /api/checks` needs no session, the answer sets `orevosh.guest`
+  (HttpOnly, SameSite=Strict, a random token, one day), the row keeps the token where an owner would be, and the result
+  screen offers "Sign up to keep it and post it". Signing up or in claims everything the cookie names (`POST
+  /api/checks/claim`: owner set, token cleared, the photo and clip moved into the account's folder; the client calls it
+  after signup, after login and at every signed-in boot, and a `0` is the usual answer). What nobody claims expires
+  with the cookie: `GuestCheckSweeper` removes day-old guest rows and their files, hourly and at start, and says so in
+  the log (`Guest sweep: …`). It is **capped per cookie and per address because it costs money**:
+  `Plans:GuestChecksPerDay` (1) per token in the handler and per client address in a rate-limit policy of its own, on
+  top of the global ceiling, and `0` closes the door (the check screen asks to sign in). A guest can read their own
+  check and nothing else: no posting, no comparison, no history. The pilot metrics leave guest checks out, so
+  `returnRate` still means what it meant.
+- **Pro is a cap on a real cost, not a feature wall.** Every check is a model call, so the plan is the daily number:
+  three on Free, thirty on Pro, `Limits:ChecksPerDay` as the ceiling no plan exceeds, checks and comparisons counted
+  together over the same rolling day, failed calls left out. Comparisons and insights stay free by default
+  (`Plans:CompareNeedsPro` is off): a cap is honest about what Pro pays for, a wall around a feature would be theatre.
+  Pro is two fields on the account (`Plan`, `ProUntil`), written by Stripe's webhook or by `--pro`, never by a
+  request; a lapsed period reads as Free by itself, and `MeDto` carries `plan`, `proUntil`, `checksToday` and
+  `checksPerDay` so the check screen can say "2 of 3 checks left today" and where Pro is.
+- **Stripe stays behind config so nothing pretends to charge.** `Billing:Provider` is `manual` until the owner has a
+  Stripe account, a price and a tested webhook; with `manual`, the Pro page shows the benefits and a note that Pro is
+  switched on by hand, `--pro <handle> <months|off>` is the upgrade path, and Checkout answers 400. With `stripe` and
+  the three keys (secret, price, webhook secret, environment only) "Go Pro" opens a hosted Checkout Session (one
+  form-encoded POST, no SDK: two calls do not earn a dependency) that returns to `#/pro?checkout=…`, and the webhook,
+  the one write exempt from the CSRF header because Stripe cannot send it, is guarded by the `Stripe-Signature` HMAC
+  with a five-minute tolerance. A paid period is 35 days, not a month, so a slow renewal event does not drop a paying
+  person to Free; the first `invoice.paid` is skipped because the checkout already counted it; a deleted subscription
+  moves the end date to now. No event ids are stored: the updates are monotonic enough for a pilot, and the README says
+  so.
+- **"Which one?" is one stylist call, two photos, one winner.** The comparer sends both images in one message with the
+  analyzer's hard rules and the same calibration (an 8 here means what an 8 means on a check), a schema with a winner,
+  two scores, two headlines, the reason and one tip that says which outfit it is for, and `PromptVersion` `cmp-v1`.
+  **Comparisons are private and not postable**: both photos are stored only when the stylist confirmed two outfits,
+  under the owner's folder with ids derived from the comparison's so an account deletion takes them with the folder,
+  served to the owner alone through `/api/compare/{id}/image/a|b`, and there is no post route. A comparison counts
+  against the day like a check because it costs like one (more, in fact).
+- **Items are indexed at posting from the stylist's own words, never from captions.** When a look is posted, the
+  item names from its check are copied to `PostItems` (lower-cased, one space between words, up to eight, sixty
+  characters, with the category), and `/api/search` finds looks whose items contain the term, under the people and the
+  tags. A caption cannot put a look under "black boots"; the stylist saw the boots or it did not. The verdicts and notes
+  stay private with the tip, as before.
+- **Insights are a pure function over the last 200 OK checks, and under three checks they are an invitation.** The
+  average and the best score, the intent that scores highest among those checked at least twice (else the most
+  checked; ties are stable), the item category most often called weak and in what share of the looks, how often
+  nothing was on, and two to four sentences written by the server in the person's language. One check says nothing
+  about a person, so the page shows "N of 3 checked so far" until then.
+- **Today's look is a hashtag, not ephemeral content.** Thirty prompts in code (`Services/DailyPrompts.cs`, a tag, a
+  title and a hint in each language, an optional intent), one a day by the UTC day of the year modulo thirty, so
+  everyone sees the same one and a prompt comes back about once a month. Nothing is stored: `GET /api/today` reads the
+  visible looks posted today with that hashtag, and "Post yours" enters the check with the tag prefilled exactly the
+  way a challenge does. The strip sits at the top of For you (up to eight thumbnails) and `#/today` is the day's grid.
+- **Before/after is a strip on the card, not a separate post type, so the feed stays one kind of thing.** A post may
+  name `beforePostId`, one of the author's own visible looks and never the look of this very check (400 otherwise);
+  `PostDto.before` carries the earlier look's score and photo from one batched query, left off while the earlier look
+  is under review, and the foreign key clears the link when the earlier look is deleted. The card shows "After the tip
+  · 6 → 7" between the headline and the caption, green when the score went up, the whole strip a link to the earlier
+  look; the post sheet offers the last five looks as a picker with "Not a follow-up" first and picked by default.
+- **The birth date replaces the checkbox, because a checkbox is not an age rule.** Signup requires `birthDate`
+  (`yyyy-MM-dd`, what a date input sends in every locale), sixteen on the day, not before 1900 and not in the future,
+  checked after the handle and the password so the person fixes the top field first; the errors are
+  `birthdate_required`, `birthdate_invalid` and `underage`. The date is stored as a UTC date on the account and appears
+  on no DTO; the checkbox older clients still send is accepted and ignored. Still self-declared, still not age
+  assurance; the README says so in the same breath.
+- **Verification is the owner's hand (`--verify`), not a form.** `AppUser.Verified` is written by `--verify` and
+  `--unverify` on the box and by nothing else; it travels on every user ref, the profile and `me`, and the client draws
+  a small check inside the BRAND mark. A verification form would need a process behind it that a one-person pilot does
+  not have; a command is the honest amount of process, and the go-live checklist says to run it for the first brands.
+- **The numbers page is one hero figure, tiles and one-hue bars.** `#/admin/metrics` draws `/api/metrics/pilot` for
+  moderators: the return rate as the hero (it is the kill switch), stat tiles, the score distribution as a bar list
+  made of divs in one hue (lilac is the data; fire stays a reaction), the rubric averages, the community tiles and two
+  small lists. No chart library, no second colour, and the server stays the gate (403 to anyone else).
+- **The legal pages are written from the code's facts.** `#/terms` and `#/privacy` are ten headed sections each, in
+  the i18n files and written in each language rather than translated, saying what the app actually stores, sends to
+  the model provider (the photo, the occasion, the note and the language; never a name, handle, email or birth date),
+  shows to whom, keeps for how long, and deletes; version 1, dated 2026-09-08, the contact `hello@orevosh.app`, and a
+  governing-law line that is a placeholder ("the place where the owner is based"). They are linked from the agreement
+  line under the signup button with the guidelines. The file says it in capitals: have a lawyer review them before
+  launch.
+- **The recovery hardening, after review** (`6897cdc`): a mailed link carries the token, so it must never be built
+  from a `Host` header a stranger chose; links are built from `Email:PublicOrigin` or, with none, only for a loopback
+  host, and the app warns at start when mail is on without the origin. Per-account brakes on top of the per-address
+  one: three verification links per ten minutes and ten a day, three reset links an hour. A reset link is refused
+  once the address it went to is no longer the account's, and changing the address voids the open reset links. CI now
+  installs ffmpeg for the tests job so the transcoder tests run there instead of skipping.
+- **The slogan is "Check the look." / "בודקים את הלוק."** with the tagline "A stylist in your pocket, and a community
+  that lights it up." It is the app's own verb (CHECK sits under the mark in the dock), it reads as an imperative and as
+  a description, and the Hebrew is the idiom people use. Chosen over "Every look, checked." (calmer, more product than
+  gesture) and "Wear it. Check it. Light it up." (the three beats, but a video line, not a header); both are kept in
+  `MARKETING.md` so the owner can swap by changing `COPY` in `tools/brand/render-kit.js` and the two i18n keys
+  (`app.slogan`, `app.tagline`).
+- **The brand kit is rendered, not drawn.** `tools/brand/render-kit.js` builds every file in `brand-kit/` (the marks on
+  dark, light and nothing, monochrome SVG+PNG, the wordmark, the lockup, the avatar, five covers, the two OG cards, three
+  story templates in both languages, twenty store screenshots), the OG card the app serves and the landing screens,
+  from HTML templates with the real brand SVGs, the tokens of `DESIGN.md` and the browser test's screenshots, with the
+  fonts from Google or the OFL copies offline. A slogan change or a real screenshot is a re-run, and the README in the
+  folder is written by the script from what is there.
+- **The landing pages are static and the production origin is a placeholder.** `/landing/` and `/landing/index.he.html`
+  need no app JS and hold at 390 and 1280 px; `index.html` carries the Open Graph and Twitter tags with the 1200×630
+  card; the manifest's description is the tagline; `mobile/` is a Capacitor shell pointed at the site with nothing
+  installed. All of them say `https://looks.example.com` where the domain goes, and the go-live checklist lists the
+  places to replace it. The service worker lets `/landing/` navigations through to the network, so a landing link never
+  answers with the app shell.
+- **422 tests** (up from 314), and the browser test now starts with a guest's check in Hebrew before anyone signs up.
+
+### Arriving in this round
+
+- **Arabic and Russian** are being added by another builder as this section is written: `ar.json` and `ru.json` for the
+  client, the server messages in `Localizer.cs`, and the locale lists. They were not in this checkout, so the README's
+  language line still says English and Hebrew and is the lead's to update when the files land. Both translations were
+  written by the builders and need a native review before they reach people; the daily prompts carry a title and a hint
+  in English and Hebrew only (`DailyPrompt.Title(language)` falls back to English), and the terms and the privacy
+  policy exist as i18n keys per language, so a new locale needs those written too or the page shows the English.
+
+### Objections kept out of the code (owner wins)
+
+- **A guest check is a model call with nobody behind it.** Kept because the first wow must come before the signup;
+  the cost is bounded per cookie, per address and globally, `Plans:GuestChecksPerDay=0` exists, and the README's
+  limitations say a script that rotates addresses gets one check per address.
+- **The webhook keeps no event ids.** A replayed `invoice.paid` over-extends by one period. Acceptable for a pilot,
+  named in the README; an events table is the fix when money is real.
+- **Stripe has not run against a live account.** Checkout and the webhook were built against a recording stand-in and
+  signed test events; DEPLOY.md says to run test mode and the Stripe CLI before switching the provider.
+- **No in-app cancel for Pro.** Cancelling is on Stripe's side or `--pro off`, and the terms say to write to us. A
+  customer-portal link is the next step, not this round's.
+- **The birth date is still self-declared**, and **verification has no process**. Both are the honest amount for a
+  pilot and both sit in the launch checklist with age assurance.
+- **No block-user.** Apple's UGC checklist expects one before a store submission (`STORE.md` says so); reports and the
+  queue are what exists.
+- **No native push in the store shells.** Web Push does not run inside the WebViews; the shells ship without it or a
+  sender for APNs and FCM comes first (`mobile/README.md`).
+- **The screenshots in the kit are test fixtures**: the browser test's synthetic outfit and Chromium's fake camera.
+  Every README in the path says to replace them before a store submission.
+- **The legal pages are not legal advice.** Written from the code, in each language, with a placeholder for the
+  governing law; a lawyer reads them before launch.
+- **Sounds on posts, rejected.** Music on looks would bring licensing the app cannot carry, would break the muted feed
+  that clips were designed for (autoplay muted, the sound disc opt-in), and would pull the loop away from the check
+  toward a video app the world already has. Named here so nobody assumes it is planned.
+

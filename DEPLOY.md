@@ -16,7 +16,9 @@ differ in who looks after the machine.
 `tools/restore.sh` on the other carry everyone's data across (server path, step 10, "Moving your laptop pilot").
 
 This page has the Fly.io path first, then the server path, then what both need before real people arrive: email for
-account recovery, the checks that run on every push, and the go-live checklist at the end.
+account recovery, plans and billing (Free, Pro and Stripe), the checks that run on every push, and the go-live
+checklist at the end. `looks.example.com` stands for your production origin throughout, and it also stands in the
+code in a few places you replace before launch (the checklist says where).
 
 To run the app on your own computer instead (Windows, Mac, Linux), see [Run it in 5 minutes](README.md#run-it-in-5-minutes)
 in the README: that needs only the .NET SDK and a tunnel, no Docker, no domain.
@@ -79,9 +81,9 @@ fly secrets set ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 Secrets are environment variables, exactly the ones the `.env` file carries on a server: any setting from the README's
-configuration table goes in the same way (`fly secrets set Limits__ChecksPerDay=10`), and so do the push keys (step 7)
-and the email settings ("Email for account recovery", below). Every `fly secrets set` restarts the machine with the new
-values; several in one command is one restart.
+configuration table goes in the same way (`fly secrets set Plans__FreeChecksPerDay=5`), and so do the push keys (step 7),
+the email settings ("Email for account recovery", below) and the plan and Stripe settings ("Plans and billing", below).
+Every `fly secrets set` restarts the machine with the new values; several in one command is one restart.
 
 ### 5. Deploy
 
@@ -120,7 +122,8 @@ fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --admin <handle>"
 ```
 
 No restart. `--unadmin <handle>` takes it away. Every maintenance command runs on Fly in this shape (`--vapid` in step
-7, `--backup` in step 9), as the `app` user so the files it writes belong to the app. `Admin__Handles__0=<handle>` as a
+7, `--backup` in step 9, `--verify <handle>` for a brand you have confirmed, `--pro <handle> <months|off>` for a Pro
+granted by hand; server path, step 7, lists them), as the `app` user so the files it writes belong to the app. `Admin__Handles__0=<handle>` as a
 secret does the same at every start, with the ordering rules of step 7 of the server path; the command is simpler.
 
 ### 7. Push notifications
@@ -143,7 +146,8 @@ fly certs add looks.example.com
 It prints the DNS records to add: a `CNAME` from `looks` to `<your-app-name>.fly.dev` (or, for a bare domain, `A` and
 `AAAA` records with the addresses from `fly ips list`). Once the name resolves, `fly certs check looks.example.com`
 reports the certificate issued and both addresses work. Set `Email__PublicOrigin=https://looks.example.com` (below) so
-the links in mails carry the domain.
+the links in mails carry the domain (with mail on, the app builds links for no other host than localhost until it is
+set), and `Billing__PublicOrigin` to the same value if Stripe is on, so Checkout comes back to it.
 
 ### 9. Backups
 
@@ -194,8 +198,10 @@ package is public; see "Continuous checks".
 - **Disk:** `fly ssh console -C "df -h /data"`; extend the volume before it is full.
 - **Memory:** `fly machine status <machine id>`. 512 MB is comfortable for the app's ~150 MB; `fly scale memory 1024`
   is the fix if clips and transcoding push it.
-- **The model bill:** the spend limit in the Anthropic console is the backstop; `Limits__ChecksPerDay` and
-  `Limits__ChecksPerDayGlobal` are the caps.
+- **The model bill:** the spend limit in the Anthropic console is the backstop; the plan caps (`Plans__FreeChecksPerDay`
+  3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1), the per-account ceiling `Limits__ChecksPerDay` and the
+  global `Limits__ChecksPerDayGlobal` (1000) are the caps. Guest checks are calls nobody signed up for: `fly logs` shows
+  `Guest sweep: …` once an hour with how many went unclaimed.
 - **Health from outside:** an uptime checker (UptimeRobot, Better Stack) on `https://<your-app-name>.fly.dev/healthz`.
   Fly restarts a machine whose own check keeps failing.
 - **Cost:** `fly dashboard` shows the month. A shared-cpu-1x with 512 MB is about 3 USD, the 3 GB volume about 0.45 USD,
@@ -218,10 +224,15 @@ Set them like every other setting: in `.env` on a server, with `fly secrets set`
 | `Email__User` | The SMTP login the provider gives you |
 | `Email__Password` | The SMTP password or API key. A secret: environment only, never `appsettings.json` |
 | `Email__From` | The sender, e.g. `OREVOSH <hello@looks.example.com>`. The domain must be one the provider verified for you, or the mail is refused or lands in spam |
-| `Email__PublicOrigin` | `https://looks.example.com`: the origin the links in mails carry. Empty means the address the request came in on, which is right behind Caddy or on Fly |
+| `Email__PublicOrigin` | `https://looks.example.com`: the origin the links in mails carry. **Required on a server.** A link is never built from the address a request came in on unless that is localhost (a `Host` header is the requester's to choose, and the token rides in the link), so with this empty the app warns at start (`Email is on but Email:PublicOrigin is not set`), answers 502 to an address change or a resend, and quietly mails nothing for a forgotten password |
 | `Email__UseStartTls` | `true` by default, for port 587. Leave it |
 
-Mail is on when `Email__Host` and `Email__From` are both set. Three providers that work with exactly these lines:
+Mail is on when `Email__Host` and `Email__From` are both set. Two brakes keep the app from being used to flood an
+inbox, and neither needs a setting: per client address, five recovery requests an hour (`Limits__RecoveryPerHourPerIp`),
+and per account, three confirmation links every ten minutes and ten a day, three reset links an hour. A reset link
+works only while the address it went to is still the account's, and changing the address voids the open reset links.
+
+Three providers that work with exactly these lines:
 
 **Resend** (a free tier of 3,000 mails a month; verify your domain, then API Keys → Create API Key):
 
@@ -257,7 +268,74 @@ Email__From=you@gmail.com
 
 To check it: `https://…/api/config` answers `"email": true` once the settings were read; then, in the app, Settings →
 add your own address, and the confirmation mail should arrive within a minute. If it does not, the app's log has the
-provider's answer (a refused sender, a wrong password).
+provider's answer (a refused sender, a wrong password), or the missing-origin line above.
+
+## Plans and billing
+
+Every check is a paid model call, so the plans are caps, not features. A visitor gets one free check as a guest, a
+free account gets three a day, OREVOSH Pro gets thirty, and `Limits__ChecksPerDay` (30) is the ceiling no plan
+exceeds; checks and "Which one?" comparisons share the allowance. All of it is settings, in `.env` on a server and
+`fly secrets set` on Fly:
+
+| Variable | What to put |
+|---|---|
+| `Plans__FreeChecksPerDay` | Checks a day on Free. `3` by default: a taste, not the habit |
+| `Plans__ProChecksPerDay` | Checks a day on Pro, `30`. Cannot exceed `Limits__ChecksPerDay` |
+| `Plans__GuestChecksPerDay` | Free checks for a visitor with no account, `1`, per guest cookie and per client address a day. `0` turns guests off and the check screen asks to sign in |
+| `Plans__ProPriceText` | What the Pro page shows as the price, e.g. `₪19 / month` or `$5 / month`. Text only; empty hides it |
+| `Plans__CompareNeedsPro` | `false`. Set `true` to keep "Which one?" for Pro accounts |
+| `Billing__Provider` | `manual` (the default) or `stripe` |
+
+**With `manual`, Pro is a command.** The Pro page shows the benefits and a note that Pro is switched on by hand, and
+you put an account on Pro yourself, for a month or a year, or take it back:
+
+```bash
+docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3      # 3 months (31 days each, from now; 1 to 120)
+docker compose exec app dotnet FitCheck.Api.dll --pro <handle> off    # back to Free
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 12"
+```
+
+That is the whole upgrade path for a pilot: people write to you, you run the command, the app shows the end date in
+Settings and on the Pro page, and a lapsed period falls back to Free by itself. Nothing charges anyone.
+
+**With `stripe`, Checkout and the webhook are live.** What to set up, in Stripe's dashboard (test mode first, keys
+starting `sk_test_`):
+
+1. A product "OREVOSH Pro" with one recurring monthly price; copy its id (`price_…`).
+2. An API secret key (Developers → API keys).
+3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to `checkout.session.completed`,
+   `invoice.paid` and `customer.subscription.deleted`; copy its signing secret (`whsec_…`).
+
+Then:
+
+```bash
+Billing__Provider=stripe
+Billing__StripeSecretKey=sk_live_...          # secrets: environment only, never appsettings
+Billing__StripePriceId=price_...
+Billing__StripeWebhookSecret=whsec_...
+Billing__PublicOrigin=https://looks.example.com   # where Checkout returns to; the request's origin when empty
+Plans__ProPriceText=₪19 / month
+```
+
+Stripe is on only when the provider is `stripe` and all three keys are set (`/api/config` then says `"billing": true`
+under `plans`, and the Pro page shows the button). What happens: "Go Pro" opens a Stripe-hosted Checkout page for a
+subscription with the account id attached; Checkout returns to `/#/pro?checkout=success` (or `cancel`); Stripe posts
+the events to `/api/billing/webhook`, which is the one write that needs no session and no `X-Requested-With` header,
+because its `Stripe-Signature` header is the guard (a bad or old signature is answered 400 and shows in Stripe's
+dashboard). `checkout.session.completed` puts the account on Pro for 35 days (a month plus slack for slow events),
+`invoice.paid` on a renewal extends it by another 35, `customer.subscription.deleted` ends it now; a missed renewal
+simply lapses. Card details never reach the app, and the secret key is redacted from the app's logs.
+
+To try it before people pay: keep test keys, install the Stripe CLI and run `stripe listen --forward-to
+localhost:5000/api/billing/webhook` (it prints a `whsec_` for the session; put that in `Billing__StripeWebhookSecret`),
+pay with Stripe's test card `4242 4242 4242 4242`, and watch the app's log say `Account <handle> is Pro until …`.
+**Nothing here has run against a live Stripe account yet** (README, "Known limitations"): the first real subscription,
+renewal and cancellation are the proof, and Stripe's event log plus `docker compose logs app` are where to look when
+one of them misbehaves. Cancelling is on Stripe's side (or `--pro <handle> off`); the app has no cancel button, and the
+terms tell people to write to you.
+
+Inside the store apps Apple and Google forbid this checkout (`STORE.md`, "Payments"): the wrapped app must hide the
+purchase or use the stores' billing.
 
 ## Continuous checks
 
@@ -370,10 +448,12 @@ Fill in:
 | `ANTHROPIC_API_KEY` | Your key, `sk-ant-...`. |
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
 | `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
-| `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. |
+| `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
+| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
+| `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
-`Limits__ChecksPerDay=10` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
+`Plans__FreeChecksPerDay=5` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
 server; never paste it anywhere.
 
 ## 6. First start
@@ -424,7 +504,7 @@ well, or the next restart promotes it again. A moderator cannot be suspended fro
 account while the flag is on; both go through `--unadmin` first. `--admin` and `--unadmin` exit with code 1 when no
 account has the handle.
 
-The app has four maintenance commands. None starts the server; all run from `/opt/orevosh`:
+The app has seven maintenance commands. None starts the server; all run from `/opt/orevosh`:
 
 | Command | What it does |
 |---|---|
@@ -432,9 +512,13 @@ The app has four maintenance commands. None starts the server; all run from `/op
 | `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out) |
 | `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
 | `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |
+| `docker compose exec app dotnet FitCheck.Api.dll --verify <handle>` | Marks an existing brand account as verified: a check inside its BRAND mark everywhere it appears, from its next request. You are the process: run it for a brand once you know who is behind the account |
+| `docker compose exec app dotnet FitCheck.Api.dll --unverify <handle>` | Takes that away |
+| `docker compose exec app dotnet FitCheck.Api.dll --pro <handle> <months\|off>` | Puts an existing account on Pro for that many months (31 days each, from now; 1 to 120) or back on Free ("Plans and billing") |
 
-`docker compose exec` needs the app running. On a laptop the same commands are `dotnet run -- --admin <handle>` and so
-on (the README, "Maintenance commands").
+`docker compose exec` needs the app running. The account commands exit with 1 when no account has the handle and 2 on
+a usage error. On a laptop the same commands are `dotnet run -- --admin <handle>` and so on (the README, "Maintenance
+commands").
 
 ## 8. Push notifications
 
@@ -560,18 +644,24 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
   itself: `docker compose ps` shows `(healthy)` or `(unhealthy)`.
 - **Logs.** `docker compose logs --since 1h app` for the app (every 5xx is logged with the path), `docker compose logs
   caddy` for certificates and traffic. Logs are rotated by Docker.
-- **The model bill.** `Limits__ChecksPerDay` and `Limits__ChecksPerDayGlobal` cap it; the spend limit in the
-  Anthropic console is the backstop. `https://looks.example.com/api/metrics/pilot` shows how much the pilot is used
-  (open it signed in as a moderator; anyone else gets 403).
+- **The model bill.** The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay`
+  1), the ceiling `Limits__ChecksPerDay` and the global `Limits__ChecksPerDayGlobal` cap it; the spend limit in the
+  Anthropic console is the backstop. `https://looks.example.com/#/admin/metrics` shows how much the pilot is used
+  (signed in as a moderator; anyone else gets the refusal), and `docker compose logs app | grep "Guest sweep"` says how
+  many guest checks went unclaimed each hour.
 - **Memory.** A 1 GB server runs the app (about 150 MB) and Caddy comfortably; `docker stats` shows both.
 - **Updates to the server itself.** `apt-get update && apt-get upgrade -y` monthly, `reboot` when it asks.
 
 ## 12. What the app does for security, and what it does not yet
 
-In place: HTTPS with automatic renewal; HttpOnly, Secure, SameSite=Strict session cookies; a CSRF header on every
-write; passwords hashed with ASP.NET Core's hasher; rate limits on signup, login, checks, and per account on comments
-and reports; photos and clips never served by path; uploads checked by their bytes, not their declared type; moderation as a flag on the account row, set
-only at start from `Admin:Handles` and by the `--admin` command, never by anything a request carries; push
+In place: HTTPS with automatic renewal; HttpOnly, Secure, SameSite=Strict session cookies, and a guest cookie of the
+same kind that lives a day; a CSRF header on every write, with the Stripe webhook the one exception and its signature
+the guard there; passwords hashed with ASP.NET Core's hasher; rate limits on signup, login, checks (per plan, and per
+address for guests), and per account on comments, reports and recovery mail; recovery links built only from
+`Email__PublicOrigin`, never from a request's `Host`; photos and clips never served by path; uploads checked by their
+bytes, not their declared type; moderation, verification and the plan as flags on the account row, set only at start
+from `Admin:Handles` and by the `--admin`, `--verify` and `--pro` commands (or Stripe's signed webhook for the plan),
+never by anything a request carries; push
 subscriptions only to public push-service names (a literal address, `localhost` or a single-label name is refused, so
 the app cannot be pointed at its own network) and at most 10 per account; the app container runs as a non-root user
 with nothing published except through Caddy; and on every response `Strict-Transport-Security: max-age=31536000`
@@ -580,13 +670,13 @@ this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer
 and a `Permissions-Policy` that keeps camera and microphone to the app itself.
 
 Built, and waiting on a setting from you: account recovery works once `Email__*` points at a provider ("Email for
-account recovery"); clip transcoding runs once ffmpeg is in the image (the checklist below); the pilot metrics answer
-only to a moderator's session.
+account recovery"); Stripe Checkout runs once `Billing__*` is set and tested ("Plans and billing"); clip transcoding runs
+once ffmpeg is in the image (the checklist below); the pilot metrics answer only to a moderator's session.
 
 Still missing before a public launch, in rough order of importance:
 
-1. **Age assurance.** The 16+ checkbox is self-declared. Integrate the Apple and Google age-signal APIs or a provider
-   and gate signup on the result.
+1. **Age assurance.** The date of birth at signup is self-declared. Integrate the Apple and Google age-signal APIs or a
+   provider and gate signup on the result.
 2. **Clips are transcoded inside the app container.** The image ships ffmpeg and the app re-encodes every uploaded
    clip that is not H.264 MP4 already into one in the background (`Storage:Transcode`, on by default; the start log
    says `Transcoding is on: ffmpeg version ...`), so a WebM from an Android phone plays on iPhones and the files are
@@ -597,8 +687,9 @@ Still missing before a public launch, in rough order of importance:
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
 4. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need
    nonces or hashes before a strict policy can go in without breaking the app.
-5. **Brand verification**, and **one process only**: the checks-per-day reservation and the rate limiters' windows
-   live in memory, so run one `app` container (one machine on Fly). Multiple instances need a shared store.
+5. **Brand verification is by hand** (`--verify`, no form and no process behind it), and **one process only**: the
+   checks-per-day reservation and the rate limiters' windows live in memory, so run one `app` container (one machine
+   on Fly). Multiple instances need a shared store.
 6. **The rate limiters trust `X-Forwarded-For`**, which is right behind Caddy on the private compose network and
    behind Fly's edge; never publish port 8080 on a host.
 
@@ -608,32 +699,55 @@ Before the address leaves the team, in this order:
 
 1. **A domain and HTTPS.** `fly certs add`, or steps 2 and 6 of the server path. `https://…/healthz` answers `ok`,
    the padlock is there on a phone, and the app installs to the home screen.
-2. **The Anthropic key with a spend limit.** Set a monthly limit in the console; `Limits__ChecksPerDay` (20) and
+2. **The production origin in the code.** `https://looks.example.com` is a placeholder in a handful of files; replace it
+   with your domain and redeploy: the Open Graph and Twitter tags in `src/FitCheck.Api/wwwroot/index.html` (`og:url`,
+   `og:image`, `twitter:image`), the four absolute URLs at the top of `wwwroot/landing/index.html` and
+   `index.he.html` (canonical, hreflang, `og:url`, `og:image`), `mobile/capacitor.config.json` (`server.url`,
+   `allowNavigation`) with `mobile/README.md`'s `WKAppBoundDomains` note, and the URLs table in `STORE.md`. Then paste a
+   link into a chat app and check the card shows the 1200×630 image.
+3. **The Anthropic key with a spend limit.** Set a monthly limit in the console; the plan caps (`Plans__FreeChecksPerDay`
+   3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1), the ceiling `Limits__ChecksPerDay` (30) and
    `Limits__ChecksPerDayGlobal` (1000) cap the volume from the app's side. A thousand checks a day is a real bill: do
-   the arithmetic for your model and your pilot's size before raising either.
-3. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
+   the arithmetic for your model and your pilot's size before raising any of them, and remember that guest checks are
+   calls made by people who never signed up (`Plans__GuestChecksPerDay=0` closes that door).
+4. **Plans and billing decided.** For a pilot leave `Billing__Provider=manual` and grant Pro with `--pro`; set
+   `Plans__ProPriceText` only when there is a price. To charge, set up Stripe in test mode, run the Stripe CLI against
+   the webhook, pay once with the test card, and only then switch to live keys ("Plans and billing"). Never switch the
+   provider to `stripe` with keys you have not tested.
+5. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
    one: someone has to look at the queue every day.
-4. **VAPID keys** set once (`--vapid`) and never regenerated.
-5. **Email** pointed at a real provider and tested with your own address. Without it, a forgotten password means a
-   new account.
-6. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
+6. **The first brands verified.** Each brand account that you know is the brand (you spoke to them, the handle is on
+   their site) gets `--verify <handle>` and the check inside its BRAND mark; anyone else stays a self-declared brand.
+   `--unverify` when that changes. `MARKETING.md`'s "week 0" is when this happens.
+7. **VAPID keys** set once (`--vapid`) and never regenerated.
+8. **Email** pointed at a real provider, `Email__PublicOrigin` set to the domain, and tested with your own address.
+   Without a provider a forgotten password means a new account; without the origin, no link goes out on a server.
+9. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
    On Fly: the daily snapshots are on, plus a weekly `--backup` and `fly sftp get` of your own. Restore one once,
    before you need to.
-7. **The guidelines page reviewed** (in the app, linked from signup): it says what gets reported and what happens to
-   a report, what deletion removes, and that the photos are the person's own. Change anything you would not stand behind.
-8. **Age is self-declared, and the limits say so.** The checkbox is not age assurance; the README's "Known
-   limitations" is the honest list. Read it, decide who you invite, and plan the age-signal integration before a public
-   launch.
-9. **Watch the disk.** Clips are up to 40 MB each and a media backup is the whole folder: `df -h` weekly on a server,
-   `fly ssh console -C "df -h /data"` on Fly, and grow the volume before it fills. A full disk stops uploads and, worse,
-   writes.
-10. **Transcoding needs ffmpeg in the image and CPU to spare.** With `ffmpeg` on the machine the app re-encodes clips to
+10. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 1, dated
+    2026-09-08, in both languages) describe what the code does in plain words and are not legal advice: the
+    governing-law line is a placeholder, the contact address `hello@orevosh.app` must be a mailbox someone reads, and the
+    stores want both pages at a public URL. The guidelines page (linked from signup with the two) says what gets
+    reported and what happens to a report, what deletion removes, and that the photos are the person's own. Change
+    anything you would not stand behind; the version line at the bottom moves with the text (`views/legal.js`).
+11. **Age is self-declared, and the limits say so.** A date of birth typed at signup is not age assurance; the
+    README's "Known limitations" is the honest list. Read it, decide who you invite, and plan the age-signal
+    integration before a public launch.
+12. **Watch the disk.** Clips are up to 40 MB each and a media backup is the whole folder: `df -h` weekly on a server,
+    `fly ssh console -C "df -h /data"` on Fly, and grow the volume before it fills. A full disk stops uploads and, worse,
+    writes.
+13. **Transcoding needs ffmpeg in the image and CPU to spare.** With `ffmpeg` on the machine the app re-encodes clips to
     H.264 MP4 in the background (`Storage__Transcode`, on by default; `Storage__FfmpegPath` when it is not on the PATH),
     so an Android WebM plays on iPhones. Check `https://…/api/config`: `"transcoding": true` means it is running;
     `false` means the image has no ffmpeg (add `ffmpeg` to the `apt-get install` line of the Dockerfile's runtime
     stage and redeploy) and clips play only where the sender's codec does. A 30-second clip takes on the order of a
     minute of a shared CPU; on Fly, `fly scale vm shared-cpu-2x` if the app gets sluggish while a clip converts.
-11. **Rate limits that fit the launch.** Signups per address (50 an hour), logins (30 per quarter hour), comments (30
+14. **Rate limits that fit the launch.** Signups per address (50 an hour), logins (30 per quarter hour), comments (30
     an hour per account) and reports (20 an hour per account) are pilot numbers; a launch party on one Wi-Fi needs
     `Limits__SignupsPerHourPerIp` raised for the evening, and the per-account ones (`Limits__CommentsPerHour`,
-    `Limits__ReportsPerHour`) are meant to stay where nobody meets them by hand.
+    `Limits__ReportsPerHour`) are meant to stay where nobody meets them by hand. The guest brake is per address too:
+    one free check per address a day means a whole café shares one, which is the intended side.
+15. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
+    browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
+    `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).

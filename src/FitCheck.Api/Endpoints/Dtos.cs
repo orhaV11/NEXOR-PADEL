@@ -22,11 +22,11 @@ public sealed record ResetPasswordRequest(string? Token, string? Password);
 
 public sealed record VerifyEmailRequest(string? Token);
 
-/// <summary>The signed-in user, as the client keeps it in memory.</summary>
+/// <summary>The signed-in user, as the client keeps it in memory. Badge: last week's place on the board, for this week only (Round 10; null until the board builder fills it).</summary>
 public sealed record MeDto(
     Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
     string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false, string? Email = null, bool EmailVerified = false,
-    string Plan = "free", DateTime? ProUntil = null, bool Verified = false, int ChecksToday = 0, int ChecksPerDay = 0);
+    string Plan = "free", DateTime? ProUntil = null, bool Verified = false, int ChecksToday = 0, int ChecksPerDay = 0, BadgeDto? Badge = null);
 
 /// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
 public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null, bool Verified = false);
@@ -47,7 +47,10 @@ public sealed record ViewerProfileDto(bool IsMe, bool Following);
 public sealed record ProfileDto(
     string Handle, string Name, string AccountType, string? Bio, string? Website,
     int Posts, int Followers, int Following, int FireReceived, int? BestScore, int Streak, DateTime CreatedAt,
-    ViewerProfileDto Viewer, string? AvatarUrl = null, int Featured = 0, int Community = 0, bool Verified = false);
+    ViewerProfileDto Viewer, string? AvatarUrl = null, int Featured = 0, int Community = 0, bool Verified = false, BadgeDto? Badge = null);
+
+/// <summary>Last week's place on one board, worn on the profile and on Me for the week that follows. Board is a <see cref="BoardName"/>.</summary>
+public sealed record BadgeDto(string Board, int Rank, DateTime WeekStart);
 
 public sealed record FollowStateDto(int Followers, bool Following);
 
@@ -66,6 +69,10 @@ public sealed record CheckDto(
     Guid? PostId)
 {
     /// <summary>Rejected rows store nothing but the status; the neutral message is added here, in the check's language.</summary>
+    /// <summary>
+    /// Rejected rows store nothing but the status; the neutral message is added here, in the check's language. The feedback
+    /// is the stored document as it was written, so items carry brandSeen from rubric v3 on and nothing from before.
+    /// </summary>
     public static CheckDto FromEntity(OutfitCheck check, Localizer localizer, Guid? postId)
     {
         OutfitFeedback? feedback = null;
@@ -132,10 +139,76 @@ public sealed record PostDto(
     UserRefDto? FeaturedBy,
     string? VideoUrl = null,
     BreakdownDto? Breakdown = null,
-    BeforeDto? Before = null);
+    BeforeDto? Before = null,
+    List<PostItemDto>? Items = null,
+    int ItemCount = 0);
 
 /// <summary>The earlier look an "after the tip" post improves on: its score and photo, for the before/after strip.</summary>
 public sealed record BeforeDto(Guid PostId, int Score, string ImageUrl);
+
+// ---- items on a look (Round 10) ----
+
+/// <summary>
+/// One piece on a look. Url is the raw store link (the client sends people through /api/items/{id}/out, never to it);
+/// Host is its host for "Shop at {host}". Source: Stylist | User. X and Y are the dot on the photo, 0..1, null when
+/// the item is listed and not placed. Confirmed: a stylist brand suggestion the person accepted.
+/// </summary>
+public sealed record PostItemDto(
+    Guid Id, string Name, string Category, string? Brand, string? Model, string? Url, string? Host, ItemSource Source,
+    double? X, double? Y, bool Confirmed);
+
+/// <summary>
+/// One item as the post sheet sends it. Id names an existing row to keep (its Source stays); no id means a new item,
+/// Source User. Name ≤ 40, Brand ≤ 40, Model ≤ 60, Url http(s) ≤ 500, X and Y in 0..1 or both null.
+/// </summary>
+public sealed record PostItemInput(Guid? Id, string? Name, string? Category, string? Brand, string? Model, string? Url, double? X, double? Y, bool Confirmed = false);
+
+/// <summary>The whole list, in order; rows not in it are removed. At most PostItems.MaxTagged.</summary>
+public sealed record UpdateItemsRequest(List<PostItemInput>? Items);
+
+/// <summary>GET /api/items: looks carrying the item asked for (a brand, a category, a free term), newest first.</summary>
+public sealed record ItemsDto(string? Brand, string? Category, string? Q, List<PostDto> Posts, int? NextOffset = null);
+
+/// <summary>GET /api/items/brands?q=: a brand name for the autocomplete, how many looks carry it, and the brand's account when it has one.</summary>
+public sealed record BrandDto(string Name, int Looks, UserRefDto? Account = null);
+
+public sealed record BrandsDto(List<BrandDto> Items);
+
+// ---- the weekly board (Round 10) ----
+
+/// <summary>
+/// One place on a board. Post for the looks, rising, intent and picks boards; User (with Looks, how many they posted
+/// that week) for the people board; Score for the picks board. Fires are the fires that counted.
+/// </summary>
+public sealed record BoardRowDto(int Rank, int Fires, PostDto? Post = null, UserRefDto? User = null, int? Looks = null, int? Score = null);
+
+public sealed record BoardSponsorDto(string Name, string? Handle, string? PrizeText, string? Url);
+
+/// <summary>The caller's own place on each board this week; null where they are not on it.</summary>
+public sealed record BoardMeDto(int? Looks = null, int? People = null, int? Rising = null, int? Intent = null, int? Picks = null);
+
+/// <summary>
+/// GET /api/board?week=yyyy-MM-dd: the week (WeekStart and WeekEnd as UTC instants of the board's zone), ClosesIn in
+/// seconds (0 once Closed), the five boards, the sponsor when the week has one, and the caller's places. Intents is
+/// keyed by the StyleIntent name.
+/// </summary>
+public sealed record BoardDto(
+    DateTime WeekStart, DateTime WeekEnd, int ClosesIn, bool Closed,
+    List<BoardRowDto> Looks, List<BoardRowDto> People, List<BoardRowDto> Rising, Dictionary<string, List<BoardRowDto>> Intents, List<BoardRowDto> Picks,
+    BoardSponsorDto? Sponsor = null, BoardMeDto? Me = null);
+
+/// <summary>One archived place. ImageUrl is null when the look is gone or under review; the place stands.</summary>
+public sealed record WeeklyWinnerDto(string Board, int Rank, UserRefDto User, Guid? PostId, string? ImageUrl, int Fires, int? Score);
+
+public sealed record HallWeekDto(DateTime WeekStart, DateTime WeekEnd, List<WeeklyWinnerDto> Winners);
+
+/// <summary>GET /api/board/hall: closed weeks, newest first.</summary>
+public sealed record HallDto(List<HallWeekDto> Weeks);
+
+/// <summary>POST /api/admin/board/exclude: a moderator pulls a look off this week's boards, with a reason (≤ 200).</summary>
+public sealed record ExcludeRequest(Guid PostId, string? Reason);
+
+public sealed record BoardExclusionDto(Guid PostId, string Reason, UserRefDto? By, DateTime CreatedAt);
 
 /// <summary>The rubric v2 sub-scores (1–10). On a post they were copied at posting time.</summary>
 public sealed record BreakdownDto(int Fit, int Color, int Accessories);
@@ -192,8 +265,8 @@ public sealed record VoteStateDto(Guid? VotedPostId, int Votes);
 
 // ---- notifications ----
 
-/// <summary>ActorName is the actor's current display name, or the handle when there is none or the account is gone.</summary>
-public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, string? ActorAvatarUrl, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read);
+/// <summary>ActorName is the actor's current display name, or the handle when there is none or the account is gone. Rank only on board_rank.</summary>
+public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, string? ActorAvatarUrl, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read, int? Rank = null);
 
 public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 
@@ -246,7 +319,10 @@ public sealed record SocialMetricsDto(
     int Mentions = 0,
     int Featured = 0,
     int Videos = 0,
-    int PushSubscriptions = 0);
+    int PushSubscriptions = 0,
+    int ItemsTagged = 0,
+    int ItemOuts = 0,
+    int BoardViews = 0);
 
 public sealed record PilotMetricsDto(
     int TotalChecks,

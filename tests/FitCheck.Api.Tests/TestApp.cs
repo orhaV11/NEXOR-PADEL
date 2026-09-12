@@ -62,6 +62,13 @@ public class TestApp : WebApplicationFactory<Program>
     public string StripeWebhookSecret { get; init; } = "";
     /// <summary>Stands in for api.stripe.com: records every request (the form fields included) and answers with <see cref="RecordingStripeHandler.Response"/>.</summary>
     public RecordingStripeHandler StripeHandler { get; } = new();
+    /// <summary>
+    /// Any other configuration key, as "Section:Key" → value (Round 10: "Board:TimeZone", "Board:Size", "Affiliate:Hosts:amazon.com",
+    /// "Board:Sponsor:Name" ...). Applied after the settings above, so it can also override them.
+    /// </summary>
+    public Dictionary<string, string> Settings { get; init; } = new();
+    /// <summary>The board's clock (<see cref="IClock"/>): real time until a test sets <see cref="FakeClock.Now"/>.</summary>
+    public FakeClock Clock { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -98,11 +105,18 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Billing:StripeSecretKey", StripeSecretKey);
         builder.UseSetting("Billing:StripePriceId", StripePriceId);
         builder.UseSetting("Billing:StripeWebhookSecret", StripeWebhookSecret);
+        foreach (var (key, value) in Settings)
+        {
+            builder.UseSetting(key, value);
+        }
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IOutfitVisionClient>();
             services.AddSingleton<IOutfitVisionClient>(Vision);
+            // The board reads the clock through IClock; the test moves it.
+            services.RemoveAll<IClock>();
+            services.AddSingleton<IClock>(Clock);
             // Outgoing mail goes to the recorder instead of SMTP or the log.
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Email);
@@ -369,6 +383,14 @@ public sealed class RecordingPushHandler : HttpMessageHandler
         _arrived.Release();
         return new HttpResponseMessage(StatusCode) { Content = new StringContent("") };
     }
+}
+
+/// <summary>A clock a test can set. Real time until <see cref="Now"/> is given; set it back to null to let time run again.</summary>
+public sealed class FakeClock : IClock
+{
+    public DateTime? Now { get; set; }
+
+    public DateTime UtcNow => Now ?? DateTime.UtcNow;
 }
 
 /// <summary>Scripted stand-in for the Anthropic client. Records every request so tests can inspect the prompts.</summary>

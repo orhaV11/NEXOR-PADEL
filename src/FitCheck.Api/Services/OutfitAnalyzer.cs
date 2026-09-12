@@ -7,11 +7,12 @@ namespace FitCheck.Api.Services;
 /// The product. Everything the model is told and everything we accept back lives here.
 /// Bump <see cref="PromptVersion"/> whenever the rubric, calibration or schema changes so score
 /// distributions can be compared across versions in /api/metrics/pilot. v2 added accessories as a dimension of the
-/// score and the three-part breakdown (fit, color, accessories).
+/// score and the three-part breakdown (fit, color, accessories). v3 added brand_seen on each item: a brand whose mark is
+/// visible, null otherwise, never a guess.
 /// </summary>
 public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
 {
-    public const string PromptVersion = "v2";
+    public const string PromptVersion = "v3";
     public const string ToolName = "submit_outfit_feedback";
 
     private const string ToolDescription =
@@ -31,6 +32,12 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         3. If the image contains nudity, sexual content, or a person who appears to be a child, set status = "rejected",
            score = 1, intent_match = 0, empty arrays, and a short neutral message. Do not describe the image.
         4. Never mention brands you cannot actually see. Never invent items that are not visible.
+
+        BRANDS (items[].brand_seen):
+        - Fill brand_seen ONLY with a brand whose mark, logo or unmistakable signature is visible on that piece in the photo;
+          null otherwise; never guess from style, cut, colour or price. A wrong brand is the one mistake this app cannot afford.
+        - The brand name only ("Nike", "Levi's"), in Latin letters as the brand writes it, never a sentence. The wearer
+          confirms it before anyone sees it; when in doubt, null.
 
         HOW TO EVALUATE (in this order):
         - Identify each visible garment and accessory (top, bottom or dress, outerwear, shoes, accessories).
@@ -115,8 +122,9 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
                 "name": { "type": "string" },
                 "category": { "type": "string", "enum": ["top","bottom","dress","outerwear","shoes","accessory","other"] },
                 "verdict": { "type": "string", "enum": ["works","neutral","weak"] },
-                "note": { "type": "string", "description": "One short sentence." } },
-              "required": ["name","category","verdict","note"] } },
+                "note": { "type": "string", "description": "One short sentence." },
+                "brand_seen": { "type": ["string","null"], "description": "ONLY a brand whose mark, logo or unmistakable signature is visible; null otherwise; never guess from style." } },
+              "required": ["name","category","verdict","note","brand_seen"] } },
             "working": { "type": "array", "items": { "type": "string" }, "description": "2-3 specific things that work." },
             "one_tip": { "type": "string", "description": "The single highest-impact change, concrete and doable with common items." },
             "breakdown": { "type": "object", "description": "The three sub-scores behind the overall score.",
@@ -147,6 +155,9 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
     /// <summary>The "present" list is chips on the result screen: a handful of short names, never a paragraph.</summary>
     public const int MaxPresent = 6;
     public const int MaxPresentLength = 40;
+
+    /// <summary>A brand the stylist saw is a name, not a sentence: the same length the person may type (PostItems.BrandMaxLength).</summary>
+    public const int MaxBrandLength = 40;
 
     public static readonly JsonElement ToolSchema = JsonDocument.Parse(ToolSchemaJson).RootElement.Clone();
     public static readonly VisionTool Tool = new(ToolName, ToolDescription, ToolSchema);
@@ -337,11 +348,33 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
                 Name = name,
                 Category = Array.IndexOf(Categories, category) >= 0 ? category : "other",
                 Verdict = Array.IndexOf(Verdicts, verdict) >= 0 ? verdict : "neutral",
-                Note = ReadString(element, "note")
+                Note = ReadString(element, "note"),
+                BrandSeen = ReadBrand(element)
             });
         }
 
         return items;
+    }
+
+    /// <summary>
+    /// brand_seen as the rubric means it: a string is a brand, anything else (null, absent, a number, the word "null" or
+    /// "none", an empty string) is no brand. Cut to <see cref="MaxBrandLength"/>. The mapping never invents one.
+    /// </summary>
+    private static string? ReadBrand(JsonElement element)
+    {
+        if (!element.TryGetProperty("brand_seen", out var value) || value.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var brand = string.Join(' ', (value.GetString() ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (brand.Length == 0 || brand.Equals("null", StringComparison.OrdinalIgnoreCase) || brand.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || brand.Equals("unknown", StringComparison.OrdinalIgnoreCase) || brand.Equals("n/a", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return brand.Length > MaxBrandLength ? brand[..MaxBrandLength].TrimEnd() : brand;
     }
 
     private static List<string> ReadStringArray(JsonElement input, string name)

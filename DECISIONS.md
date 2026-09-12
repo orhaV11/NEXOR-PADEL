@@ -864,3 +864,108 @@ This section is completed by the docs builder after the merge, from the code.
   that clips were designed for (autoplay muted, the sound disc opt-in), and would pull the loop away from the check
   toward a video app the world already has. Named here so nobody assumes it is planned.
 
+## Round 10 — items on a look, the weekly flames board (2026-09-12 → )
+
+The owner asked for items on a post ("tap the pants: Nike pants, the model, the store link"; typed by the person, or
+suggested by the stylist when a mark is visible) and a weekly flames board (a top ten that is a competition and grows
+from there); sounds on posts stay rejected (Round 9). Builders work in parallel from one skeleton; the lead rewrites
+this section after the merge, from the code.
+
+### Round 10 skeleton (the lead, before the builders)
+
+The shared contract. Everything here compiles, migrates and is tested; nothing here is the feature.
+
+- **Schema** (`Data/Migrations/20260912151344_Round10.cs`, applied at start like the others). `PostItems` is keyed on a
+  new `Id` (GUID) instead of `(PostId, Name)` and gains `Brand` (≤ 40), `Model` (≤ 60), `Url` (≤ 500, http(s), stored as
+  given), `Source` (`Stylist` | `User`), `X`/`Y` (0..1, the dot; null = listed, not placed), `Position`, `Confirmed`;
+  `Name` and `Category` stay as Round 9 wrote them and `IX_PostItems_Name` stays, so `/api/search` by piece works
+  unchanged over old and new rows. The migration is hand-edited: existing rows get a random id, `Source = Stylist` and
+  their position in insertion order *before* SQLite rebuilds the table around the new key (the generated migration alone
+  would copy one zero id into every row and fail on the second). New tables: `BoardExclusions { PostId (PK), ByUserId,
+  Reason ≤ 200, CreatedAt }`, `WeeklyWinners { Id, WeekStart (UTC date), Board, Rank, PostId?, UserId, Fires, Score? }`
+  with a unique index on `(WeekStart, Board, Rank)` (the closer's idempotence guard) and indexes on `(UserId, WeekStart)`
+  and `PostId`, and `Counters { Name (PK), Value }` for the two tallies the metrics read. `Notifications.Rank` (int?) for
+  `board_rank`. Indexes `PostItems(Brand)`, `PostItems(Category)`, `PostItems(PostId, Position)`, `Fires(CreatedAt)`.
+  Cascades: exclusions and winners go with the account; a deleted look sets `WeeklyWinner.PostId` null and the place
+  stays; `DELETE /api/users/me` deletes the new rows explicitly like every other table.
+- **Options.** `Board` → `BoardOptions { WeekStartsOn = Sunday, TimeZone = "Asia/Jerusalem", MinChecksToCount = 1,
+  MaxPerFirerPerAuthor = 3, NewAccountDays = 2, Size = 10, RisingDays = 30, Sponsor? { Name, Handle, PrizeText, Url } }`
+  (`Sponsor` is null until `Board:Sponsor:Name` is set). `Affiliate` → `AffiliateOptions { Disclosure = true, Hosts = {} }`;
+  `Hosts` maps a host to the query string `/api/items/{id}/out` appends (`"amazon.com": "tag=orevosh-20"`), matched
+  case-insensitively with subdomains (`AffiliateOptions.ParametersFor`); nothing is appended by default, on purpose.
+  Both are in `appsettings.json` with their defaults.
+- **Rubric v3.** `OutfitAnalyzer.PromptVersion = "v3"`; every `items[]` entry has `brand_seen` (string or null, required)
+  with the rule in the schema and a BRANDS section in the prompt: only a brand whose mark, logo or unmistakable signature
+  is visible, null otherwise, never a guess from style. `OutfitItem.BrandSeen` (≤ 40, the words "null"/"none"/"unknown"
+  read as null) rides in the stored feedback and on `GET /api/checks/{id}` as `brandSeen`. `PostItems.AddFrom` never
+  copies it: the brand reaches a row only through the person (`PATCH /api/posts/{id}/items`). The e2e stub answers
+  `brand_seen` (null everywhere, `"Nike"` on the English running shoes) and rejects a schema without it.
+- **DTOs** (`Endpoints/Dtos.cs`). `PostItemDto { id, name, category, brand?, model?, url?, host?, source, x?, y?,
+  confirmed }`; `PostItemInput` + `UpdateItemsRequest { items[] }`; `ItemsDto`, `BrandDto`, `BrandsDto`; `PostDto` gains
+  `items?` and `itemCount` (null and 0 until items-server reads them in `PostReader`); `BoardRowDto`, `BoardSponsorDto`,
+  `BoardMeDto`, `BoardDto { weekStart, weekEnd, closesIn (seconds), closed, looks, people, rising, intents{Intent: [..]},
+  picks, sponsor?, me? }`; `WeeklyWinnerDto`, `HallWeekDto`, `HallDto`; `BadgeDto { board, rank, weekStart }` on `MeDto`
+  and `ProfileDto` (null in the skeleton); `ExcludeRequest`, `BoardExclusionDto`; `NotificationDto.rank?`;
+  `SocialMetricsDto` gains `itemsTagged` (items with a brand, a link or a person as source), `itemOuts` and `boardViews`
+  (the two counters).
+- **Routes, answering 501** with `error.not_built` in the caller's language until filled: `PATCH /api/posts/{id}/items`
+  (session required), `GET /api/items?brand=&category=&q=`, `GET /api/items/brands?q=`, `GET /api/items/{id}/out`,
+  `GET /api/board?week=`, `GET /api/board/hall`, `POST /api/admin/board/exclude { postId, reason }` and
+  `DELETE /api/admin/board/exclude/{postId}` (behind the moderator gate, now `AdminEndpoints.GateAsync`, public).
+  `Endpoints/ItemEndpoints.cs` and `Endpoints/BoardEndpoints.cs` carry the contract in their doc comments; `Stubs.cs`
+  goes with the last stub.
+- **Server strings** in all four dictionaries: `error.not_built`, `error.item_not_found`, `error.item_invalid`,
+  `error.item_url_invalid`, `error.items_too_many {0}`, `error.item_position_invalid`, `error.board_week_invalid`,
+  `error.board_excluded`, `error.board_not_excluded`, `push.board_rank {0}` ("You finished #{0} this week"; the push
+  worker passes the rank there instead of the actor). The Arabic and Russian lines are plain copy by the lead and need
+  the same native review as the rest.
+- **Notification kind `board_rank`**: `NotificationType.BoardRank`, `Notification.Rank`, `Notifier.Add(..., rank:)`,
+  `PushJob.Rank`, the push line and its tap target (`/#/board`), the activity line `activity.board_rank` ("You finished
+  #{rank} this week") and its target on the client. No sender yet: the closer is the board-server builder's.
+- **Client.** Routes `#/board`, `#/board/hall` (`board-hall`), `#/items/<brand>/<category>` and `#/items?q=` (`items`;
+  the query belongs to the view) in `core.js`, under the Explore tab; stub views `views/board.js` and `views/items.js`
+  that draw the title and a "coming in this round" line; `ICONS.tag` next to the existing `ICONS.trophy`; 78 keys under
+  `items.*`, `board.*`, `hall.*`, `badge.*`, `affiliate.*` plus `activity.board_rank` in all four i18n files (707 keys
+  each, parity checked: same key set and placeholders as English; the `_one` forms carry no `{n}` by design).
+- **Seams for the builders.** `IClock` (`Services/Clock.cs`, `SystemClock` registered; the board's window math and the
+  closer read it, nothing else does) and `TestApp.Clock` (a `FakeClock` with a settable `Now`); `TestApp.Settings`
+  (any `"Section:Key"` override, e.g. `Board:TimeZone`, `Affiliate:Hosts:amazon.com`, `Board:Sponsor:Name`);
+  `Counters.IncrementAsync/ReadAsync` (an upsert, safe under concurrent requests); `PostItems.IsStoreUrl/HostOf` and
+  the length constants (`TypedNameMaxLength` 40, `BrandMaxLength` 40, `ModelMaxLength` 60, `UrlMaxLength` 500,
+  `MaxTagged` 12); `BoardName` (`looks | people | rising | picks | intent:<Intent>`); `AdminEndpoints.Admin(context)`
+  for the moderator's row inside the gate.
+- **File ownership, as the lead understands it** (the plan's five builders): *items-server* owns
+  `Endpoints/ItemEndpoints.cs`, `Services/PostItems.cs` (validation of the typed list), the items on cards and the post
+  in `Services/PostReader.cs`, the `itemsTagged` definition in `MetricsEndpoints.cs`, and `tests/ItemTests.cs`;
+  *items-client* owns `views/items.js`, the post sheet's tagging in `views/check.js` (chips pre-filled from the
+  stylist's items with "Looks like Nike? Confirm / Edit / Not a brand", brand autocomplete from `/api/items/brands`,
+  the dot on the preview), "The look" list, the dots behind the tag toggle and the item sheet in `views/post.js`, the
+  item-search reuse in `views/explore.js`, the items' CSS in `app.css`, and the `items.*`/`affiliate.*` copy it needs
+  beyond this set in `en`/`he`; *board-server* owns `Endpoints/BoardEndpoints.cs`, new `Services/Board*.cs` (the window
+  math in the configured zone, the eligibility rules, the five boards, the 60-second cache, the closer as a hosted
+  service registered in `Program.cs`), the badge on `MeDto`/`ProfileDto` in `UserEndpoints.cs`, and
+  `tests/BoardTests.cs`; *board-client* owns `views/board.js`, the "This week" strip in `views/explore.js`, the
+  reset-day card in `views/feed.js`, the badge in `views/profile.js`, the board's CSS, and the `board.*`/`hall.*`/`badge.*`
+  copy beyond this set in `en`/`he`; *phase 2* owns the `ar`/`ru` lines of whatever the four add, README/DEPLOY/this
+  section, the e2e, and the review. Shared files (`Dtos.cs`, `Social.cs`, `AppDbContext.cs`, `Localizer.cs`, `core.js`,
+  the migration) change through the lead.
+- **Not built on purpose, so nobody assumes it is:** `PostReader` reads no items (`items` null, `itemCount` 0); no
+  window math, no closer, no cache, no badge; `/out` redirects nothing; `itemOuts` and `boardViews` stay 0 until the
+  routes increment them.
+- **Tests: 440 → 470**, all green: the migration over a Round 9 file keeps its items and mints ids, the app starts on
+  such a file and the item search finds the migrated looks, every stub answers 501 behind its gate, the options bind
+  with the plan's defaults and take overrides, the clock can be set, counters persist and reach the metrics, posting
+  writes stylist rows with ids and order and never a brand while the check carries `brandSeen`, account and look
+  deletion take the board rows with them, the unique index refuses a second place, and `board_rank` carries its rank
+  through the row, the DTO and the push line.
+
+### Objections to keep out of the code (from the plan; the lead confirms after the merge)
+
+- The AI never publishes a brand: it suggests only when a mark is visible; the person confirms. Wrong attribution is the
+  one mistake a fashion app cannot afford.
+- Links leave through one door (`/out`) so the app can decorate, count and later revoke; the disclosure is always shown
+  when a link earns anything.
+- The board counts fires from people who use the app (a check), capped per pair, so friends cannot carry a look; the
+  stylist's picks board cannot be gamed at all.
+- Sounds on posts: not built (licensing, the muted feed, the core loop).
+

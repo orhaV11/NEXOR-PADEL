@@ -18,6 +18,8 @@ import './views/insights.js';
 import './views/today.js';
 import './views/legal.js';
 import './views/dashboard.js';
+import './views/board.js';
+import './views/items.js';
 
 boot().catch((e) => {
   console.error(e);

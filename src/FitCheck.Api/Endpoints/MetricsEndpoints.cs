@@ -69,7 +69,12 @@ public static class MetricsEndpoints
             Featured: await db.Posts.CountAsync(p => !p.Hidden && p.FeaturedByBrandId != null, ct),
             // Looks posted with a clip. A clip on a check that was never posted, or whose post is hidden, is not a video in the feed.
             Videos: await db.Posts.CountAsync(p => !p.Hidden && db.Checks.Any(c => c.Id == p.CheckId && c.VideoPath != null && c.VideoPath != ""), ct),
-            PushSubscriptions: await db.PushSubscriptions.CountAsync(ct));
+            PushSubscriptions: await db.PushSubscriptions.CountAsync(ct),
+            // Round 10: items a person touched (typed, branded or linked), store links followed, board reads. The two tallies
+            // are Counter rows the item and board routes increment; nothing increments them until those routes are built.
+            ItemsTagged: await db.PostItems.CountAsync(i => i.Source == ItemSource.User || i.Brand != null || i.Url != null, ct),
+            ItemOuts: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.ItemOuts, ct)),
+            BoardViews: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BoardViews, ct)));
 
         return Results.Ok(metrics with { Social = social });
     }

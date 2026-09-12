@@ -138,7 +138,7 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
     [Fact]
     public async Task Endpoint_ignores_non_ok_checks_computes_return_rate_and_reports_the_social_loop()
     {
-        // The one check made through the API is a rubric v2 check; the rows inserted below are v1 rows without feedback.
+        // The one check made through the API is a rubric v3 check; the rows inserted below are v1 rows without feedback.
         _app.Vision.Handler = _ => V2Payloads.Ok(fit: 7, color: 8, accessories: 4);
         var (returningClient, returning, _) = await _app.NewUserAsync("returning", language: "he");
         var (oneOffClient, oneOff, _) = await _app.NewUserAsync("oneoff");
@@ -182,7 +182,7 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
         Assert.Equal(0.3333, m.GetProperty("returnRate").GetDouble(), precision: 4);
         Assert.Equal(2, m.GetProperty("byLanguage").GetProperty("he").GetInt32());
         Assert.Equal(5, m.GetProperty("byPromptVersion").GetProperty("v1").GetInt32());
-        Assert.Equal(1, m.GetProperty("byPromptVersion").GetProperty("v2").GetInt32());
+        Assert.Equal(1, m.GetProperty("byPromptVersion").GetProperty("v3").GetInt32());
 
         // The sub-score averages cover the one check that has a breakdown; the v1 rows carry none.
         var averages = m.GetProperty("breakdownAverages");

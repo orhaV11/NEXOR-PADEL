@@ -20,10 +20,11 @@ EN = {
     "status": "ok", "score": 7, "intent_match": 72,
     "headline": "Clean casual with one weak link",
     "vibe": "relaxed weekend",
+    # rubric v3: brand_seen is null unless a mark is visible; the swoosh on the running shoes is the one the e2e asserts
     "items": [
-        {"name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple."},
-        {"name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job."},
-        {"name": "Running shoes", "category": "shoes", "verdict": "weak", "note": "Too sporty for the rest."},
+        {"name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple.", "brand_seen": None},
+        {"name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job.", "brand_seen": None},
+        {"name": "Running shoes", "category": "shoes", "verdict": "weak", "note": "Too sporty for the rest.", "brand_seen": "Nike"},
     ],
     "working": ["The palette is tight", "Proportions are balanced"],
     "one_tip": "Swap the running shoes for plain white leather sneakers.",
@@ -41,9 +42,9 @@ HE = {
     "headline": "קז'ואל נקי עם חוליה חלשה אחת",
     "vibe": "סופ\"ש רגוע",
     "items": [
-        {"name": "טישרט לבנה", "category": "top", "verdict": "works", "note": "נקייה ופשוטה."},
-        {"name": "ג'ינס כהה", "category": "bottom", "verdict": "neutral", "note": "בסדר, עושה את העבודה."},
-        {"name": "נעלי ריצה", "category": "shoes", "verdict": "weak", "note": "ספורטיביות מדי לשאר הלוק."},
+        {"name": "טישרט לבנה", "category": "top", "verdict": "works", "note": "נקייה ופשוטה.", "brand_seen": None},
+        {"name": "ג'ינס כהה", "category": "bottom", "verdict": "neutral", "note": "בסדר, עושה את העבודה.", "brand_seen": None},
+        {"name": "נעלי ריצה", "category": "shoes", "verdict": "weak", "note": "ספורטיביות מדי לשאר הלוק.", "brand_seen": None},
     ],
     "working": ["הפלטה מצומצמת", "הפרופורציות מאוזנות"],
     "one_tip": "שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט.",
@@ -60,9 +61,9 @@ AR = {
     "headline": "كاجوال نظيف بحلقة ضعيفة واحدة",
     "vibe": "عطلة هادئة",
     "items": [
-        {"name": "تيشيرت أبيض", "category": "top", "verdict": "works", "note": "نظيف وبسيط."},
-        {"name": "جينز داكن", "category": "bottom", "verdict": "neutral", "note": "لا بأس، يؤدي الغرض."},
-        {"name": "حذاء ركض", "category": "shoes", "verdict": "weak", "note": "رياضي أكثر من اللازم لبقية الإطلالة."},
+        {"name": "تيشيرت أبيض", "category": "top", "verdict": "works", "note": "نظيف وبسيط.", "brand_seen": None},
+        {"name": "جينز داكن", "category": "bottom", "verdict": "neutral", "note": "لا بأس، يؤدي الغرض.", "brand_seen": None},
+        {"name": "حذاء ركض", "category": "shoes", "verdict": "weak", "note": "رياضي أكثر من اللازم لبقية الإطلالة.", "brand_seen": None},
     ],
     "working": ["الألوان منسجمة", "النسب متوازنة"],
     "one_tip": "الأفضل تبديل حذاء الركض بسنيكرز جلد أبيض بسيط.",
@@ -79,9 +80,9 @@ RU = {
     "headline": "Чистый кэжуал с одним слабым звеном",
     "vibe": "спокойные выходные",
     "items": [
-        {"name": "Белая футболка", "category": "top", "verdict": "works", "note": "Чисто и просто."},
-        {"name": "Тёмные джинсы", "category": "bottom", "verdict": "neutral", "note": "Нормально, своё дело делают."},
-        {"name": "Беговые кроссовки", "category": "shoes", "verdict": "weak", "note": "Слишком спортивные для остального."},
+        {"name": "Белая футболка", "category": "top", "verdict": "works", "note": "Чисто и просто.", "brand_seen": None},
+        {"name": "Тёмные джинсы", "category": "bottom", "verdict": "neutral", "note": "Нормально, своё дело делают.", "brand_seen": None},
+        {"name": "Беговые кроссовки", "category": "shoes", "verdict": "weak", "note": "Слишком спортивные для остального.", "brand_seen": None},
     ],
     "working": ["Палитра собранная", "Пропорции сбалансированы"],
     "one_tip": "Стоит заменить беговые кроссовки на простые белые кожаные кеды.",
@@ -203,6 +204,11 @@ class Handler(BaseHTTPRequestHandler):
             # Rubric v2: the schema must ask for the breakdown and the accessories read, or the answer below would be ignored.
             elif "breakdown" not in required or "accessories" not in required:
                 problems.append("schema lacks the v2 fields (breakdown, accessories)")
+            else:
+                # Rubric v3: every item asks for brand_seen (string or null), or the "Nike" below would never reach the post sheet.
+                item_schema = (((tools[0].get("input_schema") or {}).get("properties") or {}).get("items") or {}).get("items") or {}
+                if "brand_seen" not in (item_schema.get("properties") or {}) or "brand_seen" not in (item_schema.get("required") or []):
+                    problems.append("schema lacks the v3 field (items[].brand_seen)")
         tc = body.get("tool_choice") or {}
         if tc.get("type") != "tool" or tc.get("name") != tool_name:
             problems.append("tool_choice not forced")

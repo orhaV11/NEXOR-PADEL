@@ -64,6 +64,13 @@ public sealed class OutfitItem
     public string Verdict { get; set; } = "neutral";
 
     public string Note { get; set; } = "";
+
+    /// <summary>
+    /// Rubric v3: a brand whose mark, logo or unmistakable signature is visible on this piece, at most 40 characters; null
+    /// otherwise, and null for every check made before v3. A suggestion for the post sheet ("Looks like Nike?"), never
+    /// published on its own: the person confirms it into <see cref="PostItem.Brand"/>.
+    /// </summary>
+    public string? BrandSeen { get; set; }
 }
 
 /// <summary>The stylist's answer to "which one?": both outfits scored for the same intent, a winner, and why in one breath.</summary>

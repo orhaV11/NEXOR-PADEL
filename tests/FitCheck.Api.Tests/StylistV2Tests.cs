@@ -72,7 +72,7 @@ public class StylistV2Tests : IClassFixture<StylistV2Tests.V2App>
         using var scope = _app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var row = await db.Checks.SingleAsync(c => c.Id == id);
-        Assert.Equal("v2", row.PromptVersion);
+        Assert.Equal("v3", row.PromptVersion);
         Assert.Contains("\"breakdown\":{\"fit\":7,\"color\":8,\"accessories\":4}", row.FeedbackJson);
     }
 

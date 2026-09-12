@@ -184,7 +184,7 @@ public class OutfitAnalyzerTests
         var required = schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList();
         Assert.Equal(["status", "score", "intent_match", "headline", "vibe", "items", "working", "one_tip", "breakdown", "accessories"], required);
         Assert.Equal("submit_outfit_feedback", OutfitAnalyzer.ToolName);
-        Assert.Equal("v2", OutfitAnalyzer.PromptVersion);
+        Assert.Equal("v3", OutfitAnalyzer.PromptVersion);
 
         var breakdown = schema.GetProperty("properties").GetProperty("breakdown");
         Assert.Equal(["fit", "color", "accessories"], breakdown.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList());
@@ -326,6 +326,68 @@ public class OutfitAnalyzerTests
         Assert.Contains("A 6 is not an insult.", prompt);
         // The new user-facing fields are written in the wearer's language too.
         Assert.Contains("accessories.present, accessories.note, accessories.add_one) in English (en)", prompt);
+    }
+
+    // ---- rubric v3: brand_seen on every item ----
+
+    [Fact]
+    public void Tool_schema_asks_for_brand_seen_on_every_item_and_says_the_rule()
+    {
+        var item = OutfitAnalyzer.ToolSchema.GetProperty("properties").GetProperty("items").GetProperty("items");
+        Assert.Equal(["name", "category", "verdict", "note", "brand_seen"], item.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList());
+        var brandSeen = item.GetProperty("properties").GetProperty("brand_seen");
+        Assert.Equal(["string", "null"], brandSeen.GetProperty("type").EnumerateArray().Select(x => x.GetString()).ToList());
+        Assert.Equal("ONLY a brand whose mark, logo or unmistakable signature is visible; null otherwise; never guess from style.", brandSeen.GetProperty("description").GetString());
+        // The top level is as v2 left it: the vision client sends the same ten required fields.
+        Assert.Equal(10, OutfitAnalyzer.ToolSchema.GetProperty("required").GetArrayLength());
+    }
+
+    [Fact]
+    public void System_prompt_carries_the_brand_rule()
+    {
+        var prompt = OutfitAnalyzer.BuildSystemPrompt("en");
+        Assert.Contains("BRANDS (items[].brand_seen)", prompt);
+        Assert.Contains("ONLY with a brand whose mark, logo or unmistakable signature is visible", prompt);
+        Assert.Contains("null otherwise; never guess from style", prompt);
+        Assert.Contains("The wearer", prompt);
+        Assert.Contains("confirms it before anyone sees it; when in doubt, null.", prompt);
+        Assert.Contains("Never mention brands you cannot actually see.", prompt);
+    }
+
+    [Fact]
+    public void Maps_brand_seen_only_when_the_model_named_one()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(Payloads.Parse("""
+            { "status": "ok", "score": 7, "intent_match": 72, "headline": "h", "vibe": "v", "working": [], "one_tip": "t",
+              "items": [
+                { "name": "White tee", "category": "top", "verdict": "works", "note": "", "brand_seen": null },
+                { "name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "" },
+                { "name": "Running shoes", "category": "shoes", "verdict": "weak", "note": "", "brand_seen": "  Nike  " },
+                { "name": "Cap", "category": "accessory", "verdict": "neutral", "note": "", "brand_seen": "null" },
+                { "name": "Belt", "category": "accessory", "verdict": "neutral", "note": "", "brand_seen": "none" },
+                { "name": "Socks", "category": "accessory", "verdict": "neutral", "note": "", "brand_seen": "" },
+                { "name": "Bag", "category": "accessory", "verdict": "neutral", "note": "", "brand_seen": 7 },
+                { "name": "Coat", "category": "outerwear", "verdict": "works", "note": "", "brand_seen": "A brand   name that runs on far longer than any label would ever print" }
+              ] }
+            """));
+
+        Assert.Equal(8, feedback.Items.Count);
+        Assert.Null(feedback.Items[0].BrandSeen);
+        Assert.Null(feedback.Items[1].BrandSeen);
+        Assert.Equal("Nike", feedback.Items[2].BrandSeen);
+        Assert.Null(feedback.Items[3].BrandSeen);
+        Assert.Null(feedback.Items[4].BrandSeen);
+        Assert.Null(feedback.Items[5].BrandSeen);
+        Assert.Null(feedback.Items[6].BrandSeen);
+        Assert.Equal(OutfitAnalyzer.MaxBrandLength, feedback.Items[7].BrandSeen!.Length);
+        Assert.StartsWith("A brand name that runs", feedback.Items[7].BrandSeen);
+    }
+
+    [Fact]
+    public void A_v2_payload_maps_to_no_brand_on_any_item()
+    {
+        var feedback = OutfitAnalyzer.MapToolInput(V2Payloads.Ok());
+        Assert.All(feedback.Items, item => Assert.Null(item.BrandSeen));
     }
 
     [Fact]

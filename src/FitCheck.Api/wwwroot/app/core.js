@@ -1112,7 +1112,9 @@ export function postCard(post, opts) {
   const photo = el('a', { class: 'card-photo' + (isClip ? ' is-clip' : ''), href: '#/post/' + post.id, 'aria-label': t(isClip ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
     media,
     isClip ? clipPill() : null,
-    scoreBadge(post.score)
+    scoreBadge(post.score),
+    // Round 10: the tag count at the photo's bottom-left corner (the ring keeps the bottom-right in both directions) when the look carries items; decorative: the link's label already names the look, and the look page lists them
+    post.itemCount > 0 ? el('span', { class: 'item-count', 'aria-hidden': 'true' }, [icon('tag'), el('b', { text: fmtNumber(post.itemCount) })]) : null
   ]);
   // The sound button is a sibling of the link (a button inside a link is not a thing), in a wrapper that positions it.
   const mediaNode = isClip ? el('div', { class: 'card-media' }, [photo, clipControls(media)]) : photo;

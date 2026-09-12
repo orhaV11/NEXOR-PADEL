@@ -709,5 +709,22 @@
   "badge.board_picks": "اختيارات المصمم",
   "badge.board_intent": "بحسب الوجهة · {intent}",
   "affiliate.disclosure": "قد يكسب OREVOSH عمولة من هذا الرابط.",
-  "activity.board_rank": "المركز {rank} لك هذا الأسبوع"
+  "activity.board_rank": "المركز {rank} لك هذا الأسبوع",
+  "items.editor_title": "وسم القطع",
+  "items.editor_hint": "اكتب اسم كل قطعة، وأضف الماركة إن عرفتها، وضع نقطة على الصورة حيث تقع.",
+  "items.place_hint": "انقر على الصورة عند {name}. اسحب النقطة لتحريكها.",
+  "items.unplace": "إزالة النقطة",
+  "items.dot_label": "القطعة {n}: {name}",
+  "items.unnamed": "قطعة بلا اسم",
+  "items.brand_placeholder": "مثلًا Nike",
+  "items.model_placeholder": "مثلًا Air Max 90",
+  "items.link_hint": "يُفتح في تبويب جديد عبر OREVOSH؛ لا يظهر على الإطلالة سوى اسم المتجر.",
+  "items.edit_items": "تعديل القطع",
+  "items.saved": "تم حفظ القطع",
+  "items.empty_own": "لا شيء موسوم بعد. أضف القطع ليجد الناس الإطلالة ويتسوقوها.",
+  "items.search_placeholder": "ابحث عن قطع أو ماركات أو موديلات",
+  "items.search_hint": "اعثر على إطلالات بحسب القطعة أو الماركة أو الموديل.",
+  "items.looks": "{n} إطلالات",
+  "items.looks_one": "إطلالة واحدة",
+  "items.all": "الكل"
 }

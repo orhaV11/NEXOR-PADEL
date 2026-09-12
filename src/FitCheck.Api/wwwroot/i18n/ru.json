@@ -709,5 +709,22 @@
   "badge.board_picks": "Выбор стилиста",
   "badge.board_intent": "По направлению · {intent}",
   "affiliate.disclosure": "По этой ссылке OREVOSH может получить комиссию.",
-  "activity.board_rank": "Твоё место на этой неделе: {rank}"
+  "activity.board_rank": "Твоё место на этой неделе: {rank}",
+  "items.editor_title": "Отметить вещи",
+  "items.editor_hint": "Назови каждую вещь, добавь бренд, если знаешь, и поставь точку на фото там, где она.",
+  "items.place_hint": "Нажми на фото там, где {name}. Точку можно перетащить.",
+  "items.unplace": "Убрать точку",
+  "items.dot_label": "Вещь {n}: {name}",
+  "items.unnamed": "Вещь без названия",
+  "items.brand_placeholder": "например, Nike",
+  "items.model_placeholder": "например, Air Max 90",
+  "items.link_hint": "Откроется в новой вкладке через OREVOSH; на образе видно только название магазина.",
+  "items.edit_items": "Изменить вещи",
+  "items.saved": "Вещи сохранены",
+  "items.empty_own": "Пока ничего не отмечено. Добавь вещи, чтобы люди могли найти и купить образ.",
+  "items.search_placeholder": "Поиск вещей, брендов, моделей",
+  "items.search_hint": "Найди образы по вещи, бренду или модели.",
+  "items.looks": "{n} образов",
+  "items.looks_one": "1 образ",
+  "items.all": "Все"
 }

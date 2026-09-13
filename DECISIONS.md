@@ -1016,11 +1016,19 @@ lead merged the four; this section is written from the merged code, after the fa
   changing or leaving a programme is one setting for every link at once; the door is rate limited to sixty taps a
   minute per address (the `out` policy) so a script cannot run the tally up. The security-headers middleware learned
   one thing for it: a route that set `Referrer-Policy` first keeps it; every other response still gets the default.
-- **The disclosure shows whenever a link exists.** "Leaves OREVOSH · This link may earn OREVOSH a commission." sits
-  under every "Shop at {host}", listed host or not, because a person deciding whether to tap should not need to know
-  which programmes the owner joined this month, and a line that appears only on some links teaches people to look for
-  its absence. `Affiliate:Disclosure` was bound in the skeleton for a client that would read it; the client does not,
-  and the README says the setting is bound and not read rather than pretending it is a switch.
+  A link is accepted as the person pasted it, and a chat app shows links decoded: a Hebrew query, an accented path, a
+  host in its own script. A `Location` header carries printable ASCII and nothing else, so the door sends the same
+  link in its ASCII form (`PostItems.AsciiUrl`: the host as punycode, the path, query and fragment percent-encoded,
+  the scheme and port as they were; an ASCII link goes as stored, host case included), the affiliate parameters go on
+  that form, and the tap is counted once the header holds the link, so a header Kestrel would refuse is not a tap
+  that left (the review's fix; the door was first written for ASCII links).
+- **"Leaves OREVOSH" shows whenever a link exists; the commission line is a setting.** "Leaves OREVOSH" sits under
+  every "Shop at {host}", listed host or not, because a person deciding whether to tap should not need to know which
+  programmes the owner joined this month, and a line that appears only on some links teaches people to look for its
+  absence. "This link may earn OREVOSH a commission." follows it while `Affiliate:Disclosure` is true, which it is by
+  default: `/api/config` publishes the setting as `affiliate.disclosure` (the hosts and their parameters stay on the
+  server) and the item sheet reads it. The skeleton bound the setting for a client that did not read it, and the
+  guides said so rather than pretend; the review made it a switch (below), and the guides say to leave it on.
 - **Fires count from people who use the app, capped per pair.** A fire is worth a place on the board only when the
   firer has made an `ok` check by the week's end (`Board:MinChecksToCount`, 1), when their account was two days old at
   the moment of the fire (`Board:NewAccountDays`), when the look is not their own, and while it is within the first
@@ -1039,7 +1047,9 @@ lead merged the four; this section is written from the merged code, after the fa
   idempotence guard: a second close of the same week, a restart or a second process, fails the constraint, the change
   tracker is cleared, and the first run's rows stand. A week with no counted fires writes nothing and says so once
   per process. Only the most recent ended week tells the looks board its places (`board_rank`, one per person with
-  their best rank, in the app and by push, the tap landing on `#/board`); a catch-up over older weeks is silent,
+  their best rank, in the app and by push, the tap landing on the week that closed: `#/board?week=` with an instant a
+  week before the line, since the row carries no week and the closer writes it at the close); a catch-up over older
+  weeks is silent,
   because "you finished #2 three weeks ago" is not news. There is no HTTP route and no command that closes a week:
   the closer is the only writer, and the week label (the local first day as a UTC date) is the key the hall and the
   badge read. The archive keeps a deleted look's place with its `PostId` set null; the person's rank stands.
@@ -1073,8 +1083,10 @@ lead merged the four; this section is written from the merged code, after the fa
 - **The Round 10 migration is hand-edited, once.** `PostItems` was keyed on `(PostId, Name)`; it is now keyed on an id
   and carries the brand, the model, the link, the source, the dot, the position and the confirmation. The generated
   migration would have added the id column with one empty default and failed on the second row when SQLite rebuilt
-  the table around the new key, so an `UPDATE` mints a random id per row, sets the stylist as the source (nothing else
-  could have written a Round 9 row) and numbers the rows in insertion order before the rebuild. `Name` and its index
+  the table around the new key, so an `UPDATE` mints a random id per row (in the upper-case text the SQLite provider
+  binds a `Guid` as: SQLite compares text exactly, and a lower-case id would be a row no key lookup ever finds), sets
+  the stylist as the source (nothing else could have written a Round 9 row) and numbers the rows in insertion order
+  before the rebuild. `Name` and its index
   stay, so the search by piece works unchanged over old and new rows; the test builds a Round 9 file from the
   migrations and starts the app on it. A pilot file from before migrations has no `PostItems` table and simply gets
   one.
@@ -1112,11 +1124,117 @@ lead merged the four; this section is written from the merged code, after the fa
   are plain copy by the builders and need the same native review as the rest.
 - **Not verified in this round.** The browser test drives the editor, the look's items and sheet, the item pages, the
   board and the Explore strip, but not a closed week (the closer has no HTTP trigger: the hall's weeks, the badge and
-  the `board_rank` line rest on `BoardTests`); the closer's two-process race is covered by
-  code and review, not by a test, because one process serialises its own runs; no real affiliate programme has been
+  the `board_rank` line rest on `BoardTests`); the closer's two-process race is covered by `BoardCloserTests` through
+  `BoardCloser.BeforeSave`, a hook a test uses to close the same week from the side between the run's check of the
+  week and its save (one process serialises its own runs, so nothing but a hook can stand in for the second process;
+  the merge had left this to code and review); no real affiliate programme has been
   joined, so the appended parameters were checked against a listed `example.com` only; and whether the real model
   fills `brand_seen` conservatively enough is a calibration question, to be read off `scripts/calibrate.py` on real
   photos like every other rubric change.
+
+### After review
+
+The review between the merge and the hand-off (2026-09-13) read the round against the code, and the lead applied what
+it found in two commits (`c8b1f8f` the items, `82aa133` the board). It confirmed the shape: a tag is the person's word
+and the stylist's brand only ever a suggestion, one door for links, the fires that count and the pair cap, the picks
+board that fire cannot move, the closer as the only writer, the badge for one week, the sponsor as a setting, the
+hand-edited migration and the two counters all stand as decided. What it changed, most important first:
+
+- **The door carries any link.** A link is accepted as pasted, and people paste what a chat app shows: a Hebrew query
+  on terminalx.com, an accented path, a host in its own script. The door put the stored string in the `Location`
+  header, which Kestrel refuses outside printable ASCII, so the tap on exactly those links failed after the counter
+  had already ticked. `PostItems.AsciiUrl` sends the punycode host and the percent-encoded path, query and fragment
+  (an ASCII link goes as stored), the affiliate parameters go on that form, and the header is set before the counter
+  runs, so a tap that did not leave is not counted as one that did.
+- **`q` searches brands too.** The search box promises pieces, brands and models; `GET /api/items?q=nike` found a
+  piece named "nike" and not a Nike one. The term now meets the brand column as well as the name and the model.
+- **A long stylist name survives a round trip.** The stylist's names are kept up to sixty characters, a typed name to
+  forty, and "unchanged" was equality with the stored name: the post sheet, which held every field to forty, sent the
+  first forty back and the server read a rename, refused it as too long, or made the stylist's row the person's.
+  `PostItems.IsSameName` reads the stored name, the stylist's own name uncut (the check carries it whole) and the
+  stored name's first forty as the same name, at posting and on `PATCH`; the client keeps a name that came with the
+  check or the look whole and holds only a typed one to forty.
+- **A body without a list is a broken call.** `{}` and `{ "items": null }` cleared the look like `[]`; they are 400
+  `error.item_invalid` now, with nothing changed. Only an explicit `[]` clears.
+- **The editor gets its own photo.** The post sheet handed the item editor whatever preview the check screen held, so
+  a past check posted from "Your checks" placed its dots on another photo. The preview goes over only while it is the
+  still this result was judged on; a past check gets the rows and no box (a check has no photo route), and "Edit
+  items" on the look adds the dots. The README's limitations say so.
+- **A typed brand outranks the guess.** Typing a brand drops "Looks like Nike?" so the chips cannot later wipe or
+  replace what was typed; Not a brand clears the field only while it still holds the guess; Confirm writes the field it
+  sits next to.
+- **The brand autocomplete works from a keyboard.** The field is a combobox (`aria-expanded`, `aria-controls`,
+  `aria-activedescendant`): the arrows move the active option, Enter picks it, Escape closes, Tab reaches the options
+  and the list stays while the focus is in it. A list only a pointer could pick from was not an autocomplete.
+- **The item search is capped like Explore's, and a refusal says so.** `#items-search` holds a term to forty
+  characters (`ItemEndpoints.QueryMaxLength`; the field said sixty), and a 400 shows the server's message as an alert
+  instead of the empty state that read as "no looks".
+- **The migrated ids are upper-case.** The `UPDATE` minted lower-case hex; the SQLite provider binds a `Guid` as
+  upper-case text and SQLite compares text exactly, so every Round 9 row was one no key lookup found: it could not be
+  tagged by its id and the door answered 404 for it. The migration mints upper-case now, and the migration test tags a
+  migrated row by its id and walks through the door.
+- **`Affiliate:Disclosure` is read.** `/api/config` carries `affiliate: { disclosure }` and the item sheet shows the
+  commission line only while it is true (the default); "Leaves OREVOSH" shows regardless. A setting that switched
+  nothing was a lie in the table, and the guides said so; it is a switch now, and the guides say to leave it on.
+- **The week cache is bounded.** Every `?week=` a stranger asked for went into the process's memory for a minute; a
+  script could grow it a week at a time. Only the running week and the one before it (busy between the week's end
+  and its close) are kept, two entries at most, and every other week is computed on each read.
+- **`?week=` answers a span.** A week before the first look or beyond next week was computed as an empty board for
+  anyone who asked; it is 400 now. The floor is the week of the first look, or the first archived week when that is
+  earlier (a closed week's looks can all be deleted; its places stay), and last week at the latest so a fresh board's
+  way back always answers; the ceiling is next week, which stays an empty board.
+- **The calendar's edges are garbage, not a crash.** `0001-01-01` and `9999-12-31`, as dates or instants, threw from
+  the week arithmetic and answered 500; they are 400 in the caller's language.
+- **"You finished #2" lands on the week that closed.** The tap opened `#/board`, the new empty week. The push and the
+  activity line carry `#/board?week=` with an instant a week before the line was written (the row carries no week; the
+  closer writes it minutes after the close), and the board takes an instant.
+- **The countdown is anchored to the fetch.** "Closes in" counted from `Date.now()` at draw time, so a board drawn from
+  the minute's cache closed up to a minute late; it counts from the moment `closesIn` was true.
+- **The sponsor's link is validated.** `Board:Sponsor:Url` went to the page as written, so a setting could put a
+  `javascript:` link under the sponsor's name. `BoardSponsorOptions.NormalizeUrl` runs once at start: `http(s)` with a
+  host and no user info passes, a bare host is read as `https://`, anything else is dropped with a warning and the
+  board shows the sponsor without a link; the page checks again before the link becomes an `href`.
+- **44px controls.** The board's previous and next pills were 40px; the sponsor's name in the caps line and the 24px
+  profile badge keep their size and get a 44px tap area through a pseudo-element.
+- **An exclusion outlives its moderator.** `BoardExclusion.ByUserId` cascaded with the account, so deleting an
+  ex-moderator put every look they had pulled back on the board. The column is nullable and set null on delete: the
+  look stays off, the reason stays, the signature goes; the account-deletion route follows the same rule.
+- **The closer's race has a test.** `BoardCloser.BeforeSave` is a hook, null outside tests, called after a week's rows
+  are queued and before they are saved; `BoardCloserTests` closes the same week from the side there and watches the
+  run give way: zero rows, the "already closed by another run" line, the other run's places standing, the queued
+  notification gone with the dropped rows.
+- **A check by the week's end has a test.** A Monday fire counts once the firer checks on Friday, and the same check
+  a minute after the week's end makes the fire nothing again, read then or a week later.
+- **573 tests**, from 540 at the merge.
+
+What it kept, and why:
+
+- **Brand case folding for non-ASCII on SQLite.** `COLLATE NOCASE` and `LIKE` fold Latin letters only, so a Hebrew
+  or Cyrillic brand typed in two cases is two pages under `#/items/<brand>` while the brands list merges them in .NET.
+  A collation or a lower-cased shadow column is a schema change for a case no pilot user has hit; the README's
+  limitations keep saying so.
+- **A fresh brand account is "the brand's account" by name only.** The brands list attaches a brand account whose
+  handle or name equals a tagged brand, so a new account named Nike rides on the Nike tag as its account. The check
+  inside the mark (`--verify`) is the only claim of authenticity the app makes, the list shows an unverified account
+  as such, and a claim process is on the "Not in this version" list.
+- **The reset card's late insert.** `boardResetCard` puts the card under the sticky tabs once `/api/board` answers,
+  after the feed has drawn, so on the first day of a week the feed shifts down once (from the cache after that).
+  Holding every reader's first paint for the board's answer, one day a week, for a card most people dismiss, costs
+  more than the shift.
+- **The sponsor stamped on every week by config.** `Board:Sponsor:*` goes on the DTO of every week the board answers,
+  the archive browsed back included, so last month's board shows this week's sponsor. A per-week sponsor table is a
+  booking system, which the round decided against; the owner unsets the sponsor when its week is over (DEPLOY says
+  so), and the hall carries no sponsor.
+- **`IX_PostItems_Brand` against `NOCASE`.** The index on `Brand` has the default collation and the brand filter
+  compares with `COLLATE NOCASE`, which SQLite cannot serve from that index, so a brand page scans the item rows. The
+  branded rows are a short list at pilot scale, and a `NOCASE` index would fold ASCII only and reopen the collation
+  question above.
+- **The derived week has a DST edge.** The instant on a `board_rank` tap is 168 hours before the line, and the week
+  that closed is 167 UTC hours long when Israel's clocks spring forward inside it: a close on schedule, minutes after
+  that week ends, derives an instant in the last hour of the week before it and the tap lands there, one week early.
+  The autumn week is 169 hours, and only a catch-up close in its last hour (the closer down for the whole week) lands
+  the tap on the running week. Once a year on schedule, then; the board's previous and next pills are one tap from
+  the right week, the line itself reads right, and carrying the week on the row is the fix if it ever matters.
 
 ### Objections kept out of the code (owner wins)
 

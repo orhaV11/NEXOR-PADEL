@@ -71,6 +71,13 @@ old, and a fire must show on the board at once). What the script drives, in the 
 - **The board**: after Dan fires the featured look, `#/board` shows `.board-row[data-rank]` with `.rank-medal.top` on
   first place (screenshot 38), the People and Stylist's picks tabs render, `#board-hall-link` opens the hall in its
   empty state (no week has closed in the run), and Explore carries `#board-strip .board-strip-row a` (screenshot 39).
+- **Hooks the review added**, not yet driven by the script: in an open editor row the brand field is
+  `input[role=combobox]` with `aria-expanded` and `aria-controls`, and once ArrowDown has moved into the list
+  `input[role=combobox][aria-activedescendant]` names the active `li[role=option]` (Enter picks it, Escape closes);
+  on the item sheet `#item-disclosure` sits inside `#item-leaves` only while `/api/config` says `affiliate.disclosure`
+  is true (the default; `#item-leaves` itself shows whenever the item has a link); `#items-search` carries
+  `maxlength="40"` (the server's cap), and a term the server refuses draws `#items-results .alert[role=alert]` with its
+  message instead of the empty state; `#board-previous`, the way to the week before in `.board-nav`, is 44px tall.
 - **Not driven**: a closed week (the closer has no HTTP trigger), so the hall's weeks, `#profile-badge` and the
   `board_rank` line in Activity are covered by `BoardTests` only; the moderator's exclusion by `BoardTests` and
   `Round10SkeletonTests`; the reset card `#board-reset` shows only in the first 24 hours of a week.

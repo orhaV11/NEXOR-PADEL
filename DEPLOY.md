@@ -368,9 +368,10 @@ anything until you list a host. In `.env` on a server, `fly secrets set` on Fly:
 | `Board__NewAccountDays` | A fire from an account younger than this at the moment of the fire does not count, `2` |
 | `Board__Size` | Places on each board, `10` |
 | `Board__RisingDays` | The rising board lists the fired looks of accounts younger than this at the week's end, `30` |
-| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over |
+| `Board__CacheSeconds` | How long the running week and the one before it are served from memory, `60` seconds, real time, per process (two entries at most; every other week is computed on each read). `0` turns the cache off |
+| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host such as `nexor.example` is read as `https://nexor.example`; anything else is dropped at start with `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link` in the log, and the name shows without a link. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over |
 | `Affiliate__Hosts__<host>` | One line per programme you joined: `Affiliate__Hosts__amazon.com=tag=orevosh-20` appends `?tag=orevosh-20` (or `&tag=…`, before any `#fragment`) to every store link that leaves for `amazon.com` or a subdomain of it. Nothing is stored on the link: the parameters are added at the door, so joining, changing or leaving a programme is one line for every link at once. Leave every line out until you have joined a programme; with none, every link is redirected as given |
-| `Affiliate__Disclosure` | `true`. Bound, and nothing reads it yet: the item sheet shows "Leaves OREVOSH · This link may earn OREVOSH a commission." under every store link, listed host or not. Keep the line; programme terms and consumer law expect it |
+| `Affiliate__Disclosure` | `true`. Whether the item sheet shows "This link may earn OREVOSH a commission." under a store link, listed host or not: `/api/config` publishes it as `affiliate.disclosure` and the sheet reads it ("Leaves OREVOSH" shows under every store link either way). Keep it on; programme terms and consumer law expect the line |
 
 The host is a configuration key with a dot in it (`Affiliate:Hosts:amazon.com`), which the app reads as it reads every
 other key (a double underscore for each colon, the dot kept). A shell's `export` refuses a dot in a variable name, so
@@ -390,6 +391,9 @@ says, in `docker compose logs app` or `fly logs`:
 - `Board: week 2026-09-06 was already closed by another run; nothing written`: two processes raced; the first one's
   rows stand. You should never see it with one instance.
 - `Board: the close failed; it runs again in five minutes`, a warning with the exception: read it; the next run retries.
+- `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link`, a warning at start:
+  `Board__Sponsor__Url` is not `http(s)` (a bare host is read as `https://`; `javascript:`, `ftp:`, `mailto:` and a
+  link with user info are dropped). The name and the prize still show; fix the line and restart.
 - `Board: <look id> excluded by <moderator id>: <reason>` and `Board: <look id> put back by <moderator id>`: a moderator
   pulled a look off the board through `POST /api/admin/board/exclude` (with `{ postId, reason }`) or put it back with
   `DELETE /api/admin/board/exclude/<postId>`. There is no screen for it yet; a moderator's session and the CSRF header
@@ -397,9 +401,11 @@ says, in `docker compose logs app` or `fly logs`:
   application/json' -d '{"postId":"…","reason":"bought fires"}' https://looks.example.com/api/admin/board/exclude`.
 - `Items: 3 on post <look id> by <user id>`: someone saved the pieces on their look.
 
-**What to know before people rely on it.** The board reads `/api/board` from memory for 60 seconds per process (the
-Explore strip and the reset card on Home read the same route, and every answered read counts as a `boardViews` in the
-metrics), the out door allows sixty taps a minute per client address, and both windows live in the one `app` process.
+**What to know before people rely on it.** The board serves the running week and the one before it from memory for
+`Board__CacheSeconds` (60 seconds, real time) per process, two weeks at most, and computes every other week on each read
+(the Explore strip and the reset card on Home read the same route, and every answered read counts as a `boardViews` in
+the metrics); `?week=` answers from the week of the first look through next week and refuses the rest with a 400; the
+out door allows sixty taps a minute per client address, and both windows live in the one `app` process.
 A week's places, the hall and the badge appear a few minutes after midnight, not at the stroke of it. A moderator's
 exclusion changes the weeks still open; a week already in the hall keeps its rows.
 
@@ -517,8 +523,8 @@ Fill in:
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
 | `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1), the brake on guest attempts (20) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
-| `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30) and the week's sponsor, by hand. The defaults are the pilot's; "The weekly board and store links" above. |
-| `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows either way. |
+| `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__CacheSeconds`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30), the memory cache (60 seconds, two weeks at most) and the week's sponsor, by hand (its `Url` an `http(s)` link, or it is dropped with a warning). The defaults are the pilot's; "The weekly board and store links" above. |
+| `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows while `Affiliate__Disclosure` is `true`, the default. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
 `Plans__FreeChecksPerDay=5` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
@@ -849,10 +855,11 @@ Before the address leaves the team, in this order:
     `closed, N rows`, and `#/board/hall` the week ("The weekly board and store links").
 17. **Decide the sponsor.** `Board__Sponsor__Name` (with `Handle`, `PrizeText`, `Url`) puts "Presented by" on the board
     with the prize; leave it unset until a brand has agreed to a prize with you, and unset it again when the week is
-    over. There is no self-service, so this is your word on the board.
+    over. `Url` is an `http(s)` link (a bare host is read as `https://`); anything else is dropped with a warning in
+    the start log and the name shows without a link. There is no self-service, so this is your word on the board.
 18. **Affiliate hosts only for programmes you joined, and keep the disclosure on.** One `Affiliate__Hosts__<host>` line
     per programme whose terms you accepted; with none, nothing is appended and nobody earns anything. The commission
-    line shows under every store link (`Affiliate__Disclosure` is bound and not read yet): leave it, the programmes'
+    line shows under every store link while `Affiliate__Disclosure` is `true`, the default: leave it on, the programmes'
     terms and consumer law expect it. The store gets no referrer from the app.
 19. **`--verify` the brands that tag products.** A brand account whose looks carry store links, and any brand that
     sponsors a week, is one you have spoken to; the check inside its mark says so. Anyone else's brand and model on a

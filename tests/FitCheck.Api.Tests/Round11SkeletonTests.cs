@@ -207,24 +207,22 @@ public class Round11StubTests : IClassFixture<TestApp>
     }
 
     [Fact]
-    public async Task Blocking_needs_a_session_and_the_csrf_header_then_answers_501()
+    public async Task Blocking_needs_a_session_and_the_csrf_header_and_is_built()
     {
         var anonymous = _app.NewClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync("/api/users/someone/block", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.DeleteAsync("/api/users/someone/block")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/users/me/blocks")).StatusCode);
 
+        // The block builder filled the routes (BlockTests has the matrix): an unknown handle is 404, the list answers.
         var (client, _, _) = await _app.NewUserAsync("r11_blocker");
-        foreach (var response in new[]
-                 {
-                     await client.PostAsync("/api/users/someone/block", null),
-                     await client.DeleteAsync("/api/users/someone/block"),
-                     await client.GetAsync("/api/users/me/blocks"),
-                 })
-        {
-            Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
-            Assert.Equal(NotBuiltEnglish, await ErrorOf(response));
-        }
+        var missing = await client.PostAsync("/api/users/someone/block", null);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        Assert.Equal("We couldn't find this account.", await ErrorOf(missing));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync("/api/users/someone/block")).StatusCode);
+        var list = await client.GetAsync("/api/users/me/blocks");
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+        Assert.Empty((await list.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items").EnumerateArray());
 
         // A write without the CSRF header is refused before any handler, as every other write is.
         var bare = _app.BareClient();

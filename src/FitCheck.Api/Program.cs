@@ -237,6 +237,8 @@ builder.Services.AddSingleton<GuestAddressCounter>();
 builder.Services.AddScoped<OutfitAnalyzer>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<PostReader>();
+// Round 11: the pair predicate behind every block filter, read once per request.
+builder.Services.AddScoped<Blocks>();
 // Mail: SMTP when Email:Host and Email:From are set, otherwise the log. Email:Host=log keeps mail "on" (links are minted
 // and the client offers recovery) while every message goes to the log instead of a server: local runs and the browser test.
 builder.Services.AddSingleton<IEmailSender>(provider =>

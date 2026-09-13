@@ -8,7 +8,7 @@
 // and saves with PATCH /api/posts/{id}/items (#items-save).
 import {
   register, state, t, api, el, icon, avatar, userRow, postCard, setTopBar, navigate, requireSignIn, sheet,
-  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow
+  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow, onLeave
 } from '../core.js';
 import { itemsEditor, itemLine, hostOf, hasDot, categoryLabel } from '../items.js';
 
@@ -62,6 +62,15 @@ register('post', async (root, params, ctx) => {
   }
   cardWrap.appendChild(postCard(post, cardOpts));
   root.appendChild(cardWrap);
+
+  // Round 11: Block in the card's "…" (views/blocked.js raises the event) takes this look out of the viewer's world; leave it.
+  const onBlock = (event) => {
+    const detail = event.detail || {};
+    if (!detail.blocked || String(detail.handle).toLowerCase() !== post.user.handle.toLowerCase()) return;
+    if (history.length > 1) history.back(); else navigate('#/');
+  };
+  document.addEventListener('orevosh:block', onBlock);
+  onLeave(() => document.removeEventListener('orevosh:block', onBlock));
 
   // ---- the look: the pieces under the caption, the dots over the photo behind the tag toggle ----
   let items = Array.isArray(post.items) ? post.items : [];

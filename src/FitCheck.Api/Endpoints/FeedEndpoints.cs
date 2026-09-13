@@ -21,13 +21,14 @@ public static class FeedEndpoints
     }
 
     private static async Task<IResult> FeedAsync(
-        HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, string? tab, string? intent, int? offset, int? limit, CancellationToken ct)
+        HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, string? tab, string? intent, int? offset, int? limit, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var (skip, take) = PostEndpoints.Page(offset, limit);
         var now = DateTime.UtcNow;
 
-        IQueryable<Post> query = db.Posts.Where(p => !p.Hidden);
+        // Round 11: looks by either side of a block with the viewer are out of every tab, "for you" included.
+        var query = await blocks.FilterAsync(db.Posts.Where(p => !p.Hidden), viewerId, ct);
         if (Enum.TryParse<StyleIntent>(intent, ignoreCase: true, out var filter) && Enum.IsDefined(filter))
         {
             query = query.Where(p => p.Intent == filter);

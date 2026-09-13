@@ -912,7 +912,7 @@ export async function featurePost(post, on) {
 export async function toggleFollow(handle, following) {
   return await api(following ? 'DELETE' : 'POST', '/api/users/' + encodeURIComponent(handle) + '/follow');
 }
-/** The "…" sheet for a look: share, copy link, save, feature (brands), report, delete (author). */
+/** The "…" sheet for a look: share, copy link, save, feature (brands), report, block (Round 11), delete (author). */
 export function openPostMenu(post, opts) {
   opts = opts || {};
   const mentionsMe = state.me && (post.mentions || []).some((m) => m.handle.toLowerCase() === state.me.handle.toLowerCase());
@@ -927,6 +927,8 @@ export function openPostMenu(post, opts) {
     canFeature ? { icon: 'sparkle', text: t('post.feature'), onclick: async () => { if (await featurePost(post, true) && opts.onChange) opts.onChange(); } } : null,
     featuredByMe ? { icon: 'sparkle', text: t('post.unfeature'), onclick: async () => { if (await featurePost(post, false) && opts.onChange) opts.onChange(); } } : null,
     !post.isMine ? { icon: 'flag', text: t('post.report'), onclick: () => reportPost(post), danger: true } : null,
+    // Block lives with the blocked list's view (it imports this module, so the import is lazy, like the story card's).
+    !post.isMine ? { icon: 'x', text: t('block.block'), onclick: () => import('./views/blocked.js').then((m) => m.blockAccount(post.user)), danger: true } : null,
     post.isMine ? { icon: 'trash', text: t('post.delete'), onclick: async () => { if (await deletePost(post) && opts.onDelete) opts.onDelete(); }, danger: true } : null
   ]);
 }

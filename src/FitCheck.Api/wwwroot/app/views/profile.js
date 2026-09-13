@@ -1,12 +1,15 @@
 // Profiles: #/u/:handle[/community|/featured] and #/me, plus the two private lists that hang off my profile,
 // #/saved and #/checks. The head (portrait, name, handle, the follow label), the bio, the statline and the colophon
 // are padded; the look grids under the tabs run edge to edge and page as you scroll. Tabs are routes, so back
-// returns to the previous tab.
+// returns to the previous tab. Round 11: someone else's profile carries a "…" in the top bar (#profile-menu) whose
+// sheet holds Block (#block) or, once viewer.blocked, Unblock (#unblock); a blocked profile shows the state
+// (#profile-blocked) where the follow label was, and the grid is whatever the server answers.
 import {
-  register, state, t, api, el, icon, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
+  register, state, t, api, el, icon, iconButton, sheet, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
   navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel
 } from '../core.js';
 import { profileBadge } from './board.js';
+import { blockAccount, unblockAccount } from './blocked.js';
 
 /** Three columns, so a page is whole rows; the server caps pages at 30 anyway. */
 const GRID_PAGE = 30;
@@ -19,13 +22,31 @@ document.head.appendChild(el('style', { text: [
   '.check-row .num small { font-size: 11px; color: var(--ink-3); font-weight: 600; margin-inline-start: 1px; }',
   '.check-row .info { flex: 1; min-inline-size: 0; }',
   '.check-row .info > * + * { margin-block-start: 4px; }',
-  '.check-row .pill { flex: none; min-block-size: 44px; }'
+  '.check-row .pill { flex: none; min-block-size: 44px; }',
+  '.profile-head .blocked-state { display: inline-block; margin-block-start: 10px; }'
 ].join('\n') }));
 
 /** "@handle" as an isolated left-to-right run, so it never turns into "handle@" in a Hebrew top bar. */
 const handleTitle = (handle) => '\u2066@' + handle + '\u2069';
 const tabPath = (handle, tab) => '#/u/' + encodeURIComponent(handle) + (tab === 'looks' ? '' : '/' + tab);
 const settingsAction = () => el('a', { class: 'icon-btn', href: '#/settings', 'aria-label': t('profile.settings') }, [icon('settings')]);
+
+/** The "…" on someone else's profile: a sheet with Block, or Unblock once the viewer blocked them. Either way the profile is drawn again. */
+function menuAction(profile, viewer) {
+  const blocked = !!viewer.blocked;
+  return iconButton('more', t('common.more'), () => {
+    const list = el('div', { class: 'sheet-list' });
+    const s = sheet({ title: profile.name, content: list });
+    list.appendChild(el('button', {
+      type: 'button', id: blocked ? 'unblock' : 'block', class: blocked ? null : 'danger',
+      onclick: async () => {
+        s.close();
+        const done = blocked ? await unblockAccount(profile.handle) : await blockAccount(profile);
+        if (done) navigate(location.hash);   // the same route again: head, state and grid follow the server
+      }
+    }, [icon('x'), t(blocked ? 'block.unblock' : 'block.block')]));
+  }, { id: 'profile-menu' });
+}
 
 /** The count a plural key wants: the number 1 (so the _one form fires) or the formatted figure. */
 const countArg = (n) => (n === 1 ? 1 : fmtNumber(n));
@@ -143,10 +164,10 @@ async function profileView(root, handle, tab, ctx) {
   }
   if (ctx.stale()) return;
   skel.remove();
-  if (profile.handle !== handle) setTopBar({ back: !mine, title: handleTitle(profile.handle), actions: mine ? [settingsAction()] : [] });
-
   const brand = profile.accountType === 'Brand';
   const viewer = profile.viewer || {};
+  // The bar again with the handle as the server spells it and, signed in on someone else's profile, the "…".
+  setTopBar({ back: !mine, title: handleTitle(profile.handle), actions: mine ? [settingsAction()] : state.me ? [menuAction(profile, viewer)] : [] });
 
   // The followers figure is kept by hand so the follow label can update it without a reload.
   const followers = el('b', { text: fmtCompact(profile.followers) });
@@ -156,7 +177,10 @@ async function profileView(root, handle, tab, ctx) {
     el('h1', { class: 'name' }, [profile.name, brandMark(profile), profileBadge(profile.badge || (mine && state.me ? state.me.badge : null))]),
     el('div', { class: 'sub' }, [handleText(profile.handle)])
   ]);
-  if (!mine) {
+  if (!mine && viewer.blocked) {
+    // Blocked by me: the state instead of a follow label (the follow went with the block; Unblock is in the "…").
+    who.appendChild(el('span', { class: 'tag blocked-state', id: 'profile-blocked', text: t('block.state') }));
+  } else if (!mine) {
     const follow = followButton(profile.handle, !!viewer.following, (result) => {
       profile.followers = result.followers;
       followers.textContent = fmtCompact(result.followers);

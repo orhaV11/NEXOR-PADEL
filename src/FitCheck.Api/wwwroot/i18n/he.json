@@ -746,5 +746,6 @@
   "export.ready": "הנתונים שלך מוכנים.",
   "billing.manage": "ניהול המינוי",
   "billing.manage_hint": "שינוי או ביטול של התוכנית.",
-  "billing.manual_hint": "כדי לשנות או לבטל, כותבים לנו."
+  "billing.manual_hint": "כדי לשנות או לבטל, כותבים לנו.",
+  "block.state": "חסום"
 }

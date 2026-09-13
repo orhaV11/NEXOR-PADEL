@@ -34,12 +34,13 @@ public static class ExploreEndpoints
         public int Followers { get; init; }
     }
 
-    private static async Task<IResult> ExploreAsync(HttpContext context, AppDbContext db, PostReader reader, CancellationToken ct)
+    private static async Task<IResult> ExploreAsync(HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var now = DateTime.UtcNow;
         var since = now - TrendingWindow;
-        var recent = db.Posts.Where(p => !p.Hidden && p.CreatedAt >= since);
+        // Round 11: either side of a block with the viewer is out of the top looks, the brands and the tag tallies.
+        var recent = await blocks.FilterAsync(db.Posts.Where(p => !p.Hidden && p.CreatedAt >= since), viewerId, ct);
 
         var trending = await db.PostTags
             .Join(recent, t => t.PostId, p => p.Id, (t, p) => t.Tag)
@@ -50,8 +51,7 @@ public static class ExploreEndpoints
             .ToListAsync(ct);
 
         // A suspended brand is off the front page along with its profile.
-        var brands = await db.Users
-            .Where(u => u.AccountType == AccountType.Brand && !u.Suspended)
+        var brands = await (await blocks.FilterAsync(db.Users.Where(u => u.AccountType == AccountType.Brand && !u.Suspended), viewerId, ct))
             .Select(u => new RankedUser { User = u, Followers = db.Follows.Count(f => f.FollowedId == u.Id) })
             .OrderByDescending(x => x.Followers).ThenBy(x => x.User.HandleLower)
             .Take(BrandCount)
@@ -76,7 +76,7 @@ public static class ExploreEndpoints
         return Results.Json(dto, AppJson.Options);
     }
 
-    private static async Task<IResult> SearchAsync(HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, string? q, CancellationToken ct)
+    private static async Task<IResult> SearchAsync(HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, string? q, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var query = (q ?? "").Trim();
@@ -94,8 +94,8 @@ public static class ExploreEndpoints
 
         // SQLite's lower() only folds ASCII, so display names are matched in .NET: handles by prefix in SQL, every
         // named account loaded once (pilot scale) and compared case-insensitively for any script.
-        var candidates = await db.Users
-            .Where(u => !u.Suspended && (u.HandleLower.StartsWith(term) || u.DisplayName != null))
+        // Either side of a block with the viewer is not found (Round 11); the tags are tallies and stay.
+        var candidates = await (await blocks.FilterAsync(db.Users.Where(u => !u.Suspended && (u.HandleLower.StartsWith(term) || u.DisplayName != null)), viewerId, ct))
             .Select(u => new RankedUser { User = u, Followers = db.Follows.Count(f => f.FollowedId == u.Id) })
             .ToListAsync(ct);
         var users = candidates
@@ -120,7 +120,7 @@ public static class ExploreEndpoints
         // term meets them, and "%" or "_" typed by a person are literal. Visible looks by accounts that are not
         // suspended, newest first, a short grid's worth.
         var pattern = "%" + EscapeLike(term) + "%";
-        var posts = await db.Posts
+        var posts = await (await blocks.FilterAsync(db.Posts, viewerId, ct))
             .Where(p => !p.Hidden
                         && db.PostItems.Any(i => i.PostId == p.Id && EF.Functions.Like(i.Name, pattern, "\\"))
                         && db.Users.Any(u => u.Id == p.UserId && !u.Suspended))
@@ -140,7 +140,7 @@ public static class ExploreEndpoints
         term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     /// <summary>Visible posts carrying a tag, newest first. An unknown tag is an empty page, never a 404.</summary>
-    private static async Task<IResult> TagPostsAsync(string tag, HttpContext context, AppDbContext db, PostReader reader, int? offset, int? limit, CancellationToken ct)
+    private static async Task<IResult> TagPostsAsync(string tag, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, int? offset, int? limit, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var (skip, take) = PostEndpoints.Page(offset, limit);
@@ -152,7 +152,7 @@ public static class ExploreEndpoints
 
         var posts = await db.PostTags
             .Where(t => t.Tag == name)
-            .Join(db.Posts.Where(p => !p.Hidden), t => t.PostId, p => p.Id, (t, p) => p)
+            .Join(await blocks.FilterAsync(db.Posts.Where(p => !p.Hidden), viewerId, ct), t => t.PostId, p => p.Id, (t, p) => p)
             .OrderByDescending(p => p.CreatedAt)
             .Skip(skip)
             .Take(take + 1)

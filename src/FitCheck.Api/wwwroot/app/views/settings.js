@@ -345,9 +345,11 @@ register('settings', async (root, params, ctx) => {
     renderShell();
     navigate('#/');
   });
-  // Moderators get the door to the queue here; the server decides who is one (Admin:Handles), the client only shows the door.
-  const moderation = state.me.isAdmin
-    ? el('div', { class: 'links' }, [el('a', { href: '#/admin', id: 'moderation' }, [t('settings.moderation'), el('span', { class: 'icon', icon: 'shield' })])])
-    : null;
-  root.appendChild(el('section', { class: 's-account' }, [moderation, logout, del, dangerError]));
+  // The accounts you blocked (Round 11), and for moderators the door to the queue; the server decides who is one
+  // (Admin:Handles), the client only shows the door.
+  const links = el('div', { class: 'links' }, [
+    el('a', { href: '#/settings/blocked', id: 'settings-blocked' }, [t('settings.blocked'), el('span', { class: 'icon', icon: 'x' })]),
+    state.me.isAdmin ? el('a', { href: '#/admin', id: 'moderation' }, [t('settings.moderation'), el('span', { class: 'icon', icon: 'shield' })]) : null
+  ]);
+  root.appendChild(el('section', { class: 's-account' }, [links, logout, del, dangerError]));
 });

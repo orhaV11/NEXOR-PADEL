@@ -77,7 +77,7 @@ public static class UserEndpoints
     }
 
     /// <summary>An account as the public sees it: a suspended one answers like a missing one on every profile route.</summary>
-    private static Task<AppUser?> FindVisibleByHandleAsync(AppDbContext db, string handle, CancellationToken ct)
+    public static Task<AppUser?> FindVisibleByHandleAsync(AppDbContext db, string handle, CancellationToken ct)
     {
         var lower = handle.ToLowerInvariant();
         return db.Users.FirstOrDefaultAsync(u => u.HandleLower == lower && !u.Suspended, ct);
@@ -552,7 +552,7 @@ public static class UserEndpoints
     }
 
     private static async Task<IResult> ListSavedAsync(
-        HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
+        HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
         var (user, failure) = await RequireUserAsync(context, db, localizer, ct);
         if (user is null)
@@ -561,10 +561,12 @@ public static class UserEndpoints
         }
 
         var (skip, take) = PostEndpoints.Page(offset, limit);
+        // A saved look by either side of a block stays saved and out of sight (Round 11).
+        var visible = await blocks.FilterAsync(db.Posts.Where(p => !p.Hidden), user.Id, ct);
         var posts = await db.SavedPosts
             .Where(s => s.UserId == user.Id)
             .OrderByDescending(s => s.CreatedAt)
-            .Join(db.Posts.Where(p => !p.Hidden), s => s.PostId, p => p.Id, (s, p) => new { s.CreatedAt, Post = p })
+            .Join(visible, s => s.PostId, p => p.Id, (s, p) => new { s.CreatedAt, Post = p })
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => x.Post)
             .Skip(skip)
@@ -574,7 +576,16 @@ public static class UserEndpoints
         return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, user.Id, skip, take, ct), AppJson.Options);
     }
 
-    private static async Task<IResult> GetProfileAsync(string handle, HttpContext context, AppDbContext db, Board board, Localizer localizer, CancellationToken ct)
+    /// <summary>
+    /// Round 11: whether the viewer and this profile's owner are on the two sides of a block. Nothing of the one shows to
+    /// the other, and the profile answers like a quiet account's either way; only the blocker's own view says so (Blocked).
+    /// </summary>
+    private static async Task<bool> ShutAsync(Blocks blocks, Guid? viewerId, Guid ownerId, CancellationToken ct) =>
+        viewerId is Guid viewer && await blocks.BetweenAsync(viewer, ownerId, ct);
+
+    private static IResult EmptyPage() => Results.Json(new FeedDto([], null), AppJson.Options);
+
+    private static async Task<IResult> GetProfileAsync(string handle, HttpContext context, AppDbContext db, Board board, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
@@ -583,7 +594,10 @@ public static class UserEndpoints
         }
 
         var viewerId = Sessions.UserId(context.User);
-        var visible = db.Posts.Where(p => p.UserId == user.Id && !p.Hidden);
+        // Across a block the looks and every figure drawn from them read as none; the follow counts are what they are
+        // (the block ended the pair's own follows) and the board badge is public.
+        var shut = await ShutAsync(blocks, viewerId, user.Id, ct);
+        var visible = db.Posts.Where(p => p.UserId == user.Id && !p.Hidden && !shut);
         var profile = new ProfileDto(
             user.Handle,
             user.Name,
@@ -599,10 +613,12 @@ public static class UserEndpoints
             CreatedAt: DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc),
             Viewer: new ViewerProfileDto(
                 IsMe: viewerId == user.Id,
-                Following: viewerId is Guid v && await db.Follows.AnyAsync(f => f.FollowerId == v && f.FollowedId == user.Id, ct)),
+                Following: viewerId is Guid v && await db.Follows.AnyAsync(f => f.FollowerId == v && f.FollowedId == user.Id, ct),
+                // The viewer's own act only: whether they blocked this account. Never the other direction.
+                Blocked: viewerId is Guid b && await blocks.HasBlockedAsync(b, user.Id, ct)),
             AvatarUrl: PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion),
-            Featured: await FeaturedPosts(db, user).CountAsync(ct),
-            Community: await MentioningPosts(db, user.Id).CountAsync(ct),
+            Featured: shut ? 0 : await FeaturedPosts(db, user).CountAsync(ct),
+            Community: shut ? 0 : await MentioningPosts(db, user.Id).CountAsync(ct),
             Verified: user.Verified,
             // Last week's place on the looks board (Round 10), worn for this week only.
             Badge: await board.BadgeAsync(db, user.Id, ct));
@@ -611,7 +627,7 @@ public static class UserEndpoints
     }
 
     private static async Task<IResult> ListPostsAsync(
-        string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
+        string handle, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
         var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
@@ -620,6 +636,11 @@ public static class UserEndpoints
         }
 
         var viewerId = Sessions.UserId(context.User);
+        if (await ShutAsync(blocks, viewerId, user.Id, ct))
+        {
+            return EmptyPage();
+        }
+
         var (skip, take) = PostEndpoints.Page(offset, limit);
         // Owners see their own hidden posts, marked, so they know a post is under review.
         var query = db.Posts.Where(p => p.UserId == user.Id);
@@ -634,7 +655,7 @@ public static class UserEndpoints
 
     /// <summary>Looks that mention this account, newest first. Public, like the profile itself.</summary>
     private static async Task<IResult> ListCommunityAsync(
-        string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
+        string handle, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
         var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
@@ -642,18 +663,25 @@ public static class UserEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
         }
 
+        // Nothing across a block with the brand, and no look by an author across one with the viewer (Round 11).
+        var viewerId = Sessions.UserId(context.User);
+        if (await ShutAsync(blocks, viewerId, user.Id, ct))
+        {
+            return EmptyPage();
+        }
+
         var (skip, take) = PostEndpoints.Page(offset, limit);
-        var posts = await MentioningPosts(db, user.Id)
+        var posts = await (await blocks.FilterAsync(MentioningPosts(db, user.Id), viewerId, ct))
             .OrderByDescending(p => p.CreatedAt)
             .Skip(skip)
             .Take(take + 1)
             .ToListAsync(ct);
-        return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, Sessions.UserId(context.User), skip, take, ct), AppJson.Options);
+        return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, viewerId, skip, take, ct), AppJson.Options);
     }
 
     /// <summary>For a brand, the looks it featured; for a person, their looks a brand featured. Newest featured first.</summary>
     private static async Task<IResult> ListFeaturedAsync(
-        string handle, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, int? offset, int? limit, CancellationToken ct)
+        string handle, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, int? offset, int? limit, CancellationToken ct)
     {
         var user = await FindVisibleByHandleAsync(db, handle, ct);
         if (user is null)
@@ -661,18 +689,24 @@ public static class UserEndpoints
             return Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.user_not_found"));
         }
 
+        var viewerId = Sessions.UserId(context.User);
+        if (await ShutAsync(blocks, viewerId, user.Id, ct))
+        {
+            return EmptyPage();
+        }
+
         var (skip, take) = PostEndpoints.Page(offset, limit);
-        var posts = await FeaturedPosts(db, user)
+        var posts = await (await blocks.FilterAsync(FeaturedPosts(db, user), viewerId, ct))
             .OrderByDescending(p => p.FeaturedAt)
             .ThenByDescending(p => p.CreatedAt)
             .Skip(skip)
             .Take(take + 1)
             .ToListAsync(ct);
-        return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, Sessions.UserId(context.User), skip, take, ct), AppJson.Options);
+        return Results.Json(await PostEndpoints.PageDtoAsync(reader, posts, viewerId, skip, take, ct), AppJson.Options);
     }
 
     private static async Task<IResult> FollowAsync(
-        string handle, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+        string handle, HttpContext context, AppDbContext db, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -689,6 +723,12 @@ public static class UserEndpoints
         if (target.Id == me.Id)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.follow_self"));
+        }
+
+        // Round 11: no follow across a block, whichever side tapped; the same sentence either way.
+        if (await blocks.BetweenAsync(me.Id, target.Id, ct))
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(me.PreferredLanguage, "error.blocked"));
         }
 
         if (!await db.Follows.AnyAsync(f => f.FollowerId == me.Id && f.FollowedId == target.Id, ct))

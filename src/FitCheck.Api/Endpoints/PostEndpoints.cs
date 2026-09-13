@@ -62,7 +62,7 @@ public static class PostEndpoints
         user?.PreferredLanguage ?? Localizer.Resolve(null, context.Request);
 
     private static async Task<IResult> CreateAsync(
-        CreatePostRequest body, HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, Localizer localizer, CancellationToken ct)
+        CreatePostRequest body, HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -224,6 +224,12 @@ public static class PostEndpoints
             var mentioned = await db.Users.Where(u => handles.Contains(u.HandleLower) && u.Id != me.Id).Select(u => u.Id).ToListAsync(ct);
             foreach (var userId in mentioned)
             {
+                // Round 11: a mention targets a person; across a block it is refused, whichever side tapped. Nothing is saved yet.
+                if (await blocks.BetweenAsync(me.Id, userId, ct))
+                {
+                    return Error(StatusCodes.Status403Forbidden, localizer.Get(lang, "error.blocked"));
+                }
+
                 db.PostMentions.Add(new PostMention { PostId = post.Id, UserId = userId });
                 await notifier.AddOnceAsync(userId, NotificationType.Mention, me.Handle, post.Id, null, ct);
             }
@@ -240,7 +246,8 @@ public static class PostEndpoints
             db.PostItems.AddRange(items);
         }
 
-        if (challenge is not null && challenge.BrandId != me.Id)
+        // The entry stands (a challenge is public); only the line to the brand is dropped across a block (Round 11).
+        if (challenge is not null && challenge.BrandId != me.Id && !await blocks.BetweenAsync(me.Id, challenge.BrandId, ct))
         {
             notifier.Add(challenge.BrandId, NotificationType.Entry, me.Handle, post.Id, challenge.Id);
         }
@@ -300,11 +307,27 @@ public static class PostEndpoints
         return post;
     }
 
-    private static async Task<IResult> GetAsync(Guid id, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, CancellationToken ct)
+    /// <summary>
+    /// Round 11: to a viewer on either side of a block with the author, a look reads as missing, its photo, clip and
+    /// comments with it. A moderator still opens it, so the queue's way to a look under review works when its author
+    /// blocked the moderator. Only a pair with a block pays for the second read.
+    /// </summary>
+    private static async Task<bool> ShutAsync(AppDbContext db, Blocks blocks, Post post, HttpContext context, CancellationToken ct) =>
+        Sessions.UserId(context.User) is Guid viewer
+        && await blocks.BetweenAsync(viewer, post.UserId, ct)
+        && !await AdminEndpoints.IsAdminViewerAsync(context, db, ct);
+
+    /// <summary>Round 11: a fire, a save, a comment or a feature that targets the other side of a block is refused (403, error.blocked).</summary>
+    private static async Task<IResult?> RefuseAcrossBlockAsync(Blocks blocks, AppUser me, Post post, Localizer localizer, CancellationToken ct) =>
+        post.UserId != me.Id && await blocks.BetweenAsync(me.Id, post.UserId, ct)
+            ? Error(StatusCodes.Status403Forbidden, localizer.Get(me.PreferredLanguage, "error.blocked"))
+            : null;
+
+    private static async Task<IResult> GetAsync(Guid id, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var post = await VisiblePostAsync(db, id, context, ct);
-        if (post is null)
+        if (post is null || await ShutAsync(db, blocks, post, context, ct))
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Language(context, null), "error.post_not_found"));
         }
@@ -315,10 +338,10 @@ public static class PostEndpoints
     }
 
     /// <summary>The only way a photo leaves the server: through a post that is public right now.</summary>
-    private static async Task<IResult> GetImageAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
+    private static async Task<IResult> GetImageAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, Blocks blocks, CancellationToken ct)
     {
         var post = await VisiblePostAsync(db, id, context, ct);
-        if (post is null)
+        if (post is null || await ShutAsync(db, blocks, post, context, ct))
         {
             return Results.NotFound();
         }
@@ -344,10 +367,10 @@ public static class PostEndpoints
     /// The clip behind a look, under the same door as the photo: a visible post, or 404. Ranges are honoured so a
     /// &lt;video&gt; can seek and Safari, which asks for bytes=0-1 first, can play at all.
     /// </summary>
-    private static async Task<IResult> GetVideoAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, CancellationToken ct)
+    private static async Task<IResult> GetVideoAsync(Guid id, HttpContext context, AppDbContext db, IImageStore images, Blocks blocks, CancellationToken ct)
     {
         var post = await VisiblePostAsync(db, id, context, ct);
-        if (post is null)
+        if (post is null || await ShutAsync(db, blocks, post, context, ct))
         {
             return Results.NotFound();
         }
@@ -444,7 +467,7 @@ public static class PostEndpoints
         }
     }
 
-    private static async Task<IResult> FireAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> FireAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -456,6 +479,11 @@ public static class PostEndpoints
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
+        }
+
+        if (await RefuseAcrossBlockAsync(blocks, me, post, localizer, ct) is { } refused)
+        {
+            return refused;
         }
 
         if (!await db.Fires.AnyAsync(f => f.PostId == id && f.UserId == me.Id, ct))
@@ -507,7 +535,7 @@ public static class PostEndpoints
         return Results.Json(new FireStateDto(count.Value, false), AppJson.Options);
     }
 
-    private static async Task<IResult> SaveAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> SaveAsync(Guid id, HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -519,6 +547,11 @@ public static class PostEndpoints
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
+        }
+
+        if (await RefuseAcrossBlockAsync(blocks, me, post, localizer, ct) is { } refused)
+        {
+            return refused;
         }
 
         if (!await db.SavedPosts.AnyAsync(s => s.PostId == id && s.UserId == me.Id, ct))
@@ -603,7 +636,7 @@ public static class PostEndpoints
     /// A brand puts its name on a look that mentioned it or entered one of its challenges. One brand per look,
     /// first come; the author hears about it once.
     /// </summary>
-    private static async Task<IResult> FeatureAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> FeatureAsync(Guid id, HttpContext context, AppDbContext db, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -621,6 +654,11 @@ public static class PostEndpoints
         if (post is null || post.Hidden)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(lang, "error.post_not_found"));
+        }
+
+        if (await RefuseAcrossBlockAsync(blocks, me, post, localizer, ct) is { } refused)
+        {
+            return refused;
         }
 
         var state = new FeatureStateDto(PostReader.Ref(me));
@@ -689,17 +727,17 @@ public static class PostEndpoints
         return Results.Json(new FeatureStateDto(null), AppJson.Options);
     }
 
-    private static async Task<IResult> ListCommentsAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> ListCommentsAsync(Guid id, HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var post = await VisiblePostAsync(db, id, context, ct);
-        if (post is null)
+        if (post is null || await ShutAsync(db, blocks, post, context, ct))
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(Language(context, null), "error.post_not_found"));
         }
 
-        var comments = await db.Comments
-            .Where(c => c.PostId == id && !c.Hidden)
+        // Round 11: a comment by either side of a block with the viewer stays in the row and out of the list.
+        var comments = await (await blocks.FilterAsync(db.Comments.Where(c => c.PostId == id && !c.Hidden), viewerId, ct))
             .OrderBy(c => c.CreatedAt)
             .Take(200)
             .ToListAsync(ct);
@@ -719,7 +757,7 @@ public static class PostEndpoints
     }
 
     private static async Task<IResult> AddCommentAsync(
-        Guid id, CreateCommentRequest body, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+        Guid id, CreateCommentRequest body, HttpContext context, AppDbContext db, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -731,6 +769,11 @@ public static class PostEndpoints
         if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
+        }
+
+        if (await RefuseAcrossBlockAsync(blocks, me, post, localizer, ct) is { } refused)
+        {
+            return refused;
         }
 
         var text = OutfitAnalyzer.SanitizeOccasion(body.Text);

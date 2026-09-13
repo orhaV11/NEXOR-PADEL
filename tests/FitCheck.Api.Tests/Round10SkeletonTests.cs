@@ -506,7 +506,13 @@ public class Round10SeamTests
         Assert.Contains("7", localizer.Get("he", "push.board_rank", 7));
         Assert.Contains("7", localizer.Get("ar", "push.board_rank", 7));
         Assert.Contains("7", localizer.Get("ru", "push.board_rank", 7));
-        Assert.Equal("/#/board", PushSender.UrlFor(new PushJob(Guid.NewGuid(), NotificationType.BoardRank, "someone", null, null, null, 7)));
+        // The tap lands on the week that closed: an instant a week before the send, which ?week= takes as an instant.
+        var job = new PushJob(Guid.NewGuid(), NotificationType.BoardRank, "someone", null, null, null, 7);
+        Assert.Equal("/#/board?week=2027-01-13T10:00:00Z", PushSender.UrlFor(job, new DateTime(2027, 1, 20, 10, 0, 0, DateTimeKind.Utc)));
+        var sent = PushSender.UrlFor(job);
+        Assert.StartsWith("/#/board?week=", sent);
+        var instant = DateTime.Parse(sent["/#/board?week=".Length..], null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
+        Assert.InRange(instant, DateTime.UtcNow.AddDays(-7).AddMinutes(-1), DateTime.UtcNow.AddDays(-7).AddMinutes(1));
 
         using var app = new TestApp();
         var (client, userId, handle) = await app.NewUserAsync("r10_ranked");

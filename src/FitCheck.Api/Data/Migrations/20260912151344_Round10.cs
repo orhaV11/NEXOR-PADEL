@@ -105,7 +105,7 @@ namespace FitCheck.Api.Data.Migrations
                 columns: table => new
                 {
                     PostId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    ByUserId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    ByUserId = table.Column<Guid>(type: "TEXT", nullable: true),
                     Reason = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -123,7 +123,7 @@ namespace FitCheck.Api.Data.Migrations
                         column: x => x.ByUserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(

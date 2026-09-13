@@ -114,7 +114,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             exclusion.Property(e => e.Reason).HasMaxLength(200).IsRequired();
             exclusion.HasIndex(e => e.ByUserId);
             exclusion.HasOne<Post>().WithMany().HasForeignKey(e => e.PostId).OnDelete(DeleteBehavior.Cascade);
-            exclusion.HasOne<AppUser>().WithMany().HasForeignKey(e => e.ByUserId).OnDelete(DeleteBehavior.Cascade);
+            // A pulled look stays pulled when the moderator's account goes: the row keeps its reason and loses its signature.
+            exclusion.HasOne<AppUser>().WithMany().HasForeignKey(e => e.ByUserId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<WeeklyWinner>(winner =>

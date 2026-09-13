@@ -45,9 +45,19 @@ function sentenceKey(n) {
   return KNOWN_TYPES.includes(n.type) ? 'activity.' + n.type : null;
 }
 
-/** The look when there is one, else the challenge, else the person who did it. A board place opens the board. */
+/**
+ * The week a board place was won, as the ?week= instant the board takes. The row carries no week of its own, but the
+ * closer writes it at the close, so a week before its createdAt is inside the week that closed; the tap lands on that
+ * archived week, not on the new empty one (the push carries the same, from its send time).
+ */
+function weekWon(n) {
+  const at = Date.parse(n.createdAt || '');
+  return Number.isFinite(at) ? new Date(at - 7 * 86400 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z') : '';
+}
+
+/** The look when there is one, else the challenge, else the person who did it. A board place opens the week it was won. */
 function target(n) {
-  if (n.type === 'board_rank') return '#/board';
+  if (n.type === 'board_rank') { const week = weekWon(n); return week ? '#/board?week=' + week : '#/board'; }
   if (n.postId) return '#/post/' + n.postId;
   if (n.challengeId) return '#/challenge/' + n.challengeId;
   return '#/u/' + encodeURIComponent(n.actorHandle);

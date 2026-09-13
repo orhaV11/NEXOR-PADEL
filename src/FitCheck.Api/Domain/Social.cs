@@ -285,7 +285,9 @@ public sealed class PostItem
 public sealed class BoardExclusion
 {
     public Guid PostId { get; set; }
-    public Guid ByUserId { get; set; }
+
+    /// <summary>The moderator who pulled the look; null once their account is gone, the exclusion standing without them.</summary>
+    public Guid? ByUserId { get; set; }
 
     /// <summary>At most 200 characters.</summary>
     public string Reason { get; set; } = "";

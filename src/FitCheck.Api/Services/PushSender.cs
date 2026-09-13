@@ -133,8 +133,13 @@ public sealed class PushSender : BackgroundService
         }
     }
 
-    /// <summary>Where a tap on the notification lands: the look, the challenge, the person, or the activity list.</summary>
-    public static string UrlFor(PushJob job)
+    /// <summary>
+    /// Where a tap on the notification lands: the look, the challenge, the person, or the activity list. A board place
+    /// lands on the week it was won, not on the new empty one: the job carries no week, but the closer queues the push at
+    /// the close, so an instant a week before <paramref name="now"/> (UTC; the clock when null) is inside the week that
+    /// closed, and ?week= takes an instant. The activity list derives the same from the row's CreatedAt.
+    /// </summary>
+    public static string UrlFor(PushJob job, DateTime? now = null)
     {
         switch (job.Type)
         {
@@ -150,7 +155,8 @@ public sealed class PushSender : BackgroundService
             case NotificationType.Follow:
                 return $"/#/u/{Uri.EscapeDataString(job.ActorHandle)}";
             case NotificationType.BoardRank:
-                return "/#/board";
+                var closed = (now ?? DateTime.UtcNow).AddDays(-7);
+                return "/#/board?week=" + closed.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         if (job.PostId is { } postId)

@@ -85,6 +85,7 @@ public sealed class Board
     private readonly BoardOptions _options;
     private readonly IClock _clock;
     private readonly TimeZoneInfo _zone;
+    private readonly string? _sponsorUrl;
     private readonly ConcurrentDictionary<DateOnly, (long At, BoardResult Result)> _cache = new();
 
     public Board(IOptions<BoardOptions> options, IClock clock, ILogger<Board> logger)
@@ -92,7 +93,16 @@ public sealed class Board
         _options = options.Value;
         _clock = clock;
         _zone = ResolveZone(_options.TimeZone, logger);
+        // The sponsor's link is checked once, here, so the page never gets a scheme it should not open from a setting.
+        _sponsorUrl = BoardSponsorOptions.NormalizeUrl(_options.Sponsor?.Url);
+        if (_options.Sponsor is { Enabled: true, Url: var url } && !string.IsNullOrWhiteSpace(url) && _sponsorUrl is null)
+        {
+            logger.LogWarning("Board: the sponsor link {Url} is not an http(s) URL; the board shows the sponsor without a link", url.Trim());
+        }
     }
+
+    /// <summary>The sponsor's link as the board shows it: Board:Sponsor:Url validated (<see cref="BoardSponsorOptions.NormalizeUrl"/>), null when it was dropped.</summary>
+    public string? SponsorUrl => _sponsorUrl;
 
     public BoardOptions Options => _options;
 
@@ -151,20 +161,55 @@ public sealed class Board
     public bool TryParseWeek(string? text, out BoardWeek week)
     {
         text = text?.Trim() ?? "";
-        if (DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        try
         {
-            week = WeekContaining(date);
-            return true;
-        }
+            if (DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            {
+                week = WeekContaining(date);
+                return true;
+            }
 
-        if (text.Contains('T') && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var instant))
+            if (text.Contains('T') && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var instant))
+            {
+                week = WeekOf(instant);
+                return true;
+            }
+        }
+        catch (ArgumentOutOfRangeException)
         {
-            week = WeekOf(instant);
-            return true;
+            // The first or the last days of the calendar: the week around them does not fit in a DateTime. Garbage like the rest.
         }
 
         week = default!;
         return false;
+    }
+
+    /// <summary>
+    /// Whether ?week= may name a week: from the week of the first look (or the first archived week, whichever is earlier;
+    /// last week at the latest, so the way back from a fresh board always answers) through next week. A week before that
+    /// or beyond that is refused (400) rather than computed as an empty board for anyone who asks.
+    /// </summary>
+    public async Task<bool> CanAnswerAsync(AppDbContext db, BoardWeek week, CancellationToken ct)
+    {
+        var current = CurrentWeek();
+        if (week.FirstDay > Next(current).FirstDay)
+        {
+            return false;
+        }
+
+        if (week.FirstDay >= Previous(current).FirstDay)
+        {
+            return true;
+        }
+
+        var firstLook = await db.Posts.OrderBy(p => p.CreatedAt).Select(p => (DateTime?)p.CreatedAt).FirstOrDefaultAsync(ct);
+        if (firstLook is DateTime lookAt && week.FirstDay >= WeekOf(lookAt).FirstDay)
+        {
+            return true;
+        }
+
+        var firstArchived = await db.WeeklyWinners.OrderBy(w => w.WeekStart).Select(w => (DateTime?)w.WeekStart).FirstOrDefaultAsync(ct);
+        return firstArchived is DateTime label && week.FirstDay >= DateOnly.FromDateTime(label);
     }
 
     /// <summary>Local midnight of a date as a UTC instant. A midnight a DST change skips (not Israel's, which changes at 02:00) moves to the first valid minute.</summary>
@@ -183,7 +228,9 @@ public sealed class Board
 
     /// <summary>
     /// The week as the board shows it: the archive once the week is over and closed, otherwise the computation, served from
-    /// memory for <see cref="CacheTtl"/>.
+    /// memory for <see cref="CacheTtl"/>. Only the two weeks that are busy are kept: the one running and, between its end
+    /// and its close, the one before; any other week (the archive browsed back, next week) is computed on every read, so a
+    /// public ?week= cannot grow the process.
     /// </summary>
     public async Task<BoardResult> ReadAsync(AppDbContext db, BoardWeek week, CancellationToken ct)
     {
@@ -196,18 +243,37 @@ public sealed class Board
             }
         }
 
-        if (CacheTtl > TimeSpan.Zero && _cache.TryGetValue(week.FirstDay, out var cached) && Environment.TickCount64 - cached.At < CacheTtl.TotalMilliseconds)
+        var current = CurrentWeek();
+        var previous = Previous(current);
+        var keep = CacheTtl > TimeSpan.Zero && (week.FirstDay == current.FirstDay || week.FirstDay == previous.FirstDay);
+        if (keep && _cache.TryGetValue(week.FirstDay, out var cached) && Environment.TickCount64 - cached.At < CacheTtl.TotalMilliseconds)
         {
             return cached.Result;
         }
 
         var result = await ComputeAsync(db, week, ct);
-        _cache[week.FirstDay] = (Environment.TickCount64, result);
+        if (keep)
+        {
+            // The weeks that were busy last Saturday are not any more: two entries at most, ever.
+            foreach (var key in _cache.Keys)
+            {
+                if (key != current.FirstDay && key != previous.FirstDay)
+                {
+                    _cache.TryRemove(key, out _);
+                }
+            }
+
+            _cache[week.FirstDay] = (Environment.TickCount64, result);
+        }
+
         return result;
     }
 
     /// <summary>Forgets every cached week: after an exclusion, and in tests that want the next read fresh.</summary>
     public void Invalidate() => _cache.Clear();
+
+    /// <summary>How many weeks are in memory right now: two at most (the running week and the one before it).</summary>
+    public int CachedWeeks => _cache.Count;
 
     /// <summary>Whether the closer has written the week (any archive row under its label).</summary>
     public static Task<bool> IsClosedAsync(AppDbContext db, BoardWeek week, CancellationToken ct)
@@ -426,7 +492,7 @@ public sealed class Board
         }
 
         var sponsor = _options.Sponsor is { Enabled: true } s
-            ? new BoardSponsorDto(s.Name.Trim(), Blank(s.Handle), Blank(s.PrizeText), Blank(s.Url))
+            ? new BoardSponsorDto(s.Name.Trim(), Blank(s.Handle), Blank(s.PrizeText), _sponsorUrl)
             : null;
 
         return new BoardDto(

@@ -10,11 +10,12 @@ namespace FitCheck.Api.Endpoints;
 /// rising, by intent, the stylist's picks), a week from the archive, the hall of winners, and a moderator's exclusion.
 /// <list type="bullet">
 /// <item><c>GET /api/board?week=yyyy-MM-dd</c> (public): <see cref="BoardDto"/> for the current week, or for the week
-/// that contains the date given (a date in the board's zone; a full ISO instant is taken as an instant). A week that is
-/// over and closed reads from <see cref="Domain.WeeklyWinner"/>; any other week is computed by <see cref="Board"/> under
-/// the eligibility rules of <see cref="Domain.BoardOptions"/>, with a look in <see cref="Domain.BoardExclusion"/> left off,
-/// and served from memory for a minute. Counted in <see cref="Domain.CounterName.BoardViews"/> once per request. Errors:
-/// error.board_week_invalid.</item>
+/// that contains the date given (a date in the board's zone; a full ISO instant is taken as an instant), from the week
+/// of the first look (last week at the latest) through next week. A week that is over and closed reads from
+/// <see cref="Domain.WeeklyWinner"/>; any other week is computed by <see cref="Board"/> under the eligibility rules of
+/// <see cref="Domain.BoardOptions"/>, with a look in <see cref="Domain.BoardExclusion"/> left off; the running week and
+/// the one before it are served from memory for a minute. Counted in <see cref="Domain.CounterName.BoardViews"/> once per
+/// answered request. Errors: error.board_week_invalid (garbage, or a week outside that span).</item>
 /// <item><c>GET /api/board/hall</c> (public): <see cref="HallDto"/>, the closed weeks newest first, twelve at most.</item>
 /// <item><c>POST /api/admin/board/exclude</c> (moderators): <see cref="ExcludeRequest"/> → 201 <see cref="BoardExclusionDto"/>;
 /// error.post_not_found, error.board_excluded when the look is already off. <c>DELETE /api/admin/board/exclude/{postId}</c>
@@ -49,8 +50,9 @@ public static class BoardEndpoints
         {
             target = board.CurrentWeek();
         }
-        else if (!board.TryParseWeek(week, out target))
+        else if (!board.TryParseWeek(week, out target) || !await board.CanAnswerAsync(db, target, ct))
         {
+            // Garbage, the edges of the calendar, a week before the first look or beyond next week: refused, not computed.
             return Error(StatusCodes.Status400BadRequest, localizer.Get(Localizer.Resolve(null, context.Request), "error.board_week_invalid"));
         }
 

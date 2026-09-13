@@ -412,6 +412,9 @@ async function submitCheck() {
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
     state.result = await api('POST', '/api/checks', form);
+    // Which still this result came from: the post sheet places its dots on the preview only while it is this one (the
+    // result may later be an older check opened from "Your checks", or the photo may have been replaced since).
+    ck.judged = { resultId: state.result.id, previewUrl: ck.previewUrl };
     // A guest's check: the server named it by the guest cookie; it becomes the account's once the person signs up (the result screen claims it).
     state.result.guest = !wasSignedIn;
     state.resultAnimated = false;
@@ -624,8 +627,12 @@ function openPostSheet(area, result) {
   // "After the tip": the caller's last looks to mark this one as a follow-up of (hidden until they are in; none for a first look).
   const after = afterPicker(result);
   // Round 10, the items: the stylist's pieces as chips (a brand it saw waits for Confirm / Edit / Not a brand), the person's
-  // own additions, and the dot on the preview; value() goes with the post as items.
-  const items = itemsEditor(result, state.check.previewUrl);
+  // own additions, and the dot on the preview; value() goes with the post as items. The preview is handed over only when
+  // it is the still this result was judged on (a check has no photo route, so a past check from "Your checks" gets the
+  // editor without a photo box: the rows, no dots), or the dots would land on another photo.
+  const judged = state.check.judged;
+  const preview = judged && judged.resultId === result.id && judged.previewUrl && judged.previewUrl === state.check.previewUrl ? state.check.previewUrl : null;
+  const items = itemsEditor(result, preview);
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),

@@ -55,6 +55,12 @@ public class Round10MigrationTests : IDisposable
             Assert.Equal([("silk scarf", 0)], items.Where(i => i.PostId == post2).Select(i => (i.Name, i.Position)).ToList());
             Assert.Equal("shoes", items.Single(i => i.Name == "black boots").Category);
             Assert.Equal(db.Database.GetMigrations().OrderBy(m => m), db.Database.GetAppliedMigrations().OrderBy(m => m));
+
+            // The minted id is one EF can look up: the provider binds a Guid as upper-case text and SQLite compares text
+            // exactly, so a lower-case id in the file would be a row no key lookup ever finds.
+            var boots = items.Single(i => i.Name == "black boots");
+            Assert.NotNull(db.PostItems.AsNoTracking().SingleOrDefault(i => i.Id == boots.Id));
+            Assert.Equal(boots.Id.ToString().ToUpperInvariant(), Scalar(path, "SELECT \"Id\" FROM \"PostItems\" WHERE \"Name\" = 'black boots'"));
         }
 
         // The upgraded file has the shape a fresh one gets: the same columns, keys and indexes on every table.
@@ -87,6 +93,17 @@ public class Round10MigrationTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         Assert.Contains("Id", Columns(app.DatabasePath, "PostItems"));
         Assert.Empty(Directory.GetFiles(app.Root, "test.db.bak-*"));
+
+        // A migrated row is one the veteran can tag by its id and one the out door finds: both go through the key.
+        var look = await client.GetFromJsonAsync<JsonElement>($"/api/posts/{post1}");
+        var boots = look.GetProperty("items").EnumerateArray().Single(i => i.GetProperty("name").GetString() == "black boots").GetProperty("id").GetGuid();
+        var tagged = await ItemsTests.PatchItemsAsync(client, post1, new object[] { new { id = boots, brand = "Dr. Martens", url = "https://shop.example/boots" } });
+        Assert.Equal(HttpStatusCode.OK, tagged.StatusCode);
+        var row = Assert.Single((await tagged.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray());
+        Assert.Equal(boots, row.GetProperty("id").GetGuid());
+        Assert.Equal("Stylist", row.GetProperty("source").GetString());
+        var door = app.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        Assert.Equal(HttpStatusCode.Found, (await door.GetAsync($"/api/items/{boots}/out")).StatusCode);
     }
 
     /// <summary>A file exactly as Round 9 left it: migrated to Round9, one person, two posted looks, three stylist items keyed on (PostId, Name).</summary>
@@ -209,6 +226,15 @@ public class Round10MigrationTests : IDisposable
         }
 
         return names;
+    }
+
+    private static string? Scalar(string path, string sql)
+    {
+        using var connection = new SqliteConnection($"Data Source={path}");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return command.ExecuteScalar()?.ToString();
     }
 
     private static void Execute(string path, string sql, params (string Name, object Value)[] parameters)
@@ -366,6 +392,8 @@ public class Round10SeamTests
     [InlineData("https://www.zara.com/il/en/coat-p123.html", true, "zara.com")]
     [InlineData("http://shop.example/item", true, "shop.example")]
     [InlineData("HTTPS://NEXOR.EXAMPLE/x", true, "nexor.example")]
+    [InlineData("https://www.terminalx.com/search?q=נעליים", true, "terminalx.com")]
+    [InlineData("https://חנות.co.il/x", true, "חנות.co.il")]
     [InlineData("javascript:alert(1)", false, null)]
     [InlineData("data:text/html;base64,AAAA", false, null)]
     [InlineData("ftp://files.example/x", false, null)]
@@ -377,6 +405,24 @@ public class Round10SeamTests
         Assert.Equal(ok, PostItems.IsStoreUrl(url));
         Assert.Equal(host, PostItems.HostOf(url));
         Assert.False(PostItems.IsStoreUrl("https://" + new string('a', 500) + ".example"));
+    }
+
+    [Theory]
+    [InlineData("https://www.Example.com/p?x=1#f", "https://www.Example.com/p?x=1#f")]
+    [InlineData("https://www.terminalx.com/search?q=נעליים", "https://www.terminalx.com/search?q=%D7%A0%D7%A2%D7%9C%D7%99%D7%99%D7%9D")]
+    [InlineData("https://shop.example/été#top", "https://shop.example/%C3%A9t%C3%A9#top")]
+    [InlineData("https://חנות.co.il/x?a=1", "https://xn--9dbd1a4b.co.il/x?a=1")]
+    [InlineData("http://Shop.Example:8080/été", "http://shop.example:8080/%C3%A9t%C3%A9")]
+    [InlineData("https://[::1]:8443/été", "https://[::1]:8443/%C3%A9t%C3%A9")]
+    public void A_store_link_leaves_in_a_form_a_header_carries_and_an_ascii_one_as_it_was(string stored, string ascii)
+    {
+        Assert.Equal(ascii, PostItems.AsciiUrl(stored));
+        Assert.All(PostItems.AsciiUrl(stored), c => Assert.InRange(c, ' ', '~'));
+        // The affiliate parameters go onto the ASCII form, after its query and before its fragment.
+        var hash = ascii.IndexOf('#');
+        var head = hash < 0 ? ascii : ascii[..hash];
+        var fragment = hash < 0 ? "" : ascii[hash..];
+        Assert.Equal(head + (head.Contains('?') ? "&" : "?") + "tag=1" + fragment, PostItems.OutUrl(stored, "tag=1"));
     }
 
     [Fact]

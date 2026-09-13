@@ -112,7 +112,11 @@ register('post', async (root, params, ctx) => {
       item.source === 'Stylist' ? el('p', { class: 'hint', text: t('items.by_stylist') }) : null,
       // The link leaves through the server's one door, in a new tab, with no way back into this window.
       item.url && host ? el('a', { class: 'btn', id: 'item-shop', href: '/api/items/' + encodeURIComponent(item.id) + '/out', target: '_blank', rel: 'noopener' }, [icon('bag'), t('items.shop_at', { host })]) : null,
-      item.url && host ? el('p', { class: 'hint item-leaves', id: 'item-leaves' }, [el('span', { text: t('items.leaves') }), ' · ', el('span', { text: t('affiliate.disclosure') })]) : null,
+      // "Leaves OREVOSH" under every link; the commission line only while Affiliate:Disclosure is on (/api/config).
+      item.url && host ? el('p', { class: 'hint item-leaves', id: 'item-leaves' }, [
+        el('span', { text: t('items.leaves') }),
+        ...(state.config.affiliate && state.config.affiliate.disclosure === false ? [] : [' · ', el('span', { id: 'item-disclosure', text: t('affiliate.disclosure') })])
+      ]) : null,
       item.brand ? el('a', { class: 'btn-text', id: 'item-more', href: '#/items/' + encodeURIComponent(item.brand), text: t('items.more_looks', { brand: item.brand }) }) : null
     ]);
     const s = sheet({ title: item.name, content });

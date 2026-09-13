@@ -79,7 +79,8 @@ public static class PostItems
     /// stylist row not yet named (the post sheet at posting time, before ids exist); anything else is a new row typed by
     /// the person. An existing row is edited in place: a stylist row stays the stylist's while only its brand, model,
     /// link, dot or confirmation change, and becomes the person's once its name or category does. A typed name is 1 to
-    /// <see cref="TypedNameMaxLength"/> characters after normalisation; a stylist name sent back unchanged may be longer.
+    /// <see cref="TypedNameMaxLength"/> characters after normalisation; a stylist name sent back unchanged may be longer,
+    /// and "unchanged" is read by <see cref="IsSameName"/> (the stored name, the stylist's uncut one, or its first forty).
     /// Confirmed is only ever true with a brand on a row that is still the stylist's (a typed row has no suggestion to
     /// accept); a store link is http(s) without user info (<see cref="IsStoreUrl"/>); the dot is both coordinates in 0..1
     /// or neither.
@@ -112,7 +113,7 @@ public static class PostItems
             }
             else if (typedName.Length > 0)
             {
-                row = existing.FirstOrDefault(r => r.Source == ItemSource.Stylist && !used.Contains(r.Id) && r.Name == typedName);
+                row = existing.FirstOrDefault(r => r.Source == ItemSource.Stylist && !used.Contains(r.Id) && IsSameName(r.Name, typedName));
                 if (row is not null)
                 {
                     used.Add(row.Id);
@@ -121,7 +122,7 @@ public static class PostItems
 
             // The name: a new row needs one; an existing row keeps its own unless a different one is typed.
             string name;
-            if (row is null || (typedName.Length > 0 && typedName != row.Name))
+            if (row is null || (typedName.Length > 0 && !IsSameName(row.Name, typedName)))
             {
                 if (typedName.Length is 0 or > TypedNameMaxLength)
                 {
@@ -183,6 +184,15 @@ public static class PostItems
         return null;
     }
 
+    /// <summary>
+    /// Whether a name sent back names the stored one: the stored name itself; the stylist's own name in full, longer than
+    /// the <see cref="NameMaxLength"/> the row was cut to (the check carries it uncut); or the stored name cut to
+    /// <see cref="TypedNameMaxLength"/>, which is what a client that held every name to the typed limit sends back. None
+    /// of these is a rename, so none makes the stylist's row the person's.
+    /// </summary>
+    public static bool IsSameName(string stored, string typed) =>
+        typed == stored || NormalizeName(typed) == stored || (stored.Length > TypedNameMaxLength && typed == stored[..TypedNameMaxLength].TrimEnd());
+
     /// <summary>Both coordinates in 0..1, or neither.</summary>
     public static bool IsDot(double? x, double? y) =>
         (x is null && y is null)
@@ -213,11 +223,13 @@ public static class PostItems
     }
 
     /// <summary>
-    /// The link a store link leaves through: the URL as stored with the affiliate parameters appended when the host earns
-    /// some, after its own query and before its fragment. Null parameters give the link back untouched.
+    /// The link a store link leaves through: the URL as stored (in its ASCII form, <see cref="AsciiUrl"/>, when it has
+    /// characters outside ASCII) with the affiliate parameters appended when the host earns some, after its own query and
+    /// before its fragment. Null parameters give the link back untouched.
     /// </summary>
     public static string OutUrl(string url, string? parameters)
     {
+        url = AsciiUrl(url);
         if (string.IsNullOrWhiteSpace(parameters))
         {
             return url;
@@ -228,6 +240,26 @@ public static class PostItems
         var head = hash < 0 ? url : url[..hash];
         var separator = !head.Contains('?') ? "?" : head.EndsWith('?') || head.EndsWith('&') ? "" : "&";
         return head + separator + parameters + fragment;
+    }
+
+    /// <summary>
+    /// A store link as a Location header can carry it. A link is accepted and stored as the person pasted it, which may be
+    /// an IRI (a Hebrew query, an accented path, a host in its own script: browsers and chat apps show links decoded), but
+    /// a response header holds printable ASCII and nothing else, so the door sends the same link in its ASCII form: the
+    /// host as punycode, the path, query and fragment percent-encoded, the scheme and any port as they were. A link that
+    /// is ASCII already goes as stored, host case included.
+    /// </summary>
+    public static string AsciiUrl(string url)
+    {
+        if (url.All(c => c is >= ' ' and <= '~'))
+        {
+            return url;
+        }
+
+        var uri = new Uri(url, UriKind.Absolute);
+        var host = uri.HostNameType == UriHostNameType.IPv6 ? "[" + uri.IdnHost + "]" : uri.IdnHost;
+        var port = uri.IsDefaultPort ? "" : ":" + uri.Port;
+        return uri.Scheme + "://" + host + port + uri.GetComponents(UriComponents.PathAndQuery | UriComponents.Fragment, UriFormat.UriEscaped);
     }
 
     /// <summary>"  Black  Boots " → "black boots": one space between words, lower-case, at most 60 characters.</summary>

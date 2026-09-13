@@ -22,7 +22,7 @@ export const state = {
   // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
   check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null },
   // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
-  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false } },
+  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false }, affiliate: { disclosure: true } },
   result: null,
   resultAnimated: false,
   resultPostId: null,

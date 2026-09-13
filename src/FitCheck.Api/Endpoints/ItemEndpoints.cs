@@ -18,15 +18,16 @@ namespace FitCheck.Api.Endpoints;
 /// list in order. Errors: error.items_too_many, error.item_invalid, error.item_url_invalid, error.item_position_invalid;
 /// error.post_not_found (404) for a look that is not the caller's or is hidden.</item>
 /// <item><c>GET /api/items?brand=&amp;category=&amp;q=&amp;offset=&amp;limit=</c> (public): <see cref="ItemsDto"/>, visible looks
-/// carrying one item that matches every filter given (brand case-insensitively, category exactly, q anywhere in the name
-/// or model), newest first, paged like a feed; no filter at all is an empty page.</item>
+/// carrying one item that matches every filter given (brand case-insensitively, category exactly, q anywhere in the name,
+/// the brand or the model), newest first, paged like a feed; no filter at all is an empty page.</item>
 /// <item><c>GET /api/items/brands?q=</c> (public): <see cref="BrandsDto"/> for the autocomplete: brands already on visible
 /// looks with their look counts, merged case-insensitively, plus brand accounts whose handle or name matches, at most
 /// <see cref="BrandsCount"/>; a brand account of the same name rides on the tagged brand as its Account.</item>
-/// <item><c>GET /api/items/{id}/out</c> (public, the "out" rate-limit policy): 302 to the item's url with the affiliate
-/// parameters for its host (<see cref="AffiliateOptions.ParametersFor"/>) appended, <c>Referrer-Policy: no-referrer</c>,
-/// <c>Cache-Control: no-store</c>, counted in <see cref="CounterName.ItemOuts"/>; 404 for a missing item, one without a
-/// link, or one on a hidden look.</item>
+/// <item><c>GET /api/items/{id}/out</c> (public, the "out" rate-limit policy): 302 to the item's url (in its ASCII form,
+/// <see cref="PostItems.AsciiUrl"/>, when it was pasted with characters outside ASCII) with the affiliate parameters for
+/// its host (<see cref="AffiliateOptions.ParametersFor"/>) appended, <c>Referrer-Policy: no-referrer</c>,
+/// <c>Cache-Control: no-store</c>, counted in <see cref="CounterName.ItemOuts"/> once the Location header is set; 404 for
+/// a missing item, one without a link, or one on a hidden look.</item>
 /// </list>
 /// </summary>
 public static class ItemEndpoints
@@ -63,8 +64,8 @@ public static class ItemEndpoints
         }
 
         var lang = me.PreferredLanguage;
-        // No body at all is a broken call, not an empty list: an empty list clears the look and has to be said.
-        if (body is null)
+        // No body, and no list in it, is a broken call, not an empty list: an empty list clears the look and has to be said.
+        if (body?.Items is null)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.item_invalid"));
         }
@@ -77,7 +78,7 @@ public static class ItemEndpoints
         }
 
         var existing = await db.PostItems.Where(i => i.PostId == id).OrderBy(i => i.Position).ToListAsync(ct);
-        var error = PostItems.Apply(id, body.Items ?? [], existing, out var rows);
+        var error = PostItems.Apply(id, body.Items, existing, out var rows);
         if (error is not null)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, error, PostItems.MaxTagged));
@@ -111,8 +112,8 @@ public static class ItemEndpoints
         }
 
         // One row has to match every filter: "Nike" + "bottom" are the Nike pants, not a Nike top on a look with pants.
-        // Names are stored lower-cased and SQLite's LIKE folds ASCII case, so the lowered term meets a model typed in any
-        // case too; "%" and "_" typed by a person are literal.
+        // Names are stored lower-cased and SQLite's LIKE folds ASCII case, so the lowered term meets a brand or a model
+        // typed in any case too; "%" and "_" typed by a person are literal.
         var matching = db.PostItems.AsQueryable();
         if (brandTerm is not null)
         {
@@ -127,7 +128,9 @@ public static class ItemEndpoints
         if (term is not null)
         {
             var pattern = "%" + ExploreEndpoints.EscapeLike(term.ToLowerInvariant()) + "%";
-            matching = matching.Where(i => EF.Functions.Like(i.Name, pattern, "\\") || (i.Model != null && EF.Functions.Like(i.Model, pattern, "\\")));
+            matching = matching.Where(i => EF.Functions.Like(i.Name, pattern, "\\")
+                                           || (i.Brand != null && EF.Functions.Like(i.Brand, pattern, "\\"))
+                                           || (i.Model != null && EF.Functions.Like(i.Model, pattern, "\\")));
         }
 
         var posts = await db.Posts
@@ -217,9 +220,11 @@ public static class ItemEndpoints
     private sealed record BrandEntry(string Name, int Looks, UserRefDto? Account, bool Verified);
 
     /// <summary>
-    /// The one door a store link leaves through. The link is stored as given; the affiliate parameters for its host are
-    /// appended here, never stored, so a change of programme changes every link at once. No referrer: the store learns
-    /// nothing about the look or the person; no caching: every tap is counted.
+    /// The one door a store link leaves through. The link is stored as given and sent in a form a header can carry
+    /// (<see cref="PostItems.AsciiUrl"/>); the affiliate parameters for its host are appended here, never stored, so a
+    /// change of programme changes every link at once. No referrer: the store learns nothing about the look or the person;
+    /// no caching: every tap is counted, and only once the Location header holds the link, so a tap that did not leave is
+    /// not a tap that left.
     /// </summary>
     private static async Task<IResult> OutAsync(
         Guid id, HttpContext context, AppDbContext db, IOptions<AffiliateOptions> affiliate, Localizer localizer, CancellationToken ct)
@@ -233,9 +238,11 @@ public static class ItemEndpoints
 
         var url = item.Url!.Trim();
         var target = PostItems.OutUrl(url, affiliate.Value.ParametersFor(new Uri(url, UriKind.Absolute).Host));
-        await Counters.IncrementAsync(db, CounterName.ItemOuts, ct);
+        // The header first: Kestrel refuses a value it cannot send, and a refusal must not be counted as a tap that left.
+        context.Response.Headers.Location = target;
         context.Response.Headers["Referrer-Policy"] = "no-referrer";
         context.Response.Headers.CacheControl = "no-store";
+        await Counters.IncrementAsync(db, CounterName.ItemOuts, ct);
         return Results.Redirect(target);
     }
 

@@ -8,8 +8,10 @@
 //
 // The rules the plan holds the client to: the stylist's brand guess is only ever a suggestion. A chip carrying one shows
 // "Looks like Nike? Confirm / Edit / Not a brand" and value() never sends the guess as brand until the person confirmed it
-// (or typed one). At most MAX_ITEMS rows; names ≤ 40, brand ≤ 40, model ≤ 60, url ≤ 500 (PostItems' constants); x and y
-// are fractions of the 4:5 photo box (the same box a card shows), both or neither.
+// (or typed one); typing a brand drops the guess. At most MAX_ITEMS rows; a typed name ≤ 40 while a name that came with
+// the check or the look goes back whole (the server keeps a stylist name up to 60 and reads it back as unchanged), brand
+// ≤ 40, model ≤ 60, url ≤ 500 (PostItems' constants); x and y are fractions of the 4:5 photo box (the same box a card
+// shows), both or neither.
 //
 // Hooks for the browser test: #items-editor, #items-photo (the box; .items-photo-tap is the tap target, .item-dot[data-key]
 // the dots), #items-list > li.items-row[data-source=Stylist|User] with .items-main (the row), .items-place (the pill),
@@ -21,7 +23,10 @@ export const CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'acce
 export const MAX_ITEMS = 12;
 /** PostItems.MaxPerPost: the stylist names a handful of pieces; the rest of the twelve are the person's own. */
 const MAX_STYLIST = 8;
+/** PostItems.TypedNameMaxLength: a name the person types. */
 const NAME_MAX = 40;
+/** PostItems.NameMaxLength: a name the stylist gave, as the server keeps it; never cut to NAME_MAX, or it would read as a rename. */
+const NAME_STORED_MAX = 60;
 const BRAND_MAX = 40;
 const MODEL_MAX = 60;
 const URL_MAX = 500;
@@ -33,6 +38,8 @@ export const categoryOf = (c) => (CATEGORIES.includes(c) ? c : 'other');
 export const categoryLabel = (c) => t('items.cat_' + categoryOf(c));
 export const hasDot = (item) => !!item && typeof item.x === 'number' && typeof item.y === 'number' && isFinite(item.x) && isFinite(item.y);
 const clean = (s, max) => (typeof s === 'string' ? s.trim().slice(0, max) : '');
+/** A stylist's name as the server will store it, length-wise (PostItems.NormalizeName): one space between words, at most 60, no trailing space; the case is the server's. */
+const storedName = (s) => (typeof s === 'string' ? s.trim().replace(/\s+/g, ' ').slice(0, NAME_STORED_MAX).trimEnd() : '');
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const round3 = (v) => Math.round(v * 1000) / 1000;
 const pct = (v) => (round3(v) * 100).toFixed(1) + '%';
@@ -45,7 +52,7 @@ export function hostOf(item) {
 
 /** "running shoes · Nike · Air Max 90" as nodes: the name in bold, the brand and the model after it. The look page and the editor share it. */
 export function itemLine(item, fallbackName) {
-  const name = clean(item.name, NAME_MAX) || fallbackName || t('items.unnamed');
+  const name = clean(item.name, NAME_STORED_MAX) || fallbackName || t('items.unnamed');
   const parts = [el('b', { text: name })];
   for (const extra of [clean(item.brand, BRAND_MAX), clean(item.model, MODEL_MAX)]) {
     if (extra) parts.push(' · ', el('span', { text: extra }));
@@ -69,7 +76,7 @@ function fromCheck(result) {
   const seen = new Set();
   const rows = [];
   for (const item of items) {
-    const name = clean(item && item.name, NAME_MAX);
+    const name = storedName(item && item.name);
     const key = name.toLowerCase();
     if (!name || seen.has(key)) continue;
     seen.add(key);
@@ -84,7 +91,7 @@ function fromCheck(result) {
 function fromPost(items) {
   return (Array.isArray(items) ? items : []).slice(0, MAX_ITEMS).map((item) => row({
     id: item.id || null,
-    name: clean(item.name, NAME_MAX),
+    name: clean(item.name, NAME_STORED_MAX),
     category: categoryOf(item.category),
     brand: clean(item.brand, BRAND_MAX),
     model: clean(item.model, MODEL_MAX),
@@ -128,7 +135,7 @@ export function itemsEditor(source, photo) {
   const add = el('button', { type: 'button', class: 'pill items-add', id: 'items-add', onclick: addItem }, [icon('tag'), t('items.add')]);
   node.appendChild(el('div', { class: 'items-foot' }, [add, el('span', { class: 'hint', text: t('items.max', { n: fmtNumber(MAX_ITEMS) }) })]));
 
-  const displayName = (r) => clean(r.name, NAME_MAX) || t('items.unnamed');
+  const displayName = (r) => clean(r.name, NAME_STORED_MAX) || t('items.unnamed');
   const number = (r) => rows.indexOf(r) + 1;
   const matchesGuess = (r) => !!r.suggested && clean(r.brand, BRAND_MAX).toLowerCase() === r.suggested.toLowerCase();
 
@@ -213,17 +220,42 @@ export function itemsEditor(source, photo) {
 
   function buildForm(r) {
     const base = 'item-' + r.key + '-';
-    const name = input('text', base + 'name', { maxlength: String(NAME_MAX), placeholder: t('items.name_placeholder'), value: r.name, enterkeyhint: 'next',
+    const name = input('text', base + 'name', { maxlength: String(r.name.length > NAME_MAX ? NAME_STORED_MAX : NAME_MAX), placeholder: t('items.name_placeholder'), value: r.name, enterkeyhint: 'next',
       oninput: (e) => { r.name = e.target.value; syncRow(r); syncDots(); } });
     const cats = el('div', { class: 'chips scroll', role: 'group', 'aria-label': t('items.category') }, CATEGORIES.map((c) => el('button', {
       type: 'button', class: 'chip', 'data-category': c, 'aria-pressed': String(r.category === c), text: categoryLabel(c),
       onclick: () => { r.category = c; for (const chip of cats.children) chip.setAttribute('aria-pressed', String(chip.dataset.category === c)); }
     })));
-    const brands = el('ul', { class: 'items-brands', role: 'listbox', 'aria-label': t('items.brand'), hidden: true });
-    const brand = input('text', base + 'brand', { maxlength: String(BRAND_MAX), placeholder: t('items.brand_placeholder'), value: r.brand, autocapitalize: 'words', enterkeyhint: 'next', 'aria-autocomplete': 'list',
-      oninput: (e) => { r.brand = e.target.value; r.confirmed = matchesGuess(r); syncRow(r); suggestBrands(e.target.value); } });
-    brand.addEventListener('blur', () => setTimeout(() => { brands.hidden = true; }, 150));
-    brand.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !brands.hidden) { e.stopPropagation(); brands.hidden = true; } });
+    const brands = el('ul', { class: 'items-brands', id: base + 'brands', role: 'listbox', 'aria-label': t('items.brand'), hidden: true });
+    // Typing a brand answers the "Looks like Nike?" chips by itself: the guess is dropped, so the chips cannot later wipe
+    // or replace what was typed. A brand equal to the guess still counts as confirmed (matchesGuess).
+    const brand = input('text', base + 'brand', { maxlength: String(BRAND_MAX), placeholder: t('items.brand_placeholder'), value: r.brand, autocapitalize: 'words', enterkeyhint: 'next',
+      role: 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': base + 'brands',
+      oninput: (e) => { r.brand = e.target.value; if (clean(r.brand, BRAND_MAX)) r.guess = null; r.confirmed = matchesGuess(r); syncRow(r); suggestBrands(e.target.value); } });
+    // The list by keyboard: ArrowDown/ArrowUp move the active option (aria-activedescendant, the focus stays in the field),
+    // Enter picks it, Escape closes; Tab reaches the options themselves, and the list stays while the focus is in it.
+    let active = -1;
+    const options = () => Array.from(brands.children);
+    function setActive(i) {
+      const opts = options();
+      active = !opts.length || i < 0 ? -1 : i % opts.length;
+      opts.forEach((li, k) => { li.setAttribute('aria-selected', String(k === active)); li.classList.toggle('active', k === active); });
+      if (active >= 0) { brand.setAttribute('aria-activedescendant', opts[active].id); opts[active].scrollIntoView({ block: 'nearest' }); }
+      else brand.removeAttribute('aria-activedescendant');
+    }
+    function showBrands(show) { brands.hidden = !show; brand.setAttribute('aria-expanded', String(show)); if (!show) setActive(-1); }
+    brand.addEventListener('blur', (e) => {
+      if (e.relatedTarget && brands.contains(e.relatedTarget)) return;
+      setTimeout(() => { if (!brands.contains(document.activeElement)) showBrands(false); }, 150);
+    });
+    brands.addEventListener('focusout', (e) => { if (e.relatedTarget !== brand && !brands.contains(e.relatedTarget)) showBrands(false); });
+    brand.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { if (!brands.hidden) { e.stopPropagation(); showBrands(false); } return; }
+      if (!options().length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (brands.hidden) showBrands(true); setActive(active + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (brands.hidden) showBrands(true); setActive(active <= 0 ? options().length - 1 : active - 1); }
+      else if (e.key === 'Enter' && !brands.hidden && active >= 0) { e.preventDefault(); options()[active].querySelector('button').click(); }
+    });
     brands.addEventListener('pointerdown', (e) => e.preventDefault());   // keep the focus in the field: the option's click lands first
     const model = input('text', base + 'model', { maxlength: String(MODEL_MAX), placeholder: t('items.model_placeholder'), value: r.model, enterkeyhint: 'next',
       oninput: (e) => { r.model = e.target.value; syncRow(r); } });
@@ -242,13 +274,14 @@ export function itemsEditor(source, photo) {
         try { data = await api('GET', '/api/items/brands?q=' + encodeURIComponent(q)); } catch (e) { data = null; }   // 501 until the route lands, or offline: no list
         if (mine !== reqSeq || !document.contains(brands)) return;
         const found = ((data && data.items) || []).filter((b) => b && clean(b.name, BRAND_MAX)).slice(0, BRANDS_SHOWN);
-        brands.replaceChildren(...found.map((b) => el('li', { role: 'option' }, [
-          el('button', { type: 'button', onclick: () => { r.brand = clean(b.name, BRAND_MAX); brand.value = r.brand; r.confirmed = matchesGuess(r); brands.hidden = true; syncRow(r); } }, [
+        brands.replaceChildren(...found.map((b, k) => el('li', { role: 'option', id: base + 'brand-' + k, 'aria-selected': 'false' }, [
+          el('button', { type: 'button', onclick: () => { r.brand = clean(b.name, BRAND_MAX); brand.value = r.brand; r.guess = null; r.confirmed = matchesGuess(r); showBrands(false); syncRow(r); brand.focus({ preventScroll: true }); } }, [
             el('span', { class: 'name' }, [b.name, b.account ? brandMark(b.account) : null]),
             el('span', { class: 'n', text: t('items.looks', { n: b.looks === 1 ? 1 : fmtNumber(b.looks || 0) }) })
           ])
         ])));
-        brands.hidden = !found.length;
+        setActive(-1);
+        showBrands(!!found.length);
       }, BRANDS_DEBOUNCE_MS);
     }
 
@@ -287,7 +320,7 @@ export function itemsEditor(source, photo) {
     p.num.textContent = fmtNumber(n);
     p.txt.replaceChildren(...itemLine(r));
     if (r.source === 'Stylist') p.txt.appendChild(el('span', { class: 'items-src', title: t('items.by_stylist'), 'aria-label': t('items.by_stylist'), icon: 'sparkle' }));
-    p.txt.classList.toggle('empty', !clean(r.name, NAME_MAX));
+    p.txt.classList.toggle('empty', !clean(r.name, NAME_STORED_MAX));
     p.main.setAttribute('aria-expanded', String(expanded === r));
     p.form.hidden = expanded !== r;
     r.node.classList.toggle('open', expanded === r);
@@ -303,9 +336,14 @@ export function itemsEditor(source, photo) {
       p.suggest.dataset.brand = r.guess;
       p.suggest.replaceChildren(
         el('span', { class: 'items-suggest-q', text: t('items.looks_like', { brand: r.guess }) }),
-        el('button', { type: 'button', class: 'chip', 'data-action': 'confirm', text: t('items.confirm'), onclick: () => { r.brand = r.guess; r.confirmed = true; r.guess = null; syncRow(r); } }),
+        el('button', { type: 'button', class: 'chip', 'data-action': 'confirm', text: t('items.confirm'), onclick: () => { r.brand = r.guess; r.confirmed = true; r.guess = null; p.brand.value = r.brand; syncRow(r); } }),
         el('button', { type: 'button', class: 'chip', 'data-action': 'edit', text: t('items.edit'), onclick: () => { r.brand = r.guess; r.confirmed = true; r.guess = null; expand(r, true); p.brand.value = r.brand; p.brand.focus({ preventScroll: true }); p.brand.select(); } }),
-        el('button', { type: 'button', class: 'chip', 'data-action': 'dismiss', text: t('items.not_brand'), onclick: () => { r.guess = null; r.brand = ''; r.confirmed = false; p.brand.value = ''; syncRow(r); } })
+        // "Not a brand" answers the guess, not the field: a brand the person typed meanwhile stays.
+        el('button', { type: 'button', class: 'chip', 'data-action': 'dismiss', text: t('items.not_brand'), onclick: () => {
+          const typed = clean(r.brand, BRAND_MAX);
+          if (!typed || typed.toLowerCase() === r.guess.toLowerCase()) { r.brand = ''; p.brand.value = ''; }
+          r.guess = null; r.confirmed = matchesGuess(r); syncRow(r);
+        } })
       );
       p.suggest.hidden = false;
     } else {
@@ -362,16 +400,20 @@ export function itemsEditor(source, photo) {
   for (const r of rows) list.appendChild(buildRow(r));
   refresh();
 
-  /** PostItemInput[]: rows with a name, in order; the pending guess is not a brand; x and y both or neither. */
+  /**
+   * PostItemInput[]: rows with a name, in order; the pending guess is not a brand; x and y both or neither. A name goes
+   * back as it is: one that came with the check or the look is kept whole (a stylist name may be sixty), a typed one the
+   * field already held to forty, and the server answers a rename longer than that with its own message.
+   */
   function value() {
     return rows
-      .filter((r) => clean(r.name, NAME_MAX))
+      .filter((r) => clean(r.name, NAME_STORED_MAX))
       .slice(0, MAX_ITEMS)
       .map((r) => {
         const brand = clean(r.brand, BRAND_MAX) || null;
         return {
           id: r.id || undefined,
-          name: clean(r.name, NAME_MAX),
+          name: clean(r.name, NAME_STORED_MAX),
           category: categoryOf(r.category),
           brand,
           model: clean(r.model, MODEL_MAX) || null,

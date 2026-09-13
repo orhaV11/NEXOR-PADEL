@@ -78,13 +78,15 @@ namespace FitCheck.Api.Data.Migrations
                 nullable: true);
 
             // Hand-written. The Round 9 rows were keyed on (PostId, Name) and have no id, source or order. Each gets a fresh
-            // random id (a v4 GUID in the text form EF stores), the stylist as its source (nothing else could have written
-            // it) and its position in insertion order, before SQLite rebuilds the table around the new key at the end of
-            // this migration; without this the rebuild copies the one zero id into every row and stops at the second.
+            // random id (a v4 GUID in the upper-case text form the SQLite provider binds a Guid as: SQLite compares text
+            // exactly, so a lower-case id would be a row no key lookup ever finds), the stylist as its source (nothing else
+            // could have written it) and its position in insertion order, before SQLite rebuilds the table around the new
+            // key at the end of this migration; without this the rebuild copies the one zero id into every row and stops
+            // at the second.
             migrationBuilder.Sql("""
                 UPDATE "PostItems" SET
-                    "Id" = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-'
-                           || substr('89ab', (random() & 3) + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),
+                    "Id" = upper(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-'
+                           || substr('89AB', (random() & 3) + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),
                     "Source" = 'Stylist',
                     "Position" = (SELECT COUNT(*) FROM "PostItems" AS earlier WHERE earlier."PostId" = "PostItems"."PostId" AND earlier.rowid < "PostItems".rowid)
                 """);

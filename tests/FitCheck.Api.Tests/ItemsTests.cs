@@ -260,7 +260,18 @@ public class ItemsTests : IClassFixture<TestApp>
         var empty = await owner.PatchAsync($"/api/posts/{postId}/items", new StringContent("", Encoding.UTF8, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
 
-        // A stylist name longer than 40 sent back as it is stays; a new name that long does not.
+        // A body without the list, and a null list, are broken calls too: only an explicit [] clears the look.
+        foreach (var body in new[] { "{}", """{ "items": null }""" })
+        {
+            var noList = await owner.PatchAsync($"/api/posts/{postId}/items", new StringContent(body, Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.BadRequest, noList.StatusCode);
+            Assert.Equal("לפריט צריך שם עד 40 תווים; מותג עד 40, דגם עד 60.", await ErrorOf(noList));
+            Assert.Equal(3, (await RowsAsync(_app, postId)).Count);
+        }
+
+        // A stylist name longer than 40 sent back as it is stays; so does the stylist's own name uncut (the check carries
+        // it whole) and the stored name cut to forty (what a client that holds every name to the typed limit sends); a
+        // different name that long does not.
         var longName = "A " + new string('x', 70);
         _app.Vision.Handler = _ => Payloads.Parse($$"""
             { "status": "ok", "score": 7, "intent_match": 70, "headline": "Seeded", "vibe": "seeded",
@@ -270,11 +281,46 @@ public class ItemsTests : IClassFixture<TestApp>
         var longPostId = await _app.CheckAndPostAsync(owner);
         var longRow = Assert.Single(await RowsAsync(_app, longPostId));
         Assert.Equal(60, longRow.Name.Length);
-        var kept = await PatchItemsAsync(owner, longPostId, new object[] { new { id = longRow.Id, name = longRow.Name, brand = "Acne" } });
-        Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
-        Assert.Equal("Stylist", (await Json(kept))[0].GetProperty("source").GetString());
-        var renamed = await PatchItemsAsync(owner, longPostId, new object[] { new { id = longRow.Id, name = longName } });
+        foreach (var sentBack in new[] { longRow.Name, longName, longRow.Name[..40], longRow.Name[..40].ToUpperInvariant() + "  " })
+        {
+            var kept = await PatchItemsAsync(owner, longPostId, new object[] { new { id = longRow.Id, name = sentBack, brand = "Acne", confirmed = true } });
+            Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
+            var row = (await Json(kept))[0];
+            Assert.Equal(longRow.Name, row.GetProperty("name").GetString());
+            Assert.Equal("Stylist", row.GetProperty("source").GetString());
+            Assert.True(row.GetProperty("confirmed").GetBoolean());
+        }
+
+        var renamed = await PatchItemsAsync(owner, longPostId, new object[] { new { id = longRow.Id, name = "B " + new string('x', 70) } });
         Assert.Equal(HttpStatusCode.BadRequest, renamed.StatusCode);
+        var shortened = await PatchItemsAsync(owner, longPostId, new object[] { new { id = longRow.Id, name = longRow.Name[..39] } });
+        Assert.Equal("User", (await Json(shortened))[0].GetProperty("source").GetString());
+    }
+
+    [Fact]
+    public async Task At_posting_a_long_stylist_name_sent_whole_or_cut_to_forty_names_the_stylists_row()
+    {
+        var (owner, _, _) = await _app.NewUserAsync("it_long_owner");
+        var longName = "Light-wash straight-leg jeans with a raw hem and a high rise";   // 60 as the stylist says it
+        _app.Vision.Handler = _ => Payloads.Parse($$"""
+            { "status": "ok", "score": 7, "intent_match": 70, "headline": "Seeded", "vibe": "seeded",
+              "items": [ { "name": "{{longName}}", "category": "bottom", "verdict": "works", "note": "", "brand_seen": "Levi's" } ],
+              "working": ["Seeded"], "one_tip": "Seeded." }
+            """);
+        var stored = PostItems.NormalizeName(longName);
+        Assert.Equal(60, stored.Length);
+
+        foreach (var sent in new[] { longName, longName[..40] })
+        {
+            var checkId = await _app.CheckAsync(owner);
+            var response = await owner.PostAsJsonAsync("/api/posts", new { checkId, items = new object[] { new { name = sent, brand = "Levi's", confirmed = true } } });
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var item = Assert.Single(Items(await Json(response)));
+            Assert.Equal(stored, item.GetProperty("name").GetString());
+            Assert.Equal("Stylist", item.GetProperty("source").GetString());
+            Assert.Equal("Levi's", item.GetProperty("brand").GetString());
+            Assert.True(item.GetProperty("confirmed").GetBoolean());
+        }
     }
 
     [Fact]
@@ -471,6 +517,10 @@ public class ItemSearchTests
         Assert.Equal([l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=air%20max")));
         Assert.Equal([l3, l2, l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=JEANS")));
         Assert.Equal([l2, l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=shoes&brand=nike")));
+        // The brand is a piece of the item too: the search box promises pieces, brands and models.
+        Assert.Equal([l3, l2, l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=nike")));
+        Assert.Equal([l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=levi%27s")));
+        Assert.Equal([l1], Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=LEVI&category=bottom")));
         Assert.Empty(Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=%25")));
         Assert.Empty(Ids(await anyone.GetFromJsonAsync<JsonElement>("/api/items?q=sandals")));
 
@@ -655,6 +705,58 @@ public class ItemOutTests
         // A host that merely ends in the name, and every host not listed, leave as given.
         Assert.Equal("https://notexample.com/p", await Out("https://notexample.com/p"));
         Assert.Equal("https://shop.other/p?x=1", await Out("https://shop.other/p?x=1"));
+    }
+
+    [Fact]
+    public async Task A_link_pasted_with_hebrew_an_accent_or_a_host_in_its_own_script_leaves_in_its_ascii_form()
+    {
+        using var app = new TestApp { Settings = { ["Affiliate:Hosts:terminalx.com"] = "aff=orevosh" } };
+        app.Vision.Handler = _ => ItemsTests.StylistPayload();
+        var (owner, _, _) = await app.NewUserAsync("iu_owner");
+        var (moderator, _, _) = await app.NewUserAsync("iu_mod");
+        await app.PromoteAsync("iu_mod");
+        var client = NoRedirect(app);
+
+        // Pasted from a chat, where links show decoded: a Hebrew query, an accented path, a host in Hebrew. Each is
+        // accepted and stored as pasted, the sheet shows its readable host, and the door sends what a header can carry:
+        // punycode for the host, percent-encoding for the rest, the affiliate parameters after the encoded query.
+        var links = new[]
+        {
+            ("https://www.terminalx.com/search?q=נעליים", "terminalx.com", "https://www.terminalx.com/search?q=%D7%A0%D7%A2%D7%9C%D7%99%D7%99%D7%9D&aff=orevosh"),
+            ("https://shop.example/été#top", "shop.example", "https://shop.example/%C3%A9t%C3%A9#top"),
+            ("https://חנות.co.il/x?a=1", "חנות.co.il", "https://xn--9dbd1a4b.co.il/x?a=1"),
+            ("HTTP://Shop.Example:8080/été", "shop.example", "http://shop.example:8080/%C3%A9t%C3%A9")
+        };
+        foreach (var (pasted, host, ascii) in links)
+        {
+            var (postId, rows) = await LinkedLookAsync(app, owner, pasted);
+            var dto = ItemsTests.ItemNamed(await app.NewClient().GetFromJsonAsync<JsonElement>($"/api/posts/{postId}"), "running shoes");
+            Assert.Equal(pasted, dto.GetProperty("url").GetString());
+            Assert.Equal(host, dto.GetProperty("host").GetString());
+
+            var response = await client.GetAsync($"/api/items/{rows[2].Id}/out");
+            Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+            var location = response.Headers.Location?.OriginalString;
+            Assert.Equal(ascii, location);
+            // TestServer sends any header; Kestrel refuses one outside printable ASCII, so the form itself is the test.
+            Assert.All(location!, c => Assert.InRange(c, ' ', '~'));
+            Assert.Equal("no-referrer", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
+        }
+
+        var social = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("social");
+        Assert.Equal(links.Length, social.GetProperty("itemOuts").GetInt32());
+    }
+
+    [Fact]
+    public async Task The_config_says_whether_the_commission_line_shows()
+    {
+        using var on = new TestApp();
+        Assert.True((await on.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("affiliate").GetProperty("disclosure").GetBoolean());
+        using var off = new TestApp { Settings = { ["Affiliate:Disclosure"] = "false" } };
+        var affiliate = (await off.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("affiliate");
+        Assert.False(affiliate.GetProperty("disclosure").GetBoolean());
+        // The hosts and their parameters are the server's business, never published.
+        Assert.Single(affiliate.EnumerateObject());
     }
 
     [Fact]

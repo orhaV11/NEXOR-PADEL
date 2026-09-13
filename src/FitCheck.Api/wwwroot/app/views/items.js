@@ -11,7 +11,7 @@ import { CATEGORIES, categoryLabel } from '../items.js';
 function searchForm(value) {
   const input = el('input', {
     type: 'search', id: 'items-search', name: 'q', value: value || '', placeholder: t('items.search_placeholder'), 'aria-label': t('items.search_placeholder'),
-    autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'search', maxlength: '60'
+    autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'search', maxlength: '40'   // ItemEndpoints.QueryMaxLength, like Explore's search
   });
   const onsubmit = (event) => {
     event.preventDefault();
@@ -79,7 +79,8 @@ register('items', async (root, params, ctx) => {
   try { first = await load(0); }
   catch (e) {
     if (ctx.stale()) return;
-    holder.replaceChildren(e && e.status === 501 ? emptyState(t('items.coming')) : e && e.status === 400 ? emptyState(t('items.empty')) : errorBlock(e));
+    // A 400 is the server refusing the term (too long, say): its message, not an empty state that would read as "no looks".
+    holder.replaceChildren(e && e.status === 501 ? emptyState(t('items.coming')) : e && e.status === 400 ? el('p', { class: 'alert danger', role: 'alert', text: e.message || t('error.generic') }) : errorBlock(e));
     return;
   }
   if (ctx.stale()) return;

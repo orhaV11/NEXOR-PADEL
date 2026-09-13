@@ -746,5 +746,6 @@
   "export.ready": "بياناتك جاهزة.",
   "billing.manage": "إدارة الاشتراك",
   "billing.manage_hint": "تغيير الخطة أو إلغاؤها.",
-  "billing.manual_hint": "للتغيير أو الإلغاء، يمكن مراسلتنا."
+  "billing.manual_hint": "للتغيير أو الإلغاء، يمكن مراسلتنا.",
+  "export.save": "حفظ الملف"
 }

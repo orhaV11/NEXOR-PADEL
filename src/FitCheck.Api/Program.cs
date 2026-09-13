@@ -350,6 +350,10 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(ItemEndpoints.OutPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = ItemEndpoints.OutsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    // The data export (Round 11) reads every table at once: a few an hour per account is plenty for a person and a brake for a script.
+    options.AddPolicy(ExportEndpoints.Policy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = ExportEndpoints.ExportsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var http = context.HttpContext;

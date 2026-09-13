@@ -11,9 +11,9 @@ namespace FitCheck.Api.Services;
 public sealed record CheckoutSessionRequest(Guid UserId, string? CustomerId, string? CustomerEmail, string SuccessUrl, string CancelUrl);
 
 /// <summary>
-/// The little of Stripe we use, over a raw HttpClient: one form-encoded POST that opens a Checkout Session, and the
-/// signature check on the events Stripe posts back. No SDK: two calls do not earn a dependency, and the request that
-/// goes out is exactly what the tests record.
+/// The little of Stripe we use, over a raw HttpClient: two form-encoded POSTs, one that opens a Checkout Session and
+/// one that opens a Billing Portal session (Round 11), and the signature check on the events Stripe posts back. No SDK:
+/// three calls do not earn a dependency, and the request that goes out is exactly what the tests record.
 /// </summary>
 public sealed class StripeClient
 {
@@ -64,8 +64,33 @@ public sealed class StripeClient
             form.Add(new("customer_email", request.CustomerEmail));
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, "v1/checkout/sessions") { Content = new FormUrlEncodedContent(form) };
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.StripeSecretKey);
+        return await PostForUrlAsync("v1/checkout/sessions", form, "checkout session", request.UserId, ct);
+    }
+
+    /// <summary>
+    /// Opens a Billing Portal session (Round 11) for a customer Checkout created and returns the hosted page's URL, or
+    /// null when Stripe did not answer with one (logged; the caller answers 502). The portal is where the person changes
+    /// the card or cancels; Stripe sends them back to <paramref name="returnUrl"/> afterwards, and the webhook is what
+    /// tells us what they did there.
+    /// </summary>
+    public Task<string?> CreatePortalSessionAsync(Guid userId, string customerId, string returnUrl, CancellationToken ct)
+    {
+        var form = new List<KeyValuePair<string, string>>
+        {
+            new("customer", customerId),
+            new("return_url", returnUrl)
+        };
+        return PostForUrlAsync(Endpoints.BillingEndpoints.PortalSessionsPath, form, "portal session", userId, ct);
+    }
+
+    /// <summary>
+    /// One form-encoded POST to Stripe with the secret key as the bearer token, answered with the "url" of the object it
+    /// created; null (logged with <paramref name="what"/> and the account) on a refusal, a body without a url, or no answer.
+    /// </summary>
+    private async Task<string?> PostForUrlAsync(string path, List<KeyValuePair<string, string>> form, string what, Guid userId, CancellationToken ct)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, path) { Content = new FormUrlEncodedContent(form) };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _billing.Value.StripeSecretKey);
 
         var client = _httpClients.CreateClient(HttpClientName);
         try
@@ -74,7 +99,7 @@ public sealed class StripeClient
             var body = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Stripe refused the checkout session for {UserId}: {Status} {Body}", request.UserId, (int)response.StatusCode, Trim(body));
+                _logger.LogError("Stripe refused the {What} for {UserId}: {Status} {Body}", what, userId, (int)response.StatusCode, Trim(body));
                 return null;
             }
 
@@ -84,12 +109,12 @@ public sealed class StripeClient
                 return url.GetString();
             }
 
-            _logger.LogError("Stripe answered the checkout session for {UserId} without a url: {Body}", request.UserId, Trim(body));
+            _logger.LogError("Stripe answered the {What} for {UserId} without a url: {Body}", what, userId, Trim(body));
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
-            _logger.LogError(ex, "Stripe did not answer the checkout session for {UserId}", request.UserId);
+            _logger.LogError(ex, "Stripe did not answer the {What} for {UserId}", what, userId);
             return null;
         }
     }

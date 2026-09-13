@@ -2,11 +2,12 @@
 // Stylist's picks) behind the feed's coins, the week and when it closes (recomputed every minute from closesIn), the
 // sponsor when the week has one, the reader's own place, and each place as the medal, the fires that counted and the
 // look card or the person row. The hall of flame (#/board/hall) is the closed weeks, each with its top three looks and
-// its top person. Everything comes from GET /api/board (?week=yyyy-MM-dd for the archive) and GET /api/board/hall; the
-// server answers 501 until the board is built, which reads here as the empty state. Three pieces are drawn by other
-// views: the "This week" strip on Explore (boardStrip), the reset-day card on For you (boardResetCard) and the badge
-// on a profile (profileBadge). The tab and the intent live in module state so a trip to a look and back keeps them;
-// #/board?tab=people&intent=Date&week=2026-09-06 sets them on the way in. The rules live in app.css (§ Round 10 board).
+// its top person. Everything comes from GET /api/board (?week=yyyy-MM-dd for the archive, or a full UTC instant inside
+// the week, which is what a "You finished #N" line passes) and GET /api/board/hall; the server answers 501 until the
+// board is built, which reads here as the empty state. Three pieces are drawn by other views: the "This week" strip on
+// Explore (boardStrip), the reset-day card on For you (boardResetCard) and the badge on a profile (profileBadge). The
+// tab and the intent live in module state so a trip to a look and back keeps them; #/board?tab=people&intent=Date&week=2026-09-06
+// sets them on the way in. The rules live in app.css (§ Round 10 board).
 import {
   register, state, t, api, el, icon, postCard, userRow, emptyState, errorBlock, skeletonCards, setTopBar, onLeave,
   INTENTS, intentLabel, intlLocale, fmtNumber, fmtCompact, fmtDate, isMe, hasMessage
@@ -82,18 +83,21 @@ function withNode(text, node) {
   return [text.slice(0, i) || null, node, text.slice(i + MARK.length) || null];
 }
 function hostOf(url) { try { return new URL(url).host.replace(/^www\./i, ''); } catch (e) { return url; } }
+/** A link the page may open in a new tab: http(s) only. The server validates the sponsor's setting; the page checks again before it becomes an href. */
+const webLink = (url) => (typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null);
 
 // ---------- pieces of the page ----------
 
 /** "Presented by {name}" (the name a link to the sponsor's profile, or to its site), the prize, and the site when both are given. */
 function sponsorBlock(s) {
+  const site = webLink(s.url);
   const name = s.handle
     ? el('a', { href: '#/u/' + encodeURIComponent(s.handle), text: s.name })
-    : s.url ? el('a', { href: s.url, target: '_blank', rel: 'noopener', text: s.name }) : el('b', { text: s.name });
+    : site ? el('a', { href: site, target: '_blank', rel: 'noopener', text: s.name }) : el('b', { text: s.name });
   return el('div', { class: 'board-sponsor', id: 'board-sponsor' }, [
     el('p', { class: 'board-sponsor-by' }, withNode(t('board.sponsor', { name: MARK }), name)),
     s.prizeText ? el('p', { class: 'board-prize', text: t('board.prize', { prize: s.prizeText }) }) : null,
-    s.handle && s.url ? el('a', { class: 'board-sponsor-site', href: s.url, target: '_blank', rel: 'noopener' }, [icon('link'), el('bdi', { dir: 'ltr', text: hostOf(s.url) })]) : null
+    s.handle && site ? el('a', { class: 'board-sponsor-site', href: site, target: '_blank', rel: 'noopener' }, [icon('link'), el('bdi', { dir: 'ltr', text: hostOf(site) })]) : null
   ]);
 }
 
@@ -101,11 +105,13 @@ const hallLink = () => el('a', { class: 'board-hall-link', id: 'board-hall-link'
 
 /**
  * The head: the week and the hall link, "Closes in …" (recomputed every minute until the view goes away; "This week
- * is closed" once it is), the sponsor, the rules, and the way to the week before (and after, from the archive).
+ * is closed" once it is), the sponsor, the rules, and the way to the week before (and after, from the archive). The
+ * countdown is anchored to fetchedAt, the moment closesIn was true, not to now: a board drawn from the minute's cache
+ * would otherwise close up to a minute late.
  */
-function head(data) {
+function head(data, fetchedAt) {
   const closes = el('p', { class: 'board-closes', id: 'board-closes' });
-  const closeAt = Date.now() + (data.closesIn || 0) * 1000;
+  const closeAt = (fetchedAt || Date.now()) + (data.closesIn || 0) * 1000;
   const paint = () => {
     const left = closeAt - Date.now();
     closes.textContent = data.closed || left <= 0 ? t('board.closed') : t('board.closes_in', { time: duration(left) });
@@ -208,7 +214,8 @@ register('board', async (root, params, ctx) => {
   const q = query();
   if (BOARDS.includes(q.get('tab'))) view.tab = q.get('tab');
   if (INTENTS.includes(q.get('intent'))) view.intent = q.get('intent');
-  const week = /^\d{4}-\d{2}-\d{2}$/.test(q.get('week') || '') ? q.get('week') : '';
+  // A date, or a UTC instant inside the week (what the "You finished #N" line and the push carry).
+  const week = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/.test(q.get('week') || '') ? q.get('week') : '';
 
   let data = null;
   let panelNode = null;
@@ -236,8 +243,10 @@ register('board', async (root, params, ctx) => {
     return;
   }
   if (ctx.stale()) return;
+  // When closesIn was true: just now for an archive week, the cache's own fetch time for the current one.
+  const fetchedAt = week || !cached ? Date.now() : cached.at;
   panelNode = panel(data, view.tab, view.tab === 'intent' ? pickIntent(data) : '', (intent) => { view.intent = intent; redraw(); });
-  body.replaceChildren(head(data), panelNode);
+  body.replaceChildren(head(data, fetchedAt), panelNode);
 });
 
 // ---------- the hall of flame ----------

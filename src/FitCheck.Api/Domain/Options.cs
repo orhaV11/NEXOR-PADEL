@@ -217,6 +217,35 @@ public sealed class BoardSponsorOptions
     public string Url { get; set; } = "";
 
     public bool Enabled => !string.IsNullOrWhiteSpace(Name);
+
+    /// <summary>
+    /// The link as the board may show it: the trimmed <see cref="Url"/> when it is an absolute http(s) URL with a host
+    /// and no user info, a bare host ("nexor.example", "www.nexor.example/drop") read as https, and null for anything
+    /// else (another scheme, garbage), so a setting can never reach the page as a javascript: or a relative link. The
+    /// spelling is otherwise kept as the owner wrote it.
+    /// </summary>
+    public static string? NormalizeUrl(string? url)
+    {
+        var text = (url ?? "").Trim();
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        var colon = text.IndexOf(':');
+        var hasScheme = colon > 0 && Uri.CheckSchemeName(text[..colon]);
+        if (!hasScheme)
+        {
+            text = "https://" + text;
+        }
+
+        return Uri.TryCreate(text, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            && uri.Host.Length > 0
+            && uri.UserInfo.Length == 0
+            ? text
+            : null;
+    }
 }
 
 /// <summary>

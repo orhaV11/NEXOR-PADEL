@@ -7,6 +7,7 @@ using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FitCheck.Api.Tests;
 
@@ -50,6 +51,18 @@ public static class BoardFixtures
 
     public static Task SetUserCreatedAsync(TestApp app, Guid userId, DateTime at) => WithDbAsync(app, db =>
         db.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(s => s.SetProperty(u => u.CreatedAt, at)));
+
+    /// <summary>Moves a check to the instant the scenario needs; the check route stamps real time, like the fire route.</summary>
+    public static Task SetCheckAsync(TestApp app, Guid checkId, DateTime at) => WithDbAsync(app, db =>
+        db.Checks.Where(c => c.Id == checkId).ExecuteUpdateAsync(s => s.SetProperty(c => c.CreatedAt, at)));
+
+    /// <summary>A place written straight into the archive, the way the closer writes it (or another process did).</summary>
+    public static Task ArchiveAsync(TestApp app, DateOnly sunday, string board, int rank, Guid userId, Guid? postId, int fires) => WithDbAsync(app, async db =>
+    {
+        var label = new DateTime(sunday.Year, sunday.Month, sunday.Day, 0, 0, 0, DateTimeKind.Utc);
+        db.WeeklyWinners.Add(new WeeklyWinner { Id = Guid.NewGuid(), WeekStart = label, Board = board, Rank = rank, PostId = postId, UserId = userId, Fires = fires });
+        await db.SaveChangesAsync();
+    });
 
     public static Task SetPostAsync(TestApp app, Guid postId, DateTime? createdAt = null, int? score = null) => WithDbAsync(app, async db =>
     {
@@ -535,6 +548,193 @@ public class BoardTests : IClassFixture<TestApp>
         Assert.False((await BoardFixtures.BoardAsync(app, fans[0].Client)).TryGetProperty("me", out _));
         Assert.False((await BoardFixtures.BoardAsync(app)).TryGetProperty("me", out _));
     }
+
+    [Fact]
+    public async Task A_week_before_the_first_look_or_beyond_next_week_is_refused_and_the_calendars_edges_are_not_a_crash()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        app.Clock.Now = BoardFixtures.Midweek(4);
+        var client = app.NewClient();
+        async Task<HttpStatusCode> Status(string week) => (await client.GetAsync("/api/board?week=" + Uri.EscapeDataString(week))).StatusCode;
+
+        // Nothing posted yet: this week, last week (the way back from a fresh board) and next week answer; nothing else does.
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(4))));
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(3))));
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(5).AddDays(6))));
+        Assert.Equal(HttpStatusCode.BadRequest, await Status(BoardFixtures.Key(Sunday(2))));
+        Assert.Equal(HttpStatusCode.BadRequest, await Status(BoardFixtures.Key(Sunday(6))));
+        Assert.Equal(HttpStatusCode.BadRequest, await Status("2020-01-05"));
+
+        // The first and the last days of the calendar, as dates and as instants: garbage, in the caller's language, never 500.
+        foreach (var week in new[] { "0001-01-01", "0001-01-06", "9999-12-31", "9999-12-26", "0001-01-01T00:00:00Z", "9999-12-31T23:59:59Z", "9999-12-31T23:00:00-05:00", "0001-01-01T01:00:00+05:00" })
+        {
+            var response = await client.GetAsync("/api/board?week=" + Uri.EscapeDataString(week));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("That week doesn't look right.", (await BoardFixtures.Json(response)).GetProperty("error").GetString());
+        }
+
+        // The first look moves the floor back to its week (a picks board can exist without a single fire).
+        var (author, authorId, _) = await app.NewUserAsync("bw_author");
+        var post = await app.CheckAndPostAsync(author);
+        await BoardFixtures.SetPostAsync(app, post, createdAt: Local(Sunday(1), 9));
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(1))));
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(2))));
+        Assert.Equal(HttpStatusCode.BadRequest, await Status(BoardFixtures.Key(Sunday(0))));
+        Assert.Equal([post], BoardFixtures.PostIds(await BoardFixtures.BoardAsync(app, week: BoardFixtures.Key(Sunday(1))), "picks"));
+
+        // So does an archived week older than any look that is left (the looks of a closed week can be deleted; its places stay).
+        await BoardFixtures.ArchiveAsync(app, Sunday(-2), BoardName.Looks, 1, authorId, null, 1);
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(-2))));
+        Assert.Equal(HttpStatusCode.OK, await Status(BoardFixtures.Key(Sunday(-1))));
+        Assert.Equal(HttpStatusCode.BadRequest, await Status(BoardFixtures.Key(Sunday(-3))));
+        Assert.True((await BoardFixtures.BoardAsync(app, week: BoardFixtures.Key(Sunday(-2)))).GetProperty("closed").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Only_the_running_week_and_the_one_before_it_are_kept_in_memory()
+    {
+        _app.Clock.Now = BoardFixtures.Midweek(22);
+        var board = _app.Services.GetRequiredService<Board>();
+        var (author, _, _) = await _app.NewUserAsync("bd_author22");
+        var post = await _app.CheckAndPostAsync(author);
+        var (_, fan) = await CheckerAsync("bd_fan22");
+        var (_, other) = await CheckerAsync("bd_other22");
+        await Fire(post, fan, Local(Sunday(20).AddDays(1), 8));
+        var client = _app.NewClient();
+        async Task<JsonElement> Read(int week) => await BoardFixtures.Json(await client.GetAsync("/api/board?week=" + BoardFixtures.Key(Sunday(week))));
+
+        // Six distinct weeks read, two entries left behind: the running week and last week. Anything older or later is not kept.
+        board.Invalidate();
+        foreach (var week in new[] { 22, 21, 20, 23, 19, 18, 22, 20 })
+        {
+            Assert.False((await Read(week)).GetProperty("closed").GetBoolean());
+        }
+
+        Assert.Equal(2, board.CachedWeeks);
+
+        // An older week is computed on every read: a fire written after one read shows on the next without a cache drop.
+        Assert.Equal([(1, 1, post)], BoardFixtures.LookRows(await Read(20), "looks"));
+        await Fire(post, other, Local(Sunday(20).AddDays(1), 9));
+        Assert.Equal([(1, 2, post)], BoardFixtures.LookRows(await Read(20), "looks"));
+        Assert.Equal(2, board.CachedWeeks);
+
+        // Two weeks on, neither entry is the running week or the one before it: both go with the next read that is kept.
+        _app.Clock.Now = BoardFixtures.Midweek(24);
+        await Read(24);
+        Assert.Equal(1, board.CachedWeeks);
+    }
+
+    [Fact]
+    public async Task A_check_later_in_the_week_makes_earlier_fires_count_and_one_after_the_weeks_end_does_not()
+    {
+        _app.Clock.Now = BoardFixtures.Midweek(24);
+        var (author, _, _) = await _app.NewUserAsync("bd_author24");
+        var post = await _app.CheckAndPostAsync(author);
+        var (fan, fanId, _) = await _app.NewUserAsync("bd_fan24");
+        await Fire(post, fanId, Local(Sunday(24).AddDays(1), 10));
+
+        // No check yet: the Monday fire is nothing.
+        Assert.Empty((await Board()).GetProperty("looks").EnumerateArray());
+
+        // A check on Friday, days after the fire: the fire counts now.
+        var check = await _app.CheckAsync(fan);
+        await BoardFixtures.SetCheckAsync(_app, check, Local(Sunday(24).AddDays(5), 18));
+        Assert.Equal([(1, 1, post)], BoardFixtures.LookRows(await Board(), "looks"));
+
+        // The same check a minute after the week's end: not by the week's end, so the fire is nothing again, read now or later.
+        await BoardFixtures.SetCheckAsync(_app, check, Local(Sunday(25), 0, 1));
+        Assert.Empty((await Board()).GetProperty("looks").EnumerateArray());
+        _app.Clock.Now = BoardFixtures.Midweek(25);
+        Assert.Empty((await Board(week: BoardFixtures.Key(Sunday(24)))).GetProperty("looks").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task An_exclusion_outlives_the_moderator_who_made_it()
+    {
+        _app.Clock.Now = BoardFixtures.Midweek(26);
+        var (author, _, _) = await _app.NewUserAsync("bd_author26");
+        var post = await _app.CheckAndPostAsync(author);
+        var (_, fan) = await CheckerAsync("bd_fan26");
+        await Fire(post, fan, Local(Sunday(26).AddDays(1), 8));
+        var (moderator, moderatorId, _) = await _app.NewUserAsync("bd_mod26");
+        await _app.PromoteAsync("bd_mod26");
+        Assert.Equal(HttpStatusCode.Created, (await moderator.PostAsJsonAsync("/api/admin/board/exclude", new { postId = post, reason = "spam" })).StatusCode);
+        Assert.Empty((await Board()).GetProperty("looks").EnumerateArray());
+
+        // The moderator's row goes (what deleting the account does to it): the exclusion stays, unsigned, and the look stays off.
+        await BoardFixtures.WithDbAsync(_app, db => db.Users.Where(u => u.Id == moderatorId).ExecuteDeleteAsync());
+        await BoardFixtures.WithDbAsync(_app, async db =>
+        {
+            var exclusion = await db.BoardExclusions.SingleAsync(e => e.PostId == post);
+            Assert.Null(exclusion.ByUserId);
+            Assert.Equal("spam", exclusion.Reason);
+        });
+        Assert.Empty((await Board()).GetProperty("looks").EnumerateArray());
+        Assert.Empty((await Board()).GetProperty("picks").EnumerateArray());
+    }
+}
+
+/// <summary>Board:Sponsor:Url reaches the page only as an http(s) link: validated once at start, checked again on the client.</summary>
+public class BoardSponsorUrlTests
+{
+    [Theory]
+    [InlineData("https://nexor.example/board", "https://nexor.example/board")]
+    [InlineData("http://nexor.example", "http://nexor.example")]
+    [InlineData("  https://nexor.example/drop?x=1#top  ", "https://nexor.example/drop?x=1#top")]
+    [InlineData("nexor.example", "https://nexor.example")]
+    [InlineData("www.nexor.example/drop?x=1", "https://www.nexor.example/drop?x=1")]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("JavaScript:alert(1)", null)]
+    [InlineData("ftp://nexor.example", null)]
+    [InlineData("mailto:hi@nexor.example", null)]
+    [InlineData("https://user:pw@nexor.example", null)]
+    [InlineData("nexor.example@evil.example", null)]
+    [InlineData("https://", null)]
+    [InlineData("not a url", null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData(null, null)]
+    public void The_link_is_http_or_https_or_nothing(string? configured, string? expected) =>
+        Assert.Equal(expected, BoardSponsorOptions.NormalizeUrl(configured));
+
+    [Fact]
+    public async Task A_bare_host_is_https_on_the_board_and_a_bad_scheme_is_dropped()
+    {
+        using (var app = new TestApp { Settings = new() { ["Board:Sponsor:Name"] = "NEXOR", ["Board:Sponsor:Url"] = "nexor.example" } })
+        {
+            var sponsor = (await BoardFixtures.BoardAsync(app)).GetProperty("sponsor");
+            Assert.Equal("NEXOR", sponsor.GetProperty("name").GetString());
+            Assert.Equal("https://nexor.example", sponsor.GetProperty("url").GetString());
+            Assert.Equal("https://nexor.example", app.Services.GetRequiredService<Board>().SponsorUrl);
+        }
+
+        using (var app = new TestApp { Settings = new() { ["Board:Sponsor:Name"] = "NEXOR", ["Board:Sponsor:Url"] = "javascript:alert(1)" } })
+        {
+            var sponsor = (await BoardFixtures.BoardAsync(app)).GetProperty("sponsor");
+            Assert.Equal("NEXOR", sponsor.GetProperty("name").GetString());
+            Assert.False(sponsor.TryGetProperty("url", out _));
+            Assert.Null(app.Services.GetRequiredService<Board>().SponsorUrl);
+        }
+    }
+}
+
+/// <summary>Collects what a service logs, so a test can read the closer's own account of a run.</summary>
+public sealed class RecordingLogger<T> : ILogger<T>
+{
+    public List<string> Lines { get; } = [];
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        lock (Lines)
+        {
+            Lines.Add(formatter(state, exception));
+        }
+    }
 }
 
 /// <summary>The closer, the archive, the badge and the hall: each test on a fresh app, since the closer walks every week.</summary>
@@ -628,6 +828,13 @@ public class BoardCloserTests
         Assert.Equal(winner, told.Single().GetProperty("postId").GetGuid());
         Assert.Equal(2, (await BoardFixtures.BoardRankNotificationsAsync(second)).Single().GetProperty("rank").GetInt32());
         Assert.Single(await app.PushHandler.WaitForAsync(endpoint));
+        // The push's tap lands on the week that closed, not on the new empty one: the instant a week before the send names it.
+        var pushUrl = PushSender.UrlFor(new PushJob(firstId, NotificationType.BoardRank, "bc_first", winner, null, null, 1), app.Clock.Now);
+        Assert.StartsWith("/#/board?week=", pushUrl);
+        var landed = await BoardFixtures.BoardAsync(app, first, pushUrl["/#/board?week=".Length..]);
+        Assert.True(landed.GetProperty("closed").GetBoolean());
+        Assert.Equal(Local(Sunday(0), 0), landed.GetProperty("weekStart").GetDateTime());
+        Assert.Equal(1, landed.GetProperty("me").GetProperty("looks").GetInt32());
 
         // A second run finds the week closed: no rows, no second notification.
         Assert.Equal(0, await BoardFixtures.CloseAsync(app));
@@ -647,6 +854,44 @@ public class BoardCloserTests
         Assert.False(running.GetProperty("closed").GetBoolean());
         Assert.Empty(running.GetProperty("looks").EnumerateArray());
         Assert.Equal(Local(Sunday(1), 0), running.GetProperty("weekStart").GetDateTime());
+    }
+
+    [Fact]
+    public async Task A_week_another_run_closed_first_stands_as_that_run_wrote_it()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        app.Clock.Now = BoardFixtures.Midweek(0);
+        var (author, _, _) = await app.NewUserAsync("bc_race_author");
+        var post = await app.CheckAndPostAsync(author);
+        var (_, fan) = await CheckerAsync(app, "bc_race_fan");
+        await BoardFixtures.FireAsync(app, post, fan, Local(Sunday(0).AddDays(1), 8));
+        var (_, otherId, _) = await app.NewUserAsync("bc_race_other");
+
+        app.Clock.Now = Local(Sunday(1), 0, 3);
+        var log = new RecordingLogger<BoardCloser>();
+        var closer = new BoardCloser(app.Services.GetRequiredService<IServiceScopeFactory>(), app.Services.GetRequiredService<Board>(), app.Clock, log);
+        // The other process wins the race: its first place lands between this run's check of the week and its save.
+        var interposed = 0;
+        closer.BeforeSave = async (week, _) =>
+        {
+            interposed++;
+            await BoardFixtures.ArchiveAsync(app, week.FirstDay, BoardName.Looks, 1, otherId, post, 99);
+        };
+
+        Assert.Equal(0, await closer.CloseDueWeeksAsync(CancellationToken.None));
+        Assert.Equal(1, interposed);
+        Assert.Contains("Board: week 2027-01-10 was already closed by another run; nothing written", log.Lines);
+        Assert.DoesNotContain(log.Lines, line => line.Contains("closed,"));
+        var only = Assert.Single(await BoardFixtures.WinnersAsync(app, Sunday(0)));
+        Assert.Equal((otherId, 99), (only.UserId, only.Fires));
+        // The notification queued next to the dropped rows went with them; the other run's rows stand.
+        Assert.Empty(await BoardFixtures.BoardRankNotificationsAsync(author));
+
+        closer.BeforeSave = null;
+        Assert.Equal(0, await closer.CloseDueWeeksAsync(CancellationToken.None));
+        Assert.Equal(1, interposed);
+        Assert.Single(await BoardFixtures.WinnersAsync(app, Sunday(0)));
     }
 
     [Fact]

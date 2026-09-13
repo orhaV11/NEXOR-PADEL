@@ -175,7 +175,7 @@ namespace FitCheck.Api.Data.Migrations
                     b.Property<Guid>("PostId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("ByUserId")
+                    b.Property<Guid?>("ByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -914,8 +914,7 @@ namespace FitCheck.Api.Data.Migrations
                     b.HasOne("FitCheck.Api.Domain.AppUser", null)
                         .WithMany()
                         .HasForeignKey("ByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("FitCheck.Api.Domain.Post", null)
                         .WithMany()

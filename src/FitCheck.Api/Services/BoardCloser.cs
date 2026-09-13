@@ -22,6 +22,12 @@ public sealed class BoardCloser(IServiceScopeFactory scopes, Board board, IClock
     private readonly HashSet<DateOnly> _empty = [];
     private readonly SemaphoreSlim _running = new(1, 1);
 
+    /// <summary>
+    /// A test's stand-in for another process: called with the week once its rows are queued and before they are saved, so
+    /// the test can close the same week from the side and watch this run give way to it. Null outside tests.
+    /// </summary>
+    public Func<BoardWeek, CancellationToken, Task>? BeforeSave { get; set; }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -145,6 +151,11 @@ public sealed class BoardCloser(IServiceScopeFactory scopes, Board board, IClock
                     notifier.Add(winner.UserId, NotificationType.BoardRank, handle, winner.PostId, rank: winner.Rank);
                 }
             }
+        }
+
+        if (BeforeSave is { } beforeSave)
+        {
+            await beforeSave(week, ct);
         }
 
         try

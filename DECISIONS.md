@@ -1253,3 +1253,109 @@ What it kept, and why:
   The board is its own page under Explore, with a strip, a card on the first day and a badge as its only reach into
   the rest of the app; ranks are not printed on cards in the feed.
 - **Sounds on posts.** Rejected in Round 9, still rejected.
+
+## Round 11 — go-live: blocking, the billing portal, the data export, readiness (2026-09-13 → )
+
+The owner wants the app live: a person must be able to shut another out, a paying person must be able to change or
+cancel without writing to us, a person must be able to take their data with them, and a deploy must be able to tell
+a machine that is up from one that is ready. Builders work in parallel from one skeleton; the lead rewrites this
+section after the merge, from the code.
+
+### Round 11 skeleton (the lead, before the builders)
+
+The shared contract. Everything here compiles, migrates and is tested; nothing here is the feature.
+
+- **Schema** (`Data/Migrations/20260913090016_Round11.cs`, generated, applied at start like the others). New table
+  `Blocks { BlockerId, BlockedId, CreatedAt }` keyed on the pair (a second tap on the same pair fails the key; the
+  other direction is its own row), both foreign keys cascading with their account, an index on `BlockedId` (the
+  feed and profile filters read "who blocked me"; the blocker's own list walks the key). `Users.BillingSubscriptionId`
+  (text, ≤ 64, nullable, no index: the webhook finds the account by customer and then compares). Nothing else.
+  A Round 10 file gains the table and the column with no rebuild and no copy aside; a pre-migration pilot file gets
+  both from the model as before (`DatabaseSetup`). `DELETE /api/users/me` deletes the block rows in both directions
+  explicitly, like every other table.
+- **DTOs** (`Endpoints/Dtos.cs`). `BlockDto { user, createdAt }`, `BlocksDto { items[] }`; `PortalDto { url }`;
+  `ExportDto { exportedAt, account { handle, name, accountType, language, email?, createdAt, plan, proUntil? },
+  checks[] { id, createdAt, intent, occasion, score, headline, tip, breakdown, items[] { name, category }, status },
+  posts[] { id, createdAt, caption, intent, score, tags, items[] { name, category, brand?, model?, url? }, fires,
+  comments }, comments[] { postId, createdAt, text }, follows[] { handle, since }, followers[] { handle, since },
+  comparisons[] { id, createdAt, winner }, blocks[] { handle, since }, notifications[] { type, createdAt } }`
+  (`ExportAccountDto`, `ExportCheckDto`, `ExportItemDto`, `ExportPostDto`, `ExportCommentDto`, `ExportHandleDto`,
+  `ExportComparisonDto`, `ExportNotificationDto`; serialised with `AppJson.Options`, so camelCase, enum names, nulls
+  left out). **No birth date in the export, on purpose:** no route returns it (Round 9) and an export is a route; the
+  record has no member for it, so nothing can be switched on later by accident. No password hash, no billing ids, no
+  moderator flag, no photo. `ReadyDto { ok, checks { name: "ok" | reason } }`. `ViewerProfileDto` gains `blocked`
+  (the viewer blocked this profile; false in the skeleton) and **has no `blockedBy` and must never get one**: the
+  blocked person is not told, not by a field, not by a distinct error, not by an empty state that differs from a quiet
+  account's.
+- **Routes, answering 501** with `error.not_built` in the caller's language until filled: `POST /api/users/{handle}/block`
+  and `DELETE /api/users/{handle}/block` (session; 200 `BlockDto` / 204 when built), `GET /api/users/me/blocks`
+  (session; `BlocksDto`, newest first, whole), `POST /api/billing/portal` (session; `PortalDto`), `GET /api/users/me/export`
+  (session; the builder answers the JSON with `Content-Disposition: attachment; filename="orevosh-<handle>-<yyyyMMdd>.json"`
+  and `Cache-Control: no-store`), `GET /readyz` (public; the builder checks `db`, `storage` writable, `ffmpeg` when
+  `Storage:Transcode` is on, 200 when all are ok and 503 with the failing checks named). `/healthz` is untouched: the
+  Dockerfile, fly.toml and the uptime checkers keep polling it. `Endpoints/BlockEndpoints.cs`, `ExportEndpoints.cs`
+  and `HealthEndpoints.cs` carry the contracts in their doc comments; the portal stub sits in `BillingEndpoints.cs`
+  (its comment carries the contract, `BillingEndpoints.PortalSessionsPath` names Stripe's path); `Stubs.cs` goes with
+  the last stub. Every write behind the CSRF header as before.
+- **Server strings** in all four dictionaries: `error.cannot_block_self`, `error.already_blocked`, `error.not_blocked`,
+  `error.blocked` ("You can't interact with this account.", the one refusal for any action that targets someone who
+  blocked you or whom you blocked, so the message itself says nothing about which), `error.portal_unavailable`
+  ("Manage your plan by writing to us.", the manual provider and an account with no customer id), `error.export_failed`.
+  The Arabic and Russian lines are plain copy by the lead and need the same native review as the rest.
+- **The webhook and the subscription id.** Today the webhook matches every event after Checkout by customer alone, so
+  a second subscription on the same customer (a stale tab past the 409, a re-subscribe on Stripe's side) is
+  indistinguishable from the first: its `customer.subscription.deleted` would end Pro while the paid one keeps
+  charging. Three `TODO(Round 11, billing builder)` comments in `BillingEndpoints.WebhookAsync` mark where the id is
+  stored (`checkout.session.completed`, the session's `subscription`), compared (`customer.subscription.updated`, the
+  object's `id`; another subscription is logged and ignored) and compared then cleared (`customer.subscription.deleted`).
+  A null stored id (an account from before this round) keeps the customer-only matching.
+- **Client.** Route `#/settings/blocked` (`settings-blocked`, under the Me tab) in `core.js`; stub view
+  `views/blocked.js` that draws the title and a "coming in this round" line (the sign-in prompt signed out); 16 keys
+  in all four i18n files (748 each, parity checked: same key set and placeholders as English): `block.block`,
+  `block.unblock`, `block.blocked_title` "Blocked accounts", `block.blocked_empty`, `block.confirm_title` "Block
+  {name}?", `block.confirm_body`, `block.done` "Blocked.", `block.undone` "Unblocked.", `block.coming`,
+  `settings.blocked`, `settings.export` "Download your data", `export.hint`, `export.ready`, `billing.manage`
+  "Manage subscription", `billing.manage_hint`, `billing.manual_hint` "To change or cancel, write to us." Nothing
+  under `ready.*`: readiness has no screen. Menu entries, settings rows and the Pro page's button are the builders'.
+- **Seams for the builders.** `TestApp.StripeHandler` answers a request to `v1/billing_portal/sessions` with
+  `RecordingStripeHandler.PortalResponse` (a portal session with `DefaultPortalUrl`) and everything else with
+  `Response` as before, and `PortalRequests` lists the portal calls: one recorder for Checkout and the portal, no
+  second handler, because the portal goes through the same named client. `TestApp.Settings` (any `Section:Key`),
+  `Transcode` and `StorageRoot` are what `/readyz` tests need. `Round11MigrationTests.Names` reads a file's index
+  names. The Round 10 migration test now seeds its Round 9 account in raw SQL (the current model writes a Users
+  column a Round 9 file lacks); a later round that adds a Users column changes nothing there.
+- **File ownership, as the lead understands it.** *block* owns `Endpoints/BlockEndpoints.cs`, the pair predicate and
+  its use in `UserEndpoints.cs` (the profile's `viewer.blocked`, follow refused, the grids), `FeedEndpoints.cs`,
+  `PostEndpoints.cs` (comments, fires, saves, reports, votes, features and mentions refused with `error.blocked`;
+  looks and comments of either side left out of what the other reads), `ExploreEndpoints.cs`, `Services/Board.cs`
+  only if the board's lists must honour it (the lead leans no: a public top ten is public), `Services/Notifier.cs` (no
+  line crosses the pair), `tests/BlockTests.cs`; and on the client `views/blocked.js`, the "Block"/"Unblock" entry in
+  `views/profile.js`, the Settings row in `views/settings.js`, and one entry in `openPostMenu` in `core.js` (the
+  look's "…" menu; the lead allows that one function). *billing* owns `Endpoints/BillingEndpoints.cs` (the portal
+  and the three TODOs), `Services/StripeClient.cs` (one more form-encoded POST), the button and hints in
+  `views/pro.js` and the plan row in `views/settings.js`, `tests/BillingTests.cs`. *ops* owns `Endpoints/ExportEndpoints.cs`,
+  `Endpoints/HealthEndpoints.cs`, the export row in `views/settings.js`, the `Program.cs` commands and start-up
+  checks it adds, backups and `tools/`, `tests/ExportTests.cs` and `tests/ReadyTests.cs`. *docs* owns `LAUNCH.md`,
+  `DEPLOY.md`, `README.md` and this section after the merge, the `ar`/`ru` review list, the e2e. Shared files
+  (`Dtos.cs`, `Social.cs`, `AppUser.cs`, `AppDbContext.cs`, `Localizer.cs`, `core.js` beyond the one function, the
+  migration) change through the lead.
+- **Not built on purpose, so nobody assumes it is:** no filter reads `Blocks` anywhere (a blocked person still sees
+  and can react to everything; `viewer.blocked` is always false); the webhook stores and reads no subscription id;
+  `/api/billing/portal` sends nothing to Stripe; `/api/users/me/export` writes nothing; `/readyz` checks nothing.
+- **Tests: 573 → 592**, all green: the migration over a Round 10 file (the table, the column, the row kept, the
+  same shape as a fresh file, no copy aside), every stub 501 behind its gate (session, CSRF header, public), the
+  block row's key, index and two cascades plus the explicit delete on account deletion, the subscription id's length
+  and nullability and a Checkout event that names one and is granted as before without storing it, the profile's
+  `viewer` with `blocked` and without `blockedBy` even when a block row exists, the six strings in four locales, the
+  export, readiness, portal and blocks documents as JSON, and the 16 client keys in four files with parity.
+
+### Objections to keep out of the code (from the plan; the lead confirms after the merge)
+
+- A blocked person is never told. No field, no distinct error, no empty state that gives it away; `error.blocked` is
+  the same sentence whichever side acted.
+- The export carries what the person wrote, not what the app knows about them: no birth date, no hashes, no ids from
+  the billing provider, no photos (they go with the account, by the one delete).
+- Cancelling happens on Stripe's page, not ours: the portal is a link, the webhook is the truth, `--pro off` stays the
+  manual door.
+- Readiness is public and says nothing a stranger can use: a name and "ok" or a short reason, never a path, a version
+  or a secret.

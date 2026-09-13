@@ -20,6 +20,7 @@ import './views/legal.js';
 import './views/dashboard.js';
 import './views/board.js';
 import './views/items.js';
+import './views/blocked.js';
 
 boot().catch((e) => {
   console.error(e);

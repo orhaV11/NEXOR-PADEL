@@ -730,5 +730,21 @@
   "board.strip_title": "This week's board",
   "board.rank_label": "Rank {rank}",
   "board.score": "Score {n}",
-  "hall.look_gone": "This look is no longer available"
+  "hall.look_gone": "This look is no longer available",
+  "block.block": "Block",
+  "block.unblock": "Unblock",
+  "block.blocked_title": "Blocked accounts",
+  "block.blocked_empty": "You haven't blocked anyone.",
+  "block.confirm_title": "Block {name}?",
+  "block.confirm_body": "They won't see your looks or comments, and you won't see theirs. You can undo this in Settings.",
+  "block.done": "Blocked.",
+  "block.undone": "Unblocked.",
+  "block.coming": "Blocked accounts are coming in this round.",
+  "settings.blocked": "Blocked accounts",
+  "settings.export": "Download your data",
+  "export.hint": "A file with your checks, looks, comments and follows. Photos stay on the server; delete your account to remove them.",
+  "export.ready": "Your data is ready.",
+  "billing.manage": "Manage subscription",
+  "billing.manage_hint": "Change or cancel your plan.",
+  "billing.manual_hint": "To change or cancel, write to us."
 }

@@ -730,5 +730,21 @@
   "board.strip_title": "הלוח של השבוע",
   "board.rank_label": "מקום {rank}",
   "board.score": "ציון {n}",
-  "hall.look_gone": "הלוק הזה כבר לא זמין"
+  "hall.look_gone": "הלוק הזה כבר לא זמין",
+  "block.block": "חסימה",
+  "block.unblock": "ביטול חסימה",
+  "block.blocked_title": "חשבונות חסומים",
+  "block.blocked_empty": "עוד לא חסמת אף אחד.",
+  "block.confirm_title": "לחסום את {name}?",
+  "block.confirm_body": "הם לא יראו את הלוקים והתגובות שלך, והלוקים שלהם לא יופיעו אצלך. אפשר לבטל את זה בהגדרות.",
+  "block.done": "החשבון נחסם.",
+  "block.undone": "החסימה בוטלה.",
+  "block.coming": "חשבונות חסומים מגיעים בסבב הזה.",
+  "settings.blocked": "חשבונות חסומים",
+  "settings.export": "הורדת הנתונים שלך",
+  "export.hint": "קובץ עם הבדיקות, הלוקים, התגובות והמעקבים שלך. התמונות נשארות בשרת; מחיקת החשבון מסירה אותן.",
+  "export.ready": "הנתונים שלך מוכנים.",
+  "billing.manage": "ניהול המינוי",
+  "billing.manage_hint": "שינוי או ביטול של התוכנית.",
+  "billing.manual_hint": "כדי לשנות או לבטל, כותבים לנו."
 }

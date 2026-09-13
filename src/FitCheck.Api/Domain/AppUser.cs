@@ -60,6 +60,14 @@ public sealed class AppUser
     /// <summary>The billing provider's customer id, when a checkout ever happened. Never shown.</summary>
     public string? BillingCustomerId { get; set; }
 
+    /// <summary>
+    /// The subscription Checkout opened (sub_…, ≤ 64), so the webhook can tell the subscription that was paid for from
+    /// any other on the same customer (Round 11). Null until the billing builder stores it from checkout.session.completed
+    /// (the session's "subscription") and compares it in customer.subscription.deleted/updated (the object's "id"); see the
+    /// TODOs in BillingEndpoints. Cleared when that subscription ends. Never shown.
+    /// </summary>
+    public string? BillingSubscriptionId { get; set; }
+
     /// <summary>Date of birth from signup (UTC date). Sixteen and over only; earlier accounts have null and their checkbox.</summary>
     public DateTime? BirthDate { get; set; }
 

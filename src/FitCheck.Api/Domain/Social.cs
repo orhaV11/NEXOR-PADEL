@@ -113,6 +113,19 @@ public sealed class Follow
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>
+/// One account shutting another out (Round 11). Keyed on the pair, so a block exists once; both ends cascade with their
+/// account. One row is one direction: the block builder reads it both ways (a look, a comment, a follow, a mention, a
+/// notification between the two is refused with error.blocked whichever side taps), and the blocked person is never told
+/// (<see cref="Endpoints.ViewerProfileDto"/> carries Blocked, never BlockedBy). A block ends a follow in both directions.
+/// </summary>
+public sealed class Block
+{
+    public Guid BlockerId { get; set; }
+    public Guid BlockedId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 /// <summary>Opened by a brand. Entries are posts of the same intent; the crowd votes; the deadline fixes the winner.</summary>
 public sealed class Challenge
 {

@@ -11,10 +11,22 @@ namespace FitCheck.Api.Endpoints;
 /// Plans and billing: the Pro state, Stripe Checkout and its webhook. Pro is a flag plus an end date on the account
 /// (<see cref="AppUser.Plan"/>, <see cref="AppUser.ProUntil"/>); Checkout starts a subscription, the webhook moves the
 /// end date, and the <c>--pro</c> command (Program.cs, Data/AdminSync.cs) does the same by hand when Stripe is off.
+/// <para>
+/// Round 11 (skeleton; the billing builder fills it): <c>POST /api/billing/portal</c> (session) answers 501 until built.
+/// Built, it opens a Stripe Billing Portal session for the account's <see cref="AppUser.BillingCustomerId"/> (a
+/// form-encoded POST to <c>v1/billing_portal/sessions</c> with <c>customer</c> and <c>return_url</c> = origin +
+/// <c>/#/pro</c>, through <see cref="StripeClient"/>'s named client, so the test recorder sees it) and answers 200
+/// <see cref="PortalDto"/>. Errors: error.portal_unavailable (400) while the provider is manual or the account has no
+/// customer id (the Pro page shows billing.manual_hint then); error.billing_failed (502) when Stripe does not answer with
+/// a url. The webhook learns <see cref="AppUser.BillingSubscriptionId"/>: see the TODOs in <see cref="WebhookAsync"/>.
+/// </para>
 /// </summary>
 public static class BillingEndpoints
 {
     public const string WebhookPath = "/api/billing/webhook";
+
+    /// <summary>Where a Billing Portal session posts (the portal builder's; the test recorder answers it with <c>PortalResponse</c>).</summary>
+    public const string PortalSessionsPath = "v1/billing_portal/sessions";
 
     /// <summary>
     /// What a completed Checkout grants: 35 days, not a month. Stripe bills every calendar month and the events can lag
@@ -32,10 +44,14 @@ public static class BillingEndpoints
         var group = app.MapGroup("/api/billing");
         group.MapGet("/state", StateAsync).RequireAuthorization();
         group.MapPost("/checkout", CheckoutAsync).RequireAuthorization();
+        // Round 11: the Billing Portal (change the card, cancel). 501 until the billing builder fills PortalAsync.
+        group.MapPost("/portal", PortalAsync).RequireAuthorization();
         // Anonymous, and exempt from the CSRF header in Program.cs: Stripe cannot send it. The signature is the guard.
         group.MapPost("/webhook", WebhookAsync);
         return app;
     }
+
+    private static IResult PortalAsync(HttpContext context) => Stubs.NotBuilt(context);
 
     /// <summary>The plan as the client should read it: "pro" only while the paid period runs, and the end date only then.</summary>
     public static (string Plan, DateTime? ProUntil) EffectivePlan(AppUser user, DateTime now)
@@ -162,6 +178,10 @@ public static class BillingEndpoints
                         user.BillingCustomerId = customer;
                     }
 
+                    // TODO(Round 11, billing builder): store the session's "subscription" (StringOrId(payload, "subscription"),
+                    // sub_…, cut to 64) in user.BillingSubscriptionId. Today the account is matched by customer alone, so a
+                    // second subscription on the same customer (a stale tab past the 409, a Stripe-side re-subscribe) is
+                    // indistinguishable from the first in the events below; the id is what tells them apart.
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} is Pro until {Until:u} (checkout completed).", user.Handle, user.ProUntil);
                     break;
@@ -201,6 +221,10 @@ public static class BillingEndpoints
                         break;
                     }
 
+                    // TODO(Round 11, billing builder): when user.BillingSubscriptionId is set and differs from this object's
+                    // "id" (StringOrId(payload, "id")), this is another subscription on the same customer: log and break rather
+                    // than move the end date on its say-so. A null stored id (an account from before Round 11) keeps today's
+                    // customer-only matching.
                     var status = StringOrId(payload, "status");
                     if (status is "active" or "trialing")
                     {
@@ -247,6 +271,9 @@ public static class BillingEndpoints
                         break;
                     }
 
+                    // TODO(Round 11, billing builder): compare this object's "id" with user.BillingSubscriptionId the same way:
+                    // a deleted subscription that is not the one paid for must not end Pro (the paid one still bills); when it
+                    // is the one, end Pro as below and clear user.BillingSubscriptionId so a later Checkout starts clean.
                     // The end date moves to now rather than the plan to free: the row still says a subscription existed.
                     user.ProUntil = now;
                     await db.SaveChangesAsync(ct);

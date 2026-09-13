@@ -42,7 +42,20 @@ public sealed record TagDto(string Tag, int Posts);
 
 public sealed record AvatarDto(string? AvatarUrl);
 
-public sealed record ViewerProfileDto(bool IsMe, bool Following);
+/// <summary>
+/// Blocked (Round 11): the viewer blocked this profile (false in the skeleton; the block builder reads <see cref="Domain.Block"/>).
+/// There is no BlockedBy on purpose and there must never be one: a person who was blocked must not learn it from the app.
+/// The profile of someone who blocked the viewer answers like any other profile with nothing to show (the builders'
+/// filters leave the looks out and refuse the follow, the comment and the fire with error.blocked).
+/// </summary>
+public sealed record ViewerProfileDto(bool IsMe, bool Following, bool Blocked = false);
+
+// ---- blocks (Round 11) ----
+
+/// <summary>One account the caller blocked, newest first on GET /api/users/me/blocks.</summary>
+public sealed record BlockDto(UserRefDto User, DateTime CreatedAt);
+
+public sealed record BlocksDto(List<BlockDto> Items);
 
 /// <summary>
 /// Featured: for a brand, looks it featured; for a person, their looks that were featured. Community: looks mentioning this
@@ -300,7 +313,61 @@ public sealed record TodayDto(string Tag, string Title, string Hint, StyleIntent
 
 public sealed record CheckoutDto(string Url);
 
+/// <summary>POST /api/billing/portal (Round 11): the hosted page where the person changes or cancels the subscription.</summary>
+public sealed record PortalDto(string Url);
+
 public sealed record BillingStateDto(string Plan, DateTime? ProUntil, bool Billing, string ProPriceText);
+
+// ---- the data export (Round 11) ----
+
+/// <summary>
+/// GET /api/users/me/export: everything the account wrote, as one JSON document the browser saves (the builder answers
+/// with Content-Disposition: attachment). Photos and clips are not in it: they stay on the server and go with the account.
+/// </summary>
+public sealed record ExportDto(
+    DateTime ExportedAt,
+    ExportAccountDto Account,
+    List<ExportCheckDto> Checks,
+    List<ExportPostDto> Posts,
+    List<ExportCommentDto> Comments,
+    List<ExportHandleDto> Follows,
+    List<ExportHandleDto> Followers,
+    List<ExportComparisonDto> Comparisons,
+    List<ExportHandleDto> Blocks,
+    List<ExportNotificationDto> Notifications);
+
+/// <summary>
+/// The account's own fields. Email only when the account has one. No birth date, on purpose: no route returns it (README,
+/// "Accounts"), and an export is a route; a file on a phone is one screenshot from a stranger. No password hash, no
+/// billing ids, no moderator flag.
+/// </summary>
+public sealed record ExportAccountDto(string Handle, string Name, string AccountType, string Language, string? Email, DateTime CreatedAt, string Plan, DateTime? ProUntil);
+
+/// <summary>One check. Headline, Tip, Breakdown and Items come from the stored feedback (null or empty when the check was not ok).</summary>
+public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Occasion, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status);
+
+/// <summary>A piece: the stylist's name and category on a check; on a look, the row as the person tagged it.</summary>
+public sealed record ExportItemDto(string Name, string Category, string? Brand = null, string? Model = null, string? Url = null);
+
+/// <summary>One look. Fires and Comments are the counters as they stand.</summary>
+public sealed record ExportPostDto(Guid Id, DateTime CreatedAt, string? Caption, StyleIntent Intent, int Score, List<string> Tags, List<ExportItemDto> Items, int Fires, int Comments);
+
+public sealed record ExportCommentDto(Guid PostId, DateTime CreatedAt, string Text);
+
+/// <summary>A handle and when the relation began: follows, followers and blocks alike.</summary>
+public sealed record ExportHandleDto(string Handle, DateTime Since);
+
+public sealed record ExportComparisonDto(Guid Id, DateTime CreatedAt, string Winner);
+
+public sealed record ExportNotificationDto(string Type, DateTime CreatedAt);
+
+// ---- readiness (Round 11) ----
+
+/// <summary>
+/// GET /readyz: Ok and one line per check ("db", "storage", "ffmpeg" when transcoding is on) saying "ok" or what failed;
+/// 200 when every check is ok, 503 otherwise. /healthz stays the cheap liveness line.
+/// </summary>
+public sealed record ReadyDto(bool Ok, Dictionary<string, string> Checks);
 
 public sealed record PushSubscribeRequest(string? Endpoint, string? P256dh, string? Auth);
 

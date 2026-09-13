@@ -65,7 +65,12 @@ public class TestApp : WebApplicationFactory<Program>
     public string StripeSecretKey { get; init; } = "";
     public string StripePriceId { get; init; } = "";
     public string StripeWebhookSecret { get; init; } = "";
-    /// <summary>Stands in for api.stripe.com: records every request (the form fields included) and answers with <see cref="RecordingStripeHandler.Response"/>.</summary>
+    /// <summary>
+    /// Stands in for api.stripe.com: records every request (the form fields included) and answers with
+    /// <see cref="RecordingStripeHandler.Response"/>, or with <see cref="RecordingStripeHandler.PortalResponse"/> for a
+    /// Billing Portal session (Round 11: POST /api/billing/portal goes through the same named client, so the same
+    /// recorder sees it; no second handler).
+    /// </summary>
     public RecordingStripeHandler StripeHandler { get; } = new();
     /// <summary>
     /// Any other configuration key, as "Section:Key" → value (Round 10: "Board:TimeZone", "Board:Size", "Affiliate:Hosts:amazon.com",
@@ -489,10 +494,13 @@ public sealed record StripeRequest(HttpMethod Method, Uri Uri, string? Authoriza
 /// <summary>
 /// Stand-in for api.stripe.com. Records every request the app sends and answers with <see cref="Response"/>: by default a
 /// created Checkout Session with a hosted-page URL; a test sets an error status and body to see the app refuse cleanly.
+/// A request to <see cref="Endpoints.BillingEndpoints.PortalSessionsPath"/> (Round 11, the Billing Portal) is answered
+/// with <see cref="PortalResponse"/> instead, by default a portal session with its URL; <see cref="StatusCode"/> covers both.
 /// </summary>
 public sealed class RecordingStripeHandler : HttpMessageHandler
 {
     public const string DefaultCheckoutUrl = "https://checkout.stripe.com/c/pay/cs_test_recorded";
+    public const string DefaultPortalUrl = "https://billing.stripe.com/p/session/test_recorded";
 
     private readonly List<StripeRequest> _requests = [];
 
@@ -500,6 +508,14 @@ public sealed class RecordingStripeHandler : HttpMessageHandler
 
     /// <summary>The JSON body the next answers carry.</summary>
     public string Response { get; set; } = $$"""{ "id": "cs_test_recorded", "object": "checkout.session", "url": "{{DefaultCheckoutUrl}}" }""";
+
+    /// <summary>The JSON body a Billing Portal session request gets (Round 11; the portal builder's tests set it).</summary>
+    public string PortalResponse { get; set; } = $$"""{ "id": "bps_test_recorded", "object": "billing_portal.session", "url": "{{DefaultPortalUrl}}" }""";
+
+    /// <summary>The recorded requests that opened a Billing Portal session.</summary>
+    public List<StripeRequest> PortalRequests => Requests.Where(r => IsPortal(r.Uri)).ToList();
+
+    private static bool IsPortal(Uri uri) => uri.AbsolutePath.EndsWith("/" + Endpoints.BillingEndpoints.PortalSessionsPath, StringComparison.Ordinal);
 
     public IReadOnlyList<StripeRequest> Requests
     {
@@ -538,6 +554,7 @@ public sealed class RecordingStripeHandler : HttpMessageHandler
             _requests.Add(record);
         }
 
-        return new HttpResponseMessage(StatusCode) { Content = new StringContent(Response, System.Text.Encoding.UTF8, "application/json") };
+        var answer = IsPortal(request.RequestUri!) ? PortalResponse : Response;
+        return new HttpResponseMessage(StatusCode) { Content = new StringContent(answer, System.Text.Encoding.UTF8, "application/json") };
     }
 }

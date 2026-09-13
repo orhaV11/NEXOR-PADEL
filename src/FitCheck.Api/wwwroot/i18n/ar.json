@@ -730,5 +730,21 @@
   "board.strip_title": "لوحة هذا الأسبوع",
   "board.rank_label": "المركز {rank}",
   "board.score": "التقييم {n}",
-  "hall.look_gone": "هذه الإطلالة لم تعد متاحة"
+  "hall.look_gone": "هذه الإطلالة لم تعد متاحة",
+  "block.block": "حظر",
+  "block.unblock": "إلغاء الحظر",
+  "block.blocked_title": "الحسابات المحظورة",
+  "block.blocked_empty": "لا توجد حسابات محظورة بعد.",
+  "block.confirm_title": "حظر {name}؟",
+  "block.confirm_body": "لن يروا إطلالاتك أو تعليقاتك، ولن تظهر لك إطلالاتهم. يمكن التراجع عن هذا من الإعدادات.",
+  "block.done": "تم الحظر.",
+  "block.undone": "تم إلغاء الحظر.",
+  "block.coming": "الحسابات المحظورة قادمة في هذه الجولة.",
+  "settings.blocked": "الحسابات المحظورة",
+  "settings.export": "تنزيل بياناتك",
+  "export.hint": "ملف يضم تقييماتك وإطلالاتك وتعليقاتك ومتابعاتك. الصور تبقى على الخادم؛ حذف الحساب يزيلها.",
+  "export.ready": "بياناتك جاهزة.",
+  "billing.manage": "إدارة الاشتراك",
+  "billing.manage_hint": "تغيير الخطة أو إلغاؤها.",
+  "billing.manual_hint": "للتغيير أو الإلغاء، يمكن مراسلتنا."
 }

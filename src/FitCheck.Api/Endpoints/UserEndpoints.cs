@@ -499,6 +499,8 @@ public static class UserEndpoints
         // Everything addressed to this account, and everything it caused elsewhere: a freed handle must not inherit old activity.
         await db.Notifications.Where(n => n.UserId == id || n.ActorHandle == user.Handle).ExecuteDeleteAsync(ct);
         await db.Follows.Where(f => f.FollowerId == id || f.FollowedId == id).ExecuteDeleteAsync(ct);
+        // Round 11: blocks in both directions go with the account (the cascade agrees); a freed handle starts unblocked.
+        await db.Blocks.Where(b => b.BlockerId == id || b.BlockedId == id).ExecuteDeleteAsync(ct);
         await db.Challenges.Where(c => c.WinnerPostId != null && myPostIds.Contains(c.WinnerPostId.Value))
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.WinnerPostId, (Guid?)null), ct);
 

@@ -475,7 +475,7 @@ function tabFor(route) {
   if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge', 'board', 'board-hall', 'items'].includes(name)) return 'explore';
   if (['check', 'result', 'camera', 'compare'].includes(name)) return 'check';
   if (name === 'activity') return 'activity';
-  if (['me', 'saved', 'settings', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights'].includes(name)) return 'me';
+  if (['me', 'saved', 'settings', 'settings-blocked', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights'].includes(name)) return 'me';
   if (name === 'today') return 'home';
   if (name === 'user') return isMe(route.params.handle) ? 'me' : '';
   return '';
@@ -511,7 +511,8 @@ export function parseRoute(hash) {
     case 'me': return { name: 'me', params: {} };
     case 'saved': return { name: 'saved', params: {} };
     case 'checks': return { name: 'checks', params: {} };
-    case 'settings': return { name: 'settings', params: {} };
+    // Round 11: #/settings/blocked, the accounts you blocked (settings-blocked); anything else under settings is settings.
+    case 'settings': return { name: a === 'blocked' ? 'settings-blocked' : 'settings', params: {} };
     case 'login': return { name: 'login', params: {} };
     case 'signup': return { name: 'signup', params: {} };
     case 'welcome': return { name: 'welcome', params: {} };

@@ -496,6 +496,10 @@ app.MapInsightsEndpoints();
 app.MapTodayEndpoints();
 app.MapItemEndpoints();
 app.MapBoardEndpoints();
+// Round 11 (skeleton, 501 until built): blocking, the data export, readiness.
+app.MapBlockEndpoints();
+app.MapExportEndpoints();
+app.MapHealthEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe

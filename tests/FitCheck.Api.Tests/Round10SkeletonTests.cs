@@ -112,8 +112,20 @@ public class Round10MigrationTests : IDisposable
         using (var db = Open(path))
         {
             db.GetService<IMigrator>().Migrate(Round9);
-            // Users, Checks and Posts have the same columns in Round 9 and Round 10, so the current model writes them as they were.
-            db.Users.Add(NewUser(userId, "veteran", password));
+        }
+
+        // The account in raw SQL, naming the Round 9 columns: Round 11 gave Users a column (BillingSubscriptionId) the file
+        // does not have, so the current model cannot write the row. Checks and Posts have the same columns in Round 9
+        // and today, so the current model writes them as they were.
+        var veteran = NewUser(userId, "veteran", password);
+        Execute(path,
+            "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", \"PreferredLanguage\", " +
+            "\"StreakCount\", \"Plan\", \"Verified\", \"Suspended\", \"IsAdmin\", \"CreatedAt\") " +
+            "VALUES ($id, $handle, $lower, $hash, 'Person', 0, 1, 'en', 0, 'free', 0, 0, 0, $created)",
+            ("$id", userId), ("$handle", veteran.Handle), ("$lower", veteran.HandleLower), ("$hash", veteran.PasswordHash),
+            ("$created", veteran.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
+        using (var db = Open(path))
+        {
             var (check1, check2) = (Guid.NewGuid(), Guid.NewGuid());
             db.Checks.Add(NewCheck(check1, userId));
             db.Checks.Add(NewCheck(check2, userId));

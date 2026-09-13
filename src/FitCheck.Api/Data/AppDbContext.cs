@@ -26,6 +26,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<BoardExclusion> BoardExclusions => Set<BoardExclusion>();
     public DbSet<WeeklyWinner> WeeklyWinners => Set<WeeklyWinner>();
     public DbSet<Counter> Counters => Set<Counter>();
+    public DbSet<Block> Blocks => Set<Block>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.Plan).HasMaxLength(16).IsRequired();
             user.Property(u => u.BillingCustomerId).HasMaxLength(100);
             user.HasIndex(u => u.BillingCustomerId);
+            // Round 11: the subscription Checkout opened, matched by the webhook; found through the customer, so no index.
+            user.Property(u => u.BillingSubscriptionId).HasMaxLength(64);
             user.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             user.Ignore(u => u.Name);
         });
@@ -194,6 +197,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             follow.HasIndex(f => f.FollowedId);
             follow.HasOne<AppUser>().WithMany().HasForeignKey(f => f.FollowerId).OnDelete(DeleteBehavior.Cascade);
             follow.HasOne<AppUser>().WithMany().HasForeignKey(f => f.FollowedId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Block>(block =>
+        {
+            // Round 11. One row per pair and direction; the key refuses a second tap. Both ends go with their account.
+            // "Who blocked me" is read by BlockedId (the feed and the profile filters), hence the index; the blocker's own
+            // list walks the key.
+            block.HasKey(b => new { b.BlockerId, b.BlockedId });
+            block.HasIndex(b => b.BlockedId);
+            block.HasOne<AppUser>().WithMany().HasForeignKey(b => b.BlockerId).OnDelete(DeleteBehavior.Cascade);
+            block.HasOne<AppUser>().WithMany().HasForeignKey(b => b.BlockedId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Challenge>(challenge =>

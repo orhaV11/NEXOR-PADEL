@@ -1229,12 +1229,11 @@ What it kept, and why:
   compares with `COLLATE NOCASE`, which SQLite cannot serve from that index, so a brand page scans the item rows. The
   branded rows are a short list at pilot scale, and a `NOCASE` index would fold ASCII only and reopen the collation
   question above.
-- **The derived week has a DST edge.** The instant on a `board_rank` tap is 168 hours before the line, and the week
-  that closed is 167 UTC hours long when Israel's clocks spring forward inside it: a close on schedule, minutes after
-  that week ends, derives an instant in the last hour of the week before it and the tap lands there, one week early.
-  The autumn week is 169 hours, and only a catch-up close in its last hour (the closer down for the whole week) lands
-  the tap on the running week. Once a year on schedule, then; the board's previous and next pills are one tap from
-  the right week, the line itself reads right, and carrying the week on the row is the fix if it ever matters.
+- **The derived week lands mid-week on purpose.** The instant on a `board_rank` tap is 156 hours (six and a half days)
+  before the line, not 168: the week that closed is 167 UTC hours long when Israel's clocks spring forward inside it
+  and 169 when they fall back, and the closer may run hours late after downtime, so a full week back could name the
+  week before or the running one. Six and a half days back is inside the closed week in every case short of the
+  closer being down for most of the following week; carrying the week on the row is the exact fix if it ever matters.
 
 ### Objections kept out of the code (owner wins)
 

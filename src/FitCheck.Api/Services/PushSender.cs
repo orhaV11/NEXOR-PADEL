@@ -155,7 +155,9 @@ public sealed class PushSender : BackgroundService
             case NotificationType.Follow:
                 return $"/#/u/{Uri.EscapeDataString(job.ActorHandle)}";
             case NotificationType.BoardRank:
-                var closed = (now ?? DateTime.UtcNow).AddDays(-7);
+                // Six and a half days back lands mid-week inside the week that closed whether that week ran 167, 168 or 169
+                // hours (a DST week) and whether the closer ran on time or hours late.
+                var closed = (now ?? DateTime.UtcNow).AddHours(-156);
                 return "/#/board?week=" + closed.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
         }
 

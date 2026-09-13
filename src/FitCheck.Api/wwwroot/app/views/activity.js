@@ -47,12 +47,13 @@ function sentenceKey(n) {
 
 /**
  * The week a board place was won, as the ?week= instant the board takes. The row carries no week of its own, but the
- * closer writes it at the close, so a week before its createdAt is inside the week that closed; the tap lands on that
- * archived week, not on the new empty one (the push carries the same, from its send time).
+ * closer writes it at the close, so six and a half days before its createdAt is mid-week inside the week that closed,
+ * whether that week ran 167, 168 or 169 hours; the tap lands on that archived week, not on the new empty one (the push
+ * carries the same instant, from its send time).
  */
 function weekWon(n) {
   const at = Date.parse(n.createdAt || '');
-  return Number.isFinite(at) ? new Date(at - 7 * 86400 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z') : '';
+  return Number.isFinite(at) ? new Date(at - 156 * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z') : '';
 }
 
 /** The look when there is one, else the challenge, else the person who did it. A board place opens the week it was won. */

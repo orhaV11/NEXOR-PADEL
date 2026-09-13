@@ -865,7 +865,7 @@ body.sheet-open { overflow: hidden; }
 .items-brands { position: absolute; inset-inline: 0; inset-block-start: 100%; z-index: 5; list-style: none; margin: 4px 0 0; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); max-block-size: 220px; overflow-y: auto; }
 .items-brands[hidden] { display: none; }
 .items-brands button { display: flex; align-items: center; gap: 8px; inline-size: 100%; min-block-size: 44px; padding-inline: 10px; background: none; border: 0; border-radius: 8px; color: var(--ink); font-size: 15px; text-align: start; cursor: pointer; }
-.items-brands button:hover, .items-brands button:active { background: var(--accent-tint); }
+.items-brands button:hover, .items-brands button:active, .items-brands li.active button, .items-brands li[aria-selected="true"] button { background: var(--accent-tint); }
 .items-brands .name { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; unicode-bidi: plaintext; }
 .items-brands .n { flex: none; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
 .items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

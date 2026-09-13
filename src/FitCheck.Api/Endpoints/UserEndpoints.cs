@@ -511,10 +511,11 @@ public static class UserEndpoints
             await db.Challenges.Where(c => c.BrandId == id).ExecuteDeleteAsync(ct);
         }
 
-        // Round 10: the items on this account's looks, the board's memory of it, and the looks it pulled off the board as a
-        // moderator (a moderator cannot delete while moderating, so that last set is empty in practice; the cascade agrees).
+        // Round 10: the items on this account's looks and the board's memory of it go; the looks it pulled off the board as a
+        // moderator stay off, unsigned (a demoted moderator's exclusions outlive the account: ByUserId goes null, as the FK does).
         await db.PostItems.Where(i => myPostIds.Contains(i.PostId)).ExecuteDeleteAsync(ct);
-        await db.BoardExclusions.Where(e => e.ByUserId == id || myPostIds.Contains(e.PostId)).ExecuteDeleteAsync(ct);
+        await db.BoardExclusions.Where(e => myPostIds.Contains(e.PostId)).ExecuteDeleteAsync(ct);
+        await db.BoardExclusions.Where(e => e.ByUserId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ByUserId, (Guid?)null), ct);
         await db.WeeklyWinners.Where(w => w.UserId == id).ExecuteDeleteAsync(ct);
 
         await db.Posts.Where(p => p.UserId == id).ExecuteDeleteAsync(ct);

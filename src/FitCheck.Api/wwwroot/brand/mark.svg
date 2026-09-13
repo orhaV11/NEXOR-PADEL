@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>OREVOSH mark — Ring of Fire</title>
+  <defs>
+    <linearGradient id="ov-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442">
+      <stop offset="0" stop-color="#b39dff"/>
+      <stop offset="1" stop-color="#ff8fb1"/>
+    </linearGradient>
+    <linearGradient id="ov-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+      <stop offset="0" stop-color="#ff6a2b"/>
+      <stop offset="0.55" stop-color="#ff6a2b"/>
+      <stop offset="1" stop-color="#ffa83a"/>
+    </linearGradient>
+    <mask id="ov-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+    </mask>
+  </defs>
+  <circle cx="256" cy="292" r="142" fill="none" stroke="url(#ov-ring)" stroke-width="68" mask="url(#ov-cut)"/>
+  <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="url(#ov-fire)" transform="translate(351.02 186.47) rotate(42)"/>
+</svg>

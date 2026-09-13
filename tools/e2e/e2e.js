@@ -1,0 +1,1005 @@
+// Browser smoke test for OREVOSH: the real client and the real API in a phone-sized Chromium, with only the
+// Anthropic API stubbed (stub_anthropic.py).
+// Run from this folder: npm install && node e2e.js   (after `dotnet build` at the repository root).
+//
+// Three people: Noa (a person, English), NEXOR (a brand, English) and Dan (mostly browsing, Hebrew). The run covers:
+// browsing signed out in Hebrew and RTL, signup and the welcome screen (interests, brands), settings (brand mode,
+// avatar upload), a check with the client-side downscale, posting with #tags and @mentions, the post page with tagged
+// accounts and comments, mention and featured notifications, a brand featuring a look, the brand's Community and
+// Featured tabs, Explore (trending tags, brands, top looks, search, tag page), the For you feed, double-tap to fire,
+// a challenge from brief to winner, the PWA manifest and service worker, photo privacy, and deleting a look and an account.
+const { chromium } = require('playwright');
+const { spawn, execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const assert = require('assert');
+
+const ROOT = path.resolve(__dirname);
+const API_PORT = 5088;
+const STUB_PORT = 5099;
+const DATA = path.join(ROOT, 'data');
+const SHOTS = path.join(ROOT, 'shots');
+const REPO = path.resolve(__dirname, '../../src/FitCheck.Api');
+const DB = path.join(DATA, 'e2e.db');
+
+fs.rmSync(DATA, { recursive: true, force: true });
+fs.rmSync(SHOTS, { recursive: true, force: true });
+fs.mkdirSync(DATA, { recursive: true });
+fs.mkdirSync(SHOTS, { recursive: true });
+
+function get(url, headers) {
+  return new Promise((resolve, reject) => {
+    http.get(url, { headers }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
+    }).on('error', reject);
+  });
+}
+const getJson = async (url) => JSON.parse((await get(url)).body.toString('utf8'));
+
+async function waitFor(url, tries = 60) {
+  for (let i = 0; i < tries; i++) {
+    try { const r = await get(url); if (r.status < 500) return; } catch (e) { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error('server did not start: ' + url);
+}
+
+const procs = [];
+function start(cmd, args, env, log) {
+  const out = fs.openSync(log, 'w');
+  const p = spawn(cmd, args, { env: { ...process.env, ...env }, stdio: ['ignore', out, out] });
+  procs.push(p);
+  return p;
+}
+
+const base = `http://127.0.0.1:${API_PORT}`;
+const consoleErrors = [];
+const consoleWarnings = [];
+const failedUrls = [];
+const expected = [];          // "METHOD /path -> status" entries that a step deliberately provokes
+const noContent = new Set();
+const pages = {};
+let step = 'boot';
+
+async function person(browser, name, locale) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale, serviceWorkers: 'block' });
+  await context.grantPermissions(['camera', 'microphone'], { origin: base });
+  const page = await context.newPage();
+  page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${step} ${name}] ` + m.text()); if (m.type() === 'warning') consoleWarnings.push(m.text()); });
+  page.on('pageerror', (e) => consoleErrors.push(`[${step} ${name}] pageerror: ` + e.message));
+  page.on('requestfailed', (r) => failedUrls.push(`[${step} ${name}] ${r.method()} ${r.url()} -> ${r.failure() && r.failure().errorText}`));
+  page.on('response', (r) => {
+    if (r.status() === 204) noContent.add(r.request().method() + ' ' + r.url());
+    if (r.status() >= 400) failedUrls.push(`[${step} ${name}] ${r.request().method()} ${r.url().replace(base, '')} -> ${r.status()}`);
+  });
+  page.on('dialog', (d) => d.accept());
+  pages[name] = page;
+  return page;
+}
+
+const settled = '#view h1, #view .card, #view .empty, #view .notice, #view .grid, #view .sheet, #view .person, #view form';
+async function go(page, hash) {
+  if (!page.url().startsWith(base)) {
+    await page.goto(base + '/' + hash);
+  } else if (await page.evaluate(() => location.hash) === hash) {
+    // Same route again: a hashchange re-renders it (what tapping the active tab does for a tab route).
+    await page.evaluate(() => { window.dispatchEvent(new HashChangeEvent('hashchange')); });
+  } else {
+    await page.evaluate((h) => { location.hash = h; }, hash);
+  }
+  await page.waitForFunction((h) => location.hash === h || (h === '#/' && location.hash === ''), hash);
+  await page.waitForSelector(settled, { timeout: 15000 });
+}
+const hash = (page) => page.evaluate(() => location.hash);
+const text = (page, sel) => page.textContent(sel).then((s) => (s || '').trim());
+const count = async (page, sel) => (await page.$$(sel)).length;
+const me = async (page) => { const r = await page.request.get(base + '/api/auth/me'); return r.ok() ? await r.json() : null; };
+/** Runs one of the app's maintenance commands (--admin, --unadmin, --backup) against the test database, as an owner would on the box. */
+function maintenance(...args) {
+  return execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', ...args], {
+    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
+  }).toString();
+}
+/** The pilot metrics are for moderators; read them through a promoted person's session. */
+const metricsAs = async (page) => { const r = await page.request.get(base + '/api/metrics/pilot'); assert.strictEqual(r.status(), 200, 'metrics as a moderator'); return r.json(); };
+
+async function signup(page, handle, password) {
+  await go(page, '#/signup');
+  await page.waitForSelector('#a-handle');
+  await page.fill('#a-handle', handle);
+  await page.fill('#a-password', password);
+  await page.fill('#a-dob', '1990-01-01');
+  await page.click('#a-submit');
+  await page.waitForFunction(() => location.hash === '#/welcome');
+  await page.waitForSelector(settled);
+}
+
+function makeJpeg(page, w, h) {
+  return page.evaluate(([w, h]) => {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.fillStyle = '#e8e2d6'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 400; i++) { g.fillStyle = `hsl(${(i * 37) % 360} 40% ${30 + (i % 50)}%)`; g.fillRect((i * 97) % (w - 100), (i * 131) % (h - 100), 120, 160); }
+    return c.toDataURL('image/jpeg', 0.92).split(',')[1];
+  }, [w, h]).then((b64) => Buffer.from(b64, 'base64'));
+}
+
+/** The photo button opens a file chooser (pickFile clicks the hidden input); answer it with a JPEG buffer. */
+async function choosePhoto(page, buttonSelector, buffer, name) {
+  // The check screen's photo button opens the media sheet (camera / library / clip); the library row is the picker.
+  if (buttonSelector === '#photo') {
+    await page.click('#photo');
+    await page.waitForSelector('#media-library');
+    buttonSelector = '#media-library';
+  }
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(buttonSelector)]);
+  if (await page.$('.sheet')) await page.waitForFunction(() => !document.querySelector('.sheet'));
+  await chooser.setFiles({ name: name || 'outfit.jpg', mimeType: 'image/jpeg', buffer });
+}
+
+async function runCheck(page, opts) {
+  await go(page, '#/check');
+  await page.waitForSelector('#photo');
+  if (opts.intent) await page.click(`.chip[data-intent=${opts.intent}]`);
+  await choosePhoto(page, '#photo', opts.buffer);
+  await page.waitForSelector('#photo img');
+  await page.waitForFunction(() => !document.getElementById('submit').disabled);
+  if (opts.occasion) await page.fill('#occasion', opts.occasion);
+  if (opts.beforeSubmit) await opts.beforeSubmit();
+  await page.click('#submit');
+  await page.waitForSelector('#result .score', { timeout: 30000 });
+  await page.waitForFunction((s) => document.querySelector('#result .score').textContent === s, String(opts.score), { timeout: 5000 });
+}
+
+async function postIt(page, opts) {
+  await page.click('#post-open');
+  await page.waitForSelector('#post-confirm');
+  if (opts.caption) await page.fill('#caption', opts.caption);
+  if (opts.products) {
+    const inputs = await page.$$('.products-grid input');
+    assert.strictEqual(inputs.length, 9, 'three product rows for a brand');
+    for (const [i, p] of opts.products.entries()) {
+      await inputs[i * 3].fill(p.label);
+      await inputs[i * 3 + 1].fill(p.url);
+      if (p.price) await inputs[i * 3 + 2].fill(p.price);
+    }
+  }
+  await page.click('#post-confirm');
+  await page.waitForSelector('#post-link');
+  return (await page.getAttribute('#post-link', 'href')).replace('#/post/', '');
+}
+
+(async () => {
+  start('python3', [path.join(ROOT, 'stub_anthropic.py'), String(STUB_PORT)], {}, path.join(DATA, 'stub.log'));
+  start('dotnet', ['run', '--no-build', '--project', REPO], {
+    ASPNETCORE_URLS: `http://127.0.0.1:${API_PORT}`,
+    ANTHROPIC_API_KEY: 'stub-key-not-real',
+    Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
+    ConnectionStrings__Default: `Data Source=${DB}`,
+    Storage__Root: path.join(DATA, 'storage'),
+    Email__Host: 'log',
+    Plans__FreeChecksPerDay: '5',
+    Board__NewAccountDays: '0',
+    Board__MinChecksToCount: '1',
+    Board__CacheSeconds: '0',
+    Email__From: 'OREVOSH <noreply@example.test>',
+  }, path.join(DATA, 'api.log'));
+
+  await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
+  await waitFor(`${base}/api/metrics/pilot`);
+  const stubState = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
+  assert.deepStrictEqual(stubState, [], `port ${STUB_PORT} is served by a stale stub with ${stubState.length} recorded requests; kill it first`);
+
+  // A fake camera and microphone stand in for the phone's, so the in-app camera and the clip recorder run for real.
+  const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+  const noa = await person(browser, 'noa', 'en-US');
+  const brand = await person(browser, 'brand', 'en-US');
+  const dan = await person(browser, 'dan', 'he-IL');
+  const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, name + '.png'), fullPage: true });
+
+  step = '1';
+  // 1. PWA surface and a signed-out visitor with a Hebrew browser: OREVOSH wordmark, RTL, empty feed, Explore, sign-in prompts.
+  const manifest = await get(`${base}/manifest.webmanifest`);
+  assert.strictEqual(manifest.status, 200);
+  assert.strictEqual(JSON.parse(manifest.body.toString()).name, 'OREVOSH');
+  assert.strictEqual((await get(`${base}/sw.js`)).status, 200);
+  assert.strictEqual((await get(`${base}/icons/icon-192.png`)).headers['content-type'], 'image/png');
+  expected.push('GET /api/auth/me -> 401');
+  await dan.goto(base + '/');
+  await dan.waitForSelector(settled);
+  assert.strictEqual(await dan.getAttribute('html', 'lang'), 'he');
+  assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
+  assert.strictEqual(await text(dan, '.wordmark'), 'OREVOSH');
+  assert.strictEqual(await dan.getAttribute('meta[name="apple-mobile-web-app-capable"]', 'content'), 'yes');
+  assert.strictEqual(await text(dan, '.tab[data-tab=home] span'), 'בית');
+  assert.strictEqual(await text(dan, '.tab[data-tab=explore] span'), 'גילוי');
+  assert.strictEqual(await text(dan, '#top-auth'), 'הצטרפות');
+  await dan.waitForSelector('#view .empty');
+  await shot(dan, '01-home-empty-he');
+  await go(dan, '#/explore');
+  assert.strictEqual(await text(dan, '#view h1'), 'גילוי');
+  await dan.waitForSelector('#search');
+  await shot(dan, '02-explore-empty-he');
+  // A visitor checks first and signs up later: one guest check, then the result offers to keep it.
+  await go(dan, '#/check');
+  await dan.waitForSelector('#guest-banner');
+  assert.strictEqual(await text(dan, '#guest-banner h3'), 'קודם מנסים');
+  await dan.click('.chip[data-intent=Casual]');
+  await choosePhoto(dan, '#photo', await makeJpeg(dan, 900, 1200));
+  await dan.waitForFunction(() => !document.getElementById('submit').disabled);
+  await dan.click('#submit');
+  await dan.waitForSelector('#result .score', { timeout: 30000 });
+  await dan.waitForSelector('#guest-keep');
+  assert.strictEqual(await count(dan, '#post-open'), 0, 'a guest cannot post');
+  await shot(dan, '00-guest-result-he');
+  expected.push('POST /api/checks -> 429');
+  const secondGuest = await dan.request.post(base + '/api/checks', { headers: { 'X-Requested-With': 'Orevosh' }, multipart: { intent: 'Casual', language: 'he', image: { name: 'outfit.jpg', mimeType: 'image/jpeg', buffer: await makeJpeg(dan, 300, 400) } } });
+  assert.strictEqual(secondGuest.status(), 429, 'one free look per guest');
+  await go(dan, '#/feed/following');
+  assert.strictEqual(await text(dan, '.notice h3'), 'צריך להתחבר בשביל זה');
+
+  step = '2';
+  // 2. Noa signs up (handle, password, 16+ only) and lands on the welcome screen: styles, no brands yet, done.
+  await noa.goto(base + '/');
+  await noa.waitForSelector(settled);
+  assert.strictEqual(await noa.getAttribute('html', 'lang'), 'en');
+  await go(noa, '#/signup');
+  await noa.waitForSelector('#a-handle');
+  assert.strictEqual(await count(noa, '#a-brand'), 0, 'no brand question at signup');
+  assert.strictEqual(await count(noa, '#a-name'), 0, 'no display name at signup');
+  assert.strictEqual(await count(noa, '#a-guidelines'), 1, 'the community guidelines are one tap from signup');
+  await noa.fill('#a-handle', 'noa');
+  await noa.fill('#a-password', 'password123');
+  await shot(noa, '03-signup-en');
+  expected.push('POST /api/auth/signup -> 400');
+  expected.push('POST /api/auth/signup -> 400');
+  await noa.click('#a-submit');
+  await noa.waitForSelector('form .alert:not([hidden])');
+  assert.strictEqual(await text(noa, 'form .alert'), 'Add your date of birth.');
+  assert.strictEqual(await count(noa, '#a-age'), 0, 'the 16+ checkbox is gone: the date decides');
+  assert.strictEqual(await count(noa, '#a-agree #a-terms'), 1, 'terms are one tap from signup');
+  assert.strictEqual(await count(noa, '#a-agree #a-privacy'), 1, 'privacy is one tap from signup');
+  await noa.fill('#a-dob', '2015-01-01');
+  await noa.click('#a-submit');
+  await noa.waitForFunction(() => document.querySelector('form .alert') && !document.querySelector('form .alert').hidden && document.querySelector('form .alert').textContent.includes('16'));
+  await noa.fill('#a-dob', '1990-01-01');
+  await noa.click('#a-submit');
+  await noa.waitForFunction(() => location.hash === '#/welcome');
+  await noa.waitForSelector('.chip[data-intent]');
+  assert.strictEqual(await text(noa, '#view h1'), 'Welcome to OREVOSH');
+  await noa.click('.chip[data-intent=Date]');
+  await noa.click('.chip[data-intent=Streetwear]');
+  await shot(noa, '04-welcome-en');
+  await noa.click('button:has-text("Take me in")');
+  await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await noa.waitForSelector(settled);
+  assert.deepStrictEqual((await me(noa)).interests.sort(), ['Date', 'Streetwear']);
+  assert.strictEqual(await noa.getAttribute('.tab[data-tab=home]', 'aria-current'), 'page');
+  // The owner makes Noa a moderator with the --admin command, after the account exists; the client sees it on its next load.
+  assert.ok(/noa/.test(maintenance('--admin', 'noa')), '--admin reports the handle');
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).isAdmin, true, 'promoted');
+
+  step = '3';
+  // 3. NEXOR signs up, skips the welcome, becomes a brand in settings and uploads an avatar.
+  await brand.goto(base + '/');
+  await brand.waitForSelector(settled);
+  await signup(brand, 'nexor', 'password123');
+  await brand.click('button:has-text("Skip")');
+  await brand.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await go(brand, '#/settings');
+  await brand.waitForSelector('#s-save');
+  await brand.fill('#s-name', 'NEXOR');
+  await brand.fill('#s-web', 'https://nexor.example');
+  await brand.check('#s-brand');
+  await brand.click('#s-save');
+  await brand.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+  await brand.waitForFunction(async () => true);
+  assert.ok(/nexor/.test(maintenance('--admin', 'nexor')), 'a second moderator, for the metrics after Noa leaves');
+  const brandMe = await me(brand);
+  assert.strictEqual(brandMe.accountType, 'Brand');
+  assert.strictEqual(brandMe.name, 'NEXOR');
+  const avatarJpeg = await makeJpeg(brand, 600, 800);
+  await choosePhoto(brand, 'button:has-text("Change photo")', avatarJpeg, 'me.jpg');
+  await brand.waitForFunction(() => !!document.querySelector('#view .avatar img'));
+  const avatarUrl = await brand.getAttribute('#view .avatar img', 'src');
+  assert.match(avatarUrl, /^\/api\/users\/nexor\/avatar\?v=\d+$/, avatarUrl);
+  const avatarResponse = await get(base + avatarUrl);
+  assert.strictEqual(avatarResponse.status, 200);
+  assert.strictEqual(avatarResponse.headers['content-type'], 'image/jpeg');
+  assert.ok(avatarResponse.headers['cache-control'].includes('public'));
+  await shot(brand, '05-settings-brand-en');
+  await go(brand, '#/me');
+  await brand.waitForSelector('.profile-head');
+  assert.strictEqual(await text(brand, '.profile-head .brand-mark'), 'Brand');
+  assert.ok(await brand.$('.profile-head .avatar img'), 'avatar shown on the profile');
+  assert.strictEqual(await count(brand, '.profile-tabs button'), 3, 'brands get Looks, Community and Featured');
+  await shot(brand, '06-profile-brand-en');
+
+  step = '4';
+  // 4. Noa checks a look and posts it with a #tag and an @mention of the brand.
+  const bigJpeg = await makeJpeg(noa, 1800, 2400);
+  assert.strictEqual((await getJson(`${base}/api/config`)).plans.freeChecksPerDay, 5);
+  await go(noa, '#/check');
+  await noa.waitForSelector('#checks-left');
+  assert.strictEqual(await text(noa, '#checks-left'), '5 of 5 checks left today');
+  assert.strictEqual(await count(noa, '#which-one'), 1, 'the comparison is one tap from the check');
+  await runCheck(noa, { intent: 'Date', occasion: 'dinner with friends', buffer: bigJpeg, score: 7, beforeSubmit: () => shot(noa, '07-check-ready-en') });
+  assert.strictEqual(await text(noa, '.result-headline'), 'Clean casual with one weak link');
+  assert.deepStrictEqual(await noa.$$eval('.item-verdict', (n) => n.map((x) => x.textContent)), ['Works', 'Neutral', 'Weak']);
+  assert.strictEqual(await noa.getAttribute('.bar', 'aria-valuenow'), '72');
+  // Rubric v2: three rings and the accessories read, with the one piece that would finish the look.
+  assert.deepStrictEqual(await noa.$$eval('#breakdown ul.breakdown li .score-badge b', (n) => n.map((x) => x.textContent)), ['7', '8', '4']);
+  assert.deepStrictEqual(await noa.$$eval('#breakdown .breakdown-label', (n) => n.map((x) => x.textContent)), ['Fit', 'Color', 'Accessories']);
+  assert.strictEqual(await text(noa, '#accessories .acc-verdict'), 'No accessories');
+  assert.strictEqual(await count(noa, '#accessories .acc-verdict.missing'), 1);
+  assert.ok((await text(noa, '#accessories .acc-add')).includes('A thin black leather belt.'));
+  await shot(noa, '08-result-en');
+  await noa.click('#post-open');
+  await noa.waitForSelector('#post-confirm');
+  // Items: the stylist's pieces are rows on the sheet; the running shoes carry a brand guess that is never sent unconfirmed.
+  await noa.waitForSelector('#items-editor');
+  assert.ok((await count(noa, '#items-list > li.items-row[data-source=Stylist]')) >= 2, 'the stylist\'s items are rows');
+  await noa.waitForSelector('.items-suggest[data-brand="Nike"]:not([hidden])');
+  const shoesKey = await noa.$eval('.items-suggest[data-brand="Nike"]', (n) => n.closest('li.items-row').dataset.key);
+  await noa.click('.items-suggest[data-brand="Nike"] button[data-action=confirm]');
+  await noa.waitForFunction((k) => /Nike/.test(document.querySelector('li.items-row[data-key="' + k + '"] .txt').textContent), shoesKey);
+  await noa.click('li.items-row[data-key="' + shoesKey + '"] button.items-place');
+  await noa.waitForSelector('#items-photo.placing');
+  const box = await noa.$eval('#items-photo', (n) => { const r = n.getBoundingClientRect(); return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.75 }; });
+  await noa.mouse.click(box.x, box.y);
+  await noa.waitForSelector('li.items-row.placed');
+  await shot(noa, '35-items-editor-en');
+  assert.strictEqual(await count(noa, '.products-grid'), 0, 'people do not get product links');
+  await noa.fill('#caption', 'Dinner fit, thoughts? #datenight #DateNight @nexor @nobody');
+  await shot(noa, '09-post-sheet-en');
+  await noa.click('#post-confirm');
+  await noa.waitForSelector('#post-link');
+  const post1 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
+  await go(noa, '#/post/' + post1);
+  await noa.waitForSelector('#look-items:not([hidden]) li[data-item]');
+  const taggedShoes = await noa.$eval('#look-items li[data-item] button.look-item.placed .txt', (n) => n.textContent);
+  assert.ok(/Nike/.test(taggedShoes), 'the confirmed brand shows on the look: ' + taggedShoes);
+  await noa.waitForSelector('#items-toggle');
+  await noa.click('#items-toggle');
+  await noa.waitForSelector('#item-dots:not([hidden]) .item-dot[data-item]');
+  await noa.click('#item-dots .item-dot[data-item]');
+  await noa.waitForSelector('#item-sheet');
+  assert.ok((await text(noa, '#item-sheet')).includes('Nike'), 'the item sheet names the brand');
+  await shot(noa, '36-item-sheet-en');
+  await noa.keyboard.press('Escape');
+  await noa.waitForSelector('.sheet', { state: 'detached' });
+  // The item pages: looks with Nike, and the brands list.
+  const nikeLooks = await (await get(base + '/api/items?brand=nike')).body.toString('utf8');
+  assert.ok(nikeLooks.includes(post1), 'the look is found by its brand');
+  const brands = JSON.parse((await get(base + '/api/items/brands?q=ni')).body.toString('utf8'));
+  assert.ok(brands.items.some((b) => b.name === 'Nike'), 'Nike is a brand people wear');
+  await go(noa, '#/items/Nike');
+  await noa.waitForSelector('#view .grid a, #view .card');
+  await shot(noa, '37-items-page-en');
+  await go(noa, '#/post/' + post1);
+  await noa.waitForSelector('#view .card');
+  assert.strictEqual(await text(noa, '.card .headline'), 'Clean casual with one weak link');
+  // @nobody is not an account, so it stays plain text; the tags and the brand become links.
+  assert.deepStrictEqual(await noa.$$eval('.card .caption a', (n) => n.map((x) => x.getAttribute('href'))), ['#/tag/datenight', '#/tag/datenight', '#/u/nexor']);
+  assert.ok((await text(noa, '.card .caption')).includes('@nobody'));
+  await noa.waitForSelector('.person');
+  assert.strictEqual(await text(noa, '.person .name'), 'NEXORBrand', 'tagged brand listed');
+  assert.strictEqual(await text(noa, '.card .score-badge'), '7/10');
+  assert.deepStrictEqual(await noa.$$eval('#post-breakdown .score-badge b', (n) => n.map((x) => x.textContent)), ['7', '8', '4'], 'the breakdown is public with the score');
+  await shot(noa, '10-post-en');
+
+  step = '5';
+  // 5. The brand is told, features the look, and its Community and Featured tabs fill up; Noa is told back.
+  await go(brand, '#/activity');
+  await brand.waitForSelector('.activity li a[href]');
+  assert.deepStrictEqual(await brand.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent)), ['noa tagged you in a look']);
+  await go(brand, '#/post/' + post1);
+  await brand.waitForSelector('.menu-open');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  await brand.click('.sheet button:has-text("Feature this look")');
+  await brand.waitForSelector('.card .featured');
+  assert.strictEqual(await text(brand, '.card .featured'), 'Featured by NEXOR');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  assert.strictEqual(await count(brand, '.sheet button:has-text("Remove from featured")'), 1);
+  await brand.keyboard.press('Escape');
+  await brand.waitForFunction(() => !document.querySelector('.sheet'));
+  await shot(brand, '11-featured-en');
+  await go(brand, '#/u/nexor/community');
+  await brand.waitForSelector('.grid a');
+  assert.strictEqual(await count(brand, '.grid a'), 1);
+  assert.strictEqual(await brand.getAttribute('.profile-tabs button:nth-child(2)', 'aria-selected'), 'true');
+  await go(brand, '#/u/nexor/featured');
+  await brand.waitForSelector('.grid a');
+  assert.strictEqual(await count(brand, '.grid a'), 1);
+  await shot(brand, '12-brand-community-en');
+  await go(noa, '#/activity');
+  await noa.waitForSelector('.activity li a[href]');
+  assert.deepStrictEqual(await noa.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent)), ['NEXOR featured your look']);
+  await go(noa, '#/u/noa');
+  await noa.waitForSelector('.profile-tabs');
+  assert.strictEqual(await count(noa, '.profile-tabs button'), 2, 'a featured person gets a Featured tab');
+
+  step = '6';
+  // 6. Explore, signed out: trending tag, the brand, the top look, search, the tag page.
+  await go(dan, '#/explore');
+  await dan.waitForSelector('a[href="#/tag/datenight"]');
+  assert.ok((await text(dan, 'a[href="#/tag/datenight"]')).includes('#datenight'));
+  await dan.waitForSelector('.brand-card');
+  assert.strictEqual(await text(dan, '.brand-card .name'), 'NEXOR');
+  assert.strictEqual(await count(dan, 'a.x-hero'), 1, 'the week\'s top look is the Explore hero');
+  await shot(dan, '13-explore-he');
+  await dan.fill('#search', 'nex');
+  await dan.press('#search', 'Enter');
+  await dan.waitForFunction(() => location.hash === '#/search/nex');
+  await dan.waitForSelector('.person');
+  assert.strictEqual(await text(dan, '.person .name'), 'NEXORמותג');
+  await go(dan, '#/search/date');
+  await dan.waitForSelector('a[href="#/tag/datenight"]');
+  await go(dan, '#/tag/datenight');
+  await dan.waitForSelector('#view .card');
+  assert.strictEqual(await count(dan, '#view .card'), 1);
+  assert.strictEqual(await text(dan, '.card .featured'), 'הוצג על ידי NEXOR');
+  await shot(dan, '14-tag-he');
+
+  step = '7';
+  // 7. Dan signs up in Hebrew, follows the brand from the welcome screen, sees the look in For you, double-taps to fire.
+  await signup(dan, 'dan', 'password123');
+  const claimed = await dan.request.get(base + '/api/users/me/checks').then((r) => r.json());
+  assert.strictEqual(claimed.length, 1, 'the guest check now belongs to dan');
+  await dan.waitForSelector('.person');
+  assert.strictEqual(await text(dan, '.person .name'), 'NEXORמותג');
+  await dan.click('.person .btn');
+  await dan.waitForFunction(() => document.querySelector('.person .btn').getAttribute('aria-pressed') === 'true');
+  await dan.click('.chip[data-intent=Date]');
+  await shot(dan, '15-welcome-he');
+  await dan.click('button:has-text("קחו אותי פנימה")');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector('#view .card');
+  assert.strictEqual(await count(dan, '#view .card'), 1);
+  assert.strictEqual(await text(dan, '.segment[aria-pressed="true"]'), 'בשבילך');
+  const photo = await dan.$('.card .card-photo');
+  await photo.tap(); await photo.tap();
+  await dan.waitForFunction(() => document.querySelector('.card .action.fire').getAttribute('aria-pressed') === 'true');
+  assert.strictEqual(await text(dan, '.card .action.fire .count'), '1');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '', null, { timeout: 2000 });
+  assert.ok(!(await hash(dan)).startsWith('#/post/'), 'double tap must not open the look');
+  await shot(dan, '16-home-he');
+  await go(dan, '#/feed/following');
+  await dan.waitForSelector('#view .empty');
+  await go(dan, '#/u/noa');
+  await dan.waitForSelector('#follow, .profile-head');
+  await dan.click('#follow');
+  await dan.waitForFunction(() => !!document.querySelector('button[aria-pressed="true"].btn'));
+  await go(dan, '#/feed/following');
+  await dan.waitForSelector('#view .card');
+
+  step = '8';
+  // 8. A challenge from brief to winner, now reached through Explore.
+  await go(brand, '#/explore');
+  await brand.waitForSelector('a[href="#/challenges"]');
+  await brand.click('a[href="#/challenges"]');
+  await brand.waitForSelector('a[href="#/new-challenge"]');
+  await brand.click('a[href="#/new-challenge"]');
+  await brand.waitForSelector('#nc-submit');
+  await brand.fill('#nc-title', 'Date night in black');
+  assert.strictEqual(await brand.inputValue('#nc-tag'), '#datenightinblack', 'the hashtag follows the title');
+  await brand.fill('#nc-tag', '#blackdate');
+  await brand.click('.chip:has-text("Date")');
+  await brand.fill('#nc-brief', 'All-black date looks. Texture over logos.');
+  await brand.fill('#nc-prize', 'A black shirt of your choice');
+  await brand.click('#nc-submit');
+  await brand.waitForFunction(() => /^#\/challenge\/[0-9a-f-]{36}$/.test(location.hash));
+  const challengeId = (await hash(brand)).replace('#/challenge/', '');
+  await brand.waitForSelector('.challenge-title');
+  assert.strictEqual(await text(brand, '.challenge-meta a.tag.accent'), '#blackdate');
+  await shot(brand, '17-challenge-en');
+  // Entering is the hashtag: the button pre-fills it in the caption, no picker, no intent lock.
+  await go(noa, '#/challenge/' + challengeId);
+  await noa.waitForSelector('button[data-enter]');
+  assert.strictEqual(await text(noa, 'button[data-enter]'), 'Post a look with #blackdate');
+  await noa.click('button[data-enter]');
+  await noa.waitForSelector('#photo');
+  assert.strictEqual(await noa.isDisabled('.chip[data-intent=Casual]'), false, 'any intent can enter');
+  await runCheck(noa, { buffer: bigJpeg, score: 7 });
+  await noa.click('#post-open');
+  await noa.waitForSelector('#post-confirm');
+  assert.strictEqual(await noa.inputValue('#caption'), '#blackdate ', 'the hashtag is pre-filled');
+  assert.strictEqual(await count(noa, '#challenge-pick'), 0, 'no challenge picker');
+  await noa.fill('#caption', '#blackdate Black on black');
+  // "After the tip": her one earlier look is offered; picking it marks this look as the follow-up.
+  await noa.waitForSelector('#after-picker:not([hidden])');
+  assert.strictEqual(await count(noa, '#after-picker .after-opt.look'), 1, 'one earlier look to follow up on');
+  assert.strictEqual(await noa.getAttribute('#after-picker .after-opt.none', 'aria-checked'), 'true', 'not a follow-up by default');
+  await noa.click('#after-picker .after-opt.look');
+  await noa.waitForFunction(() => document.querySelector('#after-picker .after-opt.look').getAttribute('aria-checked') === 'true');
+  await shot(noa, '33-after-picker-en');
+  await noa.click('#post-confirm');
+  await noa.waitForSelector('#post-link');
+  const post2 = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
+  await go(noa, '#/post/' + post2);
+  await noa.waitForSelector('a.after-strip');
+  assert.strictEqual(await noa.getAttribute('a.after-strip', 'href'), '#/post/' + post1, 'the strip links the earlier look');
+  assert.ok((await text(noa, 'a.after-strip')).startsWith('After the tip'), 'the strip names the follow-up');
+  await go(dan, '#/challenge/' + challengeId);
+  await dan.waitForSelector('.lb-row .vote');
+  await dan.click('.lb-row .vote');
+  await dan.waitForFunction(() => document.querySelector('.lb-row .vote') && document.querySelector('.lb-row .vote').getAttribute('aria-pressed') === 'true');
+  await shot(dan, '18-vote-he');
+  const changed = execFileSync('python3', ['-c', [
+    'import sqlite3, sys',
+    'c = sqlite3.connect(sys.argv[1])',
+    "n = c.execute(\"update Challenges set EndsAt = strftime('%Y-%m-%d %H:%M:%S', 'now', '-1 hour')\").rowcount",
+    'c.commit(); print(n)'].join('\n'), DB]).toString().trim();
+  assert.strictEqual(changed, '1');
+  await go(dan, '#/challenge/' + challengeId);
+  await dan.waitForSelector('.lb-row.winner');
+  assert.strictEqual(await count(dan, '.card[data-post="' + post2 + '"]'), 1, 'winner card shown');
+  await go(noa, '#/activity');
+  await noa.waitForSelector('.activity li a[href]');
+  assert.ok((await noa.$$eval('.activity li a[href] > div:first-child', (n) => n.map((x) => x.textContent))).includes("You won NEXOR's challenge"));
+  // The brand features the winning entry through the challenge route (no mention needed).
+  await go(brand, '#/post/' + post2);
+  await brand.waitForSelector('.menu-open');
+  await brand.click('.menu-open');
+  await brand.waitForSelector('.sheet');
+  await brand.click('.sheet button:has-text("Feature this look")');
+  await brand.waitForSelector('.card .featured');
+
+  step = '9';
+  // 9. Photos: the post image route and the avatar route are the only doors; nothing under storage is reachable by path.
+  assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 200);
+  const storage = path.join(DATA, 'storage');
+  const files = [];
+  for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) files.push(user + '/' + f);
+  assert.strictEqual(files.length, 4, 'three OK checks (one claimed from a guest) plus one avatar: ' + files.join(','));
+  for (const rel of files) {
+    for (const url of [`${base}/${rel}`, `${base}/storage/${rel}`, `${base}/wwwroot/${rel}`]) {
+      assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
+    }
+  }
+  assert.strictEqual((await get(`${base}/api/metrics/pilot`)).status, 401, 'the pilot metrics need a session');
+  assert.strictEqual((await dan.request.get(base + '/api/metrics/pilot')).status(), 403, 'and a moderator');
+  const metrics = await metricsAs(noa);
+  assert.strictEqual(metrics.social.mentions, 1);
+  assert.strictEqual(metrics.social.featured, 2);
+  assert.strictEqual(metrics.social.brands, 1);
+
+  step = '10';
+  // 10. The in-app camera (a fake device here): a photo, then a clip in clip mode; the frame is picked, the stylist judges
+  //     that still, the story card draws, the clip posts, streams with Range, and plays in the feed with its pill.
+  await go(noa, '#/check');
+  await noa.waitForSelector('#photo');
+  await noa.click('#photo');
+  await noa.waitForSelector('#media-camera');
+  await noa.click('#media-camera');
+  await noa.waitForSelector('.cam[data-phase="live"]', { timeout: 20000 });
+  assert.strictEqual(await hash(noa), '#/camera');
+  assert.strictEqual(await noa.isVisible('.tabbar'), false, 'the dock stays out of the viewfinder');
+  await shot(noa, '19-camera-en');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="preview"]');
+  await noa.click('#cam-use');
+  await noa.waitForFunction(() => location.hash === '#/check');
+  await noa.waitForSelector('#photo.has-image img');
+  await noa.click('#photo');
+  await noa.waitForSelector('#media-camera');
+  await noa.click('#media-camera');
+  await noa.waitForSelector('.cam[data-phase="live"]', { timeout: 20000 });
+  await noa.click('.cam-modes button:nth-child(2)');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="recording"]');
+  await noa.waitForTimeout(1600);
+  await shot(noa, '20-recording-en');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="preview"]', { timeout: 20000 });
+  await noa.click('#cam-use');
+  await noa.waitForFunction(() => location.hash === '#/check');
+  await noa.waitForSelector('#photo.has-clip video');
+  await noa.waitForSelector('#clip-frame');
+  await noa.click('.chip[data-intent=Streetwear]');
+  // Pick a frame in the middle of the clip: the slider seeks, and the change captures that frame as the still.
+  await noa.$eval('#clip-frame', (range) => {
+    range.value = String(Math.round(Number(range.max) / 2));
+    range.dispatchEvent(new Event('input', { bubbles: true }));
+    range.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await noa.waitForFunction(() => !document.getElementById('submit').disabled, null, { timeout: 15000 });
+  await shot(noa, '21-check-clip-en');
+  await noa.click('#submit');
+  await noa.waitForSelector('#result .score', { timeout: 30000 });
+  await noa.click('#share-card');
+  await noa.waitForSelector('#sc-card');
+  await noa.waitForFunction(() => { const i = document.getElementById('sc-card'); return !!i && i.complete && i.naturalWidth === 1080 && i.naturalHeight === 1920; }, null, { timeout: 30000 });
+  assert.ok((await noa.getAttribute('#sc-save', 'href')).startsWith('blob:'), 'the card is a saved image');
+  await shot(noa, '22-share-card-en');
+  await noa.keyboard.press('Escape');
+  await noa.waitForFunction(() => !document.querySelector('.sheet'));
+  const post3 = await postIt(noa, { caption: 'Filmed in the app #clip' });
+  const clipPost = await noa.request.get(base + '/api/posts/' + post3).then((r) => r.json());
+  assert.strictEqual(clipPost.videoUrl, '/api/posts/' + post3 + '/video');
+  const clipHead = await noa.request.get(base + clipPost.videoUrl, { headers: { Range: 'bytes=0-3' } });
+  assert.strictEqual(clipHead.status(), 206, 'a <video> seeks with Range');
+  assert.match(clipHead.headers()['content-range'], /^bytes 0-3\/\d+$/);
+  assert.match(clipHead.headers()['content-type'], /^video\//);
+  assert.strictEqual((await get(`${base}${clipPost.videoUrl}`)).status, 200, 'a public look\'s clip plays signed out');
+  // ffmpeg is on this machine, so the worker re-encodes the WebM to H.264 MP4 at the same URL within seconds.
+  assert.strictEqual((await getJson(`${base}/api/config`)).transcoding, true, 'transcoding is on');
+  const transcodeStart = Date.now();
+  let clipType = '';
+  while (Date.now() - transcodeStart < 60000) {
+    clipType = (await get(`${base}${clipPost.videoUrl}`)).headers['content-type'] || '';
+    if (clipType.startsWith('video/mp4')) break;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  assert.ok(clipType.startsWith('video/mp4'), 'the clip became MP4: ' + clipType);
+  const mp4Bytes = (await get(`${base}${clipPost.videoUrl}`)).body;
+  assert.strictEqual(mp4Bytes.subarray(4, 8).toString('latin1'), 'ftyp', 'an MP4 container');
+  // Home keeps its last list for ten minutes; a reload is the honest way to see what was posted since.
+  await go(dan, '#/');
+  await dan.reload();
+  await dan.waitForSelector('.card.has-clip', { timeout: 30000 });
+  assert.strictEqual(await count(dan, '.card.has-clip .clip-pill'), 1, 'clips are marked');
+  assert.ok(await dan.$('.card.has-clip video[poster]'), 'the picked frame is the poster');
+  assert.strictEqual(await count(dan, '.card.has-clip .card-media .sound'), 1, 'a sound toggle');
+  await shot(dan, '23-clip-card-he');
+  await go(dan, '#/u/noa');
+  await dan.waitForSelector('.grid a');
+  assert.strictEqual(await count(dan, '.grid a.is-clip'), 1, 'the grid marks the clip');
+  const clipFiles = [];
+  for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) clipFiles.push(user + '/' + f);
+  assert.strictEqual(clipFiles.length, 6, 'the clip and its still joined the store: ' + clipFiles.join(','));
+  assert.ok(clipFiles.some((f) => /\.mp4$/.test(f)) && !clipFiles.some((f) => /\.webm$/.test(f)), 'the MP4 replaced the WebM on disk: ' + clipFiles.join(','));
+  for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
+    assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);
+  }
+  assert.strictEqual((await metricsAs(noa)).social.videos, 1);
+
+  // "Which one?": two photos, one verdict (the stub picks B), then the insights over Noa's checks and a search by piece.
+  await go(noa, '#/compare');
+  await noa.waitForSelector('#cmp-slot-a');
+  await noa.click('.chip[data-intent=Party]');
+  await choosePhoto(noa, '#cmp-slot-a', await makeJpeg(noa, 800, 1000), 'a.jpg');
+  await choosePhoto(noa, '#cmp-slot-b', await makeJpeg(noa, 800, 1000), 'b.jpg');
+  await noa.waitForFunction(() => !document.getElementById('cmp-submit').disabled);
+  await noa.click('#cmp-submit');
+  await noa.waitForSelector('#cmp-result .cmp-winner', { timeout: 30000 });
+  assert.strictEqual(await noa.getAttribute('#cmp-result .cmp-winner', 'data-side'), 'b');
+  await shot(noa, '28-compare-en');
+  await go(noa, '#/u/noa');
+  await noa.waitForSelector('#insights-link');
+  await noa.click('#insights-link');
+  await noa.waitForSelector('#insights-body');
+  await shot(noa, '29-insights-en');
+  await go(dan, '#/search/running');
+  await dan.waitForSelector('#search-looks .grid a');
+  assert.ok((await count(dan, '#search-looks .grid a')) >= 1, 'looks are found by the pieces in them');
+  // Pro: switched on by hand on this server (no Stripe keys), and the settings row says so.
+  await go(noa, '#/pro');
+  await noa.waitForSelector('#pro-manual');
+  assert.ok(/noa/.test(maintenance('--pro', 'noa', '1')), '--pro reports the handle');
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).plan, 'pro');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#s-plan');
+  assert.ok(await noa.$('#s-plan .pro-badge, #s-plan .badge, #s-plan b'), 'the plan row');
+  await go(noa, '#/pro');
+  await noa.waitForSelector('#pro-current');
+  await shot(noa, '30-pro-en');
+
+  // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
+  await go(noa, '#/feed');
+  await noa.reload();
+  await noa.waitForSelector('#today-strip');
+  const todayTag = await noa.$eval('#today-strip', (n) => n.dataset.tag || (n.querySelector('#today-title') && n.querySelector('#today-title').textContent) || '');
+  assert.ok(todayTag, 'the strip names today\'s prompt');
+  await noa.click('#today-post');
+  await noa.waitForSelector('#challenge-banner');
+  assert.ok((await text(noa, '#challenge-banner')).startsWith('Entering: '), 'the daily prompt is entered like a challenge');
+  await go(noa, '#/today');
+  await noa.waitForSelector('.today-page');
+  await noa.waitForSelector('.today-count, .empty');
+  await shot(noa, '34-today-en');
+  await noa.reload();                                   // drops the entered prompt so later captions start clean
+  await noa.waitForSelector(settled);
+
+  // Verified brands: the owner runs --verify; the check sits inside the brand mark on the profile and on the cards.
+  assert.ok(/nexor/.test(maintenance('--verify', 'nexor')), '--verify reports the handle');
+  await go(brand, '#/u/nexor');
+  await brand.reload();
+  await brand.waitForSelector('.profile-head .brand-mark.verified');
+  await go(dan, '#/search/nexor');
+  await dan.reload();
+  await dan.waitForSelector('.person .brand-mark.verified');
+  assert.ok(/nexor/.test(maintenance('--unverify', 'nexor')), '--unverify reports the handle');
+  await brand.reload();
+  await brand.waitForSelector('.profile-head .brand-mark');
+  assert.strictEqual(await count(brand, '.profile-head .brand-mark.verified'), 0, 'the check goes with the flag');
+  // The numbers page: a moderator's dashboard of the pilot metrics; a person gets the refusal.
+  await go(noa, '#/admin/metrics');
+  await noa.waitForSelector('#dash-return');
+  assert.ok((await count(noa, '#dash-scores li')) >= 1, 'the score distribution has bars');
+  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 14);
+  await shot(noa, '31-numbers-en');
+  expected.push('GET /api/metrics/pilot -> 403');
+  await go(dan, '#/admin/metrics');
+  await dan.waitForSelector('#dash-forbidden');
+  // Terms and privacy: ten sections each, a version line, the cross link; Hebrew is native copy.
+  await go(dan, '#/terms');
+  await dan.waitForSelector('#lg-terms');
+  assert.strictEqual(await count(dan, '#lg-terms > li'), 10);
+  assert.ok((await text(dan, '#lg-version')).includes('2'), 'the version line');
+  await shot(dan, '32-terms-he');
+  await dan.click('#lg-other');
+  await dan.waitForSelector('#lg-privacy');
+  assert.strictEqual(await count(dan, '#lg-privacy > li'), 10);
+  await go(noa, '#/privacy');
+  await noa.waitForSelector('#lg-privacy');
+  assert.strictEqual(await count(noa, '#lg-privacy > li'), 10);
+  // The launch files: the landing pages are static documents and the link-preview card is served.
+  for (const [path, needle] of [['/landing/', 'Check the look.'], ['/landing/index.he.html', 'בודקים את הלוק.']]) {
+    const r = await get(base + path);
+    assert.strictEqual(r.status, 200, path);
+    assert.ok((r.headers['content-type'] || '').includes('text/html'), path + ' is html');
+    assert.ok(r.body.toString('utf8').includes(needle), path + ' carries the slogan');
+  }
+  const og = await get(base + '/brand/og-1200x630.png');
+  assert.strictEqual(og.status, 200);
+  assert.strictEqual(og.headers['content-type'], 'image/png');
+  const shellHtml = (await get(base + '/')).body.toString('utf8');
+  assert.ok(shellHtml.includes('og:image') && shellHtml.includes('twitter:card'), 'the shell carries the link-preview tags');
+
+  // The weekly board: Dan's fire counted (he has a check; new accounts count in this run), so the looks board has rows.
+  await go(dan, '#/board');
+  await dan.waitForSelector('#board-tabs');
+  await dan.waitForSelector('.board-row[data-rank], #board-panel .empty');
+  assert.ok((await count(dan, '.board-row[data-rank]')) >= 1, 'a look is on this week\'s board');
+  assert.strictEqual(await count(dan, '.board-row[data-rank="1"] .rank-medal.top'), 1, 'first place wears the medal');
+  await shot(dan, '38-board-he');
+  await dan.click('#board-tabs .segment[data-tab=people]');
+  await dan.waitForSelector('.board-person, #board-panel .empty');
+  await dan.click('#board-tabs .segment[data-tab=picks]');
+  await dan.waitForSelector('.board-row[data-rank], #board-panel .empty');
+  await dan.click('#board-hall-link');
+  await dan.waitForFunction(() => location.hash === '#/board/hall');
+  await dan.waitForSelector('#hall, #view .empty');                 // no week has closed yet in this run: the empty hall
+  await go(noa, '#/explore');
+  await noa.reload();
+  await noa.waitForSelector('#board-strip .board-strip-row a');
+  await shot(noa, '39-explore-strip-en');
+
+  step = '11';
+  // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
+  //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
+  const report = await dan.request.post(base + '/api/posts/' + post3 + '/report', { headers: { 'X-Requested-With': 'Orevosh' }, data: { reason: 'not an outfit' } });
+  assert.ok(report.ok(), 'report ' + report.status());
+  expected.push('GET /api/admin/queue -> 403');
+  const notAdmin = await dan.request.get(base + '/api/admin/queue');
+  assert.strictEqual(notAdmin.status(), 403, 'the queue is for moderators');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#moderation');
+  await noa.click('#moderation');
+  await noa.waitForFunction(() => location.hash === '#/admin');
+  await noa.waitForSelector('.adm-item[data-kind="post"]');
+  assert.strictEqual(await count(noa, '.adm-item'), 1);
+  assert.ok((await text(noa, '.adm-item .adm-reasons')).includes('not an outfit'));
+  await shot(noa, '24-admin-en');
+  await noa.click('.adm-item[data-kind="post"] button:has-text("Hide")');
+  await noa.waitForSelector('.adm-item[data-kind="post"] button:has-text("Show again")');
+  expected.push(`GET /api/posts/${post3} -> 404`);
+  assert.strictEqual((await dan.request.get(base + '/api/posts/' + post3)).status(), 404, 'hidden for everyone else');
+  assert.strictEqual((await noa.request.get(base + '/api/posts/' + post3 + '/video')).status(), 200, 'the moderator can still play it');
+  await noa.click('.adm-item[data-kind="post"] button:has-text("Show again")');
+  await noa.waitForFunction(() => !document.querySelector('.adm-item'));
+  assert.strictEqual((await dan.request.get(base + '/api/posts/' + post3)).status(), 200, 'back for everyone');
+  await noa.fill('#adm-q', 'dan');
+  await noa.press('#adm-q', 'Enter');
+  await noa.waitForSelector('#adm-users button:has-text("Suspend account")');
+  await noa.click('#adm-users button:has-text("Suspend account")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('#adm-users button:has-text("Lift suspension")');
+  expected.push('GET /api/auth/me -> 403');
+  assert.strictEqual((await dan.request.get(base + '/api/auth/me')).status(), 403, 'a suspended account is refused');
+  expected.push('GET /api/users/dan -> 404');
+  assert.strictEqual((await get(`${base}/api/users/dan`)).status, 404, 'and reads as missing');
+  await noa.click('#adm-users button:has-text("Lift suspension")');
+  await noa.waitForSelector('#adm-users button:has-text("Suspend account")');
+  assert.strictEqual((await get(`${base}/api/users/dan`)).status, 200);
+  // The refusal ended Dan's session; a reload shows him signed out, and he signs back in.
+  await dan.reload();
+  await dan.waitForSelector(settled);
+  await go(dan, '#/login');
+  await dan.waitForSelector('#a-handle');
+  await dan.fill('#a-handle', 'dan');
+  await dan.fill('#a-password', 'password123');
+  await dan.click('#a-submit');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector(settled);
+
+  step = '12';
+  // 12. The guidelines page, the push switch on a server without keys, and the production surface.
+  await go(dan, '#/guidelines');
+  assert.strictEqual(await text(dan, '#view h1'), 'כללי הקהילה');
+  assert.strictEqual(await count(dan, '.g-rules li'), 5);
+  await shot(dan, '25-guidelines-he');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#s-push');
+  await noa.waitForFunction(() => !document.getElementById('s-push-status').hidden);
+  assert.strictEqual(await text(noa, '#s-push-status'), 'Not set up on this server yet.');
+  assert.strictEqual(await noa.isDisabled('#s-push'), true);
+  assert.deepStrictEqual(await noa.request.get(base + '/api/push/state').then((r) => r.json()), { enabled: false, subscribed: false });
+  expected.push('POST /api/push/subscriptions -> 400');
+  assert.strictEqual((await noa.request.post(base + '/api/push/subscriptions', { headers: { 'X-Requested-With': 'Orevosh' }, data: { endpoint: 'https://push.example/x', p256dh: 'a', auth: 'b' } })).status(), 400);
+  const health = await get(`${base}/healthz`);
+  assert.strictEqual(health.status, 200);
+  assert.strictEqual(health.body.toString(), 'ok');
+  const config = await getJson(`${base}/api/config`);
+  assert.strictEqual(config.maxVideoSeconds, 30);
+  assert.strictEqual(config.pushPublicKey, undefined, 'no push key without VAPID keys');
+  const home = await get(`${base}/`);
+  assert.strictEqual(home.headers['x-content-type-options'], 'nosniff');
+  assert.strictEqual(home.headers['x-frame-options'], 'DENY');
+  assert.strictEqual(home.headers['strict-transport-security'], undefined, 'HSTS only over https');
+
+  // Account recovery. Mail goes to the log on this server (Email__Host=log), so the links are read from api.log.
+  const links = () => {
+    const log = fs.readFileSync(path.join(DATA, 'api.log'), 'utf8');
+    return [...log.matchAll(/https?:\/\/\S+\/#\/(verify|reset)\/([A-Za-z0-9_-]{43})/g)].map((m) => ({ kind: m[1], token: m[2] }));
+  };
+  assert.strictEqual((await getJson(`${base}/api/config`)).email, true, 'recovery is on');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#s-email');
+  await dan.fill('#s-email', 'Dan@Example.test');
+  await dan.click('#s-save');
+  await dan.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+  await dan.waitForFunction(() => /@/.test(document.getElementById('s-email').value));
+  assert.strictEqual((await me(dan)).email, 'dan@example.test', 'stored lower-cased');
+  assert.strictEqual((await me(dan)).emailVerified, false);
+  const verify = links().filter((l) => l.kind === 'verify').pop();
+  assert.ok(verify, 'a verification link was logged');
+  await go(dan, '#/verify/' + verify.token);
+  await dan.waitForSelector('#v-done');
+  assert.strictEqual((await me(dan)).emailVerified, true, 'confirmed from the link');
+  expected.push('POST /api/auth/verify-email -> 400');
+  await go(dan, '#/verify/' + verify.token);
+  await dan.waitForSelector('#v-invalid');
+  await shot(dan, '26-verify-he');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#logout');
+  await dan.click('#logout');
+  await dan.waitForFunction(() => !!document.getElementById('top-auth'));
+  await go(dan, '#/login');
+  await dan.waitForSelector('#a-forgot');
+  await dan.click('#a-forgot');
+  await dan.waitForSelector('#f-key');
+  await dan.fill('#f-key', 'dan');
+  await dan.click('#f-submit');
+  await dan.waitForSelector('#f-sent');
+  await shot(dan, '27-forgot-he');
+  const reset = links().filter((l) => l.kind === 'reset').pop();
+  assert.ok(reset, 'a reset link was logged');
+  await go(dan, '#/reset/' + reset.token);
+  await dan.waitForSelector('#r-password');
+  await dan.fill('#r-password', 'brand-new-pass-9');
+  await dan.click('#r-submit');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.waitForSelector(settled);
+  assert.strictEqual((await me(dan)).handle, 'dan', 'signed in by the reset');
+  // The link is single-use: the same token with another password is refused and the screen says so.
+  expected.push('POST /api/auth/reset -> 400');
+  await go(dan, '#/reset/' + reset.token);
+  await dan.waitForSelector('#r-password');
+  await dan.fill('#r-password', 'another-pass-10');
+  await dan.click('#r-submit');
+  await dan.waitForSelector('#r-invalid');
+  // an unknown handle gets the same answer, and nothing is mailed
+  const before = links().length;
+  const unknown = await dan.request.post(base + '/api/auth/forgot', { headers: { 'X-Requested-With': 'Orevosh' }, data: { handleOrEmail: 'nobody-here' } });
+  assert.strictEqual(unknown.status(), 202, 'the same answer for an unknown handle');
+  await new Promise((r) => setTimeout(r, 500));
+  assert.strictEqual(links().length, before, 'no link for an unknown handle');
+
+  step = '13';
+  // 13. Noa deletes her first look, then her account; the brand's walls empty out; Dan signs out and back in.
+  await go(noa, '#/post/' + post1);
+  await noa.waitForSelector('.menu-open');
+  await noa.click('.menu-open');
+  await noa.waitForSelector('.sheet');
+  assert.strictEqual(await count(noa, '.sheet button:has-text("Report")'), 0, 'no report on your own look');
+  await noa.click('.sheet button:has-text("Delete look")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForFunction(() => location.hash === '#/me');
+  expected.push(`GET /api/posts/${post1}/image -> 404`);
+  assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 404);
+  await go(brand, '#/u/nexor/community');
+  await brand.waitForSelector('#view .empty');
+  // A moderator cannot delete the account while moderating: the owner runs --unadmin first, then it goes.
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#delete-account');
+  await noa.click('#delete-account');
+  await noa.waitForSelector('.sheet .btn-danger');
+  expected.push('DELETE /api/users/me -> 403');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('.s-account .alert:not([hidden])');
+  assert.ok((await text(noa, '.s-account .alert')).includes('--unadmin'), 'the refusal names the command');
+  assert.ok(/noa/.test(maintenance('--unadmin', 'noa')), '--unadmin reports the handle');
+  await noa.reload();
+  await noa.waitForSelector(settled);
+  assert.strictEqual((await me(noa)).isAdmin, false, 'demoted');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#delete-account');
+  await noa.click('#delete-account');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await noa.waitForFunction(() => !!document.getElementById('top-auth'));
+  const after = await metricsAs(brand);
+  assert.strictEqual(after.social.users, 2);
+  assert.strictEqual(after.social.featured, 0);
+  assert.strictEqual(after.social.mentions, 0);
+  assert.strictEqual(after.social.videos, 0, 'the clip left with the account');
+  expected.push(`GET /api/posts/${post3}/video -> 404`);
+  assert.strictEqual((await get(`${base}/api/posts/${post3}/video`)).status, 404);
+  await go(brand, '#/u/nexor/featured');
+  await brand.waitForSelector('#view .empty');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#logout');
+  await dan.click('#logout');
+  await dan.waitForFunction(() => !!document.getElementById('top-auth'));
+  await go(dan, '#/login');
+  await dan.fill('#a-handle', 'dan');
+  await dan.fill('#a-password', 'wrong-password');
+  expected.push('POST /api/auth/login -> 401');
+  await dan.click('#a-submit');
+  await dan.waitForSelector('form .alert:not([hidden])');
+  assert.strictEqual(await text(dan, 'form .alert'), 'הכינוי או הסיסמה לא נכונים.');
+  await dan.fill('#a-password', 'brand-new-pass-9');
+  await dan.click('#a-submit');
+  await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await dan.reload();
+  await dan.waitForSelector(settled);
+  await dan.waitForFunction(() => !document.getElementById('top-auth'));
+  assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
+
+  const stubRequests = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
+  assert.ok(stubRequests.length >= 3, 'stub saw the checks (incl. the retried one)');
+  for (const r of stubRequests) { assert.strictEqual(r.media_type, 'image/jpeg'); assert.strictEqual(r.model, 'claude-sonnet-5'); }
+  assert.ok(stubRequests[1].image_len < bigJpeg.length, `downscaled: ${stubRequests[1].image_len} < ${bigJpeg.length}`);
+
+  const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));
+  assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
+  const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
+    && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/api\/(today|feed|board)\b/.test(u))
+    && !expected.some((e) => u.endsWith(e)));
+  assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
+  const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));
+  assert.deepStrictEqual(realErrors, [], 'console errors: ' + realErrors.join(' | '));
+
+  console.log('E2E OK');
+  console.log('screenshots:', fs.readdirSync(SHOTS).length, 'in', SHOTS);
+  console.log('console warnings (non-i18n):', consoleWarnings.filter((w) => !w.startsWith('i18n:')));
+  await browser.close();
+})().then(() => { for (const p of procs) p.kill(); process.exit(0); },
+  async (err) => {
+    console.error('E2E FAILED at step', step + ':', err);
+    console.error('failed requests:', failedUrls);
+    console.error('console errors:', consoleErrors.filter((e) => !e.includes('Failed to load resource')));
+    for (const [name, page] of Object.entries(pages)) {
+      try {
+        await page.screenshot({ path: path.join(SHOTS, `failed-${name}.png`), fullPage: true });
+        fs.writeFileSync(path.join(SHOTS, `failed-${name}.html`), await page.evaluate(() => location.hash + '\n' + document.getElementById('view').outerHTML));
+      } catch (e) { /* page may be gone */ }
+    }
+    for (const p of procs) p.kill();
+    process.exit(1);
+  });

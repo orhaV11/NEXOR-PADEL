@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- A store screenshot: a caption band on the stage, then the app in a phone frame. Sized from --w so the same
+     rules hold for the iPhone 6.7" file (1284×2778) and the Android one (1080×1920); on the shorter Android canvas
+     the phone runs off the bottom, on the iPhone one it fits whole. -->
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<title>OREVOSH — store screenshot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --w: {{w}}px; --h: {{h}}px; --pw: calc(var(--w) * .86); }
+  main { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: calc(var(--w) * .085) calc(var(--w) * .07) 0; box-sizing: border-box; }
+  .kicker { font-size: calc(var(--w) * .022); margin-bottom: calc(var(--w) * .02); color: var(--accent); }
+  h1 { font-size: calc(var(--w) * .078); min-height: 2.04em; display: flex; align-items: center; }
+  .device { position: relative; margin-top: calc(var(--w) * .055); }
+  .device::before { content: ""; position: absolute; inset: -4% -20% auto; height: 60%; border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255,143,177,.16), transparent 70%); }
+  .phone { position: relative; }
+</style>
+</head>
+<body class="stage">
+  <main>
+    <div class="caps num kicker">{{kicker}}</div>
+    <h1 class="display">{{caption}}</h1>
+    <div class="device"><div class="phone"><div class="screen"><img src="{{shot}}" alt=""></div></div></div>
+  </main>
+</body>
+</html>

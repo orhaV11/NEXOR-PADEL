@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- Wide covers: the Facebook / LinkedIn / X banners, the Play feature graphic and the Open Graph card. The copy
+     sits at the start edge, vertically centred; a phone with a screenshot stands at the end edge and runs off the
+     bottom. Everything is sized from --h so the one layout holds from 1584×396 to 1200×630. No URL is drawn: the
+     owner's page carries it, and the file stays right when the domain changes. -->
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<title>OREVOSH — cover {{w}}×{{h}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --w: {{w}}px; --h: {{h}}px; --pw: calc(var(--h) * .6); }
+  main { position: absolute; inset: 0; display: flex; align-items: center; }
+  .copy { padding-inline-start: calc(var(--w) * .07); width: calc(var(--w) * .5); box-sizing: border-box; }
+  .wordmark { height: calc(var(--h) * .11); width: auto; }
+  h1 { font-size: calc(var(--h) * .19); margin-top: calc(var(--h) * .06); }
+  .tagline { font-size: calc(var(--h) * .06); margin-top: calc(var(--h) * .035); max-width: 20em; }
+  .device { position: absolute; inset-inline-end: calc(var(--w) * .085); top: calc(var(--h) * .13); }
+  /* A soft rose light behind the phone, the primary button's shadow scaled up. */
+  .device::before { content: ""; position: absolute; inset: -10% -20%; border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 40%, rgba(255,143,177,.18), transparent 70%); }
+  .phone { position: relative; }
+</style>
+</head>
+<body class="stage">
+  <main>
+    <section class="copy">
+      <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+      <h1 class="display">{{slogan}}</h1>
+      <p class="tagline">{{tagline}}</p>
+    </section>
+    <aside class="device">
+      <div class="phone"><div class="screen"><img src="{{shot}}" alt=""></div></div>
+    </aside>
+  </main>
+</body>
+</html>

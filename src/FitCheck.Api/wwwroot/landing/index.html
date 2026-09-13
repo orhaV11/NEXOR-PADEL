@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b0b0f">
+  <title>OREVOSH — Check the look.</title>
+  <meta name="description" content="Check the look. A stylist in your pocket, and a community that lights it up.">
+  <!-- looks.example.com stands for the production origin (DEPLOY.md); replace it in the four absolute URLs below. -->
+  <link rel="canonical" href="https://looks.example.com/landing/">
+  <link rel="alternate" hreflang="en" href="https://looks.example.com/landing/">
+  <link rel="alternate" hreflang="he" href="https://looks.example.com/landing/index.he.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OREVOSH">
+  <meta property="og:title" content="OREVOSH — Check the look.">
+  <meta property="og:description" content="A stylist in your pocket, and a community that lights it up.">
+  <meta property="og:url" content="https://looks.example.com/landing/">
+  <meta property="og:image" content="https://looks.example.com/brand/og-1200x630.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OREVOSH — Check the look. A phone showing an outfit check scored 7/10.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="he_IL">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OREVOSH — Check the look.">
+  <meta name="twitter:description" content="A stylist in your pocket, and a community that lights it up.">
+  <meta name="twitter:image" content="https://looks.example.com/brand/og-1200x630.png">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* The landing page: static, no app JS, the Ring of Fire tokens of DESIGN.md inlined so it stands on its own. */
+    :root {
+      --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
+      --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
+      --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+      --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+      --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
+      --fire: #ff6a2b; --radius: 18px; --pill: 999px;
+      --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
+      --col: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); background-image: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%); }
+    body { margin: 0; color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+    h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.05; margin: 0; text-wrap: balance; }
+    [dir=rtl] h1, [dir=rtl] h2, [dir=rtl] h3 { letter-spacing: 0; line-height: 1.15; }
+    p { margin: 0; }
+    .wrap { max-width: var(--col); margin: 0 auto; padding-inline: 16px; }
+
+    /* The masthead: the wordmark at the start edge (a logo, it never mirrors), the language switch and Open at the end. */
+    .top { position: sticky; top: 0; z-index: 2; background: rgba(19,18,26,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
+    .top .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 56px; gap: 12px; }
+    .wordmark { display: inline-flex; direction: ltr; }
+    .wordmark img { height: 22px; width: auto; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .lang { font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 8px 12px; min-height: 44px; display: inline-flex; align-items: center; }
+    .lang:hover { color: var(--ink); }
+    .btn, .btn-sm { display: inline-flex; align-items: center; justify-content: center; border-radius: var(--pill); font-family: var(--font-body); font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .btn { min-height: 52px; padding: 0 28px; font-size: 16px; background: var(--grad); color: var(--accent-ink); box-shadow: 0 8px 24px rgba(255,143,177,.25); }
+    .btn:active { transform: scale(.985); }
+    .btn-sm { min-height: 36px; padding: 0 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--line); color: var(--ink); }
+    [dir=rtl] .btn-sm { letter-spacing: .02em; font-size: 12.5px; }
+
+    /* The hero: the slogan, the tagline, the CTA, three phones. */
+    .hero { padding-block: 40px 24px; display: grid; gap: 32px; align-items: center; }
+    .kicker { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 12px; }
+    [dir=rtl] .kicker { letter-spacing: .02em; font-size: 12.5px; }
+    .hero h1 { font-size: clamp(44px, 9vw, 76px); }
+    .tagline { font-size: clamp(18px, 2.4vw, 22px); color: var(--ink-2); margin-top: 16px; max-width: 30em; }
+    .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .note { margin-top: 14px; font-size: 14px; color: var(--ink-3); max-width: 34em; }
+    .phones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: start; padding-top: 24px; }
+    .phone { padding: 3.5%; border-radius: 14% / 8%; background: #1a1a22; box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,.45); }
+    .phone.lift { transform: translateY(-24px); }
+    .phone .screen { aspect-ratio: 390 / 844; overflow: hidden; border-radius: 11% / 6%; background: var(--bg); }
+    .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+    /* Three feature blocks: the stylist; the community and the brands; clips and the camera. */
+    .features { display: grid; gap: 16px; padding-block: 24px; }
+    .feature { background: var(--surface); border-radius: var(--radius); padding: 22px 20px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .feature .ico { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; margin-bottom: 14px; }
+    .feature .ico svg { width: 26px; height: 26px; }
+    .feature h2 { font-size: 22px; margin-bottom: 8px; }
+    .feature p { color: var(--ink-2); font-size: 15px; }
+    .feature strong { color: var(--ink); font-weight: 600; }
+
+    /* Add to home screen, and the second CTA. */
+    .install { margin-block: 24px 40px; padding: 24px 20px; border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: 16px; }
+    .install h2 { font-size: 24px; }
+    .install ol { margin: 0; padding-inline-start: 20px; color: var(--ink-2); display: grid; gap: 8px; font-size: 15px; }
+    .install li::marker { color: var(--accent); font-weight: 700; }
+    .install .actions { margin-top: 4px; }
+
+    footer { border-top: 1px solid var(--line-soft); padding-block: 24px 40px; color: var(--ink-3); font-size: 13px; }
+    footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; }
+    footer a { color: var(--ink-2); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+    footer a:hover { color: var(--ink); }
+
+    @media (min-width: 900px) {
+      .hero { grid-template-columns: 1.05fr 1fr; gap: 48px; padding-block: 72px 48px; }
+      .phones { gap: 16px; padding-top: 0; }
+      .phone.lift { transform: translateY(-40px); }
+      .features { grid-template-columns: repeat(3, 1fr); gap: 20px; padding-block: 32px; }
+      .feature { padding: 28px 24px; }
+      .install { grid-template-columns: 1fr auto; align-items: center; padding: 32px; }
+      .install ol { grid-column: 1; }
+      .install .actions { grid-column: 2; grid-row: 1 / span 2; }
+    }
+    @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="wordmark" href="/" aria-label="OREVOSH"><img src="../brand/wordmark.svg" alt="OREVOSH" width="1626" height="350"></a>
+      <nav class="top-actions" aria-label="Language and app">
+        <a class="lang" href="index.he.html" lang="he" hreflang="he">עברית</a>
+        <a class="btn-sm" href="/">Open</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="kicker">A social app for looks</p>
+        <h1>Check the look.</h1>
+        <p class="tagline">A stylist in your pocket, and a community that lights it up.</p>
+        <div class="actions"><a class="btn" href="/">Open OREVOSH</a></div>
+        <p class="note">Free, in your browser, no app store. Add it to your home screen and it runs full screen, like any app. 16+.</p>
+      </div>
+      <div class="phones" aria-hidden="true">
+        <div class="phone"><div class="screen"><img src="screens/check-en.jpg" alt="" width="780" height="1688"></div></div>
+        <div class="phone lift"><div class="screen"><img src="screens/result-en.jpg" alt="" width="780" height="1688"></div></div>
+        <div class="phone"><div class="screen"><img src="screens/look-en.jpg" alt="" width="780" height="1688"></div></div>
+      </div>
+    </section>
+
+    <section class="features" aria-label="What it does">
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#b39dff" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="8"/></svg></div>
+        <h2>The stylist</h2>
+        <p>Pick where the outfit is going: date, office, streetwear. Add a photo. Ten seconds later you have a score out of 10, the breakdown for <strong>fit, color and accessories</strong>, and the one tip. It judges clothes, never you. The check is private until you post it.</p>
+      </article>
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#ff6a2b"><path d="M12 2c.6 3.2 2.5 4.6 4 6.6 1.5 2 2.4 4 1.8 6.6-.7 3.3-3.3 5.3-6.2 5.6-3.6.3-6.6-2.2-6.9-5.6-.2-2.4.9-4 2-5.4-.1 1.2.3 2.1 1.1 2.7.4-2.7 1.6-4.4 3-6 .5-.6.9-1.6 1.2-4.5z"/></svg></div>
+        <h2>The community and the brands</h2>
+        <p>Post the look and it joins the feed: fire, comments, saves, follows. Tag the brands you wear with <strong>@</strong>, and brands feature the looks they love, open challenges with a prize, and tag products on their own looks.</p>
+      </article>
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#b39dff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg></div>
+        <h2>Clips and the camera</h2>
+        <p>Film a short clip in the app, pick the frame the stylist judges, and post the clip with the look. A <strong>story card</strong> carries the score to Instagram and TikTok.</p>
+      </article>
+    </section>
+
+    <section class="install">
+      <h2>Add it to your home screen</h2>
+      <ol>
+        <li><strong>iPhone:</strong> open OREVOSH in Safari, tap Share, then Add to Home Screen.</li>
+        <li><strong>Android:</strong> open it in Chrome and tap Install when it offers, or Menu, then Add to Home screen.</li>
+      </ol>
+      <div class="actions"><a class="btn" href="/">Open OREVOSH</a></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <nav class="links" aria-label="Legal">
+        <a href="/#/guidelines">Guidelines</a>
+        <a href="/#/terms">Terms</a>
+        <a href="/#/privacy">Privacy</a>
+        <a href="index.he.html" lang="he" hreflang="he">עברית</a>
+      </nav>
+      <p>OREVOSH judges clothes, never the person. For people 16 and over.</p>
+    </div>
+  </footer>
+</body>
+</html>

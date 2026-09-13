@@ -1,0 +1,55 @@
+# A push to main, and every v* tag, builds the Docker image from the repository's own Dockerfile and publishes it to
+# GitHub's registry as ghcr.io/<owner>/orevosh (the owner lowercased, as registries require), tagged latest, the commit
+# sha and, for a tag push, the tag name. A server or a Fly.io app can pull that image instead of building (DEPLOY.md).
+# GITHUB_TOKEN is enough: the workflow asks for packages: write and nothing else.
+name: Release image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: Build and push the image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/orevosh" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.sha }}
+            type=ref,event=tag
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,661 @@
+<!doctype html>
+<!--
+  OREVOSH launch teaser — "Light it up". 1080x1920, 10.000 s, 30 fps, silent.
+
+  Every frame is drawn from one time value by window.seek(t) (seconds). There is not a single CSS
+  animation, transition or requestAnimationFrame in this file on purpose: the exporter screenshots
+  between frames, and anything the browser animates on its own would be caught mid-flight and the
+  video would stutter. seek(t) is pure — frame N is always identical.
+
+  Safe area: TikTok and Instagram lay their own UI over the bottom 320 px and the right 180 px, so
+  every word, the wordmark and every numeral lives inside x 0..900 / y 0..1600, and the centred type
+  is centred on x=490, not 540. window.__debugSafe(true) draws the proof.
+
+  Paths are relative and local, so the render never touches the network:
+    fonts   ../../../tools/brand/templates/fonts/   (the OFL copies of Outfit and Heebo, DESIGN.md §2)
+    screens ../../../tools/brand/templates/screens/ (the browser test's real app captures, 780x1688)
+  Keep this file three levels under the repository root or fix the two prefixes below.
+
+  Render with: node render.js   (writes the MP4 and the cover next to this file)
+-->
+<meta charset="utf-8">
+<title>OREVOSH — Light it up</title>
+<style>
+  /* Outfit and Heebo, the two faces of DESIGN.md §2, from the local OFL copies. */
+  @font-face { font-family:"Outfit"; font-style:normal; font-weight:100 900; font-display:block;
+    src:url(../../../tools/brand/templates/fonts/outfit-latin-var.woff2) format("woff2"); }
+  @font-face { font-family:"Heebo"; font-style:normal; font-weight:100 900; font-display:block;
+    src:url(../../../tools/brand/templates/fonts/heebo-latin-var.woff2) format("woff2"); }
+
+  /* DESIGN.md §1 tokens. */
+  :root{
+    --bg:#0b0b0f; --bg-2:#13121a; --surface:#15151c; --surface-2:#1e1e27;
+    --line:#2b2b36; --line-soft:rgba(255,255,255,.08);
+    --ink:#f4f4f7; --ink-2:#b9b9c6; --ink-3:#7f7f8e;
+    --accent:#b39dff; --accent-2:#ff8fb1; --accent-ink:#150f2e;
+    --grad:linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%);
+    --accent-tint:rgba(179,157,255,.14);
+    --fire:#ff6a2b; --fire-2:#ffa83a;
+    --font-display:"Outfit","Heebo",system-ui,sans-serif;
+    --font-body:"Heebo",system-ui,sans-serif;
+  }
+  html,body{margin:0;padding:0;width:1080px;height:1920px;overflow:hidden;background:#0b0b0f;}
+  body{font-family:var(--font-body);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;}
+  #stage{position:absolute;inset:0;width:1080px;height:1920px;overflow:hidden;background:var(--bg);}
+  /* display, not visibility: a child with visibility:visible escapes a hidden ancestor, and every
+     beat would bleed into every other one. */
+  .beat{position:absolute;inset:0;display:none;}
+  .ctr{position:absolute;left:0;width:1080px;text-align:center;}
+  .display{font-family:var(--font-display);font-weight:800;letter-spacing:-.025em;line-height:1;margin:0;white-space:nowrap;}
+  .caps{font-family:var(--font-body);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);}
+  .num{direction:ltr;font-family:var(--font-display);font-weight:800;}
+  .fw{display:inline-block;}
+
+  /* The stage's lilac glow (DESIGN.md §1, "Ground"), driven by seek so it can go fully black. */
+  #glow{position:absolute;left:-8%;top:-14%;width:116%;height:70%;
+    background:radial-gradient(52% 50% at 50% 26%,rgba(179,157,255,.30),transparent 66%);}
+  /* A long tail on the bloom: a short falloff leaves a visible circular edge once h264 has had it. */
+  #fireglow{position:absolute;width:1400px;height:1400px;left:0;top:0;margin:-700px 0 0 -700px;
+    background:radial-gradient(circle at 50% 50%,rgba(255,106,43,.58) 0%,rgba(255,106,43,.20) 22%,
+               rgba(255,106,43,.08) 38%,rgba(255,106,43,.025) 58%,transparent 80%);}
+
+  /* A crop of one real app capture: the box clips, the img is sized and offset to the source rect. */
+  .cropbox{position:absolute;overflow:hidden;background:#0b0b0f;}
+  /* The captures are flat PNGs of a browser screen; a touch of saturation and contrast makes the
+     colour read as an image on a dark stage instead of a grey wash. */
+  .cropbox img{position:absolute;max-width:none;display:block;filter:saturate(1.28) contrast(1.06);}
+  /* The teaser's own vignette, so a bright photo never glares and the score ring stays legible. */
+  .cropbox .vig{position:absolute;inset:0;
+    background:radial-gradient(122% 98% at 46% 40%,rgba(11,11,15,0) 50%,rgba(11,11,15,.38) 100%),
+               linear-gradient(180deg,rgba(11,11,15,.08) 0%,rgba(11,11,15,0) 24%,
+                               rgba(11,11,15,0) 60%,rgba(11,11,15,.42) 100%);}
+
+  /* The score ring of DESIGN.md §3: a gradient ring around a stage-dark disc. */
+  .ring{position:absolute;border-radius:50%;border:12px solid transparent;
+    background:linear-gradient(var(--bg),var(--bg)) padding-box,var(--grad) border-box;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .v{font-family:var(--font-display);font-weight:800;color:var(--ink);line-height:.9;direction:ltr;}
+  .ring .d{font-family:var(--font-body);font-weight:700;color:var(--ink-3);direction:ltr;}
+
+  #safe{position:absolute;inset:0;display:none;}
+</style>
+
+<div id="stage">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="pip-fire" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff6a2b"/><stop offset=".55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+    </linearGradient>
+  </defs></svg>
+  <div id="glow"></div>
+
+  <!-- 1 — the question, on black -->
+  <div class="beat" id="b1">
+    <div class="ctr display" id="q" style="top:790px;font-size:112px;color:var(--ink)"></div>
+  </div>
+
+  <!-- 2 — the mark: the ring draws in one stroke, the flame snaps in -->
+  <div class="beat" id="b2">
+    <div id="fireglow"></div>
+    <svg id="mark" viewBox="0 0 512 512" style="position:absolute;overflow:visible">
+      <defs>
+        <linearGradient id="mk-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442">
+          <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/>
+        </linearGradient>
+        <linearGradient id="mk-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+          <stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+        </linearGradient>
+        <mask id="mk-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+          <rect width="512" height="512" fill="#fff"/>
+          <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+            fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+        </mask>
+      </defs>
+      <!-- rotate(0): the stroke starts at 3 o'clock, just clockwise of the gap the flame cuts, and
+           runs clockwise back up to it, so the draw is one unbroken arc with no sliver at the start.
+           It stops at RING_END of the circumference because the rest lies under the flame's cut. -->
+      <circle id="mk-c" cx="256" cy="292" r="142" fill="none" stroke="url(#mk-ring)" stroke-width="68"
+        mask="url(#mk-cut)" stroke-dasharray="892.21" stroke-dashoffset="892.21"/>
+      <g id="mk-f" style="transform-box:fill-box;transform-origin:50% 100%">
+        <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+          fill="url(#mk-fire)" transform="translate(351.02 186.47) rotate(42)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 3 — three looks, three places, three verdicts -->
+  <div class="beat" id="b3"></div>
+
+  <!-- 4 — what the stylist reads -->
+  <div class="beat" id="b4">
+    <svg id="b4ring" viewBox="0 0 512 512" style="position:absolute;left:140px;top:440px;width:700px;height:700px;overflow:visible">
+      <circle cx="256" cy="256" r="200" fill="none" stroke="rgba(179,157,255,.20)" stroke-width="2"/>
+      <circle cx="256" cy="256" r="152" fill="none" stroke="rgba(255,143,177,.13)" stroke-width="2"/>
+    </svg>
+    <div class="ctr display" id="b4t" style="top:790px;color:var(--ink)"></div>
+    <div id="b4bar" style="position:absolute;height:10px;border-radius:999px;background:var(--grad);"></div>
+  </div>
+
+  <!-- 5 — the feed -->
+  <div class="beat" id="b5">
+    <div id="feed" style="position:absolute;left:0;top:0;width:1080px;"></div>
+    <div id="b5pips" style="position:absolute;inset:0"></div>
+    <div id="b5scrim" style="position:absolute;left:0;top:620px;width:1080px;height:1300px;
+      background:linear-gradient(180deg,rgba(11,11,15,0) 0%,rgba(11,11,15,.50) 22%,rgba(11,11,15,.90) 38%,#0b0b0f 56%)"></div>
+    <div class="ctr display" id="b5a" style="top:1136px;font-size:92px;color:var(--ink)">A community</div>
+    <div class="ctr display" id="b5b" style="top:1244px;font-size:92px;color:var(--ink)">that lights it up.</div>
+    <div id="b5count" style="position:absolute;left:355px;top:1360px;width:230px;height:76px;border-radius:999px;
+      display:flex;align-items:center;justify-content:center;gap:12px;
+      border:1px solid rgba(255,106,43,.55);background:rgba(255,106,43,.12);font-family:var(--font-body);font-weight:700;"></div>
+  </div>
+
+  <!-- 6 — the weekly board -->
+  <div class="beat" id="b6">
+    <div class="cropbox" id="b6ph" style="left:230px;top:470px;width:520px;height:650px;border-radius:34px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35)"><img><div class="vig"></div></div>
+    <div id="b6medal" style="position:absolute;left:158px;top:510px;width:216px;height:216px;border-radius:50%;
+      border:14px solid transparent;background:linear-gradient(var(--bg),var(--bg)) padding-box,var(--grad) border-box;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 0 10px rgba(179,157,255,.10),0 16px 40px rgba(0,0,0,.55)">
+      <span class="num" style="font-size:116px;color:var(--ink);line-height:1">1</span>
+    </div>
+    <div class="ctr caps" id="b6lab" style="top:1230px;font-size:34px;letter-spacing:.34em;color:var(--ink-3)">EVERY WEEK</div>
+  </div>
+
+  <!-- 7 — the end card -->
+  <div class="beat" id="b7">
+    <div id="b7glow" style="position:absolute;left:90px;top:430px;width:800px;height:800px;
+      background:radial-gradient(circle at 50% 50%,rgba(179,157,255,.22),transparent 64%)"></div>
+    <svg id="wm" viewBox="0 0 1626 350" style="position:absolute;left:170px;top:610px;width:640px;height:138px">
+      <defs>
+        <linearGradient id="wm-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442">
+          <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/>
+        </linearGradient>
+        <linearGradient id="wm-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+          <stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+        </linearGradient>
+        <mask id="wm-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+          <rect width="512" height="512" fill="#fff"/>
+          <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+            fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+        </mask>
+      </defs>
+      <g transform="translate(-28.27 20.2) scale(0.65)">
+        <circle cx="256" cy="292" r="142" fill="none" stroke="url(#wm-ring)" stroke-width="68" mask="url(#wm-cut)"/>
+        <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+          fill="url(#wm-fire)" transform="translate(351.02 186.47) rotate(42)"/>
+      </g>
+      <path d="M0 186 V0 H82 A46 46 0 0 1 82 92 H0 M58 92 L128 186" transform="translate(326 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M112 0 H0 V186 H112 M0 93 H94" transform="translate(544 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M0 0 L79 186 L158 0" transform="translate(732 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M93 0 A93 93 0 1 1 93 186 A93 93 0 1 1 93 0 Z" transform="translate(966 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M120 40 C120 12 100 0 60 0 C22 0 0 16 0 46 C0 80 30 88 60 91 C92 94 120 104 120 140 C120 172 98 186 60 186 C22 186 0 174 0 146" transform="translate(1238 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M0 0 V186 M132 0 V186 M0 93 H132" transform="translate(1448 118)" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="ctr display" id="b7slog" style="top:882px;font-size:104px;color:var(--ink)">Check the look.</div>
+    <div class="ctr caps" id="b7soon" style="top:1000px;font-size:36px;letter-spacing:.34em;color:var(--accent)">COMING SOON</div>
+    <div class="ctr caps" id="b7age" style="top:1096px;font-size:24px;letter-spacing:.24em;color:var(--ink-3)">16+</div>
+  </div>
+
+  <!-- the safe-area proof layer; off unless __debugSafe(true) -->
+  <div id="safe">
+    <div style="position:absolute;left:0;top:1600px;width:1080px;height:320px;background:rgba(255,93,122,.30);border-top:3px solid #ff5d7a"></div>
+    <div style="position:absolute;left:900px;top:0;width:180px;height:1920px;background:rgba(255,93,122,.30);border-left:3px solid #ff5d7a"></div>
+    <div style="position:absolute;left:0;top:0;width:900px;height:1600px;border:3px solid #5ee6a0"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------- the clock */
+const FPS = 30, DUR = 10.0;
+
+/* Beat boundaries, in seconds. Tuned so no word is on screen for less than half a second and the
+   question, which reads while it assembles, stands complete for 1.2 s. */
+const B1 = [0.00, 1.76];   // the question, on black
+const B2 = [1.76, 2.92];   // the mark
+const B3 = [2.92, 4.42];   // three looks, three verdicts
+const B4 = [4.42, 6.54];   // fit / color / accessories / the one tip
+const B5 = [6.54, 8.00];   // the feed
+const B6 = [8.00, 8.72];   // the board
+const B7 = [8.72, 10.00];  // the end card
+
+/* ------------------------------------------------------------------ easings */
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const p     = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const eOut  = x => 1 - Math.pow(1 - x, 3);
+const eOut4 = x => 1 - Math.pow(1 - x, 4);
+const eIn   = x => x * x * x;
+const eInOut= x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const lerp  = (a, b, x) => a + (b - a) * x;
+/* one overshoot, then settle: 0 -> 1 with a kick past 1 */
+const kick  = x => { const c = 2.2; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+const $ = id => document.getElementById(id);
+const BEATS = ["b1", "b2", "b3", "b4", "b5", "b6", "b7"];
+const show = (el, v) => { el.style.display = v ? "block" : "none"; };
+
+/* TikTok and Instagram cover the bottom 320 px and the right 180 px. */
+const SAFE_W = 800, SAFE_CX = 490;
+
+/* ------------------------------------------------------- the real app frames */
+const SRC = "../../../tools/brand/templates/screens/";   /* 780 x 1688 captures */
+const SW = 780, SH = 1688;
+/* Crop a source rect (in capture pixels) to fill a box. */
+function crop(img, boxW, boxH, sx, sy, sw, sh) {
+  const s = Math.max(boxW / sw, boxH / sh);
+  img.style.width  = (SW * s) + "px";
+  img.style.height = (SH * s) + "px";
+  img.style.left   = (-sx * s + (boxW - sw * s) / 2) + "px";
+  img.style.top    = (-sy * s + (boxH - sh * s) / 2) + "px";
+}
+function photo(parent, w, h, radius, spec) {
+  const box = document.createElement("div");
+  box.className = "cropbox";
+  box.style.left = "0px"; box.style.top = "0px";
+  box.style.width = w + "px"; box.style.height = h + "px";
+  box.style.borderRadius = radius + "px";
+  const img = document.createElement("img");
+  img.src = SRC + spec.file;
+  box.appendChild(img);
+  const vig = document.createElement("div");
+  vig.className = "vig";
+  box.appendChild(vig);
+  parent.appendChild(box);
+  crop(img, w, h, spec.rect[0], spec.rect[1], spec.rect[2], spec.rect[3]);
+  return box;
+}
+
+/* ------------------------------------------------------ 1: the question */
+const QWORDS = ["Does", "this", "look", "work?"];
+const qEls = [];
+{
+  const inner = document.createElement("span");
+  inner.className = "fw";
+  QWORDS.forEach(w => {
+    const s = document.createElement("span");
+    s.textContent = w;
+    s.style.display = "inline-block";
+    s.style.margin = "0 .09em";
+    inner.appendChild(s);
+    qEls.push(s);
+  });
+  $("q").appendChild(inner);
+}
+
+/* --------------------------------------------- 3: three looks, three places */
+/* The photos are the browser test's real captures, cropped tight on the colour so a verdict lands
+   on an image and not on a margin. Three different frames, three different textures. */
+/* Every rect below stays inside a capture's photo area — never over app chrome, so no interface
+   text (and no Hebrew, this cut is English only) is dragged into the frame. */
+const LOOKS = [
+  { file: "10-post-en.png",        rect: [238, 478, 384, 480], intent: "DATE",       score: 6 },
+  { file: "13-explore-he.png",     rect: [430, 700, 240, 300], intent: "OFFICE",     score: 8 },
+  { file: "07-check-ready-en.png", rect: [296, 972, 304, 380], intent: "STREETWEAR", score: 7 }
+];
+const lookEls = [];
+{
+  const host = $("b3");
+  LOOKS.forEach(L => {
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:absolute;inset:0;display:none";
+
+    const pill = document.createElement("div");
+    pill.style.cssText = "position:absolute;left:0;top:352px;width:1080px;text-align:center;";
+    const inner = document.createElement("span");
+    inner.textContent = L.intent;
+    inner.style.cssText = "display:inline-flex;align-items:center;height:64px;padding:0 34px;border-radius:999px;" +
+      "background:var(--accent-tint);color:var(--accent);font-family:var(--font-body);font-weight:700;" +
+      "font-size:26px;letter-spacing:.12em;text-transform:uppercase;";
+    pill.appendChild(inner);
+    wrap.appendChild(pill);
+
+    const holder = document.createElement("div");
+    holder.style.cssText = "position:absolute;left:170px;top:440px;width:600px;height:750px;";
+    const box = photo(holder, 600, 750, 34, L);
+    box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+    wrap.appendChild(holder);
+
+    const ring = document.createElement("div");
+    ring.className = "ring";
+    ring.style.left = "630px"; ring.style.top = "1065px";
+    ring.style.width = "210px"; ring.style.height = "210px";
+    ring.innerHTML = '<span class="v" style="font-size:104px">' + L.score + '</span>' +
+                     '<span class="d" style="font-size:30px;margin-top:4px">/10</span>';
+    wrap.appendChild(ring);
+
+    host.appendChild(wrap);
+    lookEls.push({ wrap: wrap, pill: pill, holder: holder, ring: ring });
+  });
+}
+
+/* ---------------------------------------- 4: what the stylist reads, one line at a time */
+const LINES = [
+  { text: "Fit.",         in: 4.42, out: 4.92, size: 220 },
+  { text: "Color.",       in: 4.92, out: 5.42, size: 200 },
+  { text: "Accessories.", in: 5.42, out: 5.96, size: 150 },
+  { text: "The one tip.", in: 5.96, out: 6.54, size: 150 }
+];
+const lineEls = [];
+{
+  const host = $("b4t");
+  LINES.forEach(L => {
+    const d = document.createElement("div");
+    d.className = "display";
+    d.style.cssText = "position:absolute;left:0;top:0;width:1080px;text-align:center;color:var(--ink);display:none;";
+    const inner = document.createElement("span");
+    inner.className = "fw";
+    inner.textContent = L.text;
+    d.appendChild(inner);
+    host.appendChild(d);
+    lineEls.push(d);
+  });
+}
+
+/* --------------------------------------------------------------- 5: the feed */
+/* Real card photos from the captures, stacked as a column that rushes up the frame. */
+const TILES = [
+  { file: "10-post-en.png",            rect: [200, 430, 420, 500], h: 620, score: 7 },
+  { file: "13-explore-he.png",         rect: [400, 600, 300, 356], h: 617, score: 0 },
+  { file: "07-check-ready-en.png",     rect: [250, 900, 380, 452], h: 619, score: 9 },
+  { file: "11-featured-en.png",        rect: [420, 640, 250, 312], h: 619, score: 0 },
+  { file: "11-featured-en.png",        rect: [120, 380, 460, 548], h: 619, score: 6 },
+  { file: "13-explore-he.png",         rect: [340, 520, 400, 476], h: 619, score: 0 },
+  { file: "10-post-en.png",            rect: [60, 300, 460, 548], h: 619, score: 8 }
+];
+const TILE_W = 520, TILE_GAP = 30;
+let FEED_H = 0;
+{
+  const host = $("feed");
+  let y = 0;
+  TILES.forEach(T => {
+    const card = document.createElement("div");
+    card.style.cssText = "position:absolute;left:224px;top:" + y + "px;width:" + (TILE_W + 12) +
+      "px;height:" + (T.h + 12) + "px;border-radius:38px;background:var(--surface);border:1px solid var(--line);" +
+      "box-sizing:border-box;box-shadow:0 10px 30px rgba(0,0,0,.35);";
+    const holder = document.createElement("div");
+    holder.style.cssText = "position:absolute;left:6px;top:6px;width:" + TILE_W + "px;height:" + T.h + "px;";
+    photo(holder, TILE_W, T.h, 32, T);
+    card.appendChild(holder);
+    if (T.score) {
+      const r = document.createElement("div");
+      r.className = "ring";
+      r.style.left = (TILE_W - 92) + "px"; r.style.top = (T.h - 54) + "px";
+      r.style.width = "104px"; r.style.height = "104px"; r.style.borderWidth = "7px";
+      r.innerHTML = '<span class="v" style="font-size:50px">' + T.score + '</span>' +
+                    '<span class="d" style="font-size:15px;margin-top:2px">/10</span>';
+      card.appendChild(r);
+    }
+    host.appendChild(card);
+    y += T.h + 12 + TILE_GAP;
+  });
+  FEED_H = y;
+}
+
+/* Fires popping across the cards. A fixed table, so every frame is reproducible. */
+const FLAME_D = "M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 " +
+                "C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z";
+const PIPS = [
+  { x: 330, y: 560, s: 62, t: 6.58 }, { x: 640, y: 380, s: 50, t: 6.64 },
+  { x: 470, y: 760, s: 78, t: 6.70 }, { x: 290, y: 300, s: 46, t: 6.76 },
+  { x: 680, y: 690, s: 66, t: 6.82 }, { x: 390, y: 200, s: 54, t: 6.88 },
+  { x: 560, y: 600, s: 84, t: 6.94 }, { x: 280, y: 850, s: 52, t: 7.00 },
+  { x: 690, y: 270, s: 58, t: 7.06 }, { x: 430, y: 460, s: 70, t: 7.12 },
+  { x: 620, y: 830, s: 56, t: 7.18 }, { x: 320, y: 680, s: 64, t: 7.24 },
+  { x: 540, y: 320, s: 60, t: 7.30 }, { x: 700, y: 560, s: 72, t: 7.36 },
+  { x: 260, y: 460, s: 50, t: 7.42 }, { x: 480, y: 880, s: 66, t: 7.48 },
+  { x: 610, y: 190, s: 54, t: 7.54 }, { x: 360, y: 760, s: 76, t: 7.60 },
+  { x: 720, y: 420, s: 58, t: 7.66 }, { x: 300, y: 250, s: 62, t: 7.72 },
+  { x: 560, y: 700, s: 70, t: 7.78 }, { x: 440, y: 380, s: 56, t: 7.84 }
+];
+const pipEls = [];
+{
+  const host = $("b5pips");
+  PIPS.forEach(P => {
+    const w = P.s * 0.76, h = w * 272 / 164;
+    const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    s.setAttribute("viewBox", "-82 -192 164 272");
+    s.style.cssText = "position:absolute;left:" + (P.x - w / 2) + "px;top:" + (P.y - h / 2) +
+      "px;width:" + w + "px;height:" + h + "px;overflow:visible;" +
+      "filter:drop-shadow(0 0 14px rgba(255,106,43,.70));";
+    s.innerHTML = '<path d="' + FLAME_D + '" fill="url(#pip-fire)"/>';
+    host.appendChild(s);
+    pipEls.push(s);
+  });
+}
+{ /* the fire count pill: the mark's lick, then a climbing numeral */
+  $("b5count").innerHTML =
+    '<svg viewBox="-82 -192 164 272" style="width:25px;height:41px"><path d="' + FLAME_D + '" fill="url(#pip-fire)"/></svg>' +
+    '<span class="num" id="b5n" style="font-size:38px;color:var(--fire)">0</span>' +
+    '<span style="font-size:19px;letter-spacing:.1em;color:var(--fire);opacity:.85">FIRE</span>';
+}
+
+/* --------------------------------------------------------------- 6: the board */
+{
+  const img = $("b6ph").querySelector("img");
+  img.src = SRC + "11-featured-en.png";
+  crop(img, 520, 650, 150, 400, 440, 550);
+}
+
+/* -------------------------------------------------- fit the display lines to the safe column */
+function fitLine(el, maxPx, startPx) {
+  let inner = el.querySelector(".fw");
+  if (!inner) {                        /* plain text: give it a measurable inline-block box */
+    inner = document.createElement("span");
+    inner.className = "fw";
+    while (el.firstChild) inner.appendChild(el.firstChild);
+    el.appendChild(inner);
+  }
+  el.style.fontSize = startPx + "px";
+  const w = inner.getBoundingClientRect().width;
+  if (w > maxPx) el.style.fontSize = Math.floor(startPx * maxPx / w) + "px";
+}
+/* centred type is centred on the safe column's middle, x=490, not the frame's 540 */
+function applyCentre() {
+  const dx = SAFE_CX - 540;
+  [$("q"), $("b4t"), $("b5a"), $("b5b"), $("b7slog"), $("b7soon"), $("b7age"), $("b6lab")]
+    .forEach(el => { el.style.marginLeft = dx + "px"; });
+}
+
+/* ------------------------------------------------------------------- seek(t) */
+let ready = false;
+function measure() {
+  BEATS.forEach(b => { $(b).style.display = "block"; });
+  lineEls.forEach(el => { el.style.display = "block"; });
+  fitLine($("q"), SAFE_W, 112);
+  lineEls.forEach((el, i) => fitLine(el, SAFE_W, LINES[i].size));
+  fitLine($("b5a"), SAFE_W, 92);
+  fitLine($("b5b"), SAFE_W, 92);
+  fitLine($("b7slog"), SAFE_W, 104);
+  lineEls.forEach(el => { el.style.display = "none"; });
+  BEATS.forEach(b => { $(b).style.display = "none"; });
+  applyCentre();
+  ready = true;
+}
+
+function seek(t) {
+  if (!ready) measure();
+  t = clamp(t, 0, DUR);
+  BEATS.forEach(b => show($(b), false));
+
+  /* The stage glow: absent on the opening black, lit from the mark on, out again at the end so the
+     last frame equals the first and the loop is invisible. */
+  let glow = 0;
+  if (t >= B2[0]) glow = eOut(p(t, B2[0], B2[0] + 0.45));
+  if (t >= 9.80)  glow *= 1 - p(t, 9.80, 9.95);
+  $("glow").style.opacity = glow.toFixed(4);
+
+  /* ---- 1. the question ------------------------------------------------- */
+  if (t < B1[1]) {
+    show($("b1"), true);
+    const starts = [0.06, 0.23, 0.40, 0.57];
+    qEls.forEach((el, i) => {
+      const o = eOut(p(t, starts[i], starts[i] + 0.20));
+      el.style.opacity = o.toFixed(3);
+      el.style.transform = "translateY(" + lerp(28, 0, o).toFixed(2) + "px) scale(" + lerp(0.93, 1, o).toFixed(4) + ")";
+    });
+    const dr = p(t, 0, B1[1]);
+    $("q").style.transform = "translateY(-50%) scale(" + (1 + 0.035 * dr).toFixed(4) + ")";
+    $("q").style.opacity = (1 - eIn(p(t, B1[1] - 0.10, B1[1]))).toFixed(3);
+  }
+
+  /* ---- 2. the mark ----------------------------------------------------- */
+  if (t >= B2[0] && t < B2[1]) {
+    show($("b2"), true);
+    const drawn = eOut4(p(t, B2[0] + 0.02, B2[0] + 0.62));   /* the ring draws in one stroke */
+    const S = lerp(604, 566, eInOut(p(t, B2[0], B2[1])));    /* a slow settle, never still */
+    const cx = SAFE_CX, cy = 820;
+    const mk = $("mark");
+    mk.style.left = (cx - S / 2) + "px";
+    mk.style.top  = (cy - S / 2) + "px";
+    mk.style.width = S + "px"; mk.style.height = S + "px";
+    /* 892.21 is the ring's circumference; the last quarter of it is under the flame's cut, so the
+       stroke stops there and the whole draw time is spent on arc the eye can actually see. */
+    const RING_END = 892.21 * 0.25;
+    $("mk-c").setAttribute("stroke-dashoffset", lerp(892.21, RING_END, drawn).toFixed(2));
+
+    const f = p(t, B2[0] + 0.56, B2[0] + 0.80);              /* the flame snaps in at the end */
+    const fl = $("mk-f");
+    fl.style.opacity = f > 0 ? 1 : 0;
+    fl.style.transform = "scale(" + (f <= 0 ? 0 : lerp(0.45, 1, kick(f))).toFixed(4) + ")";
+
+    /* the bloom: a hard flare on the snap, then a slow breathe out */
+    const bl = Math.max(eOut(p(t, B2[0] + 0.56, B2[0] + 0.66)) * (1 - p(t, B2[0] + 0.70, B2[1])), 0);
+    const g = $("fireglow");
+    g.style.left = (cx + 0.281 * S) + "px";
+    g.style.top  = (cy - 0.324 * S) + "px";
+    g.style.opacity = bl.toFixed(3);
+    g.style.transform = "scale(" + lerp(0.5, 1.15, eOut(p(t, B2[0] + 0.56, B2[1]))).toFixed(3) + ")";
+    $("b2").style.opacity = (1 - eIn(p(t, B2[1] - 0.08, B2[1]))).toFixed(3);
+  }
+
+  /* ---- 3. three looks, three verdicts ---------------------------------- */
+  if (t >= B3[0] && t < B3[1]) {
+    show($("b3"), true);
+    const each = (B3[1] - B3[0]) / 3;
+    lookEls.forEach((L, i) => {
+      const a = B3[0] + i * each, b = a + each;
+      const live = t >= a && t < b;
+      L.wrap.style.display = live ? "block" : "none";
+      if (!live) return;
+      const u = p(t, a, b);
+      const inp = eOut(p(t, a, a + 0.14));
+      L.holder.style.transform = "scale(" + (lerp(1.10, 1.0, inp) * (1 + 0.04 * u)).toFixed(4) +
+        ") translateY(" + lerp(40, 0, inp).toFixed(2) + "px)";
+      L.holder.style.opacity = inp.toFixed(3);
+      L.pill.style.opacity = eOut(p(t, a + 0.04, a + 0.16)).toFixed(3);
+      L.pill.style.transform = "translateY(" + lerp(-22, 0, eOut(p(t, a + 0.04, a + 0.18))).toFixed(2) + "px)";
+      /* the ring stamps: big, over, settle */
+      const st = p(t, a + 0.15, a + 0.33);
+      L.ring.style.opacity = st > 0 ? 1 : 0;
+      L.ring.style.transform = "scale(" + (st <= 0 ? 0 : lerp(1.8, 1, kick(st))).toFixed(4) + ")";
+      const fl = 1 - p(t, a + 0.15, a + 0.27);
+      L.ring.style.boxShadow = fl > 0
+        ? "0 0 " + (110 * fl).toFixed(0) + "px rgba(179,157,255," + (0.6 * fl).toFixed(2) + ")" : "none";
+      L.wrap.style.opacity = (1 - p(t, b - 0.07, b)).toFixed(3);
+    });
+  }
+
+  /* ---- 4. fit / color / accessories / the one tip ---------------------- */
+  if (t >= B4[0] && t < B4[1]) {
+    show($("b4"), true);
+    lineEls.forEach((el, i) => {
+      const L = LINES[i];
+      const live = t >= L.in && t < L.out;
+      el.style.display = live ? "block" : "none";
+      if (!live) return;
+      const inp = eOut(p(t, L.in, L.in + 0.13));
+      const outp = eIn(p(t, L.out - 0.11, L.out));
+      el.style.opacity = (inp * (1 - outp)).toFixed(3);
+      el.style.transform = "translateY(calc(-50% + " + (lerp(66, 0, inp) - 56 * outp).toFixed(2) +
+        "px)) scale(" + (lerp(1.10, 1, inp) * (1 - 0.06 * outp)).toFixed(4) + ")";
+    });
+    /* the tip's gradient rule — the app marks the one tip with a gradient bar */
+    const bar = $("b4bar");
+    const bw = lerp(0, 420, eOut(p(t, LINES[3].in + 0.10, LINES[3].in + 0.34)));
+    bar.style.opacity = (t >= LINES[3].in ? (1 - eIn(p(t, B4[1] - 0.11, B4[1]))) : 0).toFixed(3);
+    bar.style.left = (SAFE_CX - bw / 2) + "px";
+    bar.style.top = "920px";
+    bar.style.width = bw.toFixed(1) + "px";
+    /* the brand rings behind, turning slowly */
+    const rr = p(t, B4[0], B4[1]);
+    const rg = $("b4ring");
+    rg.style.transform = "rotate(" + (rr * 26).toFixed(2) + "deg) scale(" + (1 + 0.10 * rr).toFixed(3) + ")";
+    rg.style.opacity = (1 - eIn(p(t, B4[1] - 0.12, B4[1]))).toFixed(3);
+    $("b4").style.opacity = eOut(p(t, B4[0], B4[0] + 0.08)).toFixed(3);
+  }
+
+  /* ---- 5. the feed ----------------------------------------------------- */
+  if (t >= B5[0] && t < B5[1]) {
+    show($("b5"), true);
+    const u = p(t, B5[0], B5[1]);
+    const travel = 1650, start = 240;
+    const ride = tt => start - travel * eInOut(p(tt, B5[0], B5[1]));
+    $("feed").style.transform = "translateY(" + ride(t).toFixed(1) + "px)";
+    pipEls.forEach((el, i) => {
+      const P = PIPS[i];
+      const a = p(t, P.t, P.t + 0.30);
+      const live = t >= P.t && a < 1;
+      el.style.opacity = live ? (a < 0.22 ? a / 0.22 : 1 - (a - 0.22) / 0.78).toFixed(3) : 0;
+      /* the pip rides up with the card it sits on, then lifts off it */
+      el.style.transform = "translateY(" + (ride(t) - ride(P.t) - 80 * a).toFixed(1) + "px) scale(" +
+        (a <= 0 ? 0 : lerp(0.35, 1.10, kick(clamp(a / 0.34, 0, 1)))).toFixed(3) + ")";
+    });
+    /* the count climbing */
+    $("b5n").textContent = Math.round(lerp(18, 486, eOut(p(t, B5[0] + 0.10, B5[1] - 0.06))));
+    const co = eOut(p(t, B5[0] + 0.10, B5[0] + 0.30)) * (1 - eIn(p(t, B5[1] - 0.10, B5[1])));
+    $("b5count").style.opacity = co.toFixed(3);
+    $("b5count").style.transform = "scale(" + lerp(0.86, 1, eOut(p(t, B5[0] + 0.10, B5[0] + 0.32))).toFixed(3) + ")";
+    /* the line, on its scrim, held long enough to read */
+    const la = eOut(p(t, B5[0] + 0.12, B5[0] + 0.34));
+    const lb = eOut(p(t, B5[0] + 0.22, B5[0] + 0.44));
+    const lo = 1 - eIn(p(t, B5[1] - 0.10, B5[1]));
+    $("b5a").style.opacity = (la * lo).toFixed(3);
+    $("b5b").style.opacity = (lb * lo).toFixed(3);
+    $("b5a").style.transform = "translateY(calc(-50% + " + lerp(46, 0, la).toFixed(1) + "px))";
+    $("b5b").style.transform = "translateY(calc(-50% + " + lerp(46, 0, lb).toFixed(1) + "px))";
+    $("b5scrim").style.opacity = eOut(p(t, B5[0], B5[0] + 0.18)).toFixed(3);
+  }
+
+  /* ---- 6. the weekly board --------------------------------------------- */
+  if (t >= B6[0] && t < B6[1]) {
+    show($("b6"), true);
+    const u = p(t, B6[0], B6[1]);
+    const inp = eOut(p(t, B6[0], B6[0] + 0.16));
+    $("b6ph").style.opacity = inp.toFixed(3);
+    $("b6ph").style.transform = "scale(" + (lerp(1.12, 1, inp) * (1 + 0.04 * u)).toFixed(4) + ")";
+    const st = p(t, B6[0] + 0.13, B6[0] + 0.35);
+    const m = $("b6medal");
+    m.style.opacity = st > 0 ? 1 : 0;
+    m.style.transform = "rotate(" + lerp(-16, 0, eOut(st)).toFixed(2) + "deg) scale(" +
+      (st <= 0 ? 0 : lerp(2.0, 1, kick(st))).toFixed(4) + ")";
+    const lb = eOut(p(t, B6[0] + 0.26, B6[0] + 0.46));
+    $("b6lab").style.opacity = lb.toFixed(3);
+    $("b6lab").style.letterSpacing = lerp(0.62, 0.34, lb).toFixed(3) + "em";
+    $("b6").style.opacity = (1 - eIn(p(t, B6[1] - 0.08, B6[1]))).toFixed(3);
+  }
+
+  /* ---- 7. the end card, fading to the black the first frame opens on ---- */
+  if (t >= B7[0]) {
+    show($("b7"), true);
+    const wm = eOut(p(t, B7[0] + 0.02, B7[0] + 0.24));
+    const sl = eOut(p(t, B7[0] + 0.14, B7[0] + 0.36));
+    const so = eOut(p(t, B7[0] + 0.28, B7[0] + 0.46));
+    const ag = eOut(p(t, B7[0] + 0.38, B7[0] + 0.54));
+    $("wm").style.opacity = wm.toFixed(3);
+    $("wm").style.transform = "translateY(" + lerp(34, 0, wm).toFixed(1) + "px) scale(" + lerp(0.94, 1, wm).toFixed(4) + ")";
+    $("b7slog").style.opacity = sl.toFixed(3);
+    $("b7slog").style.transform = "translateY(calc(-50% + " + lerp(38, 0, sl).toFixed(1) + "px))";
+    $("b7soon").style.opacity = so.toFixed(3);
+    $("b7soon").style.letterSpacing = lerp(0.60, 0.34, so).toFixed(3) + "em";
+    $("b7age").style.opacity = (ag * 0.9).toFixed(3);
+    $("b7glow").style.opacity = (0.85 * wm * (1 + 0.16 * Math.sin(p(t, B7[0], DUR) * 3.1))).toFixed(3);
+    /* the loop: everything out by 9.95, so the last frame is the black of the first */
+    $("b7").style.opacity = (1 - p(t, 9.80, 9.95)).toFixed(3);
+  }
+}
+
+window.seek = seek;
+window.__debugSafe = v => { $("safe").style.display = v ? "block" : "none"; };
+window.__meta = { fps: FPS, duration: DUR, frames: Math.round(FPS * DUR) };
+document.fonts.ready.then(() => { measure(); seek(0); window.__ready = true; });
+</script>

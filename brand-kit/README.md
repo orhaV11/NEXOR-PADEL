@@ -3,15 +3,17 @@
 Everything needed to show OREVOSH outside the app: the logos, the covers for social pages and the stores, the story
 templates and the store screenshots, rendered from `tools/brand/templates/` by `tools/brand/render-kit.js` with the
 real brand SVGs (`src/FitCheck.Api/wwwroot/brand/`), the tokens of `DESIGN.md` and the app screenshots the browser
-test takes. The slogan is **Check the look.** / **בודקים את הלוק.** with the tagline *A stylist in your pocket, and a
-community that lights it up.* / *סטייליסט בכיס, וקהילה שמדליקה.* (`MARKETING.md` has the runners-up; the copy lives
-at the top of `render-kit.js`, so changing it and re-running regenerates every file).
+test takes, with one of the three real looks (`templates/photos/`, the owner's, used with permission) laid into the
+photo slot of every screen that has one. The slogan is **Check the look.** / **בודקים את הלוק.** with the tagline
+*A stylist in your pocket, and a community that lights it up.* / *סטייליסט בכיס, וקהילה שמדליקה.*
+(`MARKETING.md` has the runners-up; the copy lives at the top of `render-kit.js`, so changing it and re-running
+regenerates every file).
 
 ## Regenerate
 
 ```bash
 cd tools/brand
-npm install                      # playwright, and sharp for smaller PNGs
+npm install                      # playwright, and sharp for smaller PNGs (never the ones with a photo in them)
 npx playwright install chromium  # once; or CHROMIUM_PATH=/path/to/chromium
 node render-kit.js               # everything; or: node render-kit.js stories store
 ```
@@ -23,11 +25,18 @@ landing page) for link previews, and `/landing/screens/*.jpg` for the landing pa
 
 ## Before the store listings
 
-- **Replace the screens.** The screenshots come from the browser test (`tools/e2e`): the outfit photo is the test's
-  synthetic image, the camera shows Chromium's fake device (green), and the check and camera screens exist in English
-  only, so the Hebrew store set uses them for screens 1 and 5. Take real captures on a phone (1290×2796 on an iPhone
-  with a 6.7" screen; any 9:16 Android phone), drop them into `tools/brand/templates/screens/`, point the `COPY` table
-  in `render-kit.js` at them, and re-run. Apple rejects listings whose screenshots do not show the app as shipped.
+- **Replace the screens.** The screenshots come from the browser test (`tools/e2e`), with the real looks composited
+  into them and the lines that read as a verdict on a look re-drawn (`SCREEN_EDITS` in `render-kit.js`): the app around
+  the photo is the test's own seeded data, the camera still shows Chromium's fake device (green), and the check and
+  camera screens exist in English only, so the Hebrew store set uses them for screens 1 and 5. Take real captures on a
+  phone (1290×2796 on an iPhone with a 6.7" screen; any 9:16 Android phone), drop them into
+  `tools/brand/templates/screens/`, point the `COPY` table in `render-kit.js` at them, and re-run. Apple rejects
+  listings whose screenshots do not show the app as shipped.
+- **The looks.** `look-1-streetwear` is the posted look, the feed and the community; `look-2-camel` is the check and
+  its result, and the tag page; `look-3-pink` is the look a brand has featured. Each carries its own stylist copy, and
+  the app shows an outfit at 4:5, so every crop gives something up: look 1 keeps its sneakers and loses the white cap
+  above the frame, look 3 keeps its fedora, shirt and tie and loses the pink shoes below it, look 2 keeps the column
+  from the coat to the tights and takes the boots at the hem.
 - **Sizes.** Apple asks for 1284×2778 or 1290×2796 for the 6.7" slot (the files here are 1284×2778, accepted for 6.5"
   and 6.9" too); Google Play accepts 16:9 or 9:16 between 320 and 3840 px and wants the 1024×500 feature graphic.
 - **Safe zones.** Facebook shows the cover at 820×312 on desktop and the middle 640 px on phones; LinkedIn puts the
@@ -61,47 +70,47 @@ landing page) for link previews, and `/landing/screens/*.jpg` for the landing pa
 
 | file | pixels | size | use |
 |---|---|---|---|
-| `facebook-linkedin-1500x500.png` | 1500×500 | 29 KB | Facebook page cover (shown 820×312 on desktop, the middle 640 px on phones) and a LinkedIn personal banner |
-| `linkedin-1584x396.png` | 1584×396 | 24 KB | LinkedIn company page cover (keep the left 20% clear of anything vital: the logo sits there on phones) |
-| `play-feature-1024x500.png` | 1024×500 | 30 KB | Google Play feature graphic (required for the listing; shown above the screenshots) |
-| `x-header-1500x500.png` | 1500×500 | 29 KB | X / Twitter header (the profile picture covers the bottom-left corner) |
-| `og-1200x630.png` | 1200×630 | 39 KB | Open Graph / Twitter card for links to the app; served at /brand/og-1200x630.png |
-| `og-1200x630-he.png` | 1200×630 | 33 KB | The same in Hebrew, for the Hebrew landing page; served at /brand/og-1200x630-he.png |
+| `facebook-linkedin-1500x500.png` | 1500×500 | 168 KB | Facebook page cover (shown 820×312 on desktop, the middle 640 px on phones) and a LinkedIn personal banner |
+| `linkedin-1584x396.png` | 1584×396 | 126 KB | LinkedIn company page cover (keep the left 20% clear of anything vital: the logo sits there on phones) |
+| `play-feature-1024x500.png` | 1024×500 | 159 KB | Google Play feature graphic (required for the listing; shown above the screenshots) |
+| `x-header-1500x500.png` | 1500×500 | 168 KB | X / Twitter header (the profile picture covers the bottom-left corner) |
+| `og-1200x630.png` | 1200×630 | 233 KB | Open Graph / Twitter card for links to the app; served at /brand/og-1200x630.png |
+| `og-1200x630-he.png` | 1200×630 | 244 KB | The same in Hebrew, for the Hebrew landing page; served at /brand/og-1200x630-he.png |
 
 ## stories/
 
 | file | pixels | size | use |
 |---|---|---|---|
-| `story-1-check-the-look-en.png` | 1080×1920 | 91 KB | The slogan with the check screen (English), Instagram / TikTok story or Reel cover |
-| `story-2-the-one-tip-en.png` | 1080×1920 | 79 KB | The result screen and the one tip (English), Instagram / TikTok story or Reel cover |
-| `story-3-brands-en.png` | 1080×1920 | 86 KB | A look with a brand tag (English), Instagram / TikTok story or Reel cover |
-| `story-1-check-the-look-he.png` | 1080×1920 | 71 KB | The slogan with the check screen (Hebrew), Instagram / TikTok story or Reel cover |
-| `story-2-the-one-tip-he.png` | 1080×1920 | 78 KB | The result screen and the one tip (Hebrew), Instagram / TikTok story or Reel cover |
-| `story-3-brands-he.png` | 1080×1920 | 83 KB | A look with a brand tag (Hebrew), Instagram / TikTok story or Reel cover |
+| `story-1-check-the-look-en.png` | 1080×1920 | 684 KB | The slogan with the check screen (English), Instagram / TikTok story or Reel cover |
+| `story-2-the-one-tip-en.png` | 1080×1920 | 278 KB | The result screen and the one tip (English), Instagram / TikTok story or Reel cover |
+| `story-3-brands-en.png` | 1080×1920 | 767 KB | A look a brand has just featured (English), Instagram / TikTok story or Reel cover |
+| `story-1-check-the-look-he.png` | 1080×1920 | 636 KB | The slogan with the feed (Hebrew), Instagram / TikTok story or Reel cover |
+| `story-2-the-one-tip-he.png` | 1080×1920 | 275 KB | The result screen and the one tip (Hebrew), Instagram / TikTok story or Reel cover |
+| `story-3-brands-he.png` | 1080×1920 | 651 KB | A look with a brand tag (Hebrew), Instagram / TikTok story or Reel cover |
 
 ## store/
 
 | file | pixels | size | use |
 |---|---|---|---|
-| `iphone-6.7-01-en.png` | 1284×2778 | 180 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 1: "Check the look in 10 seconds" |
-| `iphone-6.7-02-en.png` | 1284×2778 | 144 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 2: "Fit, color, accessories" |
-| `iphone-6.7-03-en.png` | 1284×2778 | 174 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 3: "Post it, light it up" |
-| `iphone-6.7-04-en.png` | 1284×2778 | 140 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 4: "Brands feature the looks they love" |
-| `iphone-6.7-05-en.png` | 1284×2778 | 59 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 5: "Film it in the app" |
-| `iphone-6.7-01-he.png` | 1284×2778 | 175 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
-| `iphone-6.7-02-he.png` | 1284×2778 | 129 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
-| `iphone-6.7-03-he.png` | 1284×2778 | 178 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
-| `iphone-6.7-04-he.png` | 1284×2778 | 174 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
-| `iphone-6.7-05-he.png` | 1284×2778 | 60 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
-| `android-01-en.png` | 1080×1920 | 98 KB | Google Play phone screenshot (9:16), English listing, screen 1: "Check the look in 10 seconds" |
-| `android-02-en.png` | 1080×1920 | 80 KB | Google Play phone screenshot (9:16), English listing, screen 2: "Fit, color, accessories" |
-| `android-03-en.png` | 1080×1920 | 95 KB | Google Play phone screenshot (9:16), English listing, screen 3: "Post it, light it up" |
-| `android-04-en.png` | 1080×1920 | 79 KB | Google Play phone screenshot (9:16), English listing, screen 4: "Brands feature the looks they love" |
-| `android-05-en.png` | 1080×1920 | 37 KB | Google Play phone screenshot (9:16), English listing, screen 5: "Film it in the app" |
-| `android-01-he.png` | 1080×1920 | 97 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
-| `android-02-he.png` | 1080×1920 | 73 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
-| `android-03-he.png` | 1080×1920 | 103 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
-| `android-04-he.png` | 1080×1920 | 99 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
-| `android-05-he.png` | 1080×1920 | 35 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
+| `iphone-6.7-01-en.png` | 1284×2778 | 1288 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 1: "Check the look in 10 seconds" |
+| `iphone-6.7-02-en.png` | 1284×2778 | 488 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 2: "Fit, color, accessories" |
+| `iphone-6.7-03-en.png` | 1284×2778 | 1194 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 3: "Post it, light it up" |
+| `iphone-6.7-04-en.png` | 1284×2778 | 595 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 4: "Brands feature the looks they love" |
+| `iphone-6.7-05-en.png` | 1284×2778 | 271 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 5: "Film it in the app" |
+| `iphone-6.7-01-he.png` | 1284×2778 | 1279 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
+| `iphone-6.7-02-he.png` | 1284×2778 | 461 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
+| `iphone-6.7-03-he.png` | 1284×2778 | 1182 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
+| `iphone-6.7-04-he.png` | 1284×2778 | 1238 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
+| `iphone-6.7-05-he.png` | 1284×2778 | 278 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
+| `android-01-en.png` | 1080×1920 | 800 KB | Google Play phone screenshot (9:16), English listing, screen 1: "Check the look in 10 seconds" |
+| `android-02-en.png` | 1080×1920 | 289 KB | Google Play phone screenshot (9:16), English listing, screen 2: "Fit, color, accessories" |
+| `android-03-en.png` | 1080×1920 | 793 KB | Google Play phone screenshot (9:16), English listing, screen 3: "Post it, light it up" |
+| `android-04-en.png` | 1080×1920 | 327 KB | Google Play phone screenshot (9:16), English listing, screen 4: "Brands feature the looks they love" |
+| `android-05-en.png` | 1080×1920 | 139 KB | Google Play phone screenshot (9:16), English listing, screen 5: "Film it in the app" |
+| `android-01-he.png` | 1080×1920 | 792 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
+| `android-02-he.png` | 1080×1920 | 290 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
+| `android-03-he.png` | 1080×1920 | 773 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
+| `android-04-he.png` | 1080×1920 | 866 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
+| `android-05-he.png` | 1080×1920 | 144 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
 
-Total: 3.1 MB.
+Total: 17.8 MB.

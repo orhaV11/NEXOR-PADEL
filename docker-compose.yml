@@ -1,0 +1,49 @@
+# OREVOSH on one small server: the app, and Caddy in front of it getting and renewing the HTTPS certificate by itself.
+# Copy .env.example to .env, fill it in, then: docker compose up -d --build. The walkthrough is DEPLOY.md.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Everything in .env reaches the app: ANTHROPIC_API_KEY, Push__PublicKey, Push__PrivateKey, Push__Subject,
+    # Admin__Handles__0 (see .env.example). Any appsettings key can be overridden the same way, e.g. Limits__ChecksPerDay=5.
+    env_file: .env
+    volumes:
+      # The database, the photos and clips, the pilot-upgrade copies and the backups in flight all live here.
+      - data:/data
+    # Not published on the host: only Caddy, on the compose network, talks to the app.
+    expose:
+      - "8080"
+    # Docker keeps container logs forever unless told otherwise; five files of 10 MB is weeks of a pilot.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and Caddy's own state survive restarts and rebuilds.
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

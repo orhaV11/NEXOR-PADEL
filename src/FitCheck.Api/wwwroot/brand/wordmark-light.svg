@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1626 350" width="1626" height="350">
+  <title>OREVOSH wordmark</title>
+  <defs>
+    <linearGradient id="ovwl-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442">
+      <stop offset="0" stop-color="#7d5cff"/>
+      <stop offset="1" stop-color="#ff5c92"/>
+    </linearGradient>
+    <linearGradient id="ovwl-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+      <stop offset="0" stop-color="#ff6a2b"/>
+      <stop offset="0.55" stop-color="#ff6a2b"/>
+      <stop offset="1" stop-color="#ffa83a"/>
+    </linearGradient>
+    <mask id="ovwl-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+    </mask>
+  </defs>
+  <g transform="translate(-28.27 20.2) scale(0.65)">
+  <circle cx="256" cy="292" r="142" fill="none" stroke="url(#ovwl-ring)" stroke-width="68" mask="url(#ovwl-cut)"/>
+  <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="url(#ovwl-fire)" transform="translate(351.02 186.47) rotate(42)"/>
+  </g>
+  <path d="M0 186 V0 H82 A46 46 0 0 1 82 92 H0 M58 92 L128 186" transform="translate(326 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M112 0 H0 V186 H112 M0 93 H94" transform="translate(544 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M0 0 L79 186 L158 0" transform="translate(732 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M93 0 A93 93 0 1 1 93 186 A93 93 0 1 1 93 0 Z" transform="translate(966 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 40 C120 12 100 0 60 0 C22 0 0 16 0 46 C0 80 30 88 60 91 C92 94 120 104 120 140 C120 172 98 186 60 186 C22 186 0 174 0 146" transform="translate(1238 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M0 0 V186 M132 0 V186 M0 93 H132" transform="translate(1448 118)" fill="none" stroke="#0b0b0f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,961 @@
+/*
+  OREVOSH — Ring of Fire. The logo is the system: one bold ring (the O of OREVOSH), a single lick of fire breaking out of
+  it, and the lilac-to-rose gradient that runs across the ring. A near-black stage with one lilac glow at the top, one
+  gradient, fire only where something caught fire, rounded friendly shapes, big confident type, short punchy motion.
+  Dark only. Logical properties only, so Hebrew (rtl) mirrors for free; the named exceptions: the wordmark and the mark
+  (logos read left-to-right, the flame stays top-right), numerals (always ltr), and the profile bio's physical
+  text-align pin. Sections follow DESIGN.md §1–§9.
+*/
+
+/* ---------- §1 tokens ---------- */
+:root {
+  --bg: #0b0b0f;                          /* the stage */
+  --bg-2: #13121a;                        /* top of the page gradient: masthead, sticky feed head, composer */
+  --surface: #15151c;                     /* cards, dock, sheets */
+  --surface-2: #1e1e27;                   /* raised: chips at rest, the brands band, placeholders, pressed rows */
+  --line: #2b2b36;                        /* hairlines */
+  --line-soft: rgba(255, 255, 255, 0.08); /* quieter hairlines: action outlines, index rows */
+  --ink: #f4f4f7;
+  --ink-2: #b9b9c6;
+  --ink-3: #7f7f8e;
+  --accent: #b39dff;                      /* lilac: links, #tags, @mentions, active marks, ranks 1–3, pressed chips */
+  --accent-2: #ff8fb1;                    /* rose: the warm end of the gradient, brand marks */
+  --accent-ink: #150f2e;                  /* ink on the gradient */
+  --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);   /* the only gradient */
+  --accent-tint: rgba(179, 157, 255, 0.14);
+  --fire: #ff6a2b;                        /* reactions only */
+  --fire-2: #ffa83a;                      /* the flame's tip */
+  --fire-tint: rgba(255, 106, 43, 0.12);
+  --ok: #5ee6a0;
+  --danger: #ff5d7a;
+  --radius: 18px;                         /* cards, tickets, the hero figure */
+  --radius-sm: 12px;                      /* photos inside grids, inputs */
+  --pill: 999px;                          /* chips, segments, buttons, the dock, the score ring */
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-dock: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --shadow-halo: 0 0 0 6px rgba(179, 157, 255, 0.12), 0 10px 26px rgba(179, 157, 255, 0.35);
+  --shadow-primary: 0 8px 24px rgba(255, 143, 177, 0.25);
+  --font-display: "Outfit", "Heebo", system-ui, sans-serif;
+  --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
+  --caps: 700 11px/1 var(--font-body);    /* the label voice */
+  --caps-track: 0.08em;
+  --glow: radial-gradient(90% 38% at 50% -8%, rgba(179, 157, 255, 0.16), transparent 62%);   /* the lilac glow at the top of every screen */
+  --tabbar: 92px;                         /* 56 dock + 10 lift + 26 mark overhang */
+  --top: 56px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --col: 520px;
+  color-scheme: dark;
+}
+[dir="rtl"] { --caps-track: 0.02em; }   /* Hebrew has no capitals; tracking stays gentle and the labels step up to 12.5px */
+/* Arabic: Cairo (Google Fonts) carries the script for body and headings, Noto Sans Arabic and the system face follow; Outfit
+   keeps the Latin wordmark and every numeral. Russian: Heebo and Outfit have no Cyrillic, so the body is the system face and
+   headings fall from Outfit (Latin, numerals) to it per glyph. Both keep the rtl label rules above (Arabic has no capitals). */
+html[lang="ar"] {
+  --font-display: "Outfit", "Cairo", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Cairo", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+html[lang="ru"] {
+  --font-display: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html[lang="ru"] .tab > span[data-i18n] { font-size: 11px; letter-spacing: 0.04em; }   /* Cyrillic capitals run wide: ПРОФИЛЬ and СОБЫТИЯ stay inside their 70px dock columns */
+
+/* ---------- ground ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  -webkit-text-size-adjust: 100%; overscroll-behavior-y: none;
+  background: #0b0b0f;
+  background-image: var(--glow);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  padding-block-end: calc(var(--tabbar) + var(--safe-b));
+}
+body.no-tabbar { padding-block-end: 0; }
+h1, h2, h3, p, ul, ol, figure, figcaption { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+img { display: block; max-inline-size: 100%; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* Headings and wrappers receive focus programmatically on navigation (for screen readers); no ring for those. */
+h1[tabindex="-1"]:focus, div[tabindex="-1"]:focus, article[tabindex="-1"]:focus, a.btn-text[tabindex="-1"]:focus { outline: none; }
+.sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- the label voice: section heads, dock, tags, stat labels, tabs, action labels, meta ---------- */
+h2, .tag, .tab > span[data-i18n], .statline > span, .brand-mark, .featured, .profile-tabs button, .match, .activity .when, .comments .when,
+.field label, .field .label, .brand-card .sub, .x-challenge .x-meta, .challenge-meta, .action .lbl, .x-hero .kicker, .x-front .kicker,
+.x-hero-by > span, .grid figcaption > span:not(.rank), .section-head a, .x-hero-more, .card .challenge-link, .pill, .btn-sm, .vote, .photo-replace {
+  font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase;
+}
+[dir="rtl"] h2, [dir="rtl"] .tag, [dir="rtl"] .featured, [dir="rtl"] .profile-tabs button, [dir="rtl"] .match, [dir="rtl"] .field label, [dir="rtl"] .field .label,
+[dir="rtl"] .brand-card .sub, [dir="rtl"] .challenge-meta, [dir="rtl"] .action .lbl, [dir="rtl"] .x-hero .kicker, [dir="rtl"] .x-front .kicker,
+[dir="rtl"] .x-hero-by > span, [dir="rtl"] .section-head a, [dir="rtl"] .x-hero-more, [dir="rtl"] .card .challenge-link, [dir="rtl"] .pill, [dir="rtl"] .btn-sm,
+[dir="rtl"] .vote, [dir="rtl"] .photo-replace { font-size: 12.5px; }
+
+/* ---------- §2 type ---------- */
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 36px; line-height: 1.02; letter-spacing: -0.01em; color: var(--ink); }
+h1.display { font-size: 44px; line-height: 1; }
+h1 + .lede { margin-block-start: 10px; }
+h2 { color: var(--ink-3); display: flex; align-items: center; gap: 12px; }
+h2::after { content: ""; flex: 1; block-size: 1px; background: var(--line-soft); }
+h3 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; }
+.lede { font-size: 16px; color: var(--ink-2); }
+.muted { color: var(--ink-3); }
+.hint { font-size: 13px; line-height: 1.4; color: var(--ink-3); }
+/* Text people and the stylist wrote follows its own direction inside either UI (English looks in Hebrew and back). */
+.headline, .caption, .comments .text, .challenge-title, .lede, .result-headline, .item-name, .item-note, .tip p, .working li, .vibe, .who .name, .brand-card .name, .top-title, .x-hero-title, .x-title { unicode-bidi: plaintext; }
+
+/* ---------- §3 the masthead: the wordmark at 22px ---------- */
+.top {
+  position: sticky; inset-block-start: 0; z-index: 5;
+  background: var(--bg-2);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-block-end: 1px solid var(--line);
+  padding-block-start: var(--safe-t);
+}
+.top-inner { max-inline-size: var(--col); margin-inline: auto; block-size: var(--top); display: flex; align-items: center; justify-content: space-between; padding-inline: 16px; gap: 10px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+/* a logo: left-to-right in both languages; the SVG is the wordmark, the text only shows when index.html has no template */
+.wordmark {
+  display: inline-flex; align-items: center; min-block-size: 44px; direction: ltr; text-decoration: none; color: var(--ink);
+  font-family: var(--font-display); font-weight: 800; font-size: 20px; line-height: 1; letter-spacing: 0.06em;
+}
+.wordmark svg { display: block; block-size: 22px; inline-size: auto; }
+.top-title { font-family: var(--font-display); font-weight: 700; font-size: 19px; line-height: 1.2; flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.icon-btn {
+  inline-size: 44px; block-size: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--ink-2);
+  display: inline-grid; place-items: center; text-decoration: none; position: relative;
+}
+.icon-btn:active { background: var(--surface-2); }
+[dir="rtl"] .icon-btn.back svg { transform: scaleX(-1); }
+.icon-btn svg, .icon svg { inline-size: 24px; block-size: 24px; }
+.icon { display: inline-grid; place-items: center; }
+.offline { background: var(--surface-2); color: var(--ink-2); font-size: 13px; text-align: center; padding-block: 6px; border-block-end: 1px solid var(--line); }
+
+main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
+.view { padding-inline: 16px; padding-block: 16px 24px; }
+.view > * + * { margin-block-start: 24px; }
+.view > .sr-only + * { margin-block-start: 0; }
+.stack > * + * { margin-block-start: 18px; }
+.stack .btn + .btn { margin-block-start: 10px; }
+.flush { padding-inline: 0; }
+.view.flush:has(> .sticky-tabs) { padding-block-start: 0; }
+.view.flush > .sticky-tabs + * { margin-block-start: 20px; }
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; min-inline-size: 0; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.section-head h2 { flex: 1; }
+.section-head a { color: var(--accent); text-decoration: none; }
+
+/* ---------- §4 the pill dock, with the mark raised in the middle ---------- */
+.tabbar {
+  position: fixed; inset-inline: 14px; inset-block-end: calc(10px + var(--safe-b)); z-index: 6;
+  max-inline-size: calc(var(--col) - 28px); margin-inline: auto;
+  background: var(--surface);   /* opaque: nothing ghosts through */
+  border: 1px solid var(--line); border-radius: var(--pill);
+  box-shadow: var(--shadow-dock);
+}
+.tabbar-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 80px minmax(0, 1fr) minmax(0, 1fr); block-size: 56px; }   /* fixed columns: a long label overflows its block, it never moves the mark off centre */
+/* four text destinations: full-height tap blocks, colour is the state, a gradient dot marks the current one */
+.tab {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-decoration: none; color: var(--ink-3); -webkit-user-select: none; user-select: none; border-radius: var(--pill);
+}
+.tab > span[data-i18n] { position: relative; font-size: 11.5px; letter-spacing: 0.08em; }
+[dir="rtl"] .tab > span[data-i18n] { font-size: 12.5px; letter-spacing: 0.02em; }
+.tab[aria-current="page"] { color: var(--ink); }
+.tab[aria-current="page"]:not(.check) > span[data-i18n]::after {
+  content: ""; position: absolute; inset-inline-start: 50%; inset-block-start: calc(100% + 6px); margin-inline-start: -3px;
+  inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--grad);
+}
+.tab:active::before { content: ""; position: absolute; inset: 8px 4px; background: var(--accent-tint); border-radius: var(--pill); }
+.tab[data-tab="activity"] { flex-direction: row; align-items: center; gap: 4px; }
+/* with a count showing, the block hugs its end edge and only spills toward the check column, which has room; PROFILE keeps its air */
+.tab[data-tab="activity"]:has(.badge:not([hidden])) { justify-content: flex-end; padding-inline-end: 6px; }
+/* the unread count: a display numeral in fire after the label, no pill */
+.badge { position: relative; font: 700 13px/1 var(--font-display); color: var(--fire); direction: ltr; }
+.tab.check { justify-content: flex-end; padding-block-end: 7px; }
+.tab.check > span[data-i18n] { font-size: 10.5px; }
+[dir="rtl"] .tab.check > span[data-i18n] { font-size: 11.5px; }
+.tab.check:active::before { display: none; }   /* the mark itself is the pressed state */
+/* §3 the check control: the mark on a dark disc with a halo, raised 24px above the dock; it does not mirror in Hebrew */
+.tab.check .mark {
+  position: absolute; inset-block-start: -24px; inset-inline-start: 50%; margin-inline-start: -30px;
+  inline-size: 60px; block-size: 60px; padding: 6px; border-radius: 50%; background: var(--bg);
+  box-shadow: var(--shadow-halo); display: block; direction: ltr;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.tab.check:active .mark { transform: scale(0.96); }
+.tab.check .mark svg { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
+.flame { transform-box: fill-box; transform-origin: 50% 100%; }   /* the lick scales about its base, wherever the mark is */
+/* tap: the ring draws itself clockwise from the bottom-left (450ms), then the flame pops out of the gap */
+.tab.check.lit .ring { stroke-dasharray: 893; animation: ring-draw 450ms cubic-bezier(0.16, 0.84, 0.3, 1) both; }
+.tab.check.lit .flame { animation: flame-pop 260ms 150ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+@keyframes ring-draw { from { stroke-dashoffset: 893; } to { stroke-dashoffset: 0; } }
+@keyframes flame-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+/* ---------- §8 controls: buttons, pills, chips, segments, fields ---------- */
+.btn {
+  inline-size: 100%; min-block-size: 52px; border: 1px solid transparent; border-radius: var(--pill);
+  background: var(--grad); color: var(--accent-ink); font-weight: 700; font-size: 15px; letter-spacing: 0.01em; padding-inline: 20px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+  box-shadow: var(--shadow-primary); transition: transform 120ms ease;
+}
+.btn:active { transform: scale(0.985); }
+/* disabled reads as "not yet", not as a faded block */
+.btn:disabled { opacity: 1; background: var(--surface-2); color: var(--ink-3); border: 1px dashed var(--line); box-shadow: none; transform: none; cursor: not-allowed; }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--line); box-shadow: none; }
+.btn-secondary:active { background: var(--surface-2); }
+.btn-ghost { background: transparent; color: var(--ink-2); border-color: transparent; box-shadow: none; }
+.btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); box-shadow: none; }
+/* the small label: the gradient when it invites, outlined with a lilac check once you follow */
+.btn-sm { inline-size: auto; min-block-size: 36px; padding-inline: 14px; gap: 6px; box-shadow: none; }
+.btn-sm .icon svg { inline-size: 14px; block-size: 14px; color: var(--accent); }
+.btn-sm:disabled { opacity: 0.6; background: var(--grad); color: var(--accent-ink); border: 1px solid transparent; cursor: default; }   /* in flight: nothing else changes */
+.btn-sm.btn-secondary:disabled { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-text { background: none; border: 0; color: var(--accent); padding: 10px 0; min-block-size: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(179, 157, 255, 0.5); cursor: pointer; }
+.pill {
+  appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--line); border-radius: var(--pill); background: transparent; color: var(--ink);
+  min-block-size: 36px; padding-block: 0; padding-inline: 14px; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+}
+.pill.accent { background: var(--grad); border-color: transparent; color: var(--accent-ink); }
+select.pill { text-transform: none; font: 500 14px/1 var(--font-body); letter-spacing: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding-block: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }   /* 40px chips in a 44px row */
+.chips.scroll::-webkit-scrollbar { display: none; }
+.chip {
+  border: 1px solid transparent; border-radius: var(--pill); background: var(--surface-2); color: var(--ink-2);
+  padding-block: 0; padding-inline: 14px; font-size: 14px; font-weight: 500; min-block-size: 40px; white-space: nowrap; flex: none;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.chip:disabled { opacity: 0.35; }
+/* the feed switch: two coins named after the halves of the mark (the flame = For you, the ring = Your circle). The
+   current one is lit: a gradient pill with the word on it and the flame in fire; the other waits cool beside it, no
+   underline and no sliding thumb. Switching re-renders, and the newly lit coin fades its fill in and pops its glyph. */
+.segments { display: flex; gap: 6px; align-items: center; justify-content: flex-start; }
+.segment {
+  flex: none; position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-block-size: 44px;
+  border: 0; border-radius: var(--pill); background: transparent; padding-block: 0; padding-inline: 16px;
+  font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1; color: var(--ink-2); cursor: pointer;
+  transition: color 200ms ease;
+}
+.segment::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--grad); opacity: 0; transition: opacity 220ms ease; }
+.segment .glyph { display: grid; place-items: center; inline-size: 22px; block-size: 22px; margin-inline-start: -4px; }
+.segment .glyph svg { display: block; inline-size: 22px; block-size: 22px; }
+.segment:not([aria-pressed="true"]) .glyph { color: var(--ink-3); }                            /* a cool coin: gray flame, gray ring */
+.segment:not([aria-pressed="true"]):hover { color: var(--ink); }
+.segment:not([aria-pressed="true"]):active { color: var(--ink); }
+.segment[aria-pressed="true"] { color: var(--accent-ink); box-shadow: 0 8px 22px rgba(255, 143, 177, 0.22); }   /* lit: the gradient, and it glows */
+.segment[aria-pressed="true"]::before { opacity: 1; }
+.segment[aria-pressed="true"] .glyph svg { fill: var(--fire); }                                  /* the flame catches fire on the lit coin */
+.segment[aria-pressed="true"] .glyph svg circle { fill: none; stroke: currentColor; }            /* the ring stays a ring, in ink */
+.segment.just-lit::before { animation: fade 220ms ease both; }
+.segment.just-lit .glyph { animation: flame-pop 260ms 60ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both; transform-origin: 50% 80%; }
+/* opaque (nothing ghosts through) and painted with the same fixed glow as the ground, so it never seams against it */
+.sticky-tabs { position: sticky; inset-block-start: calc(var(--top) + var(--safe-t)); z-index: 4; padding-block: 14px 10px; background: var(--bg); background-image: var(--glow); background-repeat: no-repeat; background-attachment: fixed; }
+.sticky-tabs .segments { margin-inline: 16px; }
+.sticky-tabs .chips { padding-inline: 16px; margin-block-start: 8px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label, .field .label { color: var(--ink-3); }
+input[type="text"], input[type="password"], input[type="url"], input[type="search"], input[type="datetime-local"], textarea, select:not(.pill) {
+  inline-size: 100%; min-block-size: 50px; border: 0; border-radius: var(--radius-sm); background: var(--surface-2);
+  padding-block: 10px; padding-inline: 14px; font-size: 16px; color: var(--ink); outline: none;
+}
+input[type="text"], input[type="password"], input[type="url"], input[type="search"], input[type="datetime-local"], textarea { -webkit-appearance: none; appearance: none; }
+textarea { min-block-size: 96px; resize: vertical; }
+input:focus, textarea:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
+input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[type="url"]:focus-visible, input[type="search"]:focus-visible, input[type="datetime-local"]:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }   /* the ring is the focus */
+::placeholder { color: var(--ink-3); opacity: 1; }
+.checkline { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; cursor: pointer; }
+.checkline input[type="checkbox"] { inline-size: 22px; block-size: 22px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: transparent; border: 1px solid var(--line); border-radius: var(--radius-sm); padding-block: 12px; padding-inline: 14px; }
+.switch input { inline-size: 44px; block-size: 26px; appearance: none; -webkit-appearance: none; background: var(--line); border-radius: var(--pill); position: relative; flex: none; margin: 0; cursor: pointer; }
+.switch input::after { content: ""; position: absolute; inset-block-start: 3px; inset-inline-start: 3px; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--ink); transition: transform 160ms ease; }
+.switch input:checked { background: var(--grad); }
+.switch input:checked::after { transform: translateX(18px); }
+[dir="rtl"] .switch input:checked::after { transform: translateX(-18px); }
+.alert { border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-tint); padding-block: 10px; padding-inline: 14px; font-size: 14px; }
+.alert.danger { border-color: var(--danger); color: var(--danger); background: rgba(255, 93, 122, 0.08); }
+.notice { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-card); }
+.notice h3 { margin-block-end: 6px; }
+.empty { color: var(--ink-3); font-size: 15px; text-align: center; padding-block: 40px; padding-inline: 20px; }
+.empty b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; color: var(--ink-2); margin-block-end: 6px; }
+/* search: a pill input with the icon at the start */
+.search { position: relative; }
+.search input { min-block-size: 48px; border-radius: var(--pill); padding-inline-start: 44px; }
+.search .icon { position: absolute; inset-inline-start: 14px; inset-block-start: 50%; transform: translateY(-50%); color: var(--accent); pointer-events: none; }
+.search .icon svg { inline-size: 20px; block-size: 20px; }
+.x-front + .search { margin-block-start: 14px; }
+
+/* ---------- avatars, people, brand marks, the brands band ---------- */
+.avatar {
+  position: relative; inline-size: 40px; block-size: 40px; border-radius: 50%;
+  flex: none; display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 14px; color: var(--accent-ink); text-decoration: none; background: var(--surface-2);
+}
+.avatar img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.avatar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--line); pointer-events: none; }   /* people: a 2px line ring */
+/* brands: a gradient ring (the ring cut out of a gradient disc) */
+.card-head:has(.brand-mark) > .avatar::after, .person:has(.brand-mark) > .avatar::after, .profile-head:has(.brand-mark) > .avatar::after, .brand-card .avatar::after, .challenge-meta .avatar::after {
+  box-shadow: none; padding: 2px; background: var(--grad);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+}
+.profile-head:has(.brand-mark) > .avatar::after, .brand-card .avatar::after { padding: 3px; }
+.avatar.lg { inline-size: 84px; block-size: 84px; font-size: 28px; }
+.avatar.sm { inline-size: 30px; block-size: 30px; font-size: 12px; }
+.brand-mark { color: var(--accent-2); border: 1px solid rgba(255, 143, 177, 0.6); border-radius: var(--pill); padding-inline: 6px; padding-block: 2px; font-size: 9px; letter-spacing: 0.1em; margin-inline-start: 8px; vertical-align: middle; white-space: nowrap; }
+[dir="rtl"] .brand-mark { font-size: 10.5px; letter-spacing: 0.02em; }
+.who { min-inline-size: 0; flex: 1; }
+.who .name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who .sub { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person { display: flex; align-items: center; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--line-soft); }
+.person:last-child { border-block-end: 0; }
+.person .btn-sm { flex: none; }
+/* brands to follow: a full-bleed raised band of portraits in gradient rings */
+.band {
+  margin-inline: -16px; padding: 16px; background: var(--surface-2); border-block: 1px solid var(--line-soft);
+  display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.band::-webkit-scrollbar { display: none; }
+.brand-card { flex: none; inline-size: 128px; scroll-snap-align: start; display: flex; flex-direction: column; align-items: flex-start; text-align: start; gap: 6px; }
+.brand-card .avatar { inline-size: 128px; block-size: 160px; font-size: 32px; border-radius: 14px; background: var(--surface); margin-block-end: 6px; }
+.brand-card .name { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.1; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-card .sub { color: var(--ink-3); }
+.brand-card .btn-sm { margin-block-start: 4px; inline-size: 100%; }
+
+/* ---------- §5 the look card ---------- */
+.card {
+  background: var(--surface); border-radius: var(--radius);
+  margin: 0 14px 20px; padding: 10px 10px 6px; box-shadow: var(--shadow-card);
+}
+.view.flush > div > .card:first-child, .view.flush > div > div > .card:first-child { margin-block-start: 4px; }
+.card-head { display: flex; align-items: center; gap: 10px; padding-inline: 4px; padding-block: 4px 12px; }
+.card-head .avatar { inline-size: 36px; block-size: 36px; font-size: 13px; }
+.card-head .tag { flex: none; }
+.card-head .icon-btn { margin-inline-end: -4px; }
+/* the intent as a label pill; .tag.accent is the gradient label (votes, posted, the hashtag); .tag.rose the rose outline (winner) */
+.tag { display: inline-flex; align-items: center; min-block-size: 24px; padding-inline: 9px; border-radius: var(--pill); color: var(--accent); background: var(--accent-tint); white-space: nowrap; text-decoration: none; }
+.tag.accent { color: var(--accent-ink); background: var(--grad); }
+.tag.rose { color: var(--accent-2); background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 143, 177, 0.6); }
+/* the photo: rounded, no frame, the ring straddling its bottom-end corner */
+.card-photo { position: relative; display: block; overflow: visible; background: var(--surface-2); border-radius: 14px; }
+.card-photo img { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+/* a clip fills the same box; its poster is the judged still, so the card reads the same before the clip has loaded */
+.card-photo video { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; background: var(--surface-2); }
+.card-media { position: relative; }
+/* the clip glyph at the top-start corner: how a clip is told from a photo in a card, a grid and the wall */
+.clip-pill { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.7); color: var(--ink); pointer-events: none; }
+.clip-pill svg { inline-size: 12px; block-size: 12px; }
+.clip-pill span { font: var(--caps); font-size: 9.5px; letter-spacing: var(--caps-track); text-transform: uppercase; }
+[dir="rtl"] .clip-pill span { font-size: 11px; }
+/* the sound toggle: a 44px target at the photo's top-end corner, a 32px disc on a translucent dark ground; lilac once sound is on */
+.card-media .sound { position: absolute; inset-block-start: 4px; inset-inline-end: 4px; z-index: 3; inline-size: 44px; block-size: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.card-media .sound::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(11, 11, 15, 0.6); }
+.card-media .sound:active::before { background: rgba(11, 11, 15, 0.8); }
+.card-media .sound .icon { position: relative; }
+.card-media .sound svg { inline-size: 18px; block-size: 18px; }
+.card-media .sound.on { color: var(--accent); }   /* sound on; under reduced motion, playing */
+/* §3 the score ring: a gradient ring around a surface disc, the numeral inside, "/10" under it */
+.score-badge {
+  position: absolute; inset-block-end: -14px; inset-inline-end: 14px; z-index: 2;
+  inline-size: 44px; block-size: 44px; border-radius: 50%; border: 3px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 0.9; color: var(--ink); direction: ltr;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.score-badge b { font: inherit; }
+.score-badge small { font: 700 8px/1 var(--font-body); letter-spacing: 0.02em; color: var(--ink-3); }
+.burst-flame {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: var(--fire); z-index: 3;
+  animation: burst 700ms ease-out forwards; filter: drop-shadow(0 6px 18px rgba(255, 106, 43, 0.5));
+}
+.burst-flame svg { inline-size: 110px; block-size: 110px; }
+@keyframes burst { 0% { opacity: 0; transform: scale(0.4); } 25% { opacity: 1; transform: scale(1.1); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2) translateY(-10px); } }
+/* the body */
+.card-body { padding-inline: 4px; padding-block: 22px 6px; }
+.card-body > * + * { margin-block-start: 8px; }
+.headline { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; }
+.caption { font-size: 15px; line-height: 1.5; color: var(--ink-2); white-space: pre-line; overflow-wrap: anywhere; }
+.caption a, .rich a { color: var(--accent); text-decoration: none; font-weight: 600; unicode-bidi: plaintext; }   /* a #tag or @mention keeps its sign at its own start inside a Hebrew line */
+/* Featured by NEXOR: a gradient-outlined pill */
+.featured {
+  display: inline-flex; align-items: center; gap: 6px; min-block-size: 28px; padding-inline: 10px; color: var(--ink); text-decoration: none;
+  border: 1px solid transparent; border-radius: var(--pill); background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box;
+}
+.featured svg { inline-size: 12px; block-size: 12px; color: var(--accent-2); }
+.match { display: flex; align-items: center; gap: 12px; color: var(--ink-3); }
+.match .bar { flex: 1; }
+.bar { block-size: 3px; border-radius: var(--pill); background: var(--surface-2); overflow: hidden; }
+.bar-fill { block-size: 100%; border-radius: inherit; background: var(--grad); transition: inline-size 600ms ease-out; }
+.challenge-link { color: var(--accent); text-decoration: none; }
+.card .challenge-link { display: inline-block; }
+.shop { display: flex; flex-wrap: wrap; gap: 8px; }
+.shop a { display: inline-flex; align-items: center; gap: 6px; min-block-size: 36px; padding-inline: 12px; font-size: 14px; color: var(--ink-2); text-decoration: none; background: transparent; border: 1px solid var(--line); border-radius: var(--pill); }
+.shop a svg { inline-size: 16px; block-size: 16px; }
+.shop a b { color: var(--accent); font-weight: 600; }
+/* actions: outlined pills in a 50px row */
+.actions { display: flex; align-items: center; gap: 6px; padding-inline: 0; padding-block: 8px 2px; min-block-size: 50px; border-block-start: 1px solid var(--line-soft); margin-block-start: 8px; }
+.action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 1px solid var(--line-soft); border-radius: var(--pill);
+  color: var(--ink-2); min-block-size: 42px; min-inline-size: 42px; padding-block: 0; padding-inline: 12px 14px; text-decoration: none; position: relative;
+}
+.action[aria-label] { padding-inline: 0; inline-size: 42px; }   /* save and share are icon-only; their names live in aria-label */
+.action svg { inline-size: 19px; block-size: 19px; }
+.action .count { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1; color: var(--ink); direction: ltr; }
+.action .lbl { color: var(--ink-3); }
+.action[aria-pressed="true"] { color: var(--fire); border-color: var(--fire); background: var(--fire-tint); }
+.action[aria-pressed="true"] .count, .action[aria-pressed="true"] .lbl { color: var(--fire); }
+.action.save[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: transparent; }
+.actions .end { margin-inline-start: auto; }
+.action.burst::after {
+  content: ""; position: absolute; inset-inline-start: 20px; inset-block-start: 50%; inline-size: 12px; block-size: 12px; border-radius: 50%;
+  background: var(--fire); animation: spark 500ms ease-out forwards; pointer-events: none;
+}
+@keyframes spark { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(4.5); opacity: 0; } }
+/* the breakdown (rubric v2): three sub-score rings in a row, the same ring as the card's but in flow, a caps label under each; the result screen and the look page */
+.breakdown { display: flex; justify-content: flex-start; gap: 28px; list-style: none; margin: 0; padding: 0; }
+.breakdown li { display: flex; flex-direction: column; align-items: center; gap: 8px; min-inline-size: 56px; }
+.breakdown .score-badge { position: static; box-shadow: none; }
+.breakdown-label { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
+[dir="rtl"] .breakdown-label { font-size: 12.5px; }
+/* the accessories read: a verdict pill (green when they make it, fire when they fight it, quiet otherwise), the pieces seen as small chips, the note, the one to add as a tip block */
+.acc-body > * + * { margin-block-start: 12px; }
+.acc-verdict { display: inline-flex; align-items: center; min-block-size: 30px; padding-inline: 12px; border-radius: var(--pill); border: 1px solid currentColor; font-size: 13px; font-weight: 600; }
+.acc-verdict.adds { color: var(--ok); }
+.acc-verdict.clashes { color: var(--fire); }
+.acc-verdict.neutral, .acc-verdict.missing { color: var(--ink-3); }
+.acc-present { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.acc-present .lbl { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); margin-inline-end: 4px; }
+[dir="rtl"] .acc-present .lbl { font-size: 12.5px; }
+.acc-present .chip { min-block-size: 30px; padding-inline: 10px; font-size: 13px; color: var(--ink); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+.acc-present .none { color: var(--ink-3); font-size: 14px; }
+.acc-note { color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.acc-add .lbl { display: block; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--accent); margin-block-end: 4px; }
+[dir="rtl"] .acc-add .lbl { font-size: 12.5px; }
+/* "which one?" (views/compare.js): two drop slots side by side with their letter, then the verdict as two photos with the
+   card's score ring, the winner in a gradient frame with a WINNER pill; the letters and numerals never mirror */
+.cmp-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cmp-slot {
+  position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; border: 1px dashed var(--line); background: var(--surface);
+  display: grid; place-items: center; padding: 0; cursor: pointer; text-align: center; color: var(--ink-2);
+}
+.cmp-slot.has-image { border-style: solid; border-color: transparent; }
+.cmp-slot img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.cmp-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; }
+.cmp-empty svg { inline-size: 32px; block-size: 32px; color: var(--accent); }
+.cmp-empty strong { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.1; color: var(--ink); }
+.cmp-empty .hint { font-size: 12px; }
+.cmp-empty .loading-mark { margin-block-end: 0; }
+.cmp-letter {
+  position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; inline-size: 28px; block-size: 28px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(11, 11, 15, 0.72); color: var(--ink);
+  font-family: var(--font-display); font-weight: 800; font-size: 14px; line-height: 1; direction: ltr; pointer-events: none;
+}
+.cmp-replace { position: absolute; inset-block-end: 8px; inset-inline: 8px; background: var(--grad); color: var(--accent-ink); border-radius: var(--pill); padding: 7px 10px; font-size: 12px; font-weight: 700; }
+.cmp-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.cmp-side { margin: 0; }
+.cmp-frame { border-radius: 17px; padding: 3px; }
+.cmp-winner .cmp-frame { background: var(--grad); box-shadow: 0 8px 24px rgba(255, 143, 177, 0.25); }
+.cmp-photo { position: relative; border-radius: 14px; background: var(--surface-2); }
+.cmp-photo img { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+.cmp-photo:not(:has(img)) { aspect-ratio: 4 / 5; }
+.cmp-photo .score-badge { inset-inline-end: 8px; }
+.cmp-winner-pill { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; z-index: 2; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; }
+[dir="rtl"] .cmp-winner-pill { font-size: 12px; }
+.cmp-side figcaption { display: flex; flex-direction: column; gap: 4px; margin-block-start: 20px; padding-inline: 4px; }   /* clears the ring's overhang */
+.cmp-side-name { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
+[dir="rtl"] .cmp-side-name { font-size: 12.5px; }
+.cmp-winner .cmp-side-name { color: var(--accent); }
+.cmp-headline { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.2; color: var(--ink); unicode-bidi: plaintext; }
+.cmp-verdict { font-family: var(--font-display); font-weight: 800; font-size: 32px; line-height: 1.05; color: var(--ink); unicode-bidi: plaintext; }
+.cmp-reason { font-size: 16px; line-height: 1.55; color: var(--ink-2); unicode-bidi: plaintext; }
+.cmp-state-title { display: block; font: 800 28px/1.1 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--ink); unicode-bidi: plaintext; }
+.cmp-state-title::after { display: none; }
+
+/* ---------- grids and the wall ---------- */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-inline: 14px; }
+.grid a { position: relative; display: block; text-decoration: none; color: inherit; overflow: visible; background: var(--surface-2); border-radius: var(--radius-sm); }
+.grid img { aspect-ratio: 4 / 5; object-fit: cover; inline-size: 100%; border-radius: inherit; }
+.grid .score-badge { inline-size: 30px; block-size: 30px; border-width: 2px; font-size: 15px; gap: 0; inset-block-end: -8px; inset-inline-end: 6px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }
+.grid .score-badge small { font-size: 6px; }
+.grid .private { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; background: rgba(11, 11, 15, 0.8); color: var(--ink-2); padding: 3px 8px; min-block-size: 0; z-index: 1; }
+/* clip tiles: the glyph alone (no room for the word); it steps aside for the author's "under review" tag */
+.grid video { aspect-ratio: 4 / 5; object-fit: cover; inline-size: 100%; border-radius: inherit; display: block; }
+.grid .clip-pill { inset-block-start: 6px; inset-inline-start: 6px; min-block-size: 20px; padding-inline: 5px; }
+.grid .clip-pill span { display: none; }
+.grid a:has(.private) .clip-pill { inset-inline-start: auto; inset-inline-end: 6px; }
+.profile-grid { padding-block: 16px 8px; }
+/* the wall (Explore's top looks): two staggered columns, the rank in the caption, the ring the only number on a print */
+.grid.wall { grid-template-columns: 1fr 1fr; gap: 24px 14px; padding-inline: 0; padding-block: 16px 44px; counter-reset: look 1; }   /* look #1 is the hero */
+.grid.wall > a { counter-increment: look; background: none; border-radius: 0; }
+.grid.wall > a:nth-child(2n) { transform: translateY(32px); }
+.grid.wall figure, .x-hero figure { position: relative; background: var(--surface-2); border-radius: 16px; }
+.grid.wall .score-badge, .x-hero .score-badge { inline-size: 36px; block-size: 36px; font-size: 18px; gap: 0; inset-block-end: -12px; inset-inline-end: 10px; }
+.grid.wall .score-badge small, .x-hero .score-badge small { font-size: 7px; }
+.grid figcaption { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; row-gap: 3px; align-items: baseline; padding-block-start: 14px; }   /* rank, name, intent */
+.grid figcaption .rank { font-family: var(--font-display); font-weight: 700; font-size: 13px; line-height: 1; color: var(--accent); direction: ltr; font-variant-numeric: tabular-nums; }
+.grid figcaption .rank::before { content: counter(look, decimal-leading-zero); }
+.grid figcaption b { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.15; color: var(--ink); unicode-bidi: isolate; min-inline-size: 0; overflow-wrap: anywhere; }   /* a Latin name in a Hebrew caption stays beside its rank */
+.grid figcaption > span:not(.rank) { grid-column: 2; color: var(--ink-3); font-size: 10.5px; }
+[dir="rtl"] .grid figcaption > span:not(.rank) { font-size: 12px; }
+/* a verified brand (--verify): the same mark with a small check inside it, in the mark's rose, after the word in both directions */
+.brand-mark.verified { display: inline-flex; align-items: center; gap: 3px; padding-inline-end: 4px; }
+.brand-mark.verified .icon { inline-size: 10px; block-size: 10px; }
+.brand-mark.verified .icon svg { inline-size: 10px; block-size: 10px; stroke-width: 3.5; }
+.profile-head .who .name .brand-mark.verified .icon, .profile-head .who .name .brand-mark.verified .icon svg { inline-size: 12px; block-size: 12px; }
+
+/* ---------- §6 explore: the front page, the hero, the index, the band, the tickets ---------- */
+.x-section > * + * { margin-block-start: 12px; }
+.x-count { padding-inline: 16px; font-size: 14px; color: var(--ink-3); }
+.x-front { padding-block-end: 14px; border-block-end: 1px solid var(--line); }
+.x-front .kicker { display: block; color: var(--accent); }
+.x-front h1 { margin-block-start: 8px; }
+.x-front .dateline { margin-block-start: 8px; font-size: 13px; color: var(--ink-3); }
+/* this week's look: a split hero, the whole block one link */
+.x-hero { display: grid; grid-template-columns: 58% 1fr; gap: 14px; align-items: stretch; text-decoration: none; color: inherit; }
+.x-hero figure { overflow: visible; }
+.x-hero img { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+.x-hero figcaption { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; padding-block: 2px; }
+.x-hero .kicker { color: var(--accent); }
+.x-hero-title { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.12; color: var(--ink); overflow-wrap: anywhere; }
+/* name + the intent as a label pill; the separator text between them collapses */
+.x-hero-by { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0; line-height: 1; color: var(--ink-3); }
+.x-hero-by b { font: 700 14px/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.x-hero-by > span { display: inline-flex; align-items: center; min-block-size: 24px; padding-inline: 9px; border-radius: var(--pill); color: var(--accent); background: var(--accent-tint); white-space: nowrap; }
+.x-hero-more { margin-block-start: auto; color: var(--accent); }
+.x-hero-more::after { content: "\2192"; display: inline-block; margin-inline-start: 6px; }
+[dir="rtl"] .x-hero-more::after { transform: scaleX(-1); }
+/* trending tags: a numbered index with dotted leaders */
+.index li { border-block-end: 1px solid var(--line-soft); }
+.index li:last-child { border-block-end: 0; }
+.index a { display: flex; align-items: baseline; gap: 12px; min-block-size: 46px; padding-block: 12px 10px; text-decoration: none; color: inherit; }
+.index .num { font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1; font-variant-numeric: tabular-nums; direction: ltr; min-inline-size: 22px; color: var(--ink-3); }
+.index li:nth-child(-n+3) .num { color: var(--accent); }
+.index .tag-name { font-weight: 600; font-size: 16px; line-height: 1.2; color: var(--ink); }
+.index .lead { flex: 1; min-inline-size: 16px; border-block-end: 1px dotted var(--line); transform: translateY(-5px); }
+.index .count { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+/* hashtag challenges: quiet outlined tickets, the hashtag first */
+.x-challenge { display: block; background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-decoration: none; color: inherit; }
+.x-challenge:active { background: var(--surface-2); }
+.x-challenge > * + * { margin-block-start: 6px; }
+.x-challenge .x-hash { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.2; color: var(--accent); }
+.x-challenge .between { align-items: baseline; }
+.x-challenge .x-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.15; min-inline-size: 0; overflow-wrap: anywhere; }
+.x-challenge .tag { flex: none; }
+.x-challenge .x-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10.5px; color: var(--ink-3); }
+[dir="rtl"] .x-challenge .x-meta { font-size: 12px; }
+
+/* ---------- challenges ---------- */
+.challenge-card { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-inline: 16px; }
+.challenge-card > * + * { margin-block-start: 10px; }
+.challenge-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--ink-3); }
+.challenge-meta a.tag.accent { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; unicode-bidi: plaintext; }   /* a hashtag is data, not a label; its # stays at its own start in Hebrew */
+.challenge-title { font-family: var(--font-display); font-size: 26px; line-height: 1.08; font-weight: 700; }
+.prize { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; }
+.prize svg { inline-size: 22px; block-size: 22px; color: var(--accent); flex: none; }
+.prize a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.thumbs { display: flex; gap: 6px; }
+.thumbs img { inline-size: 56px; block-size: 70px; object-fit: cover; border-radius: 8px; }
+.countdown { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--accent); }
+.lb { display: flex; flex-direction: column; gap: 10px; }
+.lb-row { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: var(--radius-sm); padding: 10px; }
+.lb-row.winner { box-shadow: inset 0 0 0 1px var(--accent); }
+.lb-rank { font-family: var(--font-display); font-weight: 700; font-size: 22px; inline-size: 34px; text-align: center; color: var(--ink-3); direction: ltr; }
+.lb-row.winner .lb-rank { color: var(--accent); }
+.lb-row img { inline-size: 64px; block-size: 80px; object-fit: cover; border-radius: 8px; }
+.lb-who { flex: 1; min-inline-size: 0; }
+.lb-who .name { font-weight: 600; }
+.lb-who .votes { font-size: 13px; color: var(--ink-3); }
+.vote { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: var(--pill); min-block-size: 44px; padding-inline: 14px; flex: none; }
+.vote[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.vote:disabled { opacity: 0.4; }
+
+/* ---------- check & result ---------- */
+/* the drop zone: a dashed rounded panel; 4:3.1 empty so the CTA stays above the dock, 4:5 once a photo is in */
+.photo {
+  position: relative; inline-size: 100%; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden;
+  border: 1px dashed var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; text-align: center; color: var(--ink-2); padding: 0;
+}
+.photo:not(.has-image) { aspect-ratio: 4 / 3.1; }
+.photo.has-image { border-style: solid; border-color: transparent; }
+.photo img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.photo .photo-empty { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 24px; }
+.photo .photo-empty svg { inline-size: 40px; block-size: 40px; color: var(--accent); }
+.photo .photo-empty strong { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.1; color: var(--ink); }
+.photo .photo-replace { position: absolute; inset-block-end: 12px; inset-inline-start: 12px; background: var(--grad); color: var(--accent-ink); border-radius: var(--pill); padding: 9px 12px; }
+/* while the stylist looks: the mark at 96px with its flame breathing; the dot is the pull-to-refresh and photo-busy indicator */
+.loading { min-block-size: 60vh; display: grid; place-items: center; text-align: center; color: var(--ink-2); }
+.loading .mark { inline-size: 96px; block-size: 96px; margin-inline: auto; margin-block-end: 18px; direction: ltr; }
+.loading .mark svg { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
+.breathing .flame { animation: flame-breathe 900ms ease-in-out infinite; }
+@keyframes flame-breathe { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(1.06); } }
+.loading-mark { inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--grad); margin-inline: auto; margin-block-end: 18px; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(0.7); opacity: 0.5; } 50% { transform: scale(1.3); opacity: 1; } }
+/* the verdict: the score lands inside the ring */
+.hero {
+  inline-size: 168px; block-size: 168px; border-radius: 50%; border: 6px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad) border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; direction: ltr;
+  box-shadow: 0 0 0 8px rgba(179, 157, 255, 0.08), 0 16px 40px rgba(179, 157, 255, 0.22);
+}
+.score { font-family: var(--font-display); font-weight: 800; font-size: 80px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink); letter-spacing: -0.03em; }
+.score-out { font: 700 14px/1 var(--font-body); letter-spacing: 0.04em; color: var(--ink-3); }
+.result-headline { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1.02; }
+.vibe { color: var(--ink-3); margin-block-start: 6px; }
+.match-label { display: flex; justify-content: space-between; font-size: 14px; color: var(--ink-2); margin-block-end: 8px; }
+.items li { display: flex; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--line-soft); }
+.dot { flex: none; inline-size: 12px; block-size: 12px; border-radius: 50%; border: 2px solid var(--ink-3); margin-block-start: 6px; }
+.dot.works { background: var(--ok); border-color: var(--ok); }
+.dot.neutral { background: transparent; }
+.dot.weak { background: var(--fire); border-color: var(--fire); }
+.item-name { font-weight: 600; }
+.item-verdict { font-size: 13px; color: var(--ink-3); margin-inline-start: 8px; font-weight: 400; }
+.item-note { color: var(--ink-2); font-size: 15px; }
+.working li { position: relative; padding-inline-start: 18px; padding-block: 4px; }
+.working li::before { content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 12px; inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--grad); }
+.tip { position: relative; padding-inline-start: 16px; padding-block: 4px; }   /* the one tip, a pull quote on a gradient bar */
+.tip::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; inline-size: 3px; border-radius: var(--pill); background: var(--grad); }
+.tip p { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.3; }
+.state { text-align: center; padding-block: 40px; }
+.state h1 { margin-block-end: 8px; }
+.products-grid { display: grid; grid-template-columns: 1.2fr 1.6fr 0.8fr; gap: 6px 8px; }
+.products-grid input { min-block-size: 44px; padding-block: 8px; padding-inline: 10px; font-size: 15px; }
+
+/* ---------- §7 profile: portrait, statline, colophon, the follow label ---------- */
+.profile-head { display: flex; gap: 16px; align-items: flex-start; }
+.profile-head .who .name { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1; white-space: normal; overflow: visible; unicode-bidi: isolate; text-align: start; }   /* a Latin brand name sits at the start edge in Hebrew too */
+.profile-head .who .name .brand-mark { vertical-align: 6px; margin-inline: 8px 0; }
+.profile-head .who .sub { margin-block-start: 6px; }
+.profile-head .caption { font-size: 15px; }
+/* the follow label: the page's one gradient pill, 44px, right under the handle */
+.who > #follow { display: inline-flex; margin-block-start: 12px; min-block-size: 44px; min-inline-size: 150px; inline-size: auto; }
+/* bio and website are pinned to the physical edge the name and portrait hug; reading order stays plaintext */
+.profile-bio { unicode-bidi: plaintext; text-align: left; font-size: 15px; color: var(--ink-2); }
+[dir="rtl"] .profile-bio { text-align: right; }
+.profile-bio > * + * { margin-block-start: 6px; }
+.profile-bio a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.statline { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; padding-block: 14px 12px; border-block: 1px solid var(--line); }
+.statline > span { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; color: var(--ink-3); font-size: 10.5px; letter-spacing: 0.08em; }
+.statline b { font: 700 22px/1 var(--font-display); letter-spacing: 0; color: var(--ink); direction: ltr; }
+.statline .hot b { color: var(--fire); }
+.statline .sep { inline-size: 5px; block-size: 5px; border-radius: 50%; background: var(--grad); margin-inline: 12px; align-self: center; }
+[dir="rtl"] .statline > span { font-size: 12.5px; letter-spacing: 0; }
+.colophon { font-size: 13px; line-height: 1.5; color: var(--ink-3); }
+.statline + .colophon { margin-block-start: 10px; }
+.colophon b { font-family: var(--font-display); font-weight: 700; color: var(--ink-2); direction: ltr; unicode-bidi: isolate; }
+.colophon b.hot { color: var(--fire); }
+/* my own profile: Saved looks, My checks, Sign out as an index list */
+.links { display: flex; flex-direction: column; gap: 0; border-block: 1px solid var(--line-soft); }
+.links a, .links button {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; inline-size: 100%; min-block-size: 52px; padding-block: 8px; padding-inline: 2px;
+  background: transparent; border: 0; border-block-end: 1px solid var(--line-soft); border-radius: 0; color: var(--ink); text-decoration: none; text-align: start; cursor: pointer;
+  font-weight: 600; font-size: 16px; line-height: 1.2;
+}
+.links a:last-child, .links button:last-child { border-block-end: 0; }
+.links svg { color: var(--accent); inline-size: 20px; block-size: 20px; }
+.profile-tabs { display: flex; justify-content: flex-start; gap: 4px; padding-inline: 8px; border-block-end: 1px solid var(--line-soft); }
+.profile-tabs button { position: relative; flex: none; background: none; border: 0; color: var(--ink-3); min-block-size: 46px; padding-inline: 8px; }
+.profile-tabs button[aria-selected="true"] { color: var(--ink); }
+.profile-tabs button[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: 8px; inset-block-end: 0; block-size: 3px; border-radius: var(--pill); background: var(--grad); }
+
+/* ---------- activity & comments & composer ---------- */
+.activity li { display: flex; gap: 12px; align-items: center; padding-block: 12px; padding-inline: 16px; border-block-end: 1px solid var(--line-soft); }
+.activity li.unread { background: var(--accent-tint); }
+.activity a { text-decoration: none; flex: 1; min-inline-size: 0; font-size: 15px; line-height: 1.35; }
+.activity .when { color: var(--ink-3); font-size: 10.5px; margin-block-start: 4px; }
+[dir="rtl"] .activity .when { font-size: 12px; }
+.activity .thumb { inline-size: 40px; block-size: 50px; object-fit: cover; border-radius: 8px; flex: none; }
+.comments li { display: flex; gap: 10px; padding-block: 10px; border-block-end: 1px solid var(--line-soft); align-items: flex-start; }
+.comments .text { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+.comments .text b { font-weight: 700; margin-inline-end: 6px; }
+.comments .when { color: var(--ink-3); font-size: 10.5px; }
+[dir="rtl"] .comments .when { font-size: 12px; }
+.composer { position: sticky; inset-block-end: calc(var(--tabbar) + var(--safe-b)); z-index: 3; background: var(--bg-2); padding-block: 10px; display: flex; gap: 8px; align-items: center; border-block-start: 1px solid var(--line-soft); }   /* opaque: nothing ghosts through */
+.composer input { flex: 1; }
+.composer .btn { inline-size: auto; padding-inline: 18px; min-block-size: 46px; }
+.menu { display: flex; gap: 8px; flex-wrap: wrap; padding-block: 6px; }
+.post-section h2 { margin-block-end: 4px; }
+
+/* ---------- bottom sheet: a gradient top edge ---------- */
+.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(11, 11, 15, 0.6); animation: fade 160ms ease-out; touch-action: none; }
+.sheet {
+  position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 21; max-inline-size: var(--col); margin-inline: auto;
+  background: var(--grad) top / 100% 3px no-repeat, var(--surface);
+  border-start-start-radius: 24px; border-start-end-radius: 24px;
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
+  padding: 13px 16px calc(16px + var(--safe-b)); max-block-size: 88vh; overflow-y: auto; overscroll-behavior: contain; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sheet > * + * { margin-block-start: 14px; }
+.sheet .handle { inline-size: 36px; block-size: 4px; border-radius: var(--pill); background: var(--line); margin-inline: auto; margin-block-end: 6px; }
+.sheet h3 { font-size: 20px; }
+.sheet .sheet-list { display: flex; flex-direction: column; }
+.sheet .sheet-list button, .sheet .sheet-list a { display: flex; align-items: center; gap: 12px; background: none; border: 0; color: var(--ink); min-block-size: 52px; font-size: 16px; text-align: start; text-decoration: none; padding-inline: 4px; border-block-end: 1px solid var(--line-soft); }
+.sheet .sheet-list .danger { color: var(--danger); }
+.sheet .sheet-list svg { inline-size: 22px; block-size: 22px; color: var(--accent); }
+.sheet .sheet-list .danger svg { color: var(--danger); }
+.sheet.closing { animation: sink 160ms ease-in forwards; }
+.sheet-backdrop.closing { animation: unfade 160ms ease-in forwards; }
+@keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes sink { to { transform: translateY(100%); } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes unfade { to { opacity: 0; } }
+body.sheet-open { overflow: hidden; }
+
+/* ---------- toast, skeletons, pull to refresh, install ---------- */
+.toast {
+  position: fixed; inset-block-end: calc(var(--tabbar) + var(--safe-b) + 12px); inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: 90vw;
+  background: var(--ink); color: var(--bg); padding-block: 10px; padding-inline: 18px; border-radius: var(--pill); font-size: 14px; font-weight: 600;
+  opacity: 0; transform: translateY(8px); transition: opacity 180ms ease, transform 180ms ease; pointer-events: none; z-index: 30; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.skel { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: var(--radius-sm); }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.skel-card { margin-inline: 14px; background: var(--surface); border-radius: var(--radius); padding: 10px; }
+.skel-card + .skel-card { margin-block-start: 20px; }
+.skel-card .skel-head { display: flex; gap: 10px; align-items: center; padding: 4px 4px 12px; }
+.skel-card .skel-avatar { inline-size: 36px; block-size: 36px; border-radius: 50%; }
+.skel-card .skel-line { block-size: 12px; inline-size: 40%; }
+.skel-card .skel-photo { aspect-ratio: 4 / 5; border-radius: 14px; }
+.ptr { block-size: 0; overflow: hidden; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; transition: block-size 160ms ease; }
+.ptr.armed { color: var(--accent); }
+.ptr .loading-mark { margin: 0; }
+.sentinel { block-size: 1px; }
+.install { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: var(--radius); padding: 12px 14px; margin: 12px 14px 0; box-shadow: var(--shadow-card); }
+.install .mark { inline-size: 44px; block-size: 44px; flex: none; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--accent); direction: ltr; }
+.install .mark svg { display: block; inline-size: 44px; block-size: 44px; }
+.install .text { flex: 1; min-inline-size: 0; font-size: 14px; }
+.install .text b { display: block; }
+.install .text span { color: var(--ink-3); font-size: 13px; }
+
+/* ---------- rules the view files' small inline style blocks still fight (drop these when those blocks move here) ---------- */
+.view .w-step h2 { font: 800 20px/1.15 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.view .w-step h2::after { display: none; }
+.challenge-card .thumbs a { border-radius: 8px; }
+.activity.activity-skel .skel-round { border-radius: 50%; }
+.profile-head > .skel { border-radius: 50% !important; }   /* the portrait's placeholder */
+.who > .skel:last-child { border-radius: var(--pill) !important; }   /* the follow label's placeholder */
+.grid > .skel { border-radius: var(--radius-sm) !important; }
+.view .check-row { border-block-end-color: var(--line-soft); }
+/* the check list's score as the same ring the cards wear */
+.view .check-row .num {
+  inline-size: 44px; min-inline-size: 44px; block-size: 44px; border-radius: 50%; border: 3px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad) border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  font-family: var(--font-display); font-weight: 800; font-size: 20px; line-height: 0.9; color: var(--ink); direction: ltr;
+}
+.view .check-row .num small { font: 700 7px/1 var(--font-body); color: var(--ink-3); margin: 0; }
+
+@media (min-width: 560px) {
+  .card { margin-inline: auto; }
+  .skel-card { margin-inline: auto; }
+  .challenge-card { margin-inline: 0; }
+  .activity li { padding-inline: 0; }
+}
+/* ---------- §9 reduced motion: everything off (durations collapse, so animationend still fires and "lit" still clears) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- §Round 10 items: the dots, the tag toggle, the count, "The look", the item sheet, the tagging editor, the item pages ---------- */
+/* the dot: a 44px hit area around a 22px numbered ring, placed by physical left/top (a photo does not mirror in Hebrew) */
+.item-dots { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.item-dots[hidden] { display: none; }
+.item-dot {
+  position: absolute; inline-size: 44px; block-size: 44px; padding: 0; border: 0; background: transparent; color: var(--ink);
+  transform: translate(-50%, -50%); display: grid; place-items: center; cursor: pointer; pointer-events: auto; touch-action: none;
+}
+.item-dot::before { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: rgba(11, 11, 15, 0.72); border: 2px solid var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+.item-dot span { position: relative; font: 700 11px/1 var(--font-display); direction: ltr; }
+.item-dot.active::before { background: var(--grad); border-color: transparent; }
+.item-dot.active span { color: var(--accent-ink); }
+.item-dot:focus-visible { outline: none; }
+.item-dot:focus-visible::before { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(0, 0, 0, 0.45); }
+/* the tag toggle: a 44px target at the photo's bottom-left corner (the ring keeps the bottom-right in both directions, being ltr; a photo does not mirror), a 32px translucent pill with the glyph and the count; lilac while the dots show */
+.items-toggle {
+  position: absolute; inset-block-end: 2px; left: 2px; z-index: 3; display: inline-flex; align-items: center; gap: 5px; min-inline-size: 44px; min-block-size: 44px;
+  padding-block: 0; padding-inline: 12px; border: 0; background: transparent; color: var(--ink); cursor: pointer;
+}
+.items-toggle::before { content: ""; position: absolute; inset: 6px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.66); }
+.items-toggle:active::before { background: rgba(11, 11, 15, 0.85); }
+.items-toggle .icon, .items-toggle .n { position: relative; }
+.items-toggle svg { inline-size: 18px; block-size: 18px; }
+.items-toggle .n { font: 700 13px/1 var(--font-display); direction: ltr; }
+.items-toggle[aria-pressed="true"] { color: var(--accent); }
+/* the count on a card's photo: the same corner, a small pill like the clip glyph's */
+.item-count { position: absolute; inset-block-end: 8px; left: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.7); color: var(--ink); pointer-events: none; }
+.item-count svg { inline-size: 12px; block-size: 12px; }
+.item-count b { font: 700 11px/1 var(--font-display); direction: ltr; }
+.grid .item-count { display: none; }   /* prints stay the ring alone */
+/* "The look": the pieces as 52px rows, the number in a ring (the gradient once the piece has a dot), the bag glyph when a store link waits */
+.look-items { list-style: none; margin: 0; padding: 0; }
+.look-item {
+  display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 52px; padding-block: 6px; padding-inline: 2px;
+  background: none; border: 0; border-block-end: 1px solid var(--line-soft); border-radius: 0; color: var(--ink); text-align: start; cursor: pointer; font-size: 15px; line-height: 1.3;
+}
+.look-items li:last-child .look-item { border-block-end: 0; }
+.look-item .num, .items-num {
+  flex: none; inline-size: 26px; block-size: 26px; border-radius: 50%; border: 2px solid var(--ink-3); display: grid; place-items: center;
+  font: 700 12px/1 var(--font-display); color: var(--ink-2); direction: ltr;
+}
+.look-item.placed .num, .items-row.placed .items-num { border-color: transparent; background: var(--grad); color: var(--accent-ink); }
+.look-item .txt, .items-main .txt { flex: 1; min-inline-size: 0; unicode-bidi: plaintext; overflow-wrap: anywhere; }
+.look-item .txt b::first-letter, .items-main .txt b::first-letter { text-transform: uppercase; }   /* the server keeps names lower-case */
+.look-item .txt span, .items-main .txt span { color: var(--ink-2); }
+.look-item .icon { flex: none; color: var(--accent); }
+.look-item .icon svg { inline-size: 18px; block-size: 18px; }
+#look-items .section-head .btn-text { flex: none; padding-block: 0; }
+/* the item sheet: a label/value list, the gradient "Shop at {host}", the honest line under it */
+.item-kv { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; font-size: 15px; }
+.item-kv dt { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); align-self: center; }
+[dir="rtl"] .item-kv dt { font-size: 12.5px; }
+.item-kv dd { margin: 0; color: var(--ink); unicode-bidi: plaintext; overflow-wrap: anywhere; }
+.item-kv dd a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.item-sheet .btn .icon svg { inline-size: 18px; block-size: 18px; }
+.item-leaves { text-align: center; }
+.item-sheet #item-more { justify-content: center; inline-size: 100%; }
+/* the tagging editor (app/items.js): the still at 220 wide with the dots over it, one row per piece, the fields of the open row */
+.items-editor { gap: 10px; }
+.items-photo { position: relative; inline-size: min(100%, 220px); aspect-ratio: 4 / 5; margin-inline: auto; border-radius: var(--radius-sm); background: var(--surface-2); }
+.items-photo-tap { display: block; inline-size: 100%; block-size: 100%; padding: 0; border: 0; background: none; border-radius: inherit; overflow: hidden; cursor: crosshair; }
+.items-photo-tap img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; pointer-events: none; }
+.items-photo.placing .items-photo-tap { box-shadow: 0 0 0 2px var(--accent); }
+.items-photo-tap:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.items-photo-hint { min-block-size: 18px; text-align: center; margin-block-start: -2px; }
+.items-list { list-style: none; margin: 0; padding: 0; }
+.items-row { border-block-end: 1px solid var(--line-soft); }
+.items-row:last-child { border-block-end: 0; }
+.items-row-head { display: flex; align-items: center; gap: 8px; min-block-size: 52px; }
+.items-main { flex: 1; min-inline-size: 0; display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 0; background: none; border: 0; color: var(--ink); text-align: start; font-size: 15px; line-height: 1.3; cursor: pointer; }
+.items-main .txt.empty b { color: var(--ink-3); font-weight: 500; }
+.items-src { display: inline-grid; place-items: center; margin-inline-start: 6px; color: var(--accent-2); vertical-align: middle; }
+.items-src svg { inline-size: 11px; block-size: 11px; }
+.items-place { flex: none; font-size: 11px; }
+.items-place[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.items-place.placing { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
+.items-remove { flex: none; margin-inline-end: -8px; color: var(--ink-3); }
+.items-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-block: 0 12px; font-size: 14px; color: var(--ink-2); }
+.items-suggest-q { font-weight: 600; color: var(--ink); margin-inline-end: 2px; }
+.items-suggest .chip { min-block-size: 36px; padding-inline: 12px; }
+.items-form { display: flex; flex-direction: column; gap: 12px; padding-block: 2px 16px; }
+.items-form .field { gap: 6px; }
+.items-form input { min-block-size: 46px; }
+.items-form .chips.scroll { margin-inline: -2px; padding-inline: 2px; }
+.items-form .items-unplace { align-self: start; padding-block: 0; }
+.items-brand { position: relative; }
+.items-brands { position: absolute; inset-inline: 0; inset-block-start: 100%; z-index: 5; list-style: none; margin: 4px 0 0; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); max-block-size: 220px; overflow-y: auto; }
+.items-brands[hidden] { display: none; }
+.items-brands button { display: flex; align-items: center; gap: 8px; inline-size: 100%; min-block-size: 44px; padding-inline: 10px; background: none; border: 0; border-radius: 8px; color: var(--ink); font-size: 15px; text-align: start; cursor: pointer; }
+.items-brands button:hover, .items-brands button:active, .items-brands li.active button, .items-brands li[aria-selected="true"] button { background: var(--accent-tint); }
+.items-brands .name { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; unicode-bidi: plaintext; }
+.items-brands .n { flex: none; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.items-add { text-transform: none; letter-spacing: 0; font: 600 14px/1 var(--font-body); min-block-size: 40px; }
+.items-add .icon svg { inline-size: 16px; block-size: 16px; color: var(--accent); }
+.items-add:disabled { opacity: 0.45; cursor: not-allowed; }
+/* the item pages (views/items.js): the search rule, the category chips of a brand page, the brand's account, the print grid */
+.items-cats a.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.items-more-link { display: flex; align-items: center; gap: 12px; min-block-size: 52px; padding-block: 4px; color: var(--ink); text-decoration: none; border-block: 1px solid var(--line-soft); }
+.items-more-link .txt { flex: 1; min-inline-size: 0; font-size: 15px; }
+.items-more-link .icon { color: var(--accent); }
+.items-more-link .icon svg { transform: scaleX(-1); }   /* the kit's back arrow, pointed the way it goes */
+[dir="rtl"] .items-more-link .icon svg { transform: none; }
+.items-results { margin-inline: -14px; }
+.items-results .grid { padding-block-start: 2px; }
+.items-results .grid > .empty, .items-results .grid > .notice { grid-column: 1 / -1; }   /* the empty state and an error span the print columns */
+/* ---------- §10 Round 10 board: the weekly flames board, the hall of flame, the Explore strip, the reset card, the profile badge ---------- */
+/* the five coins: the feed's segments, wrapping onto a second row (five never fit one phone row, and a hidden coin is a hidden board) */
+.board-tabs { padding-inline: 16px; }
+.sticky-tabs .board-tabs .segments { flex-wrap: wrap; row-gap: 6px; margin-inline: 0; }
+/* the empty and error states: the text centred as the kit draws it, the hall link centred under it */
+.board-pad { display: grid; gap: 12px; padding-inline: 16px; }
+.board-pad > .board-hall-link { justify-self: center; }
+/* the head: the week and the hall link, "Closes in …" in the display face, the sponsor, the rules, the week before and after */
+.board-head { display: grid; gap: 10px; padding-inline: 16px; padding-block-end: 16px; border-block-end: 1px solid var(--line); }
+.board-head .between { align-items: center; }
+.board-week { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--accent); }
+[dir="rtl"] .board-week { font-size: 12.5px; }
+.board-closes { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.08; color: var(--ink); overflow-wrap: anywhere; }
+.board-hall-link { flex: none; display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.board-hall-link svg { inline-size: 18px; block-size: 18px; }
+.board-sponsor { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.board-sponsor-by { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
+[dir="rtl"] .board-sponsor-by { font-size: 12.5px; }
+.board-sponsor-by a, .board-sponsor-by b { color: var(--accent-2); text-decoration: none; }
+.board-sponsor-by a { position: relative; }
+.board-sponsor-by a::before { content: ""; position: absolute; inset-block: -14px; inset-inline: -4px; }   /* the caps line stays small; the tap area is 44px */
+.board-prize { font-size: 15px; color: var(--ink); }
+.board-sponsor-site { display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; color: var(--accent); text-decoration: none; font-size: 14px; }
+.board-sponsor-site svg { inline-size: 16px; block-size: 16px; }
+.board-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.board-nav .pill { min-block-size: 44px; }
+/* the reader's own place: a fire pill under the coins */
+.board-me { display: flex; align-items: center; gap: 8px; margin: 14px 16px 0; min-block-size: 44px; padding-inline: 14px; border-radius: var(--pill); background: var(--fire-tint); color: var(--fire); font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.board-me svg { inline-size: 18px; block-size: 18px; }
+/* the intent chips on the By intent tab */
+.board-intents { padding-inline: 16px; padding-block: 14px 2px; }
+/* rows: the medal and the fires that counted above each card; the people board as one line a row */
+.board-list { list-style: none; margin: 0; padding: 0; padding-block-start: 16px; }
+.board-row { list-style: none; }
+.board-row-head { display: flex; align-items: center; gap: 10px; padding-inline: 18px; margin-block-end: 8px; }
+.board-row-head .tag { margin-inline-start: auto; }
+.board-fires { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--fire); direction: ltr; }
+[dir="rtl"] .board-fires { direction: rtl; }
+.board-fires svg { inline-size: 16px; block-size: 16px; }
+/* the medal: a numeral on a disc; the first three burn (the flame gradient), the rest sit on the raised surface */
+.rank-medal { flex: none; display: inline-grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1; direction: ltr; font-variant-numeric: tabular-nums; }
+.rank-medal.top { background: linear-gradient(135deg, var(--fire) 0%, var(--fire-2) 100%); color: #1a0a04; box-shadow: 0 6px 16px rgba(255, 106, 43, 0.35); }
+.rank-medal.sm { inline-size: 28px; block-size: 28px; font-size: 13px; }
+.board-person { display: flex; align-items: center; gap: 12px; padding-inline: 16px; border-block-end: 1px solid var(--line-soft); }
+.board-person:last-child { border-block-end: 0; }
+.board-person .person { flex: 1; min-inline-size: 0; border-block-end: 0; }
+.board-stat { flex: none; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; text-align: end; }
+/* Explore: the top three of the looks board as three prints with their medals at the top-start corner */
+.board-strip-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.board-strip-row a, .hall-tile { position: relative; display: block; text-decoration: none; color: inherit; }
+.board-strip-row figure, .hall-tile figure { position: relative; background: var(--surface-2); border-radius: var(--radius-sm); }
+.board-strip-row img, .hall-tile img { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+.board-strip-row .rank-medal, .hall-tile .rank-medal { position: absolute; inset-block-start: -6px; inset-inline-start: -6px; }
+.board-strip-row .board-fires { margin-block-start: 8px; font-size: 13px; }
+/* Home: the reset-day card, in the feed's rhythm above the Today strip */
+.board-reset { display: flex; align-items: flex-start; gap: 8px; margin: 0 14px 20px; padding-block: 14px 10px; padding-inline: 14px 8px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.install + .board-reset { margin-block-start: 12px; }
+.board-reset + .today-strip { margin-block-start: 0; }
+.board-reset-text { flex: 1; min-inline-size: 0; }
+.board-reset-title { display: flex; align-items: flex-start; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.2; color: var(--ink); }
+.board-reset-title svg { flex: none; inline-size: 20px; block-size: 20px; color: var(--fire); margin-block-start: 1px; }
+.board-reset-links { display: flex; flex-wrap: wrap; gap: 0 16px; margin-block-start: 2px; }
+.board-reset-links .btn-text { padding-block: 0; }
+.board-reset .icon-btn { flex: none; margin-block-start: -6px; }
+/* the profile badge: last week's place, the flame gradient next to the brand mark, a link to the hall */
+.board-badge { position: relative; display: inline-flex; align-items: center; gap: 4px; vertical-align: 6px; margin-inline-start: 8px; min-block-size: 24px; padding-inline: 8px 10px; border-radius: var(--pill); background: linear-gradient(135deg, var(--fire) 0%, var(--fire-2) 100%); color: #1a0a04; font: 700 11px/1 var(--font-body); letter-spacing: var(--caps-track); text-transform: uppercase; text-decoration: none; white-space: nowrap; }
+.board-badge::before { content: ""; position: absolute; inset-block: -10px; inset-inline: 0; }   /* a 24px chip next to the name, a 44px tap area around it */
+.board-badge svg { inline-size: 12px; block-size: 12px; }
+[dir="rtl"] .board-badge { font-size: 12.5px; }
+/* the hall: one section per closed week, its three looks as prints and its top person as a row */
+.hall-week { display: grid; gap: 12px; }
+.hall-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.hall-gone { display: grid; place-items: center; aspect-ratio: 4 / 5; padding: 10px; border-radius: inherit; background: var(--surface-2); color: var(--ink-3); font-size: 12px; line-height: 1.35; text-align: center; }
+.hall-by { display: block; margin-block-start: 8px; font-size: 12.5px; color: var(--ink-3); }
+.hall-by b { display: block; color: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hall-person { display: flex; align-items: center; gap: 12px; }
+.hall-person .person { flex: 1; min-inline-size: 0; padding-block: 6px; border-block-end: 0; }

@@ -12,21 +12,29 @@ namespace FitCheck.Api.Endpoints;
 /// (<see cref="AppUser.Plan"/>, <see cref="AppUser.ProUntil"/>); Checkout starts a subscription, the webhook moves the
 /// end date, and the <c>--pro</c> command (Program.cs, Data/AdminSync.cs) does the same by hand when Stripe is off.
 /// <para>
-/// Round 11 (skeleton; the billing builder fills it): <c>POST /api/billing/portal</c> (session) answers 501 until built.
-/// Built, it opens a Stripe Billing Portal session for the account's <see cref="AppUser.BillingCustomerId"/> (a
-/// form-encoded POST to <c>v1/billing_portal/sessions</c> with <c>customer</c> and <c>return_url</c> = origin +
-/// <c>/#/pro</c>, through <see cref="StripeClient"/>'s named client, so the test recorder sees it) and answers 200
-/// <see cref="PortalDto"/>. Errors: error.portal_unavailable (400) while the provider is manual or the account has no
-/// customer id (the Pro page shows billing.manual_hint then); error.billing_failed (502) when Stripe does not answer with
-/// a url. The webhook learns <see cref="AppUser.BillingSubscriptionId"/>: see the TODOs in <see cref="WebhookAsync"/>.
+/// Round 11: <c>POST /api/billing/portal</c> (session) opens a Stripe Billing Portal session for the account's
+/// <see cref="AppUser.BillingCustomerId"/> (a form-encoded POST to <c>v1/billing_portal/sessions</c> with <c>customer</c>
+/// and <c>return_url</c> = origin + <c>/#/settings</c>, through <see cref="StripeClient"/>'s named client, so the test
+/// recorder sees it) and answers 200 <see cref="PortalDto"/>; the client sends the person there in the same tab. Errors:
+/// error.portal_unavailable (404) while the provider is manual or the account has no customer id (a Pro granted by
+/// <c>--pro</c> has nothing on Stripe's side; the Pro page and the settings row show billing.manual_hint instead of the
+/// button); error.portal_failed (502) when Stripe does not answer with a url. Cancelling happens on Stripe's page, never
+/// here: the webhook is what ends Pro, and it now tells subscriptions apart by <see cref="AppUser.BillingSubscriptionId"/>
+/// (see <see cref="WebhookAsync"/>).
 /// </para>
 /// </summary>
 public static class BillingEndpoints
 {
     public const string WebhookPath = "/api/billing/webhook";
 
-    /// <summary>Where a Billing Portal session posts (the portal builder's; the test recorder answers it with <c>PortalResponse</c>).</summary>
+    /// <summary>Where a Billing Portal session posts (the test recorder answers it with <c>PortalResponse</c>).</summary>
     public const string PortalSessionsPath = "v1/billing_portal/sessions";
+
+    /// <summary>Where the portal sends the person back: the settings screen, where the plan row is.</summary>
+    public const string PortalReturnPath = "/#/settings";
+
+    /// <summary>The column's length (AppDbContext); a longer id from an event is cut, and a cut id still compares equal to itself next time.</summary>
+    public const int SubscriptionIdMaxLength = 64;
 
     /// <summary>
     /// What a completed Checkout grants: 35 days, not a month. Stripe bills every calendar month and the events can lag
@@ -44,14 +52,41 @@ public static class BillingEndpoints
         var group = app.MapGroup("/api/billing");
         group.MapGet("/state", StateAsync).RequireAuthorization();
         group.MapPost("/checkout", CheckoutAsync).RequireAuthorization();
-        // Round 11: the Billing Portal (change the card, cancel). 501 until the billing builder fills PortalAsync.
+        // Round 11: the Billing Portal (change the card, cancel), a link to Stripe's page.
         group.MapPost("/portal", PortalAsync).RequireAuthorization();
         // Anonymous, and exempt from the CSRF header in Program.cs: Stripe cannot send it. The signature is the guard.
         group.MapPost("/webhook", WebhookAsync);
         return app;
     }
 
-    private static IResult PortalAsync(HttpContext context) => Stubs.NotBuilt(context);
+    /// <summary>
+    /// A Billing Portal session for the signed-in account: 200 { url } to send the person to, 404 error.portal_unavailable
+    /// while Stripe is off or the account never went through Checkout (nothing to manage on Stripe's side: a --pro grant,
+    /// or a free account), 502 error.portal_failed when Stripe did not answer with a page. Nothing is written here: what
+    /// the person does on the portal comes back through the webhook.
+    /// </summary>
+    private static async Task<IResult> PortalAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, StripeClient stripe, CancellationToken ct)
+    {
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        if (!billing.Value.StripeEnabled || string.IsNullOrWhiteSpace(user.BillingCustomerId))
+        {
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(user.PreferredLanguage, "error.portal_unavailable"));
+        }
+
+        var url = await stripe.CreatePortalSessionAsync(user.Id, user.BillingCustomerId, Origin(context.Request, billing.Value) + PortalReturnPath, ct);
+        if (url is null)
+        {
+            return UserEndpoints.Error(StatusCodes.Status502BadGateway, localizer.Get(user.PreferredLanguage, "error.portal_failed"));
+        }
+
+        return Results.Json(new PortalDto(url), AppJson.Options);
+    }
 
     /// <summary>The plan as the client should read it: "pro" only while the paid period runs, and the end date only then.</summary>
     public static (string Plan, DateTime? ProUntil) EffectivePlan(AppUser user, DateTime now)
@@ -122,6 +157,16 @@ public static class BillingEndpoints
     /// customer.subscription.updated names the same period end and changes nothing, a repeated subscription.deleted ends
     /// what already ended), and Stripe retries until it sees a 2xx, so a handler that cannot find the account still
     /// answers 200 rather than asking for the same event again. A bad signature is 400 so the dashboard shows it.
+    /// <para>
+    /// Round 11: the account remembers which subscription it paid for (<see cref="AppUser.BillingSubscriptionId"/>).
+    /// checkout.session.completed stores the session's subscription (the one the person just paid for; a different one
+    /// already there is replaced and logged); customer.subscription.created and .updated fill it in only while it is
+    /// empty (an account from before this round, or one that subscribed again on Stripe's side), and an updated event for
+    /// another subscription on the same customer is logged and ignored; customer.subscription.deleted ends Pro only for
+    /// the stored subscription (or, with none stored, for the customer as before) and clears the id so a later Checkout
+    /// starts clean. So a stale tab's second subscription, or a re-subscribe on Stripe's side, can no longer end the
+    /// Pro the paid one still bills for.
+    /// </para>
     /// </summary>
     private static async Task<IResult> WebhookAsync(
         HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, ILogger<StripeClient> logger, CancellationToken ct)
@@ -178,12 +223,47 @@ public static class BillingEndpoints
                         user.BillingCustomerId = customer;
                     }
 
-                    // TODO(Round 11, billing builder): store the session's "subscription" (StringOrId(payload, "subscription"),
-                    // sub_…, cut to 64) in user.BillingSubscriptionId. Today the account is matched by customer alone, so a
-                    // second subscription on the same customer (a stale tab past the 409, a Stripe-side re-subscribe) is
-                    // indistinguishable from the first in the events below; the id is what tells them apart.
+                    // The subscription this Checkout paid for: the one the events below answer to from now on. A different id
+                    // already there (a second Checkout on the same account) is replaced, since this is the one just paid for.
+                    var subscription = SubscriptionId(payload, "subscription");
+                    if (subscription is not null)
+                    {
+                        if (user.BillingSubscriptionId is not null && user.BillingSubscriptionId != subscription)
+                        {
+                            logger.LogWarning("Account {Handle} paid for subscription {Subscription} while {Previous} was on record; the new one is followed now.",
+                                user.Handle, subscription, user.BillingSubscriptionId);
+                        }
+
+                        user.BillingSubscriptionId = subscription;
+                    }
+
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} is Pro until {Until:u} (checkout completed).", user.Handle, user.ProUntil);
+                    break;
+                }
+
+                case "customer.subscription.created":
+                {
+                    // Nothing is granted here (the checkout event does that): the account only learns its subscription id when
+                    // it has none, so a subscription that started on Stripe's side, or one from before this round, is followed too.
+                    var user = await FindByCustomerAsync(db, payload, logger, ct);
+                    if (user is null || SubscriptionId(payload, "id") is not { } created)
+                    {
+                        break;
+                    }
+
+                    if (user.BillingSubscriptionId is null)
+                    {
+                        user.BillingSubscriptionId = created;
+                        await db.SaveChangesAsync(ct);
+                        logger.LogInformation("Account {Handle} follows subscription {Subscription} (created).", user.Handle, created);
+                    }
+                    else if (user.BillingSubscriptionId != created)
+                    {
+                        logger.LogWarning("Stripe created subscription {Subscription} for account {Handle}, which already follows {Current}; ignored.",
+                            created, user.Handle, user.BillingSubscriptionId);
+                    }
+
                     break;
                 }
 
@@ -221,10 +301,20 @@ public static class BillingEndpoints
                         break;
                     }
 
-                    // TODO(Round 11, billing builder): when user.BillingSubscriptionId is set and differs from this object's
-                    // "id" (StringOrId(payload, "id")), this is another subscription on the same customer: log and break rather
-                    // than move the end date on its say-so. A null stored id (an account from before Round 11) keeps today's
-                    // customer-only matching.
+                    // Only the subscription the account follows moves the end date; another on the same customer is logged and
+                    // ignored. An account that follows none yet (from before Round 11) adopts this one and keeps the customer-only
+                    // matching it had.
+                    if (!FollowsOrAdopts(user, payload, logger, "updated"))
+                    {
+                        break;
+                    }
+
+                    // An adopted id is kept whatever the status below does to the end date.
+                    if (db.ChangeTracker.HasChanges())
+                    {
+                        await db.SaveChangesAsync(ct);
+                    }
+
                     var status = StringOrId(payload, "status");
                     if (status is "active" or "trialing")
                     {
@@ -271,11 +361,20 @@ public static class BillingEndpoints
                         break;
                     }
 
-                    // TODO(Round 11, billing builder): compare this object's "id" with user.BillingSubscriptionId the same way:
-                    // a deleted subscription that is not the one paid for must not end Pro (the paid one still bills); when it
-                    // is the one, end Pro as below and clear user.BillingSubscriptionId so a later Checkout starts clean.
-                    // The end date moves to now rather than the plan to free: the row still says a subscription existed.
+                    // A deleted subscription that is not the one the account follows must not end Pro: the followed one still
+                    // bills. With none followed (an account from before Round 11) the customer match is all there is, as before.
+                    var deleted = SubscriptionId(payload, "id");
+                    if (user.BillingSubscriptionId is not null && deleted is not null && user.BillingSubscriptionId != deleted)
+                    {
+                        logger.LogWarning("Stripe deleted subscription {Subscription} for account {Handle}, which follows {Current}; Pro stays.",
+                            deleted, user.Handle, user.BillingSubscriptionId);
+                        break;
+                    }
+
+                    // The end date moves to now rather than the plan to free: the row still says a subscription existed. The
+                    // id is cleared so the next Checkout starts clean.
                     user.ProUntil = now;
+                    user.BillingSubscriptionId = null;
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
                     break;
@@ -323,6 +422,43 @@ public static class BillingEndpoints
         }
 
         return user;
+    }
+
+    /// <summary>
+    /// Whether an updated subscription event is about the subscription the account follows. True when the ids match, or
+    /// when the account follows none yet and adopts this one (set on the row, saved by the caller); false, logged, for
+    /// another subscription on the same customer. An event without an id is taken as the followed one (a hand-made event).
+    /// </summary>
+    private static bool FollowsOrAdopts(AppUser user, JsonElement payload, ILogger logger, string what)
+    {
+        var id = SubscriptionId(payload, "id");
+        if (id is null || user.BillingSubscriptionId == id)
+        {
+            return true;
+        }
+
+        if (user.BillingSubscriptionId is null)
+        {
+            user.BillingSubscriptionId = id;
+            logger.LogInformation("Account {Handle} follows subscription {Subscription} ({What}).", user.Handle, id, what);
+            return true;
+        }
+
+        logger.LogWarning("Stripe {What} subscription {Subscription} for account {Handle}, which follows {Current}; ignored.",
+            what, id, user.Handle, user.BillingSubscriptionId);
+        return false;
+    }
+
+    /// <summary>A subscription id field (a string, or an expanded object's id), trimmed and cut to the column's length; null when missing or blank.</summary>
+    private static string? SubscriptionId(JsonElement obj, string name)
+    {
+        var id = StringOrId(obj, name)?.Trim();
+        if (string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+
+        return id.Length <= SubscriptionIdMaxLength ? id : id[..SubscriptionIdMaxLength];
     }
 
     /// <summary>The later of the end date on the row (null for never Pro) and a candidate.</summary>
@@ -408,7 +544,7 @@ public static class BillingEndpoints
         };
     }
 
-    /// <summary>Where Checkout returns to: Billing:PublicOrigin when set (behind a tunnel or a proxy), else this request's origin.</summary>
+    /// <summary>Where Checkout and the portal return to: Billing:PublicOrigin when set (behind a tunnel or a proxy), else this request's origin.</summary>
     private static string Origin(HttpRequest request, BillingOptions options)
     {
         var configured = options.PublicOrigin.Trim().TrimEnd('/');

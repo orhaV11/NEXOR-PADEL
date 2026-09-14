@@ -1,6 +1,8 @@
 // The Pro screen: the pitch (the mark, a headline, the benefits), the price, and the way in. With Stripe live the
 // button opens Checkout; while Pro is switched on by hand there is a calm note instead; someone who already has Pro
-// sees the end date. Checkout returns to #/pro?checkout=success (thanks, and "me" is reloaded until the webhook has
+// sees the end date and, with Stripe live, "Manage subscription" (Stripe's Billing Portal, Round 11: the card, the
+// invoices, cancelling; it returns to #/settings and the webhook changes the plan here), or with Pro switched on by
+// hand, a line saying to write to us. Checkout returns to #/pro?checkout=success (thanks, and "me" is reloaded until the webhook has
 // flipped the plan; no button meanwhile, a second tap would open a second subscription) or #/pro?checkout=cancel
 // (just the screen again). The benefits are what Pro really gives on this server: the cap from /api/config, and
 // comparisons and insights only where the server keeps them for Pro (plans.compareNeedsPro).
@@ -27,6 +29,7 @@ const CSS = `
 .pro-status { display: flex; align-items: center; gap: 12px; }
 .pro-status p { flex: 1; min-inline-size: 0; font-size: 15px; }
 .pro-thanks { margin-block-end: 18px; }
+.pro-manage-hint { text-align: center; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -41,6 +44,26 @@ function checkoutResult() {
   if (q < 0) return null;
   const value = new URLSearchParams(location.hash.slice(q + 1)).get('checkout');
   return value === 'success' || value === 'cancel' ? value : null;
+}
+
+/** "Manage subscription": the Billing Portal in this tab; 404 (a Pro without a customer behind it) and the rest are toasted. */
+function manageButton(ctx) {
+  const button = el('button', { type: 'button', class: 'btn btn-secondary', id: 'billing-manage', text: t('billing.manage') });
+  button.addEventListener('click', async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = t('common.loading');
+    try {
+      const { url } = await api('POST', '/api/billing/portal');
+      location.href = url;
+    } catch (e) {
+      if (ctx.stale()) return;
+      toast(e.message || t('error.generic'));
+      button.disabled = false;
+      button.textContent = t('billing.manage');
+    }
+  });
+  return button;
 }
 
 function benefit(name, title, hint) {
@@ -95,6 +118,12 @@ register('pro', async (root, params, ctx) => {
         proBadge(me),
         el('p', { text: me.proUntil ? t('pro.current', { date: fmtDate(me.proUntil) }) : t('pro.current_open') })
       ]));
+      if (plans.billing) {
+        foot.appendChild(manageButton(ctx));
+        foot.appendChild(el('p', { class: 'hint pro-manage-hint', text: t('billing.manage_hint') }));
+      } else {
+        foot.appendChild(el('p', { class: 'hint pro-manage-hint', id: 'billing-manual', text: t('billing.manual_hint') }));
+      }
       return;
     }
     if (!plans.billing) { foot.appendChild(el('p', { class: 'notice', id: 'pro-manual', text: t('pro.manual') })); return; }

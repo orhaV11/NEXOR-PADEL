@@ -747,5 +747,6 @@
   "billing.manage": "Manage subscription",
   "billing.manage_hint": "Change or cancel your plan.",
   "billing.manual_hint": "To change or cancel, write to us.",
-  "block.state": "Blocked"
+  "block.state": "Blocked",
+  "export.save": "Save file"
 }

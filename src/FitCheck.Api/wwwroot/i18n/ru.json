@@ -747,5 +747,6 @@
   "billing.manage": "Управление подпиской",
   "billing.manage_hint": "Изменить или отменить план.",
   "billing.manual_hint": "Чтобы изменить или отменить, напиши нам.",
-  "block.state": "Заблокирован"
+  "block.state": "Заблокирован",
+  "export.save": "Сохранить файл"
 }

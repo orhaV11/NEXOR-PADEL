@@ -38,8 +38,10 @@ public sealed class StripeBillingApp : TestApp
 
 /// <summary>
 /// Plans and billing: the state route for free and Pro, Checkout refused without Stripe (and for an account that is Pro
-/// already) and the exact request that goes out with it, the webhook (signature, the four events, unknown ones) and its
-/// CSRF exemption, the --pro command through AdminSync, the plan fields on "me", and the plans block on /api/config.
+/// already) and the exact request that goes out with it, the Billing Portal (Round 11: 404 on the manual provider or
+/// without a customer, the exact request, 502 when Stripe refuses), the webhook (signature, the five events, unknown
+/// ones, and the subscription id that tells one subscription on a customer from another) and its CSRF exemption, the
+/// --pro command through AdminSync, the plan fields on "me", and the plans block on /api/config.
 /// </summary>
 public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<StripeBillingApp>
 {
@@ -88,11 +90,19 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         return await app.BareClient().SendAsync(request);
     }
 
-    private static object CheckoutCompleted(string? reference, string? metadataUserId, string? customer) => new
+    /// <summary>A completed Checkout Session; <paramref name="subscription"/> is the id Stripe puts on it (a string, or the expanded object).</summary>
+    private static object CheckoutCompleted(string? reference, string? metadataUserId, string? customer, object? subscription = null) => new
     {
         id = "evt_checkout",
         type = "checkout.session.completed",
-        data = new { @object = new { id = "cs_1", @object = "checkout.session", client_reference_id = reference, customer, metadata = new { userId = metadataUserId } } }
+        data = new { @object = new { id = "cs_1", @object = "checkout.session", client_reference_id = reference, customer, subscription, metadata = new { userId = metadataUserId } } }
+    };
+
+    private static object SubscriptionCreated(string customer, string id) => new
+    {
+        id = "evt_sub_created",
+        type = "customer.subscription.created",
+        data = new { @object = new { id, @object = "subscription", customer, status = "active" } }
     };
 
     /// <summary>A renewal invoice as Stripe posts it: the customer, the reason and, with <paramref name="periodEnd"/>, one line naming the paid period.</summary>
@@ -116,7 +126,7 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     /// A subscription as customer.subscription.updated carries it: the status and, when given, the current period end on
     /// the subscription itself (API versions before 2025-03-31) or on its item (since).
     /// </summary>
-    private static object SubscriptionUpdated(string customer, string status, DateTimeOffset? periodEnd = null, bool onItems = false) => new
+    private static object SubscriptionUpdated(string customer, string status, DateTimeOffset? periodEnd = null, bool onItems = false, string id = "sub_1") => new
     {
         id = "evt_sub_updated",
         type = "customer.subscription.updated",
@@ -124,7 +134,7 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         {
             @object = new
             {
-                id = "sub_1", @object = "subscription", customer, status,
+                id, @object = "subscription", customer, status,
                 current_period_end = periodEnd is { } end && !onItems ? end.ToUnixTimeSeconds() : (long?)null,
                 items = new
                 {
@@ -135,11 +145,11 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         }
     };
 
-    private static object SubscriptionDeleted(string customer) => new
+    private static object SubscriptionDeleted(string customer, string id = "sub_1") => new
     {
         id = "evt_sub",
         type = "customer.subscription.deleted",
-        data = new { @object = new { id = "sub_1", @object = "subscription", customer, status = "canceled" } }
+        data = new { @object = new { id, @object = "subscription", customer, status = "canceled" } }
     };
 
     // ---- state ----
@@ -267,6 +277,210 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
             _stripe.StripeHandler.StatusCode = HttpStatusCode.OK;
             _stripe.StripeHandler.Response = new RecordingStripeHandler().Response;
         }
+    }
+
+    // ---- the portal (Round 11) ----
+
+    [Fact]
+    public async Task Portal_is_404_while_billing_is_manual_or_the_account_never_went_through_checkout()
+    {
+        // Manual: a Pro granted by hand has nothing on Stripe's side, in the account's language.
+        var (manual, _, handle) = await _manual.NewUserAsync("bill_portal_manual", language: "he");
+        Assert.Equal(AdminChange.Changed, await AdminSync.SetProAsync(_manual.ConnectionString, handle, DateTime.UtcNow.AddDays(30)));
+        var response = await manual.PostAsync("/api/billing/portal", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("כדי לנהל את התוכנית, כותבים לנו.", await ErrorOf(response));
+        Assert.Empty(_manual.StripeHandler.PortalRequests);
+
+        // Stripe live, but this account has no customer id (free, or Pro by --pro): the same 404, and nothing is sent.
+        var (stripe, _, _) = await _stripe.NewUserAsync("bill_portal_nocust");
+        _stripe.StripeHandler.Clear();
+        var noCustomer = await stripe.PostAsync("/api/billing/portal", null);
+        Assert.Equal(HttpStatusCode.NotFound, noCustomer.StatusCode);
+        Assert.Equal("Manage your plan by writing to us.", await ErrorOf(noCustomer));
+        Assert.Empty(_stripe.StripeHandler.Requests);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _stripe.NewClient().PostAsync("/api/billing/portal", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _stripe.BareClient().PostAsync("/api/billing/portal", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Portal_opens_a_session_for_the_accounts_customer_that_returns_to_settings()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_portal");
+        WithDb(_stripe, db => { var u = db.Users.Single(x => x.Id == id); u.Plan = "pro"; u.ProUntil = DateTime.UtcNow.AddDays(20); u.BillingCustomerId = "cus_portal"; });
+        _stripe.StripeHandler.Clear();
+
+        var response = await client.PostAsync("/api/billing/portal", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(RecordingStripeHandler.DefaultPortalUrl, (await Json(response)).GetProperty("url").GetString());
+
+        var request = Assert.Single(_stripe.StripeHandler.PortalRequests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal("https://api.stripe.com/v1/billing_portal/sessions", request.Uri.ToString());
+        Assert.Equal("Bearer " + StripeBillingApp.SecretKey, request.Authorization);
+        Assert.Equal("cus_portal", request["customer"]);
+        Assert.Equal("http://localhost/#/settings", request["return_url"]);
+        Assert.Equal(2, request.Form.Count);
+        // Nothing changes on the row: what the person does on the portal comes back through the webhook.
+        Assert.Equal("pro", UserOf(_stripe, id).Plan);
+
+        // A lapsed account with a customer still gets the portal: the card can be fixed there.
+        WithDb(_stripe, db => db.Users.Single(x => x.Id == id).ProUntil = DateTime.UtcNow.AddMinutes(-1));
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/portal", null)).StatusCode);
+
+        // Behind a tunnel or a proxy the configured origin is the one Stripe returns to.
+        using var tunnelled = new TestApp
+        {
+            BillingProvider = "stripe", StripeSecretKey = StripeBillingApp.SecretKey, StripePriceId = StripeBillingApp.PriceId, StripeWebhookSecret = StripeBillingApp.WebhookSecret,
+            Settings = { ["Billing:PublicOrigin"] = "https://orevosh.example/" }
+        };
+        var (far, farId, _) = await tunnelled.NewUserAsync("bill_portal_far");
+        WithDb(tunnelled, db => db.Users.Single(x => x.Id == farId).BillingCustomerId = "cus_far");
+        Assert.Equal(HttpStatusCode.OK, (await far.PostAsync("/api/billing/portal", null)).StatusCode);
+        Assert.Equal("https://orevosh.example/#/settings", Assert.Single(tunnelled.StripeHandler.PortalRequests)["return_url"]);
+    }
+
+    [Fact]
+    public async Task Portal_answers_502_when_stripe_refuses_or_names_no_page()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_portal_refused", language: "ru");
+        WithDb(_stripe, db => db.Users.Single(x => x.Id == id).BillingCustomerId = "cus_refused");
+        _stripe.StripeHandler.StatusCode = HttpStatusCode.BadRequest;
+        _stripe.StripeHandler.PortalResponse = """{ "error": { "type": "invalid_request_error", "message": "No such customer" } }""";
+        try
+        {
+            var response = await client.PostAsync("/api/billing/portal", null);
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+            Assert.Equal("Страница оплаты не открылась. Попробуй через минуту.", await ErrorOf(response));
+
+            _stripe.StripeHandler.StatusCode = HttpStatusCode.OK;
+            _stripe.StripeHandler.PortalResponse = """{ "id": "bps_no_url", "object": "billing_portal.session" }""";
+            Assert.Equal(HttpStatusCode.BadGateway, (await client.PostAsync("/api/billing/portal", null)).StatusCode);
+        }
+        finally
+        {
+            _stripe.StripeHandler.StatusCode = HttpStatusCode.OK;
+            _stripe.StripeHandler.PortalResponse = new RecordingStripeHandler().PortalResponse;
+        }
+    }
+
+    // ---- the subscription id (Round 11) ----
+
+    [Fact]
+    public async Task Webhook_checkout_completed_stores_the_subscription_and_deleted_ends_pro_only_for_that_one()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_subid");
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid", "sub_paid"))).StatusCode);
+        var user = UserOf(_stripe, id);
+        Assert.Equal("pro", user.Plan);
+        Assert.Equal("cus_subid", user.BillingCustomerId);
+        Assert.Equal("sub_paid", user.BillingSubscriptionId);
+
+        // Another subscription on the same customer ends (a stale tab's, cancelled on Stripe's side): Pro stays, the id stays.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_subid", "sub_other"))).StatusCode);
+        user = UserOf(_stripe, id);
+        AssertAround(user.ProUntil, DateTime.UtcNow.AddDays(35));
+        Assert.Equal("sub_paid", user.BillingSubscriptionId);
+        Assert.Equal("pro", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+
+        // The paid one ends: Pro ends now and the id is cleared, so the next Checkout starts clean.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_subid", "sub_paid"))).StatusCode);
+        user = UserOf(_stripe, id);
+        Assert.True(user.ProUntil <= DateTime.UtcNow.AddSeconds(1));
+        Assert.Null(user.BillingSubscriptionId);
+        Assert.Equal("cus_subid", user.BillingCustomerId);
+        Assert.Equal("free", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+
+        // A new Checkout: the expanded subscription object yields its id, and a later one replaces an earlier one (logged).
+        var expanded = new { id = "sub_expanded", @object = "subscription" };
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid", expanded))).StatusCode);
+        Assert.Equal("sub_expanded", UserOf(_stripe, id).BillingSubscriptionId);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid", "sub_again"))).StatusCode);
+        Assert.Equal("sub_again", UserOf(_stripe, id).BillingSubscriptionId);
+
+        // An id longer than the column is cut, and the cut id still matches the event that names it in full.
+        var longId = "sub_" + new string('x', 80);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid", longId))).StatusCode);
+        Assert.Equal(longId[..64], UserOf(_stripe, id).BillingSubscriptionId);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_subid", longId))).StatusCode);
+        Assert.Null(UserOf(_stripe, id).BillingSubscriptionId);
+
+        // A Checkout event without a subscription (a hand-made one) grants as before and stores nothing.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid"))).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, id).Plan);
+        Assert.Null(UserOf(_stripe, id).BillingSubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_subscription_deleted_with_no_id_stored_keeps_the_customer_only_matching()
+    {
+        // An account from before Round 11: Pro from a Checkout that stored no id. Its cancellation still ends Pro.
+        var (_, id, _) = await _stripe.NewUserAsync("bill_legacy_cancel");
+        WithDb(_stripe, db => { var u = db.Users.Single(x => x.Id == id); u.Plan = "pro"; u.ProUntil = DateTime.UtcNow.AddDays(20); u.BillingCustomerId = "cus_legacy"; u.BillingSubscriptionId = null; });
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_legacy", "sub_whatever"))).StatusCode);
+        var user = UserOf(_stripe, id);
+        Assert.True(user.ProUntil <= DateTime.UtcNow.AddSeconds(1));
+        Assert.Null(user.BillingSubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_subscription_updated_ignores_another_subscription_and_adopts_one_when_none_is_stored()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_sub_updated");
+        var (_, legacyId, _) = await _stripe.NewUserAsync("bill_sub_legacy");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Plan = "pro"; u.ProUntil = DateTime.UtcNow.AddDays(10); u.BillingCustomerId = "cus_upd"; u.BillingSubscriptionId = "sub_paid";
+            var legacy = db.Users.Single(x => x.Id == legacyId);
+            legacy.Plan = "pro"; legacy.ProUntil = DateTime.UtcNow.AddDays(10); legacy.BillingCustomerId = "cus_upd_legacy"; legacy.BillingSubscriptionId = null;
+        });
+
+        // Another subscription's period, or its dunning, moves nothing.
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(40);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd", "active", periodEnd, id: "sub_other"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(10));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd", "past_due", id: "sub_other"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(10));
+        Assert.Equal("sub_paid", UserOf(_stripe, id).BillingSubscriptionId);
+
+        // The paid one does.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd", "active", periodEnd, id: "sub_paid"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(43));
+
+        // An account that stored no id adopts the first subscription it hears of, even when the status moves nothing.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd_legacy", "incomplete", id: "sub_adopted"))).StatusCode);
+        Assert.Equal("sub_adopted", UserOf(_stripe, legacyId).BillingSubscriptionId);
+        AssertAround(UserOf(_stripe, legacyId).ProUntil, DateTime.UtcNow.AddDays(10));
+        // ... and from then on tells the others apart.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd_legacy", "active", periodEnd, id: "sub_stranger"))).StatusCode);
+        AssertAround(UserOf(_stripe, legacyId).ProUntil, DateTime.UtcNow.AddDays(10));
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_upd_legacy", "active", periodEnd, id: "sub_adopted"))).StatusCode);
+        AssertAround(UserOf(_stripe, legacyId).ProUntil, DateTime.UtcNow.AddDays(43));
+    }
+
+    [Fact]
+    public async Task Webhook_subscription_created_fills_an_empty_id_and_grants_nothing()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_sub_created");
+        WithDb(_stripe, db => db.Users.Single(x => x.Id == id).BillingCustomerId = "cus_created");
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionCreated("cus_created", "sub_first"))).StatusCode);
+        var user = UserOf(_stripe, id);
+        Assert.Equal("sub_first", user.BillingSubscriptionId);
+        Assert.Equal("free", user.Plan);   // the checkout event is what grants
+
+        // A second one on the same customer is not adopted; the first stays.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionCreated("cus_created", "sub_second"))).StatusCode);
+        Assert.Equal("sub_first", UserOf(_stripe, id).BillingSubscriptionId);
+
+        // The same id again, or an unknown customer: nothing changes, 200.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionCreated("cus_created", "sub_first"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionCreated("cus_nobody", "sub_x"))).StatusCode);
+        Assert.Equal("sub_first", UserOf(_stripe, id).BillingSubscriptionId);
     }
 
     // ---- webhook ----
@@ -483,6 +697,7 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         AssertAround(user.ProUntil, DateTime.UtcNow);
         Assert.True(user.ProUntil <= DateTime.UtcNow.AddSeconds(1));
         Assert.Equal("cus_cancel", user.BillingCustomerId);
+        Assert.Null(user.BillingSubscriptionId);
 
         var me = await Json(await client.GetAsync("/api/auth/me"));
         Assert.Equal("free", me.GetProperty("plan").GetString());

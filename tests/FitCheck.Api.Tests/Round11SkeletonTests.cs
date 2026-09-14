@@ -230,8 +230,9 @@ public class Round11StubTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Forbidden, (await bare.DeleteAsync("/api/users/someone/block")).StatusCode);
     }
 
+    /// <summary>Built (the billing builder): the gates stay; the manual provider's portal is 404 and the export answers. The rest is in BillingTests and ExportTests.</summary>
     [Fact]
-    public async Task The_portal_and_the_export_need_a_session_then_answer_501()
+    public async Task The_portal_and_the_export_need_a_session()
     {
         var anonymous = _app.NewClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync("/api/billing/portal", null)).StatusCode);
@@ -240,12 +241,13 @@ public class Round11StubTests : IClassFixture<TestApp>
 
         var (client, _, _) = await _app.NewUserAsync("r11_exporter", language: "he");
         var portal = await client.PostAsync("/api/billing/portal", null);
-        Assert.Equal(HttpStatusCode.NotImplemented, portal.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, portal.StatusCode);
+        // The builder reads the account's language, not Accept-Language.
+        Assert.Equal("כדי לנהל את התוכנית, כותבים לנו.", await ErrorOf(portal));
         var export = await client.GetAsync("/api/users/me/export");
-        Assert.Equal(HttpStatusCode.NotImplemented, export.StatusCode);
-        // The stub reads Accept-Language, not the account (the builder reads the account); English without a header.
-        Assert.Equal(NotBuiltEnglish, await ErrorOf(export));
-        // Nothing went to Stripe for the stub.
+        Assert.Equal(HttpStatusCode.OK, export.StatusCode);
+        Assert.Equal("r11_exporter", (await export.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("account").GetProperty("handle").GetString());
+        // Nothing went to Stripe while the provider is manual.
         Assert.Empty(_app.StripeHandler.PortalRequests);
     }
 }
@@ -310,8 +312,9 @@ public class Round11SeamTests : IClassFixture<TestApp>, IClassFixture<StripeBill
         Assert.Empty(ReadDb(_app, db => db.Blocks.ToList()));
     }
 
+    /// <summary>Built (the billing builder): the webhook now stores the id from checkout.session.completed; the lifecycle is in BillingTests.</summary>
     [Fact]
-    public async Task The_subscription_id_is_a_short_nullable_string_the_webhook_does_not_read_yet()
+    public async Task The_subscription_id_is_a_short_nullable_string_the_webhook_stores_from_checkout()
     {
         var (client, id, _) = await _stripe.NewUserAsync("r11_subscriber");
         using (var scope = _stripe.Services.CreateScope())
@@ -322,8 +325,7 @@ public class Round11SeamTests : IClassFixture<TestApp>, IClassFixture<StripeBill
             Assert.Null(property.GetContainingIndexes().FirstOrDefault());
         }
 
-        // A completed Checkout names its subscription; the skeleton's webhook still matches by customer alone and stores
-        // nothing of it (the billing builder's TODO), so the column stays null and Pro is granted as before.
+        // A completed Checkout names its subscription: the webhook grants Pro as before and now remembers the id.
         var payload = new
         {
             id = "evt_r11",
@@ -338,12 +340,12 @@ public class Round11SeamTests : IClassFixture<TestApp>, IClassFixture<StripeBill
         var user = ReadDb(_stripe, db => db.Users.Single(u => u.Id == id));
         Assert.Equal("pro", user.Plan);
         Assert.Equal("cus_r11", user.BillingCustomerId);
-        Assert.Null(user.BillingSubscriptionId);
+        Assert.Equal("sub_r11", user.BillingSubscriptionId);
         Assert.Equal("pro", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
 
         // The column takes a value and gives it back; nothing about it reaches "me".
-        WithDb(_stripe, db => db.Users.Single(u => u.Id == id).BillingSubscriptionId = "sub_r11");
-        Assert.Equal("sub_r11", ReadDb(_stripe, db => db.Users.Single(u => u.Id == id).BillingSubscriptionId));
+        WithDb(_stripe, db => db.Users.Single(u => u.Id == id).BillingSubscriptionId = "sub_r11_by_hand");
+        Assert.Equal("sub_r11_by_hand", ReadDb(_stripe, db => db.Users.Single(u => u.Id == id).BillingSubscriptionId));
         var me = await Json(await client.GetAsync("/api/auth/me"));
         Assert.DoesNotContain(me.EnumerateObject(), p => p.Name.Contains("billing", StringComparison.OrdinalIgnoreCase) || p.Name.Contains("subscription", StringComparison.OrdinalIgnoreCase));
     }

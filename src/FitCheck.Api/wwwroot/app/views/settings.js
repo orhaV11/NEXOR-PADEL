@@ -3,7 +3,7 @@
 // the avatar upload with the client-side square crop, interests as chips, brand mode as a switch.
 import {
   register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert,
-  proBadge, fmtDate
+  proBadge, fmtDate, intlLocale, onLeave
 } from '../core.js';
 import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
 
@@ -30,6 +30,13 @@ const CSS = `
 .s-plan-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; min-block-size: 44px; }
 .s-plan-row b { font-weight: 700; font-size: 16px; }
 .s-plan-row .btn-text { margin-inline-start: auto; padding-block: 0; }
+.s-plan-manage { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.s-plan-manage .btn { min-block-size: 44px; }
+.s-export { display: flex; flex-direction: column; gap: 10px; border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-export .btn { min-block-size: 44px; }
+.s-export-status { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.s-export-status p { color: var(--ok); font-weight: 600; }
+.s-export-status .s-export-size { color: var(--ink-2); font-weight: 400; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -39,6 +46,91 @@ function ensureStyle() {
 }
 
 const field = (id, label, control) => el('div', { class: 'field' }, [el('label', { for: id, text: label }), control]);
+
+// ---------- the subscription ----------
+
+/**
+ * "Manage subscription": opens Stripe's Billing Portal in this tab (the card, the invoices, cancelling all happen
+ * there; the portal comes back to #/settings, and the webhook is what changes the plan here). Only offered when the
+ * plan is Pro and Stripe is live (plans.billing); a Pro switched on by hand shows billing.manual_hint instead, and the
+ * server answers 404 with the same sentence should the button ever be tapped without a customer behind it.
+ */
+function manageButton(ctx) {
+  const button = el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'billing-manage', text: t('billing.manage') });
+  button.addEventListener('click', async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = t('common.loading');
+    try {
+      const { url } = await api('POST', '/api/billing/portal');
+      location.href = url;
+    } catch (e) {
+      if (ctx.stale()) return;
+      toast(e.message || t('error.generic'));
+      button.disabled = false;
+      button.textContent = t('billing.manage');
+    }
+  });
+  return button;
+}
+
+// ---------- the data export ----------
+
+/** The file's size for a person: kB up to a megabyte, MB past it, in the locale's digits. */
+function fmtBytes(bytes) {
+  const mega = bytes >= 1024 * 1024;
+  return new Intl.NumberFormat(intlLocale(), { style: 'unit', unit: mega ? 'megabyte' : 'kilobyte', unitDisplay: 'short', maximumFractionDigits: 1 })
+    .format(bytes / (mega ? 1024 * 1024 : 1024));
+}
+
+/**
+ * "Download your data": fetches the export (through api(), so the CSRF header, the language and a signed-out answer are
+ * handled like everywhere else), hands the JSON to the browser as a file, and says so with the size, so the person sees
+ * something happened even where a download cannot start on its own (an in-app browser, a sandbox): the "Save file" link
+ * is the same file again. The server allows a few an hour; past that its own sentence is shown.
+ */
+function exportSection(ctx) {
+  const button = el('button', { type: 'button', class: 'btn btn-secondary', id: 'export-data', text: t('settings.export') });
+  // dir=ltr: "1.1 kB" stays one unit inside a Hebrew or Arabic line instead of reordering to "kB 1.1".
+  const size = el('span', { class: 's-export-size', id: 'export-size', dir: 'ltr' });
+  const ready = el('p', { role: 'status', id: 'export-ready' }, [t('export.ready'), ' ', size]);
+  const save = el('a', { class: 'btn btn-sm btn-secondary', id: 'export-save', href: '#', text: t('export.save') });
+  const status = el('div', { class: 's-export-status', id: 'export-status', hidden: true }, [ready, save]);
+  let objectUrl = null;
+  onLeave(() => { if (objectUrl) URL.revokeObjectURL(objectUrl); });
+
+  button.addEventListener('click', async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = t('common.loading');
+    try {
+      const data = await api('GET', '/api/users/me/export');
+      if (ctx.stale()) return;
+      const text = JSON.stringify(data, null, 2);
+      const blob = new Blob([text], { type: 'application/json' });
+      // The same name the server puts on the file: the handle and the day it was made (UTC), as the server's clock says.
+      const day = (data.exportedAt ? new Date(data.exportedAt) : new Date()).toISOString().slice(0, 10).replace(/-/g, '');
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(blob);
+      save.href = objectUrl;
+      save.download = `orevosh-${state.me.handle}-${day}.json`;
+      size.textContent = fmtBytes(blob.size);
+      status.hidden = false;
+      save.click();   // starts the download where the browser allows it; the link stays for a tap where it does not
+    } catch (e) {
+      if (ctx.stale()) return;
+      toast(e.message || t('error.generic'));
+    } finally {
+      if (!ctx.stale()) { button.disabled = false; button.textContent = t('settings.export'); }
+    }
+  });
+
+  return el('section', { class: 's-section s-export' }, [
+    button,
+    el('p', { class: 'hint', text: t('export.hint') }),
+    status
+  ]);
+}
 
 // ---------- push ----------
 
@@ -291,15 +383,20 @@ register('settings', async (root, params, ctx) => {
 
   // ---------- plan ----------
 
-  // The current plan and the door to the Pro screen. Read-only here: Checkout (or --pro) is what changes it.
+  // The current plan and the door to the Pro screen. Read-only here: Checkout (or --pro) is what changes it. On Pro
+  // with Stripe live, the door to Stripe's portal (change the card, cancel); on a Pro switched on by hand, a line saying
+  // to write to us instead.
   const isPro = me.plan === 'pro';
+  const billing = !!(state.config.plans && state.config.plans.billing);
   const planRow = el('div', { class: 'field s-plan', id: 's-plan' }, [
     el('span', { class: 'label', text: t('settings.plan') }),
     el('div', { class: 's-plan-row' }, [
       isPro ? proBadge(me) : el('b', { id: 's-plan-name', text: t('settings.plan_free') }),
       isPro && me.proUntil ? el('span', { class: 'hint', id: 's-plan-until', text: t('settings.plan_until', { date: fmtDate(me.proUntil) }) }) : null,
       el('a', { class: 'btn-text', id: 's-plan-link', href: '#/pro', text: t(isPro ? 'settings.plan_about' : 'settings.plan_go') })
-    ])
+    ]),
+    isPro && billing ? el('div', { class: 's-plan-manage' }, [manageButton(ctx), el('span', { class: 'hint', text: t('billing.manage_hint') })]) : null,
+    isPro && !billing ? el('p', { class: 'hint', id: 'billing-manual', text: t('billing.manual_hint') }) : null
   ]);
 
   root.appendChild(el('form', { class: 'stack', novalidate: true, onsubmit }, [
@@ -320,6 +417,7 @@ register('settings', async (root, params, ctx) => {
   ]));
 
   root.appendChild(pushSection(ctx));
+  root.appendChild(exportSection(ctx));
 
   // ---------- sign out, delete ----------
 

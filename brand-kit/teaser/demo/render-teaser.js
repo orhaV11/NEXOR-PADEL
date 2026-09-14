@@ -3,11 +3,11 @@
  * Renders brand-kit/teaser/demo/teaser.html to the 1080x1920 launch teaser.
  *
  * The template exposes window.seek(t); this script walks t = f/FPS, screenshots every frame into a scratch
- * folder outside the repository, encodes with ffmpeg, pulls the cover frame out of the finished MP4 and
- * verifies the result with ffprobe. Nothing animates by itself in the page, so frame N is always identical
- * no matter how slow the machine is.
+ * folder outside the repository, encodes with ffmpeg, pulls the two cover frames out of the finished MP4
+ * and verifies the result with ffprobe. Nothing animates by itself in the page, so frame N is always the
+ * same picture no matter how slow the machine is.
  *
- *   node render-teaser.js                 # frames + mp4 + cover + verify
+ *   node render-teaser.js                 # frames + mp4 + covers + verify
  *   node render-teaser.js --probe 0,4.5,7.8,11.9   # only those seconds, as PNGs, to look at
  *   node render-teaser.js --keep-frames   # leave the scratch frames in place
  *
@@ -36,12 +36,14 @@ const DURATION = 12;                       // seconds
 const FRAMES = FPS * DURATION;             // 360
 const W = 1080, H = 1920;
 const COVER_T = 7.80;                      // the frame the owner gets as the thumbnail: the one tip, up
+const COVER_ALT_T = 3.36;                  // the alternative: the score landing, 9/10 in the full ring
 
 const OUT = __dirname;
 const SCRATCH = process.env.TEASER_SCRATCH || '/tmp/demo';
 const FRAMEDIR = path.join(SCRATCH, 'frames');
 const MP4 = path.join(OUT, 'orevosh-teaser-1080x1920.mp4');
 const COVER = path.join(OUT, 'orevosh-teaser-cover-1080x1920.png');
+const COVER_ALT = path.join(OUT, 'orevosh-teaser-cover-alt-1080x1920.png');
 
 const argv = process.argv.slice(2);
 const probeAt = argv.includes('--probe')
@@ -108,8 +110,10 @@ async function openPage(browser) {
     '-i', path.join(FRAMEDIR, 'frame-%05d.png'),
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', MP4]);
 
-  // the cover comes out of the finished file, so it is exactly a frame of the video
+  // both covers come out of the finished file, so each is exactly a frame of the video: the owner picks
+  // between the one tip and the score landing as the thumbnail
   sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(COVER_T), '-i', MP4, '-frames:v', '1', COVER]);
+  sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(COVER_ALT_T), '-i', MP4, '-frames:v', '1', COVER_ALT]);
 
   if (!keepFrames) fs.rmSync(FRAMEDIR, { recursive: true, force: true });
 
@@ -121,8 +125,10 @@ async function openPage(browser) {
   console.log('\n' + path.basename(MP4) + ': ' + v.codec_name + ' ' + v.width + 'x' + v.height + ' ' +
     v.pix_fmt + ' ' + v.r_frame_rate + ' ' + v.nb_frames + ' frames ' +
     (+fmt.duration).toFixed(2) + 's ' + mb.toFixed(2) + ' MB');
-  console.log(path.basename(COVER) + ': ' + sh('ffprobe', ['-v', 'error', '-show_entries',
-    'stream=width,height', '-of', 'csv=p=0:s=x', COVER]).trim() + ' (t=' + COVER_T + 's)');
+  for (const [p, t] of [[COVER, COVER_T], [COVER_ALT, COVER_ALT_T]]) {
+    console.log(path.basename(p) + ': ' + sh('ffprobe', ['-v', 'error', '-show_entries',
+      'stream=width,height', '-of', 'csv=p=0:s=x', p]).trim() + ' (t=' + t + 's)');
+  }
 
   const bad = [];
   if (v.width !== W || v.height !== H) bad.push('size');

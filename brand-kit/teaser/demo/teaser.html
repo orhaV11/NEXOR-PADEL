@@ -12,6 +12,12 @@
   score ring, the breakdown rings, the tip card, the feed card and the fire count are rebuilt as live
   elements so they move. Nothing here claims a feature the app does not have.
 
+  The look being checked is tools/brand/templates/photos/look-2-camel.jpg, a real outfit used with the
+  owner's permission, in all three places a photo appears: the card the finger taps on the check screen,
+  the block that settles into the result layout and the feed card at the end. Each slot is 4:5 and the
+  photo is anchored to the top of the crop. Every score, headline, occasion and tip in the cut is that
+  look's stylist copy, and it judges the clothes only.
+
   Safe area: TikTok and Instagram draw their own UI over the bottom 320 px and the right 180 px. Every word,
   the wordmark and the mark stay inside x < 900 and y < 1600.
 -->
@@ -73,6 +79,21 @@
 
   /* beat 1 — the real check-screen capture, with three live chips over it */
   #shotCheck { position: absolute; left: 0; top: 0; width: var(--sw); height: var(--sh); object-fit: cover; object-position: top center; }
+  /* the capture was taken with the browser test's placeholder in the photo slot; the real look is laid
+     over that card, and the capture's own dock disc is put back on top so the stacking is unchanged */
+  #lookCheck { position: absolute; overflow: hidden; border-radius: 24px; background: #15151c; }
+  /* the capture's occasion field, refilled with this look's occasion; #1e1e27 is the field's own fill,
+     so the overlay sits inside the purple border and no seam shows */
+  #checkOccasion { position: absolute; box-sizing: border-box; background: #1e1e27; border-radius: 14px;
+    display: flex; align-items: center; font-family: var(--font-body); font-weight: 400; color: var(--ink);
+    white-space: nowrap; }
+  .lookImg { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; }
+  #checkPill { position: absolute; border-radius: 999px; box-sizing: border-box;
+    background: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); color: #150f2e;
+    font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+  #checkDisc { position: absolute; border-radius: 50%; overflow: hidden; }
+  #checkDisc img { position: absolute; width: var(--sw); max-width: none; }
   .chipHi { position: absolute; border-radius: 999px; opacity: 0; background: rgba(179,157,255,.20);
     box-shadow: inset 0 0 0 2px #b39dff; }
   #chipDate { position: absolute; border-radius: 999px; display: flex; align-items: center; justify-content: center;
@@ -88,7 +109,8 @@
     font-family: var(--font-display); font-weight: 700; font-size: 27px; color: var(--ink); }
   #photoBlock { position: absolute; left: 82px; top: 104px; width: 422px; height: 527.5px;
     border-radius: 20px; overflow: hidden; background: #15151c; transform-origin: 50% 40%; }
-  #photoBlock img { position: absolute; width: 577.6px; left: -35.5px; top: -216.2px; max-width: none; }
+  /* 422 x 527.5 and 522.5 x 653 are both 4:5, the slot the app crops a look into; cover + top anchor
+     keeps this look's coat, knit, necklaces, bag and skirt in frame (see the README on the crop) */
   #photoScrim { position: absolute; inset: 0; background: #0b0b0f; opacity: 0; }
   #ringWrap { position: absolute; left: 0; top: 0; width: 400px; height: 400px; transform-origin: 0 0; }
   #ringGlow { position: absolute; left: 60px; top: 60px; width: 280px; height: 280px; border-radius: 50%;
@@ -103,8 +125,10 @@
   #counter { position: absolute; left: 40px; width: 506px; top: 1000px; text-align: center;
     font-family: var(--font-body); font-weight: 500; font-size: 32px; color: var(--ink-3);
     font-variant-numeric: tabular-nums; direction: ltr; opacity: 0; }
+  /* 52px, not 54: "Camel and chocolate," measures 493 px against the 510 px column, where 54 px ran to
+     512 px and wrapped to a third line over the occasion */
   #headline { position: absolute; left: 40px; top: 480px; width: 510px;
-    font-family: var(--font-display); font-weight: 700; font-size: 54px; line-height: 1.12;
+    font-family: var(--font-display); font-weight: 700; font-size: 52px; line-height: 1.12;
     letter-spacing: -.02em; color: var(--ink); }
   #headline span { display: inline-block; }
   #occasion { position: absolute; left: 40px; top: 616px; font-family: var(--font-body); font-weight: 400;
@@ -157,7 +181,6 @@
     font-size: 16px; letter-spacing: .08em; display: flex; align-items: center; }
   #feedPhoto { position: absolute; left: 12px; top: 84px; width: 522.5px; height: 653px; border-radius: 18px;
     overflow: hidden; background: #1e1e27; }
-  #feedPhoto img { position: absolute; width: 715.0px; left: -44.0px; top: -267.7px; max-width: none; }
   #feedBadge { position: absolute; left: 456px; top: 693px; width: 76px; height: 76px; border-radius: 50%;
     border: 4px solid transparent;
     background: linear-gradient(#15151c, #15151c) padding-box, linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%) border-box;
@@ -192,7 +215,9 @@
     background: linear-gradient(180deg, #b39dff 0%, #ff8fb1 100%); }
   #tipLabel { font-family: var(--font-body); font-weight: 700; font-size: 26px; text-transform: uppercase;
     letter-spacing: .16em; color: var(--accent); }
-  #tipCard .tl { font-family: var(--font-display); font-weight: 700; font-size: 48px; line-height: 1.16;
+  /* 40px, a step down from the 48px the shorter tip took: the longest line measures 670 px against the
+     card's 696 px of content, so both lines stay on one line each and nothing overflows */
+  #tipCard .tl { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1.16;
     letter-spacing: -.02em; color: var(--ink); white-space: nowrap; }
   #tl1 { margin-top: 22px; }
 
@@ -223,6 +248,10 @@
     <!-- beat 1: the real capture -->
     <div class="layer" id="layerCheck">
       <img id="shotCheck" src="../../../tools/brand/templates/screens/07-check-ready-en.png" alt="">
+      <div id="checkOccasion">coffee and a walk</div>
+      <div id="lookCheck"><img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt=""></div>
+      <div id="checkPill">Change photo or clip</div>
+      <div id="checkDisc"><img src="../../../tools/brand/templates/screens/07-check-ready-en.png" alt=""></div>
       <div class="chipHi" id="chipCasual"></div>
       <div class="chipHi" id="chipStreet"></div>
       <div id="chipDate">Date</div>
@@ -234,7 +263,7 @@
     <div class="layer" id="layerResult" style="opacity:0">
       <div class="appbar"><b>Your check</b></div>
       <div id="photoBlock">
-        <img src="../../../tools/brand/templates/screens/10-post-en.png" alt="">
+        <img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt="">
         <div id="photoScrim"></div>
       </div>
       <div id="ringGlowWrap" style="position:absolute;left:0;top:0;width:400px;height:400px;transform-origin:0 0">
@@ -252,11 +281,11 @@
                 stroke="url(#ringGrad)" stroke-width="20" stroke-linecap="round" stroke-dasharray="0 942.478"/>
         </svg>
       </div>
-      <div id="scoreWrap"><div id="scoreNum" class="num">7</div><div id="scoreDen" class="num">/10</div></div>
+      <div id="scoreWrap"><div id="scoreNum" class="num">9</div><div id="scoreDen" class="num">/10</div></div>
       <div id="counter" class="num">0.0s</div>
-      <div id="checkMeta" class="caps">Date · dinner with friends</div>
+      <div id="checkMeta" class="caps">Date · coffee and a walk</div>
       <div id="headline"></div>
-      <div id="occasion">dinner with friends</div>
+      <div id="occasion">coffee and a walk</div>
       <div id="bdLabel" class="caps">The breakdown</div>
       <div id="bdRule"></div>
 
@@ -268,7 +297,7 @@
           <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g1)"
                 stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
         </svg>
-        <div class="v num">7</div><div class="d num">/10</div><div class="l caps">Fit</div>
+        <div class="v num">9</div><div class="d num">/10</div><div class="l caps">Fit</div>
       </div>
       <div class="bd" id="bd2" style="left:218px">
         <svg width="150" height="130" viewBox="0 0 150 130">
@@ -278,7 +307,7 @@
           <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g2)"
                 stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
         </svg>
-        <div class="v num">8</div><div class="d num">/10</div><div class="l caps">Color</div>
+        <div class="v num">9</div><div class="d num">/10</div><div class="l caps">Color</div>
       </div>
       <div class="bd" id="bd3" style="left:404px">
         <svg width="150" height="130" viewBox="0 0 150 130">
@@ -288,7 +317,7 @@
           <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g3)"
                 stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
         </svg>
-        <div class="v num">4</div><div class="d num">/10</div><div class="l caps">Accessories</div>
+        <div class="v num">8</div><div class="d num">/10</div><div class="l caps">Accessories</div>
       </div>
 
       <div id="readsRow">
@@ -305,10 +334,10 @@
         <div id="who">noa</div>
         <div id="handle">@noa · now</div>
         <div id="intentPill">DATE</div>
-        <div id="feedPhoto"><img src="../../../tools/brand/templates/screens/10-post-en.png" alt=""></div>
-        <div id="feedBadge"><div class="v num">7</div><div class="d num">/10</div></div>
-        <div id="feedHead">Clean casual with<br>one weak link</div>
-        <div id="feedCap">Dinner fit, thoughts? <i>#datenight</i></div>
+        <div id="feedPhoto"><img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt=""></div>
+        <div id="feedBadge"><div class="v num">9</div><div class="d num">/10</div></div>
+        <div id="feedHead">Camel and chocolate,<br>done right</div>
+        <div id="feedCap">Coffee and a walk. <i>#datenight</i></div>
         <div id="feedRule"></div>
         <div class="act" id="actFire">
           <svg width="24" height="26" viewBox="-80 -190 160 270"><path id="fireIcon"
@@ -329,7 +358,7 @@
                 fill="url(#burstFire)" stroke="rgba(11,11,15,.55)" stroke-width="9" stroke-linejoin="round"/></svg>
       </div>
       <div id="comment">
-        <div class="a">ma</div><div class="h">@maya</div><div class="c">the white sneakers did it</div>
+        <div class="a">ma</div><div class="h">@maya</div><div class="c">that coat over the white knit</div>
       </div>
     </div>
 
@@ -351,8 +380,8 @@
 <div id="tipCard">
   <div id="tipBar"></div>
   <div id="tipLabel">The one tip</div>
-  <div class="tl" id="tl1">Swap the running shoes for</div>
-  <div class="tl" id="tl2">plain white leather sneakers.</div>
+  <div class="tl" id="tl1">Swap the black tights for sheer brown</div>
+  <div class="tl" id="tl2">and the column runs unbroken.</div>
 </div>
 
 <div id="end">
@@ -420,6 +449,22 @@
   rect($('chipStreet'), 355, 187, 210, 79);
   rect($('chipDate'),   200, 186, 136, 81);
 
+  // the occasion field's interior, inside its 4 px #b39dff border at (28, 530) 724 x 108
+  rect($('checkOccasion'), 32, 534, 716, 100);
+  $('checkOccasion').style.paddingLeft = (30 * S).toFixed(2) + 'px';
+  $('checkOccasion').style.fontSize = (33 * S).toFixed(2) + 'px';
+
+  // the photo card in the capture is 712 x 890 at (34, 672) — a 4:5 slot. The real look covers it; the
+  // capture's Change-photo pill is redrawn on the brand gradient, and a circular cut of the capture puts
+  // the dock disc back over the pill's right end, exactly as the screen stacks it.
+  rect($('lookCheck'), 34, 672, 712, 890);
+  rect($('checkPill'), 59, 1494, 386, 56);
+  $('checkPill').style.fontSize = (27 * S).toFixed(2) + 'px';
+  var DISC = { cx: 391, cy: 1593, r: 62 };
+  rect($('checkDisc'), DISC.cx - DISC.r, DISC.cy - DISC.r, DISC.r * 2, DISC.r * 2);
+  $('checkDisc').firstElementChild.style.left = (-(DISC.cx - DISC.r) * S).toFixed(2) + 'px';
+  $('checkDisc').firstElementChild.style.top = (-(DISC.cy - DISC.r) * S).toFixed(2) + 'px';
+
   // ---- copy -------------------------------------------------------------------------
   function words(el, text, extra) {
     el.innerHTML = '';
@@ -437,9 +482,10 @@
   }
   var cap1w = words($('cap1'), 'Where is this going?');
   var cap2w = words($('cap2'), 'Then the community decides.');
-  var headw = words($('headline'), 'Clean casual \n with one weak link');
+  var headw = words($('headline'), 'Camel and chocolate, \n done right');
 
   // ---- the ring ---------------------------------------------------------------------
+  var SCORE = 0.9;            // the look's score out of 10, as a fraction of the ring
   var RC = 942.478;           // 2 * pi * 150; the arc path starts at twelve o'clock, so no dash offset
   var ringArc = $('ringArc');
   var ringWrap = $('ringWrap'), glowWrap = $('ringGlowWrap'), scoreWrap = $('scoreWrap');
@@ -460,7 +506,7 @@
   ];
   var BC = 345.575;           // 2 * pi * 55
   var bdEls = [$('bd1'), $('bd2'), $('bd3')];
-  var bdVals = [7, 8, 4];
+  var bdVals = [9, 9, 8];
 
   // ---- the timeline -----------------------------------------------------------------
   window.seek = function (t) {
@@ -538,11 +584,11 @@
     tr($('photoBlock'), 'scale(' + lerp(lerp(1.06, 1, pset), 0.93, pgo) + ') translateY(' + (-26 * pgo) + 'px)');
     op($('photoScrim'), (0.10 + 0.14 * seg(t, 1.5, 3.25, E.io)).toFixed(4));
 
-    // the ring: fills to 7/10 while a counter under it ticks the ten seconds
-    var fill = seg(t, 1.50, 3.25, E.io) * 0.70;
+    // the ring: fills to 9/10 while a counter under it ticks the ten seconds
+    var fill = seg(t, 1.50, 3.25, E.io) * SCORE;
     ringArc.setAttribute('stroke-dasharray', (RC * fill).toFixed(2) + ' ' + RC.toFixed(3));
     ringArc.setAttribute('opacity', fill > 0.002 ? 1 : 0);
-    grad.setAttribute('gradientTransform', 'rotate(' + (-180 * (1 - fill / 0.70)) + ' 200 200)');
+    grad.setAttribute('gradientTransform', 'rotate(' + (-180 * (1 - fill / SCORE)) + ' 200 200)');
     op($('ringGlow'), (seg(t, 1.5, 3.4, E.io) * (1 - seg(t, 8.3, 8.9, E.io))).toFixed(4));
 
     var move = seg(t, 3.40, 3.88, E.io);

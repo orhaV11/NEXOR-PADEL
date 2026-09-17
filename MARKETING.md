@@ -43,6 +43,11 @@ Formats: story (1080×1920, from `brand-kit/stories/`), reel/TikTok (vertical vi
 carousel (square or 4:5 stills). The story templates are `story-1-check-the-look`, `story-2-the-one-tip` and
 `story-3-brands`, each in English and Hebrew; the caption is the post's, the CTA line on the template stays.
 
+The account that carries these posts is the masked silent judge, and its operating manual is
+[`CONTENT.md`](CONTENT.md): the character and the mask, the gesture vocabulary, Duet and Stitch as the supply of
+other people's looks, the five repeatable formats with their on-screen copy, the face reveal, the first four weeks
+and the ten first posts, in English and Hebrew.
+
 | # | format | what | template | caption |
 |---|---|---|---|---|
 | 1 | reel | Screen recording: pick Date, add the photo, the ring draws, 7/10 lands, the one tip. Real time, no cuts, 10 s. | — | Check the look. Ten seconds, one tip. Link in bio. |

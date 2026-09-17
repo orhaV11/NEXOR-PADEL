@@ -83,7 +83,7 @@ dotnet run -- --vapid                 # print a VAPID key pair for Web Push; set
 dotnet run -- --backup backups        # a consistent copy of the database and the media folder into ./backups (git-ignored)
 dotnet run -- --backup backups --keep 14   # the same, then prune to the 14 newest database and storage copies
 dotnet run -- --doctor                # read the configuration and this machine and print one line per check
-dotnet run -- --doctor --live         # the same, plus the checks that leave the machine: Anthropic, SMTP, Stripe
+dotnet run -- --doctor --live         # the same, plus what leaves the machine: Anthropic and Stripe, never the mail server
 dotnet run -- --stripe-check          # ask Stripe whether the key, the price and the webhook the app was given are real
 dotnet run -- --admin yourhandle      # make an existing account a moderator: sign up with the handle first
 dotnet run -- --unadmin yourhandle    # take that away
@@ -97,9 +97,13 @@ dotnet run -- --pro noa off           # back to Free
 folder, ffmpeg, the Anthropic key, the mail settings and their public origin, the push keys, the billing settings, the
 board's time zone and the moderator list, prints `ok` or a short reason for each, and exits 0 when everything a live
 server needs is in place and 1 otherwise. `--doctor --live` adds the calls that cost something or leave the machine:
-one small Anthropic call with the configured key and model (a fraction of a cent), one SMTP connection and login, and
-Stripe when the provider is `stripe`. `--stripe-check` is the Stripe half on its own, and it writes nothing and charges
-nobody. `/readyz` answers the machine-side half of `--doctor` over HTTP, for a deploy or an uptime checker to wait on.
+one small Anthropic call with the configured key and model (a fraction of a cent), and, when the provider is `stripe`,
+two reads from Stripe. **It never dials the mail server**: `--doctor` reads the `Email__*` settings and says whether
+they could work, and nothing in this program opens an SMTP connection or logs in. The only thing that tests the sender
+is sending: ask for a password reset from the app (or sign up) with your own address and watch the mail arrive, and
+read the log line if it does not. `--stripe-check` is the Stripe half on its own — the key, the price and the webhook
+endpoint — and it writes nothing and charges nobody. `/readyz` answers the machine-side half of `--doctor` over HTTP,
+for a deploy or an uptime checker to wait on.
 
 The account commands exit with code 1 when no account has the handle (sign up first, then run it again) and 2 on a
 usage error; a leading `@` on the handle is fine. `--verify` and `--pro` are the only things that write the verified
@@ -118,7 +122,11 @@ node tools/brand/set-origin.js https://looks.example.com   # write the productio
 
 The link-preview tags, the two landing pages and the store shell carry `https://looks.example.com` as a placeholder,
 and they are static files inside the image, so this runs **before** `fly deploy` or `docker compose build`
-(`LAUNCH.md`, 1.2). `grep -rl looks.example.com src/FitCheck.Api/wwwroot mobile` is the same job by hand.
+(`LAUNCH.md`, 1.2). It looks at eleven files in all — those four, plus `mobile/README.md`, `STORE.md`,
+`MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, this file and `.env.example` — rewrites the ones that still carry
+the placeholder, and prints each with a count. `node tools/brand/set-origin.js --check` exits 1 while a placeholder is
+left in any of them, which is the line for CI and for the last look before a build; `grep -rl looks.example.com .` is
+the same question asked by hand.
 
 ### Read the pilot metrics
 
@@ -680,8 +688,9 @@ descriptive is dropped when the status is not `ok`.
   `https://looks.example.com`: replace that with the production origin before launch (`DEPLOY.md`, go-live).
 - **The landing pages** are static, `/landing/` and `/landing/index.he.html`: the stage, the wordmark, the slogan,
   three phones, three feature blocks, the CTA, the home-screen note and the legal links; no app JS, and the service
-  worker lets `/landing/` navigations through to the network instead of answering with the app shell. Their four
-  absolute URLs carry the same placeholder origin.
+  worker lets `/landing/` navigations through to the network instead of answering with the app shell. Their six
+  absolute URLs each (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`) carry the same
+  placeholder origin, and `tools/brand/set-origin.js` rewrites them.
 - **The brand kit** in `brand-kit/` (logos on dark, light and nothing, monochrome SVG+PNG, the lockup, the social
   avatar, five covers plus the OG cards, three story templates in both languages, twenty store screenshots) is
   rendered by `tools/brand/render-kit.js` from HTML templates with the real brand SVGs and the browser test's

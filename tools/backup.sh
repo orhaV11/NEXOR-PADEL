@@ -9,16 +9,33 @@
 # script creates, the destination made 700, and chmod -R go-rwx once docker cp is done (docker cp keeps the container's
 # modes, which are world-readable). Whatever happens, nothing stays on the data volume: the container's scratch folder is
 # removed on every exit path, so a run that fails halfway leaves no copy of the media behind.
+#
+# That scratch folder is made fresh for this run (mktemp -d /data/backup-scratch.XXXXXXXX, inside the container, as the
+# container's user) and this script removes only the one it made. It is deliberately not a folder anything else keeps
+# copies in: scripts/backup.sh, the cron-able half that leaves its copies **on** the volume, defaults to
+# /data/backups/nightly, and the two must never be pointed at one folder — this one empties the folder it owns on every
+# exit, and the app's --keep prunes whatever it finds in the folder it is given.
 set -euo pipefail
 umask 077
 cd "$(dirname "$0")/.."
 dest="${1:-backups}"
 keep="${KEEP:-14}"
 keep_storage="${KEEP_STORAGE:-2}"
-scratch=/data/backups
 install -d -m 700 "$dest"
 
+# The name is decided by the container, not by this script: two runs at once (a cron line and an impatient hand) then get
+# a folder each instead of sharing one and pruning each other's copy in flight.
+scratch="$(docker compose exec -T app mktemp -d /data/backup-scratch.XXXXXXXX | tail -n 1 | tr -d '\r')" || scratch=""
+case "$scratch" in
+  /data/backup-scratch.????????) ;;
+  *)
+    echo "backup failed: could not make a scratch folder on the data volume (got \"$scratch\")" >&2
+    exit 1
+    ;;
+esac
+
 cleanup() {
+  # Only ever the folder this run made, named in full: never a folder anyone keeps backups in.
   docker compose exec -T app rm -rf "$scratch" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT

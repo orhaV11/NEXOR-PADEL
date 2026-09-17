@@ -3,10 +3,10 @@
 # VACUUM INTO, safe while people are using it) and a copy of the photo/clip folder into a folder on the data volume, and
 # --keep removes the older copies there once the new one is complete. One command, no TTY, no prompt, no interaction.
 #
-#   scripts/backup.sh                      # /data/backups inside the container, newest 14 kept
-#   scripts/backup.sh /data/backups 30     # somewhere else, newest 30 kept
-#   KEEP=7 scripts/backup.sh               # the same through the environment (for a crontab line)
-#   scripts/backup.sh --local /srv/backups # no Docker: this box runs the app itself (systemd, a bare publish)
+#   scripts/backup.sh                             # /data/backups/nightly inside the container, newest 14 kept
+#   scripts/backup.sh /data/backups/nightly 30    # somewhere else, newest 30 kept
+#   KEEP=7 scripts/backup.sh                      # the same through the environment (for a crontab line)
+#   scripts/backup.sh --local /srv/backups        # no Docker: this box runs the app itself (systemd, a bare publish)
 #
 # Cron, as root on the server (the app writes the copies, so nothing here needs a password):
 #   15 3 * * * /opt/orevosh/scripts/backup.sh >> /var/log/orevosh-backup.log 2>&1
@@ -17,8 +17,12 @@
 # nothing to mount, and a restore is a docker compose cp away. It does not protect you from losing the machine.
 # tools/backup.sh is the other half: it runs the same command and then copies the result **off** the volume onto the host
 # (./backups), prunes there, and tightens the modes, which is what you want before you rsync or scp the copies somewhere
-# else entirely. Run this one nightly and that one before a risky change, or run only that one — never mix their folders,
-# since both prune by the same names.
+# else entirely. Run this one nightly and that one before a risky change, or run only that one.
+#
+# The two can never delete each other's copies, and that is on purpose rather than on trust: this one's default folder is
+# /data/backups/nightly, and tools/backup.sh makes itself a fresh /data/backup-scratch.XXXXXXXX for every run and removes
+# only that one. If you give this script a folder by hand, give it one of its own: the app's --keep prunes every
+# orevosh-*.db and storage-* in the folder it is pointed at, whoever wrote them.
 #
 # The copies hold every photo and clip people gave the app. umask 077 for anything created here; the app writes them as
 # the container's user; keep whatever you move them to just as private (DEPLOY.md, "Backups").
@@ -31,7 +35,7 @@ if [ "${1:-}" = "--local" ]; then
   shift
 fi
 
-dir="${1:-${BACKUP_DIR:-/data/backups}}"
+dir="${1:-${BACKUP_DIR:-/data/backups/nightly}}"
 keep="${2:-${KEEP:-14}}"
 service="${COMPOSE_SERVICE:-app}"
 lock="${BACKUP_LOCK:-/tmp/orevosh-backup.lock}"

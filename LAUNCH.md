@@ -8,8 +8,10 @@ Read section 0 first and collect the six things it lists. Then pick **one** of s
 section 2 (your own server) — not both. Sections 3 to 6 are the same whichever path you took: the first day, money,
 the store apps, and what to do when something breaks.
 
-`looks.example.com` stands for your domain everywhere below. `<handle>` stands for an account's handle, without the
-`@`. Anything in angle brackets is yours to replace; nothing else is.
+`looks.example.com` stands for your domain everywhere below, and `<handle>` for an account's handle without the `@`.
+Those two, and anything else in angle brackets, are yours to replace; nothing else is. `set-origin` (1.2) puts your
+domain into the code and the other documents, but not into this page: this one keeps the stand-in so it still reads as
+a runbook for the next person.
 
 - **Section 0** — what you need before you start
 - **Section 1** — Fly.io, from nothing to a live address
@@ -159,9 +161,10 @@ When you are ready to charge, in Stripe's dashboard **in test mode first**:
 
 1. A product **OREVOSH Pro** with one recurring monthly price. Copy the price id (`price_…`).
 2. Developers → API keys → the secret key (`sk_test_…` in test mode, `sk_live_…` later).
-3. Developers → Webhooks → add an endpoint at **`https://looks.example.com/api/billing/webhook`**, subscribed to
-   `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated` and
-   `customer.subscription.deleted`. Copy its signing secret (`whsec_…`).
+3. Developers → Webhooks → add an endpoint at **`https://looks.example.com/api/billing/webhook`**, subscribed to the
+   five events the app reads: `checkout.session.completed`, `customer.subscription.created`, `invoice.paid`,
+   `customer.subscription.updated` and `customer.subscription.deleted`. Copy its signing secret (`whsec_…`).
+   `--stripe-check` (4.2) names any you missed, so you do not have to count them here.
 4. Settings → Billing → **Customer portal**: open it once and save a configuration, choosing what a customer may do
    there (cancel, change payment method). Stripe will not create a portal session until that configuration exists, and
    the app's "Manage subscription" button is a portal session.
@@ -227,18 +230,22 @@ node tools/brand/set-origin.js https://looks.example.com
 git diff --stat
 ```
 
-It rewrites every place the placeholder `https://looks.example.com` appears — four in
-`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), seven in each of
-`src/FitCheck.Api/wwwroot/landing/index.html` and `landing/index.he.html` (canonical, hreflang, `og:url`, `og:image`),
-and two in `mobile/capacitor.config.json` (`server.url`, `allowNavigation`) — and prints what it changed. If you would
-rather do it by hand, this lists the files:
+It rewrites every place the placeholder `looks.example.com` appears in the eleven files it knows by name, and prints
+each one with a count. Four of them are shipped to a browser or a store, and they are why this runs before the build:
+`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), `wwwroot/landing/index.html` and
+`landing/index.he.html` (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`) and
+`mobile/capacitor.config.json` (`server.url`, `allowNavigation`). The other seven are the documents that quote the
+origin, so the commands you paste from them are already yours: `mobile/README.md` (its `WKAppBoundDomains` note
+included), `STORE.md` (its URL table included), `MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, `README.md` and
+`.env.example`. There is nothing left over for you to edit by hand.
+
+Read the diff anyway, for one thing the script cannot know: it rewrote the sample email addresses too
+(`hello@looks.example.com` in `.env.example` and `STORE.md` becomes `hello@` your domain), and that is a guess at your
+mailbox, not a fact. To see what is left before you build:
 
 ```bash
-grep -rl looks.example.com src/FitCheck.Api/wwwroot mobile
+node tools/brand/set-origin.js --check    # exits 1 while any placeholder is still in those eleven files
 ```
-
-The URL table in `STORE.md` and the `WKAppBoundDomains` note in `mobile/README.md` are yours to edit either way; they
-are documents, not code.
 
 Commit the change, so the next deploy and every deploy after it carry it.
 
@@ -328,8 +335,8 @@ fly secrets set \
 ```
 
 **Moderators.** `Admin__Handles__0` promotes an account **that already exists** at every start, and a handle listed
-here can no longer be signed up by anyone — so do not set it yet. Sign up first (1.9), then either add it or run
-`--admin`, which needs no restart:
+here can no longer be signed up by anyone — so do not set it yet. Sign up first (1.8, steps 2 and 3), then either add
+it or run `--admin`, which needs no restart:
 
 ```bash
 fly secrets set Admin__Handles__0=<handle>      # only after that account exists
@@ -439,6 +446,9 @@ curl -s https://looks.example.com/readyz | jq   # {"ok":true,...} — the app is
 curl -I https://looks.example.com/landing/      # 200          — the landing page
 ```
 
+(`| jq` only pretty-prints the answer. If your computer has no `jq`, leave it off: the line still prints the same
+JSON, on one line.)
+
 `/readyz` is the one to read. It is public, it is never cached, and it answers a small document: `ok`, and a `checks`
 object where each name is either `"ok"` or a short reason. It checks `db` (a query answers and the schema is at the
 current migration), `storage` (the photo folder exists and a file can be written and removed there) and, while
@@ -449,7 +459,7 @@ an uptime checker at.
 Then, on your phone, at `https://looks.example.com`:
 
 1. **The landing page** loads and the Hebrew one does too (`/landing/index.he.html`).
-2. **Sign up** with the handle you want to moderate with. This is the account section 1.9 promotes.
+2. **Sign up** with the handle you want to moderate with. This is the account step 3 promotes.
 3. **Make the account a moderator:**
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --admin <handle>"
@@ -470,9 +480,10 @@ Then, on your phone, at `https://looks.example.com`:
    keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the
    free disk space — fourteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
    everything a live server needs is there and 1 otherwise. `--live` adds the checks that leave the machine: one small
-   call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and one call to Stripe when
-   the provider is `stripe`. It does not try the mail server: nothing here logs in to SMTP. Run `--doctor` whenever you like; run `--doctor --live` now, and
-   again after any change to a key.
+   call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
+   when the provider is `stripe` (the price, and the webhook endpoint). It does not try the mail server: nothing here
+   logs in to SMTP, so the test of the sender is asking the app for a password reset with your own address. Run
+   `--doctor` whenever you like; run `--doctor --live` now, and again after any change to a key.
 6. **Do a real check.** Photograph an outfit in the app, pick an intent, and read the verdict. This is the moment the
    Anthropic key, the storage folder and the model all have to be right at once.
 7. **Post it**, put a fire on it from a second account, and open `#/board` — the weekly board should show the look.
@@ -488,11 +499,11 @@ If any of those fail, section 6 is the map.
 Fly snapshots the volume daily and keeps five days. That is a backup on the same provider; take one of your own too:
 
 ```bash
-fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups --keep 7"
-fly ssh console -u app -C "tar czf /data/backups/storage-<stamp>.tgz -C /data/backups storage-<stamp>"
-fly sftp get /data/backups/orevosh-<stamp>.db ./orevosh-<stamp>.db
-fly sftp get /data/backups/storage-<stamp>.tgz ./storage-<stamp>.tgz
-fly ssh console -C "rm -rf /data/backups"
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
+fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
+fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
 `--backup <dir>` writes a consistent single-file copy of the database (SQLite's own online snapshot, safe while the
@@ -501,8 +512,12 @@ app is writing) and a copy of the photo folder, and prints `database: …` and `
 is complete, so a weekly run does
 not fill the volume. The copies share the 3 GB volume with the live data, which is why the last line removes them.
 
+The `<stamp>` in lines 2 to 4 is the one the first line printed, so run them one at a time and read its output before
+the rest. `/data/backups/manual` is a folder of its own on purpose: the last line empties it, and nothing else on the
+volume keeps copies there.
+
 **The files hold every photo and clip people gave the app.** Keep them as private on your computer as they are on the
-volume. There is no cron on Fly's machine: run the four lines weekly from your own computer, or from a scheduled
+volume. There is no cron on Fly's machine: run the five lines weekly from your own computer, or from a scheduled
 GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
 
 Skip to **section 3**.
@@ -568,8 +583,9 @@ pages are static files inside the image:
 node tools/brand/set-origin.js https://looks.example.com
 ```
 
-(If node is not on the server, run it on your computer, commit, and `git pull` here. The file list and the manual
-fallback are in 1.2.)
+(If node is not on the server, run it on your computer, commit, and `git pull` here. 1.2 lists the eleven files it
+rewrites; `node tools/brand/set-origin.js --check` here says whether the checkout you are about to build still carries
+the placeholder.)
 
 ### 2.4 The `.env` file
 
@@ -643,6 +659,13 @@ ls -l backups/
 It keeps the newest `KEEP` database copies (14 by default) and the newest `KEEP_STORAGE` copies of the media folder
 (2 by default) — the database is megabytes, a media copy is the whole folder. Everything it writes is readable by
 root only (`umask 077`, the folder mode 700, `chmod -R go-rwx` after `docker cp`).
+
+The scratch folder it uses inside the container is made fresh for each run (`mktemp -d /data/backup-scratch.XXXXXXXX`)
+and removed on every exit path, including a run that fails halfway, so nothing of anyone's media is left on the data
+volume. It is a folder of its own on purpose: the repository's other backup script, `scripts/backup.sh`, keeps its
+copies **on** the volume in `/data/backups/nightly` and prunes them there, and the two can never reach each other's
+files. If you point either one at a folder of your own, give it one nobody else writes to — the app's `--keep` prunes
+every `orevosh-*.db` and `storage-*` in the folder it is handed, whoever wrote them.
 
 Every night at 03:30:
 
@@ -735,7 +758,7 @@ line per request on top of all of this.
 
 ### 3.6 The backup routine
 
-- **On Fly:** the daily volume snapshots are automatic. Run the four lines of 1.9 weekly and keep the files somewhere
+- **On Fly:** the daily volume snapshots are automatic. Run the five lines of 1.9 weekly and keep the files somewhere
   private.
 - **On a server:** the cron of 2.7 runs nightly. Copy `backups/` off the machine weekly.
 - **Either way:** restore one into a throwaway before you need to (6.4).
@@ -783,10 +806,18 @@ fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --stripe-check"
 docker compose exec app dotnet FitCheck.Api.dll --stripe-check      # on a server
 ```
 
-`--stripe-check` asks Stripe about the configuration you have given the app — that the secret key works, that the
-price id exists and is a recurring price, and that a webhook endpoint is registered for this origin with the four
-events the app needs — and prints one line per finding. It writes nothing and charges nobody. Run it after every
-change to a Stripe value, and again when you swap test keys for live ones.
+`--stripe-check` asks Stripe about the configuration you have given the app and prints three lines. `billing` reads
+the settings alone: the provider and the three keys, each with the prefix it should have. `stripe-live` reads the
+price back: the key is accepted, the price exists in the same mode as the key, and it is a **recurring** price that is
+not archived — Checkout opens in subscription mode, so a one-time price fails here instead of failing the first person
+who presses Go Pro. `stripe-webhook` reads Stripe's list of endpoints: one of them is your origin plus
+`/api/billing/webhook`, it is enabled, and its events cover the five the app reads (an endpoint set to `*` counts).
+Anything missing is named — "registered, but not for `customer.subscription.deleted`" means cancellations would never
+end Pro. An endpoint on the same route under another name you answer to (your `fly.dev` address, say) is a warning
+that names it rather than a failure, because the webhook only has to reach the route.
+
+Two GETs, nothing written, nobody charged, and no key is printed. Run it after every change to a Stripe value, and
+again when you swap test keys for live ones.
 
 ### 4.3 A test purchase
 
@@ -912,13 +943,20 @@ container's user and starts the app again; the log will say what it did with the
 fly sftp shell
 # put orevosh-20260905033000.db /data/incoming.db
 # exit
-fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm'"
+fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm && chown app:app orevosh.db'"
+fly ssh console -C "ls -l /data/orevosh.db"      # it must say: app app
 fly machine restart <machine id>
 ```
 
-Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, then
-untar it over `/data/storage` as the `app` user. Fly's own volume snapshots are the other way back:
-`fly volumes snapshots list <volume id>`, then `fly volumes create data --snapshot-id <id> --region fra`.
+**Do not leave the `chown` out.** `fly sftp` and a bare `fly ssh console` are root; the app runs as the `app` user
+(`USER app` in the `Dockerfile`). A database owned by root comes back after the restart as `unable to open database
+file` in `fly logs`, and the site stays down — at the worst possible moment, because you are already restoring. The
+`ls -l` line is the proof before you restart.
+
+Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, untar it
+over `/data/storage`, and hand it over too — `fly ssh console -C "chown -R app:app /data/storage"`. Fly's own volume
+snapshots are the other way back: `fly volumes snapshots list <volume id>`, then
+`fly volumes create data --snapshot-id <id> --region fra`.
 
 ### 6.5 Roll back the code
 
@@ -958,8 +996,9 @@ between them, what the app can see, what it has been told and what it has been d
 קראו קודם את פרק 0 ואספו את ששת הדברים שהוא מונה. אחר כך בחרו **אחד** מבין פרק 1 (Fly.io, המומלץ) ופרק 2 (שרת משלכם) —
 לא את שניהם. פרקים 3 עד 6 זהים בשני המסלולים: היום הראשון, כסף, החנויות, ומה עושים כשמשהו נשבר.
 
-`looks.example.com` מייצג כאן את הדומיין שלכם. `<handle>` מייצג שם משתמש, בלי ה-`@`. כל מה שמופיע בסוגריים משולשים הוא
-שלכם להחליף; שום דבר אחר לא.
+`looks.example.com` מייצג כאן את הדומיין שלכם, ו-`<handle>` מייצג שם משתמש בלי ה-`@`. שני אלה, וכל מה שמופיע בסוגריים
+משולשים, הם שלכם להחליף; שום דבר אחר לא. `set-origin` (1.2) כותב את הדומיין שלכם לתוך הקוד ולתוך שאר המסמכים, אבל לא
+לתוך הדף הזה: כאן נשאר מציין המקום, כדי שהדף יישאר ספר הפעלה גם למי שיבוא אחריכם.
 
 - **פרק 0** — מה צריך לפני שמתחילים
 - **פרק 1** — Fly.io, מאפס עד כתובת חיה
@@ -1104,9 +1143,10 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
 
 1. מוצר **OREVOSH Pro** עם מחיר חודשי מתחדש אחד. מעתיקים את מזהה המחיר (`price_…`).
 2. Developers ← API keys ← המפתח הסודי (`sk_test_…` במצב בדיקה, `sk_live_…` אחר כך).
-3. Developers ← Webhooks ← מוסיפים נקודת קצה בכתובת **`https://looks.example.com/api/billing/webhook`**, עם ארבעת
-   האירועים `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated` ו-
-   `customer.subscription.deleted`. מעתיקים את סוד החתימה שלה (`whsec_…`).
+3. Developers ← Webhooks ← מוסיפים נקודת קצה בכתובת **`https://looks.example.com/api/billing/webhook`**, עם חמשת
+   האירועים שהאפליקציה קוראת: `checkout.session.completed`, `customer.subscription.created`, `invoice.paid`,
+   `customer.subscription.updated` ו-`customer.subscription.deleted`. מעתיקים את סוד החתימה שלה (`whsec_…`).
+   `--stripe-check` (4.2) נוקב בכל אירוע שפספסתם, אז אין צורך לספור כאן.
 4. Settings ← Billing ← **Customer portal**: פותחים פעם אחת ושומרים הגדרה, ובוחרים מה לקוח יכול לעשות שם (לבטל, להחליף
    אמצעי תשלום). Stripe לא תיצור סשן פורטל לפני שההגדרה הזו קיימת, והכפתור "ניהול המנוי" באפליקציה הוא סשן פורטל.
 
@@ -1168,17 +1208,21 @@ node tools/brand/set-origin.js https://looks.example.com
 git diff --stat
 ```
 
-זה מחליף כל מקום שבו מופיע מציין המקום `https://looks.example.com` — ארבעה ב-`src/FitCheck.Api/wwwroot/index.html`
-(`og:url`, `og:image`, `twitter:image`), שבעה בכל אחד מ-`src/FitCheck.Api/wwwroot/landing/index.html`
-ו-`landing/index.he.html` (canonical, hreflang, `og:url`, `og:image`), ושניים ב-`mobile/capacitor.config.json`
-(`server.url`, `allowNavigation`) — ומדפיס מה שונה. אם אתם מעדיפים ביד, זה מראה את הקבצים:
+זה מחליף כל מקום שבו מופיע מציין המקום `looks.example.com` באחד-עשר הקבצים שהוא מכיר בשמם, ומדפיס כל אחד מהם עם
+מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`,
+`twitter:image`), `wwwroot/landing/index.html` ו-`landing/index.he.html` (canonical, שני קישורי `hreflang`, `og:url`,
+`og:image`, `twitter:image`), ו-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`). שבעת האחרים הם
+המסמכים שמצטטים את הכתובת, כדי שהפקודות שתעתיקו מהם כבר יהיו שלכם: `mobile/README.md` (כולל ההערה על
+`WKAppBoundDomains`), `STORE.md` (כולל טבלת הכתובות), `MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, `README.md`
+ו-`.env.example`. לא נשאר שום קובץ לערוך ביד.
+
+בכל זאת קראו את ה-diff, בגלל דבר אחד שהסקריפט לא יכול לדעת: הוא החליף גם את כתובות הדואר לדוגמה
+(`hello@looks.example.com` ב-`.env.example` וב-`STORE.md` הפך ל-`hello@` הדומיין שלכם), וזה ניחוש לגבי תיבת הדואר
+שלכם, לא עובדה. כדי לראות מה נשאר לפני הבנייה:
 
 ```bash
-grep -rl looks.example.com src/FitCheck.Api/wwwroot mobile
+node tools/brand/set-origin.js --check    # יוצא עם 1 כל עוד נשאר מציין מקום באחד-עשר הקבצים
 ```
-
-את טבלת הכתובות ב-`STORE.md` ואת ההערה על `WKAppBoundDomains` ב-`mobile/README.md` תערכו בעצמכם כך או כך; אלה מסמכים,
-לא קוד.
 
 עשו commit לשינוי, כדי שהפריסה הבאה וכל הפריסות אחריה יישאו אותו.
 
@@ -1266,7 +1310,8 @@ fly secrets set \
 ```
 
 **מנהלים.** `Admin__Handles__0` מקדם בכל הפעלה חשבון **שכבר קיים**, ושם משתמש שמופיע כאן כבר לא ניתן להרשמה על ידי
-אף אחד — אז אל תגדירו אותו עדיין. קודם נרשמים (1.9), ואז או מוסיפים אותו או מריצים `--admin`, שלא דורש הפעלה מחדש:
+אף אחד — אז אל תגדירו אותו עדיין. קודם נרשמים (1.8, שלבים 2 ו-3), ואז או מוסיפים אותו או מריצים `--admin`, שלא דורש
+הפעלה מחדש:
 
 ```bash
 fly secrets set Admin__Handles__0=<handle>      # רק אחרי שהחשבון הזה קיים
@@ -1373,6 +1418,8 @@ curl -s https://looks.example.com/readyz | jq   # {"ok":true,...} — האפלי
 curl -I https://looks.example.com/landing/      # 200          — דף הנחיתה
 ```
 
+(ה-`| jq` רק מסדר את התשובה. אם אין לכם `jq` על המחשב, השמיטו אותו: השורה עדיין מדפיסה את אותו JSON, בשורה אחת.)
+
 `/readyz` היא זו שכדאי לקרוא. היא ציבורית, אף פעם לא נשמרת במטמון, ומחזירה מסמך קטן: `ok`, ואובייקט `checks` שבו כל שם
 הוא או `"ok"` או סיבה קצרה. היא בודקת `db` (שאילתה עונה והסכמה במיגרציה הנוכחית), `storage` (תיקיית התמונות קיימת
 ואפשר לכתוב ולמחוק בה קובץ) וגם, כל עוד `Storage:Transcode` דלוק, `ffmpeg` (הבינארי נמצא). שלושתם תקינים זה 200; כל
@@ -1382,7 +1429,7 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
 ואז, בטלפון, ב-`https://looks.example.com`:
 
 1. **דף הנחיתה** נטען, וגם העברי (`/landing/index.he.html`).
-2. **נרשמים** עם שם המשתמש שאיתו תנהלו. זה החשבון ששלב 1.9 מקדם.
+2. **נרשמים** עם שם המשתמש שאיתו תנהלו. זה החשבון ששלב 3 כאן מקדם.
 3. **הופכים אותו למנהל:**
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --admin <handle>"
@@ -1402,7 +1449,8 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    השותפים והמקום הפנוי בדיסק — ארבע עשרה בדיקות בסך הכול — ומדפיס שורה לכל בדיקה,
    `ok` או סיבה קצרה, ויוצא ב-0 כשכל מה ששרת חי צריך קיים וב-1 אחרת. `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
    קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.
-   את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
+   את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP, ולכן הבדיקה של השולח היא לבקש מהאפליקציה איפוס סיסמה
+   לכתובת שלכם. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
 6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
    האחסון והמודל חייבים להיות נכונים בבת אחת.
 7. **מפרסמים אותו**, מדליקים אש מחשבון שני, ופותחים את `#/board` — הלוק אמור להופיע בלוח השבועי.
@@ -1418,20 +1466,23 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
 Fly מצלמת את הנפח כל יום ושומרת חמישה ימים. זה גיבוי אצל אותו ספק; קחו גם אחד משלכם:
 
 ```bash
-fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups --keep 7"
-fly ssh console -u app -C "tar czf /data/backups/storage-<stamp>.tgz -C /data/backups storage-<stamp>"
-fly sftp get /data/backups/orevosh-<stamp>.db ./orevosh-<stamp>.db
-fly sftp get /data/backups/storage-<stamp>.tgz ./storage-<stamp>.tgz
-fly ssh console -C "rm -rf /data/backups"
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
+fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
+fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
 `--backup <dir>` כותב עותק עקבי של בסיס הנתונים בקובץ אחד (הצילום המקוון של SQLite עצמה, בטוח בזמן שהאפליקציה כותבת)
-ועותק של תיקיית התמונות, ומדפיס `database: …` ו-`storage: …` עם הנתיבים. `--keep <n>` גוזם את התיקייה ל-`n` עותקי בסיס הנתונים ול-`n` עותקי האחסון החדשים ביותר, אחרי שהעותק החדש הושלם. לעותקי בסיס
-הנתונים החדשים ביותר אחרי שהעותק החדש שלם, כדי שהרצה שבועית לא תמלא את הנפח. העותקים חולקים את הנפח של 3GB עם המידע
-החי, ולכן השורה האחרונה מוחקת אותם.
+ועותק של תיקיית התמונות, ומדפיס `database: …` ו-`storage: …` עם הנתיבים. `--keep <n>` גוזם את התיקייה ל-`n` עותקי
+בסיס הנתונים ול-`n` עותקי האחסון החדשים ביותר, אחרי שהעותק החדש הושלם, כדי שהרצה שבועית לא תמלא את הנפח. העותקים
+חולקים את הנפח של 3GB עם המידע החי, ולכן השורה האחרונה מוחקת אותם.
+
+ה-`<stamp>` בשורות 2 עד 4 הוא זה שהשורה הראשונה הדפיסה, אז הריצו שורה-שורה וקראו את הפלט לפני ההמשך.
+`/data/backups/manual` היא תיקייה נפרדת בכוונה: השורה האחרונה מרוקנת אותה, ושום דבר אחר על הנפח לא שומר שם עותקים.
 
 **הקבצים מכילים כל תמונה וכל קליפ שאנשים נתנו לאפליקציה.** שמרו עליהם פרטיים אצלכם כמו שהם על הנפח. אין cron על המכונה
-של Fly: הריצו את ארבע השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
+של Fly: הריצו את חמש השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
 (`fly tokens create deploy`).
 
 דלגו ל**פרק 3**.
@@ -1496,8 +1547,8 @@ cd /opt/orevosh
 node tools/brand/set-origin.js https://looks.example.com
 ```
 
-(אם אין node על השרת, הריצו את זה על המחשב שלכם, עשו commit, ו-`git pull` כאן. רשימת הקבצים והחלופה הידנית נמצאות
-ב-1.2.)
+(אם אין node על השרת, הריצו את זה על המחשב שלכם, עשו commit, ו-`git pull` כאן. 1.2 מונה את אחד-עשר הקבצים שהוא
+משכתב; `node tools/brand/set-origin.js --check` כאן אומר אם העותק שאתם עומדים לבנות עדיין נושא את מציין המקום.)
 
 ### 2.4 קובץ ה-`.env`
 
@@ -1569,6 +1620,12 @@ ls -l backups/
 הוא שומר את `KEEP` עותקי בסיס הנתונים החדשים ביותר (14 כברירת מחדל) ואת `KEEP_STORAGE` העותקים החדשים ביותר של תיקיית
 המדיה (2 כברירת מחדל) — בסיס הנתונים הוא מגהבייטים, עותק מדיה הוא כל התיקייה. כל מה שהוא כותב קריא ל-root בלבד
 (`umask 077`, מצב 700 לתיקייה, ו-`chmod -R go-rwx` אחרי ה-`docker cp`).
+
+תיקיית העבודה שהוא משתמש בה בתוך הקונטיינר נוצרת מחדש בכל הרצה (`mktemp -d /data/backup-scratch.XXXXXXXX`) ונמחקת בכל
+מסלול יציאה, גם בהרצה שנכשלה באמצע, כך שלא נשארת על הנפח שום מדיה של אף אחד. זו תיקייה נפרדת בכוונה: סקריפט הגיבוי
+השני במאגר, `scripts/backup.sh`, משאיר את העותקים שלו **על** הנפח ב-`/data/backups/nightly` וגוזם אותם שם, ושניהם לא
+יכולים להגיע לקבצים אחד של השני. אם אתם מפנים אחד מהם לתיקייה משלכם, תנו לו תיקייה שאף אחד אחר לא כותב אליה — ה-`--keep`
+של האפליקציה גוזם כל `orevosh-*.db` וכל `storage-*` בתיקייה שהוא מקבל, מי שלא כתב אותם.
 
 כל לילה ב-03:30:
 
@@ -1658,7 +1715,7 @@ fly logs | grep "Email"              # "Email sent to …: …" לכל אימו�
 
 ### 3.6 שגרת הגיבוי
 
-- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את ארבע השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
+- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את חמש השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
 - **על שרת:** ה-cron של 2.7 רץ כל לילה. העתיקו את `backups/` מחוץ למכונה שבועית.
 - **בשני המקרים:** שחזרו גיבוי אחד למקום זמני לפני שתצטרכו (6.4).
 
@@ -1704,9 +1761,17 @@ fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --stripe-check"
 docker compose exec app dotnet FitCheck.Api.dll --stripe-check      # על שרת
 ```
 
-`--stripe-check` שואל את Stripe על ההגדרות שנתתם לאפליקציה — שהמפתח הסודי עובד, שמזהה המחיר קיים והוא מחיר מתחדש,
-ושרשומה נקודת קצה של webhook לכתובת הזו עם ארבעת האירועים שהאפליקציה צריכה — ומדפיס שורה לכל ממצא. הוא לא כותב כלום
-ולא מחייב אף אחד. הריצו אותו אחרי כל שינוי בערך של Stripe, ושוב כשמחליפים מפתחות בדיקה במפתחות חיים.
+`--stripe-check` שואל את Stripe על ההגדרות שנתתם לאפליקציה ומדפיס שלוש שורות. `billing` קוראת רק את ההגדרות: הספק
+ושלושת המפתחות, כל אחד עם הקידומת שאמורה להיות לו. `stripe-live` קוראת את המחיר בחזרה: המפתח מתקבל, המחיר קיים באותו
+מצב כמו המפתח, והוא מחיר **מתחדש** שלא הועבר לארכיון — Checkout נפתח במצב מנוי, ולכן מחיר חד-פעמי נופל כאן במקום
+ליפול על האדם הראשון שילחץ Go Pro. `stripe-webhook` קוראת את רשימת נקודות הקצה של Stripe: אחת מהן היא הכתובת שלכם
+ועוד `/api/billing/webhook`, היא מופעלת, והאירועים שלה מכסים את חמשת האירועים שהאפליקציה קוראת (נקודת קצה עם `*`
+נחשבת). כל מה שחסר נוקב בשמו — "registered, but not for `customer.subscription.deleted`" אומר שביטולים לעולם לא
+יסיימו Pro. נקודת קצה על אותו נתיב תחת שם אחר שאתם עונים בו (כתובת ה-`fly.dev` שלכם, למשל) היא אזהרה שנוקבת בשמה ולא
+כישלון, כי ה-webhook צריך רק להגיע לנתיב.
+
+שתי בקשות GET, שום כתיבה, שום חיוב, ושום מפתח לא מודפס. הריצו אותו אחרי כל שינוי בערך של Stripe, ושוב כשמחליפים
+מפתחות בדיקה במפתחות חיים.
 
 ### 4.3 רכישת בדיקה
 
@@ -1826,13 +1891,19 @@ tools/restore.sh backups/orevosh-20260905033000.db backups/storage-2026090503300
 fly sftp shell
 # put orevosh-20260905033000.db /data/incoming.db
 # exit
-fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm'"
+fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm && chown app:app orevosh.db'"
+fly ssh console -C "ls -l /data/orevosh.db"      # חייב להגיד: app app
 fly machine restart <machine id>
 ```
 
-כתיבות שקרו בין ההחלפה להפעלה מחדש אבדו. תיקיית המדיה חוזרת באותה דרך: `put` לארכיון, ואז פריסה שלו על `/data/storage`
-כמשתמש `app`. צילומי הנפח של Fly הם הדרך השנייה חזרה: `fly volumes snapshots list <volume id>`, ואז
-`fly volumes create data --snapshot-id <id> --region fra`.
+**אל תוותרו על ה-`chown`.** `fly sftp` ו-`fly ssh console` בלי `-u` רצים כ-root, והאפליקציה רצה כמשתמש `app`
+(`USER app` ב-`Dockerfile`). קובץ בסיס נתונים בבעלות root חוזר אחרי ההפעלה מחדש כ-`unable to open database file`
+ב-`fly logs`, והאתר נשאר למטה — בדיוק ברגע הכי גרוע, כי אתם כבר באמצע שחזור. שורת ה-`ls -l` היא ההוכחה לפני ההפעלה
+מחדש.
+
+כתיבות שקרו בין ההחלפה להפעלה מחדש אבדו. תיקיית המדיה חוזרת באותה דרך: `put` לארכיון, פריסה שלו על `/data/storage`,
+ואז מעבירים גם אותה — `fly ssh console -C "chown -R app:app /data/storage"`. צילומי הנפח של Fly הם הדרך השנייה חזרה:
+`fly volumes snapshots list <volume id>`, ואז `fly volumes create data --snapshot-id <id> --region fra`.
 
 ### 6.5 חזרה לגרסה קודמת של הקוד
 

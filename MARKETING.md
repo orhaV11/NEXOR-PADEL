@@ -39,14 +39,18 @@ must-have), no emoji strings, no hashtags in the first line. When in doubt, cut 
 
 ## The first ten posts
 
-Formats: story (1080×1920, from `brand-kit/stories/`), reel/TikTok (vertical video, 7–15 s, filmed on a phone), and
+Formats: story (1080×1920, from `brand-kit/stories/`), reel/TikTok (vertical video, 7–15 s — most of them now come
+out of `tools/brand/render-episode.js` rather than a camera, see `brand-kit/episodes/`), and
 carousel (square or 4:5 stills). The story templates are `story-1-check-the-look`, `story-2-the-one-tip` and
 `story-3-brands`, each in English and Hebrew; the caption is the post's, the CTA line on the template stays.
 
 The account that carries these posts is the masked silent judge, and its operating manual is
 [`CONTENT.md`](CONTENT.md): the character and the mask, the gesture vocabulary, Duet and Stitch as the supply of
 other people's looks, the five repeatable formats with their on-screen copy, the face reveal, the first four weeks
-and the ten first posts, in English and Hebrew.
+and the ten first posts, in English and Hebrew. **Where the table below disagrees with `CONTENT.md`, `CONTENT.md`
+wins**: it was written for the account that actually launches, and the table predates it — several of its reels are
+described as filmed when the renderer now makes them, and its captions still say "Link in bio" for an app that is
+not live yet.
 
 | # | format | what | template | caption |
 |---|---|---|---|---|

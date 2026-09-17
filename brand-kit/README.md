@@ -18,6 +18,19 @@ npx playwright install chromium  # once; or CHROMIUM_PATH=/path/to/chromium
 node render-kit.js               # everything; or: node render-kit.js stories store
 ```
 
+The videos are not part of `render-kit.js`. They have their own script, run **from the repository root**:
+
+```bash
+node tools/brand/render-episode.js brand-kit/episodes/001-camel.json   # one episode, about 6 minutes
+node tools/brand/render-episode.js --all brand-kit/episodes            # all of them
+node tools/brand/render-episode.js 001-camel.json --cover-only         # just the thumbnail, seconds
+```
+
+`episodes/` is the account's weekly material (`CONTENT.md` is the manual): a 1080x1920 MP4 per JSON file, in four
+variants — `verdict`, `versus`, `board`, and `overlay`, the last one the same beats on a flat chroma green so a
+filmed clip can be keyed in behind it. `teaser/` holds the two launch films, which are cut by hand and not
+regenerated from a JSON.
+
 The templates ask Google Fonts for Outfit and Heebo and fall back to the OFL copies in `templates/fonts/` when the
 machine is offline, so a run anywhere gives the real faces. This folder is not under `wwwroot` and is not served; the
 two files the app serves are copied out by the script: `/brand/og-1200x630.png` (`og-1200x630-he.png` for the Hebrew

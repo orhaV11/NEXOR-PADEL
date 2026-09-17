@@ -61,7 +61,7 @@ register('feed', async (root, params, ctx) => {
   root.classList.add('flush');
 
   // The sticky block: a heading for screen readers and focus, the segments, the intent chips.
-  const chips = intentChips(() => { if (list) list.refresh(); });
+  const chips = intentChips(() => { if (list) reload(); });
   root.appendChild(el('div', { class: 'sticky-tabs' }, [
     el('h1', { class: 'sr-only', text: t('feed.title') }),
     segments(tab),
@@ -112,10 +112,21 @@ register('feed', async (root, params, ctx) => {
   const restore = !!remembered && !forced && remembered.version === feedVersion.n && Date.now() - remembered.at < CACHE_TTL;
   if (!restore) cache.delete(cacheKey());
 
+  // The version the list on screen was loaded at, read here and not on the way out: a bump while this view is open (a
+  // look posted or deleted, an account blocked from a card's "…") must outlive the visit, or the value stored on leave
+  // would already include it and the stale list would come back as if it were current.
+  let dataVersion = feedVersion.n;
+
   let list = null;
+  /** Fetch the list again, from the version the fetch starts at: every refresh goes through here so the two never drift. */
+  function reload() {
+    dataVersion = feedVersion.n;
+    return list.refresh();
+  }
+
   list = infiniteList(body, {
     load: (offset) => api('GET', feedQuery(tab, state.feed.intent, offset)),
-    render: (post) => postCard(post, { onDelete: () => list.refresh() }),
+    render: (post) => postCard(post, { onDelete: () => reload() }),
     empty,
     key: (post) => post.id,
     initial: restore ? { items: remembered.items, nextOffset: remembered.nextOffset } : undefined,
@@ -124,12 +135,24 @@ register('feed', async (root, params, ctx) => {
   if (restore) requestAnimationFrame(() => requestAnimationFrame(() => { if (!ctx.stale()) window.scrollTo(0, remembered.scrollY); }));
   onLeave(() => {
     const snap = list.snapshot();
-    if (snap.items.length) cache.set(cacheKey(), { ...snap, scrollY: window.scrollY, at: Date.now(), version: feedVersion.n });
+    if (snap.items.length) cache.set(cacheKey(), { ...snap, scrollY: window.scrollY, at: Date.now(), version: dataVersion });
   });
+
+  // Round 11: a block (or an unblock) made while Home is the open view — from a card's "…" — takes that account out of
+  // the list now, not on the next visit: views/blocked.js bumps the version and raises the event, every remembered tab
+  // and filter goes with the bump, and the strip is fetched again beside the list.
+  const onBlock = () => {
+    if (ctx.stale()) return;
+    cache.clear();
+    if (tab === 'foryou') todayStrip(ctx, placeStrip, { force: true });
+    reload();
+  };
+  document.addEventListener('orevosh:block', onBlock);
+  onLeave(() => document.removeEventListener('orevosh:block', onBlock));
 
   pullToRefresh(indicator, async () => {
     if (tab === 'foryou') todayStrip(ctx, placeStrip, { force: true });
-    await list.refresh();
+    await reload();
     if (!ctx.stale()) announce(t('common.refreshed'));
   });
 

@@ -3,7 +3,8 @@
 // state (#blocked-empty). The two moves every other screen shares live here too: blockAccount (the confirm sheet with
 // block.confirm_title, POST /api/users/{handle}/block, the toast block.done) from the profile's "…" and the look's "…",
 // and unblockAccount from the profile's "…" and this list. Both raise "orevosh:block" on the document so an open look
-// page can leave and the feed refetches on its next visit; nothing here says who blocked whom to anyone else.
+// page can leave and an open feed fetches again at once, and both bump feedVersion so every remembered feed is stale on
+// its next visit; nothing here says who blocked whom to anyone else.
 import {
   register, state, t, api, el, avatar, brandMark, handleText, setTopBar, signInPrompt, emptyState, errorBlock, confirmSheet,
   requireSignIn, toast, feedVersion
@@ -22,7 +23,10 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: CSS }));
 }
 
-/** Tells the open views a block was added (blocked: true) or removed; cached feeds are stale either way. */
+/**
+ * Tells the open views a block was added (blocked: true) or removed; cached feeds are stale either way. The bump comes
+ * first, so a view that acts on the event reads the new version and stores that with whatever it fetches.
+ */
 function announceBlock(handle, blocked) {
   feedVersion.n += 1;
   document.dispatchEvent(new CustomEvent('orevosh:block', { detail: { handle, blocked } }));

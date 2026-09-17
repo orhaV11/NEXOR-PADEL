@@ -15,9 +15,10 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-// Maintenance commands share the process with the server but never start it: `--vapid`, `--backup <dir>`, `--admin <handle>`,
-// `--unadmin <handle>`, `--verify <handle>`, `--unverify <handle>` and `--pro <handle> <months|off>`. Each is found by
-// position, so extra arguments (a --urls, the design-time tooling's own flags) do not turn a command into a server start.
+// Maintenance commands share the process with the server but never start it: `--vapid`, `--doctor [--live]`,
+// `--stripe-check`, `--backup <dir> [--keep <n>]`, `--admin <handle>`, `--unadmin <handle>`, `--verify <handle>`,
+// `--unverify <handle>` and `--pro <handle> <months|off>`. Each is found by position, so extra arguments (a --urls, the
+// design-time tooling's own flags) do not turn a command into a server start.
 static string? ArgumentAfter(string[] args, string flag)
 {
     var index = Array.IndexOf(args, flag);
@@ -73,12 +74,22 @@ if (!string.IsNullOrEmpty(connection.DataSource) && connection.DataSource != ":m
 }
 
 // Maintenance, no web host: `dotnet FitCheck.Api.dll --backup <dir>` writes a consistent copy of the database and the photo
-// folder into <dir> and exits. Local only (no auth: it is a shell on the box, see tools/backup.sh and DEPLOY.md).
+// folder into <dir> and exits. `--keep <n>` then removes the older copies in that folder, newest n of each kept, only once
+// the new copy is complete. Local only (no auth: it is a shell on the box, see scripts/backup.sh, tools/backup.sh and DEPLOY.md).
 if (ArgumentAfter(args, "--backup") is { } backupDir)
 {
     if (backupDir.Length == 0)
     {
-        Console.Error.WriteLine("Usage: --backup <directory>");
+        Console.Error.WriteLine("Usage: --backup <directory> [--keep <n>]");
+        return 2;
+    }
+
+    // No --keep means keep everything (0); Prune refuses anything below 1, so the flag can never empty the folder.
+    var keepText = ArgumentAfter(args, "--keep") ?? "";
+    var keep = 0;
+    if (keepText.Length > 0 && !(int.TryParse(keepText, NumberStyles.None, CultureInfo.InvariantCulture, out keep) && keep >= 1))
+    {
+        Console.Error.WriteLine("Usage: --backup <directory> [--keep <n>]  (n is 1 or more; leave it out to keep every copy)");
         return 2;
     }
 
@@ -87,7 +98,24 @@ if (ArgumentAfter(args, "--backup") is { } backupDir)
     var (databaseCopy, storageCopy) = DatabaseSetup.Backup(connection.ConnectionString, storageRoot, backupDir);
     Console.WriteLine($"database: {databaseCopy}");
     Console.WriteLine($"storage: {storageCopy ?? "none"}");
+    foreach (var gone in DatabaseSetup.Prune(backupDir, keep))
+    {
+        Console.WriteLine($"removed: {gone}");
+    }
+
     return 0;
+}
+
+// `--doctor` prints the go-live checklist from the configuration this process would start with and exits 0 when nothing
+// failed, 1 when something did; `--doctor --live` adds one small call to Anthropic and one to Stripe; `--stripe-check` is
+// the Stripe part on its own. Nothing starts, nothing is written, no secret is printed (Services/Doctor.cs).
+if (args.Contains("--doctor") || args.Contains("--stripe-check"))
+{
+    return await Doctor.RunAsync(
+        builder.Configuration, builder.Environment.ContentRootPath,
+        live: args.Contains("--live") || args.Contains("--stripe-check"),
+        stripeOnly: args.Contains("--stripe-check") && !args.Contains("--doctor"),
+        Console.Out);
 }
 
 // `--admin <handle>` makes an existing account a moderator, `--unadmin <handle>` takes that away. The flag is on the row
@@ -411,6 +439,11 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVision
 }
 
 app.UseForwardedHeaders();
+
+// One line per /api request when Logging:Requests is on, and nothing at all when it is not (the default). First in the
+// pipeline, so the milliseconds cover the whole request and the status is the one the caller really got; the account is
+// read on the way out, once authentication has put it on the context. Never a body, a query string or a header.
+app.UseRequestLog();
 
 // Security headers on every response, set when the response starts so nothing downstream (the exception handler clears
 // the response) drops them. HSTS only over https, which behind the proxy means X-Forwarded-Proto, read just above; a plain

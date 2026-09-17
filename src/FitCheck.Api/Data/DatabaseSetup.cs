@@ -133,6 +133,52 @@ public static class DatabaseSetup
         return (database, storage);
     }
 
+    /// <summary>
+    /// Retention for <c>--backup &lt;dir&gt; --keep &lt;n&gt;</c>: the newest <paramref name="keep"/> database copies and the
+    /// newest <paramref name="keep"/> storage copies in <paramref name="targetDir"/> stay, older ones are removed, and
+    /// nothing else in the folder is touched. The two are counted apart because <see cref="Backup"/> writes a database
+    /// copy on every run and a storage copy only when there is a photo folder.
+    /// <para>
+    /// The names <see cref="Backup"/> writes carry a UTC stamp of a fixed width (<c>orevosh-yyyyMMddHHmmss.db</c>,
+    /// <c>storage-yyyyMMddHHmmss</c>), so sorting them by name is sorting them by time — no file timestamp is read, and a
+    /// copy moved onto the box with <c>cp</c> keeps its place in the order. Pruning runs only after a backup succeeded,
+    /// so a run that fails never costs an old copy. Returns what was removed, newest first, for the log.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> Prune(string targetDir, int keep)
+    {
+        if (keep < 1 || !Directory.Exists(targetDir))
+        {
+            return [];
+        }
+
+        var removed = new List<string>();
+        foreach (var old in Older(Directory.EnumerateFiles(targetDir, "orevosh-*.db"), keep))
+        {
+            TryDeleteFile(old);
+            // Only what is really gone is reported: a copy the operator has open, or one on a read-only mount, stays.
+            if (!File.Exists(old))
+            {
+                removed.Add(old);
+            }
+        }
+
+        foreach (var old in Older(Directory.EnumerateDirectories(targetDir, "storage-*"), keep))
+        {
+            TryDelete(old);
+            if (!Directory.Exists(old))
+            {
+                removed.Add(old);
+            }
+        }
+
+        return removed;
+    }
+
+    /// <summary>Everything past the newest <paramref name="keep"/>, by name (which is by stamp), newest first.</summary>
+    private static List<string> Older(IEnumerable<string> paths, int keep) =>
+        paths.OrderByDescending(path => Path.GetFileName(path) ?? "", StringComparer.Ordinal).Skip(keep).ToList();
+
     private static void TryDelete(string directory)
     {
         try

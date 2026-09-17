@@ -188,16 +188,25 @@ public class Round11StubTests : IClassFixture<TestApp>
     private static async Task<string> ErrorOf(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString()!;
 
+    /// <summary>
+    /// Built (the ops builder): /readyz is public and answers the ReadyDto, the same in every language because it carries
+    /// no sentence to translate. ReadinessTests has the checks, the 503 and the flip in the log.
+    /// </summary>
     [Fact]
-    public async Task Readiness_is_public_and_answers_501_in_the_callers_language()
+    public async Task Readiness_is_public_and_answers_the_checks_in_every_language()
     {
         var response = await _app.NewClient().GetAsync("/readyz");
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
-        Assert.Equal(NotBuiltEnglish, await ErrorOf(response));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        var ready = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(ready.GetProperty("ok").GetBoolean());
+        Assert.Equal("ok", ready.GetProperty("checks").GetProperty("db").GetString());
 
         var hebrew = _app.NewClient();
         hebrew.DefaultRequestHeaders.AcceptLanguage.ParseAdd("he-IL");
-        Assert.Equal(NotBuiltHebrew, await ErrorOf(await hebrew.GetAsync("/readyz")));
+        var translated = await hebrew.GetAsync("/readyz");
+        Assert.Equal(HttpStatusCode.OK, translated.StatusCode);
+        Assert.Equal(await response.Content.ReadAsStringAsync(), await translated.Content.ReadAsStringAsync());
 
         // The liveness line is untouched: plain text, 200, never cached.
         var health = await _app.NewClient().GetAsync("/healthz");

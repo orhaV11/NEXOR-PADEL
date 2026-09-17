@@ -23,16 +23,26 @@ public static class ChallengeEndpoints
 
     public static IResult Error(int status, string message) => AuthEndpoints.Error(status, message);
 
+    /// <summary>
+    /// <paramref name="EntriesByChallenge"/> is every entry, in the one order the board has; <paramref name="VisibleByChallenge"/>
+    /// is the part this viewer may read. Round 11: the tallies count the first, the lists draw the second.
+    /// </summary>
     private sealed record Loaded(
         Dictionary<Guid, List<Post>> EntriesByChallenge,
+        Dictionary<Guid, List<Post>> VisibleByChallenge,
         Dictionary<Guid, int> VotesByPost,
         Dictionary<Guid, UserRefDto> Brands,
         Dictionary<Guid, Guid> ViewerVotes);
 
     /// <summary>One pass of batched queries for a set of challenges: entries, vote counts, brands, the viewer's votes.</summary>
-    private static async Task<Loaded> LoadAsync(AppDbContext db, PostReader reader, List<Challenge> challenges, Guid? viewerId, CancellationToken ct)
+    private static async Task<Loaded> LoadAsync(
+        AppDbContext db, PostReader reader, Blocks blocks, List<Challenge> challenges, Guid? viewerId, CancellationToken ct)
     {
         var ids = challenges.Select(c => c.Id).ToList();
+        // Every entry, block or no block: the Entries and Votes tallies are the challenge's own and must read the same to
+        // everyone, or the number itself says a block exists. The hidden set only takes rows out of what is drawn below,
+        // which is why the entries are split here in .NET instead of through blocks.FilterAsync on this query.
+        var hidden = await blocks.HiddenFromAsync(viewerId, ct);
         var entries = await db.Posts
             .Where(p => p.ChallengeId != null && ids.Contains(p.ChallengeId.Value) && !p.Hidden)
             .ToListAsync(ct);
@@ -53,15 +63,21 @@ public static class ChallengeEndpoints
                 .OrderByDescending(p => votes.GetValueOrDefault(p.Id))
                 .ThenBy(p => p.CreatedAt)
                 .ToList());
-        return new Loaded(byChallenge, votes, brands, viewerVotes);
+        // The order is the board's, the same for everyone; a viewer on either side of a block simply has rows missing from it.
+        var visible = hidden.Count == 0
+            ? byChallenge
+            : byChallenge.ToDictionary(pair => pair.Key, pair => pair.Value.Where(p => !hidden.Contains(p.UserId)).ToList());
+        return new Loaded(byChallenge, visible, votes, brands, viewerVotes);
     }
 
     private static async Task<ChallengeDto> ToDtoAsync(
         Challenge challenge, Loaded loaded, PostReader reader, Guid? viewerId, DateTime now, int topCount, CancellationToken ct)
     {
         var entries = loaded.EntriesByChallenge.GetValueOrDefault(challenge.Id) ?? [];
-        var top = await reader.ToDtosAsync(entries.Take(topCount).ToList(), viewerId, ct, loaded.VotesByPost);
-        var myEntry = viewerId is null ? null : entries.FirstOrDefault(p => p.UserId == viewerId);
+        var visible = loaded.VisibleByChallenge.GetValueOrDefault(challenge.Id) ?? [];
+        var top = await reader.ToDtosAsync(visible.Take(topCount).ToList(), viewerId, ct, loaded.VotesByPost);
+        // An account is never hidden from itself, so the viewer's own entry is found in either list.
+        var myEntry = viewerId is null ? null : visible.FirstOrDefault(p => p.UserId == viewerId);
         return new ChallengeDto(
             challenge.Id,
             loaded.Brands.GetValueOrDefault(challenge.BrandId) ?? new UserRefDto("?", "?", "Brand"),
@@ -85,11 +101,14 @@ public static class ChallengeEndpoints
             DateTime.SpecifyKind(challenge.CreatedAt, DateTimeKind.Utc));
     }
 
-    /// <summary>Cards for a list of challenges, in the order given, with the top three entries each. Shared with Explore.</summary>
+    /// <summary>
+    /// Cards for a list of challenges, in the order given, with the top three entries the viewer may read each. Shared
+    /// with Explore, which is why <paramref name="blocks"/> comes in from the caller's request scope.
+    /// </summary>
     public static async Task<List<ChallengeDto>> ToDtosAsync(
-        AppDbContext db, PostReader reader, List<Challenge> challenges, Guid? viewerId, DateTime now, CancellationToken ct)
+        AppDbContext db, PostReader reader, Blocks blocks, List<Challenge> challenges, Guid? viewerId, DateTime now, CancellationToken ct)
     {
-        var loaded = await LoadAsync(db, reader, challenges, viewerId, ct);
+        var loaded = await LoadAsync(db, reader, blocks, challenges, viewerId, ct);
         var dtos = new List<ChallengeDto>(challenges.Count);
         foreach (var challenge in challenges)
         {
@@ -100,7 +119,7 @@ public static class ChallengeEndpoints
     }
 
     private static async Task<IResult> ListAsync(
-        HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, string? state, CancellationToken ct)
+        HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, Blocks blocks, string? state, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var now = DateTime.UtcNow;
@@ -116,11 +135,11 @@ public static class ChallengeEndpoints
             await ChallengeResolver.ResolveIfEndedAsync(db, notifier, challenge, now, ct);
         }
 
-        return Results.Json(await ToDtosAsync(db, reader, challenges, viewerId, now, ct), AppJson.Options);
+        return Results.Json(await ToDtosAsync(db, reader, blocks, challenges, viewerId, now, ct), AppJson.Options);
     }
 
     private static async Task<IResult> GetAsync(
-        Guid id, HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, Localizer localizer, CancellationToken ct)
+        Guid id, HttpContext context, AppDbContext db, PostReader reader, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var challenge = await db.Challenges.FindAsync([id], ct);
@@ -131,15 +150,17 @@ public static class ChallengeEndpoints
 
         var now = DateTime.UtcNow;
         await ChallengeResolver.ResolveIfEndedAsync(db, notifier, challenge, now, ct);
-        var loaded = await LoadAsync(db, reader, [challenge], viewerId, ct);
+        var loaded = await LoadAsync(db, reader, blocks, [challenge], viewerId, ct);
         var dto = await ToDtoAsync(challenge, loaded, reader, viewerId, now, 3, ct);
-        var entries = await reader.ToDtosAsync(loaded.EntriesByChallenge.GetValueOrDefault(id) ?? [], viewerId, ct, loaded.VotesByPost);
+        // The whole board, minus the rows this viewer may not read. The winner is fixed once, from every entry, so the
+        // result never turns on who is looking; when the winning look is one of the hidden ones there is simply no card.
+        var entries = await reader.ToDtosAsync(loaded.VisibleByChallenge.GetValueOrDefault(id) ?? [], viewerId, ct, loaded.VotesByPost);
         var winner = challenge.WinnerPostId is Guid w ? entries.FirstOrDefault(e => e.Id == w) : null;
         return Results.Json(new ChallengeDetailDto(dto, entries, winner), AppJson.Options);
     }
 
     private static async Task<IResult> CreateAsync(
-        CreateChallengeRequest body, HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, CancellationToken ct)
+        CreateChallengeRequest body, HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -201,12 +222,12 @@ public static class ChallengeEndpoints
         db.Challenges.Add(challenge);
         await db.SaveChangesAsync(ct);
 
-        var loaded = await LoadAsync(db, reader, [challenge], me.Id, ct);
+        var loaded = await LoadAsync(db, reader, blocks, [challenge], me.Id, ct);
         return Results.Json(await ToDtoAsync(challenge, loaded, reader, me.Id, now, 3, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
     private static async Task<IResult> VoteAsync(
-        Guid id, VoteRequest body, HttpContext context, AppDbContext db, Notifier notifier, Localizer localizer, CancellationToken ct)
+        Guid id, VoteRequest body, HttpContext context, AppDbContext db, Notifier notifier, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -235,6 +256,13 @@ public static class ChallengeEndpoints
         if (post.UserId == me.Id)
         {
             return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.vote_own"));
+        }
+
+        // Round 11: a vote is an act on somebody's look, refused across a block like a fire or a comment, and with the same
+        // sentence whichever side tapped. The entry is not on this viewer's board at all, so nothing offers the button.
+        if (await blocks.BetweenAsync(me.Id, post.UserId, ct))
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(me.PreferredLanguage, "error.blocked"));
         }
 
         if (challenge.BrandId == me.Id)

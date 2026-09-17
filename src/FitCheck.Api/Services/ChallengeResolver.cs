@@ -53,13 +53,13 @@ public static class ChallengeResolver
             var winnerUser = await db.Users.FindAsync([winner.UserId], ct);
             if (winnerUser is not null && brand is not null)
             {
-                notifier.Add(winnerUser.Id, NotificationType.Won, brand.Handle, winner.Id, challenge.Id);
-                notifier.Add(brand.Id, NotificationType.Ended, winnerUser.Handle, winner.Id, challenge.Id);
+                await notifier.AddAsync(winnerUser.Id, NotificationType.Won, brand.Handle, winner.Id, challenge.Id, ct);
+                await notifier.AddAsync(brand.Id, NotificationType.Ended, winnerUser.Handle, winner.Id, challenge.Id, ct);
             }
         }
         else if (brand is not null)
         {
-            notifier.Add(brand.Id, NotificationType.Ended, brand.Handle, null, challenge.Id);
+            await notifier.AddAsync(brand.Id, NotificationType.Ended, brand.Handle, null, challenge.Id, ct);
         }
 
         await db.SaveChangesAsync(ct);

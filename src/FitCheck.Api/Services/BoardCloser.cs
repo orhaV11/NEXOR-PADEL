@@ -148,7 +148,7 @@ public sealed class BoardCloser(IServiceScopeFactory scopes, Board board, IClock
                 if (handles.TryGetValue(winner.UserId, out var handle))
                 {
                     // The actor is the person themselves: the line reads the rank, the tap lands on the board.
-                    notifier.Add(winner.UserId, NotificationType.BoardRank, handle, winner.PostId, rank: winner.Rank);
+                    await notifier.AddAsync(winner.UserId, NotificationType.BoardRank, handle, winner.PostId, null, ct, winner.Rank);
                 }
             }
         }

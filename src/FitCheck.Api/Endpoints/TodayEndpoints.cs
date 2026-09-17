@@ -21,7 +21,7 @@ public static class TodayEndpoints
         return app;
     }
 
-    private static async Task<IResult> GetAsync(HttpContext context, AppDbContext db, PostReader reader, CancellationToken ct)
+    private static async Task<IResult> GetAsync(HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var viewer = viewerId is Guid id ? await db.Users.FindAsync([id], ct) : null;
@@ -30,9 +30,11 @@ public static class TodayEndpoints
         var prompt = DailyPrompts.For(now);
         var since = DailyPrompts.DayOf(now);
 
+        // Round 11: the same join the tag page makes, so a look either side of a block with the viewer is as absent from
+        // today's prompt as it is from #the-prompt itself.
         var posts = await db.PostTags
             .Where(t => t.Tag == prompt.Tag)
-            .Join(db.Posts.Where(p => !p.Hidden && p.CreatedAt >= since), t => t.PostId, p => p.Id, (t, p) => p)
+            .Join(await blocks.FilterAsync(db.Posts.Where(p => !p.Hidden && p.CreatedAt >= since), viewerId, ct), t => t.PostId, p => p.Id, (t, p) => p)
             .OrderByDescending(p => p.CreatedAt)
             .Take(MaxPosts)
             .ToListAsync(ct);

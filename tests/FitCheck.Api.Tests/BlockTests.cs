@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using FitCheck.Api.Data;
+using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -53,6 +56,74 @@ public class BlockTests : IClassFixture<TestApp>
 
     private static async Task BlockAsync(HttpClient client, string handle) =>
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/users/{handle}/block", null)).StatusCode);
+
+    /// <summary>A brand's open challenge, three days out, that a look with the Office intent can enter.</summary>
+    private static async Task<Guid> OpenChallengeAsync(HttpClient brand, string title)
+    {
+        var response = await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title, brief = "Show us your sharpest office fit.", intent = "Office", prize = "A linen shirt of your choice",
+            prizeUrl = "https://shop.example/linen", endsAt = DateTime.UtcNow.AddDays(3)
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await Json(response)).GetProperty("id").GetGuid();
+    }
+
+    private static List<Guid> PostIds(JsonElement array) => array.EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
+
+    /// <summary>The thumbnails a challenge card carries: the top three entries the reader may see.</summary>
+    private static List<Guid> TopIds(JsonElement card) => PostIds(card.GetProperty("top"));
+
+    /// <summary>The challenge's card as GET /api/challenges draws it for this reader.</summary>
+    private static async Task<JsonElement> CardAsync(HttpClient client, Guid challengeId) =>
+        (await client.GetFromJsonAsync<JsonElement>("/api/challenges")).EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == challengeId);
+
+    /// <summary>The same card as GET /api/explore embeds it.</summary>
+    private static async Task<JsonElement> ExploreCardAsync(HttpClient client, Guid challengeId) =>
+        (await client.GetFromJsonAsync<JsonElement>("/api/explore")).GetProperty("challenges").EnumerateArray()
+        .Single(c => c.GetProperty("id").GetGuid() == challengeId);
+
+    /// <summary>The whole leaderboard of GET /api/challenges/{id}, in the order it answers.</summary>
+    private static async Task<List<Guid>> LeaderboardAsync(HttpClient client, Guid challengeId) =>
+        PostIds((await client.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}")).GetProperty("entriesByVotes"));
+
+    private static async Task<List<Guid>> TodayIdsAsync(HttpClient client) =>
+        PostIds((await client.GetFromJsonAsync<JsonElement>("/api/today")).GetProperty("posts"));
+
+    private static async Task<List<Guid>> ItemIdsAsync(HttpClient client, string path) =>
+        PostIds((await client.GetFromJsonAsync<JsonElement>(path)).GetProperty("posts"));
+
+    private static async Task<JsonElement> BrandNamedAsync(HttpClient client, string query, string name) =>
+        (await client.GetFromJsonAsync<JsonElement>("/api/items/brands?q=" + Uri.EscapeDataString(query)))
+        .GetProperty("items").EnumerateArray().Single(b => b.GetProperty("name").GetString() == name);
+
+    /// <summary>The shoes row of a look tagged with a brand and a model, the way the owner tags a piece.</summary>
+    private static async Task<Guid> TaggedLookAsync(TestApp app, HttpClient owner, string brand, string model)
+    {
+        var postId = await app.CheckAndPostAsync(owner);
+        var rows = await ItemsTests.RowsAsync(app, postId);
+        Assert.Equal(HttpStatusCode.OK, (await ItemsTests.PatchItemsAsync(owner, postId, new object[] { new { id = rows[2].Id, brand, model } })).StatusCode);
+        return postId;
+    }
+
+    /// <summary>A VAPID key pair so push is on, the same way PushTests and BoardCloserTests make one.</summary>
+    private static (string PublicKey, string PrivateKey) VapidKeys() => PushSender.GenerateVapidKeys();
+
+    /// <summary>A browser's subscription for one person: the endpoint the recorder will see.</summary>
+    private static async Task<string> SubscribeAsync(HttpClient client, string name)
+    {
+        using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var p = key.ExportParameters(false);
+        var point = new byte[65];
+        point[0] = 0x04;
+        p.Q.X!.CopyTo(point, 1);
+        p.Q.Y!.CopyTo(point, 33);
+        var endpoint = $"https://push.example.test/send/{name}-{Guid.NewGuid():N}";
+        var response = await client.PostAsJsonAsync("/api/push/subscriptions",
+            new { endpoint, p256dh = PushSender.Base64Url(point), auth = PushSender.Base64Url(RandomNumberGenerator.GetBytes(16)) });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return endpoint;
+    }
 
     [Fact]
     public async Task A_block_writes_the_row_ends_both_follows_answers_the_account_and_tells_nobody()
@@ -418,15 +489,14 @@ public class BlockTests : IClassFixture<TestApp>
         Assert.Equal(0, (await a.GetFromJsonAsync<JsonElement>("/api/notifications")).GetProperty("unread").GetInt32());
         Assert.Equal(2, ReadDb(_app, db => db.Notifications.Count(n => n.ActorHandle == "blk_nt_b")));
 
-        // The routes that would notify are refused first; a vote is not refused, and still sends nothing across.
-        var challenge = await Json(await brand.PostAsJsonAsync("/api/challenges", new
-        {
-            title = "Block week", brief = "Show us your sharpest office fit.", intent = "Office", prize = "A linen shirt of your choice",
-            prizeUrl = "https://shop.example/linen", endsAt = DateTime.UtcNow.AddDays(3)
-        }));
-        var challengeId = challenge.GetProperty("id").GetGuid();
+        // The routes that would notify are refused first, and a vote is one of them: it is an act on somebody's look, so it
+        // never lands and never moves their ranking. Nothing is written, so nothing can cross.
+        var challengeId = await OpenChallengeAsync(brand, "Block week");
         var entry = await _app.CheckAndPostAsync(a, intent: "Office", challengeId: challengeId);
-        Assert.Equal(HttpStatusCode.OK, (await b.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entry })).StatusCode);
+        var refused = await b.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entry });
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Equal(Blocked, await ErrorOf(refused));
+        Assert.Empty(ReadDb(_app, db => db.ChallengeVotes.Where(v => v.ChallengeId == challengeId).ToList()));
         Assert.Equal(HttpStatusCode.OK, (await c.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entry })).StatusCode);
         await c.PostAsync($"/api/posts/{postA}/fire", null);
         Assert.Equal([("fire", "blk_nt_c"), ("vote", "blk_nt_c")], await NotificationsAsync(a));
@@ -460,6 +530,197 @@ public class BlockTests : IClassFixture<TestApp>
         Assert.Single(ReadDb(_app, db => db.Blocks.Where(x => x.BlockerId == bId && x.BlockedId == cId).ToList()));
         Assert.Empty((await c.GetFromJsonAsync<JsonElement>("/api/users/me/blocks")).GetProperty("items").EnumerateArray());
         Assert.Equal(HttpStatusCode.NotFound, (await b.GetAsync("/api/users/blk_del_a")).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_challenge_entry_leaves_all_three_boards_across_a_block_while_the_tallies_stand()
+    {
+        var (brand, _, _) = await _app.NewUserAsync("blk_ch_brand", accountType: "Brand");
+        var (a, _, _) = await _app.NewUserAsync("blk_ch_a");
+        var (b, _, _) = await _app.NewUserAsync("blk_ch_b");
+        var (c, _, _) = await _app.NewUserAsync("blk_ch_c");
+        var anyone = _app.NewClient();
+        var challengeId = await OpenChallengeAsync(brand, "Sharp office");
+        var entryA = await _app.CheckAndPostAsync(a, intent: "Office", challengeId: challengeId);
+        var entryB = await _app.CheckAndPostAsync(b, intent: "Office", challengeId: challengeId);
+        Assert.Equal(HttpStatusCode.OK, (await c.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryB })).StatusCode);
+
+        await BlockAsync(a, "blk_ch_b");
+
+        // The tallies are the challenge's own and read the same to everyone: two entries and one vote, block or no block.
+        // A number that moved would be the block showing, which is the one thing nothing may say.
+        foreach (var reader in new[] { a, b, c, anyone })
+        {
+            var card = await CardAsync(reader, challengeId);
+            Assert.Equal(2, card.GetProperty("entries").GetInt32());
+            Assert.Equal(1, card.GetProperty("votes").GetInt32());
+            Assert.Equal(2, (await ExploreCardAsync(reader, challengeId)).GetProperty("entries").GetInt32());
+            Assert.Equal(2, (await Json(await reader.GetAsync($"/api/challenges/{challengeId}"))).GetProperty("challenge").GetProperty("entries").GetInt32());
+        }
+
+        // The look itself is off every list that draws it, both ways round, and nobody else notices anything.
+        Assert.Equal([entryA], TopIds(await CardAsync(a, challengeId)));
+        Assert.Equal([entryA], TopIds(await ExploreCardAsync(a, challengeId)));
+        Assert.Equal([entryA], await LeaderboardAsync(a, challengeId));
+        Assert.Equal([entryB], TopIds(await CardAsync(b, challengeId)));
+        Assert.Equal([entryB], TopIds(await ExploreCardAsync(b, challengeId)));
+        Assert.Equal([entryB], await LeaderboardAsync(b, challengeId));
+        Assert.Equal([entryB, entryA], TopIds(await CardAsync(c, challengeId)));
+        Assert.Equal([entryB, entryA], await LeaderboardAsync(c, challengeId));
+        Assert.Equal([entryB, entryA], TopIds(await ExploreCardAsync(anyone, challengeId)));
+        Assert.Equal([entryB, entryA], await LeaderboardAsync(anyone, challengeId));
+        // The same answer the look itself gives on either side: missing.
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync($"/api/posts/{entryB}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await b.GetAsync($"/api/posts/{entryA}")).StatusCode);
+
+        // Each side still reads its own entry on its own card, and the challenge still knows they entered.
+        var mine = await CardAsync(a, challengeId);
+        Assert.True(mine.GetProperty("viewer").GetProperty("hasEntered").GetBoolean());
+        Assert.Equal(entryA, mine.GetProperty("viewer").GetProperty("myEntryId").GetGuid());
+
+        // A vote is refused whichever side taps, with the one sentence, and the tally does not move.
+        var blocker = await a.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryB });
+        Assert.Equal(HttpStatusCode.Forbidden, blocker.StatusCode);
+        Assert.Equal(Blocked, await ErrorOf(blocker));
+        var blocked = await b.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryA });
+        Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
+        Assert.Equal(Blocked, await ErrorOf(blocked));
+        Assert.Single(ReadDb(_app, db => db.ChallengeVotes.Where(v => v.ChallengeId == challengeId).ToList()));
+        Assert.Equal(1, (await CardAsync(c, challengeId)).GetProperty("votes").GetInt32());
+
+        // Unblocking brings the board back whole for both.
+        Assert.Equal(HttpStatusCode.NoContent, (await a.DeleteAsync("/api/users/blk_ch_b/block")).StatusCode);
+        Assert.Equal([entryB, entryA], await LeaderboardAsync(a, challengeId));
+        Assert.Equal([entryB, entryA], await LeaderboardAsync(b, challengeId));
+        Assert.Equal(HttpStatusCode.OK, (await a.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryB })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Todays_prompt_hides_a_look_across_a_block_and_agrees_with_its_own_tag_page()
+    {
+        var (a, _, _) = await _app.NewUserAsync("blk_td_a");
+        var (b, _, _) = await _app.NewUserAsync("blk_td_b");
+        var (c, _, _) = await _app.NewUserAsync("blk_td_c");
+        var anyone = _app.NewClient();
+        var tag = (await anyone.GetFromJsonAsync<JsonElement>("/api/today")).GetProperty("tag").GetString()!;
+        var lookA = await _app.CheckAndPostAsync(a, caption: "#" + tag);
+        var lookB = await _app.CheckAndPostAsync(b, caption: "#" + tag);
+        var lookC = await _app.CheckAndPostAsync(c, caption: "#" + tag);
+
+        await BlockAsync(a, "blk_td_b");
+
+        Assert.Equal([lookC, lookA], await TodayIdsAsync(a));
+        Assert.Equal([lookC, lookB], await TodayIdsAsync(b));
+        Assert.Equal([lookC, lookB, lookA], await TodayIdsAsync(c));
+        Assert.Equal([lookC, lookB, lookA], await TodayIdsAsync(anyone));
+        // The prompt and the hashtag behind it now answer alike, which was the whole complaint.
+        Assert.Equal(await TodayIdsAsync(a), await IdsAsync(a, $"/api/tags/{tag}/posts"));
+        Assert.Equal(await TodayIdsAsync(b), await IdsAsync(b, $"/api/tags/{tag}/posts"));
+
+        // The probe reads the caller's own rows only: both still know they posted today.
+        Assert.True((await a.GetFromJsonAsync<JsonElement>("/api/today")).GetProperty("posted").GetBoolean());
+        Assert.True((await b.GetFromJsonAsync<JsonElement>("/api/today")).GetProperty("posted").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_item_search_hides_a_look_across_a_block_while_the_brand_counts_stand()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => ItemsTests.StylistPayload();
+        var (a, _, _) = await app.NewUserAsync("blk_it_a");
+        var (b, _, _) = await app.NewUserAsync("blk_it_b");
+        var (c, _, _) = await app.NewUserAsync("blk_it_c");
+        await app.NewUserAsync("blk_it_house", accountType: "Brand", displayName: "Nimbus");
+        var anyone = app.NewClient();
+        var lookA = await TaggedLookAsync(app, a, "Nimbus", "Trail 7");
+        var lookB = await TaggedLookAsync(app, b, "Nimbus", "Trail 8");
+
+        await BlockAsync(a, "blk_it_b");
+        await BlockAsync(a, "blk_it_house");
+
+        // The one look list the filter had never reached: a look either side of a block is off the page, both ways.
+        Assert.Equal([lookA], await ItemIdsAsync(a, "/api/items?brand=nimbus"));
+        Assert.Equal([lookA], await ItemIdsAsync(a, "/api/items?q=trail"));
+        Assert.Equal([lookA], await ItemIdsAsync(a, "/api/items?category=shoes&brand=Nimbus"));
+        Assert.Equal([lookB], await ItemIdsAsync(b, "/api/items?brand=nimbus"));
+        Assert.Equal([lookB, lookA], await ItemIdsAsync(c, "/api/items?brand=nimbus"));
+        Assert.Equal([lookB, lookA], await ItemIdsAsync(anyone, "/api/items?brand=nimbus"));
+        // The page still heads itself with the spelling the looks carry, counted over all of them.
+        Assert.Equal("Nimbus", (await a.GetFromJsonAsync<JsonElement>("/api/items?brand=nimbus")).GetProperty("brand").GetString());
+
+        // The autocomplete: two looks carry Nimbus whoever asks, because a tally that moved would be the block showing.
+        // What does go is the brand ACCOUNT of that name — a person, and people leave the lists of a block.
+        var mine = await BrandNamedAsync(a, "nimbus", "Nimbus");
+        Assert.Equal(2, mine.GetProperty("looks").GetInt32());
+        Assert.False(mine.TryGetProperty("account", out _));
+        var theirs = await BrandNamedAsync(c, "nimbus", "Nimbus");
+        Assert.Equal(2, theirs.GetProperty("looks").GetInt32());
+        Assert.Equal("blk_it_house", theirs.GetProperty("account").GetProperty("handle").GetString());
+        Assert.Equal(2, (await BrandNamedAsync(anyone, "nimbus", "Nimbus")).GetProperty("looks").GetInt32());
+        Assert.Equal(2, (await BrandNamedAsync(b, "nimbus", "Nimbus")).GetProperty("looks").GetInt32());
+    }
+
+    [Fact]
+    public async Task A_challenge_result_across_a_block_writes_no_line_and_queues_no_push()
+    {
+        var (publicKey, privateKey) = VapidKeys();
+        using var app = new TestApp { PushPublicKey = publicKey, PushPrivateKey = privateKey };
+        app.Vision.Handler = _ => Payloads.Ok();
+        var (brand, _, _) = await app.NewUserAsync("blk_won_brand", accountType: "Brand");
+        var (winner, _, _) = await app.NewUserAsync("blk_won_win");
+        var (fan, _, _) = await app.NewUserAsync("blk_won_fan");
+        var endpoint = await SubscribeAsync(winner, "blk_won_win");
+        var challengeId = await OpenChallengeAsync(brand, "Ends across a block");
+        var entry = await app.CheckAndPostAsync(winner, intent: "Office", challengeId: challengeId);
+        await BlockAsync(winner, "blk_won_brand");
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Challenges.Where(c => c.Id == challengeId).ExecuteUpdateAsync(s => s.SetProperty(c => c.EndsAt, DateTime.UtcNow.AddHours(-1)));
+        }
+
+        // The result is fixed from every entry, so it never turns on who reads it first.
+        Assert.Equal(HttpStatusCode.OK, (await app.NewClient().GetAsync($"/api/challenges/{challengeId}")).StatusCode);
+        Assert.Equal(entry, ReadDb(app, db => db.Challenges.Single(c => c.Id == challengeId).WinnerPostId));
+
+        // Neither line is written, either way round, so neither can be pushed.
+        Assert.Equal(0, ReadDb(app, db => db.Notifications.Count(n => n.Type == "won" || n.Type == "ended")));
+        Assert.DoesNotContain(await NotificationsAsync(winner), n => n.Type == "won");
+        Assert.DoesNotContain(await NotificationsAsync(brand), n => n.Type == "ended");
+
+        // And the job never reached the queue: one reader drains it in order, so a "won" queued before this fire would have
+        // gone out first. The first request to arrive says whether anything crossed.
+        Assert.Equal(HttpStatusCode.OK, (await fan.PostAsync($"/api/posts/{entry}/fire", null)).StatusCode);
+        var arrived = await app.PushHandler.WaitForAsync(endpoint);
+        Assert.StartsWith("fire-", Assert.Single(arrived).Topic);
+        Assert.DoesNotContain(app.PushHandler.Requests, r => r.Topic is not null && (r.Topic.StartsWith("won-") || r.Topic.StartsWith("ended-")));
+    }
+
+    [Fact]
+    public async Task A_board_place_still_reaches_someone_who_has_blocked_another_account()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        app.Clock.Now = BoardFixtures.Midweek(0);
+        var (a, _, _) = await app.NewUserAsync("blk_br_a");
+        await app.NewUserAsync("blk_br_b");
+        var (fan, fanId, _) = await app.NewUserAsync("blk_br_fan");
+        // A fire only counts from someone who has checked a look of their own.
+        await app.CheckAsync(fan);
+        var look = await app.CheckAndPostAsync(a);
+        var monday = BoardFixtures.Local(BoardFixtures.Sunday(0).AddDays(1), 8);
+        await BoardFixtures.SetPostAsync(app, look, createdAt: monday);
+        await BoardFixtures.FireAsync(app, look, fanId, monday.AddHours(2));
+        // The recipient has a block, so the pair is looked up; the actor of a board place is the person themselves, which
+        // is not a pair, and the line has to go.
+        await BlockAsync(a, "blk_br_b");
+
+        app.Clock.Now = BoardFixtures.Local(BoardFixtures.Sunday(1), 0, 3);
+        Assert.True(await BoardFixtures.CloseAsync(app) > 0);
+        var told = Assert.Single(await BoardFixtures.BoardRankNotificationsAsync(a));
+        Assert.Equal("blk_br_a", told.GetProperty("actorHandle").GetString());
+        Assert.Equal(1, told.GetProperty("rank").GetInt32());
     }
 
     [Fact]

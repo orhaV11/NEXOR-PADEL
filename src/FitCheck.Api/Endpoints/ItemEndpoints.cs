@@ -19,10 +19,13 @@ namespace FitCheck.Api.Endpoints;
 /// error.post_not_found (404) for a look that is not the caller's or is hidden.</item>
 /// <item><c>GET /api/items?brand=&amp;category=&amp;q=&amp;offset=&amp;limit=</c> (public): <see cref="ItemsDto"/>, visible looks
 /// carrying one item that matches every filter given (brand case-insensitively, category exactly, q anywhere in the name,
-/// the brand or the model), newest first, paged like a feed; no filter at all is an empty page.</item>
+/// the brand or the model), newest first, paged like a feed; no filter at all is an empty page. Round 11: a look either
+/// side of a block with the viewer is not on the page.</item>
 /// <item><c>GET /api/items/brands?q=</c> (public): <see cref="BrandsDto"/> for the autocomplete: brands already on visible
 /// looks with their look counts, merged case-insensitively, plus brand accounts whose handle or name matches, at most
-/// <see cref="BrandsCount"/>; a brand account of the same name rides on the tagged brand as its Account.</item>
+/// <see cref="BrandsCount"/>; a brand account of the same name rides on the tagged brand as its Account. Round 11: a brand
+/// account either side of a block with the viewer is not listed and lends its name to no tagged brand, while the look
+/// counts are tallies over every look and read the same to everyone, block or no block.</item>
 /// <item><c>GET /api/items/{id}/out</c> (public, the "out" rate-limit policy): 302 to the item's url (in its ASCII form,
 /// <see cref="PostItems.AsciiUrl"/>, when it was pasted with characters outside ASCII) with the affiliate parameters for
 /// its host (<see cref="AffiliateOptions.ParametersFor"/>) appended, <c>Referrer-Policy: no-referrer</c>,
@@ -93,7 +96,7 @@ public static class ItemEndpoints
     }
 
     private static async Task<IResult> SearchAsync(
-        HttpContext context, AppDbContext db, PostReader reader, Localizer localizer, string? brand, string? category, string? q, int? offset, int? limit, CancellationToken ct)
+        HttpContext context, AppDbContext db, PostReader reader, Blocks blocks, Localizer localizer, string? brand, string? category, string? q, int? offset, int? limit, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
         var (skip, take) = PostEndpoints.Page(offset, limit);
@@ -133,7 +136,8 @@ public static class ItemEndpoints
                                            || (i.Model != null && EF.Functions.Like(i.Model, pattern, "\\")));
         }
 
-        var posts = await db.Posts
+        // Round 11: a look either side of a block with the viewer leaves the page, exactly as it leaves Explore's search.
+        var posts = await (await blocks.FilterAsync(db.Posts, viewerId, ct))
             .Where(p => !p.Hidden
                         && matching.Any(i => i.PostId == p.Id)
                         && db.Users.Any(u => u.Id == p.UserId && !u.Suspended))
@@ -143,7 +147,8 @@ public static class ItemEndpoints
             .ToListAsync(ct);
         var page = await PostEndpoints.PageDtoAsync(reader, posts, viewerId, skip, take, ct);
 
-        // The brand goes back in the spelling most looks carry ("Nike" for ?brand=nike), so the page can head itself.
+        // The brand goes back in the spelling most looks carry ("Nike" for ?brand=nike), so the page can head itself. Counted
+        // over every look, like the autocomplete's tallies: a heading that changed across a block would be the block showing.
         var brandName = brandTerm is null
             ? null
             : await db.PostItems
@@ -156,8 +161,9 @@ public static class ItemEndpoints
         return Results.Json(new ItemsDto(brandName, categoryTerm, term, page.Items, page.NextOffset), AppJson.Options);
     }
 
-    private static async Task<IResult> BrandsAsync(HttpContext context, AppDbContext db, Localizer localizer, string? q, CancellationToken ct)
+    private static async Task<IResult> BrandsAsync(HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, string? q, CancellationToken ct)
     {
+        var viewerId = Sessions.UserId(context.User);
         var term = (q ?? "").Trim();
         if (term.Length > QueryMaxLength)
         {
@@ -166,6 +172,9 @@ public static class ItemEndpoints
 
         // Brands on visible looks, grouped in .NET so "Nike" and "nike" are one brand in any script (SQLite's lower() and
         // LIKE fold ASCII only). Pilot scale: the branded rows are a short list.
+        // Round 11: a tagged brand is a tally over looks, not a person, and it names nobody, so every look counts here for
+        // every viewer — a Looks number that dropped by one across a block would be the block showing. The accounts below
+        // are people, and those do leave the list.
         var tagged = await db.PostItems
             .Where(i => i.Brand != null && db.Posts.Any(p => p.Id == i.PostId && !p.Hidden && db.Users.Any(u => u.Id == p.UserId && !u.Suspended)))
             .Select(i => new { Brand = i.Brand!, i.PostId })
@@ -179,10 +188,12 @@ public static class ItemEndpoints
         }
 
         // Brand accounts whose handle starts with the term or whose name carries it, as the search matches them; a suspended
-        // account is nobody's brand. One of the same name as a tagged brand rides on it; the rest stand on their own.
+        // account is nobody's brand, and neither is one on either side of a block with the viewer (Round 11), which is the
+        // same account /api/search leaves out. One of the same name as a tagged brand rides on it; the rest stand on their own.
         var lower = term.ToLowerInvariant();
-        var accounts = await db.Users
-            .Where(u => u.AccountType == AccountType.Brand && !u.Suspended && (term == "" || u.HandleLower.StartsWith(lower) || u.DisplayName != null))
+        var accounts = await (await blocks.FilterAsync(
+                db.Users.Where(u => u.AccountType == AccountType.Brand && !u.Suspended && (term == "" || u.HandleLower.StartsWith(lower) || u.DisplayName != null)),
+                viewerId, ct))
             .ToListAsync(ct);
         foreach (var account in accounts.OrderBy(u => u.HandleLower, StringComparer.Ordinal))
         {

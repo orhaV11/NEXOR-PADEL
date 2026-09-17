@@ -72,7 +72,7 @@ public static class ExploreEndpoints
             trending.Select(x => new TagDto(x.Tag, x.Posts)).ToList(),
             await CardsAsync(db, brands, viewerId, ct),
             await reader.ToDtosAsync(topLooks, viewerId, ct),
-            await ChallengeEndpoints.ToDtosAsync(db, reader, challenges, viewerId, now, ct));
+            await ChallengeEndpoints.ToDtosAsync(db, reader, blocks, challenges, viewerId, now, ct));
         return Results.Json(dto, AppJson.Options);
     }
 

@@ -578,7 +578,8 @@ public class Round10SeamTests
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            scope.ServiceProvider.GetRequiredService<Notifier>().Add(userId, NotificationType.BoardRank, handle, rank: 7);
+            await scope.ServiceProvider.GetRequiredService<Notifier>()
+                .AddAsync(userId, NotificationType.BoardRank, handle, null, null, CancellationToken.None, rank: 7);
             await db.SaveChangesAsync();
         }
 

@@ -249,7 +249,7 @@ public static class PostEndpoints
         // The entry stands (a challenge is public); only the line to the brand is dropped across a block (Round 11).
         if (challenge is not null && challenge.BrandId != me.Id && !await blocks.BetweenAsync(me.Id, challenge.BrandId, ct))
         {
-            notifier.Add(challenge.BrandId, NotificationType.Entry, me.Handle, post.Id, challenge.Id);
+            await notifier.AddAsync(challenge.BrandId, NotificationType.Entry, me.Handle, post.Id, challenge.Id, ct);
         }
 
         try

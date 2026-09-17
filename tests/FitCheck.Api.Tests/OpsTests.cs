@@ -298,14 +298,147 @@ public class DoctorTests : IDisposable
         Assert.Equal(HttpMethod.Get, stripe.Method);
         Assert.Equal("/v1/prices/price_1NotAReal", stripe.Uri.AbsolutePath);
 
+        // The webhook endpoint is the second Stripe read, and it is a GET of the list, not a write of anything.
+        var webhook = Assert.Single(handler.Requests, r => r.Uri.AbsolutePath == "/v1/webhook_endpoints");
+        Assert.Equal(HttpMethod.Get, webhook.Method);
+        Assert.Equal("api.stripe.com", webhook.Uri.Host);
+        Assert.Equal(DoctorStatus.Ok, report["stripe-webhook"]!.Status);
+
         // A key Anthropic refuses, and a price Stripe cannot find, both fail the run and name the thing to fix.
         var refused = await Inspect(Healthy(), live: true, handler: new CannedHandler(HttpStatusCode.Unauthorized));
         Assert.Equal(DoctorStatus.Fail, refused["anthropic-live"]!.Status);
         Assert.Equal(DoctorStatus.Fail, refused["stripe-live"]!.Status);
+        Assert.Equal(DoctorStatus.Fail, refused["stripe-webhook"]!.Status);
         Assert.Equal(1, refused.ExitCode);
 
         var gone = await Inspect(Healthy(), live: true, handler: new CannedHandler(HttpStatusCode.NotFound));
         Assert.Contains("no price price_1NotAReal", gone["stripe-live"]!.Detail);
+    }
+
+    /// <summary>
+    /// The price half of <c>--stripe-check</c>: Checkout runs in subscription mode, so a one-time or an archived price
+    /// is a failure now rather than a 400 the first person to press Go Pro meets.
+    /// </summary>
+    [Fact]
+    public async Task The_price_has_to_be_recurring_and_not_archived()
+    {
+        var recurring = await Inspect(Healthy(), live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK));
+        Assert.Equal(DoctorStatus.Ok, recurring["stripe-live"]!.Status);
+        Assert.Contains("every month", recurring["stripe-live"]!.Detail);
+
+        var once = new CannedHandler(HttpStatusCode.OK)
+        {
+            PriceBody = """{"id":"price_1NotAReal","object":"price","active":true,"type":"one_time"}"""
+        };
+        var report = await Inspect(Healthy(), live: true, stripeOnly: true, handler: once);
+        Assert.Equal(DoctorStatus.Fail, report["stripe-live"]!.Status);
+        Assert.Contains("one-time", report["stripe-live"]!.Detail);
+        Assert.Equal(1, report.ExitCode);
+
+        var archived = new CannedHandler(HttpStatusCode.OK)
+        {
+            PriceBody = """{"id":"price_1NotAReal","object":"price","active":false,"type":"recurring","recurring":{"interval":"year","interval_count":1}}"""
+        };
+        var gone = await Inspect(Healthy(), live: true, stripeOnly: true, handler: archived);
+        Assert.Equal(DoctorStatus.Fail, gone["stripe-live"]!.Status);
+        Assert.Contains("archived", gone["stripe-live"]!.Detail);
+
+        // An answer that says nothing either way is a warning, never a pass dressed up as one.
+        var quiet = new CannedHandler(HttpStatusCode.OK) { PriceBody = "{}" };
+        var unknown = await Inspect(Healthy(), live: true, stripeOnly: true, handler: quiet);
+        Assert.Equal(DoctorStatus.Warn, unknown["stripe-live"]!.Status);
+        Assert.Equal(0, unknown.ExitCode);
+    }
+
+    /// <summary>
+    /// The webhook half: an endpoint has to be registered for this origin's own path, enabled, and subscribed to every
+    /// event <c>BillingEndpoints.WebhookAsync</c> switches on. The two softer cases are deliberate — the same route
+    /// under another name the app answers to, and the four-event endpoint an older runbook asked for, are warnings that
+    /// name what is off rather than failures that stop a launch. Nothing in the line is a secret: the url is a public
+    /// route on the operator's domain, and the signing secret is never read here.
+    /// </summary>
+    [Fact]
+    public async Task The_webhook_endpoint_has_to_be_registered_for_this_origin_with_the_events_the_app_reads()
+    {
+        var report = await Inspect(Healthy(), live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK));
+        Assert.Equal(DoctorStatus.Ok, report["stripe-webhook"]!.Status);
+        Assert.Contains("https://orevosh.example/api/billing/webhook", report["stripe-webhook"]!.Detail);
+
+        // Registered on a route that is not the app's at all: nothing this app serves would ever be posted to.
+        var elsewhere = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints("https://example.test/hooks/stripe", [.. Doctor.WebhookEvents])
+        };
+        var wrong = await Inspect(Healthy(), live: true, stripeOnly: true, handler: elsewhere);
+        Assert.Equal(DoctorStatus.Fail, wrong["stripe-webhook"]!.Status);
+        Assert.Contains("example.test/hooks/stripe", wrong["stripe-webhook"]!.Detail);
+        Assert.Equal(1, wrong.ExitCode);
+
+        // The app's own route on another name it answers to (a fly.dev address beside the custom domain). The webhook
+        // only has to reach the route, so this is a warning that names it, not a failure that stops a launch.
+        var otherName = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints("https://orevosh-pilot.fly.dev/api/billing/webhook", [.. Doctor.WebhookEvents])
+        };
+        var second = await Inspect(Healthy(), live: true, stripeOnly: true, handler: otherName);
+        Assert.Equal(DoctorStatus.Warn, second["stripe-webhook"]!.Status);
+        Assert.Contains("orevosh-pilot.fly.dev", second["stripe-webhook"]!.Detail);
+        Assert.Equal(0, second.ExitCode);
+
+        // Registered here, but only for the event that grants Pro: nothing would ever end it.
+        var partial = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints(CannedHandler.StripeOrigin + "/api/billing/webhook", "checkout.session.completed")
+        };
+        var missing = await Inspect(Healthy(), live: true, stripeOnly: true, handler: partial);
+        Assert.Equal(DoctorStatus.Fail, missing["stripe-webhook"]!.Status);
+        Assert.Contains("customer.subscription.deleted", missing["stripe-webhook"]!.Detail);
+        Assert.DoesNotContain("checkout.session.completed", missing["stripe-webhook"]!.Detail);
+
+        // The endpoint an older runbook told people to build: the four events that move the plan, and not the fifth.
+        // Nothing a paying person does is lost, so it is a warning and the run still exits 0.
+        var four = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints(
+                CannedHandler.StripeOrigin + "/api/billing/webhook",
+                "checkout.session.completed", "invoice.paid", "customer.subscription.updated", "customer.subscription.deleted")
+        };
+        var older = await Inspect(Healthy(), live: true, stripeOnly: true, handler: four);
+        Assert.Equal(DoctorStatus.Warn, older["stripe-webhook"]!.Status);
+        Assert.Contains("customer.subscription.created", older["stripe-webhook"]!.Detail);
+        Assert.Equal(0, older.ExitCode);
+
+        // A wildcard endpoint covers everything the app reads.
+        var everything = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints(CannedHandler.StripeOrigin + "/api/billing/webhook", "*")
+        };
+        var all = await Inspect(Healthy(), live: true, stripeOnly: true, handler: everything);
+        Assert.Equal(DoctorStatus.Ok, all["stripe-webhook"]!.Status);
+
+        // Registered and subscribed, but switched off in Stripe: no event ever arrives.
+        var off = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler
+                .Endpoints(CannedHandler.StripeOrigin + "/api/billing/webhook", [.. Doctor.WebhookEvents])
+                .Replace("\"status\":\"enabled\"", "\"status\":\"disabled\"", StringComparison.Ordinal)
+        };
+        var disabled = await Inspect(Healthy(), live: true, stripeOnly: true, handler: off);
+        Assert.Equal(DoctorStatus.Fail, disabled["stripe-webhook"]!.Status);
+        Assert.Contains("disabled", disabled["stripe-webhook"]!.Detail);
+
+        // With no origin configured there is no url to look for: a skip, never a guess.
+        var homeless = Healthy();
+        homeless["Email:PublicOrigin"] = "";
+        homeless["Billing:PublicOrigin"] = "";
+        var skipped = await Inspect(homeless, live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK));
+        Assert.Equal(DoctorStatus.Skip, skipped["stripe-webhook"]!.Status);
+        Assert.Equal(0, skipped.ExitCode);
+
+        // The events the check compares against are the ones the webhook handler switches on, in its order.
+        Assert.Equal(
+            ["checkout.session.completed", "customer.subscription.created", "invoice.paid", "customer.subscription.updated", "customer.subscription.deleted"],
+            Doctor.WebhookEvents.ToArray());
     }
 
     [Fact]
@@ -318,9 +451,10 @@ public class DoctorTests : IDisposable
         var report = await Inspect(stub, live: true, handler: handler);
         Assert.Equal(DoctorStatus.Skip, report["anthropic-live"]!.Status);
         Assert.Equal(DoctorStatus.Skip, report["stripe-live"]!.Status);
+        Assert.Equal(DoctorStatus.Skip, report["stripe-webhook"]!.Status);
         Assert.Empty(handler.Requests);
         // Skipped calls are neither a pass nor a failure; the stub key itself is what fails the run.
-        Assert.Equal(2, report.Skipped);
+        Assert.Equal(3, report.Skipped);
         Assert.Equal(1, report.ExitCode);
     }
 
@@ -329,16 +463,22 @@ public class DoctorTests : IDisposable
     {
         var handler = new CannedHandler(HttpStatusCode.OK);
         var report = await Inspect(Healthy(), live: true, stripeOnly: true, handler: handler);
-        Assert.Equal(["billing", "stripe-live"], report.Lines.Select(l => l.Name).ToArray());
+        Assert.Equal(["billing", "stripe-live", "stripe-webhook"], report.Lines.Select(l => l.Name).ToArray());
         Assert.Equal(0, report.ExitCode);
-        // Only Stripe was called: no Anthropic request, no key spent.
-        Assert.Single(handler.Requests);
+        // Only Stripe was called: no Anthropic request, no key spent. Two reads, both GETs, nothing written.
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
+        Assert.All(handler.Requests, r => Assert.Equal("api.stripe.com", r.Uri.Host));
         Assert.StartsWith("/v1/prices/", handler.Requests[0].Uri.AbsolutePath, StringComparison.Ordinal);
+        Assert.Equal("/v1/webhook_endpoints", handler.Requests[1].Uri.AbsolutePath);
 
         var (exit, text) = await Run(Healthy(), live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.Unauthorized));
         Assert.Equal(1, exit);
         Assert.Contains("the Stripe part", text);
         Assert.Contains("HTTP 401", text);
+        // Not one character of the key, the price secret or the webhook secret reaches the printed page.
+        Assert.DoesNotContain(LiveSecret, text, StringComparison.Ordinal);
+        Assert.DoesNotContain(WebhookSecret, text, StringComparison.Ordinal);
     }
 
     /// <summary>The printed form: one line per check, a four-character verdict a script can grep, and a summary that names the exit code's reason.</summary>
@@ -614,9 +754,17 @@ public class BackupRetentionTests : IDisposable
 /// <summary>One recorded request as the network would have seen it, body included (the doctor's live calls are tiny).</summary>
 public sealed record CannedRequest(HttpMethod Method, Uri Uri, string Body);
 
-/// <summary>Stands in for api.anthropic.com and api.stripe.com at once: records every request and answers with one status.</summary>
+/// <summary>
+/// Stands in for api.anthropic.com and api.stripe.com at once: records every request and answers with one status.
+/// The two Stripe reads the doctor makes are answered with the shape Stripe really returns — a recurring price, and a
+/// list with one webhook endpoint for <see cref="StripeOrigin"/> subscribed to every event the app reads — so a test
+/// that wants a broken account overrides one of them rather than getting an empty object.
+/// </summary>
 public sealed class CannedHandler(HttpStatusCode status) : HttpMessageHandler
 {
+    /// <summary>The origin <c>DoctorTests.Healthy()</c> configures, and so the url a registered endpoint has to carry.</summary>
+    public const string StripeOrigin = "https://orevosh.example";
+
     private readonly List<CannedRequest> _requests = [];
 
     public IReadOnlyList<CannedRequest> Requests
@@ -630,6 +778,16 @@ public sealed class CannedHandler(HttpStatusCode status) : HttpMessageHandler
         }
     }
 
+    /// <summary>The body for <c>GET /v1/prices/…</c>; null keeps the recurring monthly price below.</summary>
+    public string? PriceBody { get; set; }
+
+    /// <summary>The body for <c>GET /v1/webhook_endpoints</c>; null keeps the one matching, fully subscribed endpoint below.</summary>
+    public string? WebhookBody { get; set; }
+
+    /// <summary>A webhook endpoint list Stripe would answer with, for the url and events given.</summary>
+    public static string Endpoints(string url, params string[] events) =>
+        $$"""{"object":"list","data":[{"id":"we_1","object":"webhook_endpoint","status":"enabled","url":"{{url}}","enabled_events":[{{string.Join(",", events.Select(e => $"\"{e}\""))}}]}]}""";
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
@@ -638,7 +796,19 @@ public sealed class CannedHandler(HttpStatusCode status) : HttpMessageHandler
             _requests.Add(new(request.Method, request.RequestUri!, body));
         }
 
-        return new HttpResponseMessage(status) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
+        var path = request.RequestUri!.AbsolutePath;
+        var answer = "{}";
+        if (path.StartsWith("/v1/prices/", StringComparison.Ordinal))
+        {
+            answer = PriceBody
+                ?? """{"id":"price_1NotAReal","object":"price","active":true,"type":"recurring","recurring":{"interval":"month","interval_count":1}}""";
+        }
+        else if (path == "/v1/webhook_endpoints")
+        {
+            answer = WebhookBody ?? Endpoints(StripeOrigin + "/api/billing/webhook", [.. Doctor.WebhookEvents]);
+        }
+
+        return new HttpResponseMessage(status) { Content = new StringContent(answer, System.Text.Encoding.UTF8, "application/json") };
     }
 }
 

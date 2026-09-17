@@ -48,11 +48,13 @@ public sealed record DoctorReport(IReadOnlyList<DoctorLine> Lines)
 /// the plan caps against the ceiling, the VAPID keys, the moderators, the board's time zone, the affiliate hosts, the
 /// photo folder, the database file and what it still has to migrate, ffmpeg when clips are to be re-encoded, and the
 /// free space where the data lives.</item>
-/// <item><c>--doctor --live</c> adds the two calls only the network can answer: a Messages request of five tokens to
-/// Anthropic (skipped for the stub key, so a browser test never spends a cent) and a read of the Pro price from Stripe.
-/// Each reports the HTTP status it got.</item>
-/// <item><c>--stripe-check</c> is the Stripe part on its own: the three keys and their prefixes, then the price read.
-/// The go-live runbook runs it after every key rotation.</item>
+/// <item><c>--doctor --live</c> adds the calls only the network can answer: a Messages request of five tokens to
+/// Anthropic (skipped for the stub key, so a browser test never spends a cent), a read of the Pro price from Stripe
+/// (it exists, it is in the same mode as the key, and it is recurring and not archived) and a read of Stripe's webhook
+/// endpoints (one is registered for this origin's <see cref="Endpoints.BillingEndpoints.WebhookPath"/>, enabled, and
+/// subscribed to <see cref="WebhookEvents"/>). Each reports the HTTP status it got.</item>
+/// <item><c>--stripe-check</c> is the Stripe part on its own: the three keys and their prefixes, then those two reads.
+/// The go-live runbook runs it after every key rotation. It is two GETs, it writes nothing and it charges nobody.</item>
 /// </list>
 /// <para>
 /// <b>No secret is ever printed.</b> A key is reported by its prefix and its length, a webhook secret as "set", a
@@ -77,6 +79,36 @@ public static class Doctor
     /// <summary>Anthropic's own host: anything else means the checks are going somewhere that is not Anthropic.</summary>
     public static readonly string DefaultAnthropicBaseUrl = new AnthropicOptions().BaseUrl;
 
+    /// <summary>
+    /// The events <c>BillingEndpoints.WebhookAsync</c> switches on, in the order that method reads them. An endpoint
+    /// registered for fewer than these silently loses part of the subscription: without
+    /// <c>customer.subscription.deleted</c> a cancellation never ends Pro, without <c>invoice.paid</c> a renewal never
+    /// extends it. Keep this list beside that switch — it is what <c>--stripe-check</c> compares Stripe's
+    /// <c>enabled_events</c> against, and what the runbooks quote.
+    /// </summary>
+    public static readonly IReadOnlyList<string> WebhookEvents =
+    [
+        "checkout.session.completed",
+        "customer.subscription.created",
+        "invoice.paid",
+        "customer.subscription.updated",
+        "customer.subscription.deleted"
+    ];
+
+    /// <summary>
+    /// The four of <see cref="WebhookEvents"/> that move the plan or its end date. An endpoint missing one of these is a
+    /// failure. The fifth, <c>customer.subscription.created</c>, only fills in a subscription id that
+    /// <c>checkout.session.completed</c> already records — it matters for a subscription started on Stripe's side, so an
+    /// endpoint without it is a warning worth fixing, not a reason to hold the launch.
+    /// </summary>
+    private static readonly HashSet<string> WebhookEventsThatMovePro = new(StringComparer.Ordinal)
+    {
+        "checkout.session.completed",
+        "invoice.paid",
+        "customer.subscription.updated",
+        "customer.subscription.deleted"
+    };
+
     private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan LiveTimeout = TimeSpan.FromSeconds(20);
 
@@ -85,8 +117,8 @@ public static class Doctor
     /// </summary>
     /// <param name="configuration">The configuration the server would start with.</param>
     /// <param name="contentRoot">What a relative Storage:Root or database path is anchored to, as in Program.cs.</param>
-    /// <param name="live">Also make the two network calls.</param>
-    /// <param name="stripeOnly"><c>--stripe-check</c>: the billing keys and the price read, nothing else.</param>
+    /// <param name="live">Also make the network calls.</param>
+    /// <param name="stripeOnly"><c>--stripe-check</c>: the billing keys, the price read and the webhook endpoint, nothing else.</param>
     /// <param name="handler">A stand-in for the network, so the live calls can be tested. Null means the real one.</param>
     public static async Task<int> RunAsync(
         IConfiguration configuration, string contentRoot, bool live, bool stripeOnly, TextWriter output,
@@ -111,7 +143,7 @@ public static class Doctor
         {
             var origin = Origin(configuration);
             Billing(lines, billing, origin);
-            await StripeLiveAsync(lines, billing, handler, ct);
+            await StripeLiveAsync(lines, billing, origin, handler, ct);
             return new DoctorReport(lines);
         }
 
@@ -144,7 +176,7 @@ public static class Doctor
         if (live)
         {
             await AnthropicLiveAsync(lines, anthropic, apiKey, handler, ct);
-            await StripeLiveAsync(lines, billing, handler, ct);
+            await StripeLiveAsync(lines, billing, publicOrigin, handler, ct);
         }
 
         return new DoctorReport(lines);
@@ -584,8 +616,19 @@ public static class Doctor
         }
     }
 
-    /// <summary>Reads the Pro price back from Stripe: the key is accepted, the price exists, and it is in the same mode as the key.</summary>
-    private static async Task<DoctorLine> StripeLiveAsync(List<DoctorLine> lines, BillingOptions billing, HttpMessageHandler? handler, CancellationToken ct)
+    /// <summary>
+    /// The Stripe half of a live run: the price the app was given, then the webhook endpoint Stripe is supposed to post
+    /// back to. Two GETs, nothing written, nothing charged. Both lines are always added, skipped or not, so a run always
+    /// prints the same names.
+    /// </summary>
+    private static async Task StripeLiveAsync(List<DoctorLine> lines, BillingOptions billing, string origin, HttpMessageHandler? handler, CancellationToken ct)
+    {
+        await StripePriceAsync(lines, billing, handler, ct);
+        await StripeWebhookAsync(lines, billing, origin, handler, ct);
+    }
+
+    /// <summary>Reads the Pro price back from Stripe: the key is accepted, the price exists, it is in the same mode as the key, and it is a recurring price (Checkout runs in subscription mode and refuses a one-time one).</summary>
+    private static async Task<DoctorLine> StripePriceAsync(List<DoctorLine> lines, BillingOptions billing, HttpMessageHandler? handler, CancellationToken ct)
     {
         var secret = (billing.StripeSecretKey ?? "").Trim();
         var price = (billing.StripePriceId ?? "").Trim();
@@ -606,17 +649,200 @@ public static class Doctor
         {
             using var response = await http.SendAsync(request, ct);
             var status = (int)response.StatusCode;
-            return Add(lines, status switch
+            if (status != 200)
             {
-                200 => new(DoctorStatus.Ok, "stripe-live", $"HTTP 200: the key is accepted and {price} exists."),
-                401 => new(DoctorStatus.Fail, "stripe-live", "HTTP 401: Stripe refused the secret key. Roll it in the Stripe dashboard and set Billing__StripeSecretKey again."),
-                404 => new(DoctorStatus.Fail, "stripe-live", $"HTTP 404: no price {price} for this key. A live key cannot see a test price, or the other way round."),
-                _ => new(DoctorStatus.Fail, "stripe-live", $"HTTP {status} from Stripe.")
-            });
+                return Add(lines, status switch
+                {
+                    401 => new(DoctorStatus.Fail, "stripe-live", "HTTP 401: Stripe refused the secret key. Roll it in the Stripe dashboard and set Billing__StripeSecretKey again."),
+                    404 => new(DoctorStatus.Fail, "stripe-live", $"HTTP 404: no price {price} for this key. A live key cannot see a test price, or the other way round."),
+                    _ => new(DoctorStatus.Fail, "stripe-live", $"HTTP {status} from Stripe.")
+                });
+            }
+
+            // The recurring block is what makes a price usable by a subscription Checkout; a one-time price is accepted
+            // here and refused at the moment someone presses Go Pro, which is the worst place to find out.
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (Json(body) is not { } document)
+            {
+                return Add(lines, new(DoctorStatus.Warn, "stripe-live",
+                    $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer could not be read, so whether it is recurring is unknown."));
+            }
+
+            using (document)
+            {
+                var root = document.RootElement;
+                var recurring = root.TryGetProperty("recurring", out var block) && block.ValueKind == JsonValueKind.Object ? block : (JsonElement?)null;
+                var kind = root.TryGetProperty("type", out var typed) && typed.ValueKind == JsonValueKind.String ? typed.GetString() ?? "" : "";
+                if (recurring is null)
+                {
+                    return Add(lines, kind.Length == 0
+                        ? new(DoctorStatus.Warn, "stripe-live",
+                            $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer named neither a type nor a recurring block, so whether it is recurring is unknown.")
+                        : new(DoctorStatus.Fail, "stripe-live",
+                            $"HTTP 200, but {price} is a {kind.Replace('_', '-')} price. Checkout opens in subscription mode and refuses it: make a recurring price in Stripe and set Billing__StripePriceId to that one."));
+                }
+
+                var interval = recurring.Value.TryGetProperty("interval", out var every) && every.ValueKind == JsonValueKind.String ? every.GetString() ?? "" : "";
+                var count = recurring.Value.TryGetProperty("interval_count", out var many) && many.ValueKind == JsonValueKind.Number && many.TryGetInt32(out var parsed) ? parsed : 1;
+                var cadence = interval.Length == 0 ? "recurring" : count == 1 ? $"every {interval}" : $"every {count.ToString(CultureInfo.InvariantCulture)} {interval}s";
+                var active = !root.TryGetProperty("active", out var enabled) || enabled.ValueKind != JsonValueKind.False;
+                return Add(lines, active
+                    ? new(DoctorStatus.Ok, "stripe-live", $"HTTP 200: the key is accepted and {price} exists, {cadence}.")
+                    : new(DoctorStatus.Fail, "stripe-live", $"HTTP 200: {price} is {cadence} but archived in Stripe (active is false). Checkout will refuse it."));
+            }
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
         {
             return Add(lines, new(DoctorStatus.Fail, "stripe-live", $"no answer from Stripe: {e.Message.TrimEnd('.')}."));
+        }
+    }
+
+    /// <summary>
+    /// Lists the webhook endpoints on the account and looks for the one this app is behind: the configured origin plus
+    /// <see cref="Endpoints.BillingEndpoints.WebhookPath"/>, enabled, and subscribed to <see cref="WebhookEvents"/> — the
+    /// events <c>BillingEndpoints.WebhookAsync</c> actually switches on. A registered url is not a secret (it is a public
+    /// route on the operator's own domain); the signing secret is never read here at all.
+    /// </summary>
+    private static async Task<DoctorLine> StripeWebhookAsync(List<DoctorLine> lines, BillingOptions billing, string origin, HttpMessageHandler? handler, CancellationToken ct)
+    {
+        var secret = (billing.StripeSecretKey ?? "").Trim();
+        if (!(billing.Provider ?? "").Trim().Equals("stripe", StringComparison.OrdinalIgnoreCase))
+        {
+            return Add(lines, new(DoctorStatus.Skip, "stripe-webhook", "not called: Billing__Provider is not stripe."));
+        }
+
+        if (secret.Length == 0)
+        {
+            return Add(lines, new(DoctorStatus.Skip, "stripe-webhook", "not called: Billing__StripeSecretKey is empty."));
+        }
+
+        if (origin.Length == 0)
+        {
+            return Add(lines, new(DoctorStatus.Skip, "stripe-webhook",
+                "not called: with no Billing__PublicOrigin (or Email__PublicOrigin) there is no url to look for in Stripe's list."));
+        }
+
+        var wanted = origin.TrimEnd('/') + Endpoints.BillingEndpoints.WebhookPath;
+        using var http = Client(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, StripeClient.BaseUrl + "v1/webhook_endpoints?limit=100");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
+        try
+        {
+            using var response = await http.SendAsync(request, ct);
+            var status = (int)response.StatusCode;
+            if (status != 200)
+            {
+                return Add(lines, status switch
+                {
+                    401 => new(DoctorStatus.Fail, "stripe-webhook", "HTTP 401: Stripe refused the secret key, so the endpoint list could not be read."),
+                    403 => new(DoctorStatus.Warn, "stripe-webhook",
+                        "HTTP 403: this key may not list webhook endpoints (a restricted key). Check the endpoint by hand in Stripe, under Developers and then Webhooks."),
+                    _ => new(DoctorStatus.Fail, "stripe-webhook", $"HTTP {status} from Stripe.")
+                });
+            }
+
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (Json(body) is not { } document)
+            {
+                return Add(lines, new(DoctorStatus.Warn, "stripe-webhook", "HTTP 200, but Stripe's list of endpoints could not be read."));
+            }
+
+            using (document)
+            {
+                if (!document.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                {
+                    return Add(lines, new(DoctorStatus.Warn, "stripe-webhook", "HTTP 200, but Stripe's answer carried no list of endpoints."));
+                }
+
+                var others = new List<string>();
+                var sameRoute = new List<string>();
+                foreach (var endpoint in data.EnumerateArray())
+                {
+                    var url = endpoint.TryGetProperty("url", out var configured) && configured.ValueKind == JsonValueKind.String
+                        ? (configured.GetString() ?? "").Trim()
+                        : "";
+                    if (!string.Equals(url.TrimEnd('/'), wanted, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (url.Length > 0)
+                        {
+                            others.Add(url);
+                            // The app can answer on more than one name (a fly.dev address and the custom domain), and the
+                            // webhook only has to reach the route, not the origin Checkout returns to. Same path, other
+                            // host: worth naming, not worth failing on.
+                            if (Uri.TryCreate(url, UriKind.Absolute, out var elsewhere)
+                                && elsewhere.AbsolutePath.TrimEnd('/').Equals(Endpoints.BillingEndpoints.WebhookPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                sameRoute.Add(url);
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    var state = endpoint.TryGetProperty("status", out var reported) && reported.ValueKind == JsonValueKind.String ? reported.GetString() ?? "" : "";
+                    if (state.Length > 0 && !state.Equals("enabled", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Add(lines, new(DoctorStatus.Fail, "stripe-webhook",
+                            $"{wanted} is registered but {state} in Stripe: no event ever reaches the app. Enable it."));
+                    }
+
+                    var subscribed = new List<string>();
+                    if (endpoint.TryGetProperty("enabled_events", out var events) && events.ValueKind == JsonValueKind.Array)
+                    {
+                        subscribed.AddRange(events.EnumerateArray()
+                            .Where(e => e.ValueKind == JsonValueKind.String)
+                            .Select(e => e.GetString() ?? ""));
+                    }
+
+                    if (subscribed.Contains("*", StringComparer.Ordinal))
+                    {
+                        return Add(lines, new(DoctorStatus.Ok, "stripe-webhook",
+                            $"{wanted} is registered for every event (*), which covers the {WebhookEvents.Count.ToString(CultureInfo.InvariantCulture)} the app reads."));
+                    }
+
+                    var missing = WebhookEvents.Where(e => !subscribed.Contains(e, StringComparer.Ordinal)).ToList();
+                    if (missing.Count == 0)
+                    {
+                        return Add(lines, new(DoctorStatus.Ok, "stripe-webhook",
+                            $"{wanted} is registered for all {WebhookEvents.Count.ToString(CultureInfo.InvariantCulture)} events the app reads."));
+                    }
+
+                    var what = $"{wanted} is registered, but not for {string.Join(", ", missing)}: add {(missing.Count == 1 ? "that event" : "those events")} to the endpoint in Stripe";
+                    return Add(lines, missing.Any(WebhookEventsThatMovePro.Contains)
+                        ? new(DoctorStatus.Fail, "stripe-webhook", what + ", or Pro will not follow what people do.")
+                        : new(DoctorStatus.Warn, "stripe-webhook",
+                            what + ". Checkout still grants and ends Pro; what is lost is a subscription started on Stripe's own side."));
+                }
+
+                if (sameRoute.Count > 0)
+                {
+                    return Add(lines, new(DoctorStatus.Warn, "stripe-webhook",
+                        $"no endpoint for {wanted}, but {string.Join(", ", sameRoute.Take(3))} posts to the same route on another name. That works while that name reaches this app; if it does not, point it here."));
+                }
+
+                var seen = others.Count == 0
+                    ? "this account has no webhook endpoint at all"
+                    : $"the {others.Count.ToString(CultureInfo.InvariantCulture)} endpoint(s) registered point elsewhere ({string.Join(", ", others.Take(3))}{(others.Count > 3 ? ", …" : "")})";
+                return Add(lines, new(DoctorStatus.Fail, "stripe-webhook",
+                    $"nothing posts to {wanted}: {seen}. Add it in Stripe (Developers, then Webhooks) with {string.Join(", ", WebhookEvents)}, and put its whsec_ in Billing__StripeWebhookSecret."));
+            }
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            return Add(lines, new(DoctorStatus.Fail, "stripe-webhook", $"no answer from Stripe: {e.Message.TrimEnd('.')}."));
+        }
+    }
+
+    /// <summary>A body Stripe answered with, or null when it is not JSON. A check never takes the run down over a body.</summary>
+    private static JsonDocument? Json(string body)
+    {
+        try
+        {
+            return JsonDocument.Parse(body);
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 

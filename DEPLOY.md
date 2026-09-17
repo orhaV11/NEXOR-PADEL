@@ -24,13 +24,18 @@ code in a few places that one command rewrites before the first build:
 node tools/brand/set-origin.js https://looks.example.com
 ```
 
-It writes your origin into `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing
-pages (`wwwroot/landing/index.html` and `index.he.html`: canonical, hreflang, `og:url`, `og:image`) and
-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`), and prints what it changed. Those are static files
-inside the image, so run it **before** `fly deploy` or `docker compose build` and commit the result; `grep -rl
-looks.example.com src/FitCheck.Api/wwwroot mobile` does the same job by hand, and the URL table in `STORE.md` and the
-`WKAppBoundDomains` note in `mobile/README.md` are yours to edit either way. Step 2 of the go-live checklist says the
-same thing in its place.
+It looks at eleven files, writes your origin into the ones that still carry the placeholder, and prints each with a
+count. Four of them are shipped to a browser or a store and are the reason this runs before the build:
+`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing pages
+(`wwwroot/landing/index.html` and `index.he.html`: canonical, both `hreflang` links, `og:url`, `og:image`,
+`twitter:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+The other seven are the documents that quote the origin, rewritten so the commands you paste from them are already
+yours: `mobile/README.md`, `STORE.md`, `MARKETING.md`, `brand-kit/README.md`, this file, `README.md` and
+`.env.example`. So run it **before** `fly deploy` or `docker compose build`, commit the result, and read the diff —
+the sample email addresses it rewrote in `.env.example` and `STORE.md` now say `hello@` your domain, which is a guess
+at your mailbox, not a fact. `node tools/brand/set-origin.js --check` exits 1 while a placeholder is left in any of the
+eleven, which is the line for CI and for the last look before a build. Step 5 of the go-live checklist says the same
+thing in its place.
 
 **If you have never deployed anything, read [`LAUNCH.md`](LAUNCH.md) instead and come back here for detail.** It is the
 same ground as one runbook, in English and in Hebrew, from buying a domain to the first day and what to do when
@@ -185,11 +190,11 @@ have the current recipe for attaching it to a machine; it changes). That is a ba
 your own, off Fly, the app's backup command works here too:
 
 ```bash
-fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups --keep 7"   # prints database: ... storage: ...
-fly ssh console -u app -C "tar czf /data/backups/storage-<stamp>.tgz -C /data/backups storage-<stamp>"
-fly sftp get /data/backups/orevosh-<stamp>.db ./orevosh-<stamp>.db
-fly sftp get /data/backups/storage-<stamp>.tgz ./storage-<stamp>.tgz
-fly ssh console -C "rm -rf /data/backups"        # the copies share the 3 GB volume with the live data
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"   # prints database: ... storage: ...
+fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
+fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly ssh console -u app -C "rm -rf /data/backups/manual"   # the copies share the 3 GB volume with the live data
 ```
 
 `--keep <n>` prunes the folder to the `n` newest database copies and the `n` newest storage copies once the new one is
@@ -203,12 +208,17 @@ Putting a copy back is the one place a server is simpler, because the app is run
 quiet moment: `fly sftp shell`, then `put orevosh-<stamp>.db /data/incoming.db`, then
 
 ```bash
-fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm'"
+fly ssh console -C "sh -c 'cd /data && mv incoming.db orevosh.db && rm -f orevosh.db-wal orevosh.db-shm && chown app:app orevosh.db'"
 fly machine restart <machine id>
 ```
 
-Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, then
-`tar xzf` it over `/data/storage` as `app`.
+**The `chown` is not optional.** `fly sftp` and a bare `fly ssh console` are root, the app runs as the image's `app`
+user (the `USER app` line in the `Dockerfile`), and a database file owned by root is one the app cannot write: the
+restart comes up with `unable to open database file` and the site stays down. Check it afterwards with
+`fly ssh console -C "ls -l /data/orevosh.db"` — it should say `app app`.
+
+Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, `tar
+xzf` it over `/data/storage`, and hand that back too — `fly ssh console -C "chown -R app:app /data/storage"`.
 
 ### 10. Updating
 
@@ -254,7 +264,11 @@ means a new account. The app sends those two mails itself over SMTP, to any prov
 mail is off: the client says recovery is not set up on this server and the links are written to the app's log instead
 (`docker compose logs app` or `fly logs`), fine for a laptop pilot, not for people you cannot reach by hand.
 
-Set them like every other setting: in `.env` on a server, with `fly secrets set` on Fly.
+Set them like every other setting: in `.env` on a server, with `fly secrets set` on Fly. The blocks below are
+written as `.env` lines. On Fly they are the same names and values, but the shell reads the line first, so quote
+any value with a space or an angle bracket in it: `fly secrets set "Email__From=OREVOSH <hello@looks.example.com>"`
+(unquoted, `<` is a redirect and the shell answers `No such file or directory`). `LAUNCH.md` 1.5 has the whole
+block in its Fly shape.
 
 | Variable | What to put |
 |---|---|
@@ -343,9 +357,9 @@ starting `sk_test_`):
 
 1. A product "OREVOSH Pro" with one recurring monthly price; copy its id (`price_…`).
 2. An API secret key (Developers → API keys).
-3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to `checkout.session.completed`,
-   `invoice.paid`, `customer.subscription.updated` and `customer.subscription.deleted`; copy its signing secret
-   (`whsec_…`).
+3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to the five events the app reads:
+   `checkout.session.completed`, `customer.subscription.created`, `invoice.paid`, `customer.subscription.updated` and
+   `customer.subscription.deleted`; copy its signing secret (`whsec_…`). `--stripe-check` names any you missed.
 4. Settings → Billing → **Customer portal**: open it once and save a configuration (what a customer may do there —
    cancel, change the payment method). Stripe creates no portal session until that configuration exists, and the app's
    "Manage subscription" is a portal session, so without this it answers 502 `error.portal_failed`.
@@ -367,10 +381,12 @@ subscription with the account id attached; Checkout returns to `/#/pro?checkout=
 the events to `/api/billing/webhook`, which is the one write that needs no session and no `X-Requested-With` header,
 because its `Stripe-Signature` header is the guard (a bad or old signature is answered 400 and shows in Stripe's
 dashboard). `checkout.session.completed` puts the account on Pro for 35 days (a month plus slack for slow events) on
-top of any period still running and stores the customer id; `invoice.paid` (except the first, `subscription_create`,
-which the checkout already counted) moves the end to the invoice's period end plus three days, from the event and never
-below the current end; `customer.subscription.updated` follows the status, `active` or `trialing` to the current period
-end plus three days (never below the current end), `past_due`, `unpaid` or `paused` down to three days from now at most;
+top of any period still running and stores the customer id and the subscription id (`customer.subscription.created`
+is the same record for a subscription that started on Stripe's own side, and grants nothing); `invoice.paid` (except
+the first, `subscription_create`, which the checkout already counted) moves the end to the invoice's period end plus
+three days, from the event and never below the current end; `customer.subscription.updated` follows the status,
+`active` or `trialing` to the current period end plus three days (never below the current end), `past_due`, `unpaid`
+or `paused` down to three days from now at most;
 `customer.subscription.deleted` ends it now; a missed renewal simply lapses. No event ids are kept: a repeated
 `checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends
 what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
@@ -383,9 +399,18 @@ docker compose exec app dotnet FitCheck.Api.dll --stripe-check
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --stripe-check"
 ```
 
-It checks the secret key, the price id (it must exist and be recurring) and the webhook endpoint registered for this
-origin with the events above, and prints one line per finding. It writes nothing and charges nobody, so run it after
-every change to a Stripe value and again when test keys become live ones. `--doctor --live` includes it.
+It prints three lines. `billing` is read from the settings alone: the provider, the three keys and their prefixes.
+`stripe-live` is a `GET /v1/prices/<your price>` with your secret key: the key is accepted, the price exists in the
+same mode as the key (a live key cannot see a test price), and it is a **recurring** price that is not archived —
+Checkout opens in subscription mode and refuses a one-time price, which is otherwise discovered by the first person
+to press Go Pro. `stripe-webhook` is a `GET /v1/webhook_endpoints`: one endpoint is registered for
+`Billing__PublicOrigin` + `/api/billing/webhook`, it is enabled, and its events cover the five above (`*` counts). A
+missing event is named, so "registered, but not for `customer.subscription.deleted`" tells you cancellations would
+never end Pro. An endpoint on the app's own route under a different name — the `fly.dev` address beside your domain —
+is a warning naming it, not a failure: the webhook only has to reach the route.
+
+Two GETs, nothing written, nobody charged, and no secret printed, so run it after every change to a Stripe value and
+again when test keys become live ones. `--doctor --live` includes both lines.
 
 **Cancelling and changing a plan happen on Stripe's page, not here.** `POST /api/billing/portal` opens a Billing
 Portal session for the account's customer and returns to `/#/settings`; the app shows it as "Manage subscription" in
@@ -643,9 +668,9 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the free disk space, fourteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
-| `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), one SMTP connection and login, and Stripe when the provider is `stripe`. This is the one that tells you whether a broken check is you or the provider |
-| `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists and is recurring, and whether a webhook endpoint is registered for this origin with the events the app needs. It writes nothing and charges nobody ("Plans and billing") |
-| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe when the provider is `stripe`. **The mail server is never dialled** — no command in this app opens an SMTP connection; ask the app for a password reset with your own address to test the sender. This is the one that tells you whether a broken check is you or the provider |
+| `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the five events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
+| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups/nightly` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete — it prunes whatever it finds there, so give each writer a folder of its own. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume, and `/data/backups/nightly` is the folder it defaults to |
 | `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
 | `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |
 | `docker compose exec app dotnet FitCheck.Api.dll --verify <handle>` | Marks an existing brand account as verified: a check inside its BRAND mark everywhere it appears, from its next request. You are the process: run it for a brand once you know who is behind the account |
@@ -683,8 +708,16 @@ ls -l backups/
 
 The copies hold every photo and clip people gave the app, so the script makes them readable by root only: it runs with
 `umask 077`, makes `backups/` mode `700`, and `chmod -R go-rwx` after the copies come out of the container (`docker cp`
-would otherwise keep the container's world-readable modes). Nothing stays on the data volume: the container's scratch
-folder is removed whether the run succeeds or fails halfway.
+would otherwise keep the container's world-readable modes). Nothing stays on the data volume: the scratch folder it
+makes inside the container (`mktemp -d /data/backup-scratch.XXXXXXXX`, a fresh name every run) is removed whether the
+run succeeds or fails halfway.
+
+**The two backup scripts never share a folder, and that is the point.** `tools/backup.sh` empties the scratch folder
+it made on every exit path; `scripts/backup.sh`, the other half, leaves its copies **on** the volume in
+`/data/backups/nightly` and lets the app prune them. Nothing either one removes is anything the other wrote, so a
+nightly cron and a manual copy taken five minutes later cannot cost you the history. If you point either at a folder
+of your own, give it one nobody else writes to: the app's `--keep` prunes every `orevosh-*.db` and `storage-*` in the
+folder it is given, whoever put them there.
 
 Sizes: the database is small (megabytes for a pilot), a storage copy is the whole media folder. So the script keeps the
 last `KEEP` (default 14) database copies but only the last `KEEP_STORAGE` (default 2) storage copies. (The app's own
@@ -766,12 +799,18 @@ cd src/FitCheck.Api
 dotnet run -- --backup backups        # the same line in PowerShell; prints "database: ..." and "storage: ..."
 ```
 
-Copy that `.db` file and the `storage-<stamp>` folder to the server (`scp -rp src/FitCheck.Api/backups
-root@looks.example.com:~/pilot`), then restore them there:
+Copy the whole `backups` folder to the server, keeping the modes, then restore from it there:
 
 ```bash
-tools/restore.sh ~/pilot/orevosh-<stamp>.db ~/pilot/storage-<stamp>
+scp -rp backups root@looks.example.com:~      # still in src/FitCheck.Api; lands in ~/backups on the server
+ssh root@looks.example.com
+cd /opt/orevosh
+tools/restore.sh ~/backups/orevosh-<stamp>.db ~/backups/storage-<stamp>
 ```
+
+The first line runs from `src/FitCheck.Api`, where the block above left you. `scp -r <folder>` copies the folder and
+not its contents, so the files land at `~/backups/…` and not `~/…`; `<stamp>` is the one the `--backup` line printed.
+`tools/restore.sh` asks before it replaces anything, so run it where you can answer it.
 
 A pilot database from before migrations existed is upgraded on the next start as described above.
 
@@ -799,7 +838,8 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
 - **Readiness.** `https://looks.example.com/readyz` is the fuller answer: `{ ok, checks }` with `db`, `storage` and,
   while transcoding is on, `ffmpeg`, each `"ok"` or a short reason, 503 when one fails. It is where a full disk or a
   missing ffmpeg shows up first. `docker compose exec app dotnet FitCheck.Api.dll --doctor` covers the settings that
-  `/readyz` cannot see, and `--doctor --live` adds Anthropic, SMTP and Stripe.
+  `/readyz` cannot see, and `--doctor --live` adds Anthropic and Stripe. It does not add mail: nothing here dials an
+  SMTP server, so a password reset you ask for yourself is the test of the sender.
 - **Logs.** `docker compose logs --since 1h app` for the app (every 5xx is logged with the path), `docker compose logs
   caddy` for certificates and traffic. Logs are rotated by Docker.
 - **The model bill.** The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay`
@@ -889,18 +929,24 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 ### Deploy and prove it (LAUNCH.md, sections 1 and 2)
 
 5. **The production origin in the code, before the build.** `node tools/brand/set-origin.js https://looks.example.com`
-   writes your domain into the Open Graph and Twitter tags in `src/FitCheck.Api/wwwroot/index.html` (`og:url`,
-   `og:image`, `twitter:image`), the absolute URLs at the top of `wwwroot/landing/index.html` and `index.he.html`
-   (canonical, hreflang, `og:url`, `og:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
-   These are static files inside the image, so this runs **before** `fly deploy` or `docker compose build`. The URLs
-   table in `STORE.md` and `mobile/README.md`'s `WKAppBoundDomains` note are yours by hand. Then paste a link into a
-   chat app and check the card shows the 1200×630 image.
+   writes your domain into eleven files it knows by name: the Open Graph and Twitter tags in
+   `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), the absolute URLs at the top of
+   `wwwroot/landing/index.html` and
+   `index.he.html` (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`),
+   `mobile/capacitor.config.json` (`server.url`, `allowNavigation`), and then the documents that quote the origin —
+   `mobile/README.md` (including its `WKAppBoundDomains` note), `STORE.md` (including the URL table), `MARKETING.md`,
+   `brand-kit/README.md`, `DEPLOY.md`, `README.md` and `.env.example`. The first four are static files inside the
+   image, so this runs **before** `fly deploy` or `docker compose build`. Nothing here is left for you to hand-edit;
+   read the diff anyway, because the sample email addresses it rewrote are a guess at your mailbox.
+   `node tools/brand/set-origin.js --check` exits 1 while any placeholder is left. Then paste a link into a chat app
+   and check the card shows the 1200×630 image.
 6. **A domain and HTTPS.** `fly certs add`, or steps 2 and 6 of the server path. `https://…/healthz` answers `ok`,
    the padlock is there on a phone, and the app installs to the home screen.
 7. **Green before anyone arrives.** `curl -s https://…/readyz` answers `{"ok":true,…}` — `db`, `storage` and, while
    `Storage:Transcode` is on, `ffmpeg`, each `"ok"`; a 503 names what is not. Then `--doctor` for the settings
-   `/readyz` cannot see, and `--doctor --live` once for the things outside the machine (Anthropic, SMTP, Stripe).
-   Keep the uptime checker on `/healthz`; `/readyz` is the one you read when something is wrong.
+   `/readyz` cannot see, and `--doctor --live` once for the things outside the machine (Anthropic, and Stripe when it
+   is on — never the mail server, which no command dials; item 11 says how to test that). Keep the uptime checker on
+   `/healthz`; `/readyz` is the one you read when something is wrong.
 8. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
    one: someone has to look at the queue every day.
 9. **The first brands verified.** Each brand account that you know is the brand (you spoke to them, the handle is on
@@ -908,8 +954,9 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
    `--unverify` when that changes. `MARKETING.md`'s "week 0" is when this happens.
 10. **VAPID keys** set once (`--vapid`) and never regenerated.
 11. **Email** pointed at a real provider, `Email__PublicOrigin` set to the domain, SPF and DKIM verified with the
-    provider, and tested with your own address. Without a provider a forgotten password means a new account; without
-    the origin, no link goes out on a server.
+    provider, and tested with your own address — which means asking the app for a password reset and watching the mail
+    arrive, because `--doctor` reads the settings and never dials the server. Without a provider a forgotten password
+    means a new account; without the origin, no link goes out on a server.
 
 ### The settings that must be right before the first week
 
@@ -951,7 +998,7 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
     browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
     `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).
 20. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
-    On Fly: the daily snapshots are on, plus a weekly `--backup /data/backups --keep 7` and `fly sftp get` of your own.
+    On Fly: the daily snapshots are on, plus a weekly `--backup /data/backups/manual --keep 7` and `fly sftp get` of your own.
     Restore one once, before you need it.
 21. **Turn the request log on for the first days.** `Logging__Requests=true` adds one line per request — the method,
     the path, the status and how long it took — which is how you see what people actually do and what fails. Turn it

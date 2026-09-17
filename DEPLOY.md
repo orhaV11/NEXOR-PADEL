@@ -18,7 +18,23 @@ differ in who looks after the machine.
 This page has the Fly.io path first, then the server path, then what both need before real people arrive: email for
 account recovery, plans and billing (Free, Pro and Stripe), the checks that run on every push, and the go-live
 checklist at the end. `looks.example.com` stands for your production origin throughout, and it also stands in the
-code in a few places you replace before launch (the checklist says where).
+code in a few places that one command rewrites before the first build:
+
+```bash
+node tools/set-origin.js https://looks.example.com
+```
+
+It writes your origin into `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing
+pages (`wwwroot/landing/index.html` and `index.he.html`: canonical, hreflang, `og:url`, `og:image`) and
+`mobile/capacitor.config.json` (`server.url`, `allowNavigation`), and prints what it changed. Those are static files
+inside the image, so run it **before** `fly deploy` or `docker compose build` and commit the result; `grep -rl
+looks.example.com src/FitCheck.Api/wwwroot mobile` does the same job by hand, and the URL table in `STORE.md` and the
+`WKAppBoundDomains` note in `mobile/README.md` are yours to edit either way. Step 2 of the go-live checklist says the
+same thing in its place.
+
+**If you have never deployed anything, read [`LAUNCH.md`](LAUNCH.md) instead and come back here for detail.** It is the
+same ground as one runbook, in English and in Hebrew, from buying a domain to the first day and what to do when
+something breaks.
 
 To run the app on your own computer instead (Windows, Mac, Linux), see [Run it in 5 minutes](README.md#run-it-in-5-minutes)
 in the README: that needs only the .NET SDK and a tunnel, no Docker, no domain.
@@ -100,7 +116,18 @@ it. `--ha=false` matters: without it Fly starts two machines for high availabili
 fly status                                        # the machine: started, its check passing
 fly logs                                          # "Database /data/orevosh.db is new: creating the schema from the migrations."
 curl https://<your-app-name>.fly.dev/healthz      # ok
+curl -s https://<your-app-name>.fly.dev/readyz    # {"ok":true,"checks":{"db":"ok","storage":"ok","ffmpeg":"ok"}}
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor"    # the settings, from inside
 ```
+
+**`/healthz` and `/readyz` answer different questions.** `/healthz` is liveness — `ok` when the database answers — and
+it is what `fly.toml`'s check, the Dockerfile's health check and an uptime monitor poll; it is untouched. `/readyz` is
+readiness: public, `Cache-Control: no-store`, and a small JSON document `{ ok, checks }` where each check is `"ok"` or
+a short reason. It checks `db` (a query answers and the schema is at the current migration), `storage` (`Storage:Root`
+exists and a file can be written and removed there) and, only while `Storage:Transcode` is on, `ffmpeg` (the binary is
+found). Every check ok is a 200; anything failing is a **503** naming the failing checks. A reason never carries a
+path, a version or a secret, so the line is safe to leave public and to point a monitor at. Wait on `/readyz` after a
+deploy; keep polling `/healthz`.
 
 Open `https://<your-app-name>.fly.dev` on your phone: HTTPS from the first second, so the camera, the share sheet, the
 home-screen install and the Secure cookie all work. Send the address to your pilot users.
@@ -158,16 +185,18 @@ have the current recipe for attaching it to a machine; it changes). That is a ba
 your own, off Fly, the app's backup command works here too:
 
 ```bash
-fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups"      # prints database: ... storage: ...
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups --keep 7"   # prints database: ... storage: ...
 fly ssh console -u app -C "tar czf /data/backups/storage-<stamp>.tgz -C /data/backups storage-<stamp>"
 fly sftp get /data/backups/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/storage-<stamp>.tgz ./storage-<stamp>.tgz
 fly ssh console -C "rm -rf /data/backups"        # the copies share the 3 GB volume with the live data
 ```
 
-The files hold every photo and clip people gave the app; keep them as private on your computer as they are on the
-volume (server path, step 9, says how). There is no cron on Fly's machine: run this weekly from your computer, or from
-a scheduled GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
+`--keep <n>` prunes the folder to the `n` newest database copies once the new one is complete, so a weekly run cannot
+fill the volume even if the last line is forgotten; without it nothing is pruned. The files hold every photo and clip
+people gave the app; keep them as private on your computer as they are on the volume (server path, step 9, says how).
+There is no cron on Fly's machine: run this weekly from your computer, or from a scheduled GitHub Actions job with a
+`FLY_API_TOKEN` secret (`fly tokens create deploy`).
 
 Putting a copy back is the one place a server is simpler, because the app is running while you swap the file. At a
 quiet moment: `fly sftp shell`, then `put orevosh-<stamp>.db /data/incoming.db`, then
@@ -208,7 +237,11 @@ package is public; see "Continuous checks".
   close` once; `Board: the close failed; it runs again in five minutes` is a warning worth reading, the next run
   retries. The lines the closer, the moderator and the zone write are listed under "The weekly board and store links".
 - **Health from outside:** an uptime checker (UptimeRobot, Better Stack) on `https://<your-app-name>.fly.dev/healthz`.
-  Fly restarts a machine whose own check keeps failing.
+  Fly restarts a machine whose own check keeps failing. Point a second, quieter check at `/readyz` if you want to hear
+  about a full disk or a missing ffmpeg before a person does: it answers 503 with the failing check named.
+- **The settings, when something is off:** `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor"` reads
+  the configuration and this machine and prints one line per check; `--doctor --live` adds the calls that leave it
+  (one Anthropic call, an SMTP login, Stripe when it is on). `--stripe-check` is the Stripe half alone.
 - **Cost:** `fly dashboard` shows the month. A shared-cpu-1x with 512 MB is about 3 USD, the 3 GB volume about 0.45 USD,
   bandwidth for a pilot is inside the free allowance.
 
@@ -312,6 +345,9 @@ starting `sk_test_`):
 3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to `checkout.session.completed`,
    `invoice.paid`, `customer.subscription.updated` and `customer.subscription.deleted`; copy its signing secret
    (`whsec_…`).
+4. Settings → Billing → **Customer portal**: open it once and save a configuration (what a customer may do there —
+   cancel, change the payment method). Stripe creates no portal session until that configuration exists, and the app's
+   "Manage subscription" is a portal session, so without this it answers 502 `error.portal_failed`.
 
 Then:
 
@@ -339,9 +375,27 @@ end plus three days (never below the current end), `past_due`, `unpaid` or `paus
 what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
 app, and the secret key is redacted from the app's logs.
 
+**Before a test purchase, ask Stripe whether what you set is real:**
+
+```bash
+docker compose exec app dotnet FitCheck.Api.dll --stripe-check
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --stripe-check"
+```
+
+It checks the secret key, the price id (it must exist and be recurring) and the webhook endpoint registered for this
+origin with the events above, and prints one line per finding. It writes nothing and charges nobody, so run it after
+every change to a Stripe value and again when test keys become live ones. `--doctor --live` includes it.
+
+**Cancelling and changing a plan happen on Stripe's page, not here.** `POST /api/billing/portal` opens a Billing
+Portal session for the account's customer and returns to `/#/settings`; the app shows it as "Manage subscription" in
+Settings and on the Pro page, and it appears only for a Pro account that went through Checkout. An account whose Pro
+came from `--pro` has no customer on Stripe's side, so it sees "To change or cancel, write to us." instead — which is
+also what the whole app says while the provider is `manual`, and the reason the support mailbox has to be real.
+
 To try it before people pay: keep test keys, install the Stripe CLI and run `stripe listen --forward-to
 localhost:5000/api/billing/webhook` (it prints a `whsec_` for the session; put that in `Billing__StripeWebhookSecret`),
-pay with Stripe's test card `4242 4242 4242 4242`, and watch the app's log say `Account <handle> is Pro until …`.
+pay with Stripe's test card `4242 4242 4242 4242`, and watch the app's log say `Account <handle> is Pro until …`. Then
+press "Manage subscription" and cancel from the portal, and watch Pro end where the webhook says it does.
 **Nothing here has run against a live Stripe account yet** (README, "Known limitations"): the first real subscription,
 renewal and cancellation are the proof, and Stripe's event log plus `docker compose logs app` are where to look when
 one of them misbehaves. Cancelling is on Stripe's side (or `--pro <handle> off`); the app has no cancel button, and the
@@ -525,6 +579,7 @@ Fill in:
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 | `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__CacheSeconds`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30), the memory cache (60 seconds, two weeks at most) and the week's sponsor, by hand (its `Url` an `http(s)` link, or it is dropped with a warning). The defaults are the pilot's; "The weekly board and store links" above. |
 | `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows while `Affiliate__Disclosure` is `true`, the default. |
+| `Logging__Requests` | `true` for the first days of a launch: one extra log line per request, with the method, the path, the status and how long it took. Off by default, because it is a lot of lines; no body, cookie, header or query value is ever logged. Turn it off again once things are quiet. |
 
 Any setting from the README's configuration table can be added to `.env` in the same shape, for example
 `Plans__FreeChecksPerDay=5` (a double underscore stands for the colon). `.env` is git-ignored and stays on the
@@ -548,7 +603,10 @@ The app's log shows what happened to the database on start, for example
 `Database /data/orevosh.db is new: creating the schema from the migrations.`, and, since the image ships ffmpeg,
 `Transcoding is on: ffmpeg version ...` (clips are re-encoded to H.264 MP4 in the background; README, "Clips"). Then open `https://looks.example.com`
 on your phone. Caddy fetches the certificate on the first request (give it up to a minute). `https://looks.example.com/healthz`
-answers `ok` when the app can reach its database.
+answers `ok` when the app can reach its database, and `https://looks.example.com/readyz` answers
+`{"ok":true,"checks":{…}}` when the database, the media folder and (while `Storage:Transcode` is on) ffmpeg are all
+good — a 503 there names what is not (the Fly path, step 5, explains the two lines). `docker compose exec app dotnet
+FitCheck.Api.dll --doctor` is the same question asked of the settings.
 
 If the certificate does not come: `docker compose logs caddy` says why, and it is almost always DNS not pointing at
 this machine yet, or port 80/443 closed by the provider's own firewall (check the VPS control panel).
@@ -578,12 +636,15 @@ well, or the next restart promotes it again. A moderator cannot be suspended fro
 account while the flag is on; both go through `--unadmin` first. `--admin` and `--unadmin` exit with code 1 when no
 account has the handle.
 
-The app has seven maintenance commands. None starts the server; all run from `/opt/orevosh`:
+The app has ten maintenance commands. None starts the server; all run from `/opt/orevosh`:
 
 | Command | What it does |
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
-| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out) |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key, the mail settings and their public origin, the push keys, the billing settings, the board's time zone, the moderator list — each `ok` or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), one SMTP connection and login, and Stripe when the provider is `stripe`. This is the one that tells you whether a broken check is you or the provider |
+| `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists and is recurring, and whether a webhook endpoint is registered for this origin with the events the app needs. It writes nothing and charges nobody ("Plans and billing") |
+| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database copies once the new one is complete |
 | `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
 | `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |
 | `docker compose exec app dotnet FitCheck.Api.dll --verify <handle>` | Marks an existing brand account as verified: a check inside its BRAND mark everywhere it appears, from its next request. You are the process: run it for a brand once you know who is behind the account |
@@ -592,7 +653,8 @@ The app has seven maintenance commands. None starts the server; all run from `/o
 
 `docker compose exec` needs the app running. The account commands exit with 1 when no account has the handle and 2 on
 a usage error. On a laptop the same commands are `dotnet run -- --admin <handle>` and so on (the README, "Maintenance
-commands").
+commands"). `node tools/set-origin.js https://looks.example.com` is not one of them: it edits files in the repository
+before a build, not the running app (the top of this page).
 
 ## 8. Push notifications
 
@@ -624,7 +686,9 @@ would otherwise keep the container's world-readable modes). Nothing stays on the
 folder is removed whether the run succeeds or fails halfway.
 
 Sizes: the database is small (megabytes for a pilot), a storage copy is the whole media folder. So the script keeps the
-last `KEEP` (default 14) database copies but only the last `KEEP_STORAGE` (default 2) storage copies. At the moment a
+last `KEEP` (default 14) database copies but only the last `KEEP_STORAGE` (default 2) storage copies. (The app's own
+`--backup <dir> --keep <n>` prunes the same way inside the container, which is what a copy taken by hand or on Fly
+needs; `tools/backup.sh` prunes on the host, where the copies you keep actually live.) At the moment a
 backup runs the disk holds the live folder, the copy in flight on the volume, the two kept copies and the new one (the
 oldest goes only once the new one is complete): budget about five times the media folder for that moment and three
 times the rest of the time. `docker compose exec app du -sh /data/storage` says what the folder is today;
@@ -731,6 +795,10 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
 - **Health.** `https://looks.example.com/healthz` returns `ok`; anything else, or no answer, is worth a look. A free
   uptime checker (UptimeRobot, Better Stack) can ping it every few minutes and email you. Docker also checks it
   itself: `docker compose ps` shows `(healthy)` or `(unhealthy)`.
+- **Readiness.** `https://looks.example.com/readyz` is the fuller answer: `{ ok, checks }` with `db`, `storage` and,
+  while transcoding is on, `ffmpeg`, each `"ok"` or a short reason, 503 when one fails. It is where a full disk or a
+  missing ffmpeg shows up first. `docker compose exec app dotnet FitCheck.Api.dll --doctor` covers the settings that
+  `/readyz` cannot see, and `--doctor --live` adds Anthropic, SMTP and Stripe.
 - **Logs.** `docker compose logs --since 1h app` for the app (every 5xx is logged with the path), `docker compose logs
   caddy` for certificates and traffic. Logs are rotated by Docker.
 - **The model bill.** The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay`
@@ -792,75 +860,110 @@ Still missing before a public launch, in rough order of importance:
 
 ## Go-live checklist
 
-Before the address leaves the team, in this order:
+Before the address leaves the team. The order is [`LAUNCH.md`](LAUNCH.md)'s, so the two pages can be worked through
+side by side: everything under **Before you start** is that runbook's section 0, **Deploy and prove it** is its
+sections 1 and 2, and so on. Each item says where in this page the detail is.
 
-1. **A domain and HTTPS.** `fly certs add`, or steps 2 and 6 of the server path. `https://…/healthz` answers `ok`,
+### Before you start (LAUNCH.md, section 0)
+
+1. **The Anthropic key, with a spend limit.** Set a monthly limit in the console; it is the only backstop that is not
+   the app's. The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1),
+   the ceiling `Limits__ChecksPerDay` (30) and `Limits__ChecksPerDayGlobal` (1000) cap the volume from the app's side.
+   A thousand checks a day is a real bill: do the arithmetic for your model and your pilot's size before raising any of
+   them, and remember that guest checks are calls made by people who never signed up (`Plans__GuestChecksPerDay=0`
+   closes that door). `LAUNCH.md` 0.3 has the per-check estimate and where to read the real number.
+2. **A support mailbox that someone reads.** `hello@<your domain>`, on the store listing, in the legal pages, and the
+   address the app tells people to write to while `Billing__Provider` is `manual` ("To change or cancel, write to
+   us."). The pages ship with `hello@orevosh.app` in them; change it.
+3. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 2, dated
+   2026-09-12, in both languages) describe what the code does in plain words and are not legal advice: the
+   governing-law line is a placeholder, the contact address must be a mailbox someone reads, and the stores want both
+   pages at a public URL. The guidelines page (linked from signup with the two) says what gets reported and what
+   happens to a report, what deletion removes, and that the photos are the person's own. Change anything you would not
+   stand behind; the version line at the bottom moves with the text (`views/legal.js`).
+4. **Age is self-declared, and the limits say so.** A date of birth typed at signup is not age assurance; the README's
+   "Known limitations" is the honest list. Read it, decide who you invite, and plan the age-signal integration before
+   a public launch.
+
+### Deploy and prove it (LAUNCH.md, sections 1 and 2)
+
+5. **The production origin in the code, before the build.** `node tools/set-origin.js https://looks.example.com`
+   writes your domain into the Open Graph and Twitter tags in `src/FitCheck.Api/wwwroot/index.html` (`og:url`,
+   `og:image`, `twitter:image`), the absolute URLs at the top of `wwwroot/landing/index.html` and `index.he.html`
+   (canonical, hreflang, `og:url`, `og:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+   These are static files inside the image, so this runs **before** `fly deploy` or `docker compose build`. The URLs
+   table in `STORE.md` and `mobile/README.md`'s `WKAppBoundDomains` note are yours by hand. Then paste a link into a
+   chat app and check the card shows the 1200×630 image.
+6. **A domain and HTTPS.** `fly certs add`, or steps 2 and 6 of the server path. `https://…/healthz` answers `ok`,
    the padlock is there on a phone, and the app installs to the home screen.
-2. **The production origin in the code.** `https://looks.example.com` is a placeholder in a handful of files; replace it
-   with your domain and redeploy: the Open Graph and Twitter tags in `src/FitCheck.Api/wwwroot/index.html` (`og:url`,
-   `og:image`, `twitter:image`), the four absolute URLs at the top of `wwwroot/landing/index.html` and
-   `index.he.html` (canonical, hreflang, `og:url`, `og:image`), `mobile/capacitor.config.json` (`server.url`,
-   `allowNavigation`) with `mobile/README.md`'s `WKAppBoundDomains` note, and the URLs table in `STORE.md`. Then paste a
-   link into a chat app and check the card shows the 1200×630 image.
-3. **The Anthropic key with a spend limit.** Set a monthly limit in the console; the plan caps (`Plans__FreeChecksPerDay`
-   3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1), the ceiling `Limits__ChecksPerDay` (30) and
-   `Limits__ChecksPerDayGlobal` (1000) cap the volume from the app's side. A thousand checks a day is a real bill: do
-   the arithmetic for your model and your pilot's size before raising any of them, and remember that guest checks are
-   calls made by people who never signed up (`Plans__GuestChecksPerDay=0` closes that door).
-4. **Plans and billing decided.** For a pilot leave `Billing__Provider=manual` and grant Pro with `--pro`; set
-   `Plans__ProPriceText` only when there is a price. To charge, set up Stripe in test mode, run the Stripe CLI against
-   the webhook, pay once with the test card, and only then switch to live keys ("Plans and billing"). Never switch the
-   provider to `stripe` with keys you have not tested.
-5. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
+7. **Green before anyone arrives.** `curl -s https://…/readyz` answers `{"ok":true,…}` — `db`, `storage` and, while
+   `Storage:Transcode` is on, `ffmpeg`, each `"ok"`; a 503 names what is not. Then `--doctor` for the settings
+   `/readyz` cannot see, and `--doctor --live` once for the things outside the machine (Anthropic, SMTP, Stripe).
+   Keep the uptime checker on `/healthz`; `/readyz` is the one you read when something is wrong.
+8. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
    one: someone has to look at the queue every day.
-6. **The first brands verified.** Each brand account that you know is the brand (you spoke to them, the handle is on
+9. **The first brands verified.** Each brand account that you know is the brand (you spoke to them, the handle is on
    their site) gets `--verify <handle>` and the check inside its BRAND mark; anyone else stays a self-declared brand.
    `--unverify` when that changes. `MARKETING.md`'s "week 0" is when this happens.
-7. **VAPID keys** set once (`--vapid`) and never regenerated.
-8. **Email** pointed at a real provider, `Email__PublicOrigin` set to the domain, and tested with your own address.
-   Without a provider a forgotten password means a new account; without the origin, no link goes out on a server.
-9. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
-   On Fly: the daily snapshots are on, plus a weekly `--backup` and `fly sftp get` of your own. Restore one once,
-   before you need to.
-10. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 2, dated
-    2026-09-12, in both languages) describe what the code does in plain words and are not legal advice: the
-    governing-law line is a placeholder, the contact address `hello@orevosh.app` must be a mailbox someone reads, and the
-    stores want both pages at a public URL. The guidelines page (linked from signup with the two) says what gets
-    reported and what happens to a report, what deletion removes, and that the photos are the person's own. Change
-    anything you would not stand behind; the version line at the bottom moves with the text (`views/legal.js`).
-11. **Age is self-declared, and the limits say so.** A date of birth typed at signup is not age assurance; the
-    README's "Known limitations" is the honest list. Read it, decide who you invite, and plan the age-signal
-    integration before a public launch.
-12. **Watch the disk.** Clips are up to 40 MB each and a media backup is the whole folder: `df -h` weekly on a server,
-    `fly ssh console -C "df -h /data"` on Fly, and grow the volume before it fills. A full disk stops uploads and, worse,
-    writes.
-13. **Transcoding needs ffmpeg in the image and CPU to spare.** With `ffmpeg` on the machine the app re-encodes clips to
-    H.264 MP4 in the background (`Storage__Transcode`, on by default; `Storage__FfmpegPath` when it is not on the PATH),
-    so an Android WebM plays on iPhones. Check `https://…/api/config`: `"transcoding": true` means it is running;
-    `false` means the image has no ffmpeg (add `ffmpeg` to the `apt-get install` line of the Dockerfile's runtime
-    stage and redeploy) and clips play only where the sender's codec does. A 30-second clip takes on the order of a
-    minute of a shared CPU; on Fly, `fly scale vm shared-cpu-2x` if the app gets sluggish while a clip converts.
-14. **Rate limits that fit the launch.** Signups per address (50 an hour), logins (30 per quarter hour), comments (30
+10. **VAPID keys** set once (`--vapid`) and never regenerated.
+11. **Email** pointed at a real provider, `Email__PublicOrigin` set to the domain, SPF and DKIM verified with the
+    provider, and tested with your own address. Without a provider a forgotten password means a new account; without
+    the origin, no link goes out on a server.
+
+### The settings that must be right before the first week
+
+12. **The board's week is your users' week.** `Board__TimeZone` and `Board__WeekStartsOn` (`Asia/Jerusalem`, `Sunday`)
+    cut the week and label the archive; set them to where your people live before the first week runs, because a
+    change later moves every week's edges. The morning after the first close, `grep "Board:"` in the log should show
+    `closed, N rows`, and `#/board/hall` the week ("The weekly board and store links").
+13. **Decide the sponsor.** `Board__Sponsor__Name` (with `Handle`, `PrizeText`, `Url`) puts "Presented by" on the board
+    with the prize; leave it unset until a brand has agreed to a prize with you, and unset it again when the week is
+    over. `Url` is an `http(s)` link (a bare host is read as `https://`); anything else is dropped with a warning in
+    the start log and the name shows without a link. There is no self-service, so this is your word on the board.
+14. **Affiliate hosts only for programmes you joined, and keep the disclosure on.** One `Affiliate__Hosts__<host>` line
+    per programme whose terms you accepted; with none, nothing is appended and nobody earns anything. The commission
+    line shows under every store link while `Affiliate__Disclosure` is `true`, the default: leave it on, the programmes'
+    terms and consumer law expect it. The store gets no referrer from the app.
+15. **`--verify` the brands that tag products.** A brand account whose looks carry store links, and any brand that
+    sponsors a week, is one you have spoken to; the check inside its mark says so. Anyone else's brand and model on a
+    piece is their own word (README, "Known limitations"), and the queue is the answer when it is abused.
+16. **Rate limits that fit the launch.** Signups per address (50 an hour), logins (30 per quarter hour), comments (30
     an hour per account) and reports (20 an hour per account) are pilot numbers; a launch party on one Wi-Fi needs
     `Limits__SignupsPerHourPerIp` raised for the evening, and the per-account ones (`Limits__CommentsPerHour`,
     `Limits__ReportsPerHour`) are meant to stay where nobody meets them by hand. The guest cap is per address too:
     one free check per address a day means a whole café shares one, which is the intended side; it counts looks given,
     so a refused photo does not spend the café's look, and `Plans__GuestAttemptsPerDay` (20) brakes attempts on top.
-15. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
+17. **Transcoding needs ffmpeg in the image and CPU to spare.** With `ffmpeg` on the machine the app re-encodes clips to
+    H.264 MP4 in the background (`Storage__Transcode`, on by default; `Storage__FfmpegPath` when it is not on the PATH),
+    so an Android WebM plays on iPhones. Check `https://…/api/config`: `"transcoding": true` means it is running;
+    `false` means the image has no ffmpeg (add `ffmpeg` to the `apt-get install` line of the Dockerfile's runtime
+    stage and redeploy) and clips play only where the sender's codec does — `/readyz` reports the same thing as a
+    failing `ffmpeg` check. A 30-second clip takes on the order of a minute of a shared CPU; on Fly,
+    `fly scale vm shared-cpu-2x` if the app gets sluggish while a clip converts.
+18. **Watch the disk.** Clips are up to 40 MB each and a media backup is the whole folder: `df -h` weekly on a server,
+    `fly ssh console -C "df -h /data"` on Fly, and grow the volume before it fills. A full disk stops uploads and, worse,
+    writes.
+
+### The first day (LAUNCH.md, section 3)
+
+19. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
     browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
     `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).
-16. **The board's week is your users' week.** `Board__TimeZone` and `Board__WeekStartsOn` (`Asia/Jerusalem`, `Sunday`)
-    cut the week and label the archive; set them to where your people live before the first week runs, because a
-    change later moves every week's edges. The morning after the first close, `grep "Board:"` in the log should show
-    `closed, N rows`, and `#/board/hall` the week ("The weekly board and store links").
-17. **Decide the sponsor.** `Board__Sponsor__Name` (with `Handle`, `PrizeText`, `Url`) puts "Presented by" on the board
-    with the prize; leave it unset until a brand has agreed to a prize with you, and unset it again when the week is
-    over. `Url` is an `http(s)` link (a bare host is read as `https://`); anything else is dropped with a warning in
-    the start log and the name shows without a link. There is no self-service, so this is your word on the board.
-18. **Affiliate hosts only for programmes you joined, and keep the disclosure on.** One `Affiliate__Hosts__<host>` line
-    per programme whose terms you accepted; with none, nothing is appended and nobody earns anything. The commission
-    line shows under every store link while `Affiliate__Disclosure` is `true`, the default: leave it on, the programmes'
-    terms and consumer law expect it. The store gets no referrer from the app.
-19. **`--verify` the brands that tag products.** A brand account whose looks carry store links, and any brand that
-    sponsors a week, is one you have spoken to; the check inside its mark says so. Anyone else's brand and model on a
-    piece is their own word (README, "Known limitations"), and the queue is the answer when it is abused.
+20. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
+    On Fly: the daily snapshots are on, plus a weekly `--backup /data/backups --keep 7` and `fly sftp get` of your own.
+    Restore one once, before you need it.
+21. **Turn the request log on for the first days.** `Logging__Requests=true` adds one line per request — the method,
+    the path, the status and how long it took — which is how you see what people actually do and what fails. Turn it
+    off once the launch is quiet; it is a lot of lines.
+
+### Money, and later (LAUNCH.md, sections 4 and 5)
+
+22. **Plans and billing decided.** For a pilot leave `Billing__Provider=manual` and grant Pro with `--pro`; set
+    `Plans__ProPriceText` only when there is a price. To charge, set up Stripe in test mode, save a Customer portal
+    configuration in Stripe's dashboard, run `--stripe-check`, run the Stripe CLI against the webhook, pay once with
+    the test card, press "Manage subscription" and cancel from the portal, and only then switch to live keys ("Plans
+    and billing"). Never switch the provider to `stripe` with keys you have not tested.
+23. **Before a store submission**, and not before you need it: real screenshots (19), the block-a-person feature
+    (in the app since Round 11: the look's menu, the profile's menu, and Settings → Blocked accounts — Apple's
+    guideline 1.2 requires it), the in-app data export and account deletion for the privacy forms, the support URL and
+    the privacy policy URL, and the payments rule for the wrapped app. `STORE.md` and `mobile/README.md`.

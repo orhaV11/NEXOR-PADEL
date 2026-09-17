@@ -49,7 +49,13 @@ public static partial class AuthEndpoints
     /// </summary>
     public static async Task<MeDto> ToMeAsync(AppDbContext db, AppUser user, CancellationToken ct)
     {
-        var unread = await db.Notifications.CountAsync(n => n.UserId == user.Id && n.ReadAt == null, ct);
+        // Round 11: the badge counts what Activity would show, through the one query that decides it
+        // (NotificationEndpoints.VisibleAsync), so a line from an account on either side of a block raises neither the
+        // badge nor a row; a count the list contradicts would be a badge that comes back on every load and never clears.
+        // Blocks is scoped like the request; it comes from the container through the context, the way the board does below.
+        var blocks = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Blocks>(db);
+        var visible = await NotificationEndpoints.VisibleAsync(db, blocks, user.Id, ct);
+        var unread = await visible.CountAsync(n => n.ReadAt == null, ct);
         var interests = (user.Interests ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         // The plan as the client should read it ("pro" only while the paid period runs) and the day's allowance: the cap
         // for this plan, and what is spent of it, checks and comparisons over the same rolling 24 hours the check route

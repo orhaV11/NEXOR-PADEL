@@ -1,0 +1,360 @@
+<!doctype html>
+<!-- The visual pack for the two accounts (Instagram and TikTok): the profile-picture candidates and their test
+     sheet, the nine-tile grid opener, the first three posts in both languages, the TikTok covers with their safe
+     area, the "link in bio" story and the face-reveal card. One template, one layout per file, picked by
+     data-layout on <body>; the sizes come from --w/--h, the colours and the two faces from base.css.
+
+     The layouts live in <template> elements and the script at the end of the body clones the one that is asked
+     for, so a file only ever carries the markup it needs and no unused <img> is left with an empty src. -->
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<title>OREVOSH — social {{layout}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<script>
+  /* ── FACE_REVEAL_TARGET ───────────────────────────────────────────────────────────────────────────────────
+     The follower count printed on brand-kit/social/face-reveal-en.png and face-reveal-he.png, and the only
+     place it is written. Change this one line and re-run `node tools/brand/render-kit.js social` to re-render
+     both cards at a different target ("25K", "100K", "1M"). Everything else on the card is language copy and
+     lives in SOCIAL in render-kit.js. */
+  const FACE_REVEAL_TARGET = '50K';
+</script>
+<style>
+  :root { --w: {{w}}px; --h: {{h}}px; }
+
+  /* ── the mark inside a circular crop ──────────────────────────────────────────────────────────────────────
+     mark.svg is a 512×512 box, but the ink does not fill it and is not centred in it: measured at 4× the ink
+     runs x 80→463.75, y 40.25→468, and the smallest circle that holds all of it sits at (304.25, 234.5) with
+     radius 251.184 — up and to the right of the box's centre, because the flame flies out of the ring's
+     top-right. Both apps crop a profile picture to a circle, so the honest way to size the mark is that ink
+     circle: --fit is the share of the tile it fills, and the mark is hung so its centre lands on the tile's
+     centre. --fit .78 leaves an 11% margin to the crop's edge, .88 leaves 6%. Centring the 512 box instead
+     (what brand-kit/logos/avatar-1024.png does) throws the ink 70 px off-centre and costs a fifth of the size
+     for the same margin. */
+  .avatar { position: absolute; inset: 0; }
+  .avatar .mark {
+    --r: calc(var(--w) * var(--fit) / 2);
+    --s: calc(var(--r) / 251.184);
+    position: absolute;
+    width: calc(512 * var(--s));
+    left: calc(var(--w) / 2 - 304.25 * var(--s));
+    top: calc(var(--h) / 2 - 234.5 * var(--s));
+  }
+  /* the mark's own halo of DESIGN.md §3, opened up to the size of a tile */
+  body.ground-stage .avatar::before { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(58% 58% at 50% 46%, rgba(179,157,255,.16), transparent 70%); }
+  /* the deeper gradient pair of DESIGN.md §1 (the one light grounds use), so white ink keeps its contrast */
+  body.ground-grad { background: linear-gradient(135deg, #7d5cff 0%, #ff5c92 100%); }
+
+  /* ── the avatar test sheet ────────────────────────────────────────────────────────────────────────────── */
+  body[data-layout="avatartest"] { background: #17171f; }
+  .sheet { position: absolute; inset: 0; padding: 48px 56px; box-sizing: border-box; display: flex; flex-direction: column; }
+  .sheet h1 { font-family: var(--font-display); font-weight: 800; font-size: 34px; margin: 0; letter-spacing: -.01em; }
+  .sheet .lede { font-size: 20px; color: var(--ink-2); margin: 10px 0 0; }
+  .band { margin-top: 26px; border-radius: 20px; padding: 26px 34px 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .band.dark { background: #0b0b0f; box-shadow: inset 0 0 0 1px #2b2b36; }
+  .band.white { background: #ffffff; }
+  .band.zoom { background: #0b0b0f; box-shadow: inset 0 0 0 1px #2b2b36; }
+  .group { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .circles { display: flex; align-items: flex-end; gap: 30px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .dot { display: block; border-radius: 50%; overflow: hidden; flex: none; }
+  .dot img { width: 100%; height: 100%; display: block; }
+  .px { font-size: 15px; font-weight: 700; letter-spacing: .06em; color: var(--ink-3); }
+  .band.white .px { color: #7f7f8e; }
+  .cap { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.01em; }
+  .band.white .cap { color: #0b0b0f; }
+  .zoomdot { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; transform: scale(4); transform-origin: top left; }
+  .zoomdot img { width: 100%; height: 100%; image-rendering: pixelated; }
+  .zoombox { width: 128px; height: 128px; }
+
+  /* ── the nine-tile grid opener ────────────────────────────────────────────────────────────────────────────
+     Every tile renders the same 3240×3240 composition and slides it by its column and row, so the nine files
+     line up seamlessly when the profile puts them back together. */
+  .gridwrap { position: absolute; inset: 0; overflow: hidden; }
+  .comp { position: absolute; width: 3240px; height: 3240px;
+    left: calc(-1080px * var(--col)); top: calc(-1080px * var(--row));
+    background: #0b0b0f;
+    background-image:
+      radial-gradient(52% 26% at 50% -2%, rgba(179,157,255,.22), transparent 64%),
+      radial-gradient(22% 22% at 16% 46%, rgba(255,106,43,.20), transparent 70%);
+  }
+  .comp > * { position: absolute; margin: 0; }
+  .c-center { left: 50%; transform: translate(-50%, -50%); text-align: center; }
+  .g-mark { left: 540px; top: 540px; width: 460px; }
+  .g-caps { left: 1620px; top: 540px; font-size: 62px; white-space: nowrap; }
+  .g-ring { left: 2700px; top: 540px; }
+  .g-word { left: 1620px; top: 1483px; width: 2700px; }
+  /* 132 px keeps the whole slogan inside the middle tile: the wordmark is big enough that a letter cut by a
+     gutter still reads as a letterform, but a sliver of a word in tile 4 or 6 would just look like a mistake. */
+  .g-slogan { left: 1620px; top: 1943px; font-size: 132px; width: 1000px; }
+  .g-tag { left: 540px; top: 2700px; width: 880px; font-size: 62px; }
+  .g-pill { left: 1620px; top: 2700px; height: 140px; padding: 0 72px; font-size: 56px; }
+  .g-line { left: 2700px; top: 2700px; width: 820px; font-size: 62px; color: var(--ink-2); }
+
+  /* the score ring of DESIGN.md §3, drawn at poster size */
+  .ring { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: var(--d); height: var(--d); border-radius: 50%; box-sizing: border-box;
+    border: calc(var(--d) * .062) solid transparent;
+    background: linear-gradient(#0b0b0f, #0b0b0f) padding-box, var(--grad) border-box; }
+  .ring b { font-family: var(--font-display); font-weight: 800; font-size: calc(var(--d) * .42); line-height: 1; letter-spacing: -.03em; }
+  .ring small { font-family: var(--font-body); font-weight: 700; font-size: calc(var(--d) * .11); line-height: 1; letter-spacing: .04em; color: var(--ink-3); margin-top: calc(var(--d) * .02); }
+
+  /* ── the grid preview ─────────────────────────────────────────────────────────────────────────────────── */
+  .preview { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 356px); grid-template-rows: repeat(3, 356px); gap: 6px; background: #2b2b36; }
+  .tiles img { width: 356px; height: 356px; }
+  .previewfoot { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #0b0b0f; }
+  .previewfoot .line { font-family: var(--font-display); font-weight: 700; font-size: 34px; }
+  .previewfoot .sub { font-size: 24px; color: var(--ink-2); }
+
+  /* ── the first posts, 1080×1350 ───────────────────────────────────────────────────────────────────────── */
+  .post { --pw: 392px; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 64px 72px 56px; box-sizing: border-box; }
+  .post .wordmark { height: 44px; width: auto; }
+  .post h1 { font-size: 78px; margin-top: 32px; }
+  .post .sub { font-size: 30px; line-height: 1.4; margin: 18px 0 0; min-height: 2.8em; max-width: 880px; color: var(--ink-2); font-weight: 500; }
+  .post .device { position: relative; margin-top: 14px; }
+  .post .device::before { content: ""; position: absolute; inset: -5% -26% auto; height: 66%; border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255,143,177,.16), transparent 70%); }
+  .post .phone { position: relative; }
+  .post .pill { margin-top: auto; height: 84px; padding: 0 48px; font-size: 34px; }
+
+  /* ── the TikTok covers, the safe-area guide, the link story and the face reveal, all 1080×1920 ──────────
+     TikTok covers the bottom 320 px with the caption, the sound bar and the buttons, and the right 180 px with
+     the action rail; those are physical edges, so the padding here is physical too (left/right, not
+     inline-start/end) and the Hebrew files keep their words out of exactly the same strips. The column is
+     700 px wide and centred, which puts its edges at x 190 and x 890: clear of the rail either way. */
+  .story { --pw: 400px; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+    justify-content: center; padding: 210px 190px 392px; box-sizing: border-box; }
+  .story .wordmark { height: 56px; width: auto; }
+  .story h1 { font-size: 84px; margin-top: 40px; }
+  .story .sub { font-size: 34px; line-height: 1.4; margin: 24px 0 0; color: var(--ink-2); font-weight: 500; }
+  .story .sub:empty { display: none; }
+  .story .device { position: relative; margin-top: 44px; }
+  .story .device::before { content: ""; position: absolute; inset: -6% -22% auto; height: 70%; border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255,143,177,.16), transparent 70%); }
+  .story .phone { position: relative; }
+
+  /* the safe-area guide: the two strips TikTok takes, drawn over a real cover */
+  .safe { position: absolute; inset: 0; }
+  .safe .zone { position: absolute; background: rgba(255,93,122,.30); border: 4px dashed #ff5d7a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; box-sizing: border-box; }
+  .safe .zone.bottom { left: 0; right: 0; bottom: 0; height: 320px; }
+  .safe .zone.right { top: 0; bottom: 320px; right: 0; width: 180px; }
+  .safe .zone b { font-family: var(--font-display); font-weight: 800; font-size: 40px; letter-spacing: .02em; }
+  .safe .zone span { font-size: 26px; color: #ffe3e9; }
+  .safe .zone.right { writing-mode: vertical-rl; }
+  .safe .zone.right b { font-size: 34px; }
+  .safe .zone.right span { font-size: 24px; }
+  /* the guide's own line obeys the guide: 200 px of padding keeps it out of the rail it is warning about */
+  .safe .note { position: absolute; left: 0; right: 0; top: 64px; padding: 0 200px; box-sizing: border-box; text-align: center;
+    font-family: var(--font-body); font-weight: 700; font-size: 28px; letter-spacing: .06em; text-transform: uppercase; color: #ff9fb2; }
+
+  /* the link story: a big arrow up at the profile chip, which sits at the start edge in both directions */
+  .linkstory { position: absolute; inset: 0; padding: 250px 190px 392px; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: flex-start; text-align: start; }
+  .linkstory .arrow { width: 300px; height: 456px; margin-inline-start: 30px; }   /* 250:380, the viewBox's own ratio */
+  .linkstory h1 { font-size: 104px; margin-top: 56px; }
+  .linkstory .sub { font-size: 38px; line-height: 1.35; margin: 26px 0 0; color: var(--ink-2); font-weight: 500; }
+  .linkstory .foot { margin-top: auto; font-size: 34px; max-width: 640px; }
+  .linkstory .wordmark { height: 56px; width: auto; margin-top: 34px; }
+
+  /* the face reveal: the number is the whole card */
+  .reveal { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+    justify-content: center; padding: 210px 190px 392px; box-sizing: border-box; }
+  .reveal .wordmark { height: 52px; width: auto; }
+  .reveal .kicker { margin-top: 72px; font-size: 38px; color: var(--accent); }
+  /* 360 px keeps "50K" inside the 700 px column, so the widest thing on the card still clears the action rail */
+  .reveal .big { font-family: var(--font-display); font-weight: 800; font-size: 360px; line-height: .92;
+    letter-spacing: -.04em; margin: 18px 0 0; text-shadow: 0 0 120px rgba(179,157,255,.45); }
+  .reveal .rule { width: 260px; height: 8px; border-radius: 999px; background: var(--grad); margin-top: 40px; }
+  .reveal .sub { font-size: 38px; line-height: 1.4; margin: 36px 0 0; color: var(--ink-2); font-weight: 500; }
+  .reveal .pill { margin-top: 48px; height: 92px; padding: 0 52px; font-size: 36px; }
+</style>
+</head>
+<body class="{{bodyClass}}" data-layout="{{layout}}">
+
+<template id="l-avatar">
+  <div class="avatar" style="--fit: {{fit}}"><img class="mark" src="{{mark}}" alt=""></div>
+</template>
+
+<template id="l-avatartest">
+  <div class="sheet">
+    <h1>Profile picture — the three candidates in a circular crop</h1>
+    <p class="lede">The rendered 1080 px files, scaled the way a feed scales them: 150 px is a profile, 56 px a profile row, 40 px a comment, 32 px a feed row.</p>
+    <div class="band dark">
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{a}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{a}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{a}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{a}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">A — tight</div>
+      </div>
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{b}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{b}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{b}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{b}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">B — gradient ground</div>
+      </div>
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{c}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{c}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{c}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{c}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">C — ring bleed</div>
+      </div>
+    </div>
+    <div class="band white">
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{a}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{a}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{a}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{a}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">A — tight</div>
+      </div>
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{b}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{b}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{b}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{b}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">B — gradient ground</div>
+      </div>
+      <div class="group">
+        <div class="circles">
+          <div class="cell"><i class="dot" style="width:150px;height:150px"><img src="{{c}}" alt=""></i><span class="px">150</span></div>
+          <div class="cell"><i class="dot" style="width:56px;height:56px"><img src="{{c}}" alt=""></i><span class="px">56</span></div>
+          <div class="cell"><i class="dot" style="width:40px;height:40px"><img src="{{c}}" alt=""></i><span class="px">40</span></div>
+          <div class="cell"><i class="dot" style="width:32px;height:32px"><img src="{{c}}" alt=""></i><span class="px">32</span></div>
+        </div>
+        <div class="cap">C — ring bleed</div>
+      </div>
+    </div>
+    <div class="band zoom">
+      <div class="group">
+        <div class="zoombox"><div class="zoomdot"><img src="{{a}}" alt=""></div></div>
+        <div class="cap">A at 32 px, magnified 4×</div>
+      </div>
+      <div class="group">
+        <div class="zoombox"><div class="zoomdot"><img src="{{b}}" alt=""></div></div>
+        <div class="cap">B at 32 px, magnified 4×</div>
+      </div>
+      <div class="group">
+        <div class="zoombox"><div class="zoomdot"><img src="{{c}}" alt=""></div></div>
+        <div class="cap">C at 32 px, magnified 4×</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="l-grid">
+  <div class="gridwrap">
+    <div class="comp" style="--col: {{col}}; --row: {{row}}">
+      <img class="g-mark c-center" src="{{mark}}" alt="">
+      <div class="g-caps c-center caps">{{caps}}</div>
+      <div class="g-ring c-center"><div class="ring" style="--d: 360px"><b>9</b><small>/10</small></div></div>
+      <img class="g-word c-center wordmark" src="{{wordmark}}" alt="OREVOSH">
+      <h1 class="g-slogan c-center display">{{slogan}}</h1>
+      <p class="g-tag c-center tagline">{{tagline}}</p>
+      <div class="g-pill c-center pill">{{cta}}</div>
+      <p class="g-line c-center tagline">{{line}}</p>
+    </div>
+  </div>
+</template>
+
+<template id="l-gridpreview">
+  <div class="preview">
+    <div class="tiles">
+      <img src="{{t1}}" alt=""><img src="{{t2}}" alt=""><img src="{{t3}}" alt="">
+      <img src="{{t4}}" alt=""><img src="{{t5}}" alt=""><img src="{{t6}}" alt="">
+      <img src="{{t7}}" alt=""><img src="{{t8}}" alt=""><img src="{{t9}}" alt="">
+    </div>
+    <div class="previewfoot">
+      <div class="line">Upload grid-9 first, then 8, 7 … down to grid-1.</div>
+      <div class="sub">The profile stacks newest first, so they land 1 2 3 across the top row.</div>
+    </div>
+  </div>
+</template>
+
+<template id="l-post">
+  <main class="post">
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+    <h1 class="display">{{title}}</h1>
+    <p class="sub">{{sub}}</p>
+    <div class="device"><div class="phone"><div class="screen">{{{screen}}}</div></div></div>
+    <div class="pill">{{cta}}</div>
+  </main>
+</template>
+
+<template id="l-cover">
+  <main class="story">
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+    <h1 class="display">{{title}}</h1>
+    <p class="sub">{{sub}}</p>
+    <div class="device"><div class="phone"><div class="screen">{{{screen}}}</div></div></div>
+  </main>
+</template>
+
+<template id="l-safearea">
+  <main class="story">
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+    <h1 class="display">{{title}}</h1>
+    <p class="sub">{{sub}}</p>
+    <div class="device"><div class="phone"><div class="screen">{{{screen}}}</div></div></div>
+  </main>
+  <div class="safe">
+    <div class="note">Keep every word out of the red</div>
+    <div class="zone bottom"><b>BOTTOM 320 PX</b><span>caption, handle, the sound bar, the buttons</span></div>
+    <div class="zone right"><b>RIGHT 180 PX</b><span>the action rail</span></div>
+  </div>
+</template>
+
+<template id="l-link">
+  <main class="linkstory">
+    <svg class="arrow" viewBox="0 0 250 380" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="ov-arrow" gradientUnits="userSpaceOnUse" x1="40" y1="370" x2="230" y2="20">
+          <stop offset="0" stop-color="#ff8fb1"/><stop offset="1" stop-color="#b39dff"/>
+        </linearGradient>
+      </defs>
+      <path d="M125 372 C125 250 125 160 125 44" stroke="url(#ov-arrow)" stroke-width="30" stroke-linecap="round"/>
+      <path d="M36 128 L125 30 L214 128" stroke="url(#ov-arrow)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1 class="display">{{title}}</h1>
+    <p class="sub">{{sub}}</p>
+    <p class="foot tagline">{{tagline}}</p>
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+  </main>
+</template>
+
+<template id="l-reveal">
+  <main class="reveal">
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+    <div class="kicker caps">{{kicker}}</div>
+    <p class="big num" data-face-target>50K</p>
+    <div class="rule"></div>
+    <p class="sub">{{sub}}</p>
+    <div class="pill">{{cta}}</div>
+  </main>
+</template>
+
+<script>
+  document.body.appendChild(document.getElementById('l-' + document.body.dataset.layout).content.cloneNode(true));
+  for (const el of document.querySelectorAll('[data-face-target]')) el.textContent = FACE_REVEAL_TARGET;
+</script>
+</body>
+</html>

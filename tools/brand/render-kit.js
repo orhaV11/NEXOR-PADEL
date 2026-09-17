@@ -10,7 +10,7 @@
   change, a new screenshot, or a new format, by running:
 
       node tools/brand/render-kit.js                 # everything
-      node tools/brand/render-kit.js stories store   # one or more categories: logos covers stories store web
+      node tools/brand/render-kit.js stories store   # one or more categories: logos covers stories store social web
       node tools/brand/render-kit.js readme          # only rewrite brand-kit/README.md from the files present
 
   Needs playwright (npm install in tools/brand, or NODE_PATH=tools/e2e/node_modules) and a Chromium: the one
@@ -322,6 +322,118 @@ for (const l of ['en', 'he']) {
   }
 }
 
+// ---------- the social pack ----------
+
+/* The visual pack for the two accounts (templates/social.html): the profile pictures and the sheet they were
+   judged on, the nine-tile grid opener, the first three posts, the TikTok covers and their safe-area guide, the
+   link story and the face-reveal card. English first — the account is international and the host never speaks, so
+   every word is on-screen text in English; the Hebrew files are the Israeli launch track, same layouts, RTL.
+   The follower number on the face-reveal card is not here: it is FACE_REVEAL_TARGET at the top of
+   templates/social.html, so one line changes both cards. */
+
+// Which candidate ships as the account's picture. Change it, re-run, and the two avatar files follow.
+const AVATAR_PICK = 'c';
+
+const SOCIAL = {
+  en: {
+    postCta: 'Check yours. Coming soon.',
+    grid: { caps: 'Fit · Color · Accessories', cta: 'Coming soon.', line: 'Fire is the only reaction.' },
+    posts: [
+      { id: 'what-it-is', title: 'Check the look.', sub: 'Ten seconds. A score out of 10, the breakdown, and the one tip.', shot: '07-check-ready-en.png', use: 'what the app is' },
+      { id: 'the-one-tip', title: '9/10 and the one tip', sub: '“Swap the black tights for sheer brown and the column runs unbroken.”', shot: '08-result-en.png', use: 'the result and the one tip' },
+      { id: 'brands', title: 'Tag the brands you wear', sub: 'They see it. They feature the looks they love.', shot: '11-featured-en.png', use: 'the brands' },
+    ],
+    covers: [
+      { title: 'Check the look.', sub: '', shot: '07-check-ready-en.png', use: 'the slogan over the check screen' },
+      { title: '9/10 and the one tip', sub: 'The score, the breakdown, one thing to change.', shot: '08-result-en.png', use: 'the verdict' },
+    ],
+    link: { title: 'Link in bio', sub: 'Tap the name at the top.' },
+    reveal: { kicker: 'Face reveal', sub: 'Followers. Then the mask comes off.', cta: 'Follow to be there.' },
+  },
+  he: {
+    postCta: 'בקרוב. עוקבים כדי לדעת מתי.',
+    posts: [
+      { id: 'what-it-is', title: 'בודקים את הלוק.', sub: 'עשר שניות. ציון מתוך 10, הפירוט, והטיפ האחד.', shot: '16-home-he.png', use: 'what the app is' },
+      // The Hebrew result the browser test captured scored 6/10, so the headline follows the picture (as in stories).
+      { id: 'the-one-tip', title: '6/10 והטיפ האחד', sub: '"שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט."', shot: '00-guest-result-he.png', use: 'the result and the one tip' },
+      { id: 'brands', title: 'אילו מותגים אתם לובשים', sub: 'הם רואים. הם מציגים את הלוקים שהם אוהבים.', shot: '14-tag-he.png', use: 'the brands' },
+    ],
+    covers: [
+      { title: 'בודקים את הלוק.', sub: '', shot: '16-home-he.png', use: 'the slogan over the feed' },
+      { title: '6/10 והטיפ האחד', sub: 'הציון, הפירוט, ודבר אחד לשנות.', shot: '00-guest-result-he.png', use: 'the verdict' },
+    ],
+    link: { title: 'לינק בביו', sub: 'לוחצים על השם למעלה.' },
+    reveal: { kicker: 'חשיפת פנים', sub: 'עוקבים. ואז המסכה יורדת.', cta: 'עוקבים כדי להיות שם.' },
+  },
+};
+
+const dataSvg = (svg) => `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+const markSvg = fs.readFileSync(path.join(BRAND, 'mark.svg'), 'utf8');
+const socialOut = (file) => fileUrl(path.join(OUT, 'social', file));
+
+/* The three profile pictures. `fit` is the share of the tile the mark's own ink circle fills — measured, not the
+   512 box: see the note in social.html. A is the reference, B changes only the ground, C only the size. */
+const AVATARS = [
+  { id: 'a', fit: '.78', ground: 'ground-stage', mark: dataSvg(markSvg),
+    use: 'Candidate A "tight": the mark in colour on the stage, its ink circle at 78% of the tile, optically centred — 119 px of margin inside the circular crop' },
+  { id: 'b', fit: '.78', ground: 'ground-grad', mark: dataSvg(mono(markSvg, '#ffffff')),
+    use: 'Candidate B "gradient ground": the mark in white on the deeper lilac→rose pair, at A\'s size, so the pair only tests the ground — a light tile in a dark feed' },
+  { id: 'c', fit: '.88', ground: 'ground-stage', mark: dataSvg(markSvg),
+    use: 'Candidate C "ring bleed": the same mark on the stage at 88%, the ring\'s stroke 65 px from the crop\'s edge' },
+];
+const avatarJob = (a) => ({ template: 'social.html', w: 1080, h: 1080, lossless: true,
+  params: { layout: 'avatar', bodyClass: a.ground, fit: a.fit, mark: a.mark, ...lang('en') } });
+for (const a of AVATARS) add('social', `avatar-${a.id}.png`, { ...avatarJob(a), use: a.use });
+add('social', 'avatar-test.png', { template: 'social.html', w: 1440, h: 1016, lossless: true,
+  params: { layout: 'avatartest', bodyClass: '', a: socialOut('avatar-a.png'), b: socialOut('avatar-b.png'), c: socialOut('avatar-c.png'), ...lang('en') },
+  use: 'The test the pick was made on: the three files circle-cropped at 150 / 56 / 40 / 32 px on a dark row and on white, and the 32 px crop magnified 4× underneath. Not for posting' });
+const winner = AVATARS.find((a) => a.id === AVATAR_PICK);
+add('social', 'instagram-avatar-1080.png', { ...avatarJob(winner), use: `The Instagram profile picture: candidate ${AVATAR_PICK.toUpperCase()} (AVATAR_PICK in render-kit.js). Upload at 1080; Instagram stores 320 and shows 150 / 56 / 32` });
+add('social', 'tiktok-avatar-1080.png', { ...avatarJob(winner), use: `The TikTok profile picture: the same file (TikTok wants at least 200×200 and crops it to a circle too)` });
+
+/* The grid opener: one 3240×3240 composition, cut into nine tiles. Each tile slides the same composition, so the
+   nine files reassemble seamlessly, and the four corners carry a detail of their own so no tile is a wasted post. */
+const GRID_TILES = ['the mark, small', 'the three things the stylist reads', 'a score ring',
+  'the wordmark\'s own ring and flame', 'the wordmark and the slogan', 'the end of the wordmark',
+  'the tagline', 'the CTA', 'the house line on reactions'];
+for (let i = 0; i < 9; i++) {
+  add('social', `grid-${i + 1}.png`, { template: 'social.html', w: 1080, h: 1080, lossless: true,
+    params: { layout: 'grid', bodyClass: '', col: i % 3, row: Math.floor(i / 3), mark: brand('mark.svg'), wordmark: brand('wordmark.svg'),
+      slogan: COPY.en.slogan, tagline: COPY.en.tagline, ...SOCIAL.en.grid, ...lang('en') },
+    use: `Grid opener ${i + 1} of 9, ${['top', 'middle', 'bottom'][Math.floor(i / 3)]} row ${['start', 'middle', 'end'][i % 3]}: ${GRID_TILES[i]}` });
+}
+add('social', 'grid-preview.png', { template: 'social.html', w: 1080, h: 1200, lossless: true,
+  params: { layout: 'gridpreview', bodyClass: '', ...Object.fromEntries([...Array(9)].map((_, i) => [`t${i + 1}`, socialOut(`grid-${i + 1}.png`)])), ...lang('en') },
+  use: 'The nine tiles assembled, with the upload order under them. Not for posting' });
+
+// The first three posts, 1080×1350 (the tallest Instagram shows whole in the feed).
+for (const l of ['en', 'he']) {
+  SOCIAL[l].posts.forEach((p, i) => add('social', `post-${i + 1}-${p.id}-${l}.png`, { template: 'social.html', w: 1080, h: 1350, lossless: hasLook(p.shot),
+    params: { layout: 'post', bodyClass: 'stage', title: p.title, sub: p.sub, cta: SOCIAL[l].postCta, wordmark: brand('wordmark.svg'), screen: screenHtml(p.shot), ...lang(l) },
+    use: `First post ${i + 1} (${l === 'he' ? 'Hebrew' : 'English'}): ${p.use}` }));
+}
+
+/* The TikTok covers and the guide to the two strips TikTok takes. Both are drawn with physical padding, so the
+   Hebrew files keep their words out of the same physical strips as the English ones. */
+for (const l of ['en', 'he']) {
+  SOCIAL[l].covers.forEach((c, i) => add('social', `tiktok-cover-${i + 1}-${l}.png`, { template: 'social.html', w: 1080, h: 1920, lossless: hasLook(c.shot),
+    params: { layout: 'cover', bodyClass: 'stage', title: c.title, sub: c.sub, wordmark: brand('wordmark.svg'), screen: screenHtml(c.shot), ...lang(l) },
+    use: `TikTok cover ${i + 1} (${l === 'he' ? 'Hebrew' : 'English'}): ${c.use}. Everything readable is out of the bottom 320 px and the right 180 px` }));
+}
+add('social', 'tiktok-safe-area.png', { template: 'social.html', w: 1080, h: 1920, lossless: true,
+  params: { layout: 'safearea', bodyClass: 'stage', title: SOCIAL.en.covers[0].title, sub: SOCIAL.en.covers[0].sub, wordmark: brand('wordmark.svg'), screen: screenHtml(SOCIAL.en.covers[0].shot), ...lang('en') },
+  use: 'The same cover with TikTok\'s two unsafe strips drawn on it: what to keep clear when filming and when making a new cover. Not for posting' });
+
+// The "link in bio" story, and the face-reveal card the masked host promises.
+for (const l of ['en', 'he']) {
+  add('social', `story-link-${l}.png`, { template: 'social.html', w: 1080, h: 1920, lossless: true,
+    params: { layout: 'link', bodyClass: 'stage', title: SOCIAL[l].link.title, sub: SOCIAL[l].link.sub, tagline: COPY[l].tagline, wordmark: brand('wordmark.svg'), ...lang(l) },
+    use: `"Link in bio" story (${l === 'he' ? 'Hebrew' : 'English'}): a big arrow up at the profile chip, which sits at the start edge in that direction` });
+  add('social', `face-reveal-${l}.png`, { template: 'social.html', w: 1080, h: 1920, lossless: true,
+    params: { layout: 'reveal', bodyClass: 'stage', kicker: SOCIAL[l].reveal.kicker, sub: SOCIAL[l].reveal.sub, cta: SOCIAL[l].reveal.cta, wordmark: brand('wordmark.svg'), ...lang(l) },
+    use: `The face-reveal promise (${l === 'he' ? 'Hebrew' : 'English'}): the target is the biggest thing on the card. Change FACE_REVEAL_TARGET in templates/social.html to move it` });
+}
+
 // ---------- rendering ----------
 
 async function main() {
@@ -436,10 +548,41 @@ function writeReadme() {
     '  and the phone inside those, but check once on a phone after uploading.', '');
   const groups = new Map();
   for (const j of jobs.filter((j) => j.category !== 'web')) { if (!groups.has(j.category)) groups.set(j.category, []); groups.get(j.category).push(j); }
-  const titles = { logos: 'logos/', covers: 'covers/', stories: 'stories/', store: 'store/' };
+  const titles = { logos: 'logos/', covers: 'covers/', stories: 'stories/', store: 'store/', social: 'social/' };
+  /* The one category with rules of its own: an upload order, two safe strips and a number in the template. */
+  const prose = {
+    social: [
+      'The pack for the two accounts, English first: the account is international and the host never speaks, so every',
+      'word is on-screen text in English and the Hebrew files are the Israeli launch track (`SOCIAL` at the top of the',
+      'social block in `render-kit.js`, same layouts, RTL).', '',
+      '- **The profile picture.** `instagram-avatar-1080.png` and `tiktok-avatar-1080.png` are the same file, candidate',
+      `  ${AVATAR_PICK.toUpperCase()} (\`AVATAR_PICK\` in \`render-kit.js\`). Both apps crop to a circle, so the mark is sized and hung by its own ink`,
+      '  circle — measured at (304.25, 234.5) r 251.184 in the 512 box, up and right of the box\'s centre because the flame',
+      '  flies out of the ring\'s top-right — not by the square it is drawn in. `avatar-test.png` is the sheet the pick was',
+      '  made on: the three candidates circle-cropped at 150 / 56 / 40 / 32 px on a dark row and on white, and the 32 px',
+      '  crop magnified 4× under them. `avatar-a/b/c.png` are kept so the choice can be re-made by eye.', '',
+      '- **The grid opener.** `grid-1.png` … `grid-9.png` are one 3240×3240 composition cut into nine.',
+      '  **Upload `grid-9` first, then 8, 7 … down to `grid-1`**: a profile stacks newest first, so uploaded in that order',
+      '  they land 1 2 3 across the top row and the wordmark reads straight across the middle. `grid-preview.png` shows',
+      '  the assembly. Every tile also stands alone — the corners carry the mark, a score ring, the tagline and the line',
+      '  about fire — so none of the nine is a wasted post.', '',
+      '- **TikTok\'s safe area.** TikTok covers the bottom 320 px with the caption, the handle, the sound bar and the',
+      '  buttons, and the right 180 px with the action rail. The covers, the link story and the face-reveal card keep every',
+      '  word and the logo inside a 700 px column centred on the canvas (x 190 → 890) with 210 px of air on top and 392 px',
+      '  at the bottom, in physical padding, so the Hebrew files clear the same strips as the English ones.',
+      '  `tiktok-safe-area.png` draws those two strips over a real cover — it is a guide, not a post.', '',
+      '- **The face reveal.** The follower target is one constant, `FACE_REVEAL_TARGET`, at the top of',
+      '  `templates/social.html`. Change that line and re-run `node render-kit.js social` to re-cut both cards at a',
+      '  different number. Announce the number up front and keep to it.', '',
+      '- Instagram posts are 1080×1350, the tallest it shows whole in the feed; a square crop of one of them loses the CTA,',
+      '  so post them as they are.', '',
+    ],
+  };
   let bytes = 0;
   for (const [cat, list] of groups) {
-    lines.push(`## ${titles[cat]}`, '', '| file | pixels | size | use |', '|---|---|---|---|');
+    lines.push(`## ${titles[cat]}`, '');
+    if (prose[cat]) lines.push(...prose[cat]);
+    lines.push('| file | pixels | size | use |', '|---|---|---|---|');
     for (const j of list) {
       if (!fs.existsSync(j.out)) continue;
       const size = fs.statSync(j.out).size; bytes += size;

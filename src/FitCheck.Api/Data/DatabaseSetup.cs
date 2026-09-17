@@ -104,8 +104,28 @@ public static class DatabaseSetup
     public static (string Database, string? Storage) Backup(string connectionString, string storageRoot, string targetDir)
     {
         Directory.CreateDirectory(targetDir);
-        var stamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var database = Path.GetFullPath(Path.Combine(targetDir, $"orevosh-{stamp}.db"));
+        // The stamp is only precise to the second, and VACUUM INTO refuses a target that exists. Two runs inside one
+        // second — a scheduler that double-fires, a retry loop, a hand on the key after a cron — would otherwise crash
+        // on "output file already exists" with a stack trace instead of a backup. Walk forward a second at a time to
+        // the first name that is free: the width stays fixed, so sorting by name is still sorting by time, and Prune
+        // and the two backup scripts keep matching the same shapes.
+        var when = DateTime.UtcNow;
+        string stamp, database;
+        for (var tries = 0; ; tries++, when = when.AddSeconds(1))
+        {
+            stamp = when.ToString("yyyyMMddHHmmss");
+            database = Path.GetFullPath(Path.Combine(targetDir, $"orevosh-{stamp}.db"));
+            if (!File.Exists(database) && !Directory.Exists(Path.Combine(targetDir, $"storage-{stamp}")))
+            {
+                break;
+            }
+
+            if (tries >= 60)
+            {
+                throw new IOException($"Every backup name from {DateTime.UtcNow:yyyyMMddHHmmss} for a minute ahead is taken in {targetDir}. Nothing was written.");
+            }
+        }
+
         using (var source = new SqliteConnection(connectionString))
         {
             source.Open();

@@ -212,7 +212,11 @@ register('challenge', async (root, params, ctx) => {
       }
     }
     c.viewer.votedPostId = result.votedPostId === undefined ? null : result.votedPostId;
-    c.votes = entries.reduce((sum, x) => sum + (x.votes || 0), 0);
+    // The challenge's own total counts every entry, including the ones a block hides from this viewer, so it must be
+    // moved by what this vote changed and never recomputed from the rows on screen: summing the visible entries would
+    // drop the tally to the visible subtotal, which is the block showing itself. Un-voting removes one, a first vote
+    // adds one, and moving a vote from another entry leaves the total where it was.
+    c.votes = Math.max(0, (c.votes || 0) + (wasMine ? -1 : previous ? 0 : 1));
     entries.sort((a, b) => (b.votes - a.votes) || (new Date(a.createdAt) - new Date(b.createdAt)));
   }
 

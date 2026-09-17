@@ -737,6 +737,50 @@ public class BackupRetentionTests : IDisposable
         Assert.True(File.Exists(Path.Combine(copy!, "look.jpg")));
     }
 
+    /// <summary>
+    /// Two backups inside one second used to crash on SQLite's "output file already exists": the name is only precise to
+    /// the second and VACUUM INTO refuses a target that is there. Both must now write a copy, and the second name must
+    /// keep the fixed width that retention sorts by.
+    /// </summary>
+    [Fact]
+    public void Two_backups_in_the_same_second_both_write_a_copy()
+    {
+        var path = Path.Combine(_root, "orevosh.db");
+        var storage = Path.Combine(_root, "storage");
+        Directory.CreateDirectory(storage);
+        File.WriteAllText(Path.Combine(storage, "look.jpg"), "photo");
+        using (var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite($"Data Source={path}").Options))
+        {
+            db.Database.Migrate();
+        }
+
+        SqliteConnection.ClearAllPools();
+        var backups = Path.Combine(_root, "backups");
+
+        // Force the collision rather than hope two calls land in the same second: seed this second's two names, so the
+        // first backup MUST walk forward and the second MUST walk past it again.
+        Directory.CreateDirectory(backups);
+        var taken = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        File.WriteAllText(Path.Combine(backups, $"orevosh-{taken}.db"), "in the way");
+        Directory.CreateDirectory(Path.Combine(backups, $"storage-{taken}"));
+
+        var first = DatabaseSetup.Backup($"Data Source={path}", storage, backups);
+        var second = DatabaseSetup.Backup($"Data Source={path}", storage, backups);
+
+        Assert.DoesNotContain(taken, Path.GetFileName(first.Database));
+        Assert.NotEqual(first.Database, second.Database);
+        Assert.NotEqual(first.Storage, second.Storage);
+        Assert.True(File.Exists(first.Database));
+        Assert.True(File.Exists(second.Database));
+        Assert.True(Directory.Exists(first.Storage));
+        Assert.True(Directory.Exists(second.Storage));
+        Assert.Equal(3, Directory.GetFiles(backups, "orevosh-*.db").Length);   // the seeded one plus the two real copies
+
+        // Still orevosh-<14 digits>.db, so sorting by name is still sorting by time and Prune sees both.
+        Assert.Matches(@"^orevosh-\d{14}\.db$", Path.GetFileName(first.Database));
+        Assert.Matches(@"^orevosh-\d{14}\.db$", Path.GetFileName(second.Database));
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

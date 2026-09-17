@@ -21,7 +21,7 @@ checklist at the end. `looks.example.com` stands for your production origin thro
 code in a few places that one command rewrites before the first build:
 
 ```bash
-node tools/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://looks.example.com
 ```
 
 It writes your origin into `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing
@@ -192,7 +192,8 @@ fly sftp get /data/backups/storage-<stamp>.tgz ./storage-<stamp>.tgz
 fly ssh console -C "rm -rf /data/backups"        # the copies share the 3 GB volume with the live data
 ```
 
-`--keep <n>` prunes the folder to the `n` newest database copies once the new one is complete, so a weekly run cannot
+`--keep <n>` prunes the folder to the `n` newest database copies and the `n` newest storage copies once the new one is
+complete, so a weekly run cannot
 fill the volume even if the last line is forgotten; without it nothing is pruned. The files hold every photo and clip
 people gave the app; keep them as private on your computer as they are on the volume (server path, step 9, says how).
 There is no cron on Fly's machine: run this weekly from your computer, or from a scheduled GitHub Actions job with a
@@ -241,7 +242,7 @@ package is public; see "Continuous checks".
   about a full disk or a missing ffmpeg before a person does: it answers 503 with the failing check named.
 - **The settings, when something is off:** `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor"` reads
   the configuration and this machine and prints one line per check; `--doctor --live` adds the calls that leave it
-  (one Anthropic call, an SMTP login, Stripe when it is on). `--stripe-check` is the Stripe half alone.
+  (one Anthropic call, and Stripe when it is on; the mail server is read but never dialled). `--stripe-check` is the Stripe half alone.
 - **Cost:** `fly dashboard` shows the month. A shared-cpu-1x with 512 MB is about 3 USD, the 3 GB volume about 0.45 USD,
   bandwidth for a pilot is inside the free allowance.
 
@@ -641,10 +642,10 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 | Command | What it does |
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
-| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key, the mail settings and their public origin, the push keys, the billing settings, the board's time zone, the moderator list — each `ok` or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the free disk space, fourteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), one SMTP connection and login, and Stripe when the provider is `stripe`. This is the one that tells you whether a broken check is you or the provider |
 | `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists and is recurring, and whether a webhook endpoint is registered for this origin with the events the app needs. It writes nothing and charges nobody ("Plans and billing") |
-| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database copies once the new one is complete |
+| `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume |
 | `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
 | `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |
 | `docker compose exec app dotnet FitCheck.Api.dll --verify <handle>` | Marks an existing brand account as verified: a check inside its BRAND mark everywhere it appears, from its next request. You are the process: run it for a brand once you know who is behind the account |
@@ -653,7 +654,7 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 
 `docker compose exec` needs the app running. The account commands exit with 1 when no account has the handle and 2 on
 a usage error. On a laptop the same commands are `dotnet run -- --admin <handle>` and so on (the README, "Maintenance
-commands"). `node tools/set-origin.js https://looks.example.com` is not one of them: it edits files in the repository
+commands"). `node tools/brand/set-origin.js https://looks.example.com` is not one of them: it edits files in the repository
 before a build, not the running app (the top of this page).
 
 ## 8. Push notifications
@@ -887,7 +888,7 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 
 ### Deploy and prove it (LAUNCH.md, sections 1 and 2)
 
-5. **The production origin in the code, before the build.** `node tools/set-origin.js https://looks.example.com`
+5. **The production origin in the code, before the build.** `node tools/brand/set-origin.js https://looks.example.com`
    writes your domain into the Open Graph and Twitter tags in `src/FitCheck.Api/wwwroot/index.html` (`og:url`,
    `og:image`, `twitter:image`), the absolute URLs at the top of `wwwroot/landing/index.html` and `index.he.html`
    (canonical, hreflang, `og:url`, `og:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).

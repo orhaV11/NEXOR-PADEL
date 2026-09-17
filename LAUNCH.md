@@ -223,7 +223,7 @@ The domain is baked into static files — the link-preview tags, the landing pag
 right **before** the image is built. Do it now, once:
 
 ```bash
-node tools/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://looks.example.com
 git diff --stat
 ```
 
@@ -466,11 +466,12 @@ Then, on your phone, at `https://looks.example.com`:
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor --live"
    ```
    `--doctor` on its own reads the configuration and the machine — the database, the storage folder, ffmpeg, whether
-   the Anthropic key is set, whether mail is configured and has a public origin, the push keys, the billing settings,
-   the board's time zone, the moderator list — and prints one line per check, `ok` or a short reason, exiting 0 when
+   the Anthropic key is set and which model it points at, whether mail is configured and has a public origin, the push
+   keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the
+   free disk space — fourteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
    everything a live server needs is there and 1 otherwise. `--live` adds the checks that leave the machine: one small
-   call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), one SMTP connection and
-   login, and Stripe when the provider is `stripe`. Run `--doctor` whenever you like; run `--doctor --live` now, and
+   call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and one call to Stripe when
+   the provider is `stripe`. It does not try the mail server: nothing here logs in to SMTP. Run `--doctor` whenever you like; run `--doctor --live` now, and
    again after any change to a key.
 6. **Do a real check.** Photograph an outfit in the app, pick an intent, and read the verdict. This is the moment the
    Anthropic key, the storage folder and the model all have to be right at once.
@@ -496,7 +497,8 @@ fly ssh console -C "rm -rf /data/backups"
 
 `--backup <dir>` writes a consistent single-file copy of the database (SQLite's own online snapshot, safe while the
 app is writing) and a copy of the photo folder, and prints `database: …` and `storage: …` with the paths.
-`--keep <n>` prunes that folder to the newest `n` database copies after the new one is complete, so a weekly run does
+`--keep <n>` prunes that folder to the newest `n` database copies and the newest `n` storage copies after the new one
+is complete, so a weekly run does
 not fill the volume. The copies share the 3 GB volume with the live data, which is why the last line removes them.
 
 **The files hold every photo and clip people gave the app.** Keep them as private on your computer as they are on the
@@ -563,7 +565,7 @@ Everything below runs from `/opt/orevosh`. **Set the origin before the build** �
 pages are static files inside the image:
 
 ```bash
-node tools/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://looks.example.com
 ```
 
 (If node is not on the server, run it on your computer, commit, and `git pull` here. The file list and the manual
@@ -881,8 +883,8 @@ Every 5xx is logged with its path. The grep lines of 3.5 are the routine ones.
 - **"The stylist couldn't look at this one."** — the Anthropic key, the spend limit, or Anthropic. `--doctor --live`
   says which. Nobody's allowance was spent (3.7).
 - **No confirmation or reset mail** — `Email__PublicOrigin` unset (the log says
-  `No link origin for host …`), SPF/DKIM not verified, or the provider refusing the sender. `--doctor --live` tries
-  the login.
+  `No link origin for host …`), SPF/DKIM not verified, or the provider refusing the sender. `--doctor` reads the mail
+  settings, but nothing tries the login: send yourself a reset from the app to test the sender.
 - **The certificate never arrives** — DNS is not pointing here yet, or 80/443 are closed upstream.
 - **`unable to open database file`** — the volume's ownership (1.6).
 - **Clips play on Android but not on iPhone** — `"transcoding": false` at `/api/config` means the image has no ffmpeg;
@@ -1162,7 +1164,7 @@ fly auth signup      # או: fly auth login
 **לפני** שהדמות נבנית. עושים את זה עכשיו, פעם אחת:
 
 ```bash
-node tools/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://looks.example.com
 git diff --stat
 ```
 
@@ -1396,10 +1398,11 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor --live"
    ```
    `--doctor` לבד קורא את ההגדרות ואת המכונה — בסיס הנתונים, תיקיית האחסון, ffmpeg, אם מפתח Anthropic מוגדר, אם הדואר
-   מוגדר ויש לו כתובת ציבורית, מפתחות הפוש, הגדרות החיוב, אזור הזמן של הלוח, רשימת המנהלים — ומדפיס שורה לכל בדיקה,
+   מוגדר ויש לו כתובת ציבורית, מפתחות הפוש, הגדרות החיוב, מכסות התוכניות, אזור הזמן של הלוח, רשימת המנהלים, מארחי
+   השותפים והמקום הפנוי בדיסק — ארבע עשרה בדיקות בסך הכול — ומדפיס שורה לכל בדיקה,
    `ok` או סיבה קצרה, ויוצא ב-0 כשכל מה ששרת חי צריך קיים וב-1 אחרת. `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
-   קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), חיבור והתחברות אחת ל-SMTP, ו-Stripe כשהספק
-   הוא `stripe`. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
+   קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.
+   את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
 6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
    האחסון והמודל חייבים להיות נכונים בבת אחת.
 7. **מפרסמים אותו**, מדליקים אש מחשבון שני, ופותחים את `#/board` — הלוק אמור להופיע בלוח השבועי.
@@ -1423,7 +1426,7 @@ fly ssh console -C "rm -rf /data/backups"
 ```
 
 `--backup <dir>` כותב עותק עקבי של בסיס הנתונים בקובץ אחד (הצילום המקוון של SQLite עצמה, בטוח בזמן שהאפליקציה כותבת)
-ועותק של תיקיית התמונות, ומדפיס `database: …` ו-`storage: …` עם הנתיבים. `--keep <n>` גוזם את התיקייה לעותקי בסיס
+ועותק של תיקיית התמונות, ומדפיס `database: …` ו-`storage: …` עם הנתיבים. `--keep <n>` גוזם את התיקייה ל-`n` עותקי בסיס הנתונים ול-`n` עותקי האחסון החדשים ביותר, אחרי שהעותק החדש הושלם. לעותקי בסיס
 הנתונים החדשים ביותר אחרי שהעותק החדש שלם, כדי שהרצה שבועית לא תמלא את הנפח. העותקים חולקים את הנפח של 3GB עם המידע
 החי, ולכן השורה האחרונה מוחקת אותם.
 
@@ -1490,7 +1493,7 @@ cd /opt/orevosh
 סטטיים בתוך הדמות:
 
 ```bash
-node tools/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://looks.example.com
 ```
 
 (אם אין node על השרת, הריצו את זה על המחשב שלכם, עשו commit, ו-`git pull` כאן. רשימת הקבצים והחלופה הידנית נמצאות
@@ -1794,7 +1797,8 @@ docker compose logs caddy                   # תעודות, על שרת
 - **"הסטייליסט לא הצליח להסתכל על התמונה הזו."** — מפתח Anthropic, תקרת ההוצאה, או Anthropic עצמה.
   `--doctor --live` אומר מה מהם. אף אחד לא איבד מכסה (3.7).
 - **אין מייל אימות או איפוס** — `Email__PublicOrigin` לא מוגדר (הלוג אומר `No link origin for host …`), SPF/DKIM לא
-  מאומתים, או שהספק דוחה את השולח. `--doctor --live` מנסה את ההתחברות.
+  מאומתים, או שהספק דוחה את השולח. `--doctor` קורא את הגדרות הדואר, אבל שום דבר לא מנסה להתחבר: שלחו לעצמכם איפוס
+  סיסמה מהאפליקציה כדי לבדוק את השולח.
 - **התעודה לא מגיעה** — ה-DNS עוד לא מצביע לכאן, או ש-80/443 סגורים במעלה הזרם.
 - **`unable to open database file`** — הבעלות על הנפח (1.6).
 - **קליפים מתנגנים באנדרואיד ולא באייפון** — `"transcoding": false` ב-`/api/config` אומר שאין ffmpeg בדמות;

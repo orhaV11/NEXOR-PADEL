@@ -81,7 +81,7 @@ The same program runs the maintenance commands; each does its job and exits with
 ```bash
 dotnet run -- --vapid                 # print a VAPID key pair for Web Push; set Push__PublicKey and Push__PrivateKey, restart
 dotnet run -- --backup backups        # a consistent copy of the database and the media folder into ./backups (git-ignored)
-dotnet run -- --backup backups --keep 14   # the same, then prune that folder to the 14 newest database copies
+dotnet run -- --backup backups --keep 14   # the same, then prune to the 14 newest database and storage copies
 dotnet run -- --doctor                # read the configuration and this machine and print one line per check
 dotnet run -- --doctor --live         # the same, plus the checks that leave the machine: Anthropic, SMTP, Stripe
 dotnet run -- --stripe-check          # ask Stripe whether the key, the price and the webhook the app was given are real
@@ -113,7 +113,7 @@ live. Blocking, the billing portal and the data export add none: they are things
 One more, and it is not a maintenance command but a one-off before the first build:
 
 ```bash
-node tools/set-origin.js https://looks.example.com   # write the production origin into the static files
+node tools/brand/set-origin.js https://looks.example.com   # write the production origin into the static files
 ```
 
 The link-preview tags, the two landing pages and the store shell carry `https://looks.example.com` as a placeholder,

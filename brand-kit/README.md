@@ -113,4 +113,70 @@ landing page) for link previews, and `/landing/screens/*.jpg` for the landing pa
 | `android-04-he.png` | 1080×1920 | 866 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
 | `android-05-he.png` | 1080×1920 | 144 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
 
-Total: 17.8 MB.
+## social/
+
+The pack for the two accounts, English first: the account is international and the host never speaks, so every
+word is on-screen text in English and the Hebrew files are the Israeli launch track (`SOCIAL` at the top of the
+social block in `render-kit.js`, same layouts, RTL).
+
+- **The profile picture.** `instagram-avatar-1080.png` and `tiktok-avatar-1080.png` are the same file, candidate
+  C (`AVATAR_PICK` in `render-kit.js`). Both apps crop to a circle, so the mark is sized and hung by its own ink
+  circle — measured at (304.25, 234.5) r 251.184 in the 512 box, up and right of the box's centre because the flame
+  flies out of the ring's top-right — not by the square it is drawn in. `avatar-test.png` is the sheet the pick was
+  made on: the three candidates circle-cropped at 150 / 56 / 40 / 32 px on a dark row and on white, and the 32 px
+  crop magnified 4× under them. `avatar-a/b/c.png` are kept so the choice can be re-made by eye.
+
+- **The grid opener.** `grid-1.png` … `grid-9.png` are one 3240×3240 composition cut into nine.
+  **Upload `grid-9` first, then 8, 7 … down to `grid-1`**: a profile stacks newest first, so uploaded in that order
+  they land 1 2 3 across the top row and the wordmark reads straight across the middle. `grid-preview.png` shows
+  the assembly. Every tile also stands alone — the corners carry the mark, a score ring, the tagline and the line
+  about fire — so none of the nine is a wasted post.
+
+- **TikTok's safe area.** TikTok covers the bottom 320 px with the caption, the handle, the sound bar and the
+  buttons, and the right 180 px with the action rail. The covers, the link story and the face-reveal card keep every
+  word and the logo inside a 700 px column centred on the canvas (x 190 → 890) with 210 px of air on top and 392 px
+  at the bottom, in physical padding, so the Hebrew files clear the same strips as the English ones.
+  `tiktok-safe-area.png` draws those two strips over a real cover — it is a guide, not a post.
+
+- **The face reveal.** The follower target is one constant, `FACE_REVEAL_TARGET`, at the top of
+  `templates/social.html`. Change that line and re-run `node render-kit.js social` to re-cut both cards at a
+  different number. Announce the number up front and keep to it.
+
+- Instagram posts are 1080×1350, the tallest it shows whole in the feed; a square crop of one of them loses the CTA,
+  so post them as they are.
+
+| file | pixels | size | use |
+|---|---|---|---|
+| `avatar-a.png` | 1080×1080 | 261 KB | Candidate A "tight": the mark in colour on the stage, its ink circle at 78% of the tile, optically centred — 119 px of margin inside the circular crop |
+| `avatar-b.png` | 1080×1080 | 280 KB | Candidate B "gradient ground": the mark in white on the deeper lilac→rose pair, at A's size, so the pair only tests the ground — a light tile in a dark feed |
+| `avatar-c.png` | 1080×1080 | 274 KB | Candidate C "ring bleed": the same mark on the stage at 88%, the ring's stroke 65 px from the crop's edge |
+| `avatar-test.png` | 1440×1016 | 174 KB | The test the pick was made on: the three files circle-cropped at 150 / 56 / 40 / 32 px on a dark row and on white, and the 32 px crop magnified 4× underneath. Not for posting |
+| `instagram-avatar-1080.png` | 1080×1080 | 274 KB | The Instagram profile picture: candidate C (AVATAR_PICK in render-kit.js). Upload at 1080; Instagram stores 320 and shows 150 / 56 / 32 |
+| `tiktok-avatar-1080.png` | 1080×1080 | 274 KB | The TikTok profile picture: the same file (TikTok wants at least 200×200 and crops it to a circle too) |
+| `grid-1.png` | 1080×1080 | 90 KB | Grid opener 1 of 9, top row start: the mark, small |
+| `grid-2.png` | 1080×1080 | 154 KB | Grid opener 2 of 9, top row middle: the three things the stylist reads |
+| `grid-3.png` | 1080×1080 | 84 KB | Grid opener 3 of 9, top row end: a score ring |
+| `grid-4.png` | 1080×1080 | 289 KB | Grid opener 4 of 9, middle row start: the wordmark's own ring and flame |
+| `grid-5.png` | 1080×1080 | 42 KB | Grid opener 5 of 9, middle row middle: the wordmark and the slogan |
+| `grid-6.png` | 1080×1080 | 23 KB | Grid opener 6 of 9, middle row end: the end of the wordmark |
+| `grid-7.png` | 1080×1080 | 32 KB | Grid opener 7 of 9, bottom row start: the tagline |
+| `grid-8.png` | 1080×1080 | 52 KB | Grid opener 8 of 9, bottom row middle: the CTA |
+| `grid-9.png` | 1080×1080 | 16 KB | Grid opener 9 of 9, bottom row end: the house line on reactions |
+| `grid-preview.png` | 1080×1200 | 146 KB | The nine tiles assembled, with the upload order under them. Not for posting |
+| `post-1-what-it-is-en.png` | 1080×1350 | 375 KB | First post 1 (English): what the app is |
+| `post-2-the-one-tip-en.png` | 1080×1350 | 236 KB | First post 2 (English): the result and the one tip |
+| `post-3-brands-en.png` | 1080×1350 | 386 KB | First post 3 (English): the brands |
+| `post-1-what-it-is-he.png` | 1080×1350 | 327 KB | First post 1 (Hebrew): what the app is |
+| `post-2-the-one-tip-he.png` | 1080×1350 | 213 KB | First post 2 (Hebrew): the result and the one tip |
+| `post-3-brands-he.png` | 1080×1350 | 358 KB | First post 3 (Hebrew): the brands |
+| `tiktok-cover-1-en.png` | 1080×1920 | 362 KB | TikTok cover 1 (English): the slogan over the check screen. Everything readable is out of the bottom 320 px and the right 180 px |
+| `tiktok-cover-2-en.png` | 1080×1920 | 227 KB | TikTok cover 2 (English): the verdict. Everything readable is out of the bottom 320 px and the right 180 px |
+| `tiktok-cover-1-he.png` | 1080×1920 | 318 KB | TikTok cover 1 (Hebrew): the slogan over the feed. Everything readable is out of the bottom 320 px and the right 180 px |
+| `tiktok-cover-2-he.png` | 1080×1920 | 206 KB | TikTok cover 2 (Hebrew): the verdict. Everything readable is out of the bottom 320 px and the right 180 px |
+| `tiktok-safe-area.png` | 1080×1920 | 407 KB | The same cover with TikTok's two unsafe strips drawn on it: what to keep clear when filming and when making a new cover. Not for posting |
+| `story-link-en.png` | 1080×1920 | 145 KB | "Link in bio" story (English): a big arrow up at the profile chip, which sits at the start edge in that direction |
+| `face-reveal-en.png` | 1080×1920 | 226 KB | The face-reveal promise (English): the target is the biggest thing on the card. Change FACE_REVEAL_TARGET in templates/social.html to move it |
+| `story-link-he.png` | 1080×1920 | 132 KB | "Link in bio" story (Hebrew): a big arrow up at the profile chip, which sits at the start edge in that direction |
+| `face-reveal-he.png` | 1080×1920 | 220 KB | The face-reveal promise (Hebrew): the target is the biggest thing on the card. Change FACE_REVEAL_TARGET in templates/social.html to move it |
+
+Total: 24.2 MB.

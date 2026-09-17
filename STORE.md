@@ -92,11 +92,12 @@ advertising, nothing is shared with data brokers, and there is no third-party an
 | Device ID, precise location, contacts, health, financial info, browsing history, search history | no | — | Search queries are not stored. |
 | Crash data, performance data | no | — | Server logs keep the request path, the status and the client address for rate limiting (`X-Forwarded-For`), 30 days by default on the VPS setup. |
 | Push notification token | yes, if the person turns push on | app functionality | Web Push subscription endpoint; deleted when push is turned off or the push service reports it gone. |
+| Data export (the person's own copy) | no new data | data portability | Settings → "Download your data" answers one JSON file with what that account wrote — its profile and optional email, its checks, its looks with their tags and pieces, its own comment texts, who it follows and who follows it (handles only), its comparisons, who it blocked and the type and time of its notifications. Nothing in the file is another person's, and it carries no photo, no clip, no date of birth, no password hash and no billing id. Nothing new is collected or stored to make it: it is a read of rows the app already has, three times an hour at most, and it is logged as a line with the account id and no content. Declare it as the in-app way for a person to obtain their data, next to in-app deletion. |
 
 Also declare: **account creation is optional for browsing and for one free check** and required for posting and for
 checking after that; **account deletion
-is in the app** (Settings → Delete account, one step, everything gone); **data can be deleted on request** at the
-support address.
+is in the app** (Settings → Delete account, one step, everything gone); **a person can download their own data in the
+app** (Settings → Download your data, the row above); and **data can be deleted on request** at the support address.
 
 ## URLs
 
@@ -154,15 +155,21 @@ The Stripe checkout must not be reachable from the wrapped app, or the review fa
   private until the person posts. Posting, reacting and commenting need an account (16 and over: the signup form asks
   for a date of birth and refuses younger dates); browsing does not. User-generated content: every look and comment can
   be reported from its menu; three reports from different
-  people hide it from everyone but its author; moderators review a queue and can hide, delete and suspend. A tagged
+  people hide it from everyone but its author; a person can block another account from the look's menu or the profile,
+which hides each from the other everywhere and refuses every interaction between them; moderators review a queue and
+can hide, delete and suspend. A tagged
   piece may carry a store link typed by the person: it opens the store in the browser through the app's own redirect,
   and the app says under it that the link leaves OREVOSH and may earn a commission. Account deletion is in Settings
   and removes everything. Test account: @<handle> / <password>."
 - **The UGC checklist Apple applies (guideline 1.2):** filtering of objectionable content (the model refuses nudity and
-  non-outfit photos; comments are reported and hidden), a way to report (yes), **a way to block users (not in the app
-  today: add "Block @handle" to the look's and the profile's menu before submitting, or expect a rejection)**, and
-  published contact information (the support address on the listing). Sign in with Apple is not required because the
-  app offers no third-party sign-in.
+  non-outfit photos; comments are reported and hidden), a way to report (yes), **a way to block users (yes, since
+  Round 11)**, and published contact information (the support address on the listing). Sign in with Apple is not
+  required because the app offers no third-party sign-in. What to tell the reviewer about blocking, and where to point
+  them: **"Block" sits next to "Report" in a look's `…` menu and in the `…` menu on another person's profile**, behind
+  a confirmation; the blocked account's looks and comments leave the blocker's feed, Explore, search and saved list,
+  each side's profile is closed to the other, and every fire, comment, follow, mention or feature between them is
+  refused. **Settings → Blocked accounts** (`#/settings/blocked`) lists everyone the person blocked, with Unblock next
+  to each. The blocked person is never told, by design.
 - **Camera and photo permission strings** for iOS (`mobile/README.md`): "OREVOSH uses the camera to photograph or
   film your outfit for a check." and "OREVOSH saves your story card to your photos."
 - **Content rights:** the app displays user photos only; brand accounts are self-declared for the pilot, and the

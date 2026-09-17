@@ -775,6 +775,42 @@ async function postIt(page, opts) {
   await noa.waitForSelector('#board-strip .board-strip-row a');
   await shot(noa, '39-explore-strip-en');
 
+  // Round 11. Dan blocks Noa from her profile: her looks leave his feed, Settings lists her, and the unblock undoes it.
+  await go(dan, '#/u/noa');
+  await dan.waitForSelector('#profile-menu');
+  await dan.click('#profile-menu');
+  await dan.waitForSelector('.sheet #block');
+  await dan.click('.sheet #block');
+  await dan.waitForSelector('.sheet .btn-danger');
+  await dan.click('.sheet .btn-danger');
+  await dan.waitForSelector('#toast');
+  await shot(dan, '40-blocked-he');
+  const blockedFeed = await (await dan.request.get(base + '/api/feed?tab=foryou')).json();
+  assert.ok(!blockedFeed.items.some((x) => x.user.handle === 'noa'), 'a blocked person leaves the feed');
+  await go(dan, '#/settings/blocked');
+  await dan.waitForSelector('#blocked-list li[data-handle="noa"] button.unblock');
+  await dan.click('#blocked-list li[data-handle="noa"] button.unblock');
+  await dan.waitForSelector('#blocked-list li[data-handle="noa"]', { state: 'detached' });
+  const backFeed = await (await dan.request.get(base + '/api/feed?tab=foryou')).json();
+  assert.ok(backFeed.items.some((x) => x.user.handle === 'noa'), 'unblocking brings her looks back');
+
+  // Round 11. Noa downloads her data, and the manual billing provider offers no Stripe portal.
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#export-data');
+  await noa.click('#export-data');
+  await noa.waitForSelector('#export-status:not([hidden]) #export-ready');
+  const exported = await noa.request.get(base + '/api/users/me/export');
+  assert.strictEqual(exported.status(), 200, 'the export answers');
+  assert.ok((exported.headers()['content-disposition'] || '').includes('orevosh-noa-'), 'the export is a named file');
+  const dump = await exported.json();
+  assert.strictEqual(dump.account.handle, 'noa');
+  assert.ok(dump.posts.length >= 1 && dump.checks.length >= 1, 'the export carries her looks and her checks');
+  assert.strictEqual(dump.account.birthDate, undefined, 'the birth date stays out of the export');
+  assert.strictEqual(await count(noa, '#billing-manage'), 0, 'no portal button on the manual provider');
+  expected.push('POST /api/billing/portal -> 404');
+  const portal = await noa.request.post(base + '/api/billing/portal', { headers: { 'X-Requested-With': 'Orevosh' } });
+  assert.strictEqual(portal.status(), 404, 'the manual provider has no portal');
+
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
   //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
@@ -841,6 +877,14 @@ async function postIt(page, opts) {
   const health = await get(`${base}/healthz`);
   assert.strictEqual(health.status, 200);
   assert.strictEqual(health.body.toString(), 'ok');
+  // Round 11: /healthz is liveness and stays a bare word; /readyz is what a deploy waits on and names each check.
+  const ready = await get(`${base}/readyz`);
+  assert.strictEqual(ready.status, 200, 'readyz');
+  assert.strictEqual(ready.headers['cache-control'], 'no-store', 'readiness is never cached');
+  const readyBody = JSON.parse(ready.body.toString('utf8'));
+  assert.strictEqual(readyBody.ok, true, 'every readiness check passes');
+  assert.strictEqual(readyBody.checks.db, 'ok');
+  assert.strictEqual(readyBody.checks.storage, 'ok');
   const config = await getJson(`${base}/api/config`);
   assert.strictEqual(config.maxVideoSeconds, 30);
   assert.strictEqual(config.pushPublicKey, undefined, 'no push key without VAPID keys');

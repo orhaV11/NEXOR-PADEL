@@ -120,7 +120,8 @@ function draw(root, m, ctx, reload) {
   const socialTiles = [
     ['users', 'dash.users'], ['brands', 'dash.brands'], ['posts', 'dash.posts'], ['fires', 'dash.fires'], ['follows', 'dash.follows'],
     ['comments', 'dash.comments'], ['challengesOpen', 'dash.challenges_open'], ['challengesEnded', 'dash.challenges_ended'], ['votes', 'dash.votes'],
-    ['activeUsers7d', 'dash.active7'], ['mentions', 'dash.mentions'], ['featured', 'dash.featured'], ['videos', 'dash.videos'], ['pushSubscriptions', 'dash.push']
+    ['activeUsers7d', 'dash.active7'], ['mentions', 'dash.mentions'], ['featured', 'dash.featured'], ['videos', 'dash.videos'], ['pushSubscriptions', 'dash.push'],
+    ['videosMade', 'video.made']   // share videos made on the phone and shared or saved (POST /api/checks/{id}/shared-video)
   ];
   root.appendChild(el('section', { class: 'dash-section' }, [
     el('h2', { text: t('dash.social') }),

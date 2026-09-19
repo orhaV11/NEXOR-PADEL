@@ -356,6 +356,9 @@ public static class CounterName
 
     /// <summary>Times the board was read.</summary>
     public const string BoardViews = "board_views";
+
+    /// <summary>Share videos made on the phone and shared or saved, as the client reports through POST /api/checks/{id}/shared-video.</summary>
+    public const string VideosMade = "videos_made";
 }
 
 /// <summary>A named tally that survives a restart (an out-click, a board view). Incremented in place, never read for a decision.</summary>

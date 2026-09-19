@@ -399,7 +399,8 @@ public sealed record SocialMetricsDto(
     int PushSubscriptions = 0,
     int ItemsTagged = 0,
     int ItemOuts = 0,
-    int BoardViews = 0);
+    int BoardViews = 0,
+    int VideosMade = 0);
 
 public sealed record PilotMetricsDto(
     int TotalChecks,

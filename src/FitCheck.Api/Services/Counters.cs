@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitCheck.Api.Services;
 
 /// <summary>
-/// Named tallies that survive a restart (<see cref="Counter"/>): an out-click on a store link, a board view. One row per
+/// Named tallies that survive a restart (<see cref="Counter"/>): an out-click on a store link, a board view, a share video
+/// made on the phone. One row per
 /// name, incremented in place with an upsert so two requests never race a read-modify-write; the metrics read them.
 /// Never a number the app decides anything on.
 /// </summary>

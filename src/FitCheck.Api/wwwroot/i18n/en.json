@@ -748,5 +748,18 @@
   "billing.manage_hint": "Change or cancel your plan.",
   "billing.manual_hint": "To change or cancel, write to us.",
   "block.state": "Blocked",
-  "export.save": "Save file"
+  "export.save": "Save file",
+  "video.action": "Share as video",
+  "video.title": "Your video",
+  "video.rendering": "Making the video… {percent}",
+  "video.hint": "12 seconds, vertical, silent: your look, the score, the one tip. Share it to TikTok or Instagram, or save it to your phone.",
+  "video.share": "Share video",
+  "video.save": "Save video",
+  "video.saved": "Video saved",
+  "video.error": "Couldn't make the video. Try again.",
+  "video.no_encoder": "This browser can't make video, so here's the card instead.",
+  "video.webm_hint": "This browser can't make MP4, so the file is WebM; some apps only take MP4.",
+  "video.ios_hint": "On iPhone, tap Share and pick Save Video to keep it in Photos.",
+  "video.check_look": "Check the look.",
+  "video.made": "Share videos made"
 }

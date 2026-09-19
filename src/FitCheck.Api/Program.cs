@@ -384,6 +384,11 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(ExportEndpoints.Policy, context => RateLimitPartition.GetFixedWindowLimiter(
         AccountOrAddress(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = ExportEndpoints.ExportsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    // A share video is made on the phone; POST /api/checks/{id}/shared-video only counts one. A few dozen an hour per account
+    // (or address, for a guest) is more than a person makes and a brake on a script running the tally up.
+    options.AddPolicy(CheckEndpoints.SharedVideoPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = CheckEndpoints.SharedVideosPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.OnRejected = async (context, ct) =>
     {
         var http = context.HttpContext;

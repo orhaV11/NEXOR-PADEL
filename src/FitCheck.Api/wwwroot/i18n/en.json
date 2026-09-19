@@ -761,5 +761,21 @@
   "video.webm_hint": "This browser can't make MP4, so the file is WebM; some apps only take MP4.",
   "video.ios_hint": "On iPhone, tap Share and pick Save Video to keep it in Photos.",
   "video.check_look": "Check the look.",
-  "video.made": "Share videos made"
+  "video.made": "Share videos made",
+  "empty.check_cta": "Check a look",
+  "empty.feed_title": "No looks yet.",
+  "empty.feed_body": "Check a look: where it's going, a photo, and a stylist scores it in seconds. Post it and it lands here first.",
+  "empty.feed_guest": "The first one is free, no account needed.",
+  "empty.feed_filtered": "No {intent} looks yet.",
+  "empty.feed_filtered_body": "Check one for {intent} and post it.",
+  "empty.following_title": "Your circle is empty.",
+  "empty.following_body": "Follow people and brands from their profiles and their looks land here. Until then, {foryou} has everyone.",
+  "empty.following_find": "Find people and brands",
+  "empty.explore_title": "Nothing to explore yet.",
+  "empty.explore_body": "The week's top looks, trending tags and brands to follow land here once looks are posted. Yours can be the first.",
+  "empty.board_title": "Nothing on the board yet.",
+  "empty.board_body": "The looks that catch fire this week land here. Check yours, post it, and it can be the first one on.",
+  "empty.board_people_body": "The people whose looks caught fire this week land here.",
+  "empty.profile_title": "No looks posted yet.",
+  "empty.profile_body": "Check a look and post it. Your checks stay private until you do."
 }

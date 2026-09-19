@@ -18,8 +18,12 @@ const CSS = `
 .auth-dob:focus-visible { outline: none; }
 .auth-dob::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.8; }
 .auth-dob::-webkit-date-and-time-value { text-align: inherit; }
-.auth-agree { text-align: center; line-height: 1.5; }
-.auth-agree a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(179, 157, 255, 0.5); font-weight: 500; white-space: nowrap; }
+/* the agreement's links stay inline in their sentence (the inline-text exception), but the lines are set far enough apart
+   that each link's box can be padded to a taller hit area without two of them overlapping; a link that stands on a line
+   of its own (the switch to Sign in / Join, the forgotten password) takes the full 44 */
+.auth-agree { text-align: center; line-height: 2.4; }
+.auth-agree a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(179, 157, 255, 0.5); font-weight: 500; white-space: nowrap; padding-block: 8px; }
+.auth-switch a { display: inline-flex; align-items: center; min-block-size: 44px; }
 .w-step > * + * { margin-block-start: 10px; }
 .w-step h2 { font-family: var(--font-display); font-size: 20px; line-height: 1.15; font-weight: 800; color: var(--ink); }
 .w-chips .chip { min-block-size: 44px; padding-inline: 16px; }
@@ -156,7 +160,8 @@ register('signup', authView('signup'));
 register('welcome', async (root, params, ctx) => {
   if (!state.me) { redirect('#/signup'); return; }
   ensureStyle();
-  setTopBar({ title: t('welcome.title'), actions: [langButton()] });
+  // The wordmark in the bar: the h1 below says "Welcome to OREVOSH" already, and the phone showed it twice.
+  setTopBar({ actions: [langButton()] });
 
   // Step 1: the styles they wear. Pre-ticked from the account for anyone who comes back here.
   const picked = new Set((state.me.interests || []).filter((intent) => INTENTS.includes(intent)));

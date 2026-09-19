@@ -1,10 +1,24 @@
 // Explore, search and tag pages. Explore is the week's front page: kicker, title and dateline, the search rule, the
 // hero look, trending tags as a numbered index, the brands band, the staggered wall of top looks and the open
-// challenges as quiet tickets. All the rules live in app.css; this module only builds the DOM.
+// challenges as quiet tickets. The rules live in app.css, bar the one below; this module mostly builds the DOM.
 import {
   register, el, icon, t, api, avatar, followButton, userRow, postCard, postGrid, infiniteList, emptyState, skeletonCards, errorBlock, setTopBar, navigate, isMe, fmtNumber, fmtCompact, fmtDate, relative, intentLabel, PAGE, $, scoreBadge
 } from '../core.js';
-import { boardStrip } from './board.js';
+import { boardStrip, emptyCall } from './board.js';
+
+// The section head's action ("All challenges") is 11px caps: a 44px hit area around it, without moving the head.
+const CSS = `
+.x-section .section-head a { display: inline-flex; align-items: center; min-block-size: 44px; margin-block: -16px; padding-inline-start: 8px; }
+`;
+let styled = false;
+function ensureStyle() {
+  if (styled) return;
+  styled = true;
+  document.head.appendChild(el('style', { text: CSS }));
+}
+
+/** Explore with nothing in it: what will land here, and the way to a check. Also what a 501 (not built yet) reads as. */
+const exploreEmpty = () => emptyCall(t('empty.explore_title'), t('empty.explore_body'), { id: 'explore-empty' });
 
 /** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
 const countArg = (n) => (n === 1 ? 1 : fmtCompact(n));
@@ -112,6 +126,7 @@ function lookCard(post, onDelete) {
 // ---------- explore ----------
 
 register('explore', async (root, params, ctx) => {
+  ensureStyle();
   root.appendChild(front());
   root.appendChild(searchForm(''));
   root.appendChild(boardStrip(ctx));   // "This week": the top three of the looks board (views/board.js); hidden while the board is empty
@@ -120,7 +135,7 @@ register('explore', async (root, params, ctx) => {
 
   let data;
   try { data = await api('GET', '/api/explore'); }
-  catch (e) { if (ctx.stale()) return; holder.replaceWith(e.status === 501 ? emptyState(t('explore.empty')) : errorBlock(e)); return; }
+  catch (e) { if (ctx.stale()) return; holder.replaceWith(e.status === 501 ? exploreEmpty() : errorBlock(e)); return; }
   if (ctx.stale()) return;
 
   const tags = data.trendingTags || [];
@@ -128,7 +143,7 @@ register('explore', async (root, params, ctx) => {
   const looks = data.topLooks || [];
   const challenges = data.challenges || [];
   const frag = document.createDocumentFragment();
-  if (!tags.length && !brands.length && !looks.length) frag.appendChild(emptyState(t('explore.empty')));
+  if (!tags.length && !brands.length && !looks.length) frag.appendChild(exploreEmpty());
   // The first top look is the cover, right under the search; the wall starts from the second so nothing repeats.
   if (looks[0]) frag.appendChild(heroCard(looks[0]));
   if (tags.length) frag.appendChild(section(t('explore.trending'), tagIndex(tags)));

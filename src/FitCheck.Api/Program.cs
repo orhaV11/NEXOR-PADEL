@@ -558,8 +558,9 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure)), AppJson.Options));
 
-// For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached.
-app.MapGet("/healthz", async (AppDbContext db, HttpContext context, CancellationToken ct) =>
+// For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached. GET or HEAD: an
+// uptime checker (and `curl -I`) may probe with either, and a 405 on HEAD would read as the site being down.
+app.MapMethods("/healthz", [HttpMethods.Get, HttpMethods.Head], async (AppDbContext db, HttpContext context, CancellationToken ct) =>
 {
     context.Response.Headers.CacheControl = "no-store";
     try

@@ -165,7 +165,7 @@ public static class Doctor
         Billing(lines, billing, publicOrigin);
         PlanCaps(lines, plans, limits);
         Push(lines, push);
-        Admin(lines, admin);
+        Admin(lines, admin, configuration, contentRoot);
         Board(lines, board);
         Affiliate(lines, affiliate);
         Storage(lines, storage, contentRoot);
@@ -420,12 +420,69 @@ public static class Doctor
         lines.Add(new(DoctorStatus.Ok, "push", $"VAPID key pair set, subject {subject}."));
     }
 
-    private static void Admin(List<DoctorLine> lines, AdminOptions admin)
+    private static void Admin(List<DoctorLine> lines, AdminOptions admin, IConfiguration configuration, string contentRoot)
     {
         var handles = (admin.Handles ?? []).Select(h => (h ?? "").Trim()).Where(h => h.Length > 0).ToList();
-        lines.Add(handles.Count == 0
-            ? new(DoctorStatus.Warn, "admin", "Admin__Handles is empty: nobody can open the moderation queue. Set Admin__Handles__0, or run --admin <handle> once that account exists.")
-            : new(DoctorStatus.Ok, "admin", $"{handles.Count} moderator handle(s): {string.Join(", ", handles)}."));
+        // The list is one way in; `--admin <handle>` is the other, and it leaves no trace in the configuration. The runbook
+        // promotes the first account that way two steps before it runs the doctor, so the database, when there is one to
+        // read, is the word on who can open the queue today.
+        var moderators = CountModerators(configuration, contentRoot);
+        var inDatabase = moderators switch
+        {
+            null => "",
+            0 => "; no account is a moderator yet",
+            1 => "; 1 moderator account in the database",
+            var n => $"; {n} moderator accounts in the database"
+        };
+        if (handles.Count > 0)
+        {
+            lines.Add(new(DoctorStatus.Ok, "admin", $"{handles.Count} moderator handle(s): {string.Join(", ", handles)}{inDatabase}."));
+        }
+        else if (moderators > 0)
+        {
+            lines.Add(new(DoctorStatus.Ok, "admin", $"Admin__Handles is empty{inDatabase}, made with --admin: the moderation queue has someone."));
+        }
+        else
+        {
+            lines.Add(new(DoctorStatus.Warn, "admin", "Admin__Handles is empty and no account is a moderator: nobody can open the moderation queue. Set Admin__Handles__0, or run --admin <handle> once that account exists."));
+        }
+    }
+
+    /// <summary>
+    /// How many accounts carry the moderator flag, or null when there is no database file to read yet (looking must never
+    /// create one) or it cannot be read (the database line says why). A read-only count; nothing is applied.
+    /// </summary>
+    private static int? CountModerators(IConfiguration configuration, string contentRoot)
+    {
+        var builder = new SqliteConnectionStringBuilder(configuration.GetConnectionString("Default") ?? "Data Source=orevosh.db");
+        if (string.IsNullOrEmpty(builder.DataSource) || builder.DataSource.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (!Path.IsPathRooted(builder.DataSource))
+        {
+            builder.DataSource = Path.Combine(contentRoot, builder.DataSource);
+        }
+
+        if (!File.Exists(Path.GetFullPath(builder.DataSource)))
+        {
+            return null;
+        }
+
+        using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(builder.ConnectionString).Options);
+        try
+        {
+            return db.Users.Count(u => u.IsAdmin);
+        }
+        catch (Exception e) when (e is SqliteException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+        finally
+        {
+            SqliteConnection.ClearPool((SqliteConnection)db.Database.GetDbConnection());
+        }
     }
 
     private static void Board(List<DoctorLine> lines, BoardOptions board)

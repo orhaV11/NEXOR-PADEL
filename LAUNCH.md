@@ -412,6 +412,24 @@ fly status                                       # one machine, started, its che
 fly logs                                         # "Database /data/orevosh.db is new: creating the schema from the migrations."
 ```
 
+Right under that line a first start also prints one EF Core warning, `An operation of type 'SqlOperation' will be
+attempted while a rebuild of table 'PostItems' is pending`: the Round 10 migration talking to itself on a fresh file.
+The dry run of this runbook saw it on an empty database, and `/readyz` answered `db: ok` straight after. Nothing to do.
+
+**Then, from your laptop, the smoke script:**
+
+```bash
+scripts/smoke.sh https://<your-app-name>.fly.dev
+```
+
+It needs only `curl`, and it reads in one go what section 1.8 has you read by hand: `/healthz` says `ok`, `/readyz` is
+200 with every check `ok`, both landing pages are HTML carrying the slogan, `/api/config` answers, the shell carries the
+link-preview tags (and they say your origin, not `looks.example.com`), the security headers are on, and the manifest is
+served. One `OK`/`FAIL` line per check, `smoke: 8 ok, 0 failed` at the end, and exit code 1 on any failure, so a deploy
+script can gate on it. Run it after every deploy, against the address people use (`https://looks.example.com` once 1.7
+is done). A guest check is opt-in, `scripts/smoke.sh https://… --check` (or `--check photo.jpg` with a real outfit
+photo), because on a live site it spends a real stylist call and this address's one free look for the day.
+
 **If the log says it cannot write to `/data`** (`permission denied`, `unable to open database file`), the volume's
 root does not belong to the container's non-root `app` user. Once:
 
@@ -449,6 +467,9 @@ curl -I https://looks.example.com/landing/      # 200          — the landing p
 (`| jq` only pretty-prints the answer. If your computer has no `jq`, leave it off: the line still prints the same
 JSON, on one line.)
 
+`scripts/smoke.sh https://looks.example.com` (1.6) does those three lines and five more in one go, and exits 1 when
+any of them is off. The phone half below is yours.
+
 `/readyz` is the one to read. It is public, it is never cached, and it answers a small document: `ok`, and a `checks`
 object where each name is either `"ok"` or a short reason. It checks `db` (a query answers and the schema is at the
 current migration), `storage` (the photo folder exists and a file can be written and removed there) and, while
@@ -464,7 +485,8 @@ Then, on your phone, at `https://looks.example.com`:
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --admin <handle>"
    ```
-   No restart. Reload the app and the moderation queue is in that account's menu.
+   No restart. Reload the app and the moderation queue is in that account's menu. The doctor (step 5) counts the
+   moderators in the database, so its `admin` line reads `ok` from here on even though `Admin__Handles` is empty.
 4. **Verify your first brand accounts**, once each brand has signed up and you know who is behind the account:
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --verify <handle>"
@@ -483,12 +505,18 @@ Then, on your phone, at `https://looks.example.com`:
    call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
    when the provider is `stripe` (the price, and the webhook endpoint). It does not try the mail server: nothing here
    logs in to SMTP, so the test of the sender is asking the app for a password reset with your own address. Run
-   `--doctor` whenever you like; run `--doctor --live` now, and again after any change to a key.
+   `--doctor` whenever you like; run `--doctor --live` now, and again after any change to a key. On a first deploy
+   expect `WARN push` (no VAPID keys until `DEPLOY.md`'s step 7) and nothing failing; `FAIL anthropic` means the key
+   secret never reached the machine (1.5).
 6. **Do a real check.** Photograph an outfit in the app, pick an intent, and read the verdict. This is the moment the
    Anthropic key, the storage folder and the model all have to be right at once.
-7. **Post it**, put a fire on it from a second account, and open `#/board` — the weekly board should show the look.
+7. **Post it** and open `#/board`. On launch day the look sits on the **Stylist's picks** tab (by score, no fires
+   needed); the **Looks** tab wants fires that count, and a fire from an account younger than `Board__NewAccountDays`
+   (2 days) does not count yet, so a fire from a second account you made just now raises the look's count and leaves
+   the Looks tab empty until that account is two days old. The dry run of this runbook proved exactly that.
 8. **Open the numbers page**, `https://looks.example.com/#/admin/metrics`, signed in as the moderator. It should show
-   one check and one person. Anyone who is not a moderator gets a refusal.
+   the checks and the people you made in steps 6 and 7 (one check and one person if you stopped at step 6; guest
+   checks are not counted). Anyone who is not a moderator gets a refusal.
 9. **Install to the home screen** — Share → "Add to Home Screen" on iPhone; Chrome offers "Install" by itself on
    Android — and check the app opens full screen with its own icon.
 
@@ -633,6 +661,9 @@ docker compose exec app dotnet FitCheck.Api.dll --admin <handle>      # after yo
 docker compose exec app dotnet FitCheck.Api.dll --verify <handle>
 docker compose exec app dotnet FitCheck.Api.dll --doctor --live
 ```
+
+And from your laptop, `scripts/smoke.sh https://looks.example.com` (1.6): the eight read-only checks in one go, exit 1
+when any is off.
 
 Push keys, if you want notifications (`docker compose run` because this one needs no database):
 
@@ -1385,6 +1416,24 @@ fly status                                       # מכונה אחת, started, �
 fly logs                                         # "Database /data/orevosh.db is new: creating the schema from the migrations."
 ```
 
+מיד מתחת לשורה הזו הפעלה ראשונה מדפיסה גם אזהרה אחת של EF Core, `An operation of type 'SqlOperation' will be
+attempted while a rebuild of table 'PostItems' is pending`: המיגרציה של סבב 10 מדברת עם עצמה על קובץ חדש. ההרצה
+היבשה של המדריך הזה ראתה אותה על בסיס נתונים ריק, ו-`/readyz` ענה `db: ok` מיד אחריה. אין מה לעשות.
+
+**ואז, מהלפטופ, סקריפט העשן:**
+
+```bash
+scripts/smoke.sh https://<your-app-name>.fly.dev
+```
+
+הוא צריך רק `curl`, וקורא בבת אחת את מה שפרק 1.8 מבקש לקרוא ביד: `/healthz` אומר `ok`, `/readyz` הוא 200 עם כל
+בדיקה `ok`, שני דפי הנחיתה הם HTML שנושא את הסלוגן, `/api/config` עונה, המעטפת נושאת את תגי התצוגה המקדימה של
+הקישור (והם אומרים את הכתובת שלכם, לא `looks.example.com`), כותרות האבטחה קיימות, והמניפסט מוגש. שורת `OK`/`FAIL`
+אחת לכל בדיקה, `smoke: 8 ok, 0 failed` בסוף, וקוד יציאה 1 על כל כישלון, כך שסקריפט פריסה יכול לעצור עליו. מריצים
+אותו אחרי כל פריסה, מול הכתובת שאנשים משתמשים בה (`https://looks.example.com` אחרי 1.7). בדיקת אורח היא בבחירה,
+`scripts/smoke.sh https://… --check` (או `--check photo.jpg` עם תמונת לוק אמיתית), כי באתר חי היא מבזבזת קריאה
+אמיתית לסטייליסט ואת הבדיקה החינמית האחת של הכתובת הזו להיום.
+
 **אם הלוג אומר שאי אפשר לכתוב ל-`/data`** (`permission denied`, `unable to open database file`), שורש הנפח לא שייך
 למשתמש `app` שאינו root. פעם אחת:
 
@@ -1420,6 +1469,9 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
 
 (ה-`| jq` רק מסדר את התשובה. אם אין לכם `jq` על המחשב, השמיטו אותו: השורה עדיין מדפיסה את אותו JSON, בשורה אחת.)
 
+`scripts/smoke.sh https://looks.example.com` (1.6) עושה את שלוש השורות האלה ועוד חמש בבת אחת, ויוצא ב-1 כשמשהו מהן
+לא בסדר. החצי של הטלפון למטה נשאר שלכם.
+
 `/readyz` היא זו שכדאי לקרוא. היא ציבורית, אף פעם לא נשמרת במטמון, ומחזירה מסמך קטן: `ok`, ואובייקט `checks` שבו כל שם
 הוא או `"ok"` או סיבה קצרה. היא בודקת `db` (שאילתה עונה והסכמה במיגרציה הנוכחית), `storage` (תיקיית התמונות קיימת
 ואפשר לכתוב ולמחוק בה קובץ) וגם, כל עוד `Storage:Transcode` דלוק, `ffmpeg` (הבינארי נמצא). שלושתם תקינים זה 200; כל
@@ -1434,7 +1486,8 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --admin <handle>"
    ```
-   בלי הפעלה מחדש. מרעננים את האפליקציה ותור המודרציה נמצא בתפריט של החשבון הזה.
+   בלי הפעלה מחדש. מרעננים את האפליקציה ותור המודרציה נמצא בתפריט של החשבון הזה. הרופא (שלב 5) סופר את המנהלים
+   בבסיס הנתונים, ולכן שורת ה-`admin` שלו אומרת `ok` מכאן והלאה גם כש-`Admin__Handles` ריק.
 4. **מאמתים את חשבונות המותגים הראשונים**, אחרי שכל מותג נרשם ואתם יודעים מי עומד מאחורי החשבון:
    ```bash
    fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --verify <handle>"
@@ -1451,11 +1504,17 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.
    את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP, ולכן הבדיקה של השולח היא לבקש מהאפליקציה איפוס סיסמה
    לכתובת שלכם. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
+   בפריסה ראשונה מצפים ל-`WARN push` (אין מפתחות VAPID עד שלב 7 ב-`DEPLOY.md`) ולשום כישלון; `FAIL anthropic` אומר
+   שסוד המפתח לא הגיע למכונה (1.5).
 6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
    האחסון והמודל חייבים להיות נכונים בבת אחת.
-7. **מפרסמים אותו**, מדליקים אש מחשבון שני, ופותחים את `#/board` — הלוק אמור להופיע בלוח השבועי.
-8. **פותחים את דף המספרים**, `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל. הוא אמור להראות בדיקה אחת
-   ואדם אחד. מי שאינו מנהל מקבל סירוב.
+7. **מפרסמים אותו** ופותחים את `#/board`. ביום ההשקה הלוק יושב בלשונית **הבחירות של הסטייליסט** (לפי ציון, בלי אש);
+   לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) עדיין לא נספרת, ולכן אש מחשבון
+   שני שיצרתם הרגע מעלה את המונה של הלוק ומשאירה את לשונית הלוקים ריקה עד שהחשבון בן יומיים. ההרצה היבשה של המדריך
+   הזה הוכיחה בדיוק את זה.
+8. **פותחים את דף המספרים**, `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל. הוא אמור להראות את הבדיקות
+   ואת האנשים שיצרתם בשלבים 6 ו-7 (בדיקה אחת ואדם אחד אם עצרתם בשלב 6; בדיקות אורח לא נספרות). מי שאינו מנהל מקבל
+   סירוב.
 9. **מתקינים למסך הבית** — שיתוף ← "הוסף למסך הבית" באייפון; כרום מציע "התקנה" מעצמו באנדרואיד — ובודקים שהאפליקציה
    נפתחת במסך מלא עם האייקון שלה.
 
@@ -1594,6 +1653,9 @@ docker compose exec app dotnet FitCheck.Api.dll --admin <handle>      # אחרי
 docker compose exec app dotnet FitCheck.Api.dll --verify <handle>
 docker compose exec app dotnet FitCheck.Api.dll --doctor --live
 ```
+
+ומהלפטופ, `scripts/smoke.sh https://looks.example.com` (1.6): שמונה הבדיקות לקריאה בלבד בבת אחת, יציאה ב-1 כשאחת
+מהן לא בסדר.
 
 מפתחות פוש, אם רוצים התראות (`docker compose run`, כי הפקודה הזו לא צריכה בסיס נתונים):
 

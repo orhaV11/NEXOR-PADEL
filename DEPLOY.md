@@ -125,6 +125,11 @@ curl -s https://<your-app-name>.fly.dev/readyz    # {"ok":true,"checks":{"db":"o
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --doctor"    # the settings, from inside
 ```
 
+From your laptop, `scripts/smoke.sh https://<your-app-name>.fly.dev` runs the two curl lines above and six more (both
+landing pages with the slogan, `/api/config`, the link-preview tags in the shell, the security headers, the manifest),
+one `OK`/`FAIL` line each, and exits 1 on any failure; `--check` adds one guest check, which spends a real stylist call
+and the address's free look for the day. It needs only `curl`. Run it after every deploy (`LAUNCH.md`, 1.6).
+
 **`/healthz` and `/readyz` answer different questions.** `/healthz` is liveness — `ok` when the database answers — and
 it is what `fly.toml`'s check, the Dockerfile's health check and an uptime monitor poll; it is untouched. `/readyz` is
 readiness: public, `Cache-Control: no-store`, and a small JSON document `{ ok, checks }` where each check is `"ok"` or
@@ -632,7 +637,8 @@ on your phone. Caddy fetches the certificate on the first request (give it up to
 answers `ok` when the app can reach its database, and `https://looks.example.com/readyz` answers
 `{"ok":true,"checks":{…}}` when the database, the media folder and (while `Storage:Transcode` is on) ffmpeg are all
 good — a 503 there names what is not (the Fly path, step 5, explains the two lines). `docker compose exec app dotnet
-FitCheck.Api.dll --doctor` is the same question asked of the settings.
+FitCheck.Api.dll --doctor` is the same question asked of the settings, and `scripts/smoke.sh https://looks.example.com`
+from your laptop is the whole read-only smoke in one go (the Fly path, step 5).
 
 If the certificate does not come: `docker compose logs caddy` says why, and it is almost always DNS not pointing at
 this machine yet, or port 80/443 closed by the provider's own firewall (check the VPS control panel).
@@ -667,7 +673,7 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 | Command | What it does |
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
-| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the free disk space, fourteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts and the free disk space, fourteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe when the provider is `stripe`. **The mail server is never dialled** — no command in this app opens an SMTP connection; ask the app for a password reset with your own address to test the sender. This is the one that tells you whether a broken check is you or the provider |
 | `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the five events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
 | `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups/nightly` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete — it prunes whatever it finds there, so give each writer a folder of its own. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume, and `/data/backups/nightly` is the folder it defaults to |
@@ -946,7 +952,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
    `Storage:Transcode` is on, `ffmpeg`, each `"ok"`; a 503 names what is not. Then `--doctor` for the settings
    `/readyz` cannot see, and `--doctor --live` once for the things outside the machine (Anthropic, and Stripe when it
    is on — never the mail server, which no command dials; item 11 says how to test that). Keep the uptime checker on
-   `/healthz`; `/readyz` is the one you read when something is wrong.
+   `/healthz`; `/readyz` is the one you read when something is wrong. `scripts/smoke.sh https://…` from your laptop
+   asks the read-only half of this in one go, eight `OK` lines and exit 0, and is the line to run after every deploy.
 8. **The first moderator**, signed up and then promoted with `--admin` (Fly step 6, server step 7). Two is better than
    one: someone has to look at the queue every day.
 9. **The first brands verified.** Each brand account that you know is the brand (you spoke to them, the handle is on

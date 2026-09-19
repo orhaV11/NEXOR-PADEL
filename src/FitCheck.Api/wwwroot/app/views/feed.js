@@ -2,10 +2,10 @@
 // pages as you scroll and refreshes when you pull down. The intent filter lives in state.feed so it survives a
 // trip to a post and back; the tab comes from the route (#/ or #/feed/following).
 import {
-  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, emptyState, announce, onLeave, feedVersion
+  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, announce, onLeave, feedVersion
 } from '../core.js';
 import { todayStrip } from './today.js';
-import { boardResetCard } from './board.js';
+import { boardResetCard, emptyCall } from './board.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
 // The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
@@ -86,12 +86,18 @@ register('feed', async (root, params, ctx) => {
   body.appendChild(indicator);
   root.appendChild(body);
 
+  // The empty list tells a newcomer the one thing to do next (check a look) rather than that nothing is here: on Your
+  // circle, what fills it and where everyone is meanwhile; on For you, what a check is and, signed out, that the first
+  // one is free; under an intent chip, that no look of that intent is posted yet.
   const empty = () => {
-    if (tab !== 'following') return emptyState(t('feed.empty'));
-    return el('div', {}, [
-      emptyState(t('feed.empty_following')),
-      el('div', { style: 'padding-inline: 16px; text-align: center;' }, [el('a', { class: 'btn btn-secondary btn-sm', href: '#/explore', text: t('explore.brands') })])
-    ]);
+    if (tab === 'following') {
+      return emptyCall(t('empty.following_title'), t('empty.following_body', { foryou: t('feed.foryou') }), {
+        id: 'feed-empty', extra: [el('a', { class: 'btn btn-secondary', id: 'feed-empty-find', href: '#/explore', text: t('empty.following_find') })]
+      });
+    }
+    const intent = state.feed.intent;
+    if (intent) return emptyCall(t('empty.feed_filtered', { intent: intentLabel(intent) }), t('empty.feed_filtered_body', { intent: intentLabel(intent) }), { id: 'feed-empty' });
+    return emptyCall(t('empty.feed_title'), t('empty.feed_body') + (state.me ? '' : ' ' + t('empty.feed_guest')), { id: 'feed-empty' });
   };
 
   const cacheKey = () => tab + '|' + state.feed.intent;

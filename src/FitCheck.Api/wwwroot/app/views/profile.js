@@ -8,7 +8,7 @@ import {
   register, state, t, api, el, icon, iconButton, sheet, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
   navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel
 } from '../core.js';
-import { profileBadge } from './board.js';
+import { profileBadge, emptyCall } from './board.js';
 import { blockAccount, unblockAccount } from './blocked.js';
 
 /** Three columns, so a page is whole rows; the server caps pages at 30 anyway. */
@@ -16,7 +16,7 @@ const GRID_PAGE = 30;
 
 // The kit's empty, error and skeleton blocks are grid children here, so they span the row; check rows are this view's only own layout.
 document.head.appendChild(el('style', { text: [
-  '.profile-grid > .empty, .profile-grid > .notice { grid-column: 1 / -1; }',
+  '.profile-grid > .empty, .profile-grid > .notice, .profile-grid > .empty-call { grid-column: 1 / -1; }',
   '.check-row { display: flex; align-items: center; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--line); }',
   '.check-row .num { flex: none; min-inline-size: 48px; text-align: center; font-family: var(--font-display); font-size: 28px; line-height: 1; font-weight: 800; color: var(--accent); direction: ltr; }',
   '.check-row .num small { font-size: 11px; color: var(--ink-3); font-weight: 600; margin-inline-start: 1px; }',
@@ -142,7 +142,9 @@ function tabEmpty(profile, tab, mine) {
   const brand = profile.accountType === 'Brand';
   if (tab === 'community') return emptyState(t('profile.community_empty', { handle: profile.handle }), mine ? null : t('profile.community_hint', { handle: profile.handle }));
   if (tab === 'featured') return emptyState(t(brand ? 'profile.featured_empty_brand' : 'profile.featured_empty_person'));
-  return emptyState(t(mine ? 'profile.no_posts_me' : 'profile.no_posts'));
+  // My own empty grid is the fresh account's first screen after the welcome: what lands here, and the way to a check.
+  if (mine) return emptyCall(t('empty.profile_title'), t('empty.profile_body'), { id: 'profile-empty' });
+  return emptyState(t('profile.no_posts'));
 }
 
 async function profileView(root, handle, tab, ctx) {

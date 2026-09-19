@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
@@ -231,6 +232,44 @@ public class DoctorTests : IDisposable
         var off = await Inspect(noPush);
         Assert.Equal(DoctorStatus.Warn, off["push"]!.Status);
         Assert.Contains("--vapid", off["push"]!.Detail);
+    }
+
+    [Fact]
+    public async Task A_moderator_made_with_admin_counts_even_when_the_handle_list_is_empty()
+    {
+        // LAUNCH.md 1.8 promotes the first account with --admin, which leaves nothing in the configuration, and runs the
+        // doctor two steps later: the database is the word on who can open the queue, so the doctor reads it (never creates it).
+        var path = Path.Combine(_root, "mods.db");
+        using (var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite($"Data Source={path}").Options))
+        {
+            db.Database.Migrate();
+            db.Users.Add(new AppUser { Id = Guid.NewGuid(), Handle = "orhav", HandleLower = "orhav", PasswordHash = "x", CreatedAt = DateTime.UtcNow, IsAdmin = true });
+            db.Users.Add(new AppUser { Id = Guid.NewGuid(), Handle = "noa", HandleLower = "noa", PasswordHash = "x", CreatedAt = DateTime.UtcNow });
+            db.SaveChanges();
+        }
+
+        SqliteConnection.ClearAllPools();
+        var promoted = Healthy();
+        promoted["Admin:Handles:0"] = "";
+        promoted["ConnectionStrings:Default"] = $"Data Source={path}";
+        var line = (await Inspect(promoted))["admin"]!;
+        Assert.Equal(DoctorStatus.Ok, line.Status);
+        Assert.Contains("1 moderator account in the database", line.Detail);
+
+        // Listed handles stay first, with the database's count after them.
+        var listed = Healthy();
+        listed["ConnectionStrings:Default"] = $"Data Source={path}";
+        Assert.Contains("orhav; 1 moderator account", (await Inspect(listed))["admin"]!.Detail);
+
+        // No list and no file yet: the warning as before, and looking created no file.
+        var absent = Path.Combine(_root, "absent.db");
+        var nobody = Healthy();
+        nobody["Admin:Handles:0"] = "";
+        nobody["ConnectionStrings:Default"] = $"Data Source={absent}";
+        var warned = (await Inspect(nobody))["admin"]!;
+        Assert.Equal(DoctorStatus.Warn, warned.Status);
+        Assert.Contains("nobody can open the moderation queue", warned.Detail);
+        Assert.False(File.Exists(absent));
     }
 
     [Fact]
@@ -599,6 +638,25 @@ public class ReadinessTests
         var without = await ReadyAsync(missing.NewClient());
         Assert.Equal(HttpStatusCode.ServiceUnavailable, without.Status);
         Assert.Equal("not found", without.Body.GetProperty("checks").GetProperty("ffmpeg").GetString());
+    }
+
+    [Fact]
+    public async Task Head_answers_both_health_routes_like_get_so_a_checker_may_probe_with_either()
+    {
+        // The first dry run of LAUNCH.md 1.8 found `curl -I` on the health routes answering 405: an uptime checker that
+        // probes with HEAD would have paged the owner about a site that was up.
+        using var app = new TestApp();
+        var client = app.BareClient();
+        foreach (var path in new[] { "/healthz", "/readyz" })
+        {
+            var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        }
+
+        // A method neither route ever meant is still refused.
+        var post = await client.PostAsync("/healthz", null);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, post.StatusCode);
     }
 }
 

@@ -6,6 +6,8 @@
 // Wiring: shareCardMenuItem(lookFromPost(post)) is a row for the post's "…" sheet; shareCardButton(lookFromCheck(result,
 // state.check.previewUrl)) is a secondary button for the result screen. Both open openShareCard(look): a sheet that
 // draws the card, shows it, and offers Share (the system share sheet with the file, where the browser can) and Save.
+// The drawing helpers (the stage, the cover crop, the gradient, the ring's colours, text with its own direction, fit and
+// wrap by measureText, the image and font loaders) are exported: app/sharevideo.js draws the 12-second video with them.
 import { t, el, icon, sheet, toast, state, intentLabel, fmtNumber, isIos } from './core.js';
 
 // ---------- the card ----------
@@ -20,17 +22,17 @@ const INTENT = { y: 1596, h: 56 };
 const NAME = { baseline: 1722 };
 const FOOTER = { rule: 1770, centre: 1838, wordmark: 52 };
 const MAX_BYTES = 1.5 * 1024 * 1024;
-const COLOR = {
-  bg: '#0b0b0f', surface2: '#1e1e27', ink: '#f4f4f7', ink2: '#b9b9c6', ink3: '#7f7f8e',
+export const COLOR = {
+  bg: '#0b0b0f', surface: '#15151c', surface2: '#1e1e27', ink: '#f4f4f7', ink2: '#b9b9c6', ink3: '#7f7f8e',
   accent: '#b39dff', rose: '#ff8fb1', tint: 'rgba(179, 157, 255, 0.16)', line: 'rgba(255, 255, 255, 0.1)'
 };
 // The same stacks as app.css, with Cairo behind Heebo so Arabic draws in the face the page already loaded; Cyrillic falls to the system face, as on the page.
-const DISPLAY = '"Outfit", "Heebo", "Cairo", system-ui, sans-serif';
-const BODY = '"Heebo", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif';
+export const DISPLAY = '"Outfit", "Heebo", "Cairo", system-ui, sans-serif';
+export const BODY = '"Heebo", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "Noto Sans Arabic", sans-serif';
 
 const pageDir = () => (document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr');
 /** The direction of a text by its first strong character (what unicode-bidi: plaintext does for headlines in the app); null when it has none. */
-function strongDir(text) {
+export function strongDir(text) {
   const rtl = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
   const ltr = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]/;
   const m = new RegExp(rtl.source + '|' + ltr.source).exec(text || '');
@@ -39,9 +41,9 @@ function strongDir(text) {
 }
 
 /** The fonts the card sets; a missing face falls back to the stack, and a slow network never holds the card for more than a moment. */
-async function loadFonts() {
+export async function loadFonts() {
   if (!document.fonts || !document.fonts.load) return;
-  const faces = ['700 40px Outfit', '800 40px Outfit', '500 40px Heebo', '700 40px Heebo'];
+  const faces = ['700 40px Outfit', '800 40px Outfit', '500 40px Heebo', '600 40px Heebo', '700 40px Heebo'];
   const wait = Promise.all(faces.map((face) => document.fonts.load(face).catch(() => null)));
   await Promise.race([wait, new Promise((resolve) => setTimeout(resolve, 2500))]);
 }
@@ -50,7 +52,7 @@ async function loadFonts() {
  * fetch → blob → object URL → Image, for the photo (/api/posts/<id>/image with the session cookie, or a blob: URL from the
  * check) and for the wordmark SVG. Everything is same-origin, so the canvas stays untainted and toBlob works.
  */
-async function loadImage(url, revokes) {
+export async function loadImage(url, revokes) {
   const response = await fetch(url, { credentials: 'same-origin' });
   if (!response.ok) throw new Error('image ' + response.status);
   const objectUrl = URL.createObjectURL(await response.blob());
@@ -63,7 +65,7 @@ async function loadImage(url, revokes) {
   return img;
 }
 
-function roundedRect(ctx, x, y, w, h, r) {
+export function roundedRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -72,14 +74,14 @@ function roundedRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function disc(ctx, cx, cy, r, fill) {
+export function disc(ctx, cx, cy, r, fill) {
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
 }
 /** The only gradient in the system, lilac at the top-start to rose at the bottom-end, over a box. */
-function theGradient(ctx, x, y, w, h) {
+export function theGradient(ctx, x, y, w, h) {
   const g = ctx.createLinearGradient(x, y, x + w, y + h);
   g.addColorStop(0, COLOR.accent);
   g.addColorStop(1, COLOR.rose);
@@ -87,14 +89,14 @@ function theGradient(ctx, x, y, w, h) {
 }
 
 /** Trims with an ellipsis until the text fits the width. */
-function fit(ctx, text, maxWidth) {
+export function fit(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   const chars = Array.from(text);
   while (chars.length > 1 && ctx.measureText(chars.join('').replace(/[\s.,;:]+$/, '') + '…').width > maxWidth) chars.pop();
   return chars.join('').replace(/[\s.,;:]+$/, '') + '…';
 }
 /** Greedy word wrap into at most maxLines lines; the last line takes the ellipsis when there is more. */
-function wrap(ctx, text, maxWidth, maxLines) {
+export function wrap(ctx, text, maxWidth, maxLines) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let line = '';
@@ -108,7 +110,7 @@ function wrap(ctx, text, maxWidth, maxLines) {
   return lines.map((l) => fit(ctx, l, maxWidth));   // a single word longer than the line
 }
 /** Text pinned to the start edge (left in LTR, right in RTL) with its own bidi direction. */
-function text(ctx, value, x, y, opts) {
+export function text(ctx, value, x, y, opts) {
   ctx.font = opts.font;
   ctx.fillStyle = opts.color;
   ctx.direction = opts.textDir || opts.dir;
@@ -119,7 +121,7 @@ function text(ctx, value, x, y, opts) {
   return ctx.measureText(value).width;
 }
 
-function drawStage(ctx) {
+export function drawStage(ctx) {
   ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
   // app.css: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%) — an ellipse, so the circle is squashed.
@@ -134,17 +136,21 @@ function drawStage(ctx) {
   ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT * 2, CARD_WIDTH * 2, CARD_HEIGHT * 6);
   ctx.restore();
 }
-function drawPhoto(ctx, img) {
-  const { x, y, w, h, r } = PHOTO;
-  ctx.save();
-  roundedRect(ctx, x, y, w, h, r);
-  ctx.clip();
+/** The image cover-fitted to a box, centred (object-fit: cover), on a placeholder fill. */
+export function coverImage(ctx, img, x, y, w, h) {
   ctx.fillStyle = COLOR.surface2;
   ctx.fillRect(x, y, w, h);
   const iw = img.naturalWidth || img.width; const ih = img.naturalHeight || img.height;
   const scale = Math.max(w / iw, h / ih);   // cover
   const dw = iw * scale; const dh = ih * scale;
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+function drawPhoto(ctx, img) {
+  const { x, y, w, h, r } = PHOTO;
+  ctx.save();
+  roundedRect(ctx, x, y, w, h, r);
+  ctx.clip();
+  coverImage(ctx, img, x, y, w, h);
   ctx.restore();
 }
 /** The score ring: a gradient ring around a stage-dark disc, the numeral inside, "/10" under it, straddling the photo's bottom-end corner. */

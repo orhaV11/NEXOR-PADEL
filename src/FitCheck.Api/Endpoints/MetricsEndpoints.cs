@@ -74,7 +74,9 @@ public static class MetricsEndpoints
             // followed through /api/items/{id}/out, board reads. The two tallies are Counter rows the routes increment.
             ItemsTagged: await db.PostItems.CountAsync(i => i.Source == ItemSource.User || i.Brand != null || i.Url != null, ct),
             ItemOuts: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.ItemOuts, ct)),
-            BoardViews: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BoardViews, ct)));
+            BoardViews: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BoardViews, ct)),
+            // Share videos are rendered and encoded on the phone; the server only hears that one was shared or saved.
+            VideosMade: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.VideosMade, ct)));
 
         return Results.Ok(metrics with { Social = social });
     }

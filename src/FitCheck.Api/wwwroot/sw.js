@@ -3,7 +3,7 @@
 // fetched with cache: 'no-cache', so the browser revalidates them and a deploy is picked up as one consistent set.
 // It also shows Web Push notifications and opens the app on the right screen when one is tapped.
 const VERSION = 'orevosh-shell-v4';
-const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/brand/wordmark.svg', '/manifest.webmanifest', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json'];
+const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(SHELL.map((p) => new Request(p, { cache: 'no-cache' })))).then(() => self.skipWaiting()));

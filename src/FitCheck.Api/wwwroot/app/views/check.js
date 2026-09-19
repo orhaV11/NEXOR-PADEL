@@ -13,6 +13,7 @@ import {
   register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
+import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
 import { afterPicker } from '../after.js';
 import { itemsEditor } from '../items.js';
 
@@ -36,6 +37,8 @@ const CSS = `
 .clip-row .tag { gap: 5px; }
 .clip-row .tag svg { inline-size: 12px; block-size: 12px; }
 .clip-row .btn-text { padding-block: 0; }
+.share-row { flex-wrap: wrap; }
+.share-row > #share-video { flex-basis: 100%; }   /* "Share as video" spans the row; the card and the text share sit under it */
 `;
 let styled = false;
 function ensureStyle() {
@@ -513,7 +516,9 @@ register('result', async (root) => {
   const postArea = el('div');
   container.appendChild(postArea);
   renderPostArea(postArea, result);
-  container.appendChild(el('div', { class: 'row' }, [
+  container.appendChild(el('div', { class: 'row share-row' }, [
+    // The 12-second video (app/sharevideo.js): the share card brought to life, made on the phone. #share-video is busy while it renders.
+    shareVideoButton(videoLookFromCheck(result, state.check.previewUrl)),
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
     el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));

@@ -22,6 +22,13 @@ public static class CheckEndpoints
     /// </summary>
     public const string GuestPolicy = "guest";
 
+    /// <summary>
+    /// Rate-limit policy (Program.cs) on POST /api/checks/{id}/shared-video: <see cref="SharedVideosPerHour"/> per account, or
+    /// per client address for a guest, an hour's window.
+    /// </summary>
+    public const string SharedVideoPolicy = "shared-video";
+    public const int SharedVideosPerHour = 30;
+
     // Room for multipart boundaries and the small text fields around the image and the clip.
     private const long MultipartOverheadBytes = 256 * 1024;
 
@@ -35,6 +42,8 @@ public static class CheckEndpoints
         group.MapPost("/", CreateAsync).DisableAntiforgery().RequireRateLimiting(GuestPolicy);
         group.MapPost("/claim", ClaimAsync).RequireAuthorization();
         group.MapGet("/{id:guid}", GetAsync);
+        // The share video is rendered and encoded on the phone (app/sharevideo.js); this only counts one that was shared or saved.
+        group.MapPost("/{id:guid}/shared-video", SharedVideoAsync).RequireRateLimiting(SharedVideoPolicy);
 
         return app;
     }
@@ -455,5 +464,28 @@ public static class CheckEndpoints
 
         var postId = await db.Posts.Where(p => p.CheckId == id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct);
         return Results.Json(CheckDto.FromEntity(check!, localizer, postId), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The client made the check's share video on the phone and handed it to the share sheet or saved it: one more on the
+    /// <see cref="CounterName.VideosMade"/> tally the numbers page shows. The server never sees the video and stores nothing
+    /// about it. The owner, or the guest whose cookie made the check (a guest's look is theirs to share); anyone else, and
+    /// a call with neither a session nor a guest cookie, gets the 404 of <see cref="GetAsync"/>, so ids do not leak existence.
+    /// </summary>
+    private static async Task<IResult> SharedVideoAsync(
+        Guid id, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    {
+        var userId = Sessions.UserId(context.User);
+        var guestToken = GuestChecks.Read(context);
+        var mine = await db.Checks.AnyAsync(c => c.Id == id
+            && ((userId != null && c.UserId == userId)
+                || (c.UserId == null && guestToken != null && c.GuestToken == guestToken)), ct);
+        if (!mine)
+        {
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.check_not_found"));
+        }
+
+        await Counters.IncrementAsync(db, CounterName.VideosMade, ct);
+        return Results.NoContent();
     }
 }

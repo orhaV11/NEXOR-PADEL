@@ -771,6 +771,7 @@ async function postIt(page, opts) {
   await dan.waitForFunction(() => location.hash === '#/board/hall');
   await dan.waitForSelector('#hall, #view .empty');                 // no week has closed yet in this run: the empty hall
   await go(noa, '#/explore');
+  await noa.waitForSelector('.brand-card');   // /api/explore has answered: a reload now aborts nothing in flight
   await noa.reload();
   await noa.waitForSelector('#board-strip .board-strip-row a');
   await shot(noa, '39-explore-strip-en');

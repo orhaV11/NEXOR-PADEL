@@ -36,19 +36,23 @@ brand-kit/episodes/001-camel-cover.png    the thumbnail
 
 and prints the size and the length, so you can see it worked.
 
-**It takes a few minutes.** The command photographs the video one frame at a time — 450 of them for a
-fifteen-second episode — so leave it running and come back. It prints its progress as it goes, so you
-can see it has not stalled.
+**It takes about half a minute.** The command photographs the video one frame at a time — 450 of them
+for a fifteen-second episode — on three browser pages at once, and hands every frame straight to the
+encoder as it comes. It prints its progress as it goes, so you can see it has not stalled.
 
 Other ways to run it:
 
 ```bash
 # every episode in the folder, one after another, in file-name order
-# (five episodes is a long coffee — start it and leave it)
+# (five episodes is about two minutes)
 node tools/brand/render-episode.js --all brand-kit/episodes
 
 # just the thumbnail, for a quick look while you are still writing the words
 node tools/brand/render-episode.js 001-camel.json --cover-only
+
+# a rough cut in about ten seconds — half size, 15 frames a second — as 001-camel-preview.mp4,
+# to check the timing and the words before the real render. Never upload a preview.
+node tools/brand/render-episode.js 001-camel.json --preview
 
 # the green-screen version of a normal episode, as 001-camel-overlay.mp4
 node tools/brand/render-episode.js 001-camel.json --overlay
@@ -244,6 +248,13 @@ Every video is 1080×1920, h264, yuv420p, 30 fps, **no audio track at all**, and
 green in `005` measures rgb(0, 176, 64) at every point of the empty field, at every second of the cut —
 one flat value, which is what makes the key clean.
 
+**`week-1/`** is the first week of posts, rendered and ready: the board, the camel verdict, the
+camel verdict as the chroma overlay for Wednesday's duet, streetwear against pink, and the Hebrew
+streetwear verdict for the Israeli track, each with its cover, plus a `README.md` in Hebrew that says
+which file goes up on which day, what to film, how to key the overlay in CapCut, and the first line
+of every caption. The JSONs in it point at the same three photographs one folder further up
+(`../../../tools/brand/templates/photos/…`).
+
 **The crops.** Every box an episode puts a look in is 9:16, the shape of the frame, so a full-length
 photograph keeps its head and its shoes instead of being squared off at one end. `look-2-camel`
 (941×1672) and `look-3-pink` (700×1244) are 9:16 to the pixel and are shown whole. `look-1-streetwear`
@@ -289,11 +300,35 @@ into a cut (`fade()` rounds the opacity to 0 or 1) and the motion is carried by 
 instead, every fill is opaque, and `--card-shadow` is `none`. Keep it that way, and keep `--ok`
 (`#5ee6a0`, the one green-ish brand token) out of episodes entirely.
 
+**How the frames get out.** Every frame is a DevTools `Page.captureScreenshot` straight off the
+compositor's surface (what `page.screenshot` does underneath, minus its per-call preparation), and
+goes down a pipe into ffmpeg (`image2pipe`), which encodes while the browser is already on the next
+frame; nothing is written to disk on the way. One capture costs about 65 ms whatever the format or
+the size — the time is the compositor handing the surface over, not the encoding — so the renderer
+opens **three pages in separate contexts** (separate renderer processes; `EPISODE_WORKERS` overrides
+the count) and each takes every third frame, with a writer putting them back in order. Before it
+trusts the pool it photographs frame 0 on every page and demands the bytes match; if they ever do not,
+it says so and renders on one page.
+
+Over a photograph a frame is a **JPEG at quality 95**; on the chroma field it stays a **PNG**. The old
+pipeline wrote a 1080×1920 PNG per frame and Chromium's zlib pass over a photograph cost 0.55 s each:
+`001-camel` took 242 s to capture and 255 s in all. Now: 21 s (3 pages, JPEG); the overlay went from
+43 s to 16 s (3 pages, PNG); a `--preview` of the camel is 10 s. The JPEG was checked before it was
+kept: the raw JPEG frame sits 52–57 dB PSNR (SSIM 0.996–0.999) from the raw PNG of the same frame,
+which is far inside x264's own loss at crf 20 (43–47 dB), and the same three frames from the two
+finished files — the ring at 3.2 s, the tip card at 8.6 s, the end card's lilac glow at 13.5 s — were
+put side by side at 1:1: no banding on the gradient, none on the look, and nothing the eye can tell
+apart. The green field is PNG so it stays exactly rgb(0, 176, 64) in every frame, as before.
+
+`--preview` is the same walk at 15 fps, the frames halved to 540×960 by ffmpeg on the way in, JPEG at
+80 and x264 `ultrafast` at crf 26, written as `<name>-preview.mp4` and no cover. It is for the timing
+and the words, never for uploading.
+
 Useful switches while editing: `--probe 0,3.9,9` writes single seconds as PNGs into the scratch folder;
 `--debug-safe` draws the platforms' unsafe rectangles over a probe or a cover so you can see what
-intrudes; `--keep-frames` leaves the PNG sequence behind; `--crf 18` overrides the encoder quality
-(the default is 20, and 16 for an overlay, because chroma keying is unforgiving of the noise h264
-leaves around a hard edge).
+intrudes; `--keep-frames` also writes every frame into the scratch folder (`.jpg` or `.png` as
+rendered); `--crf 18` overrides the encoder quality (the default is 20, and 16 for an overlay, because
+chroma keying is unforgiving of the noise h264 leaves around a hard edge).
 
 Scratch frames go to `EPISODE_SCRATCH` (by default a folder in the system temp directory), never into
 the repository. Playwright comes from `tools/e2e/node_modules`, the browser from `CHROMIUM_PATH`

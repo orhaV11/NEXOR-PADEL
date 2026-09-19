@@ -1,0 +1,24 @@
+{
+  "variant": "board",
+  "lang": "en",
+  "looks": [
+    {
+      "photo": "../../tools/brand/templates/photos/look-2-camel.jpg",
+      "intent": "DATE",
+      "score": 9,
+      "headline": "Camel and chocolate, done right"
+    },
+    {
+      "photo": "../../tools/brand/templates/photos/look-3-pink.jpg",
+      "intent": "PARTY",
+      "score": 8,
+      "headline": "Full pink, full commitment"
+    },
+    {
+      "photo": "../../tools/brand/templates/photos/look-1-streetwear.jpg",
+      "intent": "STREETWEAR",
+      "score": 8,
+      "headline": "All grey, and it holds"
+    }
+  ]
+}

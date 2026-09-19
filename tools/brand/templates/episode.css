@@ -1,0 +1,155 @@
+/* OREVOSH — the episode renderer's stylesheet.
+   Used only by episode.html (rendered by tools/brand/render-episode.js). It is deliberately NOT an
+   import of base.css: base.css carries the phone frame and the re-drawn app screen, which an episode
+   never shows, and it sizes <body> from --w/--h. What is shared is copied here on purpose — the §1
+   tokens of DESIGN.md and the two faces of §2 from the local OFL copies in fonts/, so a render never
+   touches the network.
+
+   Two grounds, one sheet:
+     body.mode-photo    the look full bleed on the dark stage — the normal post
+     body.mode-overlay  a flat #00B140 chroma-key field with the graphics in the lower middle, for
+                        dropping over his own masked footage in CapCut. On green NOTHING may be
+                        translucent (a 14%-lilac pill over green keys out as a green hole) and NOTHING
+                        may cast a soft shadow (it survives the key as a dark halo). So every rule that
+                        would put an rgba fill, a glow or a shadow on the field is overridden below.
+
+   There is no CSS animation, transition or keyframe in this file, and there must never be one: the
+   exporter screenshots between frames and would catch an element mid-flight. Everything moves from
+   window.seek(t) in episode.html. */
+
+@import url("fonts/fonts.css");
+
+:root {
+  /* DESIGN.md §1 */
+  --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
+  --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
+  --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+  --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+  --accent-tint: rgba(179,157,255,.14);
+  --fire: #ff6a2b; --fire-2: #ffa83a;
+  /* --ok (#5ee6a0) is the one green-ish token in the system and is deliberately absent: it would key
+     out together with the chroma field. Nothing in an episode is green. */
+  --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
+
+  /* what the two grounds swap */
+  --field: #0b0b0f;                       /* the page under everything */
+  --plate: #15151c;                       /* a card, a pill, the disc inside the ring */
+  --pill-bg: var(--accent-tint);          /* the intent pill's fill */
+  --card-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+/* The chroma-key ground. #00B140 is broadcast green: one flat value, no gradient, no vignette, so
+   CapCut's picker gets the same RGB wherever the owner taps. */
+body.mode-overlay {
+  --field: #00B140;
+  --pill-bg: #241f33;                     /* opaque, the lilac tint baked onto the dark plate */
+  --card-shadow: none;                    /* a soft shadow keys out as a dark halo */
+}
+
+html, body { margin: 0; padding: 0; width: 1080px; height: 1920px; overflow: clip; }
+body {
+  position: relative; background: var(--field); color: var(--ink);
+  font-family: var(--font-body); -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+#stage { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden; }
+
+/* display, not visibility: a child with visibility:visible escapes a hidden ancestor and every beat
+   would bleed into every other one. */
+.beat { position: absolute; inset: 0; display: none; }
+.layer { position: absolute; }
+
+.display { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.04; margin: 0;
+  text-wrap: balance; }
+[dir=rtl] .display { font-family: "Heebo", var(--font-display); letter-spacing: 0; line-height: 1.18; }
+.caps { font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+[dir=rtl] .caps { letter-spacing: .02em; }
+/* Numerals read left to right in both languages (DESIGN.md §2), or "8 / 10" becomes "10 / 8". */
+.num { direction: ltr; unicode-bidi: isolate; font-family: var(--font-display); font-weight: 800; }
+.body { font-family: var(--font-body); font-weight: 500; color: var(--ink-2); line-height: 1.35; margin: 0; }
+/* The wordmark is a logo: it never mirrors (DESIGN.md §3). */
+.wordmark { direction: ltr; }
+img { display: block; }
+
+/* ---------------------------------------------------------------- the look */
+.photo { position: absolute; overflow: hidden; background: #0b0b0f; }
+/* Real photographs, so barely anything: a hair of contrast to seat them on the dark stage. Heavy
+   saturation would recolour the clothes the stylist is about to name. */
+.photo img { position: absolute; max-width: none; filter: saturate(1.04) contrast(1.02); }
+/* The scrim that keeps type legible over a bright look. Absent on the chroma field. */
+.scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(11,11,15,.72) 0%, rgba(11,11,15,.22) 22%, rgba(11,11,15,0) 38%),
+    linear-gradient(0deg, rgba(11,11,15,.86) 0%, rgba(11,11,15,.42) 24%, rgba(11,11,15,0) 48%);
+}
+/* A full-frame dim, driven by seek, for the beats where type has to win over the picture. */
+.dim { position: absolute; inset: 0; background: #0b0b0f; }
+
+/* ---------------------------------------------------------------- furniture */
+.pill {
+  position: absolute; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--pill-bg); color: var(--accent);
+  font-family: var(--font-body); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; white-space: nowrap;
+}
+[dir=rtl] .pill { letter-spacing: .03em; }
+/* Over a photograph the 14 % lilac tint of DESIGN.md §1 has nothing dark to sit on, so it gets a
+   stage-coloured base under it and the caps stay legible over a white wall or a pale coat. */
+body.mode-photo .pill.intent {
+  background: linear-gradient(rgba(179,157,255,.16), rgba(179,157,255,.16)), rgba(11,11,15,.62);
+}
+
+/* The score ring of DESIGN.md §3, drawn as SVG so the stroke can be laid down from seek(t): an
+   opaque disc of --plate with a gradient stroke around it. Opaque in both grounds — over a photo it
+   is what makes a 200px numeral readable, over green it is what stops the numeral fringing. */
+.ring { position: absolute; }
+.ring svg { position: absolute; inset: 0; overflow: visible; }
+.ring .val { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; direction: ltr; }
+.ring .val b { font-family: var(--font-display); font-weight: 800; color: var(--ink); line-height: .88; letter-spacing: -.03em; }
+.ring .val i { font-family: var(--font-body); font-style: normal; font-weight: 700; color: var(--ink-3); letter-spacing: .04em; }
+
+/* The card the one tip sits on: the app marks the one tip with a gradient bar, so the card does too. */
+.card {
+  position: absolute; box-sizing: border-box; background: var(--plate);
+  border: 1px solid var(--line); border-radius: 40px; box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+.card .bar { position: absolute; inset-block: 44px; inset-inline-start: 44px; width: 10px;
+  border-radius: 999px; background: linear-gradient(180deg, #b39dff 0%, #ff8fb1 100%); }
+.card .inner { position: absolute; inset-block: 44px; inset-inline-start: 84px; inset-inline-end: 48px;
+  display: flex; flex-direction: column; justify-content: center; text-align: start; }
+
+/* The breakdown: three cells in a row. flex, not three absolute boxes, so RTL mirrors the order and
+   FIT / COLOR / ACCESSORIES read right to left in Hebrew without a second layout. */
+.bd { position: absolute; display: flex; justify-content: center; align-items: flex-start; }
+.bd > div { text-align: center; }
+.bd .n { font-family: var(--font-display); font-weight: 800; color: var(--ink); line-height: 1; direction: ltr; letter-spacing: -.02em; }
+
+/* The 3-2-1 count is the one run of type with nothing behind it, so over a photograph it carries its
+   own soft shadow and over the chroma field a hard dark outline (below). */
+body.mode-photo .outline { text-shadow: 0 10px 44px rgba(11,11,15,.65), 0 2px 10px rgba(11,11,15,.5); }
+
+/* Type that has to sit straight on the chroma field — the 3-2-1 count. A hard dark outline, not a
+   glow: eight offsets of the stage colour, so every edge pixel of the glyph borders on #0b0b0f and
+   the key never eats into the numeral. */
+body.mode-overlay .outline {
+  text-shadow:
+    4px 0 0 #0b0b0f, -4px 0 0 #0b0b0f, 0 4px 0 #0b0b0f, 0 -4px 0 #0b0b0f,
+    3px 3px 0 #0b0b0f, -3px 3px 0 #0b0b0f, 3px -3px 0 #0b0b0f, -3px -3px 0 #0b0b0f;
+}
+
+/* A plate behind a run of type, used on the chroma field where there is no photo to sit on. In photo
+   mode it is invisible and the scrim does the work. */
+.plate { position: absolute; box-sizing: border-box; border-radius: 34px; background: transparent; }
+body.mode-overlay .plate { background: var(--plate); border: 1px solid var(--line); }
+
+/* The lilac glow of the stage (DESIGN.md §1, "Ground") on the end card. Never on green: a translucent
+   lilac wash over the field is exactly the thing a chroma key cannot decide about. */
+.glow { position: absolute; left: -8%; top: -6%; width: 116%; height: 72%;
+  background: radial-gradient(52% 50% at 50% 34%, rgba(179,157,255,.30), transparent 66%); }
+body.mode-overlay .glow { display: none !important; }
+
+/* The safe-area proof. Off unless window.__debugSafe(true); the renderer never draws it into a video. */
+#safe { position: absolute; inset: 0; display: none; }

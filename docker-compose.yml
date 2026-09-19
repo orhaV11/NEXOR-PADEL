@@ -1,0 +1,84 @@
+# OREVOSH on one small server: the app, and Caddy in front of it getting and renewing the HTTPS certificate by itself.
+# Copy .env.example to .env, fill it in, then: docker compose up -d --build. The walkthrough is DEPLOY.md.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Everything in .env reaches the app: ANTHROPIC_API_KEY, Push__PublicKey, Push__PrivateKey, Push__Subject,
+    # Admin__Handles__0 (see .env.example). Any appsettings key can be overridden the same way, e.g. Limits__ChecksPerDay=5.
+    env_file: .env
+    volumes:
+      # The database, the photos and clips, the pilot-upgrade copies and the backups in flight all live here.
+      - data:/data
+    # Not published on the host: only Caddy, on the compose network, talks to the app.
+    expose:
+      - "8080"
+    # Docker keeps container logs forever unless told otherwise; five files of 10 MB is weeks of a pilot.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and Caddy's own state survive restarts and rebuilds.
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Backups. Nothing here is on by default: pick one of the two, never both on the same folder (they prune by the same
+  # names). The app's own --backup writes a consistent copy of the database while it runs, plus a copy of the photo and
+  # clip folder, and --keep <n> removes the older copies in that folder once the new one is complete.
+  #
+  # (a) A line in the host's crontab, which is what DEPLOY.md walks through and what most pilots want:
+  #       15 3 * * * /opt/orevosh/scripts/backup.sh >> /var/log/orevosh-backup.log 2>&1
+  #     scripts/backup.sh runs the command in this app container and keeps the newest KEEP (14) copies on the data
+  #     volume; tools/backup.sh instead copies them off the volume onto the host, for the ones you rsync elsewhere.
+  #
+  # (b) A sidecar, for a host with no cron of its own (a managed VM, a hobby box you never log in to). It reuses the app
+  #     image and the same data volume; SQLite's VACUUM INTO is safe from a second process while the app writes. Copy the
+  #     four lines out of the comment, then: docker compose up -d backup
+  #
+  # backup:
+  #   build: .
+  #   restart: unless-stopped
+  #   env_file: .env
+  #   depends_on:
+  #     - app
+  #   volumes:
+  #     - data:/data
+  #   # One copy a day, newest 14 kept. The first sleep lets the app finish migrating before anything is copied.
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   command: >
+  #     sleep 60;
+  #     while true; do
+  #       dotnet /app/FitCheck.Api.dll --backup /data/backups --keep 14 || echo "backup failed";
+  #       sleep 86400;
+  #     done
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "5"
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,11 @@
+{
+  "variant": "verdict",
+  "lang": "en",
+  "photo": "../../../tools/brand/templates/photos/look-2-camel.jpg",
+  "intent": "DATE",
+  "score": 9,
+  "headline": "Camel and chocolate, done right",
+  "occasion": "coffee and a walk",
+  "breakdown": { "fit": 9, "color": 9, "accessories": 8 },
+  "tip": "Swap the black tights for sheer brown and the column runs unbroken."
+}

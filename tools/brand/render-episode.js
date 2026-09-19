@@ -16,10 +16,21 @@
  * the size it will be rendered: an overflowing tip is the one defect that would put a broken video
  * on the account, so it fails instead of silently overflowing.
  *
+ * A fifteen-second episode renders in well under a minute and a half. The browser is asked for each
+ * frame over the DevTools protocol and the frame goes straight down a pipe into ffmpeg, which
+ * encodes while the browser is already on the next one; nothing is written to disk on the way.
+ * Over a photograph a frame is a JPEG at quality 95 (a 1080x1920 PNG cost three quarters of a
+ * second to compress, the JPEG a few hundredths, and at 95 neither the brand gradient nor the look
+ * bands — checked frame against frame, see brand-kit/episodes/README.md §7); on the chroma field a
+ * frame stays PNG, because a flat field compresses fast anyway and the key relies on the green being
+ * exactly rgb(0,176,64) in every frame.
+ *
  * Extra switches, for while you are editing:
+ *   --preview                a rough cut in seconds: 540x960, 15 fps, as <name>-preview.mp4, for
+ *                            checking the timing and the words before the real render
  *   --probe 0,3.4,8.6,13     write those seconds as PNGs into the scratch folder and stop
  *   --debug-safe             draw the platform's unsafe rectangles over a --probe or a --cover-only
- *   --keep-frames            leave the PNG sequence in the scratch folder
+ *   --keep-frames            also write every frame into the scratch folder
  *   --crf 18                 override the encoder's quality (default 20, 16 for an overlay)
  *
  * Playwright is the browser test's copy in tools/e2e; the browser is CHROMIUM_PATH or
@@ -32,7 +43,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 
 const REPO = path.resolve(__dirname, '../..');
 const TEMPLATE = path.join(__dirname, 'templates/episode.html');
@@ -58,12 +69,13 @@ function sh(cmd, args) { return execFileSync(cmd, args, { encoding: 'utf8', maxB
 /* ------------------------------------------------------------------ the arguments */
 function parseArgs(argv) {
   const o = { files: [], all: null, coverOnly: false, overlay: false, probe: null,
-    debugSafe: false, keepFrames: false, crf: null };
+    debugSafe: false, keepFrames: false, crf: null, preview: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--all') { o.all = argv[++i] || 'brand-kit/episodes'; }
     else if (a === '--cover-only') o.coverOnly = true;
     else if (a === '--overlay') o.overlay = true;
+    else if (a === '--preview') o.preview = true;
     else if (a === '--debug-safe') o.debugSafe = true;
     else if (a === '--keep-frames') o.keepFrames = true;
     else if (a === '--probe') o.probe = String(argv[++i] || '').split(',').filter(Boolean).map(Number);
@@ -80,9 +92,11 @@ function usageText() {
          'Options:\n' +
          '  --overlay        also render the chroma-key version, as <name>-overlay.mp4\n' +
          '  --cover-only     write only <name>-cover.png, no video\n' +
+         '  --preview        a rough cut in seconds (540x960, 15 fps) as <name>-preview.mp4, to check\n' +
+         '                   the timing and the words; the real render is the same command without it\n' +
          '  --probe 0,8.6    write those seconds as PNGs into the scratch folder and stop\n' +
          '  --debug-safe     draw the platform\'s unsafe rectangles (probe and cover only)\n' +
-         '  --keep-frames    leave the PNG sequence in the scratch folder\n' +
+         '  --keep-frames    also write every frame into the scratch folder\n' +
          '  --crf 18         encoder quality (default 20; 16 for an overlay)';
 }
 function usage() { console.log('\n' + usageText() + '\n'); }
@@ -219,8 +233,12 @@ function withUrls(d) {
 }
 
 /* ------------------------------------------------------------------ the render */
+/* A page in a context of its own (a context is a renderer process, which is what lets several of
+   them photograph at once). The page is always 1080x1920: the template's own size, so every fit is
+   measured at the size the real render uses; a --preview is scaled at capture, not at layout. */
 async function openPage(browser, data, label) {
-  const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   await page.goto(toUrl(TEMPLATE), { waitUntil: 'load' });
@@ -245,28 +263,156 @@ async function openPage(browser, data, label) {
     fail(label + ': text does not fit, so nothing was rendered.\n' + lines.join('\n') +
       '\nShorten the line in the JSON and run it again.');
   }
-  return { page, meta: out.meta, crops: out.crops };
+  return { page, ctx, meta: out.meta, crops: out.crops };
 }
 
-async function capture(page, meta, frameDir) {
-  fs.rmSync(frameDir, { recursive: true, force: true });
-  fs.mkdirSync(frameDir, { recursive: true });
-  const t0 = Date.now();
-  for (let f = 0; f < meta.frames; f++) {
-    await page.evaluate(t => window.seek(t), f / FPS);
-    await page.screenshot({ path: path.join(frameDir, 'frame-' + String(f).padStart(5, '0') + '.png') });
-    if (f % 45 === 0) process.stdout.write('    frame ' + f + '/' + meta.frames + '\n');
+/* ------------------------------------------------------------------ the pipeline */
+/* Two plans. The real one: 30 fps, full size, x264 at a slow preset so the file stays small at the
+   given crf. The preview: 15 fps, halved to 540x960 by ffmpeg on the way in (a capture costs the same
+   at any size, so the page is photographed as it is), the fastest preset there is, and a coarser
+   JPEG — done in seconds, for checking the timing and the words, never for uploading. */
+function plan(meta, opt) {
+  if (opt.preview) {
+    return { fps: 15, scale: 0.5, format: 'jpeg', quality: 80, preset: 'ultrafast', crf: 26, tag: '-preview' };
   }
-  return (Date.now() - t0) / 1000;
+  /* Over a photograph a JPEG at 95; on the chroma field a PNG, because the field is flat (so PNG is
+     fast on it) and because the key wants the green at exactly rgb(0,176,64), which lossless keeps.
+     An overlay is keyed on a phone, and keying is unforgiving of the mosquito noise h264 leaves
+     around a hard edge, so it is also encoded finer than a normal episode. */
+  const flat = meta.mode === 'overlay';
+  return { fps: FPS, scale: 1, format: flat ? 'png' : 'jpeg', quality: 95, preset: 'slow',
+    crf: opt.crf !== null ? opt.crf : (flat ? 16 : 20), tag: '' };
 }
 
-function encode(frameDir, mp4, crf) {
-  /* Silent on purpose: no music is licensed, and both platforms reward a sound picked inside their
-     own app at upload. Nothing in an episode depends on audio — every word is on screen. */
-  sh('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS),
-    '-i', path.join(frameDir, 'frame-%05d.png'),
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
-    '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
+/* ffmpeg reading frames from its stdin. Silent on purpose: no music is licensed, and both platforms
+   reward a sound picked inside their own app at upload. Nothing in an episode depends on audio —
+   every word is on screen. */
+function startEncoder(mp4, pl) {
+  const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error',
+    '-f', 'image2pipe', '-framerate', String(pl.fps), '-c:v', pl.format === 'jpeg' ? 'mjpeg' : 'png', '-i', 'pipe:0',
+    ...(pl.scale !== 1 ? ['-vf', 'scale=' + Math.round(W * pl.scale) + ':' + Math.round(H * pl.scale) + ':flags=area'] : []),
+    '-c:v', 'libx264', '-preset', pl.preset, '-crf', String(pl.crf),
+    '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4], { stdio: ['pipe', 'ignore', 'pipe'] });
+  let err = '', exited = null;
+  ff.stderr.on('data', d => { err += d; });
+  ff.stdin.on('error', () => { /* EPIPE when ffmpeg stops early; the exit code tells the story */ });
+  const done = new Promise(resolve => ff.on('close', code => { exited = code; resolve({ code: code, err: err }); }));
+  return {
+    done: done,
+    /* back-pressure: wait for the pipe to drain rather than piling frames up in memory, and stop
+       waiting if ffmpeg has gone away */
+    write: buf => new Promise((resolve, reject) => {
+      if (exited !== null) return reject(new Error('ffmpeg stopped early'));
+      if (ff.stdin.write(buf)) return resolve();
+      const onDrain = () => { ff.off('close', onClose); resolve(); };
+      const onClose = () => { ff.stdin.off('drain', onDrain); reject(new Error('ffmpeg stopped early')); };
+      ff.stdin.once('drain', onDrain);
+      ff.once('close', onClose);
+    }),
+    end: () => ff.stdin.end()
+  };
+}
+
+/* How many pages photograph the episode at once. One capture costs about 65 ms whatever the format
+   (the time is the compositor handing over the surface, not the encoding), but pages in separate
+   contexts are separate renderer processes and three of them run at nearly three times the pace.
+   One is kept back for ffmpeg. EPISODE_WORKERS overrides it. */
+const WORKERS = Math.max(1, Math.min(3, Number(process.env.EPISODE_WORKERS) ||
+  (os.cpus().length - 1)));
+const LOOKAHEAD = 24;   /* frames a worker may run ahead of the writer: bounds the memory the pipe holds */
+
+/* a one-shot latch: wait() resolves at the next fire() */
+function latch() {
+  let waiters = [];
+  return { wait: () => new Promise(r => waiters.push(r)), fire: () => { const w = waiters; waiters = []; w.forEach(r => r()); } };
+}
+
+/* Seek, capture, pipe. Every frame is a DevTools Page.captureScreenshot straight off the compositor's
+   surface — what page.screenshot does underneath, minus its per-call preparation — as a JPEG or a
+   PNG as the plan says. `page` is the page the episode was validated on; the other workers are fresh
+   contexts that build the same data, and each takes every K-th frame. A writer sends the frames to
+   ffmpeg in order with back-pressure, so the encoder runs while the pages are on the next frames and
+   nothing is written to disk on the way (unless --keep-frames asks for a copy). */
+async function renderVideo(browser, page, data, label, meta, mp4, pl, keepDir) {
+  const frames = Math.round(meta.duration * pl.fps);
+  if (keepDir) { fs.rmSync(keepDir, { recursive: true, force: true }); fs.mkdirSync(keepDir, { recursive: true }); }
+  const ext = pl.format === 'jpeg' ? '.jpg' : '.png';
+  const shot = { format: pl.format, fromSurface: true, captureBeyondViewport: false };
+  if (pl.format === 'jpeg') shot.quality = pl.quality; else shot.optimizeForSpeed = true;
+
+  /* the pool: the validated page first, then the extra contexts */
+  const t0 = Date.now();
+  const workers = [{ page: page, ctx: null }];
+  const extra = Math.min(WORKERS, frames) - 1;
+  const opened = await Promise.all(Array.from({ length: extra }, async () => {
+    const r = await openPage(browser, data, label);
+    return { page: r.page, ctx: r.ctx };
+  }));
+  workers.push(...opened);
+  for (const w of workers) w.cdp = await w.page.context().newCDPSession(w.page);
+  const grab = async (w, t) => {
+    await w.page.evaluate(tt => window.seek(tt), t);
+    const r = await w.cdp.send('Page.captureScreenshot', shot);
+    return Buffer.from(r.data, 'base64');
+  };
+
+  /* Every worker must photograph frame 0 byte for byte the same, or the cut would flicker between
+     two renderings of the same picture. It never should differ — same files, same fonts, same
+     flags — but if it does, the slow way is the right way and the pool drops to one page. */
+  if (workers.length > 1) {
+    const first = await Promise.all(workers.map(w => grab(w, 0)));
+    const agree = first.every(b => b.equals(first[0]));
+    if (!agree) {
+      console.log('    the extra pages did not render frame 0 identically; rendering on one page');
+      for (const w of workers.slice(1)) await w.ctx.close();
+      workers.length = 1;
+    }
+  }
+  const K = workers.length;
+
+  const enc = startEncoder(mp4, pl);
+  const slots = new Map();
+  let next = 0, failed = null;
+  const arrived = latch(), advanced = latch();
+
+  const worker = async (w, k) => {
+    for (let f = k; f < frames && !failed; f += K) {
+      while (f - next > LOOKAHEAD && !failed) await advanced.wait();
+      if (failed) break;
+      try { slots.set(f, await grab(w, f / pl.fps)); }
+      catch (e) { failed = failed || e; }
+      arrived.fire();
+    }
+    arrived.fire();
+  };
+  const writer = async () => {
+    try {
+      while (next < frames && !failed) {
+        while (!slots.has(next) && !failed) await arrived.wait();
+        if (failed) break;
+        const buf = slots.get(next);
+        slots.delete(next);
+        if (keepDir) fs.writeFileSync(path.join(keepDir, 'frame-' + String(next).padStart(5, '0') + ext), buf);
+        await enc.write(buf);
+        if (next % 90 === 0) process.stdout.write('    frame ' + next + '/' + frames + '\n');
+        next++;
+        advanced.fire();
+      }
+    } catch (e) { failed = failed || e; }
+    advanced.fire(); arrived.fire();
+  };
+  await Promise.all([writer(), ...workers.map(worker)]);
+  enc.end();
+  const r = await enc.done;
+  for (const w of workers) {
+    await w.cdp.detach().catch(() => null);
+    if (w.ctx) await w.ctx.close().catch(() => null);
+  }
+  if (r.code !== 0 || failed) {
+    fail(path.basename(mp4) + ': the render failed' + (r.code ? ' (ffmpeg exit ' + r.code + ')' : '') + '.\n' +
+      [r.err.trim(), failed && (failed.stack || failed.message)].filter(Boolean).join('\n'));
+  }
+  return { frames: frames, secs: (Date.now() - t0) / 1000, workers: K };
 }
 
 function probe(mp4) {
@@ -302,11 +448,13 @@ async function renderOne(browser, ep, opt) {
   const d = ep.data, jsonPath = ep.path;
   const dir = path.dirname(jsonPath);
   const base = path.basename(jsonPath, '.json') + (opt.overlay ? '-overlay' : '');
-  const label = path.basename(jsonPath) + (opt.overlay ? ' (overlay)' : '');
-  const mp4 = path.join(dir, base + '.mp4');
+  const label = path.basename(jsonPath) + (opt.overlay ? ' (overlay)' : '') + (opt.preview ? ' (preview)' : '');
   const cover = path.join(dir, base + '-cover.png');
 
-  const { page, meta, crops } = await openPage(browser, withUrls(d), label);
+  const { page, ctx, meta, crops } = await openPage(browser, withUrls(d), label);
+  const pl = plan(meta, opt);
+  const mp4 = path.join(dir, base + pl.tag + '.mp4');
+  const w = W * pl.scale, h = H * pl.scale;
   console.log('  ' + label + ' — ' + meta.variant + (meta.mode === 'overlay' ? ' on chroma green' : '') +
     ', ' + meta.dir + ', ' + meta.duration.toFixed(2) + 's, ' + meta.frames + ' frames');
   cropReport(crops).forEach(l => console.log(l));
@@ -324,7 +472,7 @@ async function renderOne(browser, ep, opt) {
       await page.screenshot({ path: p2 });
       console.log('    probe ' + t + 's -> ' + p2);
     }
-    await page.close();
+    await page.close(); await ctx.close();
     return null;
   }
 
@@ -332,39 +480,41 @@ async function renderOne(browser, ep, opt) {
     if (opt.debugSafe) await page.evaluate(() => window.__debugSafe(true));
     await page.evaluate(t => window.seek(t), meta.coverAt);
     await page.screenshot({ path: cover });
-    await page.close();
+    await page.close(); await ctx.close();
     const sz = fs.statSync(cover).size;
     console.log('    ' + path.basename(cover) + ' — 1080x1920, t=' + meta.coverAt.toFixed(2) + 's, ' +
       (sz / 1048576).toFixed(2) + ' MB');
     return { cover: cover };
   }
 
-  const frameDir = path.join(SCRATCH, base + '-frames');
-  const secs = await capture(page, meta, frameDir);
-  await page.close();
-  console.log('    captured ' + meta.frames + ' frames in ' + secs.toFixed(1) + 's');
+  const keepDir = opt.keepFrames ? path.join(SCRATCH, base + pl.tag + '-frames') : null;
+  const run = await renderVideo(browser, page, withUrls(d), label, meta, mp4, pl, keepDir);
+  await page.close(); await ctx.close();
+  console.log('    ' + run.frames + ' frames captured and encoded in ' + run.secs.toFixed(1) + 's on ' +
+    run.workers + (run.workers === 1 ? ' page' : ' pages') + (keepDir ? ', kept in ' + keepDir : ''));
 
-  /* An overlay is keyed on a phone, and keying is unforgiving of the mosquito noise h264 leaves
-     around a hard edge, so it is encoded finer than a normal episode. */
-  const crf = opt.crf !== null ? opt.crf : (meta.mode === 'overlay' ? 16 : 20);
-  encode(frameDir, mp4, crf);
   /* the cover comes out of the finished file, so it is exactly a frame of the video */
-  sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(meta.coverAt), '-i', mp4, '-frames:v', '1', cover]);
-  if (!opt.keepFrames) fs.rmSync(frameDir, { recursive: true, force: true });
+  if (!opt.preview) {
+    sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(meta.coverAt), '-i', mp4, '-frames:v', '1', cover]);
+  }
 
   const pr = probe(mp4);
   console.log('    ' + path.basename(mp4) + ' — ' + pr.codec + ' ' + pr.w + 'x' + pr.h + ' ' + pr.pix +
-    ' ' + pr.rate + ' · ' + pr.duration.toFixed(2) + 's · ' + pr.mb.toFixed(2) + ' MB (crf ' + crf + ')');
-  console.log('    ' + path.basename(cover) + ' — 1080x1920, t=' + meta.coverAt.toFixed(2) + 's');
+    ' ' + pr.rate + ' · ' + pr.duration.toFixed(2) + 's · ' + pr.mb.toFixed(2) + ' MB (crf ' + pl.crf + ')');
+  if (opt.preview) {
+    console.log('    a preview: for the timing and the words only. Run the same command without --preview for the real one.');
+  } else {
+    console.log('    ' + path.basename(cover) + ' — 1080x1920, t=' + meta.coverAt.toFixed(2) + 's');
+  }
 
   const bad = [];
-  if (pr.w !== W || pr.h !== H) bad.push('it is ' + pr.w + 'x' + pr.h + ', not ' + W + 'x' + H);
+  if (pr.w !== w || pr.h !== h) bad.push('it is ' + pr.w + 'x' + pr.h + ', not ' + w + 'x' + h);
   if (pr.codec !== 'h264') bad.push('the codec is ' + pr.codec + ', not h264');
   if (pr.pix !== 'yuv420p') bad.push('the pixel format is ' + pr.pix + ', not yuv420p');
   if (Math.abs(pr.duration - meta.duration) > 0.08) bad.push('it runs ' + pr.duration.toFixed(2) + 's, not ' + meta.duration.toFixed(2) + 's');
   if (pr.mb > MAX_MB) bad.push('it is ' + pr.mb.toFixed(2) + ' MB, over the ' + MAX_MB + ' MB limit');
   if (bad.length) fail(path.basename(mp4) + ' came out wrong:\n  ' + bad.join('\n  '));
-  return { mp4: mp4, cover: cover, probe: pr, crops: crops };
+  return { mp4: mp4, cover: opt.preview ? null : cover, probe: pr, crops: crops };
 }
 
 /* ------------------------------------------------------------------ main */

@@ -218,6 +218,7 @@ async function postIt(page, opts) {
   assert.strictEqual(await text(dan, '.tab[data-tab=explore] span'), 'גילוי');
   assert.strictEqual(await text(dan, '#top-auth'), 'הצטרפות');
   await dan.waitForSelector('#view .empty');
+  await dan.waitForSelector('#feed-empty #feed-empty-check');   // Round 12: an empty feed tells the newcomer the one thing to do
   await shot(dan, '01-home-empty-he');
   await go(dan, '#/explore');
   assert.strictEqual(await text(dan, '#view h1'), 'גילוי');
@@ -235,6 +236,19 @@ async function postIt(page, opts) {
   await dan.waitForSelector('#guest-keep');
   assert.strictEqual(await count(dan, '#post-open'), 0, 'a guest cannot post');
   await shot(dan, '00-guest-result-he');
+  // Round 12: the result becomes a 12-second vertical video drawn and encoded on the device. This Chromium has no H.264
+  // encoder, so the VP9/WebM rung runs here; phones take the MP4 rung. Saving it counts once on the server (204).
+  await dan.click('#share-video');
+  await dan.waitForSelector('#sv-progress');
+  await dan.waitForSelector('#sv-video[data-path="vp9-webm"]', { timeout: 120000 });
+  const svBytes = Number(await dan.getAttribute('#sv-video', 'data-bytes'));
+  assert.ok(svBytes > 50000 && svBytes < 6 * 1024 * 1024, 'the video is a real file under 6 MB: ' + svBytes);
+  const counted = dan.waitForResponse((r) => r.url().endsWith('/shared-video') && r.request().method() === 'POST');
+  await dan.click('#sv-save');
+  assert.strictEqual((await counted).status(), 204, 'the save is tallied once');
+  await dan.waitForSelector('#toast');
+  await shot(dan, '42-share-video-he');
+  await dan.click('#sv-cancel').catch(() => {});
   expected.push('POST /api/checks -> 429');
   const secondGuest = await dan.request.post(base + '/api/checks', { headers: { 'X-Requested-With': 'Orevosh' }, multipart: { intent: 'Casual', language: 'he', image: { name: 'outfit.jpg', mimeType: 'image/jpeg', buffer: await makeJpeg(dan, 300, 400) } } });
   assert.strictEqual(secondGuest.status(), 429, 'one free look per guest');
@@ -726,7 +740,7 @@ async function postIt(page, opts) {
   await go(noa, '#/admin/metrics');
   await noa.waitForSelector('#dash-return');
   assert.ok((await count(noa, '#dash-scores li')) >= 1, 'the score distribution has bars');
-  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 14);
+  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 15);   // Round 12 added the "Share videos made" tile
   await shot(noa, '31-numbers-en');
   expected.push('GET /api/metrics/pilot -> 403');
   await go(dan, '#/admin/metrics');

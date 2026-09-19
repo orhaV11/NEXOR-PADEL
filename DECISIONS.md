@@ -1359,3 +1359,48 @@ The shared contract. Everything here compiles, migrates and is tested; nothing h
   manual door.
 - Readiness is public and says nothing a stranger can use: a name and "ok" or a short reason, never a path, a version
   or a secret.
+
+## Round 12 — the shared video, the first sixty seconds, the fast renderer
+
+**A check becomes a video on the phone, and the server never encodes.** The machine the app ships on has 512 MB and
+one shared CPU; a 12-second 1080×1920 encode there would be a queue, a job table, a disk of files and a cost per share.
+On the phone it is a canvas, WebCodecs and a vendored MIT muxer (mp4-muxer / webm-muxer, local ES modules, no CDN),
+finished in seconds, and the photo never leaves the device a second time. The codec ladder is detected, never
+assumed: H.264 into an MP4 first, because that is the file the apps want and every phone decodes it (High 4.0 kept as
+the last MP4 rung before falling to WebM); VP9 or VP8 into a WebM where H.264 is missing (Playwright's Chromium, so the
+browser test proves that rung and phones take the other); the PNG story card with a toast where there is no encoder
+at all. The server keeps one tally, `videos_made`, bumped by a small POST after a save or share — a count of intent,
+not a fact about the file — rate limited like the other counters and answering 404 to anyone who does not own the
+check. The end card names the site only when the server publishes a public origin on `/api/config` (Email or Billing
+PublicOrigin); a client on localhost or a bare IP prints the wordmark alone rather than guess.
+
+**The first deploy was walked, not read.** The Release build was published and run as Production on an empty database
+with nothing configured, and LAUNCH.md's smoke was followed by hand. What that found and changed: HEAD on `/healthz`
+and `/readyz` answered 405 while the runbook points uptime checkers at them (both routes now take GET and HEAD); the
+doctor kept warning that nobody could moderate after `--admin` had made a moderator (it now counts moderator accounts
+in the database, read-only); the runbook promised the weekly board would show a look after one fire from a second
+account, which `Board:NewAccountDays` rules out on launch day (rewritten: the look sits on the picks tab, the Looks tab
+waits for counted fires); and a first start's EF Core "rebuild pending" warning is now documented as expected.
+`scripts/smoke.sh <url>` is the post-deploy check the owner runs from a laptop — health, readiness, both landings, the
+config, the preview tags, the security headers, the manifest — one line each, exit 1 on any failure, curl only; a
+guest check is opt-in because on a live site it spends a real stylist call.
+
+**A newcomer is told the one thing to do.** Screenshots of every screen on the empty app, in both directions, showed
+four blank walls: Home, Your circle, Explore and the board said "nothing here" and stopped. Each now keeps the kit's
+empty line and adds one call to check a look (and Your circle a second to find people), drawn by one helper so they
+read as one object. Nothing on those screens mentions a feature that is not built.
+
+**The episode renderer runs in seconds.** The floor was not PNG encoding but the compositor handing over a surface
+(~65 ms per capture whatever the format), so the renderer opens up to three pages in separate renderer processes that
+take every third frame, with an ordered writer piping straight into ffmpeg. Before trusting the pool it captures frame
+0 on every page and demands byte-identical output, else it renders on one page and says so. Frames over a photograph
+are JPEG at quality 95 (PSNR 52–57 dB against PNG, far inside x264's own loss); the chroma overlay stays PNG so the
+green is exactly rgb(0,176,64). 255 s became 22 s for a 15-second episode. `--preview` (540×960, 15 fps) answers a
+timing or copy question in ten seconds. Week one is rendered under `brand-kit/episodes/week-1/` with a Hebrew README.
+
+### Objections to keep out of the code
+
+- The server never renders, transcodes or stores a shared video. There is no route that returns one.
+- A share is counted, not recorded: no row says which file, which codec or where it went.
+- An empty state never promises content, people or a feature. It names one action.
+- The renderer's page pool falls back, it never silently produces a frame from a page it has not proven identical.

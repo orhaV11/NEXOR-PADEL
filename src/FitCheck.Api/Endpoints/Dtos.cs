@@ -293,7 +293,7 @@ public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 // ---- config, push, admin ----
 
 /// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
-public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null, AffiliateConfigDto? Affiliate = null);
+public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null, AffiliateConfigDto? Affiliate = null, string? PublicOrigin = null);
 
 /// <summary>Affiliate:Disclosure: whether the item sheet shows the commission line under a store link. The hosts and their parameters stay on the server.</summary>
 public sealed record AffiliateConfigDto(bool Disclosure);

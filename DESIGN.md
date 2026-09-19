@@ -309,6 +309,26 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
 - Fire stays a reaction's colour: the medals and the badge burn because a place on the board *is* fire that counted.
   No motion was added for any of it (§9 stands as written).
 
+## 8e. Round 12 surfaces: the shared video, the empty call
+
+**The shared video** is the story card brought to life: 1080×1920, 12 seconds, silent, drawn on a canvas as a pure
+function of time and encoded on the phone (WebCodecs), never on the server. Five scenes: the look full bleed with
+the intent pill and a small wordmark (0–1.5 s); the ring drawing in the gradient while the number counts up and lands
+with /10 (1.5–3.5); Fit · Color · Accessories snapping in as rows with gradient bars (3.5–6); the one tip on its card
+with the accent bar, the ring shrunk to a badge on its top-end corner — the longest hold, because it is the product
+(6–10); the end card with the mark drawn live, the wordmark, "Check the look." in the check's language, the @handle
+when signed in and the site's host when the server publishes one (10–12). The content column is x 72–876 and nothing
+readable sits below y 1576 or in the right 180 px: that is where TikTok and Instagram put their own controls. Type and
+colour come from the same helpers the story card uses, so the two never drift. Hebrew and Arabic draw right-to-left;
+the tip wraps by measurement down a size ladder rather than ever overflowing. The button is a full-width secondary
+action on the result screen, busy while it renders, with a progress sheet (bar, percentage, cancel) and then the
+video with Share (the phone's share sheet, when it accepts files) or Save.
+
+**The empty call** replaces the blank walls a newcomer met on launch day. Home, Your circle, Explore, the board and a
+fresh profile each keep the kit's empty line and add one gradient pill that names the single thing to do next — check a
+look — and, on Your circle, a second, quieter one to find people and brands. One shared helper draws it so the five
+read as one object; the pill is 52 px, never a small link.
+
 ## 9. Motion
 
 Ring draw + flame pop on the check control; flame breathing on the loading screen; the score count-up on the result;

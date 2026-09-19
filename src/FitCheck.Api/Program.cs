@@ -549,14 +549,17 @@ app.MapHealthEndpoints();
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
 // to pings that never come.
 app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder,
-        IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate) =>
+        IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate, IConfiguration configuration) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
         sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available,
         // The Pro cap as a Pro account really gets it (clamped to Limits:ChecksPerDay): what the Pro page promises.
         new PlansDto(plans.Value.FreeChecksPerDay, Plans.ProCap(plans.Value, limits.Value), plans.Value.GuestChecksPerDay, plans.Value.ProPriceText,
             plans.Value.CompareNeedsPro, billing.Value.StripeEnabled),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
-        new AffiliateConfigDto(affiliate.Value.Disclosure)), AppJson.Options));
+        new AffiliateConfigDto(affiliate.Value.Disclosure),
+        // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a
+        // client on localhost or a bare IP prints the wordmark alone rather than guess. Empty when neither is set.
+        PublicOrigin: string.IsNullOrWhiteSpace(configuration["Email:PublicOrigin"]) ? (string.IsNullOrWhiteSpace(configuration["Billing:PublicOrigin"]) ? null : configuration["Billing:PublicOrigin"]!.Trim()) : configuration["Email:PublicOrigin"]!.Trim()), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached. GET or HEAD: an
 // uptime checker (and `curl -I`) may probe with either, and a 405 on HEAD would read as the site being down.

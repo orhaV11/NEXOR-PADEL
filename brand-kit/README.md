@@ -21,8 +21,10 @@ node render-kit.js               # everything; or: node render-kit.js stories st
 The videos are not part of `render-kit.js`. They have their own script, run **from the repository root**:
 
 ```bash
-node tools/brand/render-episode.js brand-kit/episodes/001-camel.json   # one episode, about 6 minutes
-node tools/brand/render-episode.js --all brand-kit/episodes            # all of them
+node tools/brand/render-episode.js brand-kit/episodes/001-camel.json   # one episode, about half a minute
+node tools/brand/render-episode.js 001-camel.json --preview            # a 10-second low-res pass to check timing and copy first
+node tools/brand/render-episode.js --all brand-kit/episodes            # every episode in that folder (not its subfolders)
+node tools/brand/render-episode.js --all brand-kit/episodes/week-1     # the first week's five posts
 node tools/brand/render-episode.js 001-camel.json --cover-only         # just the thumbnail, seconds
 ```
 

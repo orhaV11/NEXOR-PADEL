@@ -25,7 +25,8 @@ public static class HealthEndpoints
     public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder app)
     {
         var readiness = new Readiness();
-        app.MapGet("/readyz", (HttpContext context, AppDbContext db, IOptions<StorageOptions> storage, IHostEnvironment environment,
+        // GET or HEAD, like /healthz: a checker that probes with HEAD must not read a 405 as the site being down.
+        app.MapMethods("/readyz", [HttpMethods.Get, HttpMethods.Head], (HttpContext context, AppDbContext db, IOptions<StorageOptions> storage, IHostEnvironment environment,
                 Transcoder transcoder, ILoggerFactory loggers, CancellationToken ct) =>
             ReadyAsync(readiness, context, db, storage.Value, environment.ContentRootPath, transcoder, loggers, ct));
         return app;

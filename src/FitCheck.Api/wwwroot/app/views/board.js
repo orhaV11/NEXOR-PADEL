@@ -14,6 +14,48 @@ import {
 } from '../core.js';
 
 export const BOARDS = ['looks', 'people', 'rising', 'intent', 'picks'];
+
+// The one rule the shared stylesheet does not have: an empty state with the way to a check under it. Home, Explore, the
+// board and a fresh profile all draw it (emptyCall below), so a newcomer on an empty app meets the same door everywhere.
+const CSS = `
+.empty-call { display: grid; justify-items: center; padding-inline: 16px; }
+.empty-call > .empty { padding-block-end: 18px; }
+.empty-call .empty-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; inline-size: 100%; max-inline-size: 320px; }
+.empty-call .empty-actions .btn { inline-size: 100%; }
+/* inside a look grid (a profile's Looks tab) the kit's .grid a tile rule out-specifies .btn: the pill stays a pill there */
+.grid .empty-call .empty-actions a.btn { display: inline-flex; background: var(--grad); color: var(--accent-ink); border-radius: var(--pill); }
+.grid .empty-call .empty-actions a.btn-secondary { background: transparent; color: var(--ink); }
+`;
+let styled = false;
+function ensureStyle() {
+  if (styled) return;
+  styled = true;
+  document.head.appendChild(el('style', { text: CSS }));
+}
+
+/**
+ * The kit's empty state with the one thing to do next under it: "Check a look" (#/check), then any extra actions
+ * (opts.extra). opts.id names the block (and "<id>-check" the button) for the browser test. Copy stays short and in the
+ * brand's voice: what lands here, and that the reader's own look can be first.
+ */
+export function emptyCall(title, body, opts) {
+  ensureStyle();
+  const o = opts || {};
+  return el('div', { class: 'empty-call', id: o.id || null }, [
+    emptyState(title, body),
+    el('div', { class: 'empty-actions' }, [
+      el('a', { class: 'btn', id: o.id ? o.id + '-check' : null, href: '#/check', text: t('empty.check_cta') }),
+      ...(o.extra || [])
+    ])
+  ]);
+}
+
+/** The board's empty panel: what lands on this tab, and the way to a check. Also what a 501 (not built yet) reads as. */
+function boardEmpty(tab) {
+  return tab === 'people'
+    ? emptyCall(t('board.empty_people'), t('empty.board_people_body'), { id: 'board-empty' })
+    : emptyCall(t('empty.board_title'), t('empty.board_body'), { id: 'board-empty' });
+}
 /** How long a fetched board is trusted before it is fetched again: the server caches it for about as long. */
 const CACHE_TTL = 60 * 1000;
 const DAY = 86400 * 1000;
@@ -202,7 +244,7 @@ function panel(data, tab, intent, onIntent) {
     rank ? el('p', { class: 'board-me', id: 'board-me' }, [icon('flame'), el('span', { text: t(data.closed ? 'board.finished' : 'board.me', { rank: fmtNumber(rank) }) })]) : null,
     rows.length
       ? el('ul', { class: 'board-list' }, rows.map((row) => (tab === 'people' || !row.post ? personRow(row) : lookRow(row))))
-      : emptyState(t(tab === 'people' ? 'board.empty_people' : 'board.empty'))
+      : boardEmpty(tab)
   ]);
 }
 
@@ -239,7 +281,7 @@ register('board', async (root, params, ctx) => {
   catch (e) {
     if (ctx.stale()) return;
     // Not built yet (501) reads as an empty week; the hall stays one tap away either way.
-    body.replaceChildren(el('div', { class: 'board-pad' }, [e.status === 501 ? emptyState(t('board.empty')) : errorBlock(e), hallLink()]));
+    body.replaceChildren(el('div', { class: 'board-pad' }, [e.status === 501 ? boardEmpty(view.tab) : errorBlock(e), hallLink()]));
     return;
   }
   if (ctx.stale()) return;

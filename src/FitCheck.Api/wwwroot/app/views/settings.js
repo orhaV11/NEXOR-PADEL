@@ -2,7 +2,7 @@
 // delete for everything. Ported from the Phase 2 settingsView onto the kit: bottom sheets instead of confirm(),
 // the avatar upload with the client-side square crop, interests as chips, brand mode as a switch.
 import {
-  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, AVAILABLE_LOCALES, AVATAR_EDGE, INTENTS, intentLabel, showAlert,
+  register, state, t, api, el, avatar, setTopBar, signInPrompt, confirmSheet, toast, navigate, resetSession, renderShell, signOut, switchLocale, localeName, getLocale, pickFile, prepareImage, enabledLocales, AVATAR_EDGE, INTENTS, intentLabel, showAlert,
   proBadge, fmtDate, intlLocale, onLeave
 } from '../core.js';
 import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
@@ -291,7 +291,8 @@ register('settings', async (root, params, ctx) => {
     type: 'url', id: 's-web', name: 'url', maxlength: '200', inputmode: 'url', autocomplete: 'url',
     autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', dir: 'ltr', placeholder: 'https://', value: me.website || ''
   });
-  const lang = el('select', { id: 's-lang', name: 'language' }, AVAILABLE_LOCALES.map((code) => el('option', { value: code, lang: code, text: localeName(code) })));
+  // Round 13: only the live languages (Languages:Enabled, on /api/config), the same list as the switcher in the masthead.
+  const lang = el('select', { id: 's-lang', name: 'language' }, enabledLocales().map((code) => el('option', { value: code, lang: code, text: localeName(code) })));
   lang.value = getLocale();
 
   // ---------- email (recovery only, never shown to anyone) ----------

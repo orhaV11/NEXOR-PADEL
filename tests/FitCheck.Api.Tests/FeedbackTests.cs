@@ -267,7 +267,8 @@ public class FeedbackTests
         var prompt = OutfitAnalyzer.BuildSystemPrompt("en");
         Assert.Contains("a screenshot", prompt);
         Assert.Contains("Two people", prompt);
-        Assert.Contains("never about a person", prompt);
+        Assert.Contains("about the PHOTO", prompt);
+        Assert.Contains("about a person", prompt);
         var status = OutfitAnalyzer.ToolSchema.GetProperty("properties").GetProperty("status");
         Assert.Contains("not_outfit", status.GetProperty("description").GetString());
         Assert.Contains("never a word about a person", OutfitAnalyzer.ToolSchema.GetProperty("properties").GetProperty("message").GetProperty("description").GetString());
@@ -275,7 +276,7 @@ public class FeedbackTests
     }
 
     [Fact]
-    public async Task A_dropped_reason_becomes_the_generic_line_in_the_checks_language_and_a_comparison_drops_it_too()
+    public async Task A_dropped_reason_leaves_no_message_on_the_check_and_a_comparison_drops_it_too()
     {
         using var app = new TestApp();
         var (owner, _, _) = await app.NewUserAsync("nooutfit_generic", language: "he");
@@ -291,10 +292,12 @@ public class FeedbackTests
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var check = await response.Content.ReadFromJsonAsync<JsonElement>();
             Assert.Equal("not_outfit", check.GetProperty("status").GetString());
-            Assert.Equal("לא מצאנו לוק בתמונה הזו.", check.GetProperty("feedback").GetProperty("message").GetString());
+            // No message at all: the client shows its own line, and the server never invents a sentence for the model.
+            Assert.False(check.GetProperty("feedback").TryGetProperty("message", out _));
             Assert.False(check.GetProperty("counted").GetBoolean());
             var read = await owner.GetFromJsonAsync<JsonElement>($"/api/checks/{check.GetProperty("id").GetGuid()}");
-            Assert.Equal("לא מצאנו לוק בתמונה הזו.", read.GetProperty("feedback").GetProperty("message").GetString());
+            Assert.Equal("not_outfit", read.GetProperty("status").GetString());
+            Assert.False(read.GetProperty("feedback").TryGetProperty("message", out _));
 
             var comparison = await owner.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()));
             Assert.Equal(HttpStatusCode.Created, comparison.StatusCode);

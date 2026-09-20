@@ -658,7 +658,7 @@ function usefulRow(result) {
   const saved = () => {
     body.replaceChildren(el('div', { class: 'useful-saved', id: 'useful-saved' }, [
       el('span', { class: 'muted', text: t(result.useful ? 'useful.saved_yes' : 'useful.saved_no') }),
-      el('button', { type: 'button', class: 'btn-text', id: 'useful-change', text: t('useful.change'), onclick: () => { choices(); requestAnimationFrame(() => { const first = $('useful-yes'); if (first) first.focus({ preventScroll: true }); }); } })
+      el('button', { type: 'button', class: 'btn-text', id: 'useful-change', text: t('useful.change'), onclick: () => { choices(); const first = $('useful-yes'); if (first) first.focus({ preventScroll: true }); } })
     ]));
   };
   if (typeof result.useful === 'boolean') saved(); else choices();

@@ -178,12 +178,12 @@ register('admin-metrics', async (root, params, ctx) => {
 
 // ---------- Round 13: the verdict's own verdict ----------
 
-// The stylist block: one hero-sized rate ("Tip landed"), the yes / no / unanswered tiles, the door's two counts, and the
-// split by intent and by language as key → "3 yes · 1 no · 2 unanswered" lists. Same tiles, same lists, same voice as
-// the rest of the page; nothing new drawn.
+// The stylist block: one hero-sized rate ("Tip landed"), the yes / no / unanswered tiles and the door's two counts in one
+// section, then the split by intent and by language as two more sections of key → "3 yes · 1 no · 2 unanswered" lists,
+// each under the page's own caps h2. Same tiles, same lists, same voice as the rest of the page; nothing new drawn.
 const STYLIST_CSS = `
 .dash-stylist .dash-hero .val { font-size: 40px; }
-.dash-stylist .dash-list dd { font: 500 14px/1.3 var(--font-body); color: var(--ink-2); text-align: end; direction: inherit; }
+.dash-split dd { font: 500 14px/1.3 var(--font-body); color: var(--ink-2); text-align: end; direction: inherit; }
 `;
 let stylistStyled = false;
 /** "{yes} yes · {no} no · {unanswered} unanswered" for one split, numbers in the reader's digits. */
@@ -191,7 +191,7 @@ const splitText = (split) => t('useful.dash_split', { yes: fmtNumber(split.yes |
 /** A key → split list, most answered first; name() renders the key (the intent's label, the language's name). */
 function splitList(id, entries, name) {
   const rows = Object.entries(entries || {}).sort((a, b) => (b[1].yes + b[1].no) - (a[1].yes + a[1].no) || b[1].unanswered - a[1].unanswered);
-  return el('dl', { class: 'dash-list', id }, rows.map(([key, split]) => el('div', { 'data-key': key }, [
+  return el('dl', { class: 'dash-list dash-split', id }, rows.map(([key, split]) => el('div', { 'data-key': key }, [
     el('dt', { text: name ? name(key) : key }),
     el('dd', { text: (split.rate === null || split.rate === undefined ? '' : percent(split.rate) + ' · ') + splitText(split) })
   ])));
@@ -200,7 +200,8 @@ function stylistSection(stylist) {
   if (!stylistStyled) { stylistStyled = true; document.head.appendChild(el('style', { text: STYLIST_CSS })); }
   const overall = stylist.useful || { yes: 0, no: 0, unanswered: 0, rate: null };
   const answered = (overall.yes || 0) + (overall.no || 0);
-  return el('section', { class: 'dash-section dash-stylist', id: 'dash-stylist' }, [
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(el('section', { class: 'dash-section dash-stylist', id: 'dash-stylist' }, [
     el('h2', { text: t('useful.dash_title') }),
     el('p', { class: 'hint', text: t('useful.dash_hint') }),
     el('div', { class: 'dash-hero', id: 'dash-useful-rate' }, [
@@ -214,10 +215,15 @@ function stylistSection(stylist) {
       tile(t('useful.dash_unanswered'), fmtNumber(overall.unanswered || 0)),
       tile(t('nooutfit.dash'), fmtNumber(stylist.notOutfit || 0)),
       tile(t('nooutfit.dash_rejected'), fmtNumber(stylist.rejected || 0))
-    ]),
-    el('h3', { text: t('useful.dash_by_intent') }),
-    splitList('dash-useful-intents', stylist.byIntent, (intent) => t('intent.' + intent)),
-    el('h3', { text: t('useful.dash_by_language') }),
+    ])
+  ]));
+  fragment.appendChild(el('section', { class: 'dash-section' }, [
+    el('h2', { text: t('useful.dash_by_intent') }),
+    splitList('dash-useful-intents', stylist.byIntent, (intent) => t('intent.' + intent))
+  ]));
+  fragment.appendChild(el('section', { class: 'dash-section' }, [
+    el('h2', { text: t('useful.dash_by_language') }),
     splitList('dash-useful-languages', stylist.byLanguage, localeName)
-  ]);
+  ]));
+  return fragment;
 }

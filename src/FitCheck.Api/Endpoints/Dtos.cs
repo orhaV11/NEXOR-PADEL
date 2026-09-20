@@ -95,8 +95,8 @@ public sealed record CheckDto(
     /// <summary>
     /// Rejected rows store nothing but the status; the neutral message is added here, in the check's language. The feedback
     /// is the stored document as it was written, so items carry brandSeen from rubric v3 on and nothing from before. A
-    /// no-outfit row whose reason was dropped (rule 1, Round 13) gets the generic line in the check's language, as a
-    /// rejected one gets its neutral one.
+    /// no-outfit row whose reason was dropped (rule 1, Round 13) carries no message at all: the client's own line stands,
+    /// and nothing here invents a sentence the model did not say.
     /// </summary>
     public static CheckDto FromEntity(OutfitCheck check, Localizer localizer, Guid? postId)
     {
@@ -114,12 +114,6 @@ public sealed record CheckDto(
         else if (check.FeedbackJson is not null)
         {
             feedback = JsonSerializer.Deserialize<OutfitFeedback>(check.FeedbackJson, AppJson.Options);
-        }
-
-        if (check.Status == CheckStatus.NotOutfit)
-        {
-            feedback ??= new OutfitFeedback { Status = CheckStatus.NotOutfit, Score = 1, IntentMatch = 0 };
-            feedback.Message = string.IsNullOrWhiteSpace(feedback.Message) ? localizer.Get(check.Language, "feedback.not_outfit") : feedback.Message;
         }
 
         return new CheckDto(

@@ -10,11 +10,18 @@ namespace FitCheck.Api.Services;
 /// <summary>
 /// Anthropic Messages API over a plain HttpClient: base64 image block(s) + forced tool call.
 /// No SDK, so the request shape is spelled out here and the API key is read from the environment only.
+/// <para>
+/// Round 13 — money: every answer's <c>usage</c> block is handed to the <see cref="SpendMeter"/> before anything else is
+/// done with it, so the day's tally is what the API said and not what we guessed. A failed call that the API still
+/// billed (an error body that carried usage, a timeout) is recorded too, with whatever is known; a call that never
+/// reached the API records nothing. The meter is optional so the client can still be built by hand in a test.
+/// </para>
 /// </summary>
 public sealed class AnthropicVisionClient(
     HttpClient http,
     IOptions<AnthropicOptions> options,
-    ILogger<AnthropicVisionClient> logger) : IOutfitVisionClient
+    ILogger<AnthropicVisionClient> logger,
+    SpendMeter? meter = null) : IOutfitVisionClient
 {
     public const string ApiKeyVariable = "ANTHROPIC_API_KEY";
     private const string ApiVersion = "2023-06-01";
@@ -51,6 +58,13 @@ public sealed class AnthropicVisionClient(
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
             {
+                // Round 13 — money: a timeout means the request was sent and the API may well have billed it, so the
+                // call is counted with unknown tokens. A connection that never opened (HttpRequestException) is not.
+                if (ex is TaskCanceledException && meter is not null)
+                {
+                    await meter.RecordFailedAsync(VisionUsage.Unknown, CancellationToken.None);
+                }
+
                 throw new VisionClientException("Vision request failed before a response arrived.", ex);
             }
 
@@ -59,12 +73,25 @@ public sealed class AnthropicVisionClient(
                 var text = await response.Content.ReadAsStringAsync(ct);
                 if (response.IsSuccessStatusCode)
                 {
+                    // Round 13 — money: the tokens this answer reports, before the tool input is pulled out of it.
+                    if (meter is not null)
+                    {
+                        await meter.RecordAsync(VisionUsage.ReadFrom(text), CancellationToken.None);
+                    }
+
                     return ExtractToolInput(text, request.Tool.Name);
                 }
 
                 // Raw API errors stay in server logs only; the user gets a localized retry message.
                 logger.LogWarning("Anthropic API returned {Status} on attempt {Attempt}: {Body}",
                     (int)response.StatusCode, attempt, Truncate(text));
+
+                // Round 13 — money: the API answered, so it may have billed; count the call and any tokens the error
+                // body carried. A retry that follows is a second call and is counted again, which is what it costs.
+                if (meter is not null)
+                {
+                    await meter.RecordFailedAsync(VisionUsage.ReadFrom(text), CancellationToken.None);
+                }
 
                 var retryable = response.StatusCode == HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500;
                 if (!retryable || attempt >= 2)

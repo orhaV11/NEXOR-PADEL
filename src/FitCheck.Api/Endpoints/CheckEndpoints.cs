@@ -62,6 +62,7 @@ public static class CheckEndpoints
         ILogger<OutfitAnalyzer> logger,
         Transcoder transcoder,
         IOptions<LanguagesOptions> languages,
+        SpendMeter spend,
         CancellationToken ct)
     {
         var request = context.Request;
@@ -209,6 +210,13 @@ public static class CheckEndpoints
             {
                 return UserEndpoints.Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(language, "error.video_format"));
             }
+        }
+
+        // Round 13 — money: the daily spend ceiling (Limits:SpendPerDayUsd), before the allowance is touched and
+        // before the model is asked. Nothing is stored, no plan cap is spent and a guest's free look survives a 503.
+        if (await spend.CeilingReachedAsync(db, ct))
+        {
+            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
         }
 
         var now = DateTime.UtcNow;

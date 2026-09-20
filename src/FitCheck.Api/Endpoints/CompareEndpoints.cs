@@ -65,6 +65,7 @@ public static class CompareEndpoints
         IOptions<LimitsOptions> limits,
         IOptions<PlanOptions> plans,
         ILogger<OutfitComparer> logger,
+        SpendMeter spend,
         CancellationToken ct)
     {
         var request = context.Request;
@@ -159,6 +160,13 @@ public static class CompareEndpoints
         if (problemB is not null)
         {
             return problemB;
+        }
+
+        // Round 13 — money: the daily spend ceiling (Limits:SpendPerDayUsd), before the allowance is touched and
+        // before the model is asked. Nothing is stored and no allowance is spent by a 503.
+        if (await spend.CeilingReachedAsync(db, ct))
+        {
+            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
         }
 
         // The allowance is one number for checks and comparisons together (Spend counts both, for this route, the check

@@ -158,6 +158,8 @@ public sealed class Localizer
             ["error.useful_invalid"] = "Say whether the tip landed: yes or no.",
             ["error.useful_not_scored"] = "Only a check the stylist scored can be rated.",
             ["error.useful_note_too_long"] = "Keep the note under 120 characters.",
+            // Round 13 — money: the daily spend ceiling (Limits:SpendPerDayUsd) is reached; nothing was spent from the person's own allowance.
+            ["error.stylist_resting"] = "The stylist is resting until tomorrow. Your look is not spent.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -300,6 +302,8 @@ public sealed class Localizer
             ["error.useful_invalid"] = "צריך לומר אם הטיפ קלע: כן או לא.",
             ["error.useful_not_scored"] = "אפשר לדרג רק בדיקה שהסטייליסט נתן לה ציון.",
             ["error.useful_note_too_long"] = "ההערה צריכה להיות עד 120 תווים.",
+            // Round 13 — money
+            ["error.stylist_resting"] = "הסטייליסט נח עד מחר. הלוק שלך לא נוצל.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -444,6 +448,8 @@ public sealed class Localizer
             ["error.useful_invalid"] = "قل إن كانت النصيحة مفيدة: نعم أو لا.",
             ["error.useful_not_scored"] = "يمكن تقييم فحص أعطاه المصمم درجة فقط.",
             ["error.useful_note_too_long"] = "الملاحظة حتى 120 حرفًا.",
+            // Round 13 — money (plain Arabic, for native review)
+            ["error.stylist_resting"] = "المصمم يستريح حتى الغد. إطلالتك لم تُستهلك.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -587,6 +593,8 @@ public sealed class Localizer
             ["error.useful_invalid"] = "Скажи, попал ли совет: да или нет.",
             ["error.useful_not_scored"] = "Оценить можно только проверку, которой стилист поставил балл.",
             ["error.useful_note_too_long"] = "Заметка — до 120 символов.",
+            // Round 13 — money (plain Russian, for native review)
+            ["error.stylist_resting"] = "Стилист отдыхает до завтра. Твой образ не потрачен.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

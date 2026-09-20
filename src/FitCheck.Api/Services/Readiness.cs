@@ -40,6 +40,13 @@ public sealed class Readiness
     private int _last = -1;
 
     /// <summary>
+    /// Round 13 — money: where a flip is shouted about (Program.cs hands the built app's <see cref="Alerter"/> over at
+    /// start). Static because this instance is made by hand in HealthEndpoints, not by the container; null in a test or
+    /// a process that never built the host, and then a flip is only the log line below, as before.
+    /// </summary>
+    public static Alerter? Alerts { get; set; }
+
+    /// <summary>
     /// Runs every check and remembers the verdict. Never throws: a check that blows up is that check's reason, because a
     /// readiness probe that 500s tells the load balancer nothing it can act on.
     /// </summary>
@@ -128,11 +135,13 @@ public sealed class Readiness
         if (ok)
         {
             logger.LogInformation("Readiness is ok again: every check passes.");
+            Alerts?.Raise(Alerter.Kind.ReadinessOk, "readiness is ok again: every check passes.");
         }
         else
         {
-            logger.LogWarning("Readiness failed: {Checks}.",
-                string.Join(", ", checks.Where(c => c.Value != Ok).Select(c => $"{c.Key}={c.Value}")));
+            var failing = string.Join(", ", checks.Where(c => c.Value != Ok).Select(c => $"{c.Key}={c.Value}"));
+            logger.LogWarning("Readiness failed: {Checks}.", failing);
+            Alerts?.Raise(Alerter.Kind.ReadinessFailing, $"readiness failed: {failing}. This instance is out of rotation.");
         }
     }
 }

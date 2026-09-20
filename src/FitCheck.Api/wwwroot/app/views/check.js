@@ -290,12 +290,18 @@ function checksLeftLine() {
 }
 
 /** While the stylist looks: the mark at 96px with its flame breathing (app.css animates .breathing); the pulse dot when index.html has no #mark-template. */
+/**
+ * The wait. With a clip it is really two waits — the upload, then the model — and on a phone's uplink the first can be
+ * the longer one, so the line says "sending" until the bytes are gone and only then "looking". One static sentence for
+ * both made a slow upload look like a hung stylist.
+ */
 function loadingBlock() {
   const mark = logoMark(96);
+  const sending = !!(state.check && state.check.clip && state.check.sending);
   return el('div', { class: 'loading', role: 'status' }, [
     el('div', {}, [
       mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
-      el('p', { text: t('loading.line'), tabindex: '-1' })
+      el('p', { id: 'loading-line', text: t(sending ? 'loading.sending' : 'loading.line'), tabindex: '-1' })
     ])
   ]);
 }
@@ -559,7 +565,26 @@ async function submitCheck() {
     form.append('language', getLocale());
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
-    state.result = await api('POST', '/api/checks', form);
+    // While a clip is on its way the screen says so, and swaps to "the stylist is looking" once it can only be the
+    // model we are waiting for. There is no upload-progress event on fetch, so the swap is timed off the clip's size at
+    // a deliberately pessimistic 1 Mbps: early is fine (the next line is the true one anyway), late would be the lie.
+    let swap = 0;
+    if (ck.clip) {
+      ck.sending = true;
+      const line = document.getElementById('loading-line');
+      swap = setTimeout(() => { ck.sending = false; if (line && line.isConnected) line.textContent = t('loading.line'); },
+        Math.min(45000, Math.max(2000, Math.round(ck.clip.size / 125000) * 1000)));
+    }
+    try {
+      // Three minutes. The honest worst case is about two minutes of server time (two attempts at the model with the
+      // backoff between them) plus a 6 MiB upload on a poor connection, so this only ever fires on something that is
+      // never going to answer — and then the person gets the error, and the line above telling them it cost nothing,
+      // instead of a breathing logo for as long as they are willing to watch it.
+      state.result = await api('POST', '/api/checks', form, 180000);
+    } finally {
+      if (swap) clearTimeout(swap);
+      ck.sending = false;
+    }
     // Which still this result came from: the post sheet places its dots on the preview only while it is this one (the
     // result may later be an older check opened from "Your checks", or the photo may have been replaced since).
     ck.judged = { resultId: state.result.id, previewUrl: ck.previewUrl };
@@ -572,7 +597,12 @@ async function submitCheck() {
     navigate('#/result');
   } catch (e) {
     ck.busy = false;
-    ck.error = e && e.status === 401 && wasSignedIn ? null : (e && e.message ? e.message : t('error.generic'));   // a lost session already re-rendered
+    // A cut that lands while the model is being asked leaves nothing stored and nothing counted (CheckEndpoints), and
+    // "did that just cost me my only look?" is the first thing a person wonders. Only for a connection that died: a 429
+    // or a 413 carries its own sentence and this would contradict it.
+    const lostConnection = e && !e.status;
+    ck.error = e && e.status === 401 && wasSignedIn ? null
+      : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
     navigate('#/check');
   }
 }

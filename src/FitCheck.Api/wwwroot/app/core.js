@@ -358,15 +358,28 @@ export function skeletonCards(n) {
 
 export class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
-export async function api(method, path, body) {
+/**
+ * One call. `timeoutMs` is opt-in and off by default: most calls are small and a phone that has wandered out of signal
+ * gets its own error from fetch soon enough. It exists for the check, which is the one call with no ceiling of its own
+ * — a connection that dies mid-upload leaves fetch waiting forever behind a screen that says the stylist is looking.
+ * Any value must clear the honest worst case for that route or it would abort real work: see its caller.
+ */
+export async function api(method, path, body, timeoutMs) {
   const headers = { 'X-Requested-With': 'Orevosh', 'Accept-Language': locale };
   const isForm = body instanceof FormData;
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
+  const controller = timeoutMs && typeof AbortController === 'function' ? new AbortController() : null;
+  const bell = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
   let response;
   try {
-    response = await fetch(path, { method, headers, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' });
+    response = await fetch(path, {
+      method, headers, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'same-origin', signal: controller ? controller.signal : undefined
+    });
   } catch (e) {
     throw new ApiError(0, t('error.network'));
+  } finally {
+    if (bell) clearTimeout(bell);
   }
   if (response.status === 204) return null;
   let data = null;

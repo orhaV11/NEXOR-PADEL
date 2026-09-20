@@ -354,7 +354,11 @@ function mountCamera(root, initialMode) {
   /** A started recorder on the stream, or null when the browser cannot record. Its events count only while it is the current one. */
   function makeRecorder(type) {
     let r;
-    try { r = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 4000000 } : undefined); }
+    // 1.5 Mbps, not 4. A clip is eight seconds of a person turning around, at a size a phone screen shows: four
+    // megabits bought no visible quality and cost about 15 MB, which is twenty to forty seconds of a 4G uplink spent
+    // before the stylist is even asked — all of it behind a screen that says "the stylist is looking", and all of it
+    // lost if the phone is locked in the meantime.
+    try { r = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 1500000 } : undefined); }
     catch (e) { return null; }
     r.addEventListener('dataavailable', (event) => { if (r === recorder && event.data && event.data.size) chunks.push(event.data); });
     r.addEventListener('stop', () => { if (r === recorder) onRecorded(); });

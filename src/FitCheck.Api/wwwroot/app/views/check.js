@@ -20,6 +20,7 @@ import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
 import { afterPicker } from '../after.js';
 import { itemsEditor } from '../items.js';
+import { wardrobeKeep } from '../wardrobe.js';
 
 const SCORE_COUNT_MS = 900;
 const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
@@ -567,6 +568,11 @@ register('result', async (root) => {
     ensureStyle();
     container.appendChild(usefulRow(result));
   }
+
+  // Round 14 — the wardrobe that builds itself (app/wardrobe.js): the documented mount point, #wardrobe-keep, one quiet
+  // line under the tip — "keep the camel coat in your wardrobe?", one tap, no form. It stays hidden until it has a piece
+  // to offer (signed out, or every piece kept already), so a screen that has nothing to ask looks exactly as it did.
+  container.appendChild(wardrobeKeep(result));
 
   const postArea = el('div');
   container.appendChild(postArea);

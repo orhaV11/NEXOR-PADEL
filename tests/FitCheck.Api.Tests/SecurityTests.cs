@@ -178,6 +178,7 @@ public class IdorEnumerationTests
         public Guid ComparisonA;
         public Guid GuestCheck;
         public Guid ItemOnHidden;
+        public Guid WardrobeItemA;
     }
 
     private static readonly Dictionary<(string Pattern, string Method), object> Rules = new()
@@ -225,7 +226,10 @@ public class IdorEnumerationTests
         [("/api/tags/{tag}/posts", "GET")] = new Public("public looks only (ExploreTests)"),
         [("/api/challenges/{id:guid}", "GET")] = new Public("a challenge is public"),
         [("/api/challenges/{id:guid}/vote", "POST")] = new Public("one vote per person, never on your own entry (ChallengeTests)"),
-        [("/api/challenges/{id:guid}/vote", "DELETE")] = new Public("your own vote only (ChallengeTests)")
+        [("/api/challenges/{id:guid}/vote", "DELETE")] = new Public("your own vote only (ChallengeTests)"),
+        // Round 14 — the wardrobe: a person's pieces are their own, and a stranger's id tells nobody one exists.
+        [("/api/wardrobe/{id:guid}", "PATCH")] = Rule.Private(f => $"/api/wardrobe/{f.WardrobeItemA}", "a kept piece is its owner's alone", new { name = "not yours" }),
+        [("/api/wardrobe/{id:guid}", "DELETE")] = Rule.Private(f => $"/api/wardrobe/{f.WardrobeItemA}", "a kept piece is its owner's alone, and deleting it is too")
     };
 
     private static async Task<Fixture> BuildAsync(TestApp app)
@@ -255,6 +259,10 @@ public class IdorEnumerationTests
         Assert.Equal(HttpStatusCode.Created, comparison.StatusCode);
         fixture.ComparisonA = (await Json(comparison)).GetProperty("id").GetGuid();
         app.Vision.Handler = _ => Payloads.Ok();
+
+        // Round 14: one piece of A's, kept from A's own check (the only way a piece gets in).
+        var kept = await a.PostAsJsonAsync("/api/wardrobe", new { checkId = fixture.CheckA, name = "White tee" });
+        fixture.WardrobeItemA = (await Json(kept)).GetProperty("id").GetGuid();
 
         var guest = app.NewClient();
         var guestCheck = await guest.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));

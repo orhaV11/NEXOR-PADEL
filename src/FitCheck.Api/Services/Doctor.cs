@@ -387,7 +387,21 @@ public static class Doctor
 
         if (proCap <= freeCap)
         {
-            notes.Add($"Pro ({proCap} a day) gets no more checks than free ({freeCap}): there is nothing to pay for");
+            // Round 14: the cap is no longer what Pro sells (its own comparison allowance, the wardrobe reaching the
+            // stylist and the taste profile are), so this is a note about the cap, not a verdict on the plan — but a
+            // Pro that is smaller than free on every axis is still nothing to pay for, and the line says so.
+            notes.Add($"Pro ({proCap} checks a day) gets no more checks than free ({freeCap}): unless the rest of Pro is on, there is nothing to pay for");
+        }
+
+        // Round 14 — Pro's own comparison allowance, and the two flags the Pro page reads.
+        if (plans.ProComparesPerDay > limits.ChecksPerDay)
+        {
+            notes.Add($"Plans__ProComparesPerDay ({plans.ProComparesPerDay}) is above Limits__ChecksPerDay ({limits.ChecksPerDay}), so Pro really gets {Plans.ProCompareCap(plans, limits)} comparisons a day");
+        }
+
+        if (plans.WardrobeNamesToStylist <= 0)
+        {
+            notes.Add("Plans__WardrobeNamesToStylist is 0: the wardrobe is kept but never reaches the stylist, so no tip can name a piece the wearer already owns");
         }
 
         if (limits.ChecksPerDay > limits.ChecksPerDayGlobal)

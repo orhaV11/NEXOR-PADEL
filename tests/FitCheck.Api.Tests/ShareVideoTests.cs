@@ -33,7 +33,7 @@ public class ShareVideoTests
 
         var first = await owner.PostAsync($"/api/checks/{checkId}/shared-video", null);
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
-        // Shared to two apps, saved as well: every hand-off counts; the server stores nothing about the file itself.
+        // Two videos made from the same check, or a share and a save the client reported separately: every POST counts; the server stores nothing about the file itself; the server stores nothing about the file itself.
         Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsync($"/api/checks/{checkId}/shared-video", null)).StatusCode);
 
         Assert.Equal(2, await VideosMadeAsync(moderator));

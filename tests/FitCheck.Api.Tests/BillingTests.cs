@@ -865,7 +865,9 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Equal(AdminChange.Changed, await AdminSync.SetProAsync(_manual.ConnectionString, handle, DateTime.UtcNow.AddDays(31)));
         me = await Json(await client.GetAsync("/api/auth/me"));
         Assert.Equal("pro", me.GetProperty("plan").GetString());
-        Assert.Equal(2, me.GetProperty("checksToday").GetInt32());
+        // Round 14: on Pro the day is two buckets, and this is the CHECK one — the comparison above moved to its own
+        // allowance (Plans:ProComparesPerDay, the compare route), so it no longer eats a check. PlansTests locks it.
+        Assert.Equal(1, me.GetProperty("checksToday").GetInt32());
         Assert.Equal(30, me.GetProperty("checksPerDay").GetInt32());
 
         // Verified is the row's flag, as --verify sets it.

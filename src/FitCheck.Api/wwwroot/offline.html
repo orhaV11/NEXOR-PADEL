@@ -41,8 +41,13 @@
     (function () {
       var rtl = { he: 1, ar: 1 };
       var code = 'en';
-      try { code = (JSON.parse(localStorage.getItem('orevosh.prefs') || 'null') || {}).language || (navigator.language || 'en').split('-')[0]; } catch (e) { code = 'en'; }
-      if (!/^(en|he|ar|ru)$/.test(code) || code === 'en') return;
+      var live = ['en', 'he'];   // the languages the app last saw as live (core.js writes prefs.languages at boot); English and Hebrew until then
+      try {
+        var prefs = JSON.parse(localStorage.getItem('orevosh.prefs') || 'null') || {};
+        if (Array.isArray(prefs.languages) && prefs.languages.length) live = prefs.languages;
+        code = prefs.language || (navigator.language || 'en').split('-')[0];
+      } catch (e) { code = 'en'; }
+      if (!/^(en|he|ar|ru)$/.test(code) || live.indexOf(code) < 0 || code === 'en') return;
       fetch('/i18n/' + code + '.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
         if (!m || !m['offline.title']) return;
         document.documentElement.lang = code;

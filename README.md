@@ -766,7 +766,8 @@ they are: English and Hebrew, the two that are live.
 **The last polish.** `offline.html` is precached (`orevosh-shell-v6`) and answers a navigation with no network when
 there is no cached shell to fall back on, and every `/landing/` navigation that fails: the mark, one line, *Try again*;
 it reads the saved language and takes its three lines from the cached locale file, so it speaks Hebrew to someone who
-used the app in Hebrew. On iOS Safari (not an in-app browser, not the installed app) the result screen shows once per
+used the app in Hebrew, and only in a language the app last saw as live (`core.js` leaves that list in `localStorage` at
+boot, since the page cannot ask `/api/config`); an Arabic browser with no saved language gets the English page. On iOS Safari (not an in-app browser, not the installed app) the result screen shows once per
 device, under the share row, *Keep OREVOSH on your home screen* with the Share → Add to Home Screen line and *Got it*;
 the flag lives in `localStorage` behind try/catch. Focus along check → result → post: the feedback row's answers are a
 labelled group, the note gets focus after a tap and thanks after Send or Skip, *Change* on an answered check returns focus

@@ -1287,6 +1287,7 @@ export async function boot() {
   // The live languages come from the server (Round 13), so the config is read before the locale is chosen: a saved
   // preference or a browser language that is not live falls to English, and only the live files are fetched.
   await loadConfig();
+  savePrefs({ languages: enabledLocales() });   // offline.html reads this: it cannot ask the server which languages are live
   const initial = matchLocale(prefs.language) || detectLocale();
   await Promise.all(enabledLocales().map((code) => loadLocale(code).catch((e) => console.warn(e))));
   if (!messages[DEFAULT_LOCALE]) messages[DEFAULT_LOCALE] = {};

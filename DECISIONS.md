@@ -1441,7 +1441,8 @@ pass, and nothing forgets what a person chose.
 **The offline page is for the navigations the shell cannot answer.** The app shell already works offline for what was
 loaded; what did not was a `/landing/` page, or the app itself on a phone that lost the network before the shell was
 ever cached. The page is one file with the brand and one line, and it borrows its words from the cached locale file
-rather than carrying four translations of its own.
+rather than carrying four translations of its own; it follows the live list the app left in `localStorage`, because the
+first scratch run caught it speaking Arabic to an Arabic browser, which is exactly the half-translated page the switch exists to prevent.
 
 **The iOS note is shown once, where the value landed.** The Home banner asks before anyone has seen the app do anything;
 the result screen is after. Once per device, dismissible, only in Safari itself (an in-app browser cannot add to the

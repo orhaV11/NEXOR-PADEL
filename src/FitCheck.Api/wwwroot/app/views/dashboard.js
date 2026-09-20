@@ -311,6 +311,9 @@ function moneySection(spend) {
       ])
       : el('p', { class: 'empty', id: 'dash-alerts-none', text: t('money.alert_none') })
   ]));
+  return fragment;
+}
+
 // ---------- Round 13 — the growth loop: the funnel and the invites ----------
 
 // Fourteen days as a small table the thumb can push sideways (a funnel is a shape, and a shape wants its columns next

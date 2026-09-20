@@ -49,17 +49,28 @@ export async function loadFonts() {
 }
 
 /**
- * fetch → blob → object URL → Image, for the photo (/api/posts/<id>/image with the session cookie, or a blob: URL from the
- * check) and for the wordmark SVG. Everything is same-origin, so the canvas stays untainted and toBlob works.
+ * fetch → blob → object URL → Image, for the photo (/api/posts/<id>/image with the session cookie) and for the wordmark
+ * SVG. Everything is same-origin, so the canvas stays untainted and toBlob works.
+ *
+ * A blob: URL — what the check flow hands us for a photo that never left the phone — skips the fetch and goes straight
+ * into the Image. It has to: the policy allows a blob in an <img> (img-src) but not as a connection (connect-src), so
+ * fetching one is refused outright. It is the same object either way, already same-origin, and the canvas stays clean;
+ * the caller owns that URL, so we do not revoke it here.
  */
 export async function loadImage(url, revokes) {
+  if (/^(blob|data):/.test(url)) return decoded(url);
   const response = await fetch(url, { credentials: 'same-origin' });
   if (!response.ok) throw new Error('image ' + response.status);
   const objectUrl = URL.createObjectURL(await response.blob());
   revokes.push(objectUrl);
+  return decoded(objectUrl);
+}
+
+/** An Image with that source, returned once the pixels are actually there to draw. */
+async function decoded(src) {
   const img = new Image();
   img.decoding = 'async';
-  img.src = objectUrl;
+  img.src = src;
   if (img.decode) await img.decode();
   else await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
   return img;

@@ -172,7 +172,44 @@ async function postIt(page, opts) {
   return (await page.getAttribute('#post-link', 'href')).replace('#/post/', '');
 }
 
+// Step 0, before anything is spawned: every client module is parsed on its own. A module the browser cannot parse takes
+// the whole app down with it — the page stays blank and the first real step dies of a selector timeout thirty seconds
+// later, naming nothing. This names the file and the line. `node --check` reads .js as a script, so each one is copied to
+// a .mjs first; that is the only way to get import/export parsed without a dependency.
+function checkClientModules() {
+  const root = path.join(REPO, 'wwwroot');
+  const files = [];
+  (function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.js')) files.push(full);
+    }
+  })(root);
+
+  const scratch = path.join(DATA, 'parse.mjs');
+  const broken = [];
+  for (const file of files) {
+    fs.copyFileSync(file, scratch);
+    try {
+      execFileSync(process.execPath, ['--check', scratch], { stdio: ['ignore', 'ignore', 'pipe'] });
+    } catch (e) {
+      const said = (e.stderr || '').toString().split('\n').find((l) => l.includes('Error:')) || 'did not parse';
+      broken.push(path.relative(root, file) + ' — ' + said.trim());
+    }
+  }
+  fs.rmSync(scratch, { force: true });
+  assert.strictEqual(broken.length, 0, 'client modules the browser cannot parse:\n  ' + broken.join('\n  '));
+
+  for (const file of files.concat(fs.readdirSync(path.join(root, 'i18n')).map((f) => path.join(root, 'i18n', f)))) {
+    if (!file.endsWith('.json')) continue;
+    try { JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { assert.fail(path.relative(root, file) + ' is not JSON: ' + e.message); }
+  }
+  return files.length;
+}
+
 (async () => {
+  console.log('0. client modules parse: ' + checkClientModules() + ' files');
   start('python3', [path.join(ROOT, 'stub_anthropic.py'), String(STUB_PORT)], {}, path.join(DATA, 'stub.log'));
   start('dotnet', ['run', '--no-build', '--project', REPO], {
     ASPNETCORE_URLS: `http://127.0.0.1:${API_PORT}`,

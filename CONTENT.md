@@ -562,8 +562,11 @@ so the recording has no address bar and no staging URL in it.
 **The mechanic.** Caption: **"Would you post the score."** It is a question about them, not about the app.
 
 **Everything you say about the app must be true.** What is real today: the check is private until you post it; the
-first check needs no account, one free look as a guest; a free account gets a few checks a day and Pro raises the
-cap; the stylist writes in English, Hebrew, Arabic or Russian; looks can be found by the pieces in them; there is a
+first check needs no account, one free look as a guest; a free account gets a few checks a day AND its own wardrobe,
+and Pro gives comparisons on their own allowance (so deciding between two outfits never spends a check) and tips built
+from that wardrobe — never say Pro is "more checks", because the cap is a fair-use brake and not the product (Round 14);
+the wardrobe fills itself one tap at a time from the checks people already make, and nobody is ever asked to photograph
+a closet; the stylist writes in English, Hebrew, Arabic or Russian; looks can be found by the pieces in them; there is a
 weekly flames board that closes Saturday midnight Israel time; fire is the only reaction. What is **not** built, and
 must never be implied: blocking or muting another person, direct messages, buying anything in the app. And if the
 app did not produce a score, never put the app's name next to it.

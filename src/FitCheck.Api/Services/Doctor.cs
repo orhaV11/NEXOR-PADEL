@@ -426,14 +426,16 @@ public static class Doctor
         // The list is one way in; `--admin <handle>` is the other, and it leaves no trace in the configuration. The runbook
         // promotes the first account that way two steps before it runs the doctor, so the database, when there is one to
         // read, is the word on who can open the queue today.
-        var moderators = CountModerators(configuration, contentRoot);
-        var inDatabase = moderators switch
-        {
-            null => "",
-            0 => "; no account is a moderator yet",
-            1 => "; 1 moderator account in the database",
-            var n => $"; {n} moderator accounts in the database"
-        };
+        var (moderators, unreadable) = CountModerators(configuration, contentRoot);
+        var inDatabase = unreadable
+            ? "; the database could not be read, so who is a moderator there is unknown (see the database line)"
+            : moderators switch
+            {
+                null => "",
+                0 => "; no account is a moderator yet",
+                1 => "; 1 moderator account in the database",
+                var n => $"; {n} moderator accounts in the database"
+            };
         if (handles.Count > 0)
         {
             lines.Add(new(DoctorStatus.Ok, "admin", $"{handles.Count} moderator handle(s): {string.Join(", ", handles)}{inDatabase}."));
@@ -442,6 +444,11 @@ public static class Doctor
         {
             lines.Add(new(DoctorStatus.Ok, "admin", $"Admin__Handles is empty{inDatabase}, made with --admin: the moderation queue has someone."));
         }
+        else if (unreadable)
+        {
+            // The doctor could not look, so it must not claim that nobody is a moderator: --admin may well have made one.
+            lines.Add(new(DoctorStatus.Warn, "admin", "Admin__Handles is empty and the database could not be read, so whether any account is a moderator is unknown (see the database line). Fix the database and run the doctor again, or set Admin__Handles__0."));
+        }
         else
         {
             lines.Add(new(DoctorStatus.Warn, "admin", "Admin__Handles is empty and no account is a moderator: nobody can open the moderation queue. Set Admin__Handles__0, or run --admin <handle> once that account exists."));
@@ -449,15 +456,17 @@ public static class Doctor
     }
 
     /// <summary>
-    /// How many accounts carry the moderator flag, or null when there is no database file to read yet (looking must never
-    /// create one) or it cannot be read (the database line says why). A read-only count; nothing is applied.
+    /// How many accounts carry the moderator flag. Count is null when there is no database file to read yet (looking must
+    /// never create one); Unreadable is true when there is something at the path but it could not be read (a folder, a
+    /// locked or corrupt file: the database line says why), which is not the same as a count of zero. A read-only count;
+    /// nothing is applied.
     /// </summary>
-    private static int? CountModerators(IConfiguration configuration, string contentRoot)
+    private static (int? Count, bool Unreadable) CountModerators(IConfiguration configuration, string contentRoot)
     {
         var builder = new SqliteConnectionStringBuilder(configuration.GetConnectionString("Default") ?? "Data Source=orevosh.db");
         if (string.IsNullOrEmpty(builder.DataSource) || builder.DataSource.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            return (null, false);
         }
 
         if (!Path.IsPathRooted(builder.DataSource))
@@ -465,19 +474,25 @@ public static class Doctor
             builder.DataSource = Path.Combine(contentRoot, builder.DataSource);
         }
 
-        if (!File.Exists(Path.GetFullPath(builder.DataSource)))
+        var path = Path.GetFullPath(builder.DataSource);
+        if (Directory.Exists(path))
         {
-            return null;
+            return (null, true);
+        }
+
+        if (!File.Exists(path))
+        {
+            return (null, false);
         }
 
         using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(builder.ConnectionString).Options);
         try
         {
-            return db.Users.Count(u => u.IsAdmin);
+            return (db.Users.Count(u => u.IsAdmin), false);
         }
         catch (Exception e) when (e is SqliteException or InvalidOperationException or IOException)
         {
-            return null;
+            return (null, true);
         }
         finally
         {
@@ -550,6 +565,13 @@ public static class Doctor
         }
 
         var path = Path.GetFullPath(builder.DataSource);
+        if (Directory.Exists(path))
+        {
+            // File.Exists is false for a folder, and "does not exist yet" would send the operator to a first start that cannot open it.
+            lines.Add(new(DoctorStatus.Fail, "database", $"{path} is a folder, not a database file: nothing can open it. Point ConnectionStrings__Default at a file."));
+            return;
+        }
+
         using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(builder.ConnectionString).Options);
         var all = db.Database.GetMigrations().ToList();
         if (!File.Exists(path))

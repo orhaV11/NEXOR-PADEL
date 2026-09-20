@@ -72,7 +72,7 @@ public class StylistV2Tests : IClassFixture<StylistV2Tests.V2App>
         using var scope = _app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var row = await db.Checks.SingleAsync(c => c.Id == id);
-        Assert.Equal("v4", row.PromptVersion);
+        Assert.Equal("v5", row.PromptVersion);
         Assert.Contains("\"breakdown\":{\"fit\":7,\"color\":8,\"accessories\":4}", row.FeedbackJson);
     }
 
@@ -196,5 +196,10 @@ public class StylistV2Tests : IClassFixture<StylistV2Tests.V2App>
         var required = request.Tool.InputSchema.GetProperty("required").EnumerateArray().Select(r => r.GetString()).ToList();
         Assert.Contains("breakdown", required);
         Assert.Contains("accessories", required);
+        // Round 14: the anchored bands and the kind of tip ride in the same request, in every language.
+        Assert.Contains("THE SCALE (anchored", request.SystemPrompt);
+        Assert.Contains("A keep is RARE.", request.SystemPrompt);
+        Assert.Contains("one_tip", required);
+        Assert.Contains("tip_kind", required);
     }
 }

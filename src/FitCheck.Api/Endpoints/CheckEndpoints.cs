@@ -12,6 +12,7 @@ namespace FitCheck.Api.Endpoints;
 
 public static class CheckEndpoints
 {
+    /// <summary>The wearer's free line, at most this many characters. Named the occasion until Round 14 split the two.</summary>
     public const int OccasionMaxLength = 120;
 
     /// <summary>
@@ -145,13 +146,37 @@ public static class CheckEndpoints
         // answered in English and told nothing, and the row says English, which is what the feedback is written in.
         language = languages.Value.Effective(language);
 
-        if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
+        // Round 14 - the occasion split. A current client sends "occasion" (a chip, always) and "style" (a chip, or
+        // nothing: no style asked for is a first-class answer), and its free line as "note". A client from before the
+        // split sends "intent" and its free line as "occasion"; the presence of "intent" is what tells the two apart, so
+        // no field means two things at once and nothing old breaks. Either way the row stores the pair and the one word.
+        var legacy = form.ContainsKey("intent");
+        OutfitOccasion occasion;
+        OutfitStyle? style;
+        if (legacy)
         {
-            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
+            if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
+            }
+
+            (occasion, style) = StyleIntents.Split(intent);
+        }
+        else
+        {
+            if (!StyleIntents.TryParseOccasion(form["occasion"].ToString(), out occasion))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.occasion_invalid"));
+            }
+
+            if (!StyleIntents.TryParseStyle(form["style"].ToString(), out style))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.style_invalid"));
+            }
         }
 
-        var occasion = OutfitAnalyzer.SanitizeOccasion(form["occasion"].ToString());
-        if (occasion.Length > OccasionMaxLength)
+        var note = OutfitAnalyzer.SanitizeOccasion(form[legacy ? "occasion" : "note"].ToString());
+        if (note.Length > OccasionMaxLength)
         {
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.occasion_too_long"));
         }
@@ -308,8 +333,10 @@ public static class CheckEndpoints
             Id = Guid.NewGuid(),
             UserId = user?.Id,
             GuestToken = user is null ? guestToken : null,
-            Intent = intent,
-            Occasion = occasion.Length == 0 ? null : occasion,
+            Intent = StyleIntents.Legacy(occasion, style),
+            Occasion = occasion,
+            Style = style,
+            Note = note.Length == 0 ? null : note,
             Language = language,
             PromptVersion = OutfitAnalyzer.PromptVersion,
             CreatedAt = now
@@ -320,7 +347,7 @@ public static class CheckEndpoints
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, intent, occasion, language, ct);
+            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, occasion, style, note, language, ct);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = feedback.Status;
 
@@ -347,7 +374,7 @@ public static class CheckEndpoints
                     break;
                 default:
                     // Rejected: nothing but the status survives. Not the model's words, not the wearer's note.
-                    check.Occasion = null;
+                    check.Note = null;
                     break;
             }
         }
@@ -356,7 +383,7 @@ public static class CheckEndpoints
             logger.LogInformation(ex, "Check {CheckId} refused by the API", check.Id);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = CheckStatus.Rejected;
-            check.Occasion = null;
+            check.Note = null;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

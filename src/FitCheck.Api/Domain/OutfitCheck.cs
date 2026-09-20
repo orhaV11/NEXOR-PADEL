@@ -15,10 +15,27 @@ public sealed class OutfitCheck
 
     public DateTime? ClaimedAt { get; set; }
 
+    /// <summary>
+    /// Round 14: the ONE-WORD value for this check, <see cref="StyleIntents.Legacy"/> of the pair below. Kept because a
+    /// look, a board, a challenge, the feed filter and the interests list all speak it, and because every surface with
+    /// room for a single word shows it. Written on every check; never the thing the stylist is asked about.
+    /// </summary>
     public StyleIntent Intent { get; set; }
 
-    /// <summary>Free text from the wearer, at most 120 characters.</summary>
-    public string? Occasion { get; set; }
+    /// <summary>Round 14: where the outfit is going. Chosen on every check; the score is always relative to it.</summary>
+    public OutfitOccasion Occasion { get; set; }
+
+    /// <summary>
+    /// Round 14: how the wearer wants the look to read. Null is a first-class answer — no style asked for, so the look is
+    /// judged on its own terms for the occasion, which is what Date, Office, Party and Sport always did.
+    /// </summary>
+    public OutfitStyle? Style { get; set; }
+
+    /// <summary>
+    /// Free text from the wearer, at most 120 characters: the detail no chip can hold ("my cousin's wedding, outdoors").
+    /// Round 14 renamed it from Occasion, which is now the chip; older clients still send it as "occasion".
+    /// </summary>
+    public string? Note { get; set; }
 
     /// <summary>Language the feedback was written in. Feedback is never re-displayed in another language.</summary>
     public string Language { get; set; } = "en";

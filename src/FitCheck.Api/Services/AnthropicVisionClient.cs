@@ -104,6 +104,13 @@ public sealed class AnthropicVisionClient(
         }
     }
 
+    /// <summary>
+    /// The request, field by field. There is deliberately no <c>temperature</c>, <c>top_p</c> or <c>top_k</c> here:
+    /// claude-sonnet-5 removed all three from the API and answers 400 to a request that carries one. Consistency of the
+    /// scores therefore comes from the rubric's anchored bands (<see cref="OutfitAnalyzer"/>, "THE SCALE") and is
+    /// measured rather than assumed — <c>tools/eval/stylist.js</c> runs the same photo N times and prints the spread.
+    /// Do not add a sampling knob here to "make it stable": it would fail every call instead.
+    /// </summary>
     private object BuildBody(VisionRequest request) => new
     {
         model = options.Value.Model,

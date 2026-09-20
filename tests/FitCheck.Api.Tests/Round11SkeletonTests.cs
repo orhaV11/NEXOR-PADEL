@@ -428,7 +428,7 @@ public class Round11SeamTests : IClassFixture<TestApp>, IClassFixture<StripeBill
         Assert.Equal(["exportedAt", "account", "checks", "posts", "comments", "follows", "followers", "comparisons", "blocks", "notifications"], Keys(root));
         Assert.Equal(["handle", "name", "accountType", "language", "email", "createdAt", "plan", "proUntil"], Keys(root.GetProperty("account")));
         Assert.DoesNotContain("birthDate", Keys(root.GetProperty("account")));
-        Assert.Equal(["id", "createdAt", "intent", "occasion", "score", "headline", "tip", "breakdown", "items", "status"], Keys(root.GetProperty("checks")[0]));
+        Assert.Equal(["id", "createdAt", "intent", "note", "score", "headline", "tip", "breakdown", "items", "status"], Keys(root.GetProperty("checks")[0]));
         Assert.Equal("Date", root.GetProperty("checks")[0].GetProperty("intent").GetString());
         Assert.Equal(["name", "category"], Keys(root.GetProperty("checks")[0].GetProperty("items")[0]));
         Assert.Equal(["id", "createdAt", "caption", "intent", "score", "tags", "items", "fires", "comments"], Keys(root.GetProperty("posts")[0]));

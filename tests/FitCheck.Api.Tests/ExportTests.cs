@@ -95,7 +95,11 @@ public class ExportTests : IClassFixture<TestApp>
         Assert.Equal(secondCheck, checks[0].GetProperty("id").GetGuid());
         Assert.Equal("Office", checks[0].GetProperty("intent").GetString());
         Assert.Equal(firstCheck, checks[1].GetProperty("id").GetGuid());
-        Assert.Equal(["id", "createdAt", "intent", "score", "headline", "tip", "items", "status"], Keys(checks[1]));
+        // Round 14: the pair behind the one word travels too, and which kind of tip it was. A style nobody asked for is
+        // absent rather than null, like every other empty field in this document.
+        Assert.Equal(["id", "createdAt", "intent", "score", "headline", "tip", "items", "status", "occasion", "tipKind"], Keys(checks[1]));
+        Assert.Equal("Date", checks[1].GetProperty("occasion").GetString());
+        Assert.Equal("change", checks[1].GetProperty("tipKind").GetString());
         Assert.Equal(7, checks[1].GetProperty("score").GetInt32());
         Assert.Equal("Clean casual with one weak link", checks[1].GetProperty("headline").GetString());
         Assert.Equal("Swap the running shoes for plain white leather sneakers.", checks[1].GetProperty("tip").GetString());

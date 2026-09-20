@@ -195,6 +195,9 @@ public sealed class Localizer
             ["mail.digest_subject"] = "Your week on OREVOSH",
             ["mail.digest_body"] = "Hi {0},\n\nYour looks got {1} fires and {2} comments this week.\n\n{3}Check a look: {4}\n\nTo stop these emails: {5}\n",
             ["mail.digest_top"] = "The week's top look on the board: {0}",
+            // Round 14 - the occasion split: the two chips on the check screen, each refused on its own.
+            ["error.occasion_invalid"] = "Pick where the outfit is going.",
+            ["error.style_invalid"] = "Pick a style, or leave it open.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -374,6 +377,9 @@ public sealed class Localizer
             ["mail.digest_subject"] = "השבוע שלך ב-OREVOSH",
             ["mail.digest_body"] = "היי {0},\n\nהלוקים שלך קיבלו {1} אש ו-{2} תגובות השבוע.\n\n{3}לבדוק לוק: {4}\n\nלהפסיק את המיילים האלה: {5}\n",
             ["mail.digest_top"] = "הלוק המוביל של השבוע בלוח: {0}",
+            // Round 14 - the occasion split.
+            ["error.occasion_invalid"] = "צריך לבחור לאן הלוק הולך.",
+            ["error.style_invalid"] = "אפשר לבחור סגנון, או להשאיר פתוח.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -555,6 +561,9 @@ public sealed class Localizer
             ["mail.digest_subject"] = "أسبوعك على OREVOSH",
             ["mail.digest_body"] = "مرحبًا {0}،\n\nحصلت إطلالاتك على {1} نار و{2} تعليق هذا الأسبوع.\n\n{3}افحص إطلالة: {4}\n\nلإيقاف هذه الرسائل: {5}\n",
             ["mail.digest_top"] = "أفضل إطلالة هذا الأسبوع على اللوحة: {0}",
+            // Round 14 - the occasion split. Arabic written plainly; flagged for native review.
+            ["error.occasion_invalid"] = "يجب اختيار إلى أين تذهب الإطلالة.",
+            ["error.style_invalid"] = "يمكن اختيار ستايل، أو تركه مفتوحًا.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -735,6 +744,9 @@ public sealed class Localizer
             ["mail.digest_subject"] = "Твоя неделя на OREVOSH",
             ["mail.digest_body"] = "Привет, {0},\n\nТвои образы получили {1} огней и {2} комментариев за неделю.\n\n{3}Проверить образ: {4}\n\nОтключить эти письма: {5}\n",
             ["mail.digest_top"] = "Лучший образ недели на доске: {0}",
+            // Round 14 - the occasion split. Russian written plainly; flagged for native review.
+            ["error.occasion_invalid"] = "Выбери, куда собирается образ.",
+            ["error.style_invalid"] = "Выбери стиль или оставь без него.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

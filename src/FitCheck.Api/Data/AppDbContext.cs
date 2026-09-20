@@ -59,7 +59,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             check.HasKey(c => c.Id);
             // Stored as text so the rows stay readable in any SQLite browser.
             check.Property(c => c.Intent).HasConversion<string>().HasMaxLength(32);
-            check.Property(c => c.Occasion).HasMaxLength(120);
             check.Property(c => c.Language).HasMaxLength(16).IsRequired();
             check.Property(c => c.ImagePath).HasMaxLength(260).IsRequired();
             check.Property(c => c.VideoPath).HasMaxLength(260);
@@ -289,6 +288,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             saved.HasKey(s => new { s.UserId, s.PostId });
             saved.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
             saved.HasOne<Post>().WithMany().HasForeignKey(s => s.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Round 14 — the occasion split (the stylist). A check carries the pair the person chose: where it is going, and
+        // the style they want it to read as (null when they asked for none). Both are text, like Intent above, so the rows
+        // stay readable in any SQLite browser.
+        // The column names are deliberately not the property names. The wearer's free line has been in a column called
+        // "Occasion" since the first migration, and DatabaseSetup upgrades a pilot database made before migrations by
+        // matching the model's columns against the file's: renaming that column would leave such a file with an extra
+        // column nothing maps to, or turn 120 characters of the wearer's words into a column that must parse as an enum.
+        // So the line keeps its column and the new chip takes a new one, and no stored character moves.
+        modelBuilder.Entity<OutfitCheck>(check =>
+        {
+            check.Property(c => c.Occasion).HasColumnName("OccasionKind").HasConversion<string>().HasMaxLength(32);
+            check.Property(c => c.Style).HasConversion<string>().HasMaxLength(32);
+            check.Property(c => c.Note).HasColumnName("Occasion").HasMaxLength(120);
         });
     }
 }

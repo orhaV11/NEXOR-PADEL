@@ -1,5 +1,16 @@
-// Check and result: add a photo or a clip (the camera, the library), say where the outfit is going, let the stylist look,
-// read the verdict, post the look. Ported from the Phase 2 monolith onto the kit. The ids (#photo, #submit, #occasion,
+// Check and result: add a photo or a clip (the camera, the library), say where the outfit is going and how you want it to
+// read, let the stylist look, read the verdict, post the look. Ported from the Phase 2 monolith onto the kit.
+//
+// Round 14, the two questions. The chips are two rows now: #occasions (.chip[data-occasion], one always pressed) and
+// #styles (.chip[data-style], including the first-class "no style" answer, data-style=""), with #style-default under
+// them when the pick differs from the saved preference (prefs.style, localStorage through core.js). Every chip also
+// carries data-intent with the one word it contributes, for the surfaces and browser tests that still speak one word.
+// The free line (#occasion) is the note now, and travels as "note"; the occasion and the style travel as their own
+// fields. On the result: #asked-for names both, the tip block is #tip (class tip keep when feedback.tipKind is "keep",
+// with its own heading and no swap verb in sight), and three empty mount points wait for other modules to fill them:
+// #tip-feedback, #tried-it and #wardrobe-offer. Each renders nothing while its module is absent.
+//
+// The ids (#photo, #submit, #occasion,
 // #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
 // .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
 // sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame. The rubric v2
@@ -14,7 +25,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
@@ -23,6 +34,31 @@ import { itemsEditor } from '../items.js';
 
 const SCORE_COUNT_MS = 900;
 const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
+
+// Round 14: two questions, two lists. Where it is going, asked every time; and how it should read, which may be nothing
+// at all - "no style" is an answer, not a blank, and the stylist is told so in words.
+export const OCCASIONS = ['Everyday', 'Date', 'Office', 'Party', 'Formal', 'Sport'];
+export const STYLES = ['Streetwear', 'OldMoney', 'Minimal', 'Classic'];
+const occasionLabel = (occasion) => t('occasion.' + occasion);
+const styleLabel = (style) => (style ? t('style.' + style) : t('style.none'));
+/** The pair behind one of the eight words the app used to ask for (a challenge still names one). */
+const SPLIT = {
+  Casual: ['Everyday', null], Date: ['Date', null], Office: ['Office', null], Party: ['Party', null], Sport: ['Sport', null],
+  Streetwear: ['Everyday', 'Streetwear'], OldMoney: ['Everyday', 'OldMoney'], Minimal: ['Everyday', 'Minimal']
+};
+/** The one word a chip contributes, where a surface has room for one. Formal is newer than that list and contributes none. */
+const ONE_WORD = { Everyday: 'Casual', Date: 'Date', Office: 'Office', Party: 'Party', Sport: 'Sport', Formal: null };
+
+// What this check asks for. The occasion and the style live here rather than in state.check: the style is a preference
+// that outlives the check (prefs.style), and the occasion is a chip, not something private. The wearer's free line stays
+// in state.check.occasion, where signing out still clears it with everything else they typed.
+const pick = { occasion: null, style: null, loaded: false };
+
+/** The saved style preference: a name, or null for "no style", which is what an account that never set one has. */
+function preferredStyle() {
+  const saved = loadPrefs().style;
+  return STYLES.includes(saved) ? saved : null;
+}
 
 // The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy. The guest
 // banner is a notice card with the display face; the cap line sits under the submit button with the private note.
@@ -54,6 +90,17 @@ const CSS = `
 .useful-thanks { margin: 0; color: var(--ink-2); }
 .useful-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .useful-saved .btn-text { flex: none; padding-block: 0; }
+/* Round 14: the second chip row and its preference line; what was asked for, on the result; the keep; the mount points. */
+.asked-block { display: grid; gap: 10px; }
+.asked-block .hint { margin: 0; }
+.style-default { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.style-default .btn-text { min-block-size: 44px; padding-block: 0; font-size: 13px; }
+.asked-for { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block-start: 12px; }
+.asked-for .lbl { color: var(--ink-3); font-size: 13px; }
+.tip-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tip-kind { color: var(--ok); background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+.tip.keep::before { background: var(--ok); }
+.mount:empty { display: none; }
 .nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
 .nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
 .nooutfit-free { margin-block-start: 10px; }
@@ -118,24 +165,17 @@ register('check', async (root) => {
     ]));
   }
 
-  const chips = el('div', { class: 'chips', role: 'group', 'aria-label': t('a11y.intent_group') });
-  for (const intent of INTENTS) {
-    chips.appendChild(el('button', {
-      type: 'button', class: 'chip', 'data-intent': intent, 'aria-pressed': String(ck.intent === intent), text: intentLabel(intent),
-      onclick: () => {
-        ck.intent = intent;
-        for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.intent === intent));
-        updateSubmit();
-      }
-    }));
-  }
-  form.appendChild(el('div', {}, [el('h2', { text: t('check.intent_label') }), el('div', { style: 'margin-block-start: 10px;' }, [chips])]));
+  // The style preference is read once per session; a challenge that named one of the old eight words preselects the pair.
+  if (!pick.loaded) { pick.style = preferredStyle(); pick.loaded = true; }
+  if (!pick.occasion && ck.intent && SPLIT[ck.intent]) { [pick.occasion, pick.style] = SPLIT[ck.intent]; }
+  form.appendChild(occasionChips());
+  form.appendChild(styleChips());
 
-  const occasion = el('input', {
-    type: 'text', id: 'occasion', maxlength: '120', autocomplete: 'off', enterkeyhint: 'done', placeholder: t('check.occasion_placeholder'),
+  const note = el('input', {
+    type: 'text', id: 'occasion', maxlength: '120', autocomplete: 'off', enterkeyhint: 'done', placeholder: t('occasion.note_placeholder'),
     value: ck.occasion, oninput: (event) => { ck.occasion = event.target.value; }
   });
-  form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('check.occasion_label') }), occasion]));
+  form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('occasion.note_label') }), note]));
 
   form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: chooseMedia }));
   // Two outfits, one verdict: the comparison has its own screen.
@@ -157,6 +197,69 @@ register('check', async (root) => {
     requestAnimationFrame(() => { const photo = $('photo'); if (!photo) return; photo.setAttribute('tabindex', '0'); photo.focus({ preventScroll: true }); chooseMedia(); });
   }
 });
+
+/**
+ * Where it is going: nothing can be checked until one of these is pressed, and from then on exactly one always is. Each
+ * chip also carries the one word it contributes (data-intent), for the surfaces and the browser tests that still speak
+ * one word; Formal is newer than that list and carries none.
+ */
+function occasionChips() {
+  const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });
+  for (const occasion of OCCASIONS) {
+    chips.appendChild(el('button', {
+      type: 'button', class: 'chip', 'data-occasion': occasion, 'data-intent': ONE_WORD[occasion], text: occasionLabel(occasion),
+      'aria-pressed': String(pick.occasion === occasion),
+      onclick: () => { pick.occasion = occasion; paintOccasions(); updateSubmit(); }
+    }));
+  }
+
+  return el('div', { class: 'asked-block' }, [el('h2', { text: t('occasion.title') }), chips]);
+}
+
+/** Lights the chosen occasion, wherever the row currently is on screen. */
+function paintOccasions() {
+  const row = $('occasions');
+  if (!row) return;
+  for (const chip of row.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === pick.occasion));
+}
+
+/**
+ * How it should read: the wearer's saved preference, pressed, and changeable for this check alone. "No style" is the
+ * first chip and a real answer - the stylist is told there is none and judges the look on its own terms. When the pick
+ * differs from what is saved, one line offers to make it the new preference.
+ */
+function styleChips() {
+  const chips = el('div', { class: 'chips', id: 'styles', role: 'group', 'aria-label': t('style.title') });
+  const offer = el('p', { class: 'hint style-default', id: 'style-default' });
+  const paint = () => {
+    for (const chip of chips.children) chip.setAttribute('aria-pressed', String((chip.dataset.style || null) === pick.style));
+    offer.innerHTML = '';
+    if (pick.style === preferredStyle()) { offer.hidden = true; return; }
+    offer.hidden = false;
+    offer.appendChild(el('span', { text: t('style.this_check') }));
+    offer.appendChild(el('button', {
+      type: 'button', class: 'btn-text', id: 'style-save', text: t('style.make_mine'),
+      onclick: () => { savePrefs({ style: pick.style || '' }); paint(); toast(t('style.saved', { style: styleLabel(pick.style) })); }
+    }));
+  };
+  for (const style of [null, ...STYLES]) {
+    chips.appendChild(el('button', {
+      type: 'button', class: 'chip', 'data-style': style || '', 'data-intent': style, text: styleLabel(style),
+      'aria-pressed': 'false', onclick: () => {
+        pick.style = style;
+        // A style with nowhere to go is what the old list called Streetwear, OldMoney or Minimal: a style worn
+        // everyday. Asking for one before saying where means that, so Everyday lights up and can still be changed.
+        if (style && !pick.occasion) { pick.occasion = 'Everyday'; paintOccasions(); updateSubmit(); }
+        paint();
+      }
+    }));
+  }
+
+  paint();
+  return el('div', { class: 'asked-block' }, [
+    el('h2', { text: t('style.title') }), chips, offer, el('p', { class: 'hint', text: t('style.hint') })
+  ]);
+}
 
 /** "Try it first": the server's number of free checks, no account; signing up keeps them. A join link for the visitor who already used it. */
 function guestBanner() {
@@ -321,7 +424,7 @@ async function captureFrame(video, ms) {
 function updateSubmit() {
   const submit = $('submit');
   const ck = state.check;
-  if (submit) submit.disabled = !(ck.intent && ck.photo) || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn());
+  if (submit) submit.disabled = !(pick.occasion && ck.photo) || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn());
 }
 function showError(message) {
   const node = $('check-error');   // looked up fresh: the view may have been re-rendered during a decode
@@ -434,7 +537,7 @@ function clipName(blob) { return /mp4|quicktime/i.test(blob.type || '') ? 'clip.
 
 async function submitCheck() {
   const ck = state.check;
-  if (!ck.intent || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
+  if (!pick.occasion || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
   ck.busy = true;
   updateSubmit();
   const root = view();
@@ -445,8 +548,11 @@ async function submitCheck() {
   const wasSignedIn = !!state.me;
   try {
     const form = new FormData();
-    form.append('intent', ck.intent);
-    form.append('occasion', ck.occasion.trim());
+    // The two questions and the free line. No "intent": that field is how the server knows it is talking to a client
+    // from before the split, and this one is not.
+    form.append('occasion', pick.occasion);
+    form.append('style', pick.style || '');
+    form.append('note', ck.occasion.trim());
     form.append('language', getLocale());
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
@@ -486,7 +592,8 @@ register('result', async (root) => {
   setTopBar({ title: t('result.title') });
   const feedback = result.feedback || {};
   const status = feedback.status || result.status;
-  const intent = intentLabel(result.intent);
+  const asked = askedFor(result);
+  const intent = occasionLabel(asked.occasion);
   const container = el('div', { id: 'result', class: 'stack' });
   root.appendChild(container);
 
@@ -529,7 +636,13 @@ register('result', async (root) => {
       scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
     ]),
     el('h1', { class: 'result-headline', text: feedback.headline, style: 'margin-block-start: 16px;' }),
-    feedback.vibe ? el('p', { class: 'vibe', text: feedback.vibe }) : null
+    feedback.vibe ? el('p', { class: 'vibe', text: feedback.vibe }) : null,
+    // Round 14: both questions, in the wearer's own words, so the score is read against what was actually asked.
+    el('div', { class: 'asked-for', id: 'asked-for' }, [
+      el('span', { class: 'lbl', text: t('occasion.asked') }),
+      el('span', { class: 'tag', 'data-occasion': asked.occasion, text: occasionLabel(asked.occasion) }),
+      el('span', { class: 'tag' + (asked.style ? '' : ' rose'), 'data-style': asked.style || '', text: styleLabel(asked.style) })
+    ])
   ]));
   // Rubric v2: the three rings, then the accessories read. A check from before v2 has neither and shows neither.
   if (feedback.breakdown) {
@@ -552,7 +665,9 @@ register('result', async (root) => {
           el('div', { class: 'item-name' }, [item.name, el('span', { class: 'item-verdict', text: t('verdict.' + item.verdict) })]),
           item.note ? el('div', { class: 'item-note', text: item.note }) : null
         ])
-      ])))
+      ]))),
+      // MOUNT: the wardrobe offer, beside the pieces it is about. Empty, and invisible while empty (.mount:empty).
+      el('div', { class: 'mount', id: 'wardrobe-offer' })
     ]));
   }
   if (feedback.working && feedback.working.length) {
@@ -562,10 +677,14 @@ register('result', async (root) => {
     ]));
   }
   if (feedback.oneTip) {
-    container.appendChild(el('div', {}, [el('h2', { text: t('result.tip') }), el('div', { class: 'tip', style: 'margin-block-start: 8px;' }, [el('p', { text: feedback.oneTip })])]));
-    // Round 13: the verdict's own verdict, right after the tip it is about.
     ensureStyle();
+    container.appendChild(tipBlock(feedback));
+    // Round 13: the verdict's own verdict, right after the tip it is about.
     container.appendChild(usefulRow(result));
+    // MOUNTS, in the order they are read: the typed answer to the tip, then what happened when it was tried. Both empty
+    // here; the modules that own them fill them in place, and an absent module leaves nothing on the screen.
+    container.appendChild(el('div', { class: 'mount', id: 'tip-feedback' }));
+    container.appendChild(el('div', { class: 'mount', id: 'tried-it' }));
   }
 
   const postArea = el('div');
@@ -590,6 +709,33 @@ register('result', async (root) => {
     animateScore(scoreNode, feedback.score);
   }
 });
+
+/**
+ * What this check asked for. The server sends both on every check; a result held over from an older client, or an older
+ * stored check read back, carries only the one word, and that word says which pair it stood for.
+ */
+function askedFor(result) {
+  if (result.occasion) return { occasion: result.occasion, style: STYLES.includes(result.style) ? result.style : null };
+  const [occasion, style] = SPLIT[result.intent] || ['Everyday', null];
+  return { occasion, style };
+}
+
+/**
+ * The one tip, in the kind it came in. A change is the pull quote it has always been. A keep says so: its own heading,
+ * its own label, the green accent of a piece that works - and not one word about swapping anything, because there is
+ * nothing to swap. Anything the stylist sends that is not "keep" is a change, so a keep is never shown by accident.
+ */
+function tipBlock(feedback) {
+  const keep = feedback.tipKind === 'keep';
+  return el('div', {}, [
+    el('div', { class: 'tip-head' }, [
+      el('h2', { text: t(keep ? 'tip.keep_title' : 'result.tip') }),
+      keep ? el('span', { class: 'tag tip-kind', id: 'tip-keep', text: t('tip.keep_label') }) : null
+    ]),
+    el('div', { class: 'tip' + (keep ? ' keep' : ''), id: 'tip', style: 'margin-block-start: 8px;' }, [el('p', { text: feedback.oneTip })]),
+    keep ? el('p', { class: 'hint', style: 'margin-block-start: 8px;', text: t('tip.keep_hint') }) : null
+  ]);
+}
 
 /**
  * "Did the tip land?" (Round 13): two 44px choices; a tap stores the verdict at once (POST /api/checks/{id}/useful, so it is
@@ -825,7 +971,7 @@ async function shareResult(result) {
   state.sharing = true;
   try {
     const feedback = result.feedback || {};
-    const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: intentLabel(result.intent), tip: feedback.oneTip || '' });
+    const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: occasionLabel(askedFor(result).occasion), tip: feedback.oneTip || '' });
     if (navigator.share) {
       try { await navigator.share({ text }); return; }
       catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }

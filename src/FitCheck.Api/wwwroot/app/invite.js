@@ -69,6 +69,14 @@ export const publicLookUrl = (postId) => linkOrigin() + '/look/' + postId;
 export const inviteUrl = (handle) => linkOrigin() + '/?via=' + encodeURIComponent(handle);
 export const lookInviteUrl = (postId, handle) => publicLookUrl(postId) + '?via=' + encodeURIComponent(handle);
 
+/**
+ * The link a look travels on: the sharer's own invite when they are signed in (a look that travels is also an invite,
+ * and that is the better signal of the two), and the plain share marker when nobody is signed in — so the numbers page
+ * can tell an arrival that came off a share from one that came off a person.
+ */
+export const shareLookUrl = (postId) =>
+  (state.me ? lookInviteUrl(postId, state.me.handle) : publicLookUrl(postId) + '?via=' + VIA_SHARE);
+
 /** The address as a person reads it on a button: no scheme, no trailing slash. */
 export const pretty = (url) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
@@ -135,7 +143,7 @@ export function inviteButton(id) {
  */
 export function openLookLinkSheet(post) {
   ensureStyle();
-  const url = state.me ? lookInviteUrl(post.id, state.me.handle) : publicLookUrl(post.id);
+  const url = shareLookUrl(post.id);
   const copy = el('button', { type: 'button', class: 'btn btn-secondary', id: 'link-copy', text: t('link.copy') });
   const share = el('button', { type: 'button', class: 'btn', id: 'link-share', text: t('link.share') });
   copy.addEventListener('click', () => copyText(url, t('link.copied')));

@@ -625,7 +625,11 @@ public static class UserEndpoints
             Followers: await db.Follows.CountAsync(f => f.FollowedId == user.Id, ct),
             Following: await db.Follows.CountAsync(f => f.FollowerId == user.Id, ct),
             FireReceived: await visible.SumAsync(p => p.FireCount, ct),
-            BestScore: await visible.MaxAsync(p => (int?)p.Score, ct),
+            // Round 14 — post the look, keep the grade: "best" is the number itself, so a look whose grade its author
+            // kept does not put its number here. The fires above are a tally about something else and stand, like they
+            // do across a block; this one would publish the very number the card refuses to show. The author reads
+            // their own best either way, and a person whose looks are all private simply has none to show.
+            BestScore: await visible.Where(p => !p.ScorePrivate || p.UserId == viewerId).MaxAsync(p => (int?)p.Score, ct),
             Streak: user.StreakCount,
             CreatedAt: DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc),
             Viewer: new ViewerProfileDto(

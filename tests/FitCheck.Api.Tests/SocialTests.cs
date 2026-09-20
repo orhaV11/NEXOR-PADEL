@@ -546,6 +546,14 @@ public class ScorePrivacyTests : IClassFixture<ScorePrivacyTests.PrivacyApp>
         Assert.Equal(7, own.GetProperty("breakdown").GetProperty("fit").GetInt32());
         Assert.True(own.GetProperty("scorePrivate").GetBoolean());
 
+        // The profile's "best" is the number itself, not a tally about it: a private grade does not publish one there,
+        // while the fires it received still count, and the author still reads their own best.
+        var publicProfile = await Json(await anonymous.GetAsync("/api/users/gr_author"));
+        Assert.True(IsNull(publicProfile, "bestScore"), "the profile published the number the card hides");
+        Assert.Equal(1, publicProfile.GetProperty("fireReceived").GetInt32());
+        Assert.Equal(1, publicProfile.GetProperty("posts").GetInt32());
+        Assert.Equal(7, (await Json(await author.GetAsync("/api/users/gr_author"))).GetProperty("bestScore").GetInt32());
+
         // The public page and the public profile grid say the same as the app: the look, and no number.
         var page = await anonymous.GetStringAsync($"/look/{postId}");
         Assert.DoesNotContain("score-ring", page, StringComparison.Ordinal);
@@ -559,6 +567,7 @@ public class ScorePrivacyTests : IClassFixture<ScorePrivacyTests.PrivacyApp>
         Assert.False(restored.GetProperty("scorePrivate").GetBoolean());
         Assert.Equal(before, await SweepAsync(reader, numberExpected: true));
         Assert.Contains("7 out of 10", await anonymous.GetStringAsync($"/look/{postId}"), StringComparison.Ordinal);
+        Assert.Equal(7, (await Json(await anonymous.GetAsync("/api/users/gr_author"))).GetProperty("bestScore").GetInt32());
     }
 
     [Fact]

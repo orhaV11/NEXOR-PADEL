@@ -916,5 +916,6 @@
   "challenge.rule_same_piece": "The same piece in three looks",
   "challenge.rule_two_colours": "Two colours only",
   "challenge.rule_not_worn": "Something you have not worn in a month",
-  "challenge.dash_constraint": "Challenges with a rule"
+  "challenge.dash_constraint": "Challenges with a rule",
+  "share.before_after_video_hint": "Ten seconds, vertical, silent: the two looks and the one change. Share it to TikTok or Instagram, or save it to your phone."
 }

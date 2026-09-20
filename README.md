@@ -925,3 +925,58 @@ back, the numbers page's invite block), `DigestTests` (the Sunday send and what 
 account with nothing to say, the signed unsubscribe, a forged and a swapped token, a configured secret, the welcome
 once, an unconfirmed address, no public origin, mail off) and `FunnelTests` (what the middleware counts and what it
 leaves alone, the fourteen days, today's conversion, the moderator gate, a claimed guest check).
+
+## Round 14 — a community that says more than "fire"
+
+Four things, in the order they matter. Everything else on this page still holds; these add to it.
+
+**Post the look, keep the grade.** Posting used to put the number into public with the photo, and there was no way to
+have one without the other. Now the author chooses — in the post sheet, and afterwards from their own look — and the
+choice is one column, `Posts.ScorePrivate`. A private grade hides the score, the three sub-scores and the intent match
+from everyone but the author and a moderator; the look, the caption, the pieces, the fires and the comments work
+exactly as before, and the card shows no number rather than a blank where one was.
+
+The question is asked in one place, `Services/PostReader.cs`, which every route that returns a look already goes
+through, so the answer cannot drift between the feed, a profile, a tag page, Explore, the searches, the saved list, a
+challenge board, the weekly board, the look itself, or the public `/look/{id}` page and its unfurl (`Endpoints/
+PublicPageEndpoints.cs` answers the same way, ring and all). `PostDto.Score`, `IntentMatch` and `Breakdown` are simply
+absent when the reader may not read them, and `BeforeDto.Score` follows the earlier look's own choice.
+
+The tallies and the boards keep the rule blocks set in Round 11: **hide the row, never move the number**. A look whose
+grade is private keeps its fires and its place on the looks, people, rising and intent boards, which rank by fires; only
+its card's number goes. The stylist's picks board is the exception, and it is one on purpose: it ranks *by* the number,
+so a row on it says, through the rows above and below, roughly what the card refuses to say. A private look is
+therefore not on the picks board at all — live, from the archive, or in the hall of winners — the same way a look a
+moderator excluded is not, and nothing else moves but the ranks closing over the gap. Showing the grade again puts it
+back: the archive row was hidden, never rewritten.
+
+**The comment box has a direction.** The flame stays as it is: it is appreciation and it is the brand. Under the box
+there are now three openers a tap fills in — "the piece doing the most work here is…", "I would try swapping…",
+"where is the … from?" — in all four languages. They are starting points a person edits, they post nothing by
+themselves, and they are quiet enough to ignore. One tally counts comments begun from any of them; which one was
+tapped is not counted and nothing about it is stored on the comment.
+
+**Before and after, one change.** A look that names an earlier one ("after the tip") can be shared as a pair: a story
+card and a ten-second film, both drawn on the phone like the ones that were already there, showing the two looks, what
+changed (the person's own words — never the tip) and, if the person wants them, the two verdicts. The version with no
+numbers at all is always offered and is the one a private grade opens on. Two tallies say which version people use.
+
+**Challenges that state a rule.** A challenge may now carry one sentence of constraint ("the same piece in three
+looks", "two colours only", "something you have not worn in a month"), shown plainly on its card and its page. Entry is
+the same hashtag as ever and **nothing enforces the rule**: a person's word is enough and the community sees the looks.
+
+| Route | What it is |
+|---|---|
+| `PATCH /api/posts/{id}/score-privacy` | `{ scorePrivate }` → the look's grade goes private or public. The author's own look only (404 otherwise) |
+| `POST /api/posts/{id}/shared-after` | `{ withScores }` → one tally for a before/after card or film that was shared or saved. Author only |
+| `POST /api/posts` | Also takes `scorePrivate` (default false, which is what posting always did) |
+| `POST /api/posts/{id}/comments` | Also takes `opener` (`piece` \| `swap` \| `where`), counted once for all three and stored nowhere |
+| `POST /api/challenges` | Also takes `constraint`, ≤ 140 characters, null for the open hashtag challenge |
+
+The numbers page gains five: looks with a private grade, comments begun from an opener, before/after shares with the
+scores and without them, and challenges that state a rule.
+
+Tests: `ScorePrivacyTests` (the sweep over every route that returns a look, the author and the moderator, the posting
+choice, the stranger's 404, the before/after tally, the openers, the four locale files), `ScorePrivacyBoardTests` (the
+fires boards keep the place, the picks board does not carry it, live and archived and in the hall) and
+`ChallengeTests.A_constraint_challenge_is_opened_entered_and_ended_like_any_other`.

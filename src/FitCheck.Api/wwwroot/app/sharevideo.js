@@ -623,7 +623,8 @@ export async function openShareVideo(look, opts) {
       finally { state.sharing = false; }
     } }, [icon('share'), t('video.share')]) : null;
     const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name, onclick: () => { count(); if (!isIos()) toast(t('video.saved')); } }, [icon('clip'), t('video.save')]);
-    const hints = [t('video.hint')];
+    // Round 14: the pair's film is not the single look's, so it says what it actually is (opts.hint).
+    const hints = [opts.hint || t('video.hint')];
     if (result.ext === 'webm') hints.push(t('video.webm_hint'));
     if (isIos() && share) hints.push(t('video.ios_hint'));
     content.replaceChildren(
@@ -955,6 +956,7 @@ export function openBeforeAfterShare(post) {
           const made = withPair();
           openShareVideo(made, {
             title: t('share.before_after_title'),
+            hint: t('share.before_after_video_hint'),
             render: (look, o) => renderBeforeAfterVideo(look, o),
             fallback: () => openShareCard(made, { title: t('share.before_after_title'), render: (look) => renderBeforeAfterCard(look), onKept: count }),
             onKept: count

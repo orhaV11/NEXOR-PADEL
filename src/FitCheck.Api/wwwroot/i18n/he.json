@@ -916,5 +916,6 @@
   "challenge.rule_same_piece": "אותו פריט בשלושה לוקים",
   "challenge.rule_two_colours": "שני צבעים בלבד",
   "challenge.rule_not_worn": "משהו שלא לבשתם חודש",
-  "challenge.dash_constraint": "אתגרים עם כלל"
+  "challenge.dash_constraint": "אתגרים עם כלל",
+  "share.before_after_video_hint": "עשר שניות, אנכי, בלי קול: שני הלוקים והשינוי האחד. לשתף לטיקטוק או לאינסטגרם, או לשמור לטלפון."
 }

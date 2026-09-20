@@ -2031,3 +2031,61 @@ stay where they are.
 
 **תמונה בלי לוק לא עולה לאף אחד בדיקה.** שלוש פעמים ביום לאדם ה"אין כאן לוק" של הסטייליסט לא נספר; אחרי זה הוא נספר.
 חשבון Anthropic סופר כל אחת מהן, ולכן בלם האורחים והתקרה הגלובלית נשארים במקומם.
+
+## Round 13 — Money: the spend meter, the daily ceiling and the alerts (appended; the lead folds it into 4 and the Hebrew half)
+
+**Set the ceiling before you tell anyone the link.** One line: `Limits__SpendPerDayUsd=5`. That is the most a day of
+stylist calls can cost you, estimated. When it is reached, everyone who tries to check gets *The stylist is resting
+until tomorrow. Your look is not spent.* — and it really is not spent: no allowance, no guest look, nothing stored. It
+opens again at midnight UTC. Leave it at `0` and there is no ceiling; `--doctor` will say so every time you run it.
+
+**Check your prices once, now.** `Anthropic__PriceInPerMillion` and `Anthropic__PriceOutPerMillion` are what the
+ceiling and the money tiles are computed from. The defaults are the list prices for the model the app ships with. If
+you changed `Anthropic__Model`, or you have an agreement, put your numbers in — everything money-shaped in the app is
+built on those two. Run `dotnet FitCheck.Api.dll --doctor` and read the `spend` line back to yourself.
+
+**Set somewhere for the app to shout.** `Alerts__Webhook` (a Slack or Discord incoming webhook) or `Alerts__Email`
+(one address). Then you hear, before a user tells you: the app started, readiness broke and came back, the spend
+ceiling was reached, the model is failing repeatedly, the disk is filling, a backup failed, someone charged back. At
+most one of each per hour, so it will not wake you up in a loop. Prove it: `--doctor --live` sends one test alert now.
+**Treat the webhook URL like a password.**
+
+**4.x, the money block.** `#/admin/metrics` → *Model spend*: today's estimate in dollars, the calls and tokens behind
+it, the ceiling, and the last 14 days as bars. This is an estimate at the prices you set, not Anthropic's invoice —
+reconcile with the console once a month. A day that costs much more than its number of checks means retries; the
+`model.failing` alert should have reached you first.
+
+**Before the first real payment.** Turn Stripe's own receipt emails on (Dashboard → Settings → Customer emails →
+Successful payments and Refunds; test and live are separate switches) — the app sends none. Add `charge.refunded` and
+`charge.dispute.created` to your webhook's events: the app now ends Pro and alerts you on both, but only if Stripe
+sends them, and `--stripe-check` does not check for them yet. And on VAT and invoicing in Israel: Stripe can calculate
+tax and produce documents, but it does not register you, decide whether you owe Israeli VAT, issue a חשבונית מס or
+קבלה, or file anything. **Ask an accountant before the first live shekel** — do not take our word for any of it.
+
+---
+
+## סבב 13 — כסף: מד ההוצאה, התקרה היומית וההתראות (נספח; המוביל משלב בסעיף 4 ובחלק העברי)
+
+**קובעים תקרה יומית לפני ששולחים את הקישור למישהו.** שורה אחת: `Limits__SpendPerDayUsd=5`. זה המקסימום, בהערכה, שיום
+של קריאות לסטייליסט יכול לעלות. כשמגיעים אליו, כל מי שמנסה לבדוק מקבל *הסטייליסט נח עד מחר. הלוק שלך לא נוצל.* — ובאמת
+לא נוצל: לא המכסה, לא הלוק החינמי של אורח, ושום דבר לא נשמר. זה נפתח שוב בחצות UTC. `0` (ברירת המחדל) פירושו בלי תקרה
+בכלל, ו-`--doctor` יגיד את זה בכל הרצה.
+
+**בודקים את המחירים פעם אחת, עכשיו.** `Anthropic__PriceInPerMillion` ו-`Anthropic__PriceOutPerMillion` הם מה שהתקרה
+והאריחים הכספיים מחושבים ממנו. ברירות המחדל הן מחירי המחירון של המודל שהאפליקציה יוצאת איתו. אם שיניתם את
+`Anthropic__Model`, או שיש לכם הסכם — מכניסים את המספרים שלכם. `--doctor` מדפיס את שניהם בשורת `spend`.
+
+**קובעים לאן האפליקציה צועקת.** `Alerts__Webhook` (Webhook נכנס של Slack או Discord) או `Alerts__Email` (כתובת אחת).
+אז שומעים, לפני שמשתמש מספר: האפליקציה עלתה, המוכנות נפלה וחזרה, התקרה נגמרה, המודל נכשל שוב ושוב, הדיסק מתמלא, גיבוי
+נכשל, מישהו עשה ביטול חיוב. לכל היותר אחת מכל סוג בשעה. מוכיחים את זה: `--doctor --live` שולח התראת בדיקה עכשיו.
+**מתייחסים לכתובת ה-Webhook כמו לסיסמה.**
+
+**4.x, בלוק הכסף.** ב-`#/admin/metrics` יש *עלות המודל*: ההערכה להיום בדולרים, הקריאות והטוקנים שמאחוריה, התקרה,
+ו-14 הימים האחרונים כעמודות. זו הערכה לפי המחירים שהגדרתם, לא החשבונית של Anthropic — משווים מול הקונסולה פעם בחודש.
+
+**לפני התשלום האמיתי הראשון.** מפעילים ב-Stripe את מיילי הקבלות שלו (Dashboard → Settings → Customer emails; מצב
+בדיקה ומצב חי הם מתגים נפרדים) — האפליקציה לא שולחת קבלות. מוסיפים ל-Webhook את האירועים `charge.refunded` ו-
+`charge.dispute.created`: האפליקציה מסירה Pro ומתריעה על שניהם, אבל רק אם Stripe שולח אותם, ו-`--stripe-check` עדיין
+לא בודק אותם. ולגבי מע"מ וחשבוניות בישראל: Stripe יודע לחשב מס ולהפיק מסמכים, אבל הוא לא רושם אתכם, לא מחליט אם אתם
+חייבים במע"מ ישראלי, לא מוציא חשבונית מס או קבלה, ולא מגיש כלום. **שואלים רואה חשבון לפני השקל החי הראשון** — ולא
+סומכים על מה שכתוב כאן.

@@ -958,6 +958,9 @@ it.
 | `POST /api/checks/{id}/tried/prefer` | `{ prefer: "before" \| "after" }` | `200` the pair. 400 `error.prefer_invalid`; the check's 404 when the pair is not theirs. Changes no score, ever |
 | `GET /api/users/me/tried` | — | `{ items: TriedPairDto[] }`, the caller's own pairs, newest first, at most 20 |
 
+Every write above, and the two taste writes below, share the Round 13 `useful` rate-limit policy: 60 an hour per account
+or address across all of them together (429 `error.too_fast`). The two reads are not limited.
+
 `TriedPairDto` is `{ id, before, after, changed[], preferred, preferredAt, createdAt }`; each side is
 `{ id, intent, createdAt, score, intentMatch, headline, oneTip, reason, postId }`, and `changed[]` is
 `{ category, from, to }` per item category, computed here from the two stored verdicts — no model call, no opinion, and

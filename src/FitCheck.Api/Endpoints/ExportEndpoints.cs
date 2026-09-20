@@ -105,19 +105,21 @@ public static class ExportEndpoints
         var checkRows = await db.Checks.AsNoTracking()
             .Where(c => c.UserId == id)
             .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Score, c.Status, c.FeedbackJson, c.Useful, c.UsefulAt, c.UsefulNote })
+            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Style, c.Note, c.Score, c.Status, c.FeedbackJson, c.Useful, c.UsefulAt, c.UsefulNote })
             .ToListAsync(ct);
         var checks = checkRows.Select(c =>
         {
             var feedback = c.FeedbackJson is null ? null : JsonSerializer.Deserialize<OutfitFeedback>(c.FeedbackJson, AppJson.Options);
             return new ExportCheckDto(
-                c.Id, Utc(c.CreatedAt), c.Intent, c.Occasion, c.Score,
+                c.Id, Utc(c.CreatedAt), c.Intent, c.Note, c.Score,
                 NullIfBlank(feedback?.Headline), NullIfBlank(feedback?.OneTip),
                 feedback?.Breakdown is { } b ? new BreakdownDto(b.Fit, b.Color, b.Accessories) : null,
                 feedback?.Items.Select(i => new ExportItemDto(i.Name, i.Category)).ToList() ?? [],
                 c.Status,
                 // Round 13: what the person said about the tip; their words, so they travel with the check.
-                c.Useful, c.UsefulAt is { } usefulAt ? Utc(usefulAt) : null, c.UsefulNote);
+                c.Useful, c.UsefulAt is { } usefulAt ? Utc(usefulAt) : null, c.UsefulNote,
+                // Round 14: the pair behind the one word, and whether the tip was a change or a keep.
+                c.Occasion, c.Style, feedback is null || feedback.Status != CheckStatus.Ok ? null : feedback.TipKind);
         }).ToList();
 
         var postRows = await db.Posts.AsNoTracking()

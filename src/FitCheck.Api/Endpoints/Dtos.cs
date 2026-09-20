@@ -82,7 +82,8 @@ public sealed record FollowStateDto(int Followers, bool Following);
 public sealed record CheckDto(
     Guid Id,
     StyleIntent Intent,
-    string? Occasion,
+    // Round 14: the wearer's free line. It was called "occasion" until the occasion became a chip of its own.
+    string? Note,
     string Language,
     DateTime CreatedAt,
     int LatencyMs,
@@ -96,7 +97,11 @@ public sealed record CheckDto(
     bool? Useful = null,
     DateTime? UsefulAt = null,
     string? UsefulNote = null,
-    bool? Counted = null)
+    bool? Counted = null,
+    // Round 14 - the occasion split: where the outfit was going, and the style it was asked to read as (absent when the
+    // person asked for none, which is a first-class answer).
+    OutfitOccasion? Occasion = null,
+    OutfitStyle? Style = null)
 {
     /// <summary>
     /// Rejected rows store nothing but the status; the neutral message is added here, in the check's language. The feedback
@@ -125,7 +130,7 @@ public sealed record CheckDto(
         return new CheckDto(
             check.Id,
             check.Intent,
-            check.Occasion,
+            check.Note,
             check.Language,
             DateTime.SpecifyKind(check.CreatedAt, DateTimeKind.Utc),
             check.LatencyMs,
@@ -135,7 +140,9 @@ public sealed record CheckDto(
             postId,
             check.Useful,
             check.UsefulAt is { } at ? DateTime.SpecifyKind(at, DateTimeKind.Utc) : null,
-            check.UsefulNote);
+            check.UsefulNote,
+            Occasion: check.Occasion,
+            Style: check.Style);
     }
 }
 
@@ -363,9 +370,11 @@ public sealed record ExportDto(
 public sealed record ExportAccountDto(string Handle, string Name, string AccountType, string Language, string? Email, DateTime CreatedAt, string Plan, DateTime? ProUntil);
 
 /// <summary>One check. Headline, Tip, Breakdown and Items come from the stored feedback (null or empty when the check was not ok).</summary>
-public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Occasion, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status,
+public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Note, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status,
     // Round 13: what the person said about the tip, when, and their note; null when they never said.
-    bool? Useful = null, DateTime? UsefulAt = null, string? UsefulNote = null);
+    bool? Useful = null, DateTime? UsefulAt = null, string? UsefulNote = null,
+    // Round 14 - the occasion split: the pair behind Intent, and which kind of tip it was ("change" or "keep").
+    OutfitOccasion? Occasion = null, OutfitStyle? Style = null, string? TipKind = null);
 
 /// <summary>A piece: the stylist's name and category on a check; on a look, the row as the person tagged it.</summary>
 public sealed record ExportItemDto(string Name, string Category, string? Brand = null, string? Model = null, string? Url = null);

@@ -20,6 +20,14 @@ public sealed class OutfitFeedback
     public List<string> Working { get; set; } = [];
     public string OneTip { get; set; } = "";
 
+    /// <summary>
+    /// Round 14: which kind of tip this is — <see cref="TipKinds.Change"/> (swap, add, remove, adjust) or
+    /// <see cref="TipKinds.Keep"/> ("this works, change nothing", and the tip names what to keep and why). A stylist that
+    /// can only find fault is one nobody believes twice. Every check made before Round 14 reads as a change, which is
+    /// what every one of them was.
+    /// </summary>
+    public string TipKind { get; set; } = TipKinds.Change;
+
     /// <summary>Three sub-scores behind the overall score (rubric v2). Null for checks made before it existed.</summary>
     public ScoreBreakdown? Breakdown { get; set; }
 
@@ -94,4 +102,18 @@ public sealed class ComparisonFeedback
 
     /// <summary>Only when status is not ok.</summary>
     public string? Message { get; set; }
+}
+
+/// <summary>The two kinds of one tip (Round 14). A keep is rare on purpose: a keep on a mediocre look is the same
+/// dishonesty as inventing a fault on a good one, facing the other way.</summary>
+public static class TipKinds
+{
+    public const string Change = "change";
+    public const string Keep = "keep";
+
+    public static readonly string[] All = [Change, Keep];
+
+    /// <summary>The model's word, normalised. Anything unrecognised is a change: a keep is never assumed.</summary>
+    public static string Normalize(string? kind) =>
+        Keep.Equals((kind ?? "").Trim(), StringComparison.OrdinalIgnoreCase) ? Keep : Change;
 }

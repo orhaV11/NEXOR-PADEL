@@ -59,7 +59,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             check.HasKey(c => c.Id);
             // Stored as text so the rows stay readable in any SQLite browser.
             check.Property(c => c.Intent).HasConversion<string>().HasMaxLength(32);
-            check.Property(c => c.Occasion).HasMaxLength(120);
             check.Property(c => c.Language).HasMaxLength(16).IsRequired();
             check.Property(c => c.ImagePath).HasMaxLength(260).IsRequired();
             check.Property(c => c.VideoPath).HasMaxLength(260);
@@ -289,6 +288,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             saved.HasKey(s => new { s.UserId, s.PostId });
             saved.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
             saved.HasOne<Post>().WithMany().HasForeignKey(s => s.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Round 14 — the occasion split (the stylist). A check carries the pair the person chose: where it is going, and
+        // the style they want it to read as (null when they asked for none). Both are text, like Intent above, so the rows
+        // stay readable in any SQLite browser. Note is the free line that used to be called Occasion.
+        modelBuilder.Entity<OutfitCheck>(check =>
+        {
+            check.Property(c => c.Occasion).HasConversion<string>().HasMaxLength(32);
+            check.Property(c => c.Style).HasConversion<string>().HasMaxLength(32);
+            check.Property(c => c.Note).HasMaxLength(120);
         });
     }
 }

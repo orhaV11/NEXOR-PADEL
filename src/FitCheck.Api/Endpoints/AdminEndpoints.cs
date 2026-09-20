@@ -129,7 +129,9 @@ public static class AdminEndpoints
         var authorIds = posts.Select(p => p.UserId).Concat(comments.Select(c => c.UserId)).Distinct().ToList();
         var authors = await reader.RefsAsync(authorIds, ct);
         var suspended = (await db.Users.Where(u => authorIds.Contains(u.Id) && u.Suspended).Select(u => u.Id).ToListAsync(ct)).ToHashSet();
-        var postDtos = (await reader.ToDtosAsync(posts, admin.Id, ct)).ToDictionary(p => p.Id);
+        // Round 14 — post the look, keep the grade: the queue is the one place a look's number is read by someone who is
+        // not its author. A moderator judges what was reported, and a look whose grade is private is still judged whole.
+        var postDtos = (await reader.ToDtosAsync(posts, admin.Id, ct, viewerIsModerator: true)).ToDictionary(p => p.Id);
 
         List<string> Reasons(Guid target) => byTarget.TryGetValue(target, out var rows)
             ? rows.Select(r => r.Reason.Trim()).Where(r => r.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxReasons).ToList()

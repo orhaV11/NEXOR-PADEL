@@ -338,7 +338,7 @@ public sealed class Board
 
     private sealed record FireRow(Guid PostId, Guid FirerId, Guid AuthorId, DateTime CreatedAt);
 
-    private sealed record PostRow(Guid Id, Guid UserId, StyleIntent Intent, int Score, DateTime CreatedAt);
+    private sealed record PostRow(Guid Id, Guid UserId, StyleIntent Intent, int Score, DateTime CreatedAt, bool ScorePrivate = false);
 
     /// <summary>The week from its fires and looks, the rules applied. Never cached here; <see cref="ReadAsync"/> is the cached door.</summary>
     public async Task<BoardResult> ComputeAsync(AppDbContext db, BoardWeek week, CancellationToken ct)
@@ -360,7 +360,7 @@ public sealed class Board
         var firedIds = fires.Select(f => f.PostId).Distinct().ToList();
         var posts = await db.Posts
             .Where(p => !p.Hidden && (firedIds.Contains(p.Id) || (p.CreatedAt >= start && p.CreatedAt < end)))
-            .Select(p => new PostRow(p.Id, p.UserId, p.Intent, p.Score, p.CreatedAt))
+            .Select(p => new PostRow(p.Id, p.UserId, p.Intent, p.Score, p.CreatedAt, p.ScorePrivate))
             .ToListAsync(ct);
         posts.RemoveAll(p => excluded.Contains(p.Id));
         var postsById = posts.ToDictionary(p => p.Id);
@@ -436,8 +436,13 @@ public sealed class Board
         var intents = fired.GroupBy(p => p.Intent).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => RankLooks(g));
 
         // Picks: the looks posted this week by the stylist's score, counted fires then age on a tie. Not gameable: a fire moves nothing past a score.
+        // Round 14 — post the look, keep the grade: a look whose author kept the number to themselves is not on this
+        // board. Every other board ranks by fires, so there the look keeps its place and only its card's number goes;
+        // this one is an ordering BY the number, and a row in it would say, through the rows above and below, what the
+        // card refuses to say. The look is simply left out, like a moderator's exclusion: nothing else moves but the
+        // ranks that close over the gap, and no one can tell a private grade from a look that was never posted.
         var picks = posts
-            .Where(p => p.CreatedAt >= start && p.CreatedAt < end)
+            .Where(p => p.CreatedAt >= start && p.CreatedAt < end && !p.ScorePrivate)
             .OrderByDescending(p => p.Score).ThenByDescending(p => firesByPost.GetValueOrDefault(p.Id)).ThenBy(p => p.CreatedAt).ThenBy(p => p.Id)
             .Take(size)
             .Select((p, index) => new BoardEntry(index + 1, p.UserId, p.Id, firesByPost.GetValueOrDefault(p.Id), Score: p.Score))
@@ -461,6 +466,15 @@ public sealed class Board
         var posts = postIds.Count == 0 ? new List<Post>() : await db.Posts.Where(p => postIds.Contains(p.Id) && !p.Hidden).ToListAsync(ct);
         var postDtos = (await reader.ToDtosAsync(posts, viewerId, ct)).ToDictionary(p => p.Id);
         var users = await reader.RefsAsync(entries.Select(e => e.Entry.UserId), ct);
+
+        // Round 14 — post the look, keep the grade: the picks board is an ordering by the number, so a look whose grade
+        // is private is not on it. ComputeAsync already leaves it out of a running week; this is the archive, where the
+        // place was written before the author changed their mind. The row goes for everyone, the author included, so
+        // the board reads the same to whoever opens it; every other board keeps its rows and its numbers untouched.
+        var privateScored = posts.Where(p => p.ScorePrivate).Select(p => p.Id).ToHashSet();
+        var picks = privateScored.Count == 0
+            ? result.Picks
+            : result.Picks.Where(e => e.PostId is not Guid pickId || !privateScored.Contains(pickId)).ToList();
 
         // The people board says how many looks each person posted that week; the archive does not keep it, so it is counted now.
         var peopleIds = result.People.Select(e => e.UserId).Distinct().ToList();
@@ -487,7 +501,7 @@ public sealed class Board
         {
             var mine = new BoardMeDto(
                 BestRank(result.Looks, viewer), BestRank(result.People, viewer), BestRank(result.Rising, viewer),
-                BestRank(result.Intents.Values.SelectMany(v => v), viewer), BestRank(result.Picks, viewer));
+                BestRank(result.Intents.Values.SelectMany(v => v), viewer), BestRank(picks, viewer));
             me = mine.Looks is null && mine.People is null && mine.Rising is null && mine.Intent is null && mine.Picks is null ? null : mine;
         }
 
@@ -499,7 +513,7 @@ public sealed class Board
             week.Start, week.End, result.Closed ? 0 : ClosesIn(week), result.Closed,
             Rows(result.Looks), Rows(result.People, people: true), Rows(result.Rising),
             result.Intents.OrderBy(pair => pair.Key).ToDictionary(pair => pair.Key.ToString(), pair => Rows(pair.Value)),
-            Rows(result.Picks, picks: true),
+            Rows(picks, picks: true),
             sponsor, me);
     }
 

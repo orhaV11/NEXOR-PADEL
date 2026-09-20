@@ -76,7 +76,15 @@ public static class MetricsEndpoints
             ItemOuts: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.ItemOuts, ct)),
             BoardViews: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BoardViews, ct)),
             // Share videos are rendered and encoded on the phone; the server only hears that one was shared or saved.
-            VideosMade: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.VideosMade, ct)));
+            VideosMade: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.VideosMade, ct)),
+            // ---- Round 14 — the community round: whether any of it changed anything ----
+            // Looks posted with the grade kept private; comments begun from an opener (one tally for all three);
+            // before/after shares with the two verdicts and with no numbers at all; challenges that state a rule.
+            PrivateScores: await db.Posts.CountAsync(p => !p.Hidden && p.ScorePrivate, ct),
+            CommentOpeners: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.CommentOpeners, ct)),
+            BeforeAfterShares: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BeforeAfterShares, ct)),
+            BeforeAfterSharesPlain: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.BeforeAfterSharesPlain, ct)),
+            ConstraintChallenges: await db.Challenges.CountAsync(c => c.Constraint != null, ct));
 
         // Round 13: the verdict's own verdict (FeedbackEndpoints): did the tip land, overall, by intent and by language.
         var stylist = await FeedbackEndpoints.StylistMetricsAsync(db, ct);

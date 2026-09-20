@@ -7,6 +7,9 @@ namespace FitCheck.Api.Endpoints;
 
 public static class ChallengeEndpoints
 {
+    /// <summary>Round 14: how long a constraint challenge's rule may be. A caption's length: it is one sentence, not a brief.</summary>
+    public const int ConstraintMaxLength = 140;
+
     private static readonly TimeSpan MinDuration = TimeSpan.FromHours(1);
     private static readonly TimeSpan MaxDuration = TimeSpan.FromDays(60);
 
@@ -98,7 +101,9 @@ public static class ChallengeEndpoints
                 HasEntered: myEntry is not null,
                 VotedPostId: loaded.ViewerVotes.TryGetValue(challenge.Id, out var voted) ? voted : null,
                 MyEntryId: myEntry?.Id),
-            DateTime.SpecifyKind(challenge.CreatedAt, DateTimeKind.Utc));
+            DateTime.SpecifyKind(challenge.CreatedAt, DateTimeKind.Utc),
+            // Round 14 — constraint challenges: the rule, in the brand's words, or null for an open hashtag challenge.
+            challenge.Constraint);
     }
 
     /// <summary>
@@ -178,11 +183,21 @@ public static class ChallengeEndpoints
         var brief = OutfitAnalyzer.SanitizeText(body.Brief, multiline: true);
         var prize = OutfitAnalyzer.SanitizeOccasion(body.Prize);
         var prizeUrl = string.IsNullOrWhiteSpace(body.PrizeUrl) ? null : body.PrizeUrl.Trim();
+        // Round 14 — constraint challenges: "the same piece in three looks", "two colours only", "something you have
+        // not worn in a month". The rule is a sentence, sanitised like the brief and never longer than a caption; a
+        // challenge without one is the open hashtag challenge every challenge was until now. Nothing enforces it and
+        // nothing checks an entry against it: a person's word is enough, and the community sees the looks.
+        var constraint = OutfitAnalyzer.SanitizeOccasion(body.Constraint);
+        if (constraint.Length == 0)
+        {
+            constraint = null;
+        }
         // A timestamp without an offset is taken as UTC rather than the server's local zone.
         var endsAt = body.EndsAt is { } raw ? (raw.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(raw, DateTimeKind.Utc) : raw.ToUniversalTime()) : (DateTime?)null;
         var intentKnown = Enum.TryParse<StyleIntent>(body.Intent, ignoreCase: true, out var intent) && Enum.IsDefined(intent);
         var valid = title.Length is > 0 and <= 80
                     && brief.Length is > 0 and <= 500
+                    && constraint is not { Length: > ConstraintMaxLength }
                     && prize.Length is > 0 and <= 200
                     && (prizeUrl is null || UserEndpoints.IsHttpsUrl(prizeUrl, 500))
                     && intentKnown
@@ -216,6 +231,7 @@ public static class ChallengeEndpoints
             Tag = tag,
             Prize = prize,
             PrizeUrl = prizeUrl,
+            Constraint = constraint,
             EndsAt = endsAt!.Value,
             CreatedAt = now
         };

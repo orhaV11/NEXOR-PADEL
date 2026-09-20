@@ -295,4 +295,85 @@ public class ChallengeTests : IClassFixture<TestApp>
         var post = await a.GetFromJsonAsync<JsonElement>($"/api/posts/{entry}");
         Assert.True(IsNull(post, "challengeId"));
     }
+
+    /// <summary>
+    /// Round 14 — constraint challenges. Today's challenges are open hashtags; this one states a rule ("two colours
+    /// only") and is otherwise the same thing end to end: the brand opens it, the hashtag enters a look, the crowd
+    /// votes, the deadline fixes the winner. Nothing enforces the rule — a person's word is enough and the community
+    /// sees the looks — so there is nothing here about checking an entry against it, by design.
+    /// </summary>
+    [Fact]
+    public async Task A_constraint_challenge_is_opened_entered_and_ended_like_any_other()
+    {
+        var (brand, _, _) = await _app.NewUserAsync("ch_brand9", accountType: "Brand");
+        var (entrant, _, _) = await _app.NewUserAsync("ch_entrant9");
+        var (voter, _, _) = await _app.NewUserAsync("ch_voter9");
+
+        var created = await Json(await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title = "Two colours", brief = "Keep the palette to two.", intent = "Minimal", prize = "A scarf",
+            constraint = "  Two colours only  ", endsAt = DateTime.UtcNow.AddDays(3)
+        }));
+        var challengeId = created.GetProperty("id").GetGuid();
+        Assert.Equal("Two colours only", created.GetProperty("constraint").GetString());
+        Assert.Equal("twocolours", created.GetProperty("tag").GetString());
+
+        // A challenge without one is what every challenge was until now: no rule at all, not an empty one.
+        var open = await Json(await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title = "Open week", brief = "Anything goes.", intent = "Casual", prize = "Socks", constraint = "   ",
+            endsAt = DateTime.UtcNow.AddDays(3)
+        }));
+        Assert.True(IsNull(open, "constraint"));
+
+        // Too long is refused like any other field, and nothing is opened.
+        var tooLong = await brand.PostAsJsonAsync("/api/challenges", new
+        {
+            title = "Long rule", brief = "B", intent = "Casual", prize = "P", constraint = new string('r', 141),
+            endsAt = DateTime.UtcNow.AddDays(3)
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+
+        // Entry is the same hashtag mechanism, and a look that breaks the rule enters just the same: nobody checks.
+        var entry = await _app.PostAsync(entrant, await _app.CheckAsync(entrant, intent: "Party"), caption: "all five colours #twocolours");
+        var entryId = entry.GetProperty("id").GetGuid();
+        Assert.Equal(challengeId, entry.GetProperty("challengeId").GetGuid());
+
+        var detail = await voter.GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.Equal("Two colours only", detail.GetProperty("challenge").GetProperty("constraint").GetString());
+        Assert.Equal(1, detail.GetProperty("challenge").GetProperty("entries").GetInt32());
+        Assert.Equal(entryId, detail.GetProperty("entriesByVotes")[0].GetProperty("id").GetGuid());
+
+        // The rule travels with the card wherever a challenge is listed.
+        var list = await voter.GetFromJsonAsync<JsonElement>("/api/challenges");
+        Assert.Equal("Two colours only", list.EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == challengeId).GetProperty("constraint").GetString());
+        var explore = await voter.GetFromJsonAsync<JsonElement>("/api/explore");
+        var onExplore = explore.GetProperty("challenges").EnumerateArray().FirstOrDefault(c => c.GetProperty("id").GetGuid() == challengeId);
+        if (onExplore.ValueKind == JsonValueKind.Object)
+        {
+            Assert.Equal("Two colours only", onExplore.GetProperty("constraint").GetString());
+        }
+
+        await voter.PostAsJsonAsync($"/api/challenges/{challengeId}/vote", new { postId = entryId });
+
+        // And it ends like any other: the deadline fixes the winner on the first read after it.
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Challenges.Where(c => c.Id == challengeId).ExecuteUpdateAsync(s => s.SetProperty(c => c.EndsAt, DateTime.UtcNow.AddHours(-1)));
+        }
+
+        var ended = await _app.NewClient().GetFromJsonAsync<JsonElement>($"/api/challenges/{challengeId}");
+        Assert.False(ended.GetProperty("challenge").GetProperty("isOpen").GetBoolean());
+        Assert.Equal(entryId, ended.GetProperty("challenge").GetProperty("winnerPostId").GetGuid());
+        Assert.Equal("Two colours only", ended.GetProperty("challenge").GetProperty("constraint").GetString());
+        Assert.Contains((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/challenges?state=ended")).EnumerateArray(),
+            c => c.GetProperty("id").GetGuid() == challengeId);
+
+        // The numbers page counts how many challenges state a rule; the open hashtag ones are not among them.
+        var (moderator, _, _) = await _app.NewUserAsync("ch_mod9");
+        Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("ch_mod9"));
+        var social = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("social");
+        Assert.Equal(1, social.GetProperty("constraintChallenges").GetInt32());
+    }
 }

@@ -33,8 +33,18 @@ public sealed class PostReader(AppDbContext db)
             .ToDictionaryAsync(u => u.Id, u => new UserRefDto(u.Handle, NameOf(u.Handle, u.DisplayName), u.AccountType.ToString(), AvatarUrl(u.Handle, u.AvatarPath, u.AvatarVersion), u.Verified), ct);
     }
 
+    /// <summary>
+    /// Round 14 — post the look, keep the grade: whether this viewer may read a look's number. The author always may;
+    /// a moderator may (<paramref name="viewerIsModerator"/>, which only the moderation queue passes); everyone else
+    /// sees no number on a look whose author kept the grade private. It is the only question asked about the flag, so
+    /// every route that returns a look answers it the same way.
+    /// </summary>
+    private static bool MayReadScore(Post post, Guid? viewerId, bool viewerIsModerator) =>
+        !post.ScorePrivate || viewerIsModerator || (viewerId is Guid viewer && viewer == post.UserId);
+
     public async Task<List<PostDto>> ToDtosAsync(
-        IReadOnlyList<Post> posts, Guid? viewerId, CancellationToken ct, IReadOnlyDictionary<Guid, int>? votes = null)
+        IReadOnlyList<Post> posts, Guid? viewerId, CancellationToken ct, IReadOnlyDictionary<Guid, int>? votes = null,
+        bool viewerIsModerator = false)
     {
         if (posts.Count == 0)
         {
@@ -86,8 +96,15 @@ public sealed class PostReader(AppDbContext db)
             ? new Dictionary<Guid, BeforeDto>()
             : await db.Posts
                 .Where(p => beforeIds.Contains(p.Id) && !p.Hidden)
-                .Select(p => new { p.Id, p.Score })
-                .ToDictionaryAsync(p => p.Id, p => new BeforeDto(p.Id, p.Score, $"/api/posts/{p.Id}/image"), ct);
+                .Select(p => new { p.Id, p.Score, p.ScorePrivate, p.UserId })
+                // Round 14: the earlier look's own choice decides its number on the strip; the thumbnail and the link stay.
+                .ToDictionaryAsync(
+                    p => p.Id,
+                    p => new BeforeDto(
+                        p.Id,
+                        !p.ScorePrivate || viewerIsModerator || (viewerId is Guid v && v == p.UserId) ? p.Score : null,
+                        $"/api/posts/{p.Id}/image"),
+                    ct);
 
         // The pieces on each look, in their order (Round 10): every card carries them, so the tag toggle, the item sheet and
         // the item search need no second read. One query over the page.
@@ -99,12 +116,14 @@ public sealed class PostReader(AppDbContext db)
         {
             var user = users.GetValueOrDefault(p.UserId) ?? new UserRefDto("?", "?", AccountType.Person.ToString());
             var pieces = items.GetValueOrDefault(p.Id) ?? [];
+            // Round 14 — post the look, keep the grade: one question, asked once, for the three numbers the verdict is.
+            var score = MayReadScore(p, viewerId, viewerIsModerator);
             return new PostDto(
                 p.Id,
                 user,
                 p.Intent,
-                p.Score,
-                p.IntentMatch,
+                score ? p.Score : null,
+                score ? p.IntentMatch : null,
                 p.Headline,
                 p.Caption,
                 p.ChallengeId,
@@ -124,10 +143,11 @@ public sealed class PostReader(AppDbContext db)
                 p.FeaturedByBrandId is Guid brandId ? users.GetValueOrDefault(brandId) : null,
                 withClip.Contains(p.CheckId) ? $"/api/posts/{p.Id}/video" : null,
                 // The three columns are written together at posting time; a look from before rubric v2 has none.
-                p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null,
+                score && p.FitScore is int fit && p.ColorScore is int color && p.AccessoriesScore is int accessories ? new BreakdownDto(fit, color, accessories) : null,
                 p.BeforePostId is Guid beforeId ? befores.GetValueOrDefault(beforeId) : null,
                 pieces,
-                pieces.Count);
+                pieces.Count,
+                p.ScorePrivate);
         }).ToList();
     }
 

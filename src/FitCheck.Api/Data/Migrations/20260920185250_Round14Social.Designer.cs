@@ -3,6 +3,7 @@ using System;
 using FitCheck.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitCheck.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920185250_Round14Social")]
+    partial class Round14Social
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
@@ -314,45 +317,6 @@ namespace FitCheck.Api.Data.Migrations
                     b.ToTable("ChallengeVotes");
                 });
 
-            modelBuilder.Entity("FitCheck.Api.Domain.CheckLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("AfterCheckId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("BeforeCheckId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Preferred")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("PreferredAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AfterCheckId")
-                        .IsUnique();
-
-                    b.HasIndex("BeforeCheckId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "CreatedAt");
-
-                    b.ToTable("CheckLinks");
-                });
-
             modelBuilder.Entity("FitCheck.Api.Domain.Comment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -518,16 +482,9 @@ namespace FitCheck.Api.Data.Migrations
                     b.Property<int>("LatencyMs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("Occasion");
-
                     b.Property<string>("Occasion")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("OccasionKind");
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PromptVersion")
                         .IsRequired()
@@ -542,10 +499,6 @@ namespace FitCheck.Api.Data.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Style")
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT");
-
                     b.Property<bool?>("Useful")
                         .HasColumnType("INTEGER");
 
@@ -553,10 +506,6 @@ namespace FitCheck.Api.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UsefulNote")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UsefulReason")
-                        .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("UserId")
@@ -962,25 +911,6 @@ namespace FitCheck.Api.Data.Migrations
                     b.ToTable("SavedPosts");
                 });
 
-            modelBuilder.Entity("FitCheck.Api.Domain.TasteSetting", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ClearedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Learning")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("TasteSettings");
-                });
-
             modelBuilder.Entity("FitCheck.Api.Domain.WeeklyWinner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1020,80 +950,6 @@ namespace FitCheck.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("WeeklyWinners");
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeAppearance", b =>
-                {
-                    b.Property<Guid>("ItemId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CheckId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("WornAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ItemId", "CheckId");
-
-                    b.HasIndex("CheckId");
-
-                    b.ToTable("WardrobeAppearances");
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("LastSeenAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NameKey")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "LastSeenAt");
-
-                    b.HasIndex("UserId", "NameKey")
-                        .IsUnique();
-
-                    b.ToTable("WardrobeItems");
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeSetting", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("ToStylist")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("WardrobeSettings");
                 });
 
             modelBuilder.Entity("FitCheck.Api.Domain.AuthToken", b =>
@@ -1154,27 +1010,6 @@ namespace FitCheck.Api.Data.Migrations
                     b.HasOne("FitCheck.Api.Domain.Post", null)
                         .WithMany()
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FitCheck.Api.Domain.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Domain.CheckLink", b =>
-                {
-                    b.HasOne("FitCheck.Api.Domain.OutfitCheck", null)
-                        .WithMany()
-                        .HasForeignKey("AfterCheckId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FitCheck.Api.Domain.OutfitCheck", null)
-                        .WithMany()
-                        .HasForeignKey("BeforeCheckId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1370,15 +1205,6 @@ namespace FitCheck.Api.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("FitCheck.Api.Domain.TasteSetting", b =>
-                {
-                    b.HasOne("FitCheck.Api.Domain.AppUser", null)
-                        .WithOne()
-                        .HasForeignKey("FitCheck.Api.Domain.TasteSetting", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("FitCheck.Api.Domain.WeeklyWinner", b =>
                 {
                     b.HasOne("FitCheck.Api.Domain.Post", null)
@@ -1386,39 +1212,6 @@ namespace FitCheck.Api.Data.Migrations
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("FitCheck.Api.Domain.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeAppearance", b =>
-                {
-                    b.HasOne("FitCheck.Api.Domain.OutfitCheck", null)
-                        .WithMany()
-                        .HasForeignKey("CheckId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FitCheck.Api.Services.WardrobeItem", null)
-                        .WithMany()
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeItem", b =>
-                {
-                    b.HasOne("FitCheck.Api.Domain.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("FitCheck.Api.Services.WardrobeSetting", b =>
-                {
                     b.HasOne("FitCheck.Api.Domain.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")

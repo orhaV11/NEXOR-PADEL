@@ -101,6 +101,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             post.HasOne<AppUser>().WithMany().HasForeignKey(p => p.FeaturedByBrandId).OnDelete(DeleteBehavior.SetNull);
             post.HasIndex(p => p.BeforePostId);
             post.HasOne<Post>().WithMany().HasForeignKey(p => p.BeforePostId).OnDelete(DeleteBehavior.SetNull);
+            // Round 14 — post the look, keep the grade: a plain flag, false for every look posted before it existed.
+            post.Property(p => p.ScorePrivate).HasDefaultValue(false);
         });
 
         modelBuilder.Entity<PostItem>(item =>
@@ -232,6 +234,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             challenge.Property(c => c.PrizeUrl).HasMaxLength(500);
             challenge.HasIndex(c => c.EndsAt);
             challenge.HasOne<AppUser>().WithMany().HasForeignKey(c => c.BrandId).OnDelete(DeleteBehavior.Cascade);
+            // Round 14 — constraint challenges: the rule in the brand's own words; null is the open hashtag challenge.
+            challenge.Property(c => c.Constraint).HasMaxLength(140);
         });
 
         modelBuilder.Entity<ChallengeVote>(vote =>

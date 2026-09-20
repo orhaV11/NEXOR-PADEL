@@ -1769,3 +1769,53 @@ pieces are kept but how far that reason falls, and `MARKETING.md` watches both.
   worth the tokens until the check route proves the tips get better.
 - **`Plans:ProComparesPerDay` is a number an operator sets, not a measured one.** Thirty is a guess with the same
   shape as the check cap. It should move once real Pro accounts exist and the spend meter says what they cost.
+## Round 14 — the community round (post the look, keep the grade; the openers; before and after; the rule)
+
+**A person may want to share the look and keep the grade.** Posting forced the number into public along with the
+photo, which is a strange thing to require of somebody who liked what they wore and is not sure what a stranger will
+make of a 6. The choice is now the author's, at the moment of posting and afterwards, and it is deliberately *only*
+about the number: the look, the caption, the pieces, the fires and the comments are untouched, because what a private
+grade is for is comfort, not hiding.
+
+**The question is asked once.** `PostReader.ToDtosAsync` is the one funnel every route that returns a look already
+goes through, so the rule lives there and cannot drift between fourteen routes. The public page renders its own HTML
+and is the one other place that reads a look's number, so it asks the same question in the same words. A moderator is
+excepted for the same reason they are excepted from a block: they judge what was reported, and a look is judged whole.
+
+**Hide the row, never move the number — except where the row *is* the number.** Blocking set this rule in Round 11:
+a hidden look's fires still count and its place still stands, because a tally that moves says something about who is
+blocked. A private grade follows it on every board that ranks by fires. The picks board ranks *by* the stylist's
+number, and there a row is a public statement about the number: whoever is above and below bounds it. So the look
+leaves that one board, exactly the way a moderator's exclusion takes a look off all of them, and nothing else moves.
+The alternative — a blank row in a score ordering — would have been the leak we set out to close, and the other
+alternative — keeping the number and hiding the card — is not a choice about privacy at all. The archive keeps the row
+it wrote; the hall just does not hand out the place while the grade is private, and gives it back when it is public
+again.
+
+**An opener is not a template.** The pitch begins with a friend who says "fire" without looking, so a product whose
+only reaction is a flame has the same problem it was built to solve. The answer is not to take the flame away — it is
+appreciation, and it is the brand — but to give the box somewhere to start: three openers a tap fills in, which a
+person then edits. Nothing posts itself, nothing is prefilled without a tap, and nothing about which opener was used
+is stored on the comment: the owner gets one tally, enough to see whether the box changed at all, and no more.
+
+**The numbers on a before/after are a choice, not a property.** The whole point of the pair is that somebody tried
+something and can say so. Some will want to show 6 → 8; others want to show the decision and keep the grade. Both are
+built, the version with no numbers is always available, and a look whose grade is private opens on it. What changed is
+the person's own words; the one tip never goes on a card, on the pair's card as on the single one, because it is the
+thing the app is paid for.
+
+**Constraint challenges enforce nothing.** "Two colours only" is a rule a person answers with a look; checking it
+would mean a machine deciding whether a photo has two colours in it, which is a worse product and a worse stylist. The
+rule is one sentence on the card, entry is the same hashtag it always was, and the community sees the looks. This is
+the most speculative thing in the round — it needs a community to mean anything — so it is a mechanism and nothing
+else depends on it.
+
+### Objections to keep out of the code
+
+- A private grade never becomes visible through a tally, a rank, an unfurl, a public page, or an "after the tip" strip.
+- Nothing announces that a grade went private: the card simply carries no number, and the one line a reader sees says
+  whose choice it was, not what the number is.
+- An opener never posts by itself, and no route learns which of the three a person tapped.
+- A before/after share of somebody else's look is not a thing: the pair is the author's two looks, and only the author
+  moves the tally.
+- Nothing checks a look against a challenge's rule, and no route pretends to.

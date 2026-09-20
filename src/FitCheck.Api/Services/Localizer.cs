@@ -165,6 +165,9 @@ public sealed class Localizer
             ["public.look_title"] = "@{0}'s look on OREVOSH",
             ["public.look_description"] = "{0}/10 for {1}. {2}",
             ["public.look_description_short"] = "{0}/10 for {1}.",
+            // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
+            ["public.look_description_private"] = "A look for {0} on OREVOSH. {1}",
+            ["public.look_description_private_short"] = "A look for {0} on OREVOSH.",
             ["public.photo_alt"] = "A look by @{0}, checked on OREVOSH",
             ["public.score_out_of"] = "{0} out of 10",
             ["public.tip"] = "The one tip",
@@ -360,6 +363,9 @@ public sealed class Localizer
             ["public.look_title"] = "הלוק של @{0} ב-OREVOSH",
             ["public.look_description"] = "ציון {0}/10 · {1}. {2}",
             ["public.look_description_short"] = "ציון {0}/10 · {1}.",
+            // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
+            ["public.look_description_private"] = "לוק ל{0} ב-OREVOSH. {1}",
+            ["public.look_description_private_short"] = "לוק ל{0} ב-OREVOSH.",
             ["public.photo_alt"] = "לוק של @{0}, נבדק ב-OREVOSH",
             ["public.score_out_of"] = "{0} מתוך 10",
             ["public.tip"] = "הטיפ האחד",
@@ -557,6 +563,9 @@ public sealed class Localizer
             ["public.look_title"] = "إطلالة @{0} على OREVOSH",
             ["public.look_description"] = "{0}/10 لـ {1}. {2}",
             ["public.look_description_short"] = "{0}/10 لـ {1}.",
+            // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
+            ["public.look_description_private"] = "إطلالة لـ {0} على OREVOSH. {1}",
+            ["public.look_description_private_short"] = "إطلالة لـ {0} على OREVOSH.",
             ["public.photo_alt"] = "إطلالة لـ @{0}، مفحوصة على OREVOSH",
             ["public.score_out_of"] = "{0} من 10",
             ["public.tip"] = "النصيحة الواحدة",
@@ -753,6 +762,9 @@ public sealed class Localizer
             ["public.look_title"] = "Образ @{0} на OREVOSH",
             ["public.look_description"] = "Оценка {0}/10 · {1}. {2}",
             ["public.look_description_short"] = "Оценка {0}/10 · {1}.",
+            // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
+            ["public.look_description_private"] = "Образ для «{0}» в OREVOSH. {1}",
+            ["public.look_description_private_short"] = "Образ для «{0}» в OREVOSH.",
             ["public.photo_alt"] = "Образ @{0}, проверенный на OREVOSH",
             ["public.score_out_of"] = "{0} из 10",
             ["public.tip"] = "Один совет",

@@ -121,7 +121,15 @@ function draw(root, m, ctx, reload) {
     ['users', 'dash.users'], ['brands', 'dash.brands'], ['posts', 'dash.posts'], ['fires', 'dash.fires'], ['follows', 'dash.follows'],
     ['comments', 'dash.comments'], ['challengesOpen', 'dash.challenges_open'], ['challengesEnded', 'dash.challenges_ended'], ['votes', 'dash.votes'],
     ['activeUsers7d', 'dash.active7'], ['mentions', 'dash.mentions'], ['featured', 'dash.featured'], ['videos', 'dash.videos'], ['pushSubscriptions', 'dash.push'],
-    ['videosMade', 'video.made']   // share videos made on the phone and shared or saved (POST /api/checks/{id}/shared-video)
+    ['videosMade', 'video.made'],   // share videos made on the phone and shared or saved (POST /api/checks/{id}/shared-video)
+    // Round 14 — the community round: whether any of it changed anything. Looks posted with the grade kept private;
+    // comments begun from one of the openers (one tally for all three); before/after shares with the two verdicts and
+    // with no numbers at all; challenges that state a rule rather than an open hashtag.
+    ['privateScores', 'share.dash_private'],
+    ['commentOpeners', 'comment.dash_openers'],
+    ['beforeAfterShares', 'share.dash_before_after'],
+    ['beforeAfterSharesPlain', 'share.dash_before_after_plain'],
+    ['constraintChallenges', 'challenge.dash_constraint']
   ];
   root.appendChild(el('section', { class: 'dash-section' }, [
     el('h2', { text: t('dash.social') }),

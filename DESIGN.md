@@ -361,3 +361,27 @@ or replace verb goes anywhere near it.
 
 Three containers on the result render nothing until another module fills them: `#tip-feedback` and `#tried-it` under
 the tip, `#wardrobe-offer` with the item list. `.mount:empty { display: none }` keeps an unfilled one from leaving a gap.
+## 11. Round 14 — the community round
+
+**A look with no number.** Where the score ring sat there is now nothing: no blank ring, no dash, no grey circle. The
+photo is simply a photo (`scoreBadge()` returns null), the "reads as … at 72%" row is not drawn, and the breakdown
+section is not there. The one thing a reader gets instead is a single 13px line under the card, with the shield glyph
+in lilac: "The score on this look is the author's alone." The author's own look carries the switch in its place — the
+same glyph, the state in bold, the consequence in the meta grey, and a 44px outlined button at the end edge ("Keep it
+to myself" / "Show the score").
+
+**The openers.** A horizontally scrolling row of 44px chips between the comments and the sticky composer, in the meta
+grey rather than the accent: they are an offer, not a call to action. A tap fills the box and puts the caret at the
+end; the row does not move or close, so a second tap changes the opener and nothing is lost but the typing.
+
+**The before/after card and film.** 1080×1920, the same stage, gradient, faces and colophon as the single look's. The
+two photos sit side by side in 4:5 boxes with BEFORE and AFTER in caps under them and the gradient arrow between; the
+before is on the start edge, so the pair reads the way the language does. What changed sits under them on the tip
+card's surface with the lilac bar. The rings appear only if the person asked for them. The film is ten seconds — each
+look full bleed with its pill, then the two together with the change, then the end card the twelve-second film already
+ends on.
+
+**A challenge's rule.** One inset block under the title, the check glyph in lilac at the start edge, "THE RULE" in
+caps above the sentence, and a plain "Rule" tag beside the intent on the byline so a list reads at a glance. The
+brand's form offers the three examples as chips that fill the field in, because a rule somebody edits is better than
+one they pick.

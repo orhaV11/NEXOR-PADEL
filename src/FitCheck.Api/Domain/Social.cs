@@ -48,6 +48,18 @@ public sealed class Post
     public bool Hidden { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    // ---- Round 14 — post the look, keep the grade (the community round) ----
+
+    /// <summary>
+    /// The author kept the grade to themselves: the number, the sub-scores and the intent match are not shown to anyone
+    /// but the author and a moderator, while the look, the caption, the items, the fires and the comments work as they
+    /// always did. Chosen at posting time and changed afterwards from the look
+    /// (PATCH /api/posts/{id}/score-privacy). It hides a number; it never moves one: the fire count stands, the look
+    /// keeps its place on every board that ranks by fires. The stylist's picks board, which ranks by the number itself,
+    /// simply does not carry it (Services/Board.cs) — a row there would say through its neighbours what the card hides.
+    /// </summary>
+    public bool ScorePrivate { get; set; }
 }
 
 /// <summary>A #tag from the caption, lower case, without the #. At most 5 per post.</summary>
@@ -147,6 +159,16 @@ public sealed class Challenge
 
     public DateTime? ResolvedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // ---- Round 14 — constraint challenges (the community round) ----
+
+    /// <summary>
+    /// The rule of a constraint challenge, stated plainly in the brand's own words ("the same piece in three looks",
+    /// "two colours only", "something you have not worn in a month"): at most 140 characters, null for an open
+    /// hashtag challenge, which is what every challenge was until now. Nothing enforces it: entry is the same hashtag
+    /// mechanism, a person's word is enough, and the community sees the looks and decides.
+    /// </summary>
+    public string? Constraint { get; set; }
 }
 
 /// <summary>One vote per user per challenge; the row is replaced when the vote changes.</summary>
@@ -362,6 +384,16 @@ public static class CounterName
 
     /// <summary>Round 14 — the loop: pairs written by "I tried it" (POST /api/checks/{id}/tried), one per linked attempt.</summary>
     public const string TriedPairs = "tried_pairs";
+    // ---- Round 14 — the community round ----
+
+    /// <summary>Comments begun from one of the openers. One tally for every opener: which one was tapped is nobody's business.</summary>
+    public const string CommentOpeners = "comment_openers";
+
+    /// <summary>Before/after shares (a card or a video) that carried the two verdicts.</summary>
+    public const string BeforeAfterShares = "before_after_shares";
+
+    /// <summary>Before/after shares that carried no numbers at all: the two looks and the change.</summary>
+    public const string BeforeAfterSharesPlain = "before_after_shares_plain";
 }
 
 /// <summary>A named tally that survives a restart (an out-click, a board view). Incremented in place, never read for a decision.</summary>

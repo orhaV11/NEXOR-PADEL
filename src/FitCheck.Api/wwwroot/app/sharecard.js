@@ -291,7 +291,8 @@ export async function renderShareCard(look, opts) {
     const ctx = canvas.getContext('2d');
     drawStage(ctx);
     drawPhoto(ctx, photo);
-    drawRing(ctx, look.score, dir);
+    // Round 14 - post the look, keep the grade: no number, no ring. The card is the look, the headline and the intent.
+    if (look.score !== null && look.score !== undefined) drawRing(ctx, look.score, dir);
     drawWords(ctx, look, dir);
     drawFooter(ctx, wordmark, dir, publicLinkLine(look));
     return await encode(canvas, opts.maxBytes || MAX_BYTES);
@@ -341,13 +342,17 @@ const canShareFile = (file) => !!(navigator.share && navigator.canShare && navig
  * Draws the card in a sheet ("Drawing the card…"), then shows it with Share (the system share sheet with the image, when
  * the browser can share files) and Save (a download; on iOS the hint says to press and hold the image instead).
  */
-export async function openShareCard(look) {
+export async function openShareCard(look, opts) {
+  // Round 14 - before and after: opts lets the pair's card use this sheet as it is — { render(look) } draws something
+  // else, { title } names it, { onKept } hears that the person actually shared or saved it (the tally). Without opts
+  // this is the single look's card, exactly as it was.
+  opts = opts || {};
   ensureStyle();
   const content = el('div');
   let objectUrl = null;
   let closed = false;
   const release = () => { if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = null; };
-  const s = sheet({ title: t('sharecard.title'), content, onClose: () => { closed = true; release(); } });
+  const s = sheet({ title: opts.title || t('sharecard.title'), content, onClose: () => { closed = true; release(); } });
 
   const paintMaking = () => content.replaceChildren(el('div', { class: 'sc-making', role: 'status' }, [
     el('span', { class: 'loading-mark', 'aria-hidden': 'true' }), el('span', { text: t('sharecard.making') })
@@ -363,11 +368,11 @@ export async function openShareCard(look) {
     const share = canShareFile(file) ? el('button', { type: 'button', class: 'btn', id: 'sc-share', onclick: async () => {
       if (state.sharing) return;
       state.sharing = true;
-      try { await navigator.share({ files: [file], title: t('app.name') }); }
+      try { await navigator.share({ files: [file], title: t('app.name') }); if (opts.onKept) opts.onKept(); }
       catch (e) { if (!(e && (e.name === 'AbortError' || e.name === 'InvalidStateError'))) toast(t('sharecard.error')); }
       finally { state.sharing = false; }
     } }, [icon('share'), t('sharecard.share')]) : null;
-    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sc-save', href: objectUrl, download: file.name, onclick: () => { if (!isIos()) toast(t('sharecard.saved')); } }, [icon('image'), t('sharecard.save')]);
+    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sc-save', href: objectUrl, download: file.name, onclick: () => { if (opts.onKept) opts.onKept(); if (!isIos()) toast(t('sharecard.saved')); } }, [icon('image'), t('sharecard.save')]);
     content.replaceChildren(
       el('div', { class: 'sc-stage' }, [el('img', { src: objectUrl, alt: t('sharecard.title'), id: 'sc-card' })]),
       el('p', { class: 'hint', text: t('sharecard.hint') + (isIos() ? ' ' + t('sharecard.ios_hint') : '') }),
@@ -379,7 +384,7 @@ export async function openShareCard(look) {
   async function draw() {
     paintMaking();
     let blob = null;
-    try { blob = await renderShareCard(look); }
+    try { blob = await (opts.render ? opts.render(look) : renderShareCard(look)); }
     catch (e) { console.warn('share card', e); }
     if (closed) return;
     if (blob) paintCard(blob); else paintError();
@@ -395,4 +400,197 @@ export function shareCardMenuItem(look) {
 /** A secondary button for the result screen. */
 export function shareCardButton(look) {
   return el('button', { type: 'button', class: 'btn btn-secondary', id: 'share-card', onclick: () => openShareCard(look) }, [icon('card'), t('sharecard.action')]);
+}
+
+// ---------- Round 14 — before and after: the pair's own card ----------
+//
+// "I tried it": the earlier look, the one after the change, what changed, and — only if the person wants it — the two
+// verdicts. It is the same stage, the same faces and the same colophon as the card above, drawn in two columns so the
+// two looks are read together, with the before on the start edge (right in Hebrew and Arabic: the pair reads the way
+// the language does).
+//
+// The numbers are a choice, not a property of the card: openBeforeAfterShare (app/sharevideo.js) offers "with both
+// scores" and "just the two looks", and a look whose author kept its grade private is only ever offered the second —
+// pair.numbers is false and no ring is drawn, here or in the film. The whole point is comfort: people may well want to
+// share the decision rather than the grade.
+//
+// pair: { before: { imageUrl, score }, after: { imageUrl, score }, intent, headline, change, user, postId, numbers }.
+
+const PAIR = (() => {
+  const gap = 24;
+  const w = Math.round((CARD_WIDTH - MARGIN * 2 - gap) / 2);
+  return { y: 320, w, h: Math.round(w * 5 / 4), gap, r: 32, badge: 68 };
+})();
+
+/** One of the two looks: the photo in its rounded box, the caps label under it, the small ring when numbers are on. */
+function drawPairPhoto(ctx, img, x, label, score, dir) {
+  const { y, w, h, r, badge } = PAIR;
+  ctx.save();
+  roundedRect(ctx, x, y, w, h, r);
+  ctx.clip();
+  coverImage(ctx, img, x, y, w, h);
+  ctx.restore();
+  if (score !== null && score !== undefined) {
+    // The ring straddles the photo's bottom-inner corner, as the single card's straddles its bottom-end one.
+    const cx = dir === 'rtl' ? x + badge - 8 : x + w - badge + 8;
+    const cy = y + h - badge + 8;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+    disc(ctx, cx, cy, badge, theGradient(ctx, cx - badge, cy - badge, badge * 2, badge * 2));
+    ctx.restore();
+    disc(ctx, cx, cy, badge - 10, COLOR.bg);
+    text(ctx, fmtNumber(score), cx, cy + 20, { font: '800 72px ' + DISPLAY, color: COLOR.ink, dir: 'ltr', align: 'center' });
+    text(ctx, t('result.out_of'), cx, cy + 46, { font: '700 18px ' + BODY, color: COLOR.ink3, dir: 'ltr', align: 'center', tracking: '1px' });
+  }
+
+  const caps = label.toUpperCase();
+  const rtl = dir === 'rtl';
+  const font = '700 ' + (rtl ? 30 : 27) + 'px ' + BODY;
+  ctx.font = font;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = rtl ? '0.6px' : '2.5px';
+  text(ctx, fit(ctx, caps, w), x + w / 2, y + h + 56, {
+    font, color: COLOR.ink2, dir, align: 'center', tracking: rtl ? '0.6px' : '2.5px'
+  });
+}
+
+/** The arrow between the two looks: the one gradient, a short shaft with a head, mirrored in RTL. */
+function drawPairArrow(ctx, dir) {
+  const { y, h, gap } = PAIR;
+  const cx = CARD_WIDTH / 2;
+  const cy = y + Math.round(h / 2);
+  const reach = Math.min(gap, 24);
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (dir === 'rtl') ctx.scale(-1, 1);
+  ctx.fillStyle = COLOR.bg;
+  disc(ctx, 0, 0, 34, COLOR.bg);
+  ctx.strokeStyle = theGradient(ctx, -reach, -reach, reach * 2, reach * 2);
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-14, 0); ctx.lineTo(12, 0);
+  ctx.moveTo(2, -10); ctx.lineTo(12, 0); ctx.lineTo(2, 10);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** What changed, on the tip card's surface: the caps label in lilac and up to three lines of the person's own words. */
+function drawChange(ctx, plan, dir) {
+  const { lines, size, lineH, y, h } = plan;
+  if (!lines.length) return;
+  const rtl = dir === 'rtl';
+  const x = MARGIN;
+  const w = CARD_WIDTH - MARGIN * 2;
+  roundedRect(ctx, x, y, w, h, 36);
+  ctx.fillStyle = 'rgba(21, 21, 28, 0.94)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 2; ctx.stroke();
+  const barX = rtl ? x + w - 36 - 8 : x + 36;
+  roundedRect(ctx, barX, y + 34, 8, h - 68, 4);
+  ctx.fillStyle = theGradient(ctx, barX, y + 34, 8, h - 68);
+  ctx.fill();
+  const textX = rtl ? x + w - 68 : x + 68;
+  text(ctx, t('share.change_label').toUpperCase(), textX, y + 62, {
+    font: '700 ' + (rtl ? 30 : 26) + 'px ' + BODY, color: COLOR.accent, dir, tracking: rtl ? '0.6px' : '2.5px'
+  });
+  lines.forEach((line, i) => text(ctx, line, textX, y + 130 + i * lineH, {
+    font: '700 ' + size + 'px ' + DISPLAY, color: COLOR.ink, dir, textDir: strongDir(line) || dir, tracking: '-0.5px'
+  }));
+}
+
+/** The change block measured before anything is drawn: at most three lines, the size stepping down until they fit. */
+function planChange(words) {
+  const measure = document.createElement('canvas').getContext('2d');
+  const width = CARD_WIDTH - MARGIN * 2 - 68 - 48;
+  let best = { size: 48, lines: [] };
+  for (const size of [48, 44, 40, 36]) {
+    measure.font = '700 ' + size + 'px ' + DISPLAY;
+    if ('letterSpacing' in measure) measure.letterSpacing = '-0.5px';
+    const lines = wrap(measure, words || '', width, 3);
+    best = { size, lines };
+    if (lines.length <= 2) break;
+  }
+  const lineH = Math.round(best.size * 1.22);
+  const y = PAIR.y + PAIR.h + 110;
+  return { ...best, lineH, y, h: best.lines.length ? 130 + (best.lines.length - 1) * lineH + 56 : 0 };
+}
+
+/**
+ * Draws the before/after card and resolves to its image (a PNG or JPEG Blob within 1.5 MB), exactly like
+ * renderShareCard. opts: { dir, maxBytes }. Both photos must load: the pair is the picture, and half of it is not it.
+ */
+export async function renderBeforeAfterCard(pair, opts) {
+  opts = opts || {};
+  const dir = opts.dir || pageDir();
+  const numbers = !!pair.numbers && pair.before.score !== null && pair.before.score !== undefined
+    && pair.after.score !== null && pair.after.score !== undefined;
+  const revokes = [];
+  try {
+    const [before, after, wordmark] = await Promise.all([
+      loadImage(pair.before.imageUrl, revokes),
+      loadImage(pair.after.imageUrl, revokes),
+      loadImage('/brand/wordmark.svg', revokes).catch((e) => { console.warn('before/after card: wordmark', e); return null; }),
+      loadFonts()
+    ]);
+    const canvas = document.createElement('canvas');
+    canvas.width = CARD_WIDTH; canvas.height = CARD_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    drawStage(ctx);
+
+    // The title, centred over the pair: "One change" — what the whole format is about.
+    text(ctx, t('share.before_after_title'), CARD_WIDTH / 2, 216, {
+      font: '700 62px ' + DISPLAY, color: COLOR.ink, dir, textDir: strongDir(t('share.before_after_title')) || dir, align: 'center', tracking: '-0.5px'
+    });
+
+    const startX = MARGIN;
+    const endX = MARGIN + PAIR.w + PAIR.gap;
+    const beforeX = dir === 'rtl' ? endX : startX;
+    const afterX = dir === 'rtl' ? startX : endX;
+    drawPairPhoto(ctx, before, beforeX, t('share.before_label'), numbers ? pair.before.score : null, dir);
+    drawPairPhoto(ctx, after, afterX, t('share.after_label'), numbers ? pair.after.score : null, dir);
+    drawPairArrow(ctx, dir);
+
+    // The person's own words about the change when there are any; the stylist's headline for the newer look otherwise.
+    // Never the tip: it is the paid thing and it stays inside the app, on this card as on the single one.
+    const plan = planChange(pair.change || pair.headline || '');
+    drawChange(ctx, plan, dir);
+
+    // Who: the same line the single card carries, at the same baseline.
+    drawWords(ctx, { headline: '', intent: pair.intent, user: pair.user }, dir);
+    drawFooter(ctx, wordmark, dir, publicLinkLine(pair));
+    return await encode(canvas, opts.maxBytes || MAX_BYTES);
+  } finally {
+    for (const url of revokes) URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * The pair from a look that names an earlier one (PostDto.before, "after the tip"). numbers is true only when this
+ * reader may read both numbers — on your own look, always; on a look whose grade you kept private, never, and the
+ * server has already sent null for it either way.
+ *
+ * A pair that is not two posted looks — the private "I tried it" second check, where both photos are blob: URLs the
+ * phone still holds — needs no code here: build the same object and hand it to openShareCard(pair, { render:
+ * renderBeforeAfterCard }) or openShareVideo(pair, { render: renderBeforeAfterVideo }) (app/sharevideo.js, which also
+ * has openBeforeAfterShare(post) for a posted pair):
+ *
+ *   { before: { imageUrl, score }, after: { imageUrl, score }, intent, headline, change, user, postId, numbers, language }
+ *
+ * change is the person's own words about what they changed (never the tip); score may be null on either side, and with
+ * numbers false no ring is drawn at all. postId only gives the card its public address, so it is null until the look is
+ * posted. The tally route POST /api/posts/{id}/shared-after is a posted look's; a pair of checks has nothing to count
+ * against yet, and counting it would need a route of its own on the check.
+ */
+export function beforeAfterFromPost(post) {
+  return {
+    before: { imageUrl: post.before.imageUrl, score: post.before.score },
+    after: { imageUrl: post.imageUrl, score: post.score },
+    intent: post.intent,
+    headline: post.headline,
+    change: post.caption || '',
+    user: post.user,
+    postId: post.id,
+    numbers: post.score !== null && post.score !== undefined && post.before.score !== null && post.before.score !== undefined
+  };
 }

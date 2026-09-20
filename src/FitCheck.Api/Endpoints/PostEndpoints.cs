@@ -13,6 +13,12 @@ public static class PostEndpoints
     public const int CommentMaxLength = 200;
     public const int MaxProducts = 3;
 
+    /// <summary>
+    /// Round 14 — the openers the comment box offers ("comment.opener_*" in the four dictionaries). The keys exist here
+    /// only so an unknown one cannot be counted; nothing about which one was tapped is kept.
+    /// </summary>
+    private static readonly HashSet<string> Openers = new(StringComparer.Ordinal) { "piece", "swap", "where" };
+
     /// <summary>Rate-limit policies (Program.cs): per signed-in account, an hour's window, Limits:CommentsPerHour and Limits:ReportsPerHour.</summary>
     public const string CommentsPolicy = "comments";
     public const string ReportsPolicy = "reports";
@@ -37,6 +43,9 @@ public static class PostEndpoints
         posts.MapDelete("/{id:guid}/feature", UnfeatureAsync).RequireAuthorization();
         posts.MapGet("/{id:guid}/comments", ListCommentsAsync);
         posts.MapPost("/{id:guid}/comments", AddCommentAsync).RequireAuthorization().RequireRateLimiting(CommentsPolicy);
+        // Round 14 — the community round: the author's own two switches on their own look.
+        posts.MapPatch("/{id:guid}/score-privacy", SetScorePrivacyAsync).RequireAuthorization();
+        posts.MapPost("/{id:guid}/shared-after", SharedAfterAsync).RequireAuthorization();
 
         var comments = app.MapGroup("/api/comments");
         comments.MapDelete("/{id:guid}", DeleteCommentAsync).RequireAuthorization();
@@ -183,6 +192,9 @@ public static class PostEndpoints
             Caption = caption,
             ChallengeId = challenge?.Id,
             BeforePostId = body.BeforePostId,
+            // Round 14 — post the look, keep the grade: the author's choice at the moment of posting, changed later from
+            // their own look. It hides the number; it never changes what the look is worth to a board that counts fires.
+            ScorePrivate = body.ScorePrivate,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -731,6 +743,65 @@ public static class PostEndpoints
         return Results.Json(new FeatureStateDto(null), AppJson.Options);
     }
 
+    /// <summary>
+    /// Round 14 — post the look, keep the grade: the author turns their look's number public or private after the fact,
+    /// from the look itself. Author only, and a stranger cannot tell the look exists (404, the shape DELETE already has).
+    /// A moderator is not given this: it is the author's choice, and a moderator reads the number either way.
+    /// </summary>
+    private static async Task<IResult> SetScorePrivacyAsync(
+        Guid id, ScorePrivacyRequest body, HttpContext context, AppDbContext db, Board board, Localizer localizer, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var post = await db.Posts.FindAsync([id], ct);
+        if (post is null || post.UserId != me.Id)
+        {
+            return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
+        }
+
+        var wanted = body.ScorePrivate;
+        if (post.ScorePrivate != wanted)
+        {
+            post.ScorePrivate = wanted;
+            await db.SaveChangesAsync(ct);
+            // The picks board does not carry a private grade, and a week is served from memory for a minute: a choice
+            // made now must not leave the number on that board until the cache turns over, so it is dropped here, the
+            // way a moderator's exclusion drops it.
+            board.Invalidate();
+        }
+
+        return Results.Json(new ScorePrivacyDto(post.ScorePrivate), AppJson.Options);
+    }
+
+    /// <summary>
+    /// Round 14 — before and after: the phone made a before/after card or video of this look and its earlier one, and
+    /// the person shared or saved it. One tally for the numbers page, in two rows: with the two verdicts on it, or with
+    /// no numbers at all. Nothing else is written; the author only, like the look's other switches, so a stranger's
+    /// taps cannot move a number the owner reads.
+    /// </summary>
+    private static async Task<IResult> SharedAfterAsync(
+        Guid id, SharedAfterRequest? body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var mine = await db.Posts.AnyAsync(p => p.Id == id && p.UserId == me.Id, ct);
+        if (!mine)
+        {
+            return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
+        }
+
+        await Counters.IncrementAsync(db, body is { WithScores: true } ? CounterName.BeforeAfterShares : CounterName.BeforeAfterSharesPlain, ct);
+        return Results.NoContent();
+    }
+
     private static async Task<IResult> ListCommentsAsync(Guid id, HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, CancellationToken ct)
     {
         var viewerId = Sessions.UserId(context.User);
@@ -788,6 +859,14 @@ public static class PostEndpoints
 
         var comment = new Comment { Id = Guid.NewGuid(), PostId = id, UserId = me.Id, Text = text, CreatedAt = DateTime.UtcNow };
         db.Comments.Add(comment);
+        // Round 14 — the comment box's openers: one tally for all three, so the owner can see whether they changed
+        // anything. Which opener was tapped is not counted, nothing is stored on the comment, and an unknown key is
+        // simply ignored: what the person typed is the comment, and the opener was only a way in.
+        if (body.Opener is string opener && Openers.Contains(opener))
+        {
+            await Counters.IncrementAsync(db, CounterName.CommentOpeners, ct);
+        }
+
         if (post.UserId != me.Id)
         {
             await notifier.AddOnceAsync(post.UserId, NotificationType.Comment, me.Handle, id, null, ct);

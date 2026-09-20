@@ -805,7 +805,9 @@ function checkClientModules() {
   await go(noa, '#/admin/metrics');
   await noa.waitForSelector('#dash-return');
   assert.ok((await count(noa, '#dash-scores li')) >= 1, 'the score distribution has bars');
-  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 15);   // Round 12 added the "Share videos made" tile
+  // Round 12 added "Share videos made"; Round 14 added five: private grades, comments begun from an opener, before/after
+  // shares with and without the numbers, and challenges that state a rule.
+  assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 20);
   await shot(noa, '31-numbers-en');
   expected.push('GET /api/metrics/pilot -> 403');
   await go(dan, '#/admin/metrics');

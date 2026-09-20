@@ -896,7 +896,10 @@ export async function sharePost(post) {
   state.sharing = true;
   try {
     const url = postUrl(post);
-    const text = t('post.share_text', { name: post.user.name, intent: intentLabel(post.intent), score: fmtNumber(post.score) });
+    // Round 14: a look whose grade is private is shared as a look, never as a number the sentence would give away.
+    const text = post.score === null || post.score === undefined
+      ? t('share.post_text_plain', { name: post.user.name, intent: intentLabel(post.intent) })
+      : t('post.share_text', { name: post.user.name, intent: intentLabel(post.intent), score: fmtNumber(post.score) });
     if (navigator.share) {
       try { await navigator.share({ title: t('app.name'), text, url }); return; }
       catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }
@@ -1083,6 +1086,9 @@ function clipControls(video) {
  * the link around the photo already says the score in its label.
  */
 export function scoreBadge(score) {
+  // Round 14 - post the look, keep the grade: no number, no ring. The photo simply carries nothing where it sat, and
+  // every caller can append this unconditionally, the way breakdownRow() already works.
+  if (score === null || score === undefined) return null;
   return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(score) }), el('small', { text: t('result.out_of') })]);
 }
 
@@ -1115,6 +1121,15 @@ document.head.appendChild(el('style', { text: [
  * "After the tip · 6 → 7" with the score before and after. The whole strip is a link to the earlier look.
  */
 export function afterStrip(post) {
+  // Round 14 - post the look, keep the grade: when either side's number is private to this reader, the strip is the
+  // thumbnail, the words and the link to the earlier look. The change is the point; the two numbers were the evidence.
+  const numbers = post.score !== null && post.score !== undefined && post.before.score !== null && post.before.score !== undefined;
+  if (!numbers) {
+    return el('a', { class: 'after-strip', href: '#/post/' + post.before.postId, 'aria-label': t('after.title') }, [
+      el('img', { src: post.before.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
+      el('span', { class: 'after-text', 'aria-hidden': 'true', text: t('after.title') })
+    ]);
+  }
   const a = fmtNumber(post.before.score);
   const b = fmtNumber(post.score);
   return el('a', { class: 'after-strip' + (post.score > post.before.score ? ' up' : ''), href: '#/post/' + post.before.postId, 'aria-label': t('after.strip_label', { a, b }) }, [
@@ -1162,7 +1177,8 @@ export function postCard(post, opts) {
     post.before ? afterStrip(post) : null,
     post.caption ? el('p', { class: 'caption' }, [richCaption(post.caption, post.mentions)]) : null,
     post.featuredBy ? el('a', { class: 'featured', href: '#/u/' + encodeURIComponent(post.featuredBy.handle) + '/featured' }, [icon('sparkle'), t('post.featured_by', { name: post.featuredBy.name })]) : null,
-    opts.compact ? null : el('div', { class: 'match' }, [
+    // Round 14: the match is a number out of the same verdict, so it goes with the score when the grade is private.
+    opts.compact || post.intentMatch === null || post.intentMatch === undefined ? null : el('div', { class: 'match' }, [
       el('span', { text: t('post.reads_as', { intent: intentLabel(post.intent), pct: fmtPercent(post.intentMatch / 100) }) }),
       el('div', { class: 'bar' }, [el('div', { class: 'bar-fill', style: 'inline-size:' + post.intentMatch + '%' })])
     ]),

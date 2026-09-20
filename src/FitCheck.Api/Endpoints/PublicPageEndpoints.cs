@@ -121,9 +121,14 @@ public static class PublicPageEndpoints
         var image = origin + ImagePath(look.PostId);
         var intent = localizer.Get(language, "public.intent." + look.Intent);
         var title = look.Headline.Length > 0 ? look.Headline : localizer.Get(language, "public.look_title", look.Handle);
-        var description = look.Tip.Length > 0
-            ? localizer.Get(language, "public.look_description", look.Score, intent, look.Tip)
-            : localizer.Get(language, "public.look_description_short", look.Score, intent);
+        // Round 14 — post the look, keep the grade: no number in the unfurl either, and no ring on the page below.
+        var description = look.ScorePrivate
+            ? (look.Tip.Length > 0
+                ? localizer.Get(language, "public.look_description_private", intent, look.Tip)
+                : localizer.Get(language, "public.look_description_private_short", intent))
+            : (look.Tip.Length > 0
+                ? localizer.Get(language, "public.look_description", look.Score, intent, look.Tip)
+                : localizer.Get(language, "public.look_description_short", look.Score, intent));
         var alt = localizer.Get(language, "public.photo_alt", look.Handle);
 
         var body = new StringBuilder();
@@ -133,7 +138,11 @@ public static class PublicPageEndpoints
         // shows its look, while og:image stays absolute because a crawler has nothing to resolve a path against.
         body.Append("<figure class=\"photo\"><img src=\"").Append(ImagePath(look.PostId)).Append("\" alt=\"").Append(Esc(alt)).Append("\"></figure>");
         body.Append("<div class=\"meta\">");
-        body.Append(Ring(look.Score, localizer.Get(language, "public.score_out_of", look.Score)));
+        if (!look.ScorePrivate)
+        {
+            body.Append(Ring(look.Score, localizer.Get(language, "public.score_out_of", look.Score)));
+        }
+
         body.Append("<div class=\"who\"><p class=\"handle\" dir=\"ltr\">@").Append(Esc(look.Handle)).Append("</p>");
         body.Append("<p class=\"intent\">").Append(Esc(intent)).Append("</p></div>");
         body.Append("</div>");
@@ -207,7 +216,7 @@ public static class PublicPageEndpoints
             .Where(p => p.UserId == user.Id && !p.Hidden)
             .OrderByDescending(p => p.CreatedAt)
             .Take(ProfileLooks)
-            .Select(p => new { p.Id, p.Score })
+            .Select(p => new { p.Id, p.Score, p.ScorePrivate })
             .ToListAsync(ct);
 
         var name = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Handle : user.DisplayName!;
@@ -238,7 +247,12 @@ public static class PublicPageEndpoints
             {
                 body.Append("<li><a href=\"").Append(Esc(LookUrl(origin, look.Id))).Append("\">");
                 body.Append("<img src=\"").Append(ImagePath(look.Id)).Append("\" alt=\"").Append(Esc(alt)).Append("\" loading=\"lazy\">");
-                body.Append("<span class=\"n\">").Append(look.Score.ToString(CultureInfo.InvariantCulture)).Append("</span>");
+                // Round 14: a look whose grade is private shows the look and no number, here as everywhere else.
+                if (!look.ScorePrivate)
+                {
+                    body.Append("<span class=\"n\">").Append(look.Score.ToString(CultureInfo.InvariantCulture)).Append("</span>");
+                }
+
                 body.Append("</a></li>");
             }
 
@@ -326,7 +340,14 @@ public static class PublicPageEndpoints
     // ---------- reading a look ----------
 
     /// <summary>What the public page shows of a look, read in one query.</summary>
-    private sealed record PublicLook(Guid PostId, string Handle, string Headline, int Score, StyleIntent Intent, string Language, string Tip, string ImagePath);
+    /// <summary>
+    /// ScorePrivate (Round 14): the author kept the grade to themselves. The page then carries the look, the headline
+    /// and the tip with no ring and no number, and the unfurl says the same — a public address must not say what the
+    /// card in the app refuses to.
+    /// </summary>
+    private sealed record PublicLook(
+        Guid PostId, string Handle, string Headline, int Score, StyleIntent Intent, string Language, string Tip, string ImagePath,
+        bool ScorePrivate = false);
 
     /// <summary>
     /// The look behind a public address, or null: the post must exist and not be hidden, its author must not be
@@ -344,6 +365,7 @@ public static class PublicPageEndpoints
                 pu.User.Handle,
                 pu.Post.Headline,
                 pu.Post.Score,
+                pu.Post.ScorePrivate,
                 pu.Post.Intent,
                 c.Language,
                 c.FeedbackJson,
@@ -365,7 +387,7 @@ public static class PublicPageEndpoints
             // A feedback document this server can no longer read is a page without a tip, not a 500.
         }
 
-        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, tip, row.ImagePath);
+        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, tip, row.ImagePath, row.ScorePrivate);
     }
 
     // ---------- the document ----------

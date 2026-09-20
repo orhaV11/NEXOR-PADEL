@@ -10,10 +10,40 @@ import {
   register, state, t, api, el, icon, avatar, userRow, postCard, setTopBar, navigate, requireSignIn, sheet,
   emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow, onLeave
 } from '../core.js';
+// Round 14 - before and after: the pair's own share format (app/sharecard.js draws the card, app/sharevideo.js the film).
+import { openBeforeAfterShare } from '../sharevideo.js';
 import { itemsEditor, itemLine, hostOf, hasDot, categoryLabel } from '../items.js';
 // Round 13 — the growth loop: the look's public address, and the ?via capture this import starts at boot (main.js
 // imports this view, this view imports that module, and the module reads ?via on import before any screen draws).
 import { openLookLinkSheet, publicLookUrl, pretty } from '../invite.js';
+
+/**
+ * Round 14 — post the look, keep the grade: the choice at the moment of posting, as a field for the post sheet
+ * (views/check.js, openPostSheet) beside the caption and the pieces:
+ *
+ *   const grade = gradeField();          // before the sheet's content is built
+ *   ... after.node, grade.node, items.node ...
+ *   api('POST', '/api/posts', { ..., scorePrivate: grade.value() });
+ *
+ * value() is false unless the person asked to keep the number, which is what posting has always done. The same switch
+ * lives on the look itself afterwards (the grade row below), so nothing is decided once and for ever here.
+ */
+export function gradeField() {
+  let keep = false;
+  const toggle = el('button', {
+    type: 'button', class: 'chip', id: 'grade-keep', 'aria-pressed': 'false', text: t('share.grade_keep')
+  });
+  toggle.addEventListener('click', () => {
+    keep = !keep;
+    toggle.setAttribute('aria-pressed', String(keep));
+  });
+  const node = el('div', { class: 'field grade-field' }, [
+    el('span', { class: 'label', text: t('share.grade_field') }),
+    toggle,
+    el('span', { class: 'hint', text: t('share.grade_keep_hint') })
+  ]);
+  return { node, value: () => keep };
+}
 
 let styled = false;
 function ensureStyle() {
@@ -32,7 +62,19 @@ function ensureStyle() {
     /* Round 13 — the growth loop: the public link row under the card. */
     '.post-link { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
     '.post-link .btn-sm { min-block-size: 44px; padding-inline: 16px; }',
-    '.post-link code { min-inline-size: 0; overflow-wrap: anywhere; direction: ltr; font-size: 12px; color: var(--ink-3); }'
+    '.post-link code { min-inline-size: 0; overflow-wrap: anywhere; direction: ltr; font-size: 12px; color: var(--ink-3); }',
+    /* Round 14 - post the look, keep the grade: the author's own switch, and the quiet note a reader sees instead of a number. */
+    '.grade-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
+    '.grade-row .grade-text { min-inline-size: 0; }',
+    '.grade-row .grade-text b { display: block; }',
+    '.grade-row .grade-text span { font-size: 13px; color: var(--ink-3); }',
+    '.grade-row .btn-sm { min-block-size: 44px; padding-inline: 16px; margin-inline-start: auto; }',
+    '.grade-note { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-3); }',
+    '.grade-note .icon { color: var(--accent); }',
+    /* Round 14 - the comment box has a direction: two or three openers a tap fills in, quiet enough to ignore. */
+    '.openers { display: flex; gap: 8px; overflow-x: auto; padding-block: 8px 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }',
+    '.openers::-webkit-scrollbar { display: none; }',
+    '.openers .chip { flex: none; min-block-size: 44px; font-weight: 500; color: var(--ink-2); }'
   ].join('\n') }));
 }
 
@@ -80,6 +122,68 @@ register('post', async (root, params, ctx) => {
     }),
     el('code', { id: 'post-link-url', dir: 'ltr', text: pretty(publicLookUrl(post.id)) })
   ]));
+
+  // ---- Round 14 — post the look, keep the grade; before and after ----
+  // On your own look: one row that says where the grade stands and flips it, and, when this look follows an earlier one,
+  // the before/after share beside it. On everyone else's: nothing at all when the number is public, and one quiet line
+  // when it is not, so a reader is not left wondering where the ring went.
+  const gradeSection = el('section', { class: 'post-section', id: 'post-grade' });
+  root.appendChild(gradeSection);
+
+  function beforeAfterButton() {
+    if (!post.before) return null;
+    return el('button', {
+      type: 'button', class: 'btn btn-sm btn-secondary', id: 'before-after-share', text: t('share.before_after_action'),
+      onclick: () => openBeforeAfterShare(post)
+    });
+  }
+
+  function renderGrade() {
+    gradeSection.replaceChildren();
+    if (!post.isMine) {
+      // Round 14: a look whose grade its author kept is not a look with a number missing. Say so once, plainly, and
+      // only where a number would have been: the card, the breakdown and the match row simply are not drawn.
+      if (post.scorePrivate) {
+        gradeSection.appendChild(el('p', { class: 'grade-note', id: 'grade-note' }, [icon('shield'), el('span', { text: t('share.grade_note') })]));
+      }
+      return;
+    }
+
+    const flip = el('button', {
+      type: 'button', class: 'btn btn-sm btn-secondary', id: 'grade-toggle',
+      text: t(post.scorePrivate ? 'share.grade_show' : 'share.grade_hide')
+    });
+    flip.addEventListener('click', async () => {
+      if (!requireSignIn()) return;
+      const wanted = !post.scorePrivate;
+      flip.disabled = true;
+      try {
+        const answer = await api('PATCH', '/api/posts/' + encodeURIComponent(id) + '/score-privacy', { scorePrivate: wanted });
+        if (ctx.stale()) return;
+        post.scorePrivate = !!(answer && answer.scorePrivate);
+        // The card is drawn from this object, so the number goes or comes back with it: the author's own view keeps
+        // the score either way (it is theirs), and the row below says what everybody else now sees.
+        toast(t(post.scorePrivate ? 'share.grade_now_private' : 'share.grade_now_public'));
+        renderGrade();
+        renderBreakdown();
+      } catch (e) {
+        if (ctx.stale()) return;
+        flip.disabled = false;
+        toast(e.message);
+      }
+    });
+    gradeSection.appendChild(el('div', { class: 'grade-row', id: 'grade-row' }, [
+      icon('shield'),
+      el('div', { class: 'grade-text' }, [
+        el('b', { text: t(post.scorePrivate ? 'share.grade_private' : 'share.grade_public') }),
+        el('span', { text: t(post.scorePrivate ? 'share.grade_private_hint' : 'share.grade_public_hint') })
+      ]),
+      flip
+    ]));
+    const share = beforeAfterButton();
+    if (share) gradeSection.appendChild(el('div', { class: 'grade-row', id: 'before-after-row' }, [share]));
+  }
+  renderGrade();
 
   // Round 11: Block in the card's "…" (views/blocked.js raises the event) takes this look out of the viewer's world; leave it.
   const onBlock = (event) => {
@@ -205,12 +309,19 @@ register('post', async (root, params, ctx) => {
   renderItems();
 
   // ---- the breakdown (rubric v2): public like the score, right under the card's headline; a look from before v2 has none ----
-  if (post.breakdown) {
-    root.appendChild(el('section', { class: 'post-section', id: 'post-breakdown', 'aria-labelledby': 'post-breakdown-title' }, [
+  // Round 14: "public like the score" now means exactly that — a private grade takes the sub-scores with it for every
+  // reader but the author (who keeps seeing their own) and a moderator. The server sends none at all to anybody else.
+  const breakdownSection = el('section', { class: 'post-section', id: 'post-breakdown', 'aria-labelledby': 'post-breakdown-title', hidden: true });
+  root.appendChild(breakdownSection);
+  function renderBreakdown() {
+    breakdownSection.hidden = !post.breakdown;
+    if (!post.breakdown) { breakdownSection.replaceChildren(); return; }
+    breakdownSection.replaceChildren(
       el('h2', { id: 'post-breakdown-title', text: t('result.breakdown') }),
       breakdownRow(post.breakdown)
-    ]));
+    );
   }
+  renderBreakdown();
 
   // ---- tagged accounts ----
   if (Array.isArray(post.mentions) && post.mentions.length) {
@@ -322,6 +433,26 @@ register('post', async (root, params, ctx) => {
       placeholder: t('comments.placeholder'), 'aria-label': t('comments.title')
     });
     const send = el('button', { type: 'button', class: 'btn', id: 'comment-send', text: t('comments.send') });
+
+    // ---- Round 14 — the comment box has a direction ----
+    // The product's own pitch starts with a friend who says "fire" without looking, and the feed's one reaction is a
+    // flame. The flame stays: it is appreciation, and it is the brand. Under it the box offers three openers a tap
+    // fills in — the piece doing the most work, a swap to try, where something is from. They are starting points, not
+    // templates: the text lands in the box with the cursor at its end and nothing is sent until the person sends it.
+    // A tap is remembered only until the comment goes, and only as "an opener was used": the tally on the numbers page
+    // counts all three together, so the owner can see whether this changed anything and nothing else is learned.
+    const OPENERS = ['piece', 'swap', 'where'];
+    let opener = null;
+    const openers = el('div', { class: 'openers', id: 'comment-openers', role: 'group', 'aria-label': t('comment.openers_label') }, OPENERS.map((key) => el('button', {
+      type: 'button', class: 'chip', 'data-opener': key, text: t('comment.opener_' + key),
+      onclick: () => {
+        opener = key;
+        input.value = t('comment.opener_' + key) + ' ';
+        input.focus();
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* a field that does not take a selection */ }
+      }
+    })));
+
     let busy = false;
     async function submit() {
       const text = input.value.trim();
@@ -329,9 +460,10 @@ register('post', async (root, params, ctx) => {
       if (!requireSignIn()) return;
       busy = true; send.disabled = true;
       try {
-        const created = await api('POST', '/api/posts/' + encodeURIComponent(id) + '/comments', { text });
+        const created = await api('POST', '/api/posts/' + encodeURIComponent(id) + '/comments', { text, opener });
         if (ctx.stale()) return;
         input.value = '';
+        opener = null;
         if (created && created.id) { comments.push(created); renderComments(); }
         else await loadComments();
       } catch (e) {
@@ -346,6 +478,9 @@ register('post', async (root, params, ctx) => {
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); submit(); }
     });
+    // The openers sit above the box, not inside it: .composer is sticky against the tab bar and takes its inline
+    // padding from a direct-child rule, so nothing may wrap it.
+    root.appendChild(el('div', { class: 'post-section' }, [openers]));
     root.appendChild(el('div', { class: 'composer' }, [input, send]));
   } else {
     root.appendChild(el('p', { class: 'post-section', id: 'comment-signin' }, [

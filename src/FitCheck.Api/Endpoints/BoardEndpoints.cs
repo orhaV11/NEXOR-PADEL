@@ -75,6 +75,13 @@ public static class BoardEndpoints
         // A look that is gone or under review keeps its place without a photo.
         var postIds = rows.Where(r => r.PostId != null).Select(r => r.PostId!.Value).Distinct().ToList();
         var visible = (await db.Posts.Where(p => postIds.Contains(p.Id) && !p.Hidden).Select(p => p.Id).ToListAsync(ct)).ToHashSet();
+        // Round 14 — post the look, keep the grade: a picks place is a place in an ordering by the number, and the hall
+        // would hand it out years later. A look whose author has since kept the grade private leaves the picks list;
+        // its places on the boards that count fires stay exactly where they are, numbers and all.
+        var privateScored = postIds.Count == 0
+            ? new HashSet<Guid>()
+            : (await db.Posts.Where(p => postIds.Contains(p.Id) && p.ScorePrivate).Select(p => p.Id).ToListAsync(ct)).ToHashSet();
+        rows.RemoveAll(r => r.Board == BoardName.Picks && r.PostId is Guid picked && privateScored.Contains(picked));
 
         var weeks = rows
             .GroupBy(r => r.WeekStart)

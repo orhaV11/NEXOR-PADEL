@@ -463,7 +463,6 @@ export async function renderShareVideo(look, opts) {
   if (!look.imageUrl) throw new Error('share video: no photo');
   const s = await stringsFor(look.language);
   const revokes = [];
-  let encoder = null;
   try {
     const [photo, wordmark] = await Promise.all([
       loadImage(look.imageUrl, revokes),   // the look itself: a failure here is the video's failure
@@ -472,13 +471,29 @@ export async function renderShareVideo(look, opts) {
     ]);
     if (cancelled()) throw abortError();
     const plan = planFilm(look, s, photo, wordmark);
+    return await encodeFilm({ plan, draw: drawFrame, duration: DURATION, rehearseAt: [0.8, 4.3, 7.0], encoding, started, cancelled, onProgress });
+  } finally {
+    for (const url of revokes) URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * The encoder, for any film: the rehearsal that picks 30 or 24 fps, the muxer for the rung that was chosen, the frame
+ * loop with its backpressure, and the same { blob, mime, ext, codec, path, fps, frames, bytes, drawMs... } every
+ * caller of renderShareVideo has always had. draw(ctx, time, plan) is a pure function of the time, so a film is only
+ * ever its plan and its drawing: Round 14's before/after (renderBeforeAfterVideo, at the end of this file) is a second
+ * plan and a second drawing through this one loop, never a second encoder.
+ */
+async function encodeFilm({ plan, draw, duration, rehearseAt, encoding, started, cancelled, onProgress }) {
+  let encoder = null;
+  try {
     const canvas = layer();
     const ctx = canvas.getContext('2d', { alpha: false });
     // Rehearsal: three frames from the busiest moments, timed. Slower than a 30 fps budget allows and the film runs at 24.
     let rehearsal = 0;
-    for (const at of [0.8, 4.3, 7.0]) { const a = performance.now(); drawFrame(ctx, at, plan); rehearsal += performance.now() - a; }
-    const fps = rehearsal / 3 > 22 ? 24 : 30;
-    const frames = DURATION * fps;
+    for (const at of rehearseAt) { const a = performance.now(); draw(ctx, at, plan); rehearsal += performance.now() - a; }
+    const fps = rehearsal / rehearseAt.length > 22 ? 24 : 30;
+    const frames = Math.round(duration * fps);
     const { Muxer, ArrayBufferTarget } = await import(encoding.container === 'mp4' ? '/vendor/mp4-muxer/mp4-muxer.mjs' : '/vendor/webm-muxer/webm-muxer.mjs');
     const target = new ArrayBufferTarget();
     const muxer = new Muxer(encoding.container === 'mp4'
@@ -492,7 +507,7 @@ export async function renderShareVideo(look, opts) {
       if (cancelled()) throw abortError();
       if (failure) throw failure;
       const a = performance.now();
-      drawFrame(ctx, i / fps, plan);
+      draw(ctx, i / fps, plan);
       const d = performance.now() - a;
       stats.draw += d; if (d > stats.max) stats.max = d;
       const frame = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
@@ -514,7 +529,6 @@ export async function renderShareVideo(look, opts) {
     };
   } finally {
     if (encoder && encoder.state !== 'closed') { try { encoder.close(); } catch (e) { /* already gone */ } }
-    for (const url of revokes) URL.revokeObjectURL(url);
   }
 }
 
@@ -544,10 +558,15 @@ const canShareFile = (file) => !!(navigator.share && navigator.canShare && navig
  * when the browser can share files) and Save (a download). Without a VideoEncoder, or with none that takes 1080×1920, the
  * PNG share card opens instead, after a one-line toast. Resolves once the video is made, failed or cancelled.
  */
-export async function openShareVideo(look) {
+export async function openShareVideo(look, opts) {
+  // Round 14 - before and after: opts lets the pair's film use this sheet as it is — { render(look, o) } makes another
+  // film, { title } names it, { fallback() } is what happens where there is no encoder at all (the pair falls back to
+  // the pair's card, never to the single look's), { onKept } hears a share or a save. Without opts this is the check's
+  // own 12-second film, exactly as it was.
+  opts = opts || {};
   if (!(await pickEncoding(30))) {
     toast(t('video.no_encoder'));
-    return openShareCard(cardLook(look));
+    return opts.fallback ? opts.fallback() : openShareCard(cardLook(look));
   }
   ensureStyle();
   const content = el('div');
@@ -555,13 +574,15 @@ export async function openShareVideo(look) {
   let closed = false;
   let controller = null;
   const release = () => { if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = null; };
-  const s = sheet({ title: t('video.title'), content, onClose: () => { closed = true; if (controller) controller.abort(); release(); } });
+  const s = sheet({ title: opts.title || t('video.title'), content, onClose: () => { closed = true; if (controller) controller.abort(); release(); } });
   // The videosMade tally: one POST per video made, on its first save or share (a share and then a save of the same file
   // count once; every video, a retry's or the next tap's, counts again since make() lifts the latch). Never blocking, never a message.
   let counted = false;
   const count = () => {
-    if (counted || !look.checkId) return;
+    if (counted) return;
     counted = true;
+    if (opts.onKept) { opts.onKept(); return; }
+    if (!look.checkId) return;
     api('POST', '/api/checks/' + encodeURIComponent(look.checkId) + '/shared-video').catch(() => {});
   };
 
@@ -602,7 +623,8 @@ export async function openShareVideo(look) {
       finally { state.sharing = false; }
     } }, [icon('share'), t('video.share')]) : null;
     const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name, onclick: () => { count(); if (!isIos()) toast(t('video.saved')); } }, [icon('clip'), t('video.save')]);
-    const hints = [t('video.hint')];
+    // Round 14: the pair's film is not the single look's, so it says what it actually is (opts.hint).
+    const hints = [opts.hint || t('video.hint')];
     if (result.ext === 'webm') hints.push(t('video.webm_hint'));
     if (isIos() && share) hints.push(t('video.ios_hint'));
     content.replaceChildren(
@@ -626,7 +648,10 @@ export async function openShareVideo(look) {
     const progress = paintMaking();
     controller = new AbortController();
     let result = null;
-    try { result = await renderShareVideo(look, { onProgress: progress, signal: controller.signal }); }
+    try {
+      const render = opts.render || renderShareVideo;
+      result = await render(look, { onProgress: progress, signal: controller.signal });
+    }
     catch (e) { if (!(e && e.name === 'AbortError')) console.warn('share video', e); }
     if (closed) return;
     if (result) paintVideo(result); else paintError();
@@ -651,4 +676,309 @@ export function shareVideoButton(look) {
     finally { busy = false; button.removeAttribute('aria-busy'); }
   });
   return button;
+}
+
+// ---------- Round 14 — before and after: the pair's film, and the sheet that offers both formats ----------
+//
+// Ten seconds, silent, vertical, encoded on the phone through the same encodeFilm as the 12-second one:
+//   0.0–2.4   the earlier look, full bleed, the BEFORE pill, its ring when the numbers are on
+//   2.4–4.8   the newer look takes its place, the AFTER pill, its ring
+//   4.8–7.9   the two side by side with the arrow between them and what changed on its card
+//   7.9–10.0  the end card the single film ends on: the mark, the wordmark, "Check the look.", the handle, the address
+// The numbers are a choice and never a property of the film: with pair.numbers false, no ring is drawn at any point and
+// the film is the two looks and the change. A look whose grade its author kept private can only be shared that way —
+// the server sent no number to anyone else, and the sheet below does not offer what it does not have.
+import { renderBeforeAfterCard, beforeAfterFromPost } from './sharecard.js';
+
+export const PAIR_DURATION = 10;
+const PAIR_CUT = { after: 2.4, both: 4.8, end: 7.9 };
+// The two-up, inside the safe column: 4:5 boxes with the labels under them, the change card below.
+const TWO = (() => {
+  const gap = 24;
+  const w = Math.round((COL.w - gap) / 2);
+  return { y: 520, w, h: Math.round(w * 5 / 4), gap, r: 28, ring: 62 };
+})();
+
+/** Everything the pair's film needs, measured once: the two photos, the strings, the change's lines, the end card's parts. */
+function planPair(pair, s, before, after, wordmark) {
+  const lang = pair.language || getLocale();
+  const dir = rtlLanguage(lang) ? 'rtl' : 'ltr';
+  const measure = document.createElement('canvas').getContext('2d');
+  const numbers = !!pair.numbers && pair.before.score !== null && pair.before.score !== undefined
+    && pair.after.score !== null && pair.after.score !== undefined;
+
+  // What changed: the person's own words, wrapped to the column, at most three lines and never the tip.
+  let change = { size: 46, lines: [] };
+  for (const size of [46, 42, 38, 34]) {
+    measure.font = '700 ' + size + 'px ' + DISPLAY;
+    if ('letterSpacing' in measure) measure.letterSpacing = '-0.5px';
+    const lines = wrap(measure, pair.change || '', COL.w - 120, 3);
+    change = { size, lines };
+    if (lines.length <= 2) break;
+  }
+  change.lineH = Math.round(change.size * 1.22);
+  change.y = TWO.y + TWO.h + 150;
+  change.h = change.lines.length ? 104 + (change.lines.length - 1) * change.lineH + 56 : 0;
+
+  const layers = { before: layer(), after: layer(), stage: layer() };
+  coverImage(layers.before.getContext('2d'), before, 0, 0, W, H);
+  coverImage(layers.after.getContext('2d'), after, 0, 0, W, H);
+  drawStage(layers.stage.getContext('2d'));
+
+  return {
+    dir, lang, s, numbers, images: { before, after }, layers, wordmark, change,
+    scores: { before: pair.before.score, after: pair.after.score },
+    labels: { before: s('share.before_label').toUpperCase(), after: s('share.after_label').toUpperCase() },
+    changeLabel: s('share.change_label').toUpperCase(),
+    title: s('share.before_after_title'),
+    outOf: s('result.out_of'),
+    cta: s('video.check_look'),
+    handle: pair.user && pair.user.handle ? '@' + pair.user.handle : '',
+    host: publicLinkLine(pair),
+    mark: { canvas: Object.assign(document.createElement('canvas'), { width: MARK.box, height: MARK.box }), flame: new Path2D(MARK.flame) }
+  };
+}
+
+/** One look, full bleed, with its pill and — when the numbers are on — its ring at the column's centre. */
+function drawPairFull(ctx, plan, which, time, from, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const zoom = 1 + 0.05 * span(time, from, from + 2.4);
+  ctx.drawImage(plan.layers[which], W / 2 - (W / 2) * zoom, H / 2 - (H / 2) * zoom, W * zoom, H * zoom);
+  const scrim = ctx.createLinearGradient(0, H * 0.55, 0, H);
+  scrim.addColorStop(0, 'rgba(11, 11, 15, 0)'); scrim.addColorStop(1, 'rgba(11, 11, 15, 0.6)');
+  ctx.fillStyle = scrim; ctx.fillRect(0, H * 0.55, W, H * 0.45);
+  drawWordmark(ctx, plan, SAFE.x, SAFE.y, 40, easeOut(span(time, from + 0.2, from + 0.6)), true);
+  const pillIn = easeOut(span(time, from + 0.1, from + 0.5));
+  drawPill(ctx, plan.labels[which], plan.dir === 'rtl' ? COL.x + COL.w : COL.x, 176 + (1 - pillIn) * 24, 64, plan.dir, pillIn);
+  if (plan.numbers) {
+    const ring = { cx: CX, cy: 1180, r: 150, stroke: 20 };
+    const drawn = easeOut(span(time, from + 0.4, from + 1.4));
+    drawRing(ctx, ring, drawn, Math.round(plan.scores[which] * easeOut(span(time, from + 0.4, from + 1.3))), plan, easeOut(span(time, from + 0.4, from + 0.7)));
+  }
+  ctx.restore();
+}
+
+/** Seconds 4.8–7.9: the two looks side by side on the stage, the arrow between them, what changed under them. */
+function drawPairTogether(ctx, plan, time) {
+  const rise = easeOut(span(time, PAIR_CUT.both, PAIR_CUT.both + 0.5));
+  ctx.drawImage(plan.layers.stage, 0, 0);
+  const rtl = plan.dir === 'rtl';
+  const startX = COL.x;
+  const endX = COL.x + TWO.w + TWO.gap;
+  const boxes = [
+    { which: 'before', x: rtl ? endX : startX, at: PAIR_CUT.both },
+    { which: 'after', x: rtl ? startX : endX, at: PAIR_CUT.both + 0.2 }
+  ];
+  text(ctx, fit(ctx, plan.title, COL.w), CX, 380, {
+    font: '700 58px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: strongDir(plan.title) || plan.dir, align: 'center', tracking: '-0.5px'
+  });
+  for (const box of boxes) {
+    const p = easeOut(span(time, box.at, box.at + 0.45));
+    if (p <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = p;
+    ctx.translate(0, (1 - p) * 30);
+    ctx.save();
+    roundedRect(ctx, box.x, TWO.y, TWO.w, TWO.h, TWO.r);
+    ctx.clip();
+    coverImage(ctx, plan.images[box.which], box.x, TWO.y, TWO.w, TWO.h);
+    ctx.restore();
+    if (plan.numbers) {
+      const cx = rtl ? box.x + TWO.ring - 6 : box.x + TWO.w - TWO.ring + 6;
+      const cy = TWO.y + TWO.h - TWO.ring + 6;
+      drawRing(ctx, { cx, cy, r: TWO.ring, stroke: 10 }, 1, plan.scores[box.which], plan, 1);
+    }
+
+    const font = '700 ' + (rtl ? 30 : 27) + 'px ' + BODY;
+    ctx.font = font;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = rtl ? '0.6px' : '2.5px';
+    text(ctx, fit(ctx, plan.labels[box.which], TWO.w), box.x + TWO.w / 2, TWO.y + TWO.h + 58, {
+      font, color: COLOR.ink2, dir: plan.dir, align: 'center', tracking: rtl ? '0.6px' : '2.5px'
+    });
+    ctx.restore();
+  }
+
+  // The arrow between the boxes: the one gradient, pointing the way the language reads.
+  const arrow = easeOut(span(time, PAIR_CUT.both + 0.45, PAIR_CUT.both + 0.9));
+  if (arrow > 0) {
+    ctx.save();
+    ctx.globalAlpha = arrow;
+    ctx.translate(CX, TWO.y + TWO.h / 2);
+    if (rtl) ctx.scale(-1, 1);
+    ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fillStyle = COLOR.bg; ctx.fill();
+    ctx.strokeStyle = theGradient(ctx, -20, -20, 40, 40);
+    ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-13, 0); ctx.lineTo(11, 0);
+    ctx.moveTo(2, -9); ctx.lineTo(11, 0); ctx.lineTo(2, 9);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  const { change } = plan;
+  if (change.lines.length && rise > 0) {
+    const p = easeOut(span(time, PAIR_CUT.both + 0.7, PAIR_CUT.both + 1.2));
+    if (p <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = p;
+    ctx.translate(0, (1 - p) * 30);
+    roundedRect(ctx, COL.x, change.y, COL.w, change.h, 32);
+    ctx.fillStyle = 'rgba(21, 21, 28, 0.94)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 2; ctx.stroke();
+    const barX = rtl ? COL.x + COL.w - 32 - 8 : COL.x + 32;
+    roundedRect(ctx, barX, change.y + 30, 8, change.h - 60, 4);
+    ctx.fillStyle = theGradient(ctx, barX, change.y + 30, 8, change.h - 60);
+    ctx.fill();
+    const textX = rtl ? COL.x + COL.w - 60 : COL.x + 60;
+    text(ctx, plan.changeLabel, textX, change.y + 56, {
+      font: '700 ' + (rtl ? 30 : 26) + 'px ' + BODY, color: COLOR.accent, dir: plan.dir, tracking: rtl ? '0.6px' : '2.5px'
+    });
+    change.lines.forEach((line, i) => text(ctx, line, textX, change.y + 104 + 30 + i * change.lineH, {
+      font: '700 ' + change.size + 'px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: strongDir(line) || plan.dir, tracking: '-0.5px'
+    }));
+    ctx.restore();
+  }
+}
+
+/**
+ * One frame of the pair's film at `time` seconds: a pure function of the time and the plan, like drawFrame. The end
+ * card is the single film's, drawn with the clock shifted so its 10.0–11.0 beats land in this film's last two seconds.
+ */
+export function drawPairFrame(ctx, time, plan) {
+  if (time < PAIR_CUT.both) {
+    drawPairFull(ctx, plan, 'before', time, 0, 1 - span(time, PAIR_CUT.after, PAIR_CUT.after + 0.4));
+    drawPairFull(ctx, plan, 'after', time, PAIR_CUT.after, span(time, PAIR_CUT.after, PAIR_CUT.after + 0.4));
+  } else if (time < PAIR_CUT.end + 0.15) {
+    drawPairTogether(ctx, plan, time);
+  }
+  const end = span(time, PAIR_CUT.end - 0.25, PAIR_CUT.end);
+  if (end > 0) {
+    ctx.save();
+    ctx.globalAlpha = end;
+    drawEndScene(ctx, time + (10.0 - PAIR_CUT.end), plan);
+    ctx.restore();
+  }
+}
+
+/**
+ * Renders the pair's film and resolves to the same result object renderShareVideo does. Throws NotSupportedError with
+ * no encoder, AbortError when cancelled, and a plain Error when either photo is missing: half a pair is not a pair.
+ */
+export async function renderBeforeAfterVideo(pair, opts) {
+  opts = opts || {};
+  const onProgress = opts.onProgress || (() => {});
+  const cancelled = () => !!(opts.signal && opts.signal.aborted);
+  const started = performance.now();
+  const encoding = await pickEncoding(30);
+  if (!encoding) { const e = new Error('no video encoder'); e.name = 'NotSupportedError'; throw e; }
+  if (!pair.before || !pair.after || !pair.before.imageUrl || !pair.after.imageUrl) throw new Error('before/after video: no pair');
+  const s = await stringsFor(pair.language);
+  const revokes = [];
+  try {
+    const [before, after, wordmark] = await Promise.all([
+      loadImage(pair.before.imageUrl, revokes),
+      loadImage(pair.after.imageUrl, revokes),
+      loadImage('/brand/wordmark.svg', revokes).catch((e) => { console.warn('before/after video: wordmark', e); return null; }),
+      loadFonts()
+    ]);
+    if (cancelled()) throw abortError();
+    const plan = planPair(pair, s, before, after, wordmark);
+    return await encodeFilm({ plan, draw: drawPairFrame, duration: PAIR_DURATION, rehearseAt: [1.0, 3.4, 5.6], encoding, started, cancelled, onProgress });
+  } finally {
+    for (const url of revokes) URL.revokeObjectURL(url);
+  }
+}
+
+// ---------- the sheet: the pair, with the numbers or without them ----------
+
+/**
+ * "Share before / after" on a look that follows an earlier one. One sheet: the two looks as they will appear, the
+ * choice of carrying the two verdicts or no numbers at all, and the two formats (the story card and the film). The
+ * choice is the point of the whole thing — people may well want to share the decision rather than the grade — so it
+ * is a plain pair of chips, the plain one is always there, and the one with numbers only when there are numbers to
+ * show: a look whose grade is private has none, for its reader or for its card.
+ *
+ * Whatever is made is counted once, when it is actually shared or saved, through POST /api/posts/{id}/shared-after
+ * with withScores — two rows on the numbers page, so the owner can see which version people use. Nothing else is sent.
+ */
+export function openBeforeAfterShare(post) {
+  if (!post || !post.before) return null;
+  const pair = beforeAfterFromPost(post);
+  // The numbers can be carried when this reader has both of them — on your own look, always. A look whose grade you
+  // chose to keep starts on the version with no numbers: the choice was made once already, and this is the same one.
+  const canNumber = pair.numbers;
+  let numbers = canNumber && !post.scorePrivate;
+
+  const count = () => {
+    if (!post.isMine) return;   // the tally is the author's own act, and the route answers 404 to anyone else
+    api('POST', '/api/posts/' + encodeURIComponent(post.id) + '/shared-after', { withScores: numbers }).catch(() => {});
+  };
+  const withPair = () => ({ ...pair, numbers });
+
+  const chips = el('div', { class: 'ba-choice', role: 'group', 'aria-label': t('share.numbers_label') });
+  const paint = () => { for (const chip of chips.children) chip.setAttribute('aria-pressed', String((chip.dataset.numbers === 'true') === numbers)); };
+  const chip = (on, label) => {
+    const node = el('button', { type: 'button', class: 'chip', 'data-numbers': String(on), text: label, onclick: () => { numbers = on; paint(); } });
+    return node;
+  };
+  if (canNumber) chips.appendChild(chip(true, t('share.with_numbers')));
+  chips.appendChild(chip(false, t('share.without_numbers')));
+  paint();
+
+  const content = el('div', { class: 'stack ba-sheet' }, [
+    el('div', { class: 'ba-pair', 'aria-hidden': 'true' }, [
+      el('img', { src: pair.before.imageUrl, alt: '' }),
+      el('img', { src: pair.after.imageUrl, alt: '' })
+    ]),
+    el('p', { class: 'hint', text: t('share.before_after_hint') }),
+    post.scorePrivate ? el('p', { class: 'hint', id: 'ba-private', text: t('share.before_after_private') }) : null,
+    el('span', { class: 'label', text: t('share.numbers_label') }),
+    chips,
+    el('div', { class: 'sv-actions' }, [
+      el('button', {
+        type: 'button', class: 'btn', id: 'ba-card',
+        onclick: () => {
+          s.close();
+          openShareCard(withPair(), {
+            title: t('share.before_after_title'),
+            render: (look) => renderBeforeAfterCard(look),
+            onKept: count
+          });
+        }
+      }, [icon('card'), t('share.before_after_card')]),
+      el('button', {
+        type: 'button', class: 'btn btn-secondary', id: 'ba-video',
+        onclick: () => {
+          s.close();
+          const made = withPair();
+          openShareVideo(made, {
+            title: t('share.before_after_title'),
+            hint: t('share.before_after_video_hint'),
+            render: (look, o) => renderBeforeAfterVideo(look, o),
+            fallback: () => openShareCard(made, { title: t('share.before_after_title'), render: (look) => renderBeforeAfterCard(look), onKept: count }),
+            onKept: count
+          });
+        }
+      }, [icon('clip'), t('share.before_after_video')])
+    ])
+  ]);
+  ensurePairStyle();
+  const s = sheet({ title: t('share.before_after_title'), content });
+  s.panel.id = 'before-after-sheet';
+  return s;
+}
+
+let pairStyled = false;
+function ensurePairStyle() {
+  if (pairStyled) return;
+  pairStyled = true;
+  document.head.appendChild(el('style', { text: [
+    '.ba-sheet .ba-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }',
+    '.ba-sheet .ba-pair img { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 12px; background: var(--surface-2); }',
+    '.ba-sheet .ba-choice { display: flex; gap: 8px; flex-wrap: wrap; }',
+    '.ba-sheet .ba-choice .chip { min-block-size: 44px; }'
+  ].join('\n') }));
 }

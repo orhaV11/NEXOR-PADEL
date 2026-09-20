@@ -23,6 +23,13 @@ const CSS = `
 .lb-who .tag { margin-inline-start: 6px; vertical-align: middle; }
 .ch-hint { font-size: 13px; color: var(--ink-3); }
 .ch-form input[type="url"] { direction: ltr; }
+/* Round 14 - constraint challenges: the rule, stated plainly, right under the title. */
+.ch-rule { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.ch-rule .icon { flex: none; color: var(--accent); }
+.ch-rule .ch-rule-text { min-inline-size: 0; overflow-wrap: anywhere; unicode-bidi: plaintext; }
+.ch-rule .ch-rule-label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.ch-examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.ch-examples .chip { min-block-size: 44px; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -52,8 +59,26 @@ function byLine(c, extra) {
     avatar(brand, 'sm'),
     el('a', { class: 'ch-by', href: profilePath(brand.handle), text: t('challenges.by', { name: brand.name }) }),
     el('span', { class: 'tag', text: intentLabel(c.intent) }),
-    c.tag ? el('a', { class: 'tag accent', href: '#/tag/' + encodeURIComponent(c.tag), text: '#' + c.tag }) : null
+    c.tag ? el('a', { class: 'tag accent', href: '#/tag/' + encodeURIComponent(c.tag), text: '#' + c.tag }) : null,
+    // Round 14: a challenge with a rule says so where the intent tag is, so a list reads at a glance.
+    c.constraint ? el('span', { class: 'tag', 'data-kind': 'constraint', text: t('challenge.constraint_tag') }) : null
   ].concat(extra || []));
+}
+
+/**
+ * Round 14 - constraint challenges: the rule in the brand's own words, under the title. Null for an open hashtag
+ * challenge, which is what every challenge was until now, so callers append it unconditionally. Nothing enforces it:
+ * the words say what to do, entry is the same hashtag, and the community sees the looks.
+ */
+function ruleBlock(c) {
+  if (!c.constraint) return null;
+  return el('div', { class: 'ch-rule', 'data-constraint': c.id }, [
+    icon('check'),
+    el('div', { class: 'ch-rule-text' }, [
+      el('span', { class: 'ch-rule-label', text: t('challenge.rule_label') }),
+      el('span', { text: c.constraint })
+    ])
+  ]);
 }
 
 function prizeBlock(c) {
@@ -107,6 +132,7 @@ function challengeCard(c) {
     byLine(c, c.winnerPostId ? [el('span', { class: 'tag rose', text: t('challenges.winner') })] : null),
     el('a', { class: 'ch-title', href: challengePath(c.id) }, [el('h3', { class: 'challenge-title', text: c.title })]),
     countdown(c),
+    ruleBlock(c),
     prizeBlock(c),
     counts(c),
     top.length ? el('div', { class: 'thumbs' }, top.map((p) => el('a', { href: '#/post/' + encodeURIComponent(p.id), 'aria-label': lookLabel(p) }, [
@@ -265,8 +291,11 @@ register('challenge', async (root, params, ctx) => {
           winner ? el('span', { class: 'tag rose', text: t('challenges.winner') }) : null
         ]),
         el('div', { class: 'votes' }, [
-          t('post.votes', { n: fmtNumber(entry.votes === undefined ? 0 : entry.votes) }) + ' · ',
-          el('bdi', { dir: 'ltr', text: fmtNumber(entry.score) + t('result.out_of') })
+          // Round 14 - post the look, keep the grade: the votes are the board's currency and always show; the stylist's
+          // number is the author's, so an entry whose grade is private carries the votes alone.
+          t('post.votes', { n: fmtNumber(entry.votes === undefined ? 0 : entry.votes) }),
+          entry.score === null || entry.score === undefined ? null : ' · ',
+          entry.score === null || entry.score === undefined ? null : el('bdi', { dir: 'ltr', text: fmtNumber(entry.score) + t('result.out_of') })
         ])
       ]),
       voteControl(entry)
@@ -282,6 +311,7 @@ register('challenge', async (root, params, ctx) => {
       byLine(c),
       el('h1', { class: 'challenge-title', text: c.title }),
       countdown(c),
+      ruleBlock(c),
       el('div', {}, [el('h2', { text: t('challenges.brief') }), el('p', { class: 'lede', style: 'margin-block-start: 4px; white-space: pre-line; overflow-wrap: anywhere;', text: c.brief })]),
       prizeBlock(c),
       counts(c),
@@ -337,6 +367,15 @@ register('new-challenge', async (root, params, ctx) => {
   hashtag.addEventListener('input', () => { tagTouched = hashtag.value.trim().length > 0; });
   title.addEventListener('input', () => { if (!tagTouched) hashtag.value = '#' + title.value.toLowerCase().replace(/[^\p{L}\p{N}_]/gu, '').slice(0, 30); });
   const brief = el('textarea', { maxlength: '500', id: 'nc-brief', placeholder: t('newchallenge.brief_placeholder') });
+  // Round 14 - constraint challenges: a rule the brand states in its own words, or nothing at all, which is the open
+  // hashtag challenge every challenge was until now. The three chips fill the field in and are edited from there; the
+  // last of them leans on the wardrobe, which is why it is only ever a suggestion. Nothing enforces any of it: the
+  // rule is a sentence people answer with a look, and the community sees whether they did.
+  const rule = el('input', { type: 'text', maxlength: '140', id: 'nc-rule', autocomplete: 'off', placeholder: t('challenge.rule_placeholder') });
+  const examples = el('div', { class: 'ch-examples', role: 'group', 'aria-labelledby': 'nc-rule-label' }, ['same_piece', 'two_colours', 'not_worn'].map((key) => el('button', {
+    type: 'button', class: 'chip', 'data-example': key, text: t('challenge.rule_' + key),
+    onclick: () => { rule.value = t('challenge.rule_' + key); rule.focus(); rule.setSelectionRange(rule.value.length, rule.value.length); }
+  })));
   const prize = el('input', { type: 'text', maxlength: '200', id: 'nc-prize', placeholder: t('newchallenge.prize_placeholder'), autocomplete: 'off' });
   const prizeUrl = el('input', { type: 'url', maxlength: '500', id: 'nc-url', placeholder: 'https://', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
   const ends = el('input', { type: 'datetime-local', id: 'nc-ends' });
@@ -367,6 +406,7 @@ register('new-challenge', async (root, params, ctx) => {
           prize: prize.value.trim(),
           tag: hashtag.value.trim().replace(/^#/, '') || null,
           prizeUrl: prizeUrl.value.trim() || null,
+          constraint: rule.value.trim() || null,
           endsAt: when && !Number.isNaN(when.getTime()) ? when.toISOString() : null
         });
         navigate(challengePath(created.id));
@@ -382,6 +422,12 @@ register('new-challenge', async (root, params, ctx) => {
     el('div', { class: 'field' }, [el('label', { for: 'nc-tag', text: t('newchallenge.tag') }), hashtag, el('p', { class: 'hint', text: t('newchallenge.tag_hint') })]),
     el('div', { class: 'field' }, [el('span', { class: 'label', id: 'nc-intent-label', text: t('newchallenge.intent') }), chips]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-brief', text: t('newchallenge.brief') }), brief]),
+    el('div', { class: 'field' }, [
+      el('label', { for: 'nc-rule', id: 'nc-rule-label', text: t('challenge.rule') }),
+      rule,
+      el('p', { class: 'hint', text: t('challenge.rule_hint') }),
+      examples
+    ]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-prize', text: t('newchallenge.prize') }), prize]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-url', text: t('newchallenge.prize_url') }), prizeUrl]),
     el('div', { class: 'field' }, [el('label', { for: 'nc-ends', text: t('newchallenge.ends') }), ends, el('p', { class: 'hint', text: t('newchallenge.hint') })]),

@@ -925,3 +925,95 @@ back, the numbers page's invite block), `DigestTests` (the Sunday send and what 
 account with nothing to say, the signed unsubscribe, a forged and a swapped token, a configured secret, the welcome
 once, an unconfirmed address, no public origin, mail off) and `FunnelTests` (what the middleware counts and what it
 leaves alone, the fourteen days, today's conversion, the moderator gate, a claimed guest check).
+
+## Round 14 — the loop that makes the tenth check better than the first
+
+The thing a competitor cannot copy, because they do not hold this person's history. Three pieces: what happened with
+the tip, said in words that mean something; a second photo of the same look after the change, judged on its own merits;
+and a short profile of the clothes this person wears, which picks the *kind* of tip they get and never the number.
+
+**Four answers, not two.** Round 13 asked *Did the tip land?* and took a yes or a no. "I tried it and it worked", "I
+tried it and it did not", "that is not my style" and "I do not own that" are four different facts — success, failure,
+taste, availability — and only the typed one can teach anything. Under the tip there is now a row of four 44px taps and
+a Skip; a tap stores the answer at once, the optional one-line note follows, then thanks. `OutfitCheck.UsefulReason`
+holds one of `worked | didnt_work | not_my_style | dont_own` beside the Round 13 columns; only `worked` is a `Useful`
+yes, so the tip-landed rate on the numbers page keeps meaning exactly what it meant. *I do not own that* is the most
+valuable of the four: it means the tip should have used something already in the wardrobe, and it is the one signal that
+changes what the stylist is told next time.
+
+**"I tried it", and the integrity rule.** One action on a result remembers that check in the phone's `sessionStorage`,
+the person photographs the look again through the ordinary check flow, and the app shows the two results together:
+both scores, both tips, what changed in the combination, and *which do you prefer?*. The rule that makes it worth
+anything: **the second check is a real check.** It goes out through `POST /api/checks` with nothing of the first in it,
+the stylist is never told that a photo is an attempt at its own tip, and the pair is written only afterwards, once both
+verdicts exist. A score can never rise because somebody obeyed. `TriedTests` proves it on the recorded request: none of
+the first check's id, headline, vibe or tip is in the second's prompt, its user message is byte-for-byte the message a
+first-ever check makes, and a `beforeId` smuggled into the check form changes nothing, because the route has no door for
+it.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `POST /api/checks/{id}/useful` | `{ useful?: bool, reason?: string, note?: string }` | `200 { id, useful, usefulAt, note, reason }`. As Round 13, plus `reason`: one of the four (400 `error.reason_invalid` otherwise), which decides `useful` on its own. One of `reason` and `useful` is required (400 `error.useful_invalid`). Logged as `Useful: check {CheckId} yes\|no {reason}`, never the note |
+| `POST /api/checks/{id}/tried` | `{ beforeId }` | `201` `TriedPairDto`. Both checks must be the caller's own and `ok`. 404 `error.check_not_found` (either check, a missing `beforeId`, anyone else's), 400 `error.tried_same_check`, 400 `error.tried_order`, 400 `error.tried_not_scored`, 409 `error.tried_already` |
+| `POST /api/checks/{id}/tried/prefer` | `{ prefer: "before" \| "after" }` | `200` the pair. 400 `error.prefer_invalid`; the check's 404 when the pair is not theirs. Changes no score, ever |
+| `GET /api/users/me/tried` | — | `{ items: TriedPairDto[] }`, the caller's own pairs, newest first, at most 20 |
+
+`TriedPairDto` is `{ id, before, after, changed[], preferred, preferredAt, createdAt }`; each side is
+`{ id, intent, createdAt, score, intentMatch, headline, oneTip, reason, postId }`, and `changed[]` is
+`{ category, from, to }` per item category, computed here from the two stored verdicts — no model call, no opinion, and
+nothing about anybody. A check is at most one pair's *before* and at most one pair's *after* (two unique indexes).
+
+**The taste profile.** Built from the account's **own rows only**: which occasions it picks, the colours the stylist
+named on its own checks, the pieces and categories on its own posted looks, and the reasons it gave. Never another
+account's anything, never a hidden look, never a photo, and never a word about a body — every string is dropped when the
+rule‑1 filter (`OutfitAnalyzer.MentionsPerson`, all four languages) sees one, so the profile is about clothes and only
+clothes. It is a handful of short lines and a few counts, not an embedding.
+
+It reaches the stylist as one clearly-marked section appended **after** the rubric, capped at 900 characters, which says
+in its own words that it informs *which* tip is chosen and never the score:
+
+```
+WEARER'S TASTE (their own past checks, context only):
+- Most often dressing for: Casual.
+- Colours seen on their looks: white.
+- Answered 'I do not own that' 1 time(s): prefer pieces from the list above.
+- Tips they turned down: "Swap the running shoes for plain white leather sneakers.".
+- Their own words: "no white sneakers here".
+This section informs WHICH tip you choose, never the score. …
+```
+
+A tip's own text, and the note typed beside it, reach that section **only** for the two answers given without trying the
+tip — *not my style* and *I do not own that* — because those are the ones that say "stop giving me this kind of tip".
+What the person said about a tip they *tried* stays in its row, so an attempt can never ride in. Every quoted string is
+folded to one line, its quotes turned to single ones, cut (80 characters for a note, 60 for a tip, 40 for a piece) and
+labelled as context, never instructions. When the learning switch is off, or the profile is empty, or the caller is a
+guest, **nothing is sent** and the request is byte-for-byte the one this app sent before Round 14.
+
+**Nothing in it is a secret from its subject.** The card — *What OREVOSH has learned about your taste* — is on Settings
+and at the top of `#/checks`, and it shows the facts **and the literal advisory text**, word for word. Next to it, a
+switch that stops the learning and a button that clears it; both are honoured at once. Clearing draws a line at now:
+nothing from before it is ever read again, so the profile is empty on the next breath and the app learns again from what
+comes after. The checks and the looks themselves are the person's own history and are never touched.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `GET /api/users/me/taste` | — | `TasteCardDto`: `{ learning, clearedAt, empty, facts, advisory, lastWin }` |
+| `PATCH /api/users/me/taste` | `{ learning: bool }` | the card. 400 `error.taste_invalid` without the switch |
+| `DELETE /api/users/me/taste` | — | the card, cleared |
+
+**A reason to come back.** `lastWin` is the most recent check the person marked *worked*, within 30 days and with no
+more than two of their checks since — rare enough to stay meaningful. The app shows it as one line: *Last time you
+swapped the shoes — and you said it worked.* Only when true, only from their own rows.
+
+Client: `app/taste.js` holds all of it. `views/profile.js` mounts the card, the reason row, "I tried it" and the pair on
+`#/checks`; `views/settings.js` mounts the card with the switch and the clear. The result screen (`views/check.js`)
+calls `mountResult(container, check)` once after the tip and this module fills whichever of `#taste-win`,
+`#taste-reasons` and `#tried-action` it finds inside that container, appending its own nodes in that order when it finds
+none. i18n under `taste.` and `tried.` in all four files.
+
+Tests: `TasteTests` (each reason stored on its own and reaching the profile, an unknown reason refused and the Round 13
+body still working, the profile as the person's own rows with a blocked account's and a hidden look's excluded, an empty
+profile and a guest sending nothing, the request changed only in its own section, the switch and the clear both honoured,
+a hostile note that cannot escape its quotes or blow the prompt, the last win's window, and the string, colour and cap
+units) and `TriedTests` (no trace of the first in the second, the pair linked only after both verdicts, the score left
+alone, the rules, the preference, the list, and what changed).

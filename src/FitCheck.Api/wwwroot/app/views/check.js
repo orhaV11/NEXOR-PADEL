@@ -199,9 +199,9 @@ register('check', async (root) => {
 });
 
 /**
- * Where it is going: one chip is always pressed, and nothing can be checked until one is. Each chip also carries the one
- * word it contributes (data-intent), for the surfaces and the browser tests that still speak one; Formal is newer than
- * that list and carries none.
+ * Where it is going: nothing can be checked until one of these is pressed, and from then on exactly one always is. Each
+ * chip also carries the one word it contributes (data-intent), for the surfaces and the browser tests that still speak
+ * one word; Formal is newer than that list and carries none.
  */
 function occasionChips() {
   const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });

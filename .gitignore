@@ -32,3 +32,4 @@ __pycache__/
 
 # Workflow worktrees and local agent state
 .claude/
+keys/

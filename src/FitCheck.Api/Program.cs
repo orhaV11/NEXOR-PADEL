@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.DataProtection;
 
 // Maintenance commands share the process with the server but never start it: `--vapid`, `--doctor [--live]`,
 // `--stripe-check`, `--backup <dir> [--keep <n>]`, `--admin <handle>`, `--unadmin <handle>`, `--verify <handle>`,
@@ -334,6 +335,34 @@ builder.Services.AddHttpClient(StripeClient.HttpClientName, client =>
     .RedactLoggedHeaders(["Authorization"]);
 builder.Services.AddSingleton<StripeClient>();
 
+// The keys that encrypt the session cookie, kept beside the database. Without this they go to $HOME/.aspnet inside the
+// container, which a deploy throws away: everyone signed in on a phone is silently signed out by the next `fly deploy`,
+// and with mail unconfigured "forgot password" cannot bring them back. Beside the database means on the volume, and
+// outside Storage:Root so a backup does not copy them with the photos. The application name is a fixed literal on
+// purpose — the default discriminator is the content root path, so a WORKDIR change would quietly rotate every key.
+var keyRing = Path.Combine(
+    Path.GetDirectoryName(connection.DataSource) is { Length: > 0 } dataDir ? dataDir : builder.Environment.ContentRootPath,
+    "keys");
+Directory.CreateDirectory(keyRing);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keyRing))
+    .SetApplicationName("orevosh");
+
+// Text is compressed before it goes out. Fly's edge does not do it for us, and the shell is about 710 KB of JavaScript,
+// CSS and JSON — several seconds on a phone's connection before the first screen, and every byte of it squeezes to
+// roughly a fifth. Only the types listed compress: a photo, a clip and the share video are already compressed formats,
+// and running them through again costs CPU to make them slightly bigger. Brotli first, gzip for anything that cannot
+// take it. This sits before the static files so it covers them and every JSON answer below.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes =
+    [
+        "text/html", "text/css", "text/plain", "text/javascript", "application/javascript",
+        "application/json", "application/manifest+json", "image/svg+xml", "application/xml", "text/xml"
+    ];
+});
+
 // Cookie sessions: HttpOnly, SameSite=Strict, Secure whenever the request came in over https (the tunnel does).
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -581,6 +610,9 @@ app.UseRateLimiter();
 // day, in Counter rows (Services/Funnel.cs). Before the static files, since a landing page is one and would otherwise
 // never reach a handler. No cookie, no address, nothing off this machine: a day's number and nothing that names a person.
 app.Use(Funnel.Count);
+
+// Compression before the static files, so it covers them and every JSON answer below.
+app.UseResponseCompression();
 
 // Only wwwroot is served. Photos live under Storage:Root, which is outside it; a post is the only door to one.
 app.UseDefaultFiles();

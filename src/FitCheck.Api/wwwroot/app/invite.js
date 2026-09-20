@@ -9,13 +9,16 @@
 //   3. A look's public address (/look/<id>), for "Copy link" and the share sheet on a posted look.
 //
 // Loaded at boot because views/post.js imports it, which main.js imports; capture() runs on import, before any view.
-import { state, t, el, sheet, toast, copyText } from './core.js';
+import { state, t, el, sheet, toast, copyText, VIA_SHARE, configuredOrigin, linkOrigin, publicLookUrl, inviteUrl, lookInviteUrl, shareLookUrl } from './core.js';
+
+// The link builders moved to core.js so the share button can reach them without an await (see shareLookUrl there).
+// They are re-exported from here because this is where they were, and every caller still says invite.js.
+export { VIA_SHARE, configuredOrigin, linkOrigin, publicLookUrl, inviteUrl, lookInviteUrl, shareLookUrl };
 
 const KEY = 'orevosh.invite';
 /** The shape a handle has (AuthEndpoints' own regex): anything else in ?via is somebody's noise. */
 const HANDLE = /^[\p{L}\p{N}_.]{2,40}$/u;
 /** The reserved value that marks an arrival from a share card or a share video rather than from a person. */
-export const VIA_SHARE = 'share';
 
 function read() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
 function write(handle) { try { localStorage.setItem(KEY, handle); } catch (e) { /* private mode */ } }
@@ -46,36 +49,6 @@ export function takeInvite() {
 
 /** The invite kept for this browser, without spending it (the welcome line on the signup screen could read it). */
 export const pendingInvite = () => read() || null;
-
-/** The origin the server publishes for itself (/api/config publicOrigin), or '' when it publishes none. */
-export function configuredOrigin() {
-  const configured = state.config && state.config.publicOrigin;
-  const origin = typeof configured === 'string' ? configured.trim().replace(/\/+$/, '') : '';
-  if (!origin) return '';
-  try { return new URL(origin).origin; } catch (e) { return ''; }
-}
-
-/**
- * The origin a link made inside the app carries: the configured one, else this browser's own. A page the person is
- * looking at is an honest address to copy; only the share card and the share video refuse to guess (they are files that
- * travel, and a localhost line on a story would be a lie).
- */
-export const linkOrigin = () => configuredOrigin() || location.origin;
-
-/** A look's public address: the page a share lands on, readable with no app and no account. */
-export const publicLookUrl = (postId) => linkOrigin() + '/look/' + postId;
-
-/** A person's invite link, and the same link with a look on it when they are sharing one. */
-export const inviteUrl = (handle) => linkOrigin() + '/?via=' + encodeURIComponent(handle);
-export const lookInviteUrl = (postId, handle) => publicLookUrl(postId) + '?via=' + encodeURIComponent(handle);
-
-/**
- * The link a look travels on: the sharer's own invite when they are signed in (a look that travels is also an invite,
- * and that is the better signal of the two), and the plain share marker when nobody is signed in — so the numbers page
- * can tell an arrival that came off a share from one that came off a person.
- */
-export const shareLookUrl = (postId) =>
-  (state.me ? lookInviteUrl(postId, state.me.handle) : publicLookUrl(postId) + '?via=' + VIA_SHARE);
 
 /** The address as a person reads it on a button: no scheme, no trailing slash. */
 export const pretty = (url) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');

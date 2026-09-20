@@ -964,7 +964,9 @@ function openPostSheet(area, result) {
     }
   });
 
-  requestAnimationFrame(() => { if (document.contains(caption)) { caption.focus(); caption.setSelectionRange(caption.value.length, caption.value.length); } });
+  // The caption is deliberately NOT focused. Focusing it raises the keyboard the moment the sheet opens, and on a phone
+  // the keyboard covers the bottom of a sheet that is anchored to the bottom — which is where "Post it" is. The person
+  // taps the caption when they want to write; the sheet gets out of the keyboard's way when they do (sheet(), core.js).
 }
 
 function animateScore(node, target) {

@@ -597,8 +597,18 @@ let openSheetNode = null;
 export function sheet(opts) {
   closeSheet();
   const previouslyFocused = document.activeElement;
-  const backdrop = el('div', { class: 'sheet-backdrop', onclick: () => close() });
-  const panel = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': opts.title || '' }, [
+  // A tap outside closes the sheet — unless a field inside it has focus, when that tap is almost always someone trying
+  // to put the keyboard away. Closing there would throw away a caption, the tagged pieces and the challenge tag with no
+  // warning, so the first tap only drops the keyboard and the second one closes.
+  const backdrop = el('div', { class: 'sheet-backdrop', onclick: () => {
+    const focused = document.activeElement;
+    if (focused && panel.contains(focused) && focused.matches('input, textarea, select, [contenteditable="true"]')) {
+      focused.blur();
+      return;
+    }
+    close();
+  } });
+  const panel = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', tabindex: '-1', 'aria-label': opts.title || '' }, [
     el('div', { class: 'handle', 'aria-hidden': 'true' }),
     opts.title ? el('h3', { text: opts.title }) : null,
     opts.content || null
@@ -630,12 +640,32 @@ export function sheet(opts) {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   };
   document.addEventListener('keydown', onKey);
-  const first = panel.querySelector('[data-autofocus]') || focusables()[0];
-  if (first) requestAnimationFrame(() => { if (!closed) first.focus({ preventScroll: true }); });
+  // Focus only where a sheet asked for it. Focusing the first field by default raises the phone's keyboard as the sheet
+  // arrives, and a keyboard over a sheet anchored to the bottom of the screen hides its buttons. The panel itself takes
+  // focus instead, so the screen reader still lands inside the dialog and the Tab trap below still has somewhere to start.
+  const first = panel.querySelector('[data-autofocus]') || panel;
+  requestAnimationFrame(() => { if (!closed) first.focus({ preventScroll: true }); });
+
+  // Where the keyboard is, in pixels of screen it has taken from the bottom. iOS never resizes the layout viewport for
+  // the keyboard and Chrome shrinks only the visual one, so a fixed bottom sheet has no idea it is covered: the CSS
+  // reads --kb to lift AND shorten itself (lifting alone would push the top off-screen). Zoomed in, the numbers describe
+  // the pinch rather than the keyboard, so nothing moves. visualViewport is iOS 13+ and Chrome, and where it is missing
+  // this is simply the behaviour it always had.
+  const vv = window.visualViewport;
+  const onViewport = () => {
+    const covered = vv.scale > 1 ? 0 : Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    panel.style.setProperty('--kb', Math.round(covered) + 'px');
+  };
+  if (vv) {
+    vv.addEventListener('resize', onViewport);
+    vv.addEventListener('scroll', onViewport);
+    onViewport();
+  }
   function close(immediate) {
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKey);
+    if (vv) { vv.removeEventListener('resize', onViewport); vv.removeEventListener('scroll', onViewport); }
     for (const node of behind) node.inert = false;
     if (openSheetNode && openSheetNode.panel === panel) openSheetNode = null;
     document.body.classList.remove('sheet-open');
@@ -890,12 +920,47 @@ export async function toggleSave(post, button) {
   } catch (e) { post.saved = was; toast(e.message); }
   if (button) { button.setAttribute('aria-pressed', String(post.saved)); button.setAttribute('aria-label', post.saved ? t('post.saved') : t('post.save')); }
 }
-export function postUrl(post) { return location.origin + '/#/post/' + post.id; }
+/** The reserved ?via value marking an arrival from a share rather than from a person (invite.js re-exports it). */
+export const VIA_SHARE = 'share';
+
+/** The origin the server publishes for itself (/api/config publicOrigin), or '' when it publishes none. */
+export function configuredOrigin() {
+  const configured = state.config && state.config.publicOrigin;
+  const origin = typeof configured === 'string' ? configured.trim().replace(/\/+$/, '') : '';
+  if (!origin) return '';
+  try { return new URL(origin).origin; } catch (e) { return ''; }
+}
+
+/**
+ * The origin a link made inside the app carries: the configured one, else this browser's own. A page the person is
+ * looking at is an honest address to copy; only the share card and the share video refuse to guess (they are files that
+ * travel, and a localhost line on a story would be a lie).
+ */
+export const linkOrigin = () => configuredOrigin() || location.origin;
+
+/** A look's public address: the page a share lands on, readable with no app and no account. */
+export const publicLookUrl = (postId) => linkOrigin() + '/look/' + postId;
+
+/** A person's invite link, and the same link with a look on it when they are sharing one. */
+export const inviteUrl = (handle) => linkOrigin() + '/?via=' + encodeURIComponent(handle);
+export const lookInviteUrl = (postId, handle) => publicLookUrl(postId) + '?via=' + encodeURIComponent(handle);
+
+/**
+ * The link a look travels on: the sharer's own invite when they are signed in (a look that travels is also an invite,
+ * and that is the better signal of the two), and the plain share marker when nobody is signed in — so the numbers page
+ * can tell an arrival that came off a share from one that came off a person.
+ *
+ * These five live in core.js rather than invite.js because sharePost below needs them with no await in front: WebKit
+ * gives a tap a few moments of "user activation" and navigator.share must be called inside it, so a dynamic import here
+ * would cost the share sheet on an iPhone and copy a link instead, silently. invite.js re-exports them all.
+ */
+export const shareLookUrl = (postId) =>
+  (state.me ? lookInviteUrl(postId, state.me.handle) : publicLookUrl(postId) + '?via=' + VIA_SHARE);
 export async function sharePost(post) {
   if (state.sharing) return;
   state.sharing = true;
   try {
-    const url = postUrl(post);
+    const url = shareLookUrl(post.id);
     // Round 14: a look whose grade is private is shared as a look, never as a number the sentence would give away.
     const text = post.score === null || post.score === undefined
       ? t('share.post_text_plain', { name: post.user.name, intent: intentLabel(post.intent) })
@@ -956,7 +1021,7 @@ export function openPostMenu(post, opts) {
     { icon: 'share', text: t('post.share'), onclick: () => sharePost(post) },
     // The story card is drawn by its own module, loaded on first use (it imports this one, so the import is lazy).
     { icon: 'card', text: t('sharecard.action'), onclick: () => import('./sharecard.js').then((m) => m.openShareCard(m.lookFromPost(post))) },
-    { icon: 'link', text: t('common.copy_link'), onclick: () => copyText(postUrl(post), t('post.copied')) },
+    { icon: 'link', text: t('common.copy_link'), onclick: () => copyText(shareLookUrl(post.id), t('post.copied')) },
     { icon: 'bookmark', text: post.saved ? t('post.unsave') : t('post.save'), onclick: () => toggleSave(post, opts.saveButton) },
     canFeature ? { icon: 'sparkle', text: t('post.feature'), onclick: async () => { if (await featurePost(post, true) && opts.onChange) opts.onChange(); } } : null,
     featuredByMe ? { icon: 'sparkle', text: t('post.unfeature'), onclick: async () => { if (await featurePost(post, false) && opts.onChange) opts.onChange(); } } : null,

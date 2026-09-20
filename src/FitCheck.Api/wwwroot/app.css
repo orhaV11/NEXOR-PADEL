@@ -703,7 +703,10 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
   background: var(--grad) top / 100% 3px no-repeat, var(--surface);
   border-start-start-radius: 24px; border-start-end-radius: 24px;
   box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
-  padding: 13px 16px calc(16px + var(--safe-b)); max-block-size: 88vh; overflow-y: auto; overscroll-behavior: contain; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding: 13px 16px calc(16px + var(--safe-b)); overflow-y: auto; overscroll-behavior: contain; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* --kb is how much of the screen the phone's keyboard has taken (set by sheet() in core.js, 0 when it is down). The
+     sheet sits above it and gives up the same height, so its buttons stay on screen and its top does not leave it. */
+  inset-block-end: var(--kb, 0px); max-block-size: 88vh; max-block-size: calc(88dvh - var(--kb, 0px));
 }
 .sheet > * + * { margin-block-start: 14px; }
 .sheet .handle { inline-size: 36px; block-size: 4px; border-radius: var(--pill); background: var(--line); margin-inline: auto; margin-block-end: 6px; }

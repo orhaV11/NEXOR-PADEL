@@ -285,14 +285,28 @@ function wordmark() {
   return node;
 }
 
-/** #tags and @mentions become links; everything else stays text. known (optional) limits mention links to accounts that resolved. */
+/**
+ * #tags and @mentions become links; everything else stays text. known (optional) limits mention links to accounts that
+ * resolved.
+ *
+ * The character before a token is tested in code rather than in a lookbehind. A lookbehind would read better, but
+ * Safari only learned to parse one in 16.4, and an unparseable regex LITERAL is a syntax error in this module — the
+ * module every other module imports — so an iPhone that stopped at iOS 15 (a 7 or older) would open a dark, empty
+ * page instead of the app. Matching the character instead of testing it would be wrong: a mention may end in a dot
+ * ("@noa." is one token), and that same dot is what lets the next token start, so consuming it swallows the tag in
+ * "@noa.#fit". Nothing can start inside a token — neither character class holds a # or an @ — so skipping a
+ * token whose boundary fails cannot hide another.
+ */
 export function richCaption(text, known) {
   const frag = document.createDocumentFragment();
-  const re = /(?<![\p{L}\p{N}_#@])(#[\p{L}\p{N}_]{2,30}|@[\p{L}\p{N}_.]{2,40})/gu;
+  const re = /#[\p{L}\p{N}_]{2,30}|@[\p{L}\p{N}_.]{2,40}/gu;
+  const glued = /[\p{L}\p{N}_#@]/u;
   const allowed = known ? new Set(known.map((m) => (m.handle || m).toLowerCase())) : null;
   let last = 0;
   for (const m of (text || '').matchAll(re)) {
-    if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+    const at = m.index;
+    if (at > 0 && glued.test(text[at - 1])) continue;
+    if (at > last) frag.appendChild(document.createTextNode(text.slice(last, at)));
     const token = m[0];
     if (token[0] === '#') frag.appendChild(el('a', { href: '#/tag/' + encodeURIComponent(token.slice(1).toLowerCase()), text: token }));
     else {
@@ -303,7 +317,7 @@ export function richCaption(text, known) {
         if (handle.length < token.length - 1) frag.appendChild(document.createTextNode(token.slice(1 + handle.length)));
       }
     }
-    last = m.index + token.length;
+    last = at + token.length;
   }
   if (last < (text || '').length) frag.appendChild(document.createTextNode(text.slice(last)));
   return frag;

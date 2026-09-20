@@ -201,6 +201,26 @@ function checkClientModules() {
   fs.rmSync(scratch, { force: true });
   assert.strictEqual(broken.length, 0, 'client modules the browser cannot parse:\n  ' + broken.join('\n  '));
 
+  // Node and Chromium parse things an iPhone does not, and a regex literal an engine cannot parse is a SYNTAX error in
+  // the module holding it — the app never starts, on that phone, with no message. Node cannot catch these for us, so
+  // they are read out of the source. The version beside each one is the Safari that learned it; the oldest iPhone worth
+  // supporting is the oldest one still sold or still getting security fixes, which is well below 16.4.
+  const TOO_NEW = [
+    [/\(\?<[=!]/, 'a regex lookbehind — Safari 16.4; an iPhone 7 stops at iOS 15'],
+    [/\/[dgimsuy]*v[dgimsuy]*(?=[;,)\s.])/, "a regex v flag — Safari 17"],
+    [/^\s*static\s*\{/m, 'a static initialisation block — Safari 16.4'],
+  ];
+  const tooNew = [];
+  for (const file of files) {
+    if (file.includes(path.sep + 'vendor' + path.sep)) continue;   // third-party, shipped as published
+    const source = fs.readFileSync(file, 'utf8');
+    for (const [pattern, why] of TOO_NEW) {
+      const line = source.split('\n').findIndex((l) => pattern.test(l));
+      if (line >= 0) tooNew.push(path.relative(root, file) + ':' + (line + 1) + ' uses ' + why);
+    }
+  }
+  assert.strictEqual(tooNew.length, 0, 'client code an older iPhone cannot parse (the app would open blank there):\n  ' + tooNew.join('\n  '));
+
   for (const file of files.concat(fs.readdirSync(path.join(root, 'i18n')).map((f) => path.join(root, 'i18n', f)))) {
     if (!file.endsWith('.json')) continue;
     try { JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { assert.fail(path.relative(root, file) + ' is not JSON: ' + e.message); }

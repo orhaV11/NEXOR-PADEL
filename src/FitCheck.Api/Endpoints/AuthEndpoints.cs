@@ -204,6 +204,10 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, birthError));
         }
 
+        // Round 13 — the growth loop: the handle an invite link carried, when it names an account that may invite.
+        var inviter = await ResolveInviterAsync(db, body.InvitedBy, handleLower, ct);
+
+        var now = DateTime.UtcNow;
         var user = new AppUser
         {
             Id = Guid.NewGuid(),
@@ -214,7 +218,8 @@ public static partial class AuthEndpoints
             Confirmed16Plus = true,
             BirthDate = birthDate!.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             PreferredLanguage = language,
-            CreatedAt = DateTime.UtcNow
+            InvitedByUserId = inviter?.Id,
+            CreatedAt = now
         };
         user.PasswordHash = hasher.HashPassword(user, password);
         db.Users.Add(user);
@@ -228,8 +233,47 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status409Conflict, localizer.Get(language, "error.handle_taken"));
         }
 
+        // Round 13: an accepted invite gives both sides one more check today (Services/Spend.cs reads the Counter rows).
+        // After the save, so a refused signup never hands out an allowance, and never fatal: a lost bonus is not a lost account.
+        if (inviter is not null)
+        {
+            try
+            {
+                await Spend.GrantBonusAsync(db, inviter.Id, now, ct);
+                await Spend.GrantBonusAsync(db, user.Id, now, ct);
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                // The account exists and is signed in; the bonus is a nicety, never a failed signup.
+            }
+        }
+
         await Sessions.SignInAsync(context, user);
         return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options, statusCode: StatusCodes.Status201Created);
+    }
+
+    /// <summary>
+    /// Round 13 — the growth loop: the account an invite link named, or null. The handle must have the shape a handle
+    /// has, must belong to an account that exists and is not suspended, and must not be the one being registered — a
+    /// self-invite is one person minting an extra check. Nothing here ever refuses a signup: the person following an
+    /// invite link did not choose the handle in it, and a stale link must not stand between them and an account, so a
+    /// handle that does not resolve is simply not an invite.
+    /// </summary>
+    public static async Task<AppUser?> ResolveInviterAsync(AppDbContext db, string? invitedBy, string newHandleLower, CancellationToken ct)
+    {
+        var handle = invitedBy?.Trim() ?? "";
+        if (handle.Length == 0 || !HandleRegex().IsMatch(handle))
+        {
+            return null;
+        }
+
+        var lower = handle.ToLowerInvariant();
+        if (lower == newHandleLower)
+        {
+            return null;
+        }
+
+        return await db.Users.FirstOrDefaultAsync(u => u.HandleLower == lower && !u.Suspended, ct);
     }
 
     public const int MinimumAge = 16;

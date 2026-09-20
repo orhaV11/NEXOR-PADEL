@@ -13,7 +13,13 @@ public sealed record ErrorDto(string Error);
 /// client's own calendar date ("yyyy-MM-dd", optional), the day the sixteen rule is measured on when it is within a day
 /// of the server's UTC date; missing, unreadable or further off, the UTC date is used.
 /// </summary>
-public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null, string? Today = null);
+/// <remarks>
+/// Round 13 — the growth loop: InvitedBy is the handle an invite link carried (<c>/?via=&lt;handle&gt;</c>), kept by the
+/// client and sent once, here, at the end of the body. Optional, and never a reason to refuse a signup: an unknown,
+/// suspended or self-referring handle is simply ignored (AuthEndpoints.ResolveInviterAsync).
+/// </remarks>
+public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null, string? Today = null,
+    string? InvitedBy = null);
 
 public sealed record LoginRequest(string? Handle, string? Password);
 
@@ -431,7 +437,9 @@ public sealed record PilotMetricsDto(
     // Round 13: did the tip land? The only number that says whether the stylist is good (FeedbackEndpoints fills it).
     StylistMetricsDto? Stylist = null,
     // Round 13 — money: today's model spend, the ceiling and the 14-day series (SpendMeter fills it).
-    SpendMetricsDto? Spend = null);
+    SpendMetricsDto? Spend = null,
+    // Round 13 — the growth loop: the fourteen days of the funnel and the invites (Services/Funnel.cs fills it).
+    FunnelMetricsDto? Funnel = null);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
@@ -480,3 +488,37 @@ public sealed record SpendMetricsDto(
     List<SpendDay> Series,
     bool AlertWebhook,
     bool AlertEmail);
+// ---- Round 13 — the growth loop: the funnel, the invites ----
+
+/// <summary>
+/// One day of the funnel, in the order a person walks it: a landing view, a guest check, a signup, a first post, an
+/// arrival on a look's public page (and how many of those carried <c>?via=share</c>), arrivals on a profile page, and
+/// the arrivals that carried someone's invite. Day is "yyyy-MM-dd", UTC, as the counters are cut.
+/// </summary>
+public sealed record FunnelDayDto(
+    string Day, int Landing, int GuestChecks, int Signups, int FirstPosts, int LookArrivals, int ShareArrivals, int ProfileArrivals, int Invites);
+
+/// <summary>Today's step-over-the-step-before, four decimals; null where the step before it never happened.</summary>
+public sealed record FunnelConversionDto(
+    double? LandingToGuestCheck, double? GuestCheckToSignup, double? SignupToFirstPost, double? FirstPostToArrival, double? ArrivalFromShare);
+
+/// <summary>
+/// Invites: sent is the arrivals that carried a <c>?via=&lt;handle&gt;</c> over the window (what a server can honestly
+/// see of a link being followed), accepted is the accounts that named an inviter at signup, and Top is the handles with
+/// the most accepted — a name, so it never leaves the moderators' page.
+/// </summary>
+public sealed record InviteMetricsDto(int Sent, int Accepted, List<InviterDto> Top);
+
+public sealed record InviterDto(string Handle, int Accepted);
+
+/// <summary>The growth block on the numbers page: fourteen days of the funnel, today's conversion, and the invites.</summary>
+public sealed record FunnelMetricsDto(List<FunnelDayDto> Days, FunnelConversionDto Today, InviteMetricsDto Invites);
+
+/// <summary>POST /api/users/me/digest: the weekly mail's switch in Settings.</summary>
+public sealed record DigestRequest(bool? On);
+
+/// <summary>
+/// The switch and whether it can do anything: CanSend is false when this server has no mail configured or the account
+/// has no confirmed address, so Settings can say which of the two is missing instead of showing a dead toggle.
+/// </summary>
+public sealed record DigestStateDto(bool On, bool CanSend);

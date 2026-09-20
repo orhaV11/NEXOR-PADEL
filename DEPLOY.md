@@ -1089,3 +1089,46 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
   local invoicing service alongside Stripe. **Do not take the paragraph above as advice**: before you take the first
   live shekel, ask a רואה חשבון or יועץ מס which of these apply to you, and what you must issue and when. This file is
   written by the people who built the app, and tax law is not something to infer from a payments API.
+## Round 13 — the growth loop (appended; the lead folds it into the numbered list above)
+
+28. **A posted look has a public page at `https://$DOMAIN/look/<id>` and a person at `/u/<handle>`.** Server-rendered,
+    no session, no client script, nothing fetched from a font host. Nothing to configure — but two things decide how
+    it looks to the world:
+    - **`Email__PublicOrigin` is what the tags name.** It is already required for mail; with it set, `og:url`,
+      `og:image` and the canonical link are absolute on the real domain. Without it they fall back to the request's
+      own scheme and host, which is right on a laptop and wrong behind a proxy that rewrites Host.
+    - **`robots.txt` now allows `/look/` and `/u/` and disallows `/api/`, `/app/`, `/i18n/`, `/vendor/`, `/digest/`
+      and the app shell itself.** If you put a CDN or a WAF in front, let `GET /look/*` and `GET /u/*` through
+      unauthenticated, and let `/look/<id>/image` be cached (it answers `Cache-Control: public, max-age=3600`).
+    Check it the way a crawler does, from your laptop, before you announce anything:
+    ```bash
+    curl -sA "WhatsApp/2.2319.9 A" https://$DOMAIN/look/<id> | grep -E 'og:|twitter:'
+    curl -sI https://$DOMAIN/look/<id>/image | head -3      # 200, image/jpeg, public max-age=3600
+    curl -s  https://$DOMAIN/robots.txt
+    ```
+    A look that is hidden, never posted, or whose account is suspended answers 404 with `noindex` — try one and see.
+
+29. **The weekly mail (`Digest__*`) goes out only when mail is on and `Email__PublicOrigin` is set.** Every line of
+    both messages is a link, so with no origin the hourly run logs one warning and sends nothing — that warning is the
+    thing to grep for if nobody is getting mail:
+    ```bash
+    docker compose logs --since 24h app | grep 'Digest:'
+    # Digest: run at 2026-09-20T06:00:00Z, 12 digests, 1 welcomes, 30 with nothing to say
+    ```
+    One line per run, every hour, whatever happened. Set **`Digest__Secret`** (any string; `openssl rand -base64 32`)
+    before the first send and never change it: it keys the one-tap unsubscribe links. While it is empty the links are
+    keyed by the account's stored password hash — they work, and a password reset voids that person's open links.
+    `Digest__Hour` (default 9) is local to `Board__TimeZone`; the digest is sent within a day of that moment and never
+    outside it, so a deploy in the middle of the week mails nobody. Turn the whole thing off with
+    `Digest__Enabled=false` without touching the mail settings.
+
+30. **Invites cost you checks.** An accepted invite gives *both* accounts one more check that day, which is one more
+    paid model call each. `Limits__ChecksPerDayGlobal` still bounds the bill and the bonus never touches it. Watch
+    *Invites → accepted* on `#/admin/metrics` next to the day's checks; if someone farms accounts, the signup brake
+    (`Limits__SignupsPerHourPerIp`) and the ceiling are what stop it, and a suspended account can no longer invite.
+
+31. **The funnel on `#/admin/metrics` is this server's own counting.** Landing views and invite arrivals are `Counter`
+    rows written by a middleware that sets no cookie and stores no address; guest checks, signups and first posts are
+    counted off the tables. There is no third party to configure and nothing to consent to. Fourteen days, today's
+    conversion between the steps, moderators only. If a day reads zero landing views while the page is clearly being
+    visited, something in front of the app is serving `/landing/` itself — the count is the app's, not the proxy's.

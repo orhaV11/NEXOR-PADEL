@@ -1,2 +1,17 @@
+# OREVOSH. What is worth indexing is the public pages: a look (/look/<id>), a profile (/u/<handle>) and the landing
+# page. The app itself is a shell behind a hash route, so a crawler that fetches "/" gets an empty page and every screen
+# it could want is one of the pages above; the API is never a page, and the client's modules, locale files and vendor
+# code are nobody's search result. Round 13 — the growth loop.
 User-agent: *
-Allow: /
+Allow: /look/
+Allow: /u/
+Allow: /landing/
+Allow: /brand/
+Disallow: /api/
+Disallow: /app/
+Disallow: /i18n/
+Disallow: /vendor/
+Disallow: /digest/
+Disallow: /offline.html
+Disallow: /index.html
+Disallow: /$

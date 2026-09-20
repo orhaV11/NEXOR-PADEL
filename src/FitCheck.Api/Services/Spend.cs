@@ -12,19 +12,27 @@ namespace FitCheck.Api.Services;
 /// the window (Plans:NoOutfitForgivenPerDay, oldest first) are left out of the per-person counts; the ones after that
 /// count like any stored call, so a stream of non-outfit photos still meets a cap. The global ceiling counts all of them:
 /// it is about the bill, and every one was a model call.
+/// Round 13 also puts the invite bonus here (the block at the end of this file): an accepted invite gives both accounts
+/// one more check for that day, as a Counter row this file takes off the front of an account's counted calls, so the
+/// check route, the comparison route and the "me" answer honour it without a line of their own.
 /// </summary>
 public static class Spend
 {
     public static readonly TimeSpan Window = TimeSpan.FromHours(24);
 
-    /// <summary>When this account's counted calls were made, oldest first.</summary>
-    public static Task<List<DateTime>> RecentForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0)
+    /// <summary>
+    /// When this account's counted calls were made, oldest first. Round 13: the day's invite bonus (see the block at the
+    /// end of this file) is taken off the front of the list, so one extra check is what every caller sees — the check
+    /// route, the comparison route and the "me" answer alike, with nothing to change in any of them.
+    /// </summary>
+    public static async Task<List<DateTime>> RecentForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0)
     {
         var windowStart = now - Window;
-        return RecentAsync(
+        var times = await RecentAsync(
             CountedChecks(db, windowStart).Where(c => c.UserId == userId),
             CountedComparisons(db, windowStart).Where(c => c.UserId == userId),
             forgivenNoOutfit, ct);
+        return DropBonus(times, await BonusAsync(db, userId, now, ct));
     }
 
     /// <summary>When the counted calls made under a guest cookie's token were made, oldest first.</summary>
@@ -123,4 +131,34 @@ public static class Spend
 
         return times;
     }
+
+    // ---------- Round 13 — the growth loop: the invite bonus in the allowance ----------
+
+    /// <summary>
+    /// The Counter row that holds one account's extra checks for one UTC day: <c>bonus:{userId:N}:{yyyyMMdd}</c>. An
+    /// invite writes it (AuthEndpoints, at signup, once for each side of the pair) and only this file reads it.
+    /// </summary>
+    public static string BonusName(Guid userId, DateOnly day) => $"bonus:{userId:N}:{day:yyyyMMdd}";
+
+    /// <summary>The extra checks this account has today, or 0. Never negative, and never more than a day's ceiling could absorb.</summary>
+    public static async Task<int> BonusAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct)
+    {
+        var bonus = await Counters.ReadAsync(db, BonusName(userId, DateOnly.FromDateTime(now)), ct);
+        return (int)Math.Clamp(bonus, 0, 100);
+    }
+
+    /// <summary>
+    /// Gives an account <paramref name="extra"/> more checks for the UTC day of <paramref name="now"/>. What "one extra
+    /// check for today" means: the bonus is a day's, not the rolling window's, so it is gone tomorrow whatever was spent.
+    /// </summary>
+    public static Task GrantBonusAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int extra = 1) =>
+        Counters.IncrementAsync(db, BonusName(userId, DateOnly.FromDateTime(now)), ct, extra);
+
+    /// <summary>
+    /// Takes the bonus off the counted calls, oldest first, the way a forgiven no-outfit answer is taken off: what is
+    /// left is what the cap is measured against, so the cap, the retry-after and me.checksToday all say the same thing.
+    /// The global ceiling never sees this — it is about the bill, and every one of those calls was made.
+    /// </summary>
+    private static List<DateTime> DropBonus(List<DateTime> times, int bonus) =>
+        bonus <= 0 || times.Count == 0 ? times : times.Skip(Math.Min(bonus, times.Count)).ToList();
 }

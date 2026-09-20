@@ -10,6 +10,8 @@ import {
 } from '../core.js';
 import { profileBadge, emptyCall } from './board.js';
 import { blockAccount, unblockAccount } from './blocked.js';
+// Round 13 — the growth loop: "Invite friends" on your own profile, the same sheet Settings opens.
+import { openInviteSheet } from '../invite.js';
 
 /** Three columns, so a page is whole rows; the server caps pages at 30 anyway. */
 const GRID_PAGE = 30;
@@ -204,6 +206,8 @@ async function profileView(root, handle, tab, ctx) {
   const links = mine ? el('div', { class: 'links' }, [
     el('a', { href: '#/saved' }, [t('profile.saved'), icon('bookmark')]),
     el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
+    // Round 13 — the growth loop: the invite link's sheet, the same one Settings opens.
+    el('button', { type: 'button', id: 'profile-invite', onclick: openInviteSheet }, [t('invite.title'), icon('share')]),
     el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })
   ]) : null;
   // My own profile: what my checks say, one link right under the statline (views/insights.js draws the page and styles the link).

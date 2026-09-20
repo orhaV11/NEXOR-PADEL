@@ -94,7 +94,13 @@ public static class MetricsEndpoints
             AlertWebhook: alerter.WebhookSet,
             AlertEmail: alerter.EmailSet);
 
-        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money });
+        // ---- Round 13 — the growth loop: the funnel and the invites (Services/Funnel.cs) ----
+        // Fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's
+        // conversion between those steps, and the invites: sent, accepted, and who is inviting. Its own block, its own
+        // DTO, nothing read or changed on any tile above it.
+        var funnel = await Funnel.ComputeAsync(db, now, ct);
+
+        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money, Funnel = funnel });
     }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>

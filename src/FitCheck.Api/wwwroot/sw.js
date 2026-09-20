@@ -26,6 +26,13 @@ self.addEventListener('fetch', (event) => {
     if (isNavigation) event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));   // network, or the offline page
     return;
   }
+  // Round 13 — the growth loop: /look/<id>, /u/<handle> and the weekly mail's /digest/off/<token> are server-rendered
+  // pages, each one a document of its own. Never the shell: a phone with the app installed must see the page a share
+  // led it to, not the app's own index.html with an empty hash route.
+  if (url.pathname.startsWith('/look/') || url.pathname.startsWith('/u/') || url.pathname.startsWith('/digest/')) {
+    if (isNavigation) event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));
+    return;
+  }
   const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || SHELL.includes(url.pathname);
   if (!isNavigation && !isShell) return;                      // icons and the like: the browser handles them
   const request = isNavigation

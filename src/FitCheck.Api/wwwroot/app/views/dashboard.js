@@ -143,6 +143,9 @@ function draw(root, m, ctx, reload) {
     countList('dash-prompts', m.byPromptVersion)
   ]));
 
+  // Round 13 — the growth loop: the funnel and the invites (funnelSection, at the end of this file), last before the footer.
+  if (m.funnel) root.appendChild(funnelSection(m.funnel));
+
   const refresh = el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'dash-refresh', text: t('dash.refresh') });
   refresh.addEventListener('click', () => { if (!refresh.disabled) { refresh.disabled = true; reload(); } });
   root.appendChild(el('footer', { class: 'dash-foot' }, [
@@ -308,5 +311,86 @@ function moneySection(spend) {
       ])
       : el('p', { class: 'empty', id: 'dash-alerts-none', text: t('money.alert_none') })
   ]));
+// ---------- Round 13 — the growth loop: the funnel and the invites ----------
+
+// Fourteen days as a small table the thumb can push sideways (a funnel is a shape, and a shape wants its columns next
+// to each other), then today's step-over-the-step-before as the page's own key → value list, then the invites: two
+// tiles and the handles doing the inviting. Every number here is this server's own Counter rows or its own tables:
+// no cookie is set for any of it and nothing third-party is asked.
+const FUNNEL_CSS = `
+.dash-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-inline: -16px; padding-inline: 16px; }
+.dash-table { border-collapse: collapse; inline-size: 100%; min-inline-size: 520px; font-variant-numeric: tabular-nums; }
+.dash-table th, .dash-table td { padding: 8px 10px; text-align: end; white-space: nowrap; border-block-end: 1px solid var(--line-soft); }
+.dash-table th { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
+.dash-table th:first-child, .dash-table td:first-child { text-align: start; }
+.dash-table td { font-size: 14px; color: var(--ink-2); direction: ltr; }
+.dash-table tbody th { font: 600 13px/1.2 var(--font-body); color: var(--ink-3); text-transform: none; letter-spacing: 0; }
+.dash-table tbody tr:last-child td, .dash-table tbody tr:last-child th { border-block-end: 0; color: var(--ink); font-weight: 700; }
+.dash-inviters dt { direction: ltr; unicode-bidi: isolate; }
+`;
+let funnelStyled = false;
+
+/** The day as the reader's calendar writes it, short; the ISO string stays on the row for a test to find. */
+function funnelDay(iso) {
+  return new Intl.DateTimeFormat(intlLocale(), { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
+}
+
+/** A step over the step before it as a percentage, or an en dash when the step before it never happened. */
+const rate = (value) => (value === null || value === undefined ? '–' : percent(value));
+
+function funnelSection(funnel) {
+  if (!funnelStyled) { funnelStyled = true; document.head.appendChild(el('style', { text: FUNNEL_CSS })); }
+  const days = Array.isArray(funnel.days) ? funnel.days : [];
+  const today = funnel.today || {};
+  const invites = funnel.invites || { sent: 0, accepted: 0, top: [] };
+  const columns = [
+    ['landing', 'funnel.landing'], ['guestChecks', 'funnel.guest_checks'], ['signups', 'funnel.signups'],
+    ['firstPosts', 'funnel.first_posts'], ['lookArrivals', 'funnel.arrivals'], ['shareArrivals', 'funnel.share_arrivals'],
+    ['invites', 'funnel.invites']
+  ];
+
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(el('section', { class: 'dash-section', id: 'dash-funnel' }, [
+    el('h2', { text: t('funnel.title') }),
+    el('p', { class: 'hint', text: t('funnel.hint') }),
+    days.length
+      ? el('div', { class: 'dash-scroll' }, [
+        el('table', { class: 'dash-table', id: 'dash-funnel-table' }, [
+          el('thead', {}, [el('tr', {}, [el('th', { scope: 'col', text: t('funnel.day') }), ...columns.map(([, label]) => el('th', { scope: 'col', text: t(label) }))])]),
+          el('tbody', {}, days.map((day) => el('tr', { 'data-day': day.day }, [
+            el('th', { scope: 'row', text: funnelDay(day.day) }),
+            ...columns.map(([key]) => el('td', { 'data-key': key, text: fmtNumber(day[key] || 0) }))
+          ])))
+        ])
+      ])
+      : el('p', { class: 'empty', text: t('funnel.none') })
+  ]));
+
+  fragment.appendChild(el('section', { class: 'dash-section' }, [
+    el('h2', { text: t('funnel.today') }),
+    el('dl', { class: 'dash-list', id: 'dash-funnel-today' }, [
+      ['funnel.landing_to_check', today.landingToGuestCheck],
+      ['funnel.check_to_signup', today.guestCheckToSignup],
+      ['funnel.signup_to_post', today.signupToFirstPost],
+      ['funnel.post_to_arrival', today.firstPostToArrival],
+      ['funnel.arrival_from_share', today.arrivalFromShare]
+    ].map(([label, value]) => el('div', { 'data-step': label }, [el('dt', { text: t(label) }), el('dd', { text: rate(value) })])))
+  ]));
+
+  fragment.appendChild(el('section', { class: 'dash-section' }, [
+    el('h2', { text: t('funnel.invites_title') }),
+    el('div', { class: 'dash-tiles', id: 'dash-invites' }, [
+      tile(t('funnel.invites_sent'), fmtNumber(invites.sent || 0)),
+      tile(t('funnel.invites_accepted'), fmtNumber(invites.accepted || 0))
+    ]),
+    el('h2', { text: t('funnel.top_inviters') }),
+    (invites.top && invites.top.length)
+      ? el('dl', { class: 'dash-list dash-inviters', id: 'dash-inviters' }, invites.top.map((row) => el('div', { 'data-handle': row.handle }, [
+        el('dt', { text: '@' + row.handle }),
+        el('dd', { text: fmtNumber(row.accepted || 0) })
+      ])))
+      : el('p', { class: 'empty', id: 'dash-inviters-empty', text: t('funnel.none') })
+  ]));
+
   return fragment;
 }

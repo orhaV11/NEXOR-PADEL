@@ -11,6 +11,9 @@ import {
   emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow, onLeave
 } from '../core.js';
 import { itemsEditor, itemLine, hostOf, hasDot, categoryLabel } from '../items.js';
+// Round 13 — the growth loop: the look's public address, and the ?via capture this import starts at boot (main.js
+// imports this view, this view imports that module, and the module reads ?via on import before any screen draws).
+import { openLookLinkSheet, publicLookUrl, pretty } from '../invite.js';
 
 let styled = false;
 function ensureStyle() {
@@ -25,7 +28,11 @@ function ensureStyle() {
     '.comments .text .body { white-space: pre-line; }',
     '.comments .btn-text { flex: none; min-block-size: 44px; padding-inline: 8px; }',
     '.comments .comment-note { flex-direction: column; align-items: stretch; gap: 8px; border-block-end: 0; }',
-    '.comments li.muted { justify-content: center; border-block-end: 0; padding-block: 24px; }'
+    '.comments li.muted { justify-content: center; border-block-end: 0; padding-block: 24px; }',
+    /* Round 13 — the growth loop: the public link row under the card. */
+    '.post-link { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
+    '.post-link .btn-sm { min-block-size: 44px; padding-inline: 16px; }',
+    '.post-link code { min-inline-size: 0; overflow-wrap: anywhere; direction: ltr; font-size: 12px; color: var(--ink-3); }'
   ].join('\n') }));
 }
 
@@ -62,6 +69,17 @@ register('post', async (root, params, ctx) => {
   }
   cardWrap.appendChild(postCard(post, cardOpts));
   root.appendChild(cardWrap);
+
+  // ---- Round 13 — the growth loop: this look has a public address ----
+  // One row under the card: the share sheet (or the clipboard where there is none) with /look/{id}, the page anyone can
+  // open with no app and no account, and the address itself in small print so nobody has to trust a button.
+  root.appendChild(el('section', { class: 'post-section post-link', id: 'post-link' }, [
+    el('button', {
+      type: 'button', class: 'btn btn-sm btn-secondary', id: 'post-link-share', text: t('link.copy'),
+      onclick: () => openLookLinkSheet(post)
+    }),
+    el('code', { id: 'post-link-url', dir: 'ltr', text: pretty(publicLookUrl(post.id)) })
+  ]));
 
   // Round 11: Block in the card's "…" (views/blocked.js raises the event) takes this look out of the viewer's world; leave it.
   const onBlock = (event) => {

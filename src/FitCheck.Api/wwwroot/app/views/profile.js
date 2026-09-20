@@ -264,7 +264,10 @@ register('saved', async (root, params, ctx) => {
 function loopBlock(check, pair) {
   const wrap = el('div', { class: 'check-loop', 'data-check': check.id });
   wrap.appendChild(reasonRow(check, {}));
-  wrap.appendChild(pair ? pairBlock(pair, {}) : triedBlock(check, {}));
+  // The pair is drawn once, under the look that came after the change. The earlier look is half of a pair too, so it
+  // offers nothing more: it cannot be tried a second time, and the two are already side by side further up the list.
+  if (pair && pair.after.id === check.id) wrap.appendChild(pairBlock(pair, {}));
+  else if (!pair) wrap.appendChild(triedBlock(check, {}));
   return wrap;
 }
 

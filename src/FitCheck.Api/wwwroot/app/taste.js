@@ -310,7 +310,8 @@ export function pairBlock(pair, opts) {
       chip.addEventListener('click', () => choose(which, chip));
       prefer.appendChild(chip);
     }
-    section.replaceChildren(
+    // replaceChildren is the raw DOM call, so the optional last line is filtered out rather than passed as null.
+    section.replaceChildren(...[
       el('h2', { text: t('tried.pair_title') }),
       el('div', { class: 'pair-sides' }, [pairSide(pair.before, 'before', pair), pairSide(pair.after, 'after', pair)]),
       el('div', { class: 'taste-line' }, [
@@ -322,7 +323,7 @@ export function pairBlock(pair, opts) {
       el('p', { class: 'pair-honest', text: t('tried.honest') }),
       el('div', { class: 'taste-line' }, [el('span', { class: 'lbl', text: t('tried.prefer') }), prefer]),
       pair.preferred ? el('p', { class: 'muted', text: t('tried.preferred_' + pair.preferred) }) : null
-    );
+    ].filter(Boolean));
   };
   paint();
   return section;

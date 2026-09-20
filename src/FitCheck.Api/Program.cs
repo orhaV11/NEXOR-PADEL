@@ -435,6 +435,15 @@ builder.Services.Configure<RateLimiterOptions>(options =>
         AccountOrAddress(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = FeedbackEndpoints.PerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 })));
 
+// ---- Round 13 — the growth loop: the public look page, the invite, the weekly mail, the funnel ----
+// Digest:Enabled, Digest:Hour (Sunday morning, local to Board:TimeZone) and Digest:Secret (environment only: it keys the
+// unsubscribe links). The weekly mail and the welcome go out from one hosted service that wakes every hour; the tokens
+// are their own tiny service so the unsubscribe route can ask for one. Services/Digest.cs says what each message is.
+builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection(DigestOptions.Section));
+builder.Services.AddSingleton<DigestTokens>();
+builder.Services.AddSingleton<Digest>();
+builder.Services.AddHostedService<DigestService>();
+
 var app = builder.Build();
 
 // The schema is versioned by EF Core migrations (Data/Migrations). Every start creates a new file, migrates an existing
@@ -523,6 +532,11 @@ app.UseAuthorization();
 // authorization, so an unsigned call to a protected route is a 401 that never spends a permit.
 app.UseRateLimiter();
 
+// Round 13 — the growth loop: one tally per landing-page view and per arrival carrying an invite's ?via=<handle>, per
+// day, in Counter rows (Services/Funnel.cs). Before the static files, since a landing page is one and would otherwise
+// never reach a handler. No cookie, no address, nothing off this machine: a day's number and nothing that names a person.
+app.Use(Funnel.Count);
+
 // Only wwwroot is served. Photos live under Storage:Root, which is outside it; a post is the only door to one.
 app.UseDefaultFiles();
 // The client is versionless files; browsers (and the service worker) revalidate them on every load so a deploy never
@@ -555,6 +569,9 @@ app.MapExportEndpoints();
 app.MapHealthEndpoints();
 // Round 13: POST /api/checks/{id}/useful, the verdict's own verdict.
 app.MapFeedbackEndpoints();
+// Round 13 — the growth loop: the public pages a share lands on (GET /look/{id}, /look/{id}/image, /u/{handle}) and the
+// weekly mail's signed unsubscribe (GET /digest/off/{token}). Server-rendered HTML, no session, no client script.
+app.MapPublicPageEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe

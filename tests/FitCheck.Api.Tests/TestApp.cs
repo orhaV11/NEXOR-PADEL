@@ -517,6 +517,20 @@ public sealed class RecordingStripeHandler : HttpMessageHandler
 
     private static bool IsPortal(Uri uri) => uri.AbsolutePath.EndsWith("/" + Endpoints.BillingEndpoints.PortalSessionsPath, StringComparison.Ordinal);
 
+    /// <summary>The JSON body a subscription cancel gets (Round 13; a deleted account ends its subscription first).</summary>
+    public string CancelResponse { get; set; } = """{ "id": "sub_test_recorded", "object": "subscription", "status": "canceled" }""";
+
+    /// <summary>The status a subscription cancel is answered with, when it differs from <see cref="StatusCode"/>.</summary>
+    public HttpStatusCode? CancelStatusCode { get; set; }
+
+    /// <summary>The recorded DELETEs of a subscription.</summary>
+    public List<StripeRequest> CancelRequests => Requests
+        .Where(r => r.Method == HttpMethod.Delete && r.Uri.AbsolutePath.Contains("/" + Endpoints.BillingEndpoints.SubscriptionsPath + "/", StringComparison.Ordinal))
+        .ToList();
+
+    private static bool IsCancel(HttpRequestMessage request) => request.Method == HttpMethod.Delete
+        && request.RequestUri!.AbsolutePath.Contains("/" + Endpoints.BillingEndpoints.SubscriptionsPath + "/", StringComparison.Ordinal);
+
     public IReadOnlyList<StripeRequest> Requests
     {
         get
@@ -554,7 +568,9 @@ public sealed class RecordingStripeHandler : HttpMessageHandler
             _requests.Add(record);
         }
 
-        var answer = IsPortal(request.RequestUri!) ? PortalResponse : Response;
-        return new HttpResponseMessage(StatusCode) { Content = new StringContent(answer, System.Text.Encoding.UTF8, "application/json") };
+        var cancel = IsCancel(request);
+        var answer = cancel ? CancelResponse : IsPortal(request.RequestUri!) ? PortalResponse : Response;
+        var status = cancel ? CancelStatusCode ?? StatusCode : StatusCode;
+        return new HttpResponseMessage(status) { Content = new StringContent(answer, System.Text.Encoding.UTF8, "application/json") };
     }
 }

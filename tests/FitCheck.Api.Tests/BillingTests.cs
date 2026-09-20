@@ -304,6 +304,70 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Equal(HttpStatusCode.Forbidden, (await _stripe.BareClient().PostAsync("/api/billing/portal", null)).StatusCode);
     }
 
+    /// <summary>
+    /// A deleted account must not keep paying. Nothing on Stripe's side belongs to a row that no longer exists: the
+    /// portal needs a session, the webhook can find no owner, and the card would be charged every month until the person
+    /// met it on a statement. So the subscription is ended first, and only then is the account gone.
+    /// </summary>
+    [Fact]
+    public async Task Deleting_an_account_ends_its_subscription_before_the_row_goes()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_delete");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Plan = "pro";
+            u.ProUntil = DateTime.UtcNow.AddDays(20);
+            u.BillingCustomerId = "cus_gone";
+            u.BillingSubscriptionId = "sub_gone";
+        });
+        _stripe.StripeHandler.Clear();
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/users/me")).StatusCode);
+
+        var cancel = Assert.Single(_stripe.StripeHandler.CancelRequests);
+        Assert.Equal(HttpMethod.Delete, cancel.Method);
+        Assert.Equal("https://api.stripe.com/v1/subscriptions/sub_gone", cancel.Uri.ToString());
+        Assert.Equal($"Bearer {StripeBillingApp.SecretKey}", cancel.Authorization);
+        WithDb(_stripe, db => Assert.Null(db.Users.SingleOrDefault(x => x.Id == id)));
+    }
+
+    /// <summary>
+    /// And when Stripe will not confirm it, nothing is deleted: half a deletion is the case this exists to prevent, so
+    /// the person keeps the account, keeps the portal, and can try again.
+    /// </summary>
+    [Fact]
+    public async Task A_refused_cancel_stops_the_deletion_and_the_account_stands()
+    {
+        var (client, id, _) = await _stripe.NewUserAsync("bill_delete_refused");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Plan = "pro";
+            u.ProUntil = DateTime.UtcNow.AddDays(20);
+            u.BillingCustomerId = "cus_stays";
+            u.BillingSubscriptionId = "sub_stays";
+        });
+        _stripe.StripeHandler.Clear();
+        _stripe.StripeHandler.CancelStatusCode = HttpStatusCode.InternalServerError;
+        try
+        {
+            var refused = await client.DeleteAsync("/api/users/me");
+            Assert.Equal(HttpStatusCode.BadGateway, refused.StatusCode);
+            Assert.Equal("We could not end your subscription with the payment provider, so nothing was deleted. Try again in a few minutes.", await ErrorOf(refused));
+            Assert.Single(_stripe.StripeHandler.CancelRequests);
+            WithDb(_stripe, db =>
+            {
+                var still = db.Users.Single(x => x.Id == id);
+                Assert.Equal("sub_stays", still.BillingSubscriptionId);
+            });
+        }
+        finally
+        {
+            _stripe.StripeHandler.CancelStatusCode = null;
+        }
+    }
+
     [Fact]
     public async Task Portal_opens_a_session_for_the_accounts_customer_that_returns_to_settings()
     {

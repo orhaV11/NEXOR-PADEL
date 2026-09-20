@@ -84,6 +84,57 @@ public sealed class StripeClient
     }
 
     /// <summary>
+    /// Ends a subscription now (<c>DELETE /v1/subscriptions/{id}</c>), so deleting an account stops the money the same
+    /// second the row goes. True when Stripe confirms it is gone; true as well for a 404 or a subscription Stripe already
+    /// reports as canceled, because the state the caller asked for is the state Stripe is in. False on anything else,
+    /// including no answer at all: the caller must refuse the deletion rather than leave a card being charged for an
+    /// account that no longer exists.
+    /// </summary>
+    public async Task<bool> CancelSubscriptionAsync(Guid userId, string subscriptionId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            return true;
+        }
+
+        using var message = new HttpRequestMessage(HttpMethod.Delete, Endpoints.BillingEndpoints.SubscriptionsPath + "/" + Uri.EscapeDataString(subscriptionId));
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _billing.Value.StripeSecretKey);
+
+        var client = _httpClients.CreateClient(HttpClientName);
+        try
+        {
+            using var response = await client.SendAsync(message, ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Stripe knows no subscription {Subscription} for {UserId}; treating it as already ended", Trim(subscriptionId), userId);
+                return true;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Stripe refused to cancel the subscription for {UserId}: {Status} {Body}", userId, (int)response.StatusCode, Trim(body));
+                return false;
+            }
+
+            using var json = JsonDocument.Parse(body);
+            var status = json.RootElement.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : null;
+            if (status is "canceled" or "incomplete_expired")
+            {
+                return true;
+            }
+
+            _logger.LogError("Stripe answered the cancel for {UserId} with status {Status}", userId, status ?? "(none)");
+            return false;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            _logger.LogError(ex, "Stripe did not answer the cancel for {UserId}", userId);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// One form-encoded POST to Stripe with the secret key as the bearer token, answered with the "url" of the object it
     /// created; null (logged with <paramref name="what"/> and the account) on a refusal, a body without a url, or no answer.
     /// </summary>

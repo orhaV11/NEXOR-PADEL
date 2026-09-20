@@ -184,6 +184,7 @@ public class IdorEnumerationTests
     {
         [("/api/checks/{id:guid}", "GET")] = Rule.Private(f => $"/api/checks/{f.CheckA}", "a check is its owner's, or the guest's whose cookie made it"),
         [("/api/checks/{id:guid}/shared-video", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/shared-video", "counting a share is the owner's or the guest's"),
+        [("/api/checks/{id:guid}/useful", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/useful", "saying whether the tip landed is the owner's or the guest's", new { useful = true }),
         [("/api/compare/{id:guid}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}", "a comparison is its owner's alone"),
         [("/api/compare/{id:guid}/image/{side}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}/image/a", "the only route to a comparison's photos, owner only"),
         [("/api/posts/{id:guid}", "GET")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}", "a hidden look is invisible to everyone but its author and a moderator"),

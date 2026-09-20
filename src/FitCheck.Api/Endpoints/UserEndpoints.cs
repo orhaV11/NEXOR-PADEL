@@ -425,7 +425,8 @@ public static class UserEndpoints
 
     /// <summary>Removes the account and everything it touched. No soft delete, no recovery.</summary>
     private static async Task<IResult> DeleteMeAsync(
-        HttpContext context, AppDbContext db, IImageStore images, Localizer localizer, CancellationToken ct)
+        HttpContext context, AppDbContext db, IImageStore images, Localizer localizer, StripeClient stripe,
+        IOptions<BillingOptions> billing, ILoggerFactory loggers, CancellationToken ct)
     {
         var (user, failure) = await RequireUserAsync(context, db, localizer, ct);
         if (user is null)
@@ -438,6 +439,22 @@ public static class UserEndpoints
         if (user.IsAdmin)
         {
             return Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.admin_delete"));
+        }
+
+        // The money stops before the row does. A deleted account can never open the billing portal again, so a subscription
+        // left running would charge a card every month with nobody to cancel it and no webhook able to find an owner: the
+        // person would meet it on a statement months later and dispute. Stripe is asked first, and a refusal stops the
+        // deletion rather than starting one we cannot finish (the person keeps the account, and the portal, and can retry).
+        if (billing.Value.StripeEnabled && !string.IsNullOrWhiteSpace(user.BillingSubscriptionId))
+        {
+            if (!await stripe.CancelSubscriptionAsync(user.Id, user.BillingSubscriptionId!, ct))
+            {
+                return Error(StatusCodes.Status502BadGateway, localizer.Get(user.PreferredLanguage, "error.cancel_first"));
+            }
+
+            loggers.CreateLogger(typeof(UserEndpoints)).LogInformation("Billing: subscription ended for {Handle} before the account was deleted", user.Handle);
+            user.BillingSubscriptionId = null;
+            user.BillingCustomerId = null;
         }
 
         var id = user.Id;

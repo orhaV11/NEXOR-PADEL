@@ -30,6 +30,9 @@ public static class BillingEndpoints
     /// <summary>Where a Billing Portal session posts (the test recorder answers it with <c>PortalResponse</c>).</summary>
     public const string PortalSessionsPath = "v1/billing_portal/sessions";
 
+    /// <summary>Round 13: where a subscription is ended when the account that owns it is deleted.</summary>
+    public const string SubscriptionsPath = "v1/subscriptions";
+
     /// <summary>Where the portal sends the person back: the settings screen, where the plan row is.</summary>
     public const string PortalReturnPath = "/#/settings";
 

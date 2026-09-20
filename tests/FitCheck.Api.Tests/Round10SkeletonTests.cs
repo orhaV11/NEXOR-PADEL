@@ -114,9 +114,10 @@ public class Round10MigrationTests : IDisposable
             db.GetService<IMigrator>().Migrate(Round9);
         }
 
-        // The account in raw SQL, naming the Round 9 columns: Round 11 gave Users a column (BillingSubscriptionId) the file
-        // does not have, so the current model cannot write the row. Checks and Posts have the same columns in Round 9
-        // and today, so the current model writes them as they were.
+        // The account and the checks in raw SQL, naming the Round 9 columns: Round 11 gave Users a column
+        // (BillingSubscriptionId) and Round 13 gave Checks three (Useful, UsefulAt, UsefulNote) that this file does not
+        // have, so the current model cannot write those rows. Posts have the same columns in Round 9 and today, so the
+        // current model writes them as they were.
         var veteran = NewUser(userId, "veteran", password);
         Execute(path,
             "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", \"PreferredLanguage\", " +
@@ -124,11 +125,17 @@ public class Round10MigrationTests : IDisposable
             "VALUES ($id, $handle, $lower, $hash, 'Person', 0, 1, 'en', 0, 'free', 0, 0, 0, $created)",
             ("$id", userId), ("$handle", veteran.Handle), ("$lower", veteran.HandleLower), ("$hash", veteran.PasswordHash),
             ("$created", veteran.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
+        var (check1, check2) = (Guid.NewGuid(), Guid.NewGuid());
+        const string check = "INSERT INTO \"Checks\" (\"Id\", \"UserId\", \"Intent\", \"Language\", \"ImagePath\", \"Status\", \"Score\", " +
+            "\"PromptVersion\", \"LatencyMs\", \"CreatedAt\") VALUES ($id, $user, 'Casual', 'en', 'legacy/photo.jpg', 'ok', 7, 'v2', 0, $created)";
+        foreach (var id in new[] { check1, check2 })
+        {
+            Execute(path, check, ("$id", id), ("$user", userId),
+                ("$created", DateTime.UtcNow.AddMinutes(-3).ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
+        }
+
         using (var db = Open(path))
         {
-            var (check1, check2) = (Guid.NewGuid(), Guid.NewGuid());
-            db.Checks.Add(NewCheck(check1, userId));
-            db.Checks.Add(NewCheck(check2, userId));
             db.Posts.Add(NewPost(post1, userId, check1, DateTime.UtcNow.AddMinutes(-2)));
             db.Posts.Add(NewPost(post2, userId, check2, DateTime.UtcNow.AddMinutes(-1)));
             db.SaveChanges();
@@ -173,11 +180,6 @@ public class Round10MigrationTests : IDisposable
         return user;
     }
 
-    private static OutfitCheck NewCheck(Guid id, Guid userId) => new()
-    {
-        Id = id, UserId = userId, Intent = StyleIntent.Casual, Language = "en", ImagePath = "legacy/photo.jpg", Status = CheckStatus.Ok, Score = 7,
-        PromptVersion = "v2", CreatedAt = DateTime.UtcNow.AddMinutes(-3)
-    };
 
     private static Post NewPost(Guid id, Guid userId, Guid checkId, DateTime createdAt) => new()
     {

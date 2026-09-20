@@ -1,7 +1,7 @@
 // OREVOSH client core: state, i18n, API, DOM kit, router, shell, bottom sheets, gestures, look cards.
 // Views live in ./views/*.js and register their routes with register(). No build step; ES modules only.
 
-export const AVAILABLE_LOCALES = ['en', 'he', 'ar', 'ru'];   // adding a locale: drop i18n/<code>.json and add the code here
+export const AVAILABLE_LOCALES = ['en', 'he', 'ar', 'ru'];   // every locale with an i18n/<code>.json; which of them are live is the server's (Languages:Enabled, on /api/config)
 export const DEFAULT_LOCALE = 'en';
 export const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport'];
 export const PAGE = 10;
@@ -22,7 +22,7 @@ export const state = {
   // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
   check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null },
   // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
-  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false }, affiliate: { disclosure: true } },
+  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false }, affiliate: { disclosure: true }, languages: ['en', 'he'] },
   result: null,
   resultAnimated: false,
   resultPostId: null,
@@ -99,11 +99,22 @@ export const hasMessage = (key) => !!((messages[locale] && key in messages[local
 export const isRtl = () => t('meta.dir') === 'rtl';
 export const localeName = (code) => (messages[code] && messages[code]['meta.name']) || code;
 
+/**
+ * Round 13: the locales that are live on this server (/api/config languages, from Languages:Enabled), English always among
+ * them; the switcher offers these, detection picks among these, and a saved preference outside them is ignored. Until the
+ * config has loaded, or when it cannot, English and Hebrew: the two the app shipped with.
+ */
+export function enabledLocales() {
+  const listed = Array.isArray(state.config.languages) ? state.config.languages.filter((code) => AVAILABLE_LOCALES.includes(code)) : [];
+  const list = listed.length ? listed : ['en', 'he'];
+  return list.includes(DEFAULT_LOCALE) ? list : [DEFAULT_LOCALE, ...list];
+}
 function matchLocale(tag) {
   if (!tag) return null;
   const language = String(tag).toLowerCase().split(/[-_]/)[0];
-  return AVAILABLE_LOCALES.includes(language) ? language : null;
+  return enabledLocales().includes(language) ? language : null;
 }
+/** The browser's languages in order, the first live one wins; a browser in a language that is not live gets English. */
 function detectLocale() {
   const tags = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
   for (const tag of tags) { const match = matchLocale(tag); if (match) return match; }
@@ -127,6 +138,7 @@ function applyLocale(code) {
   for (const node of document.querySelectorAll('[data-i18n-aria]')) node.setAttribute('aria-label', t(node.dataset.i18nAria));
 }
 export async function switchLocale(code) {
+  if (!enabledLocales().includes(code)) return;   // only a live language can be switched to (Languages:Enabled)
   await loadLocale(code);
   applyLocale(code);
   savePrefs({ language: code });
@@ -452,10 +464,13 @@ function defaultTopBar() {
   inner.appendChild(actions);
 }
 export function openLanguageSheet() {
-  const list = el('div', { class: 'sheet-list' }, AVAILABLE_LOCALES.map((code) => el('button', {
-    type: 'button', lang: code, onclick: () => { close(); if (code !== locale) switchLocale(code).catch(() => toast(t('error.network'))); }
+  // Only the live languages (Languages:Enabled); the others are on the way once native speakers have reviewed them, and the sheet says so.
+  const enabled = enabledLocales();
+  const list = el('div', { class: 'sheet-list' }, enabled.map((code) => el('button', {
+    type: 'button', lang: code, 'aria-pressed': String(code === locale), onclick: () => { close(); if (code !== locale) switchLocale(code).catch(() => toast(t('error.network'))); }
   }, [code === locale ? icon('check') : el('span', { class: 'icon', style: 'inline-size:22px' }), localeName(code)])));
-  const { close } = sheet({ title: t('lang.label'), content: list });
+  const content = el('div', { class: 'stack' }, [list, enabled.length < AVAILABLE_LOCALES.length ? el('p', { class: 'hint', id: 'lang-more', text: t('lang.more') }) : null]);
+  const { close } = sheet({ title: t('lang.label'), content });
 }
 export function renderShell() {
   if (!topBarCustom) defaultTopBar();
@@ -1223,6 +1238,26 @@ export function installBanner() {
   return node;
 }
 
+/**
+ * Round 13: the one-time "keep it on your home screen" note for iOS Safari, where the browser never offers to install.
+ * Shown once per device (the flag is written when it is shown, in localStorage behind try/catch), only in Safari itself
+ * (an in-app browser cannot add to the home screen) and never in the installed app; "Got it" takes it away at once.
+ * Null everywhere else. The Home banner (installBanner) stays what it was: this one sits where the value just landed.
+ */
+export function iosInstallHint() {
+  if (!isIos() || isStandalone()) return null;
+  const ua = navigator.userAgent || '';
+  if (!/safari/i.test(ua) || /crios|fxios|edgios|opios|instagram|fban|fbav|line\//i.test(ua)) return null;
+  if (loadPrefs().installHintSeen) return null;
+  savePrefs({ installHintSeen: true });
+  const node = el('div', { class: 'install', id: 'install-hint', role: 'note' }, [
+    el('div', { class: 'mark', 'aria-hidden': 'true' }, [logoMark(44) || 'O']),
+    el('div', { class: 'text' }, [el('b', { text: t('install.title') }), el('span', { text: t('install.ios') })]),
+    el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'install-hint-ok', text: t('install.ok'), onclick: () => node.remove() })
+  ]);
+  return node;
+}
+
 // ---------- boot ----------
 
 /**
@@ -1249,8 +1284,11 @@ function litCheckControl(tab) {
 
 export async function boot() {
   const prefs = loadPrefs();
+  // The live languages come from the server (Round 13), so the config is read before the locale is chosen: a saved
+  // preference or a browser language that is not live falls to English, and only the live files are fetched.
+  await loadConfig();
   const initial = matchLocale(prefs.language) || detectLocale();
-  await Promise.all(AVAILABLE_LOCALES.map((code) => loadLocale(code).catch((e) => console.warn(e))));
+  await Promise.all(enabledLocales().map((code) => loadLocale(code).catch((e) => console.warn(e))));
   if (!messages[DEFAULT_LOCALE]) messages[DEFAULT_LOCALE] = {};
   applyLocale(messages[initial] ? initial : DEFAULT_LOCALE);
   window.addEventListener('hashchange', () => render(true));
@@ -1266,7 +1304,10 @@ export async function boot() {
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('service worker', e));
   }
-  await Promise.all([loadMe(), loadConfig()]);
+  await loadMe();
   if (state.me && matchLocale(state.me.language) && state.me.language !== locale && !prefs.language) await switchLocale(state.me.language);
+  // An account whose stored preference is a language that is not live here reads the app in the one it sees; the
+  // preference follows quietly, so the server's own lines (mail, push) say the same language as the screen.
+  else if (state.me && state.me.language && !matchLocale(state.me.language)) api('PATCH', '/api/users/me', { language: locale }).then((me) => { if (me) state.me = me; }).catch(() => {});
   await render(true);
 }

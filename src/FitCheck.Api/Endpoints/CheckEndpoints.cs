@@ -61,6 +61,7 @@ public static class CheckEndpoints
         IOptions<PlanOptions> plans,
         ILogger<OutfitAnalyzer> logger,
         Transcoder transcoder,
+        IOptions<LanguagesOptions> languages,
         CancellationToken ct)
     {
         var request = context.Request;
@@ -139,6 +140,10 @@ public static class CheckEndpoints
                 : headerLanguage;
         }
 
+        // Round 13: the stylist answers only in a language that is live (Languages:Enabled); a request for another one is
+        // answered in English and told nothing, and the row says English, which is what the feedback is written in.
+        language = languages.Value.Effective(language);
+
         if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
         {
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
@@ -214,7 +219,7 @@ public static class CheckEndpoints
             // (Spend counts both). Failed calls do not count: a model outage must not eat the user's allowance.
             cap = Plans.CapFor(user, plans.Value, limits.Value, now);
             reservationKey = user.Id;
-            recent = await Spend.RecentForUserAsync(db, user.Id, now, ct);
+            recent = await Spend.RecentForUserAsync(db, user.Id, now, ct, plans.Value.NoOutfitForgivenPerDay);
         }
         else
         {
@@ -235,7 +240,7 @@ public static class CheckEndpoints
             }
             else
             {
-                recent = await Spend.RecentForGuestAsync(db, guestToken, now, ct);
+                recent = await Spend.RecentForGuestAsync(db, guestToken, now, ct, plans.Value.NoOutfitForgivenPerDay);
             }
 
             reservationKey = GuestChecks.ReservationKey(guestToken);
@@ -359,8 +364,14 @@ public static class CheckEndpoints
 
         db.Checks.Add(check);
         await db.SaveChangesAsync(CancellationToken.None);
-        // Stored with a status that cost a model call: the address's look is spent. (The 502 above stored an error row and commits nothing.)
-        addressReservation?.Commit(now);
+        // Stored with a status that cost a model call: the address's look is spent. (The 502 above stored an error row and
+        // commits nothing.) Round 13: a no-outfit answer within Plans:NoOutfitForgivenPerDay spends nothing either, the
+        // address's look included: the person got nothing for it. The answer says so (counted), so the screen can too.
+        var counted = !await Spend.IsForgivenAsync(db, check, plans.Value.NoOutfitForgivenPerDay, CancellationToken.None);
+        if (counted)
+        {
+            addressReservation?.Commit(now);
+        }
 
         // After the commit, so the worker finds the row; it re-encodes the clip to H.264 MP4 in the background (a no-op without
         // ffmpeg). A guest's clip waits until the check is claimed; the claim queues it.
@@ -369,7 +380,7 @@ public static class CheckEndpoints
             transcoder.Enqueue(check.Id);
         }
 
-        return Results.Json(CheckDto.FromEntity(check, localizer, null), AppJson.Options, statusCode: StatusCodes.Status201Created);
+        return Results.Json(CheckDto.FromEntity(check, localizer, null) with { Counted = counted }, AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
     /// <summary>

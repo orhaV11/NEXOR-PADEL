@@ -141,6 +141,15 @@ public sealed class PlanOptions
     public string ProPriceText { get; set; } = "";
 
     /// <summary>
+    /// Round 13: how many "no outfit in this photo" answers a person (an account, or a guest cookie) gets back in the
+    /// rolling day. Such an answer spent a model call and gave the person nothing, so the first ones are not counted
+    /// against the plan cap, the guest's free look or me.checksToday; from the one after this number on they count like
+    /// any stored check, so a stream of non-outfit photos still meets a cap. The global ceiling (Limits:ChecksPerDayGlobal)
+    /// counts every one of them: it is about the bill. 0 makes every no-outfit answer count, as before Round 13.
+    /// </summary>
+    public int NoOutfitForgivenPerDay { get; set; } = 3;
+
+    /// <summary>
     /// Whether "which one?" comparisons and the insights need Pro: POST /api/compare and GET /api/users/me/insights answer
     /// 403 error.pro_required to a free account, and the Pro page lists both as benefits only then. Off by default: Pro is
     /// a cap on a real cost, not a feature wall.
@@ -285,4 +294,50 @@ public sealed class AffiliateOptions
 
         return null;
     }
+}
+
+// ---- Round 13: languages shipped only when real ----
+
+/// <summary>
+/// Which UI languages are live (Languages:Enabled; <c>Languages__Enabled__0=en</c>, <c>__1=he</c> as environment
+/// variables). Every locale the app knows (<see cref="Services.Localizer.SupportedLocales"/>: en, he, ar, ru) keeps its
+/// files in the repository; only the ones listed here are offered by the client's switcher, auto-detected from the
+/// browser, precomputed on /api/config and asked of the stylist. English is always in the list, since it is the fallback
+/// for everything: a request for a language that is not enabled is answered in English and told nothing. The default is
+/// English and Hebrew, the two the builders can read; Arabic and Russian are enabled with one setting once a native
+/// reader has reviewed their files.
+/// </summary>
+public sealed class LanguagesOptions
+{
+    public const string Section = "Languages";
+
+    public List<string> Enabled { get; set; } = ["en", "he"];
+
+    /// <summary>
+    /// The enabled locales as the app uses them: trimmed, lower-cased, only the locales the app knows, each once, in the
+    /// order given, English first whatever the setting says (it is the fallback). A setting with nothing usable in it
+    /// enables English alone.
+    /// </summary>
+    public IReadOnlyList<string> List
+    {
+        get
+        {
+            var list = new List<string> { Services.Localizer.DefaultLocale };
+            foreach (var entry in Enabled ?? [])
+            {
+                var code = (entry ?? "").Trim().ToLowerInvariant();
+                if (Services.Localizer.IsSupported(code) && !list.Contains(code))
+                {
+                    list.Add(code);
+                }
+            }
+
+            return list;
+        }
+    }
+
+    public bool IsEnabled(string? locale) => locale is not null && List.Contains(locale);
+
+    /// <summary>The language the stylist is asked for: the one given when it is enabled, English otherwise.</summary>
+    public string Effective(string? locale) => IsEnabled(locale) ? locale! : Services.Localizer.DefaultLocale;
 }

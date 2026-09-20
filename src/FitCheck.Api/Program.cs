@@ -411,6 +411,16 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+// ---- Round 13: the verdict's own verdict, languages shipped only when real ----
+// Languages:Enabled (default en, he): what the client offers and the stylist is asked for; /api/config publishes the list.
+builder.Services.Configure<LanguagesOptions>(builder.Configuration.GetSection(LanguagesOptions.Section));
+// "Did the tip land?" is a tally like the share video's: a few dozen an hour per account (or address, for a guest) is more
+// than a person taps and a brake on a script. Registered as a further RateLimiterOptions configuration, so the block above stays as it is.
+builder.Services.Configure<RateLimiterOptions>(options =>
+    options.AddPolicy(FeedbackEndpoints.Policy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = FeedbackEndpoints.PerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 })));
+
 var app = builder.Build();
 
 // The schema is versioned by EF Core migrations (Data/Migrations). Every start creates a new file, migrates an existing
@@ -544,12 +554,15 @@ app.MapBoardEndpoints();
 app.MapBlockEndpoints();
 app.MapExportEndpoints();
 app.MapHealthEndpoints();
+// Round 13: POST /api/checks/{id}/useful, the verdict's own verdict.
+app.MapFeedbackEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
 // to pings that never come.
 app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder,
-        IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate, IConfiguration configuration) =>
+        IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate, IConfiguration configuration,
+        IOptions<LanguagesOptions> languages) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
         sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available,
         // The Pro cap as a Pro account really gets it (clamped to Limits:ChecksPerDay): what the Pro page promises.
@@ -559,7 +572,9 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a
         // client on localhost or a bare IP prints the wordmark alone rather than guess. Empty when neither is set.
-        PublicOrigin: string.IsNullOrWhiteSpace(configuration["Email:PublicOrigin"]) ? (string.IsNullOrWhiteSpace(configuration["Billing:PublicOrigin"]) ? null : configuration["Billing:PublicOrigin"]!.Trim()) : configuration["Email:PublicOrigin"]!.Trim()), AppJson.Options));
+        PublicOrigin: string.IsNullOrWhiteSpace(configuration["Email:PublicOrigin"]) ? (string.IsNullOrWhiteSpace(configuration["Billing:PublicOrigin"]) ? null : configuration["Billing:PublicOrigin"]!.Trim()) : configuration["Email:PublicOrigin"]!.Trim(),
+        // Round 13: the UI languages that are live (Languages:Enabled); the client's switcher and detection read this, never the file list.
+        Languages: languages.Value.List.ToList()), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached. GET or HEAD: an
 // uptime checker (and `curl -I`) may probe with either, and a 405 on HEAD would read as the site being down.

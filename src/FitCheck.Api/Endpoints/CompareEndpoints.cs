@@ -126,6 +126,9 @@ public static class CompareEndpoints
             language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
         }
 
+        // Round 13: only a live language (Languages:Enabled) is asked of the stylist; anything else is English, quietly.
+        language = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<LanguagesOptions>>(db).Value.Effective(language);
+
         if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
         {
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
@@ -162,7 +165,7 @@ public static class CompareEndpoints
         // route and the global ceiling alike): the plan's cap, never above Limits:ChecksPerDay. Failed calls do not count,
         // on either side: a model outage must not eat the user's allowance.
         var cap = Plans.CapFor(user, plans.Value, limits.Value, now);
-        var recent = await Spend.RecentForUserAsync(db, userId, now, ct);
+        var recent = await Spend.RecentForUserAsync(db, userId, now, ct, plans.Value.NoOutfitForgivenPerDay);
         var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 
         var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);

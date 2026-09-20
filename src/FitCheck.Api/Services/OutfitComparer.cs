@@ -171,7 +171,8 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
             HeadlineB = ReadString(input, "headline_b"),
             Reason = ReadString(input, "reason"),
             OneTip = ReadString(input, "one_tip"),
-            Message = NullIfEmpty(ReadString(input, "message"))
+            // Round 13: a no-outfit reason is read by the person, so rule 1 is checked on it as on a check's (OutfitAnalyzer.SafeNoOutfitMessage).
+            Message = status == CheckStatus.NotOutfit ? OutfitAnalyzer.SafeNoOutfitMessage(ReadString(input, "message")) : NullIfEmpty(ReadString(input, "message"))
         };
 
         if (status != CheckStatus.Ok)

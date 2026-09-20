@@ -83,12 +83,20 @@ public sealed record CheckDto(
     string Status,
     int? Score,
     OutfitFeedback? Feedback,
-    Guid? PostId)
+    Guid? PostId,
+    // Round 13: the person's own verdict on the verdict (POST /api/checks/{id}/useful), null until they say; and, on the
+    // answer to POST /api/checks alone, whether this check counted against the day's allowance (a forgiven no-outfit
+    // answer does not, Plans:NoOutfitForgivenPerDay); absent on a GET.
+    bool? Useful = null,
+    DateTime? UsefulAt = null,
+    string? UsefulNote = null,
+    bool? Counted = null)
 {
-    /// <summary>Rejected rows store nothing but the status; the neutral message is added here, in the check's language.</summary>
     /// <summary>
     /// Rejected rows store nothing but the status; the neutral message is added here, in the check's language. The feedback
-    /// is the stored document as it was written, so items carry brandSeen from rubric v3 on and nothing from before.
+    /// is the stored document as it was written, so items carry brandSeen from rubric v3 on and nothing from before. A
+    /// no-outfit row whose reason was dropped (rule 1, Round 13) gets the generic line in the check's language, as a
+    /// rejected one gets its neutral one.
     /// </summary>
     public static CheckDto FromEntity(OutfitCheck check, Localizer localizer, Guid? postId)
     {
@@ -108,6 +116,12 @@ public sealed record CheckDto(
             feedback = JsonSerializer.Deserialize<OutfitFeedback>(check.FeedbackJson, AppJson.Options);
         }
 
+        if (check.Status == CheckStatus.NotOutfit)
+        {
+            feedback ??= new OutfitFeedback { Status = CheckStatus.NotOutfit, Score = 1, IntentMatch = 0 };
+            feedback.Message = string.IsNullOrWhiteSpace(feedback.Message) ? localizer.Get(check.Language, "feedback.not_outfit") : feedback.Message;
+        }
+
         return new CheckDto(
             check.Id,
             check.Intent,
@@ -118,7 +132,10 @@ public sealed record CheckDto(
             check.Status,
             check.Score,
             feedback,
-            postId);
+            postId,
+            check.Useful,
+            check.UsefulAt is { } at ? DateTime.SpecifyKind(at, DateTimeKind.Utc) : null,
+            check.UsefulNote);
     }
 }
 
@@ -293,7 +310,9 @@ public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 // ---- config, push, admin ----
 
 /// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
-public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null, AffiliateConfigDto? Affiliate = null, string? PublicOrigin = null);
+public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null, AffiliateConfigDto? Affiliate = null, string? PublicOrigin = null,
+    // Round 13: the UI languages that are live (Languages:Enabled, English always first); the client offers and detects only these.
+    List<string>? Languages = null);
 
 /// <summary>Affiliate:Disclosure: whether the item sheet shows the commission line under a store link. The hosts and their parameters stay on the server.</summary>
 public sealed record AffiliateConfigDto(bool Disclosure);
@@ -344,7 +363,9 @@ public sealed record ExportDto(
 public sealed record ExportAccountDto(string Handle, string Name, string AccountType, string Language, string? Email, DateTime CreatedAt, string Plan, DateTime? ProUntil);
 
 /// <summary>One check. Headline, Tip, Breakdown and Items come from the stored feedback (null or empty when the check was not ok).</summary>
-public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Occasion, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status);
+public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Occasion, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status,
+    // Round 13: what the person said about the tip, when, and their note; null when they never said.
+    bool? Useful = null, DateTime? UsefulAt = null, string? UsefulNote = null);
 
 /// <summary>A piece: the stylist's name and category on a check; on a look, the row as the person tagged it.</summary>
 public sealed record ExportItemDto(string Name, string Category, string? Brand = null, string? Model = null, string? Url = null);
@@ -412,10 +433,30 @@ public sealed record PilotMetricsDto(
     Dictionary<string, int> ByLanguage,
     Dictionary<string, int> ByPromptVersion,
     SocialMetricsDto? Social = null,
-    BreakdownAveragesDto? BreakdownAverages = null);
+    BreakdownAveragesDto? BreakdownAverages = null,
+    // Round 13: did the tip land? The only number that says whether the stylist is good (FeedbackEndpoints fills it).
+    StylistMetricsDto? Stylist = null);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
 /// Null on the metrics when no check has one yet, so a v1-only pilot reads as before.
 /// </summary>
 public sealed record BreakdownAveragesDto(double AvgFit, double AvgColor, double AvgAccessories, int Checks);
+
+// ---- Round 13: the verdict's own verdict, the honest no-outfit answer ----
+
+/// <summary>POST /api/checks/{id}/useful: did the tip land (true / false), and an optional one-line note (≤ 120).</summary>
+public sealed record UsefulRequest(bool? Useful, string? Note = null);
+
+/// <summary>The answer: what is now stored on the check.</summary>
+public sealed record UsefulDto(Guid Id, bool Useful, DateTime UsefulAt, string? Note);
+
+/// <summary>Yes, no and unanswered over a set of scored checks, and yes ÷ (yes + no) with four decimals, null while nobody has answered.</summary>
+public sealed record UsefulSplitDto(int Yes, int No, int Unanswered, double? Rate);
+
+/// <summary>
+/// The stylist's block on the numbers page: the tip-landed split over every ok check by an account (guests' rows are left
+/// out, as everywhere on this page, until claimed), overall, by intent and by language, plus how many photos the stylist
+/// answered "no outfit" to and how many it refused, as a check on the door rather than on the verdict.
+/// </summary>
+public sealed record StylistMetricsDto(UsefulSplitDto Useful, Dictionary<string, UsefulSplitDto> ByIntent, Dictionary<string, UsefulSplitDto> ByLanguage, int NotOutfit, int Rejected);

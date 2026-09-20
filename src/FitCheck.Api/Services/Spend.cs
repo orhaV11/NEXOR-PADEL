@@ -8,44 +8,73 @@ namespace FitCheck.Api.Services;
 /// What the daily allowances count: stored checks and comparisons (a comparison is a stylist call too) over a rolling
 /// 24 hours, failed calls left out because a model outage must not eat anyone's allowance. One place for the check route,
 /// the compare route, the "me" answer and the global ceiling, so the four cannot drift from each other.
+/// Round 13: a "no outfit in this photo" answer gave the person nothing, so the first <c>forgivenNoOutfit</c> of them in
+/// the window (Plans:NoOutfitForgivenPerDay, oldest first) are left out of the per-person counts; the ones after that
+/// count like any stored call, so a stream of non-outfit photos still meets a cap. The global ceiling counts all of them:
+/// it is about the bill, and every one was a model call.
 /// </summary>
 public static class Spend
 {
     public static readonly TimeSpan Window = TimeSpan.FromHours(24);
 
     /// <summary>When this account's counted calls were made, oldest first.</summary>
-    public static Task<List<DateTime>> RecentForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct)
+    public static Task<List<DateTime>> RecentForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0)
     {
         var windowStart = now - Window;
         return RecentAsync(
             CountedChecks(db, windowStart).Where(c => c.UserId == userId),
             CountedComparisons(db, windowStart).Where(c => c.UserId == userId),
-            ct);
+            forgivenNoOutfit, ct);
     }
 
     /// <summary>When the counted calls made under a guest cookie's token were made, oldest first.</summary>
-    public static Task<List<DateTime>> RecentForGuestAsync(AppDbContext db, string token, DateTime now, CancellationToken ct)
+    public static Task<List<DateTime>> RecentForGuestAsync(AppDbContext db, string token, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0)
     {
         var windowStart = now - Window;
         return RecentAsync(
             CountedChecks(db, windowStart).Where(c => c.UserId == null && c.GuestToken == token),
             CountedComparisons(db, windowStart).Where(c => c.UserId == null && c.GuestToken == token),
-            ct);
+            forgivenNoOutfit, ct);
     }
 
     /// <summary>How many counted calls this account made in the rolling day (MeDto.checksToday).</summary>
-    public static async Task<int> CountForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct)
-    {
-        var windowStart = now - Window;
-        return await CountedChecks(db, windowStart).CountAsync(c => c.UserId == userId, ct)
-               + await CountedComparisons(db, windowStart).CountAsync(c => c.UserId == userId, ct);
-    }
+    public static async Task<int> CountForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0) =>
+        (await RecentForUserAsync(db, userId, now, ct, forgivenNoOutfit)).Count;
 
     /// <summary>Everyone's counted calls in the rolling day, accounts and guests, checks and comparisons: what Limits:ChecksPerDayGlobal caps.</summary>
     public static async Task<int> StoredGlobalAsync(AppDbContext db, DateTime now, CancellationToken ct)
     {
         var windowStart = now - Window;
         return await CountedChecks(db, windowStart).CountAsync(ct) + await CountedComparisons(db, windowStart).CountAsync(ct);
+    }
+
+    /// <summary>
+    /// Whether a stored no-outfit check is one of the forgiven ones: among the no-outfit checks and comparisons of its
+    /// owner (or guest cookie) in the day up to and including itself, it is within the first <paramref name="forgivenNoOutfit"/>.
+    /// The check route reads this after the save, to know whether the guest address's look was spent and to tell the client.
+    /// </summary>
+    public static async Task<bool> IsForgivenAsync(AppDbContext db, OutfitCheck check, int forgivenNoOutfit, CancellationToken ct)
+    {
+        if (check.Status != CheckStatus.NotOutfit || forgivenNoOutfit <= 0)
+        {
+            return false;
+        }
+
+        var windowStart = check.CreatedAt - Window;
+        var checks = db.Checks.Where(c => c.CreatedAt >= windowStart && c.CreatedAt <= check.CreatedAt && c.Status == CheckStatus.NotOutfit && c.Id != check.Id);
+        var comparisons = db.Comparisons.Where(c => c.CreatedAt >= windowStart && c.CreatedAt <= check.CreatedAt && c.Status == CheckStatus.NotOutfit);
+        int before;
+        if (check.UserId is { } userId)
+        {
+            before = await checks.CountAsync(c => c.UserId == userId, ct) + await comparisons.CountAsync(c => c.UserId == userId, ct);
+        }
+        else
+        {
+            before = await checks.CountAsync(c => c.UserId == null && c.GuestToken == check.GuestToken, ct)
+                + await comparisons.CountAsync(c => c.UserId == null && c.GuestToken == check.GuestToken, ct);
+        }
+
+        return before < forgivenNoOutfit;
     }
 
     /// <summary>
@@ -71,10 +100,27 @@ public static class Spend
     private static IQueryable<OutfitComparison> CountedComparisons(AppDbContext db, DateTime windowStart) =>
         db.Comparisons.Where(c => c.CreatedAt >= windowStart && c.Status != CheckStatus.Error);
 
-    private static async Task<List<DateTime>> RecentAsync(IQueryable<OutfitCheck> checks, IQueryable<OutfitComparison> comparisons, CancellationToken ct)
+    /// <summary>
+    /// The counted calls in time order: everything stored with a status that cost a model call, minus the first
+    /// <paramref name="forgivenNoOutfit"/> no-outfit answers of the window (oldest first, checks and comparisons alike).
+    /// </summary>
+    private static async Task<List<DateTime>> RecentAsync(IQueryable<OutfitCheck> checks, IQueryable<OutfitComparison> comparisons, int forgivenNoOutfit, CancellationToken ct)
     {
-        var checkTimes = await checks.Select(c => c.CreatedAt).ToListAsync(ct);
-        var comparisonTimes = await comparisons.Select(c => c.CreatedAt).ToListAsync(ct);
-        return checkTimes.Concat(comparisonTimes).OrderBy(t => t).ToList();
+        var checkRows = await checks.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
+        var comparisonRows = await comparisons.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
+        var forgiven = 0;
+        var times = new List<DateTime>();
+        foreach (var row in checkRows.Concat(comparisonRows).OrderBy(r => r.CreatedAt))
+        {
+            if (row.Status == CheckStatus.NotOutfit && forgiven < forgivenNoOutfit)
+            {
+                forgiven++;
+                continue;
+            }
+
+            times.Add(row.CreatedAt);
+        }
+
+        return times;
     }
 }

@@ -152,6 +152,11 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "Manage your plan by writing to us.",
             ["error.export_failed"] = "We couldn't put your data together. Try again in a moment.",
             ["error.portal_failed"] = "The billing page didn't open. Try again in a moment.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer.
+            ["error.useful_invalid"] = "Say whether the tip landed: yes or no.",
+            ["error.useful_not_scored"] = "Only a check the stylist scored can be rated.",
+            ["error.useful_note_too_long"] = "Keep the note under 120 characters.",
+            ["feedback.not_outfit"] = "We couldn't find an outfit in this photo.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -288,6 +293,11 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "כדי לנהל את התוכנית, כותבים לנו.",
             ["error.export_failed"] = "לא הצלחנו להכין את הנתונים שלך. אפשר לנסות שוב עוד רגע.",
             ["error.portal_failed"] = "דף החיוב לא נפתח. אפשר לנסות שוב עוד רגע.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer.
+            ["error.useful_invalid"] = "צריך לומר אם הטיפ קלע: כן או לא.",
+            ["error.useful_not_scored"] = "אפשר לדרג רק בדיקה שהסטייליסט נתן לה ציון.",
+            ["error.useful_note_too_long"] = "ההערה צריכה להיות עד 120 תווים.",
+            ["feedback.not_outfit"] = "לא מצאנו לוק בתמונה הזו.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -426,6 +436,11 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "لإدارة الخطة، يمكن مراسلتنا.",
             ["error.export_failed"] = "لم نتمكن من تجهيز بياناتك. يمكن المحاولة بعد لحظة.",
             ["error.portal_failed"] = "لم تُفتح صفحة الفوترة. يمكن المحاولة بعد لحظة.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer. Plain Arabic, for native review.
+            ["error.useful_invalid"] = "قل إن كانت النصيحة مفيدة: نعم أو لا.",
+            ["error.useful_not_scored"] = "يمكن تقييم فحص أعطاه المصمم درجة فقط.",
+            ["error.useful_note_too_long"] = "الملاحظة حتى 120 حرفًا.",
+            ["feedback.not_outfit"] = "لم نجد إطلالة في هذه الصورة.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -563,6 +578,11 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "Чтобы изменить план, напиши нам.",
             ["error.export_failed"] = "Не удалось собрать твои данные. Попробуй через минуту.",
             ["error.portal_failed"] = "Страница оплаты не открылась. Попробуй через минуту.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer. Plain Russian, for native review.
+            ["error.useful_invalid"] = "Скажи, попал ли совет: да или нет.",
+            ["error.useful_not_scored"] = "Оценить можно только проверку, которой стилист поставил балл.",
+            ["error.useful_note_too_long"] = "Заметка — до 120 символов.",
+            ["feedback.not_outfit"] = "Мы не нашли образ на этом фото.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

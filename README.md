@@ -586,11 +586,13 @@ descriptive is dropped when the status is not `ok`.
 - **Age is self-declared.** A date of birth typed at signup is a rule, not age assurance: anyone can type a
   date. Before any public launch, integrate the Apple and Google age-signal APIs (or an equivalent provider) and
   gate account creation on the result.
-- **Guest checks cost money.** A visitor's free look is a real model call with no account behind it. The guard is
-  the cap per guest cookie and per client address (`Plans:GuestChecksPerDay`, one a day each, counted from looks
-  actually given; the per-address count lives in memory and a restart forgets the day), the brake on attempts per
-  address (`Plans:GuestAttemptsPerDay`, twenty a day) and the global ceiling; a patient script that rotates addresses
-  gets one check per address. Set `Plans__GuestChecksPerDay=0` to close the door, and watch the model bill either way.
+- **Guest checks cost money.** A visitor's free look is a real model call with no account behind it. The guard is three
+  numbers, counted from looks actually given: one per guest cookie (`Plans:GuestChecksPerDay`), ten per client address
+  (`Plans:GuestChecksPerAddressPerDay`, in memory, so a restart forgets the day) and twenty attempts per address
+  whatever they come to (`Plans:GuestAttemptsPerDay`), under the global ceiling. The address number is ten and not one
+  because an address is a household, an office or a whole carrier, not a person — but that is also the honest size of
+  the hole: a patient script that rotates addresses gets ten checks per address. Set `Plans__GuestChecksPerDay=0` to
+  close the door, set `Limits__SpendPerDayUsd`, and watch the model bill either way.
 - **Brand accounts are self-declared; verification is by hand.** Anyone can switch to brand mode in settings, and
   only a brand the owner ran `--verify` for carries the check. There is no form to ask for it and no process
   behind it beyond the owner knowing who is behind the account.

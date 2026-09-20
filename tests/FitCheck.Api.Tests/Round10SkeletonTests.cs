@@ -114,10 +114,9 @@ public class Round10MigrationTests : IDisposable
             db.GetService<IMigrator>().Migrate(Round9);
         }
 
-        // The account and the checks in raw SQL, naming the Round 9 columns: Round 11 gave Users a column
-        // (BillingSubscriptionId) and Round 13 gave Checks three (Useful, UsefulAt, UsefulNote) that this file does not
-        // have, so the current model cannot write those rows. Posts have the same columns in Round 9 and today, so the
-        // current model writes them as they were.
+        // The account, the checks and the looks in raw SQL, naming the Round 9 columns: Round 11 gave Users a column
+        // (BillingSubscriptionId), Round 13 gave Checks three (Useful, UsefulAt, UsefulNote) and Round 14 gave Posts one
+        // (ScorePrivate) that this file does not have, so the current model cannot write those rows.
         var veteran = NewUser(userId, "veteran", password);
         Execute(path,
             "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", \"PreferredLanguage\", " +
@@ -134,12 +133,13 @@ public class Round10MigrationTests : IDisposable
                 ("$created", DateTime.UtcNow.AddMinutes(-3).ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
         }
 
-        using (var db = Open(path))
-        {
-            db.Posts.Add(NewPost(post1, userId, check1, DateTime.UtcNow.AddMinutes(-2)));
-            db.Posts.Add(NewPost(post2, userId, check2, DateTime.UtcNow.AddMinutes(-1)));
-            db.SaveChanges();
-        }
+        const string post = "INSERT INTO \"Posts\" (\"Id\", \"UserId\", \"CheckId\", \"Intent\", \"Score\", \"IntentMatch\", \"Headline\", " +
+            "\"FireCount\", \"CommentCount\", \"ReportCount\", \"Hidden\", \"CreatedAt\") " +
+            "VALUES ($id, $user, $check, 'Casual', 7, 70, 'Seeded', 0, 0, 0, 0, $created)";
+        Execute(path, post, ("$id", post1), ("$user", userId), ("$check", check1),
+            ("$created", DateTime.UtcNow.AddMinutes(-2).ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
+        Execute(path, post, ("$id", post2), ("$user", userId), ("$check", check2),
+            ("$created", DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF")));
 
         // The items as Round 9 wrote them: no Id column exists yet, so raw SQL, the post id bound the way EF binds a Guid.
         const string insert = "INSERT INTO \"PostItems\" (\"PostId\", \"Name\", \"Category\") VALUES ($post, $name, $category)";
@@ -180,11 +180,6 @@ public class Round10MigrationTests : IDisposable
         return user;
     }
 
-
-    private static Post NewPost(Guid id, Guid userId, Guid checkId, DateTime createdAt) => new()
-    {
-        Id = id, UserId = userId, CheckId = checkId, Intent = StyleIntent.Casual, Score = 7, IntentMatch = 70, Headline = "Seeded", CreatedAt = createdAt
-    };
 
     /// <summary>Tables with their columns (name, type, NOT NULL, primary key) and indexes with their statements: the shape, as DatabaseSetupTests compares it.</summary>
     private static List<string> StructureOf(string path)

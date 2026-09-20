@@ -201,6 +201,10 @@ public class IdorEnumerationTests
         [("/api/posts/{id:guid}/feature", "DELETE")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}/feature", "brands only, and never a hidden look", null, HttpStatusCode.Forbidden, HttpStatusCode.NotFound),
         [("/api/posts/{id:guid}/comments", "GET")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}/comments", "the thread of a hidden look is hidden with it"),
         [("/api/posts/{id:guid}/comments", "POST")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}/comments", "no comment on a hidden look", new { text = "hello" }),
+        // Round 14 — the community round: the two switches on a look are the author's own, and both answer a stranger
+        // the way DELETE does — 404, saying nothing about whether the look exists.
+        [("/api/posts/{id:guid}/score-privacy", "PATCH")] = Rule.Private(f => $"/api/posts/{f.PostA}/score-privacy", "keeping the grade private is the author's choice about their own look", new { scorePrivate = true }),
+        [("/api/posts/{id:guid}/shared-after", "POST")] = Rule.Private(f => $"/api/posts/{f.PostA}/shared-after", "counting a before/after share is the author's, like counting a share video is the check owner's", new { withScores = true }),
         [("/api/comments/{id:guid}", "DELETE")] = Rule.Private(f => $"/api/comments/{f.CommentOnVisible}", "the comment's author or the look's author", null, HttpStatusCode.Forbidden),
         [("/api/comments/{id:guid}/report", "POST")] = new Public("a report of any existing comment is taken (204, one per person) and answers nothing about it, like a look's"),
         [("/api/items/{id:guid}/out", "GET")] = Rule.Private(f => $"/api/items/{f.ItemOnHidden}/out", "the store-link door opens only onto a public look"),

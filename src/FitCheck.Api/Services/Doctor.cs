@@ -46,13 +46,15 @@ public sealed record DoctorReport(IReadOnlyList<DoctorLine> Lines)
 /// <list type="bullet">
 /// <item><c>--doctor</c> reads settings and the box: the public origin, the Anthropic key and base URL, mail, billing,
 /// the plan caps against the ceiling, the VAPID keys, the moderators, the board's time zone, the affiliate hosts, the
-/// photo folder, the database file and what it still has to migrate, ffmpeg when clips are to be re-encoded, and the
-/// free space where the data lives.</item>
+/// photo folder, the database file and what it still has to migrate, ffmpeg when clips are to be re-encoded, the
+/// free space where the data lives, and (Round 13 — money) the prices a model call is estimated at with the day's
+/// spend ceiling, and whether any alert channel is set at all.</item>
 /// <item><c>--doctor --live</c> adds the calls only the network can answer: a Messages request of five tokens to
 /// Anthropic (skipped for the stub key, so a browser test never spends a cent), a read of the Pro price from Stripe
 /// (it exists, it is in the same mode as the key, and it is recurring and not archived) and a read of Stripe's webhook
 /// endpoints (one is registered for this origin's <see cref="Endpoints.BillingEndpoints.WebhookPath"/>, enabled, and
-/// subscribed to <see cref="WebhookEvents"/>). Each reports the HTTP status it got.</item>
+/// subscribed to <see cref="WebhookEvents"/>). Each reports the HTTP status it got. Round 13 — money: it also sends
+/// one test alert down every configured alert channel, so the owner watches it arrive.</item>
 /// <item><c>--stripe-check</c> is the Stripe part on its own: the three keys and their prefixes, then those two reads.
 /// The go-live runbook runs it after every key rotation. It is two GETs, it writes nothing and it charges nobody.</item>
 /// </list>
@@ -156,6 +158,8 @@ public static class Doctor
         var board = Bind<BoardOptions>(configuration, BoardOptions.Section, lines, "board");
         var affiliate = Bind<AffiliateOptions>(configuration, AffiliateOptions.Section, lines, "affiliate");
         var anthropic = Bind<AnthropicOptions>(configuration, AnthropicOptions.Section, lines, "anthropic");
+        // Round 13 — money
+        var alerts = Bind<AlertOptions>(configuration, AlertOptions.Section, lines, "alerts");
 
         var publicOrigin = Origin(configuration);
         PublicOrigin(lines, configuration, publicOrigin);
@@ -172,11 +176,16 @@ public static class Doctor
         Database(lines, configuration, contentRoot);
         Ffmpeg(lines, storage);
         FreeSpace(lines, configuration, storage, contentRoot);
+        // Round 13 — money: what a model call is priced at here, the day's ceiling, and whether anything would shout.
+        Spend(lines, anthropic, limits);
+        Alerts(lines, alerts, email);
 
         if (live)
         {
             await AnthropicLiveAsync(lines, anthropic, apiKey, handler, ct);
             await StripeLiveAsync(lines, billing, publicOrigin, handler, ct);
+            // Round 13 — money: one real alert down every configured channel, so the owner sees it arrive.
+            await AlertsLiveAsync(lines, configuration, alerts, email, handler, ct);
         }
 
         return new DoctorReport(lines);
@@ -1071,6 +1080,102 @@ public static class Doctor
             return null;
         }
     }
+
+    // ---- Round 13 — money: the spend meter, the daily ceiling and the alerts ----
+
+    /// <summary>
+    /// The prices every estimate on the numbers page and the daily ceiling are built on, and whether there is a ceiling
+    /// at all. WARN when <c>Limits__SpendPerDayUsd</c> is 0: nothing then stops a day of model calls costing whatever it
+    /// costs (the count-based <c>Limits__ChecksPerDayGlobal</c> is still there, and is named, so the warning is honest).
+    /// WARN too when a price is 0 or negative, because an estimate of nothing can never reach a ceiling.
+    /// </summary>
+    private static void Spend(List<DoctorLine> lines, AnthropicOptions anthropic, LimitsOptions limits)
+    {
+        var priceIn = anthropic.PriceInPerMillion;
+        var priceOut = anthropic.PriceOutPerMillion;
+        var ceiling = limits.SpendPerDayUsd;
+        var prices = $"{Money(priceIn)} per million input tokens and {Money(priceOut)} per million output, for model {anthropic.Model}";
+        var notes = new List<string>();
+        if (priceIn <= 0 || priceOut <= 0)
+        {
+            notes.Add("a price of 0 makes every estimate 0, so the ceiling can never close and the money tiles read zero");
+        }
+
+        if (ceiling <= 0)
+        {
+            notes.Add($"Limits__SpendPerDayUsd is not set, so there is no ceiling on a day's model spend (Limits__ChecksPerDayGlobal still caps the number of calls at {limits.ChecksPerDayGlobal.ToString(CultureInfo.InvariantCulture)}); 5 USD is a sane pilot number");
+        }
+
+        lines.Add(notes.Count > 0
+            ? new(DoctorStatus.Warn, "spend", $"{prices}. " + string.Join("; ", notes) + ". These are settings, not Anthropic's invoice: set them to your contract's prices.")
+            : new(DoctorStatus.Ok, "spend",
+                $"{prices}; the day stops at {Money(ceiling)} (Limits__SpendPerDayUsd). An estimate, not an invoice: set the prices to your contract's."));
+    }
+
+    /// <summary>
+    /// Whether anything would shout. Neither channel set is a WARN: a readiness flip, the spend ceiling, a run of model
+    /// failures and a full disk would then only be log lines nobody is watching. The URL and the address are never
+    /// printed — the webhook URL is a secret and the address is a person.
+    /// </summary>
+    private static void Alerts(List<DoctorLine> lines, AlertOptions alerts, EmailOptions email)
+    {
+        var channels = new List<string>();
+        if (!string.IsNullOrWhiteSpace(alerts.Webhook))
+        {
+            channels.Add(Uri.TryCreate(alerts.Webhook.Trim(), UriKind.Absolute, out var url) && (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps)
+                ? "a webhook is set"
+                : "Alerts__Webhook is set but is not an absolute http(s) URL, so nothing can be posted to it");
+        }
+
+        var hasAddress = !string.IsNullOrWhiteSpace(alerts.Email);
+        if (hasAddress)
+        {
+            channels.Add(email.Enabled ? "an address is set" : "Alerts__Email is set but mail is off (Email__Host, Email__From), so no alert mail can go out");
+        }
+
+        var thresholds = $"model failures over {alerts.ModelFailuresIn10Min.ToString(CultureInfo.InvariantCulture)} in ten minutes, free space under {alerts.DiskFreeMb.ToString(CultureInfo.InvariantCulture)} MB";
+        var broken = channels.Any(c => c.Contains("but", StringComparison.Ordinal));
+        lines.Add(channels.Count == 0
+            ? new(DoctorStatus.Warn, "alerts",
+                "neither Alerts__Webhook nor Alerts__Email is set: a readiness flip, the spend ceiling, a run of model failures, a full disk and a failed backup would only be log lines. Set one before the pilot.")
+            : broken
+                ? new(DoctorStatus.Warn, "alerts", string.Join("; ", channels) + $". {thresholds}.")
+                : new(DoctorStatus.Ok, "alerts", string.Join(" and ", channels) + $"; {thresholds}. Run --doctor --live to send one."));
+    }
+
+    /// <summary>
+    /// <c>--doctor --live</c>: one real alert down every configured channel, so the owner sees it land rather than
+    /// trusting a setting. Skipped when no channel is set. It is a test line and says so; no secret travels with it.
+    /// </summary>
+    private static async Task<DoctorLine> AlertsLiveAsync(
+        List<DoctorLine> lines, IConfiguration configuration, AlertOptions alerts, EmailOptions email, HttpMessageHandler? handler, CancellationToken ct)
+    {
+        if (!alerts.Enabled)
+        {
+            return Add(lines, new(DoctorStatus.Skip, "alerts-live", "no channel is set, so there is nothing to send a test to."));
+        }
+
+        var (webhook, sent) = await Alerter.SendOnceAsync(
+            configuration, "this is a test alert from --doctor --live. Nothing is wrong.", null, handler, ct);
+        var results = new List<string>();
+        if (!string.IsNullOrWhiteSpace(alerts.Webhook))
+        {
+            results.Add(webhook ? "the webhook took it" : "the webhook did not take it (see the log line above for the status)");
+        }
+
+        if (!string.IsNullOrWhiteSpace(alerts.Email))
+        {
+            results.Add(!email.Enabled ? "mail is off, so no alert mail was sent"
+                : LogEmailSender.IsLogHost(email) ? "Email__Host=log, so the alert mail went to the log"
+                : sent ? "the alert mail went out" : "the alert mail could not be sent");
+        }
+
+        var bad = !webhook && !string.IsNullOrWhiteSpace(alerts.Webhook);
+        return Add(lines, new(bad ? DoctorStatus.Fail : DoctorStatus.Ok, "alerts-live", string.Join("; ", results) + "."));
+    }
+
+    /// <summary>A USD amount as the checklist prints it: two decimals at least, never a currency the owner did not set.</summary>
+    private static string Money(decimal amount) => amount.ToString("0.00##", CultureInfo.InvariantCulture) + " USD";
 
     /// <summary>A client for the live calls; <paramref name="handler"/> is the tests' stand-in for the network and is theirs to dispose.</summary>
     private static HttpClient Client(HttpMessageHandler? handler)

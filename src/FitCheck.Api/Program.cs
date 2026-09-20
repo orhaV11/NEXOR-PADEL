@@ -96,7 +96,22 @@ if (ArgumentAfter(args, "--backup") is { } backupDir)
 
     var configuredRoot = builder.Configuration.GetValue<string>("Storage:Root") ?? storageDefaults.Root;
     var storageRoot = Path.IsPathRooted(configuredRoot) ? configuredRoot : Path.Combine(builder.Environment.ContentRootPath, configuredRoot);
-    var (databaseCopy, storageCopy) = DatabaseSetup.Backup(connection.ConnectionString, storageRoot, backupDir);
+    // Round 13 — money: a backup nobody hears failing is no backup. The copy runs as before; when it throws, the
+    // reason goes to stderr AND to the alert channels (Services/Alerter.cs), and the command exits 1 so the scheduler
+    // sees it too. No path and no setting's value travels in the alert, only the exception's own sentence.
+    string databaseCopy;
+    string? storageCopy;
+    try
+    {
+        (databaseCopy, storageCopy) = DatabaseSetup.Backup(connection.ConnectionString, storageRoot, backupDir);
+    }
+    catch (Exception e)
+    {
+        Console.Error.WriteLine($"backup failed: {e.Message}");
+        await Alerter.SendOnceAsync(builder.Configuration, $"the backup failed: {e.Message.TrimEnd('.')}. Nothing was copied.");
+        return 1;
+    }
+
     Console.WriteLine($"database: {databaseCopy}");
     Console.WriteLine($"storage: {storageCopy ?? "none"}");
     foreach (var gone in DatabaseSetup.Prune(backupDir, keep))
@@ -435,6 +450,17 @@ builder.Services.Configure<RateLimiterOptions>(options =>
         AccountOrAddress(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = FeedbackEndpoints.PerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 })));
 
+// ---- Round 13 — money: the spend meter, the daily ceiling and the alerts ----
+// The meter tallies every model call's tokens into Counter rows per UTC day and prices them with Anthropic:Price*PerMillion;
+// the ceiling (Limits:SpendPerDayUsd) is read by the check and compare routes before they ask the model. The alerter
+// shouts once per event kind per hour to Alerts:Webhook and/or Alerts:Email; the watchdog says the app started and
+// watches the data volume's free space. Both are singletons: the throttle and the failure window are per process.
+builder.Services.Configure<AlertOptions>(builder.Configuration.GetSection(AlertOptions.Section));
+builder.Services.AddHttpClient(Alerter.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddSingleton<Alerter>();
+builder.Services.AddSingleton<SpendMeter>();
+builder.Services.AddHostedService<AlertWatchdog>();
+
 var app = builder.Build();
 
 // The schema is versioned by EF Core migrations (Data/Migrations). Every start creates a new file, migrates an existing
@@ -454,6 +480,24 @@ await AdminSync.ApplyAsync(app.Services, app.Logger);
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable)))
 {
     app.Logger.LogWarning("{Variable} is not set: every outfit check will fail with 502 until it is.", AnthropicVisionClient.ApiKeyVariable);
+}
+
+// Round 13 — money: a readiness flip is one of the things the owner must hear about; Readiness is made by hand in
+// HealthEndpoints, so it is handed the alerter here, once, from the built app.
+Readiness.DefaultAlerts = app.Services.GetRequiredService<Alerter>();
+
+{
+    var alerts = app.Services.GetRequiredService<IOptions<AlertOptions>>().Value;
+    if (!alerts.Enabled)
+    {
+        app.Logger.LogWarning("No alert channel is set (Alerts__Webhook, Alerts__Email): a readiness flip, the spend ceiling, a run of model failures or a full disk will only be a log line nobody is watching.");
+    }
+
+    var spendCeiling = app.Services.GetRequiredService<IOptions<LimitsOptions>>().Value.SpendPerDayUsd;
+    if (spendCeiling <= 0)
+    {
+        app.Logger.LogWarning("Limits__SpendPerDayUsd is not set: there is no ceiling on what a day of model calls may cost. Limits__ChecksPerDayGlobal still caps the number of calls.");
+    }
 }
 
 {

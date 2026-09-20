@@ -1040,3 +1040,52 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 27. **`/offline.html` is in the shell** (`orevosh-shell-v6`): a phone with no network that navigates to `/landing/` or
     opens the app before its shell was cached sees the brand and *Try again* instead of the browser's error page.
     `curl -sI https://…/offline.html` is a 200 like the rest of `wwwroot`.
+
+### Round 13 — Money: the spend meter, the daily ceiling and the alerts (appended)
+
+28. **Set a daily spend ceiling before you invite anyone.** `Limits__SpendPerDayUsd=5` for a pilot. Above it every
+    route that would ask the model answers 503 "the stylist is resting until tomorrow", *before* the call: nobody's
+    allowance is spent and nothing is stored. It opens again at the next UTC midnight. `0` (the default) means no
+    ceiling at all, and `--doctor` warns about it on every run. `Limits__ChecksPerDayGlobal` stays as the count-based
+    brake beside it.
+29. **Put your real prices in.** `Anthropic__PriceInPerMillion` and `Anthropic__PriceOutPerMillion` are USD per million
+    tokens and they are what every dollar on the numbers page and the ceiling above is computed from. The shipped
+    defaults are the published list prices for the default model at the time this was written — if you are on a
+    different model or a volume agreement they are wrong. `--doctor` prints the two in use; check them after any model
+    change. These are estimates, never Anthropic's invoice: reconcile against the console monthly.
+30. **Set at least one alert channel.** `Alerts__Webhook` is any https URL that takes `{ "text": "…" }` — a Slack
+    incoming webhook as-is, or a Discord webhook URL with `/slack` on the end. `Alerts__Email` is one address and goes
+    through the same mail server as the recovery links, so it needs `Email__Host`/`Email__From`. **The webhook URL is a
+    secret**: `.env` only, never `appsettings.json`, and never in a screenshot. You get: the app starting (with the
+    version), readiness flipping to failing and back, the spend ceiling, more than `Alerts__ModelFailuresIn10Min`
+    (default 5) failed model calls in ten minutes, free space under `Alerts__DiskFreeMb` (default 512), a failed
+    `--backup`, and a refunded or disputed Stripe charge. At most one of each kind per hour. Prove it once:
+    `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` sends a test alert down every channel you set.
+31. **Read the money block weekly.** `#/admin/metrics` → *Model spend*: today's estimate, the calls and tokens behind
+    it, the ceiling, and the last 14 days as bars. A day that jumps without a matching jump in checks means retries,
+    and the `model.failing` alert should have told you first.
+
+**Stripe: what the dashboard has to do, and what it does not.**
+
+- **Receipts.** The app sends none and never will — it holds no payment data. Stripe Checkout can email its own
+  receipts, but only once you switch them on: Stripe Dashboard → Settings → **Customer emails** → "Successful payments"
+  (and "Refunds"), per mode. Test mode and live mode are separate switches; turning it on in test does nothing for live.
+  Until you do, a paying person gets nothing from anyone, which is the most common complaint of a first pilot.
+- **Refunds and disputes.** Add `charge.refunded` and `charge.dispute.created` to your webhook endpoint's events
+  (Developers → Webhooks → your endpoint → "Update details"). The app now handles both: Pro ends on that customer's
+  account, a warning is logged, and an alert goes out. **`--stripe-check` does not yet require these two** — it checks
+  only the five subscription-lifecycle events — so if you do not add them by hand, a chargeback silently leaves the
+  person Pro. A dispute also has a response deadline and a fee; the alert exists to get you into the dashboard in time.
+- **`past_due`.** Already handled before this round and unchanged: `customer.subscription.updated` with `past_due`,
+  `unpaid` or `paused` leaves the person three days of slack and then Pro lapses. Stripe's own dunning settings
+  (Settings → **Subscriptions and emails** → retries) decide how long it tries the card first; the app only reacts.
+- **VAT and invoicing in Israel — get an accountant, not this file.** What is true and checkable: Stripe Tax can
+  calculate and collect tax on Checkout if you enable it and register the jurisdictions, and Stripe can produce invoice
+  documents. What Stripe does **not** do for an Israeli seller: it does not register you for VAT, it does not decide
+  whether you owe Israeli VAT on a sale (that depends on your own status — עוסק פטור, עוסק מורשה, חברה — and on where
+  the customer is), it does not issue an Israeli-compliant tax invoice (חשבונית מס) or receipt (קבלה), and it does not
+  file anything. Israel has also been phasing in an invoice-allocation-number requirement for invoices above a
+  threshold, which is a Tax Authority process no payment processor performs for you. Practically, sellers here run a
+  local invoicing service alongside Stripe. **Do not take the paragraph above as advice**: before you take the first
+  live shekel, ask a רואה חשבון or יועץ מס which of these apply to you, and what you must issue and when. This file is
+  written by the people who built the app, and tax law is not something to infer from a payments API.

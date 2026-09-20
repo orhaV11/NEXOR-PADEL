@@ -1454,3 +1454,63 @@ home screen), never in the installed app.
 - The no-outfit screen never shows a score, a share, a post button, or a word about who is in the photo.
 - No client offers a language the server did not list; no stylist call goes out in one.
 - The forgiveness is a number in one place (`Spend`), never a special case in a route.
+
+### Round 13 — Money: the spend meter, the daily ceiling and the alerts (appended)
+
+**The bill is counted from what the API said, not from what we guessed.** Every answer's `usage` block goes to the
+meter before anything else is done with it. Counting requests, or estimating tokens from the prompt, would have been
+easy and wrong: an image is most of the input, and the number that matters is the one Anthropic will invoice.
+
+**A call the API billed counts even when it failed.** A 4xx whose body still carries usage, and a timeout, both spent
+money; only a call that never opened a connection is free. So the meter has two doors, `RecordAsync` and
+`RecordFailedAsync`, and the client picks by which exception it caught. This deliberately differs from `Spend`, the
+allowance: a failed call must not eat a person's daily checks, but it must show up on the owner's bill, because it did.
+
+**The prices are settings and the page says "estimate" out loud.** Hard-coding a price would go stale the week a
+contract changes, and an app that shows a dollar figure as if it were an invoice is lying. The defaults are the
+published list prices for the default model, marked in `appsettings.json` as the owner's to replace, and the doctor
+prints the two in use on every run so nobody discovers a wrong price from a bill.
+
+**Cache reads are priced high on purpose.** Anthropic bills a cache read at a fraction of an input token. Pricing them
+at the full input price overstates the estimate — and an overstated estimate closes the ceiling early, which is the
+safe direction for a feature whose whole point is that the owner never gets a surprise bill. The app uses no prompt
+caching today, so the rows are 0; the read exists so the number stays honest the day someone turns it on.
+
+**The ceiling is a UTC day, not a rolling window.** `Spend`'s allowances are rolling 24 hours, because a person should
+not have to remember when their day resets. A bill is not a person: it is read per day, argued per month, and "it
+opens again at midnight UTC" is a sentence the owner can hold in their head. Two different clocks for two different
+questions, each one obvious in its own place.
+
+**503 and not 429.** A cap the person can do something about (wait, go Pro) is 429 with a `Retry-After`. The stylist
+resting is the owner's decision about the owner's money, and there is nothing the person can do but come back; 503 is
+what that is. The message says the look was not spent, because it was not: the gate is the first thing either route
+asks, before the allowance, before the reservation, before the cookie.
+
+**The gate is not on the insights.** The brief named `InsightsEndpoints` alongside the two check routes, but
+`GET /api/users/me/insights` computes over rows already stored and asks the model nothing. Gating it would have denied a
+free feature for a cost it does not cause. The rule is "before the model is asked", and only two routes ask.
+
+**One alert per kind per hour, and a recovery is its own kind.** A readiness probe runs every few seconds; an alerter
+without a throttle is an alerter nobody reads within a day. An hour is long enough that a flap is one message and short
+enough that a real outage is not silent. Making "down" and "up" separate kinds costs one string and means a recovery is
+never swallowed by the failure in front of it — which is the message the owner actually wants.
+
+**Never a secret in an alert, including the alert's own URL.** A webhook URL is a bearer token in disguise: anyone
+holding it can post to the channel. It lives in the environment, the doctor prints only whether it is set, and the
+failure log prints a status code and not the host. The alert texts carry a setting's NAME and never its value.
+
+**A refunded or disputed charge ends Pro.** The webhook ignored `charge.refunded` and `charge.dispute.created`, so a
+person who charged back kept the plan they had stopped paying for. Both now move the end date to now, log a warning and
+raise an alert, because a dispute has a deadline and a fee and the owner has to answer it in Stripe. The subscription id
+is left alone: a dispute does not cancel a subscription, and Stripe sends `customer.subscription.deleted` if it ends.
+
+**The readiness alerter is handed over, not injected.** `Readiness` is built by hand in `HealthEndpoints` and never
+passes through the container, so it has an instance `Alerts` and a static `DefaultAlerts` that `Program.cs` sets once
+from the built app. The instance property is what makes the flip testable without a static that parallel tests race on.
+
+### Objections to keep out of the code
+
+- The money tiles never claim to be an invoice, and never show a currency the owner did not set the prices in.
+- The ceiling never refunds, never queues and never half-serves: it answers 503 before the call, or it is not on.
+- No alert ever carries a key, a password, a webhook URL, a handle's link or anything a person uploaded.
+- Nothing in the app fails because an alert could not be delivered; a dead channel is a log line.

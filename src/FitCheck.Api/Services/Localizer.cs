@@ -159,6 +159,8 @@ public sealed class Localizer
             ["error.useful_not_scored"] = "Only a check the stylist scored can be rated.",
             ["error.useful_note_too_long"] = "Keep the note under 120 characters.",
             ["error.cancel_first"] = "We could not end your subscription with the payment provider, so nothing was deleted. Try again in a few minutes.",
+            // Round 13 — money: the daily spend ceiling (Limits:SpendPerDayUsd) is reached; nothing was spent from the person's own allowance.
+            ["error.stylist_resting"] = "The stylist is resting until tomorrow. Your look is not spent.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -302,6 +304,8 @@ public sealed class Localizer
             ["error.useful_not_scored"] = "אפשר לדרג רק בדיקה שהסטייליסט נתן לה ציון.",
             ["error.useful_note_too_long"] = "ההערה צריכה להיות עד 120 תווים.",
             ["error.cancel_first"] = "לא הצלחנו לסיים את המנוי מול ספק התשלומים, אז שום דבר לא נמחק. שווה לנסות שוב בעוד כמה דקות.",
+            // Round 13 — money
+            ["error.stylist_resting"] = "הסטייליסט נח עד מחר. הלוק שלך לא נוצל.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -447,6 +451,8 @@ public sealed class Localizer
             ["error.useful_not_scored"] = "يمكن تقييم فحص أعطاه المصمم درجة فقط.",
             ["error.useful_note_too_long"] = "الملاحظة حتى 120 حرفًا.",
             ["error.cancel_first"] = "لم نتمكن من إنهاء اشتراكك لدى مزوّد الدفع، لذلك لم يُحذف أي شيء. حاول مرة أخرى بعد بضع دقائق.",
+            // Round 13 — money (plain Arabic, for native review)
+            ["error.stylist_resting"] = "المصمم يستريح حتى الغد. إطلالتك لم تُستهلك.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -591,6 +597,8 @@ public sealed class Localizer
             ["error.useful_not_scored"] = "Оценить можно только проверку, которой стилист поставил балл.",
             ["error.useful_note_too_long"] = "Заметка — до 120 символов.",
             ["error.cancel_first"] = "Мы не смогли завершить подписку у платёжного провайдера, поэтому ничего не удалено. Попробуйте ещё раз через несколько минут.",
+            // Round 13 — money (plain Russian, for native review)
+            ["error.stylist_resting"] = "Стилист отдыхает до завтра. Твой образ не потрачен.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

@@ -783,3 +783,74 @@ page, the rule-1 filter over sixteen lines in four languages, the generic line, 
 `LanguagesTests` (the list, `/api/config`, the stylist's language for a check, a comparison and an Arabic guest, one
 setting enabling Russian, and key parity of the four locale files with the Round 13 prefixes present). Three earlier
 tests that pinned `v3` now pin `v4`, and `GuestCheckTests` expects the forgiven no-outfit answer instead of the spent look.
+
+## Round 13 — Money: the spend meter, the daily ceiling and the alerts (appended)
+
+**The meter.** Every model call the API answers adds to `Counter` rows named for its UTC day: `spend:calls:yyyyMMdd`,
+`spend:in:yyyyMMdd`, `spend:out:yyyyMMdd`, and `spend:cache_read:` / `spend:cache_write:` when the API reports cache
+tokens (it does not today — the app uses no prompt caching). `AnthropicVisionClient` reads `usage.input_tokens`,
+`usage.output_tokens`, `usage.cache_read_input_tokens` and `usage.cache_creation_input_tokens` off every answer and
+hands them to `Services/SpendMeter.cs`. A call that FAILED at the API (a 4xx or 5xx whose body still carried usage, or a
+timeout) is counted too, with whatever is known — somebody billed it. A call that never reached the API (no connection,
+no key) counts nothing. The meter writes in its own DI scope, and never throws into the request: a check that already
+happened must not fail because a tally did.
+
+**The estimate is an estimate.** `Anthropic:PriceInPerMillion` (2.00) and `Anthropic:PriceOutPerMillion` (10.00) are USD
+per million tokens, marked in `appsettings.json` as the owner's to set from their contract; the defaults are the
+published list prices for the default model at the time of writing. Cache tokens are priced at the input price, which
+overstates cache reads on purpose — a ceiling that guesses low is a ceiling that lets a real bill through. Nothing here
+is an invoice, and the page says so.
+
+**The ceiling.** `Limits:SpendPerDayUsd` (default `0` = off, which the doctor warns about and `LAUNCH.md` tells the
+owner to set — 5 USD for the pilot). Once today's estimate reaches it, `POST /api/checks` and `POST /api/compare` answer
+**503 `error.stylist_resting`** ("The stylist is resting until tomorrow. Your look is not spent.", in all four
+languages) *before* the model is asked: no allowance spent, no guest free look spent, no row stored, no photo written.
+One log line and one alert the first time it closes on a given day, never one per refused request. It opens again at the
+next UTC midnight, because the rows are per UTC day. `Limits:ChecksPerDayGlobal` stays beside it as the count-based
+brake: one caps how many calls are made, the other caps what they are estimated to cost. `GET /api/users/me/insights`
+has no gate — it asks the model nothing.
+
+**The numbers page.** `/api/metrics/pilot` carries a `spend` block (`SpendMetricsDto`): `today` (calls, input/output/cache
+tokens, `estimatedUsd`), `ceilingUsd`, `resting`, the two prices, a 14-day `series` oldest-first with empty days as
+zeroes, and `alertWebhook` / `alertEmail` — whether a channel is set, never its value. `#/admin/metrics` draws it as
+*Model spend*: the hero estimate, four tiles, the 14-day bars, the prices line, and an *Alerts* row.
+
+**The alerts.** `Services/Alerter.cs` sends one sentence to `Alerts:Webhook` (any https URL that takes Slack-shaped
+`{ "text": "…" }`; a Discord webhook URL with `/slack` appended takes the same shape) and/or `Alerts:Email` (one
+address, through the app's own `IEmailSender`, so it needs mail configured), and always to the log — with neither set,
+the log line is the whole alert. **At most one alert per kind per hour**, in memory over one process, so a flapping
+check cannot spam; "readiness went down" and "readiness came back" are different kinds, so a recovery is never
+swallowed. The kinds: `started` (once at boot, with the version), `readiness.failing` / `readiness.ok`,
+`spend.ceiling`, `model.failing` (more than `Alerts:ModelFailuresIn10Min`, default 5, failed calls inside ten minutes),
+`disk.low` (free space under `Alerts:DiskFreeMb`, default 512, checked every five minutes by `AlertWatchdog`),
+`backup.failed` (the `--backup` command now catches, alerts and exits 1), `billing.reversed` and `test`.
+**Never a secret in an alert**: a name, a number and at most a setting's NAME. The webhook URL is itself a secret and
+lives in the environment only.
+
+**The doctor.** Two new lines. `spend` prints the prices in use and the ceiling, WARNs when no ceiling is set (naming 5
+USD for a pilot) and when a price is 0 (an estimate of nothing can never reach a ceiling). `alerts` says whether either
+channel is set, without printing either value, and WARNs when neither is; `--doctor --live` adds `alerts-live`, which
+sends one real test alert down every configured channel, or skips when there is none.
+
+**Stripe, honestly.** The webhook now reads `charge.refunded` and `charge.dispute.created`, which it used to ignore:
+either ends Pro on the matching customer's account (the end date moves to now, as for a deleted subscription), logs a
+warning and raises `billing.reversed`. **The endpoint must be subscribed to those two events in Stripe** — `--stripe-check`
+does not yet require them (see `DEPLOY.md`, "Round 13 — Money").
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Anthropic:PriceInPerMillion` | `2.00` | USD per million input tokens, for the estimate only. Set it to your contract's price |
+| `Anthropic:PriceOutPerMillion` | `10.00` | USD per million output tokens, same |
+| `Limits:SpendPerDayUsd` | `0` | The day's estimated-USD ceiling (UTC day). `0` is off; above it every route that would ask the model answers 503 |
+| `Alerts:Webhook` | `""` | https URL taking `{ "text": "…" }`. Environment only: it is a secret |
+| `Alerts:Email` | `""` | One address, through the app's mail. Does nothing while mail is off |
+| `Alerts:ModelFailuresIn10Min` | `5` | More than this many failed model calls in ten minutes raises the model alert. `0` turns it off |
+| `Alerts:DiskFreeMb` | `512` | Free space under this on the data volume raises the disk alert. `0` turns it off |
+
+Tests: `SpendTests` (`SpendMeterTests`: the estimate accumulating through a vision client that reports usage, the gate
+closing at the ceiling and opening after midnight UTC on the fake clock, a guest's free look surviving a 503, a ceiling
+of 0 being none, and the real `AnthropicVisionClient` against a scripted handler — the usage read, a billed failure
+counted, a call that never reached the API not) and `AlertTests` (both channels and no secret in either, the hour-long
+throttle, a readiness flip and back, one ceiling alert however many refusals, the ten-minute model window, the boot
+line with the version, the disk floor, a dead channel not taking the app with it, the host-less `SendOnceAsync` path,
+and the doctor's `spend`, `alerts` and `alerts-live` lines).

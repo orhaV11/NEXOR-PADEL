@@ -131,6 +131,9 @@ function draw(root, m, ctx, reload) {
   // Round 13: the stylist's own block (stylistSection, at the end of this file) sits between the community and the lists.
   if (m.stylist) root.appendChild(stylistSection(m.stylist));
 
+  // Round 13 - money: the spend block (moneySection, at the end of this file), after the stylist and before the lists.
+  if (m.spend) root.appendChild(moneySection(m.spend));
+
   root.appendChild(el('section', { class: 'dash-section' }, [
     el('h2', { text: t('dash.by_language') }),
     countList('dash-languages', m.byLanguage, localeName)
@@ -224,6 +227,86 @@ function stylistSection(stylist) {
   fragment.appendChild(el('section', { class: 'dash-section' }, [
     el('h2', { text: t('useful.dash_by_language') }),
     splitList('dash-useful-languages', stylist.byLanguage, localeName)
+  ]));
+  return fragment;
+}
+
+// ---------- Round 13 — money: the spend meter, the daily ceiling and the alerts ----------
+
+// The money block: one hero (today's estimate in dollars), the day's tiles, a 14-day bar series, the prices the
+// estimate was made at, and whether an alert channel is set at all. Same tiles, same bars, same voice as the rest of
+// the page; nothing new drawn and no chart library. Every dollar here is an estimate, and the page says so out loud.
+const MONEY_CSS = `
+.dash-money .dash-hero .val { font-size: 40px; }
+.dash-money .dash-bars li { grid-template-columns: 4.5em 1fr auto; }
+.dash-money .dash-bars .lbl { font-size: 12px; text-align: start; }
+.dash-money .resting { margin: 0; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; line-height: 1.45; color: var(--ink); }
+.dash-money .channels { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.dash-money .channels li { font-size: 13px; color: var(--ink-2); background: var(--surface); border-radius: 999px; padding: 8px 12px; box-shadow: var(--shadow-card); }
+`;
+let moneyStyled = false;
+/** Dollars in the reader's digits, two decimals; the currency is USD because the prices are set in USD. */
+const usd = (amount) => new Intl.NumberFormat(intlLocale(), { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(Number(amount) || 0);
+/** "20260920" as a short date the reader knows; the raw key when it is not a day we can parse. */
+function dayLabel(day) {
+  const text = String(day || '');
+  if (!/^\d{8}$/.test(text)) return text;
+  const date = new Date(Date.UTC(+text.slice(0, 4), +text.slice(4, 6) - 1, +text.slice(6, 8)));
+  return new Intl.DateTimeFormat(intlLocale(), { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date);
+}
+/** The 14-day series as bars, scaled to the costliest day; the row names itself for a screen reader. */
+function spendBars(series) {
+  const days = Array.isArray(series) ? series : [];
+  const max = Math.max(...days.map((d) => Number(d.estimatedUsd) || 0), 0.0001);
+  return el('ol', { class: 'dash-bars', id: 'dash-spend-days' }, days.map((day) => {
+    const amount = Number(day.estimatedUsd) || 0;
+    const calls = day.calls || 0;
+    return el('li', {
+      class: amount ? null : 'zero',
+      'data-day': day.day,
+      'data-calls': calls,
+      'aria-label': t('money.series_row', { day: dayLabel(day.day), usd: usd(amount), n: countArg(calls) })
+    }, [
+      el('span', { class: 'lbl', 'aria-hidden': 'true', text: dayLabel(day.day) }),
+      el('span', { class: 'track', 'aria-hidden': 'true' }, [amount ? el('span', { class: 'bar', style: 'inline-size: ' + Math.max(2, Math.round((amount / max) * 100)) + '%' }) : null]),
+      el('span', { class: 'val', 'aria-hidden': 'true', text: usd(amount) })
+    ]);
+  }));
+}
+function moneySection(spend) {
+  if (!moneyStyled) { moneyStyled = true; document.head.appendChild(el('style', { text: MONEY_CSS })); }
+  const today = spend.today || { calls: 0, inputTokens: 0, outputTokens: 0, estimatedUsd: 0 };
+  const ceiling = Number(spend.ceilingUsd) || 0;
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(el('section', { class: 'dash-section dash-money', id: 'dash-money' }, [
+    el('h2', { text: t('money.title') }),
+    el('p', { class: 'hint', text: t('money.hint') }),
+    spend.resting ? el('p', { class: 'resting', id: 'dash-resting', text: t('money.resting') }) : null,
+    el('div', { class: 'dash-hero', id: 'dash-spend-today' }, [
+      el('span', { class: 'lbl', text: t('money.today') }),
+      el('span', { class: 'val', text: usd(today.estimatedUsd) }),
+      el('p', { class: 'sub', text: t('money.today_sub', { n: countArg(today.calls || 0), calls: fmtNumber(today.calls || 0), in: fmtNumber(today.inputTokens || 0), out: fmtNumber(today.outputTokens || 0) }) })
+    ]),
+    el('div', { class: 'dash-tiles', id: 'dash-spend-tiles' }, [
+      tile(t('money.calls'), fmtNumber(today.calls || 0)),
+      tile(t('money.tokens_in'), fmtNumber(today.inputTokens || 0)),
+      tile(t('money.tokens_out'), fmtNumber(today.outputTokens || 0)),
+      tile(t('money.ceiling'), ceiling > 0 ? usd(ceiling) : t('money.ceiling_off'))
+    ]),
+    el('p', { class: 'hint', id: 'dash-prices', text: t('money.prices', { in: usd(spend.priceInPerMillion), out: usd(spend.priceOutPerMillion) }) })
+  ]));
+  fragment.appendChild(el('section', { class: 'dash-section dash-money' }, [
+    el('h2', { text: t('money.series') }),
+    spendBars(spend.series)
+  ]));
+  fragment.appendChild(el('section', { class: 'dash-section dash-money' }, [
+    el('h2', { text: t('money.alerts') }),
+    spend.alertWebhook || spend.alertEmail
+      ? el('ul', { class: 'channels', id: 'dash-alert-channels' }, [
+        el('li', { text: t('money.alert_webhook') + ' · ' + t(spend.alertWebhook ? 'money.alert_on' : 'money.alert_off') }),
+        el('li', { text: t('money.alert_email') + ' · ' + t(spend.alertEmail ? 'money.alert_on' : 'money.alert_off') })
+      ])
+      : el('p', { class: 'empty', id: 'dash-alerts-none', text: t('money.alert_none') })
   ]));
   return fragment;
 }

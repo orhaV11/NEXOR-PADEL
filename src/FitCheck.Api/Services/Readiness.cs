@@ -40,6 +40,17 @@ public sealed class Readiness
     private int _last = -1;
 
     /// <summary>
+    /// Round 13 — money: where a flip is shouted about, for this instance. <see cref="DefaultAlerts"/> is the fallback,
+    /// because the instance the app really probes is made by hand in <see cref="HealthEndpoints.MapHealthEndpoints"/>
+    /// and never passes through the container; Program.cs sets that one at start. Both null (a test, a process that
+    /// never built the host) means a flip is only the log line below, exactly as before.
+    /// </summary>
+    public Alerter? Alerts { get; set; }
+
+    /// <summary>The alerter any instance without its own falls back to. One app per process, so one default.</summary>
+    public static Alerter? DefaultAlerts { get; set; }
+
+    /// <summary>
     /// Runs every check and remembers the verdict. Never throws: a check that blows up is that check's reason, because a
     /// readiness probe that 500s tells the load balancer nothing it can act on.
     /// </summary>
@@ -125,14 +136,17 @@ public sealed class Readiness
             return;
         }
 
+        var alerter = Alerts ?? DefaultAlerts;
         if (ok)
         {
             logger.LogInformation("Readiness is ok again: every check passes.");
+            alerter?.Raise(Alerter.Kind.ReadinessOk, "readiness is ok again: every check passes.");
         }
         else
         {
-            logger.LogWarning("Readiness failed: {Checks}.",
-                string.Join(", ", checks.Where(c => c.Value != Ok).Select(c => $"{c.Key}={c.Value}")));
+            var failing = string.Join(", ", checks.Where(c => c.Value != Ok).Select(c => $"{c.Key}={c.Value}"));
+            logger.LogWarning("Readiness failed: {Checks}.", failing);
+            alerter?.Raise(Alerter.Kind.ReadinessFailing, $"readiness failed: {failing}. This instance is out of rotation.");
         }
     }
 }

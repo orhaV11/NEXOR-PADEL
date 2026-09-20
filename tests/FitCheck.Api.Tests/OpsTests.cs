@@ -531,7 +531,9 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Skip, report["stripe-webhook"]!.Status);
         Assert.Empty(handler.Requests);
         // Skipped calls are neither a pass nor a failure; the stub key itself is what fails the run.
-        Assert.Equal(3, report.Skipped);
+        // Round 13 — money: the fourth skip is alerts-live, which has no channel to send its test alert down.
+        Assert.Equal(DoctorStatus.Skip, report["alerts-live"]!.Status);
+        Assert.Equal(4, report.Skipped);
         Assert.Equal(1, report.ExitCode);
     }
 

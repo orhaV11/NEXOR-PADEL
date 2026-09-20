@@ -20,7 +20,7 @@ public static class MetricsEndpoints
         return app;
     }
 
-    private static async Task<IResult> GetPilotAsync(HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    private static async Task<IResult> GetPilotAsync(HttpContext context, AppDbContext db, Localizer localizer, SpendMeter spend, Alerter alerter, CancellationToken ct)
     {
         // The same gate as /api/admin: a signed-in account (401 gone, 403 suspended) that carries the moderator flag.
         var (viewer, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
@@ -81,7 +81,20 @@ public static class MetricsEndpoints
         // Round 13: the verdict's own verdict (FeedbackEndpoints): did the tip land, overall, by intent and by language.
         var stylist = await FeedbackEndpoints.StylistMetricsAsync(db, ct);
 
-        return Results.Ok(metrics with { Social = social, Stylist = stylist });
+        // ---- Round 13 — money: the spend block. Its own numbers, read from the meter's Counter rows; it touches no
+        // tile above. Every dollar is an ESTIMATE at the owner's configured prices, never an invoice. ----
+        var spendToday = await spend.TodayAsync(db, ct);
+        var money = new SpendMetricsDto(
+            Today: spendToday,
+            CeilingUsd: spend.CeilingUsd,
+            Resting: spend.CeilingUsd > 0 && spendToday.EstimatedUsd >= spend.CeilingUsd,
+            PriceInPerMillion: spend.Prices.In,
+            PriceOutPerMillion: spend.Prices.Out,
+            Series: await spend.SeriesAsync(db, ct),
+            AlertWebhook: alerter.WebhookSet,
+            AlertEmail: alerter.EmailSet);
+
+        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money });
     }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>

@@ -10,6 +10,18 @@ public sealed class AnthropicOptions
     public int MaxTokens { get; set; } = 1200;
 
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
+
+    // ---- Round 13 — money: what a call is estimated to cost (Services/SpendMeter.cs) ----
+
+    /// <summary>
+    /// USD per million input tokens. SET THIS TO YOUR CONTRACT'S PRICE. The default is the published list price for
+    /// <see cref="Model"/>'s default (claude-sonnet-5) at the time of writing; a volume agreement, a different model or
+    /// a price change makes it wrong, and every number on the money tiles and the daily ceiling is built on it.
+    /// </summary>
+    public decimal PriceInPerMillion { get; set; } = 2.00m;
+
+    /// <summary>USD per million output tokens. SET THIS TO YOUR CONTRACT'S PRICE; see <see cref="PriceInPerMillion"/>.</summary>
+    public decimal PriceOutPerMillion { get; set; } = 10.00m;
 }
 
 public sealed class StorageOptions
@@ -111,6 +123,16 @@ public sealed class LimitsOptions
 
     /// <summary>Reports one account may file per hour, looks and comments together. Keeps one person from burying the queue.</summary>
     public int ReportsPerHour { get; set; } = 20;
+
+    /// <summary>
+    /// Round 13 — money: the day's ceiling in estimated US dollars (UTC day). 0 is off, which is the default and what
+    /// the doctor warns about. Above 0, once today's estimate (<see cref="Services.SpendMeter"/>, priced by
+    /// <see cref="AnthropicOptions.PriceInPerMillion"/> and <see cref="AnthropicOptions.PriceOutPerMillion"/>) reaches
+    /// it, every route that would ask the model answers 503 error.stylist_resting BEFORE the call and spends no
+    /// allowance; it opens again at the next UTC midnight. <see cref="ChecksPerDayGlobal"/> stays as the count-based
+    /// brake beside it: one caps how many calls are made, this one caps what they are estimated to cost.
+    /// </summary>
+    public decimal SpendPerDayUsd { get; set; }
 }
 
 /// <summary>Who may check how often. Every check is a paid model call, so free is a taste and Pro is the habit.</summary>
@@ -340,4 +362,42 @@ public sealed class LanguagesOptions
 
     /// <summary>The language the stylist is asked for: the one given when it is enabled, English otherwise.</summary>
     public string Effective(string? locale) => IsEnabled(locale) ? locale! : Services.Localizer.DefaultLocale;
+}
+
+// ---- Round 13 — money: the alerts the owner hears before a user does ----
+
+/// <summary>
+/// Where the app shouts when something is wrong, and how loud it may be (<see cref="Services.Alerter"/>). Both channels
+/// are optional and independent: <see cref="Webhook"/> is an https URL that takes Slack/Discord-shaped JSON
+/// (<c>{ "text": "..." }</c>), <see cref="Email"/> is one address that goes out through the app's own mail sender and so
+/// only works while <see cref="EmailOptions.Enabled"/> is true. With neither set nothing is sent and every alert is only
+/// a log line, which the doctor says plainly.
+/// <para>
+/// <b>Never a secret in an alert.</b> The texts name what happened, a number and a setting's NAME; never a key, a
+/// password, a token or a link anyone could use. A webhook URL is itself a secret (whoever holds it can post to the
+/// channel): it lives in the environment, never in appsettings, and the doctor prints only whether it is set.
+/// </para>
+/// </summary>
+public sealed class AlertOptions
+{
+    public const string Section = "Alerts";
+
+    /// <summary>
+    /// An incoming-webhook URL that takes <c>{ "text": "..." }</c>: a Slack incoming webhook takes that shape as it is,
+    /// and a Discord webhook URL with <c>/slack</c> appended takes the same one. Environment only
+    /// (<c>Alerts__Webhook</c>), never appsettings. Empty means the channel is off.
+    /// </summary>
+    public string Webhook { get; set; } = "";
+
+    /// <summary>One address that gets the same sentence, through <see cref="Services.IEmailSender"/>. Empty means off, and it sends nothing while mail is off.</summary>
+    public string Email { get; set; } = "";
+
+    /// <summary>More failed model calls than this within ten minutes raises the model alert. 0 turns that one alert off.</summary>
+    public int ModelFailuresIn10Min { get; set; } = 5;
+
+    /// <summary>Free space on the data volume below this many megabytes raises the disk alert. 0 turns that one alert off.</summary>
+    public int DiskFreeMb { get; set; } = 512;
+
+    /// <summary>Whether anything is sent at all; with both channels empty an alert is still logged.</summary>
+    public bool Enabled => !string.IsNullOrWhiteSpace(Webhook) || !string.IsNullOrWhiteSpace(Email);
 }

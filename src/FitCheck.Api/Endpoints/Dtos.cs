@@ -429,7 +429,9 @@ public sealed record PilotMetricsDto(
     SocialMetricsDto? Social = null,
     BreakdownAveragesDto? BreakdownAverages = null,
     // Round 13: did the tip land? The only number that says whether the stylist is good (FeedbackEndpoints fills it).
-    StylistMetricsDto? Stylist = null);
+    StylistMetricsDto? Stylist = null,
+    // Round 13 — money: today's model spend, the ceiling and the 14-day series (SpendMeter fills it).
+    SpendMetricsDto? Spend = null);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
@@ -454,3 +456,27 @@ public sealed record UsefulSplitDto(int Yes, int No, int Unanswered, double? Rat
 /// answered "no outfit" to and how many it refused, as a check on the door rather than on the verdict.
 /// </summary>
 public sealed record StylistMetricsDto(UsefulSplitDto Useful, Dictionary<string, UsefulSplitDto> ByIntent, Dictionary<string, UsefulSplitDto> ByLanguage, int NotOutfit, int Rejected);
+
+// ---- Round 13 — money: the spend meter, the daily ceiling and the alerts ----
+
+/// <summary>
+/// The money block of the numbers page (<see cref="MetricsEndpoints"/>). Every dollar here is an ESTIMATE: it is the
+/// day's tokens, as the API reported them, at the two prices the owner put in <c>Anthropic:PriceInPerMillion</c> and
+/// <c>Anthropic:PriceOutPerMillion</c>. It is not an invoice and it never will be; the invoice is Anthropic's.
+/// <para>
+/// <paramref name="CeilingUsd"/> is <c>Limits:SpendPerDayUsd</c>, 0 when no ceiling is set; <paramref name="Resting"/>
+/// is whether today's estimate has reached it, which is exactly when the check and compare routes answer 503
+/// error.stylist_resting. <paramref name="Series"/> is the last <see cref="SpendMeter.SeriesDays"/> UTC days, oldest
+/// first, empty days included. <paramref name="AlertWebhook"/> and <paramref name="AlertEmail"/> say only WHETHER a
+/// channel is set — never the URL or the address, which are secrets and a person's data.
+/// </para>
+/// </summary>
+public sealed record SpendMetricsDto(
+    SpendDay Today,
+    decimal CeilingUsd,
+    bool Resting,
+    decimal PriceInPerMillion,
+    decimal PriceOutPerMillion,
+    List<SpendDay> Series,
+    bool AlertWebhook,
+    bool AlertEmail);

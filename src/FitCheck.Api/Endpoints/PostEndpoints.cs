@@ -526,13 +526,15 @@ public static class PostEndpoints
             await db.Posts.Where(p => p.Id == id && p.FireCount > 0).ExecuteUpdateAsync(s => s.SetProperty(p => p.FireCount, p => p.FireCount - 1), ct);
         }
 
-        var count = await db.Posts.Where(p => p.Id == id).Select(p => (int?)p.FireCount).FirstOrDefaultAsync(ct);
-        if (count is null)
+        // Round 13 (security sweep): the count is answered only for a look the caller may see. Taking your own fire back
+        // always works (above); what a hidden look has is not a stranger's to read.
+        var post = await VisiblePostAsync(db, id, context, ct);
+        if (post is null)
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.post_not_found"));
         }
 
-        return Results.Json(new FireStateDto(count.Value, false), AppJson.Options);
+        return Results.Json(new FireStateDto(post.FireCount, false), AppJson.Options);
     }
 
     private static async Task<IResult> SaveAsync(Guid id, HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, CancellationToken ct)
@@ -710,8 +712,10 @@ public static class PostEndpoints
         }
 
         var lang = me.PreferredLanguage;
-        var post = await db.Posts.Where(p => p.Id == id).Select(p => new { p.FeaturedByBrandId }).FirstOrDefaultAsync(ct);
-        if (post is null)
+        var post = await db.Posts.Where(p => p.Id == id).Select(p => new { p.FeaturedByBrandId, p.Hidden }).FirstOrDefaultAsync(ct);
+        // Round 13 (security sweep): a hidden look answers like a missing one to everyone but the brand that featured it,
+        // which may still take its mark back; otherwise the 403 below would say whether a hidden look is featured.
+        if (post is null || (post.Hidden && post.FeaturedByBrandId != me.Id))
         {
             return Error(StatusCodes.Status404NotFound, localizer.Get(lang, "error.post_not_found"));
         }

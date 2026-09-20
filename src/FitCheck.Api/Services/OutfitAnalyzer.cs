@@ -8,11 +8,14 @@ namespace FitCheck.Api.Services;
 /// Bump <see cref="PromptVersion"/> whenever the rubric, calibration or schema changes so score
 /// distributions can be compared across versions in /api/metrics/pilot. v2 added accessories as a dimension of the
 /// score and the three-part breakdown (fit, color, accessories). v3 added brand_seen on each item: a brand whose mark is
-/// visible, null otherwise, never a guess.
+/// visible, null otherwise, never a guess. v4 (Round 13) spelled out the no-outfit cases (a landscape, a screenshot, a plate
+/// of food, an object, a pet, an empty room, a crowd where no one outfit can be judged) and what the message may say:
+/// something about the photo, never about a person. The server checks the message for body, face, age and gender words
+/// in every shipped language and drops it when one appears (<see cref="SafeNoOutfitMessage"/>).
 /// </summary>
 public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
 {
-    public const string PromptVersion = "v3";
+    public const string PromptVersion = "v4";
     public const string ToolName = "submit_outfit_feedback";
 
     private const string ToolDescription =
@@ -26,9 +29,15 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         HARD RULES (non-negotiable):
         1. Judge clothes, never the person. Do not mention or hint at body shape, size, weight, height, skin, face,
            attractiveness, age or gender. "Fit" means how the garments are cut and sit, not how the body looks.
-        2. If the image does not show an outfit (no clothes clearly visible, a random object, a screenshot, etc.),
-           set status = "not_outfit", score = 1, intent_match = 0, empty arrays, and put a friendly explanation
-           in "message". No other content.
+        2. If the image does not show an outfit, set status = "not_outfit", score = 1, intent_match = 0, empty arrays,
+           and put one short, friendly sentence in "message" that says what the photo shows or what is missing, so the
+           wearer knows what to send instead. No other content. This covers: no clothes clearly visible; a landscape,
+           a room, a street, an animal, food, an object, a product on its own; a screenshot, a drawing, a meme, text;
+           clothes laid flat or on a hanger with nobody wearing them; a crop so tight (a shoe, a sleeve) that the outfit
+           cannot be read; a crowd or a group where no one outfit is clearly the wearer's. Two people is a "which one?"
+           question, not a check: say that one outfit per photo is what you need. The message is about the PHOTO, never
+           about a person: no word about anyone's body, face, skin, hair, age, gender or looks, and no guess at who or
+           what they are.
         3. If the image contains nudity, sexual content, or a person who appears to be a child, set status = "rejected",
            score = 1, intent_match = 0, empty arrays, and a short neutral message. Do not describe the image.
         4. Never mention brands you cannot actually see. Never invent items that are not visible.
@@ -112,7 +121,7 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         {
           "type": "object",
           "properties": {
-            "status": { "type": "string", "enum": ["ok", "not_outfit", "rejected"] },
+            "status": { "type": "string", "enum": ["ok", "not_outfit", "rejected"], "description": "ok: an outfit was judged. not_outfit: the photo shows no outfit to judge (a landscape, a screenshot, food, an object, clothes with nobody in them, a crop too tight to read, a group where no one outfit is the wearer's, two people). rejected: nudity, sexual content or an apparent child." },
             "score": { "type": "integer", "minimum": 1, "maximum": 10 },
             "intent_match": { "type": "integer", "minimum": 0, "maximum": 100 },
             "headline": { "type": "string", "description": "Max 10 words. Specific to this outfit, never generic." },
@@ -140,7 +149,7 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
                 "note": { "type": "string", "description": "One sentence." },
                 "add_one": { "type": "string", "description": "One concrete accessory that finishes this look for this intent, doable with common pieces. Empty only when verdict is adds." } },
               "required": ["verdict","present","note","add_one"] },
-            "message": { "type": "string", "description": "Only when status is not ok: short, friendly explanation." }
+            "message": { "type": "string", "description": "Only when status is not ok. For not_outfit: one short, friendly sentence about what the photo shows or what is missing, so the wearer knows what to send instead; about the photo only, never a word about a person's body, face, skin, hair, age, gender or looks. For rejected: one neutral sentence that describes nothing." }
           },
           "required": ["status","score","intent_match","headline","vibe","items","working","one_tip","breakdown","accessories"]
         }
@@ -251,6 +260,13 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
             Accessories = ReadAccessories(input)
         };
 
+        if (status == CheckStatus.NotOutfit)
+        {
+            // The reason is shown to the person, so it obeys rule 1 like everything else: a word about a body, a face,
+            // an age or a gender drops it, and the client shows its own generic line instead.
+            feedback.Message = SafeNoOutfitMessage(feedback.Message);
+        }
+
         if (status != CheckStatus.Ok)
         {
             // Nothing descriptive survives a non-ok status; the score is a placeholder, never shown.
@@ -266,6 +282,46 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         }
 
         return feedback;
+    }
+
+    /// <summary>A no-outfit reason is one line on the result screen: anything longer is cut at a word.</summary>
+    public const int MaxNoOutfitMessageLength = 200;
+
+    // Rule 1, applied to the one model sentence a person reads on the no-outfit screen: words about a body, a face, skin,
+    // hair, weight, age, gender or looks, in the four shipped languages. Latin words match whole (\b); Hebrew, Arabic and
+    // Russian stems match anywhere, since prefixes and endings vary and a false drop only costs the model's line, never
+    // the person's. The generic client line takes over whenever this fires.
+    private static readonly System.Text.RegularExpressions.Regex PersonWords = new(
+        @"\b(bod(y|ies)|face|faces|facial|skin|hair|weight|fat|thin|slim|skinny|chubby|overweight|curvy|height|tall|" +
+        @"age|aged|old|young|child|children|kid|kids|teen|teenager|minor|boy|boys|girl|girls|man|men|woman|women|male|female|gender|" +
+        @"lady|guy|pretty|beautiful|handsome|ugly|attractive|sexy|cute|chest|breast|breasts|legs|hips|waist|belly|stomach|thighs|butt)\b" +
+        @"|גוף|פנים|פרצוף|עור|שיער|משקל|שמן|שמנה|רזה|רזים|גיל|זקן|זקנה|צעיר|צעירה|ילד|ילדה|ילדים|נער|נערה|גבר|גברים|אישה|אשה|נשים|בחור|בחורה|יפה|יפים|מכוער|סקסי|חזה|רגליים|ירכיים|בטן|מותן" +
+        @"|جسم|جسد|وجه|بشرة|شعر|وزن|سمين|سمينة|نحيف|نحيفة|عمر|كبير|كبيرة|صغير|صغيرة|طفل|طفلة|أطفال|مراهق|فتاة|فتى|صبي|رجل|امرأة|سيدة|شاب|شابة|جميل|جميلة|قبيح|صدر|ساق|أرجل|خصر|بطن" +
+        @"|тел[оаеу]|лиц[оаеу]|кож[аеиу]|волос|вес[аеу]?\b|толст|худ[аеоы]|стройн|возраст|стар[аыо]|молод|ребен|ребён|дет[иейям]|подрост|мальчик|девочк|девушк|парен|мужчин|женщин|красив|некрасив|уродлив|сексуальн|груд[ьи]|ног[иа]|бедр|тали[яи]|живот",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>True when the text names a body, a face, an age, a gender or looks in any shipped language (rule 1).</summary>
+    public static bool MentionsPerson(string? text) => !string.IsNullOrWhiteSpace(text) && PersonWords.IsMatch(text);
+
+    /// <summary>
+    /// The no-outfit reason as the person may read it: one line (cut at <see cref="MaxNoOutfitMessageLength"/> on a word),
+    /// or null when it is empty or breaks rule 1, in which case the client shows its own generic line. Never invents one.
+    /// </summary>
+    public static string? SafeNoOutfitMessage(string? message)
+    {
+        var text = SanitizeOccasion(message);
+        if (text.Length == 0 || MentionsPerson(text))
+        {
+            return null;
+        }
+
+        if (text.Length > MaxNoOutfitMessageLength)
+        {
+            var cut = text.LastIndexOf(' ', MaxNoOutfitMessageLength);
+            text = text[..(cut > MaxNoOutfitMessageLength / 2 ? cut : MaxNoOutfitMessageLength)].TrimEnd() + "…";
+        }
+
+        return text;
     }
 
     /// <summary>

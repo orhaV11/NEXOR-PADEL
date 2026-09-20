@@ -1997,3 +1997,37 @@ git checkout <previous commit> && docker compose build app && docker compose up 
 
 קחו את הפלט של `--doctor --live`, את 200 השורות האחרונות של הלוג, ואת `curl -s …/readyz`, בסדר הזה. ביניהם הם אומרים
 מה האפליקציה רואה, מה אמרו לה, ומה היא עשתה.
+
+## Round 13 — the verdict's own verdict, languages shipped only when real (appended; the lead folds it into 3.5 and the Hebrew half)
+
+**3.5, one more number.** `#/admin/metrics` has a block called *The stylist*: *Tip landed*, yes over yes and no, with
+the split by intent and by language under it. Read it before the score distribution. Under 60% on one intent, tighten
+that intent's line in the rubric; under 60% on one language, the translation of the tips is the suspect. *No-outfit
+answers* next to it says how often people sent something that was not an outfit; a high number means the photo hint on
+the check screen is not landing.
+
+**Languages, before you invite anyone who reads Arabic or Russian.** The app ships with English and Hebrew live
+(`Languages__Enabled__0=en`, `__1=he`). Arabic and Russian are in the build but off until a native reader has been
+through `src/FitCheck.Api/wwwroot/i18n/ar.json` (or `ru.json`) and the matching block in `Services/Localizer.cs`; then
+add `Languages__Enabled__2=ar` (or `ru`), restart, and check `…/api/config` lists it. Until then a phone in Arabic gets
+the English app, and nothing half-translated reaches anyone.
+
+**A photo with no outfit costs nobody a check.** Three times a day per person the stylist's "no outfit here" spends
+nothing; after that it counts. Your Anthropic bill counts every one of them, so the guest brake and the global ceiling
+stay where they are.
+
+---
+
+## סבב 13 — הפסק על הפסק, שפות רק כשהן אמיתיות (נספח; המוביל משלב ב-3.5 ובחלק העברי)
+
+**3.5, עוד מספר אחד.** ב-`#/admin/metrics` יש בלוק בשם *הסטייליסט*: *הטיפ קלע*, כן מתוך כן ולא, עם פילוח לפי יעד ולפי
+שפה. קוראים אותו לפני התפלגות הציונים. מתחת ל-60% ביעד אחד — מהדקים את השורה של היעד הזה ברובריקה; מתחת ל-60% בשפה
+אחת — התרגום של הטיפים הוא החשוד. *תשובות "אין לוק"* לידו אומר כמה פעמים אנשים שלחו משהו שאינו לוק.
+
+**שפות, לפני שמזמינים מישהו שקורא ערבית או רוסית.** האפליקציה יוצאת עם אנגלית ועברית פעילות. ערבית ורוסית נמצאות
+בבילד אבל כבויות עד שדובר שפת אם יעבור על `wwwroot/i18n/ar.json` (או `ru.json`) ועל הבלוק המתאים ב-`Services/Localizer.cs`;
+אז מוסיפים `Languages__Enabled__2=ar` (או `ru`), מפעילים מחדש, ובודקים ש-`…/api/config` מציג אותה. עד אז טלפון בערבית
+מקבל את האפליקציה באנגלית, ושום דבר חצי-מתורגם לא מגיע לאף אחד.
+
+**תמונה בלי לוק לא עולה לאף אחד בדיקה.** שלוש פעמים ביום לאדם ה"אין כאן לוק" של הסטייליסט לא נספר; אחרי זה הוא נספר.
+חשבון Anthropic סופר כל אחת מהן, ולכן בלם האורחים והתקרה הגלובלית נשארים במקומם.

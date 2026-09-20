@@ -1022,3 +1022,21 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
     (in the app since Round 11: the look's menu, the profile's menu, and Settings → Blocked accounts — Apple's
     guideline 1.2 requires it), the in-app data export and account deletion for the privacy forms, the support URL and
     the privacy policy URL, and the payments rule for the wrapped app. `STORE.md` and `mobile/README.md`.
+
+### Round 13 — the verdict's own verdict, the honest no-outfit answer, languages shipped only when real (appended)
+
+24. **Languages: enable only what a native reader has reviewed.** `Languages__Enabled__0=en` and `__1=he` are the
+    default (English is always on). Arabic and Russian ship in the image, unreviewed: add `__2=ar` or `__3=ru` only
+    after someone who reads the language has gone through `wwwroot/i18n/<code>.json` and the block in
+    `Services/Localizer.cs`, then restart. `curl -s https://…/api/config | jq .languages` shows what is live; a browser
+    in a language that is not gets English, and the stylist is never asked for one that is not.
+25. **Watch the tip-landed rate.** `/api/metrics/pilot` (or `#/admin/metrics`, *The stylist*) now carries `stylist.useful.rate`,
+    yes over yes and no; it is the one number that says whether the stylist is any good, and it is the number to read
+    before touching the rubric. Under 60% for an intent is a calibration problem for that intent; under 60% for a
+    language is a translation problem. The unanswered count says how many people the row never reached.
+26. **No-outfit answers are forgiven three times a day (`Plans__NoOutfitForgivenPerDay`)**: they spend no allowance and
+    no guest look, and the global ceiling counts them all the same. Leave it at 3; set it to 0 if a script is found
+    feeding the door non-outfit photos (the attempts brake and the ceiling bound the damage either way).
+27. **`/offline.html` is in the shell** (`orevosh-shell-v6`): a phone with no network that navigates to `/landing/` or
+    opens the app before its shell was cached sees the brand and *Try again* instead of the browser's error page.
+    `curl -sI https://…/offline.html` is a 200 like the rest of `wwwroot`.

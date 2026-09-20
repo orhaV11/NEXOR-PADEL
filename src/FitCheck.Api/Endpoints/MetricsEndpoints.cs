@@ -78,7 +78,10 @@ public static class MetricsEndpoints
             // Share videos are rendered and encoded on the phone; the server only hears that one was shared or saved.
             VideosMade: (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.VideosMade, ct)));
 
-        return Results.Ok(metrics with { Social = social });
+        // Round 13: the verdict's own verdict (FeedbackEndpoints): did the tip land, overall, by intent and by language.
+        var stylist = await FeedbackEndpoints.StylistMetricsAsync(db, ct);
+
+        return Results.Ok(metrics with { Social = social, Stylist = stylist });
     }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>

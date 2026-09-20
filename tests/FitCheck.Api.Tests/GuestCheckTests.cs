@@ -304,18 +304,22 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         await _app.SignupAsync(member, "gc_same_address");
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(member)).StatusCode);
 
-        // Not an outfit still cost a model call: it is the address's look, as it is the cookie's.
+        // Round 13: not an outfit cost a model call but gave the visitor nothing, so it is forgiven (Plans:NoOutfitForgivenPerDay,
+        // three by default): neither the cookie's look nor the address's is spent by it, and the real look still comes.
         var deskAddress = NextAddress();
         _app.Vision.Handler = _ => Payloads.NotOutfit();
         try
         {
-            Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(deskAddress))).StatusCode);
+            var desk = await CheckAsync(Guest(deskAddress));
+            Assert.Equal(HttpStatusCode.Created, desk.StatusCode);
+            Assert.False((await desk.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("counted").GetBoolean());
         }
         finally
         {
             _app.Vision.Handler = _ => Payloads.Ok();
         }
 
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(deskAddress))).StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(Guest(deskAddress))).StatusCode);
     }
 

@@ -105,7 +105,7 @@ public static class ExportEndpoints
         var checkRows = await db.Checks.AsNoTracking()
             .Where(c => c.UserId == id)
             .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Score, c.Status, c.FeedbackJson })
+            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Score, c.Status, c.FeedbackJson, c.Useful, c.UsefulAt, c.UsefulNote })
             .ToListAsync(ct);
         var checks = checkRows.Select(c =>
         {
@@ -115,7 +115,9 @@ public static class ExportEndpoints
                 NullIfBlank(feedback?.Headline), NullIfBlank(feedback?.OneTip),
                 feedback?.Breakdown is { } b ? new BreakdownDto(b.Fit, b.Color, b.Accessories) : null,
                 feedback?.Items.Select(i => new ExportItemDto(i.Name, i.Category)).ToList() ?? [],
-                c.Status);
+                c.Status,
+                // Round 13: what the person said about the tip; their words, so they travel with the check.
+                c.Useful, c.UsefulAt is { } usefulAt ? Utc(usefulAt) : null, c.UsefulNote);
         }).ToList();
 
         var postRows = await db.Posts.AsNoTracking()

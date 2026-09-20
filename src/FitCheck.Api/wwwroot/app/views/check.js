@@ -8,9 +8,13 @@
 // sign-in prompt instead, and the submit stays disabled, when the server has guests switched off: config.plans.guestChecksPerDay
 // is 0), the result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and
 // #post-open takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when a
-// Free account has none left.
+// Free account has none left. Round 13: after the tip, #useful asks "Did the tip land?" (#useful-yes / #useful-no, 44px,
+// aria-pressed; then #useful-note with #useful-send / #useful-skip; then #useful-thanks), posting to /api/checks/{id}/useful;
+// the no-outfit result is #nooutfit (h1, the guidance, the stylist's one line as #nooutfit-reason when it survived rule 1,
+// #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
+// #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, intentLabel, INTENTS, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
@@ -39,6 +43,21 @@ const CSS = `
 .clip-row .btn-text { padding-block: 0; }
 .share-row { flex-wrap: wrap; }
 .share-row > #share-video { flex-basis: 100%; }   /* "Share as video" spans the row; the card and the text share sit under it */
+/* Round 13: the verdict's own verdict, one quiet row after the tip; the no-outfit state; the install note in the flow. */
+.useful { display: grid; gap: 10px; padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.useful h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); margin: 0; }
+.useful-choices { display: flex; gap: 8px; }
+.useful-choices .chip { flex: 1; justify-content: center; min-block-size: 44px; font-size: 15px; }
+.useful-note { display: grid; gap: 8px; }
+.useful-note .row > .btn-text { flex: none; padding-block: 0; }
+.useful-note .row > .btn-sm { min-block-size: 44px; }
+.useful-thanks { margin: 0; color: var(--ink-2); }
+.useful-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.useful-saved .btn-text { flex: none; padding-block: 0; }
+.nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
+.nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
+.nooutfit-free { margin-block-start: 10px; }
+.result-install { margin: 0; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -55,6 +74,7 @@ export const cameraReturn = { fromCheck: false };
 let frameMs = null;
 let busyKind = 'photo';   // what the "preparing" label talks about while a library file is read
 let capturing = false;    // a frame is on its way to the canvas: the submit waits for it
+let retakeNext = false;   // "Take another photo" on the no-outfit screen: the check screen focuses the photo button and opens the media sheet
 let captureSeq = 0;
 let seekSeq = 0;
 
@@ -130,6 +150,12 @@ register('check', async (root) => {
   form.appendChild(el('p', { class: 'hint', text: t('check.private_note') }));
   renderPhoto();
   updateSubmit();
+  // Back from a no-outfit answer: the photo button is the thing to do next, so focus goes there and the media sheet opens
+  // on it (closing the sheet hands focus back to the button, not to the heading).
+  if (retakeNext) {
+    retakeNext = false;
+    requestAnimationFrame(() => { const photo = $('photo'); if (!photo) return; photo.setAttribute('tabindex', '0'); photo.focus({ preventScroll: true }); chooseMedia(); });
+  }
 });
 
 /** "Try it first": the server's number of free checks, no account; signing up keeps them. A join link for the visitor who already used it. */
@@ -464,14 +490,30 @@ register('result', async (root) => {
   const container = el('div', { id: 'result', class: 'stack' });
   root.appendChild(container);
 
-  if (status !== 'ok') {
-    const rejected = status === 'rejected';
-    if (!state.resultAnimated) announce(t(rejected ? 'result.rejected_title' : 'result.not_outfit_title'));
+  if (status === 'rejected') {
+    if (!state.resultAnimated) announce(t('result.rejected_title'));
     state.resultAnimated = true;
     container.appendChild(el('div', { class: 'state' }, [
-      el('h1', { text: t(rejected ? 'result.rejected_title' : 'result.not_outfit_title') }),
-      el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: (!rejected && feedback.message) || t(rejected ? 'result.rejected_body' : 'result.not_outfit_body') }),
+      el('h1', { text: t('result.rejected_title') }),
+      el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: t('result.rejected_body') }),
       el('button', { type: 'button', class: 'btn', style: 'margin-block-start: 24px;', text: t('result.try_again'), onclick: () => checkAnother(true) })
+    ]));
+    return;
+  }
+  if (status !== 'ok') {
+    // Round 13, no outfit in the photo: no score, no share, nothing about anyone. The heading and the guidance are the
+    // app's; the stylist's one line about the photo rides under them when the server let it through (rule 1 drops one
+    // that names a person, and then there is none); "didn't count" when the server said so; then a retake.
+    ensureStyle();
+    if (!state.resultAnimated) announce(t('nooutfit.title'));
+    state.resultAnimated = true;
+    container.appendChild(el('div', { class: 'state nooutfit', id: 'nooutfit' }, [
+      el('h1', { text: t('nooutfit.title') }),
+      el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: t('nooutfit.body') }),
+      feedback.message ? el('p', { class: 'nooutfit-reason', id: 'nooutfit-reason', dir: 'auto', text: feedback.message }) : null,
+      result.counted === false ? el('p', { class: 'hint nooutfit-free', id: 'nooutfit-free', text: t('nooutfit.not_counted') }) : null,
+      el('button', { type: 'button', class: 'btn', id: 'retake', style: 'margin-block-start: 24px;', onclick: () => { retakeNext = true; checkAnother(true); } }, [icon('camera'), t('nooutfit.retake')]),
+      el('button', { type: 'button', class: 'btn btn-ghost', style: 'margin-block-start: 8px;', text: t('result.again'), onclick: () => checkAnother(false) })
     ]));
     return;
   }
@@ -521,6 +563,9 @@ register('result', async (root) => {
   }
   if (feedback.oneTip) {
     container.appendChild(el('div', {}, [el('h2', { text: t('result.tip') }), el('div', { class: 'tip', style: 'margin-block-start: 8px;' }, [el('p', { text: feedback.oneTip })])]));
+    // Round 13: the verdict's own verdict, right after the tip it is about.
+    ensureStyle();
+    container.appendChild(usefulRow(result));
   }
 
   const postArea = el('div');
@@ -535,6 +580,9 @@ register('result', async (root) => {
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
     el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));
+  // Round 13: on iOS Safari, once per device, the note that the app can live on the home screen, now that the value has landed.
+  const installHint = iosInstallHint();
+  if (installHint) { installHint.classList.add('result-install'); container.appendChild(installHint); }
   container.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
 
   if (animate) {
@@ -542,6 +590,80 @@ register('result', async (root) => {
     animateScore(scoreNode, feedback.score);
   }
 });
+
+/**
+ * "Did the tip land?" (Round 13): two 44px choices; a tap stores the verdict at once (POST /api/checks/{id}/useful, so it is
+ * kept even if the person leaves), then an optional one-line note with Send and Skip, then thanks. A check that was
+ * answered before (opened again from "Your checks") shows what was said with a way to change it. The owner or the guest
+ * whose cookie made the check may answer; the server refuses anyone else with the check's 404, and the row says why.
+ */
+function usefulRow(result) {
+  const section = el('section', { class: 'useful', id: 'useful', 'aria-labelledby': 'useful-title' });
+  const title = el('h2', { id: 'useful-title', text: t('useful.question') });
+  section.appendChild(title);
+  const body = el('div');
+  section.appendChild(body);
+  let busy = false;
+
+  const save = async (useful, note) => {
+    if (busy) return false;
+    busy = true;
+    try {
+      const saved = await api('POST', '/api/checks/' + encodeURIComponent(result.id) + '/useful', note ? { useful, note } : { useful });
+      result.useful = saved.useful; result.usefulAt = saved.usefulAt; result.usefulNote = saved.note || null;
+      return true;
+    } catch (e) {
+      toast(e && e.message ? e.message : t('error.generic'));
+      return false;
+    } finally { busy = false; }
+  };
+  const thanks = () => {
+    body.replaceChildren(el('p', { class: 'useful-thanks', id: 'useful-thanks', role: 'status', tabindex: '-1', text: t('useful.thanks') }));
+    requestAnimationFrame(() => { const node = $('useful-thanks'); if (node) node.focus({ preventScroll: true }); });
+  };
+  const askNote = (useful) => {
+    const input = el('input', { type: 'text', id: 'useful-note', maxlength: '120', autocomplete: 'off', enterkeyhint: 'send', placeholder: t('useful.note_placeholder'), value: result.usefulNote || '' });
+    const send = el('button', { type: 'submit', class: 'btn btn-sm', id: 'useful-send', text: t('useful.send') });
+    const skip = el('button', { type: 'button', class: 'btn-text', id: 'useful-skip', text: t('useful.skip'), onclick: thanks });
+    const form = el('form', { class: 'useful-note', id: 'useful-note-form', novalidate: true, onsubmit: async (event) => {
+      event.preventDefault();
+      const note = input.value.trim();
+      if (!note) { thanks(); return; }
+      send.disabled = true;
+      if (await save(useful, note)) thanks(); else send.disabled = false;
+    } }, [
+      el('label', { for: 'useful-note', text: t('useful.note_label') }),
+      input,
+      el('div', { class: 'row' }, [send, skip])
+    ]);
+    body.replaceChildren(form);
+    requestAnimationFrame(() => { if (document.contains(input)) input.focus({ preventScroll: true }); });
+  };
+  const choices = () => {
+    const group = el('div', { class: 'useful-choices', role: 'group', 'aria-labelledby': 'useful-title', 'aria-describedby': 'useful-group-hint' });
+    const pick = async (useful, chip) => {
+      for (const c of group.children) c.setAttribute('aria-pressed', String(c === chip));
+      chip.setAttribute('aria-busy', 'true');
+      const ok = await save(useful, null);
+      chip.removeAttribute('aria-busy');
+      if (ok) askNote(useful); else for (const c of group.children) c.setAttribute('aria-pressed', 'false');
+    };
+    const yes = el('button', { type: 'button', class: 'chip', id: 'useful-yes', 'aria-pressed': 'false', text: t('useful.yes') });
+    const no = el('button', { type: 'button', class: 'chip', id: 'useful-no', 'aria-pressed': 'false', text: t('useful.no') });
+    yes.addEventListener('click', () => pick(true, yes));
+    no.addEventListener('click', () => pick(false, no));
+    group.appendChild(yes); group.appendChild(no);
+    body.replaceChildren(group, el('span', { class: 'sr-only', id: 'useful-group-hint', text: t('useful.group') }));
+  };
+  const saved = () => {
+    body.replaceChildren(el('div', { class: 'useful-saved', id: 'useful-saved' }, [
+      el('span', { class: 'muted', text: t(result.useful ? 'useful.saved_yes' : 'useful.saved_no') }),
+      el('button', { type: 'button', class: 'btn-text', id: 'useful-change', text: t('useful.change'), onclick: () => { choices(); const first = $('useful-yes'); if (first) first.focus({ preventScroll: true }); } })
+    ]));
+  };
+  if (typeof result.useful === 'boolean') saved(); else choices();
+  return section;
+}
 
 /**
  * The accessories read: the verdict as a pill, the pieces the stylist saw as chips ("No accessories seen." when the list

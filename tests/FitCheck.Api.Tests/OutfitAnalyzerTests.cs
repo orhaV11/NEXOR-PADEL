@@ -184,7 +184,7 @@ public class OutfitAnalyzerTests
         var required = schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList();
         Assert.Equal(["status", "score", "intent_match", "headline", "vibe", "items", "working", "one_tip", "breakdown", "accessories"], required);
         Assert.Equal("submit_outfit_feedback", OutfitAnalyzer.ToolName);
-        Assert.Equal("v3", OutfitAnalyzer.PromptVersion);
+        Assert.Equal("v4", OutfitAnalyzer.PromptVersion);
 
         var breakdown = schema.GetProperty("properties").GetProperty("breakdown");
         Assert.Equal(["fit", "color", "accessories"], breakdown.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToList());

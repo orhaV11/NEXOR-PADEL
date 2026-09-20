@@ -2,8 +2,12 @@
 // already loaded. The API and photos are never cached here; they always go to the network. Shell files are
 // fetched with cache: 'no-cache', so the browser revalidates them and a deploy is picked up as one consistent set.
 // It also shows Web Push notifications and opens the app on the right screen when one is tapped.
-const VERSION = 'orevosh-shell-v5';
-const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json'];
+// Round 13: /offline.html is precached and answers a navigation that has no network and no cached shell to fall back on
+// (a /landing/ page, or the app before its shell was ever cached): the brand, one line, retry. The four locale files stay
+// precached whether or not a language is live (Languages:Enabled): they are small, and enabling one needs no new shell.
+const VERSION = 'orevosh-shell-v6';
+const OFFLINE = '/offline.html';
+const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json', OFFLINE];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(SHELL.map((p) => new Request(p, { cache: 'no-cache' })))).then(() => self.skipWaiting()));
@@ -17,8 +21,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;               // live data and private photos: network only
-  if (url.pathname.startsWith('/landing/')) return;           // the static landing pages are their own documents, not the shell
   const isNavigation = event.request.mode === 'navigate';
+  if (url.pathname.startsWith('/landing/')) {                 // the static landing pages are their own documents, not the shell:
+    if (isNavigation) event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));   // network, or the offline page
+    return;
+  }
   const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || SHELL.includes(url.pathname);
   if (!isNavigation && !isShell) return;                      // icons and the like: the browser handles them
   const request = isNavigation
@@ -32,7 +39,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(VERSION).then((cache) => cache.put(cacheKey, copy));
       }
       return response;
-    }).catch(() => caches.match(cacheKey))
+    }).catch(() => caches.match(cacheKey).then((cached) => cached || (isNavigation ? caches.match(OFFLINE) : undefined)))
   );
 });
 

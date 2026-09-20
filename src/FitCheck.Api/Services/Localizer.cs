@@ -154,6 +154,10 @@ public sealed class Localizer
             ["error.portal_failed"] = "The billing page didn't open. Try again in a moment.",
             // Round 13 — security
             ["error.password_personal"] = "Your password can't contain your handle or your email address.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer.
+            ["error.useful_invalid"] = "Say whether the tip landed: yes or no.",
+            ["error.useful_not_scored"] = "Only a check the stylist scored can be rated.",
+            ["error.useful_note_too_long"] = "Keep the note under 120 characters.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -292,6 +296,10 @@ public sealed class Localizer
             ["error.portal_failed"] = "דף החיוב לא נפתח. אפשר לנסות שוב עוד רגע.",
             // Round 13 — security
             ["error.password_personal"] = "הסיסמה לא יכולה להכיל את שם המשתמש או את כתובת האימייל שלך.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer.
+            ["error.useful_invalid"] = "צריך לומר אם הטיפ קלע: כן או לא.",
+            ["error.useful_not_scored"] = "אפשר לדרג רק בדיקה שהסטייליסט נתן לה ציון.",
+            ["error.useful_note_too_long"] = "ההערה צריכה להיות עד 120 תווים.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -432,6 +440,10 @@ public sealed class Localizer
             ["error.portal_failed"] = "لم تُفتح صفحة الفوترة. يمكن المحاولة بعد لحظة.",
             // Round 13 — security (plain Arabic, for native review)
             ["error.password_personal"] = "لا يمكن أن تحتوي كلمة المرور على اسم المستخدم أو البريد الإلكتروني.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer. Plain Arabic, for native review.
+            ["error.useful_invalid"] = "قل إن كانت النصيحة مفيدة: نعم أو لا.",
+            ["error.useful_not_scored"] = "يمكن تقييم فحص أعطاه المصمم درجة فقط.",
+            ["error.useful_note_too_long"] = "الملاحظة حتى 120 حرفًا.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -571,6 +583,10 @@ public sealed class Localizer
             ["error.portal_failed"] = "Страница оплаты не открылась. Попробуй через минуту.",
             // Round 13 — security (plain Russian, for native review)
             ["error.password_personal"] = "Пароль не может содержать твой ник или адрес электронной почты.",
+            // Round 13: the verdict's own verdict and the honest no-outfit answer. Plain Russian, for native review.
+            ["error.useful_invalid"] = "Скажи, попал ли совет: да или нет.",
+            ["error.useful_not_scored"] = "Оценить можно только проверку, которой стилист поставил балл.",
+            ["error.useful_note_too_long"] = "Заметка — до 120 символов.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

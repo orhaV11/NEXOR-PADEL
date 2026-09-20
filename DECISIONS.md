@@ -1405,3 +1405,52 @@ timing or copy question in ten seconds. Week one is rendered under `brand-kit/ep
 - A share is counted, not recorded: no row says which file, which codec or where it went.
 - An empty state never promises content, people or a feature. It names one action.
 - The renderer's page pool falls back, it never silently produces a frame from a page it has not proven identical.
+
+## Round 13 — the product made whole (one builder's section: the verdict's own verdict, the honest no-outfit answer, languages, the last polish)
+
+**The one number that measures the stylist is asked for after the tip, not after the score.** A score is the stylist's
+opinion; whether the tip landed is the person's. The row sits right after the tip it is about, asks one thing with two
+answers, saves the answer on the tap (a person who leaves at the note has still answered), and only then offers a
+line. It may be changed, because a tip lands or misses once the person has tried it, sometimes a day later. Guests
+answer too: their look is theirs to judge, and the answer travels with the check when it is claimed. The rate on the
+numbers page is yes over yes and no, with the unanswered counted apart, never folded into the denominator: silence is
+not a verdict.
+
+**A no-outfit answer is forgiven, three times a day, and the ceiling still counts it.** The recommendation was that it
+spends nothing, and it does not, because the person got nothing; but "nothing" unbounded is a free model call, and the
+caps are the product. So the first `Plans:NoOutfitForgivenPerDay` answers of the day are left out of every per-person
+count (the plan cap, the guest's cookie and address, `me.checksToday`) and the ones after count like any check, while
+the global ceiling counts all of them: it is about the bill, and each was a call. The forgiveness is computed from the
+rows in one place (`Spend`), oldest first, so the check route, the compare route and `me` cannot disagree, and the
+answer says `counted` so the screen can say *This one didn't count as a check* only when it is true.
+
+**The model's reason is read as the person's words would be: filtered before it is shown.** Rule 1 forbids a word about
+the body; a not-outfit reason is the one model sentence a person reads unscored, so the server drops it when it names
+a body, a face, skin, hair, weight, age, gender or looks in any of the four languages, and the client's own line stands
+in. A false drop costs the model's sentence, never the person's dignity; that trade is right. The rubric moved to `v4`
+for the cases it now names (the two-people case says *one outfit per photo*, since two is a *Which one?*), and the
+version pins in three older tests moved with it.
+
+**A language ships when someone who reads it has read it.** The Arabic and Russian files exist, and the builders wrote
+them as best they could; that is not shipped. `Languages:Enabled` is the switch, English is always on, the client and
+the stylist read the list, the account preference and the server strings do not (so an earlier account in Russian
+keeps its row and gets its screen in English until the review), and turning a language on is one line and a restart.
+The rule is on the stylist's call and the screen, not on the account: the tests that sign up in `ar` and `ru` still
+pass, and nothing forgets what a person chose.
+
+**The offline page is for the navigations the shell cannot answer.** The app shell already works offline for what was
+loaded; what did not was a `/landing/` page, or the app itself on a phone that lost the network before the shell was
+ever cached. The page is one file with the brand and one line, and it borrows its words from the cached locale file
+rather than carrying four translations of its own; it follows the live list the app left in `localStorage`, because the
+first scratch run caught it speaking Arabic to an Arabic browser, which is exactly the half-translated page the switch exists to prevent.
+
+**The iOS note is shown once, where the value landed.** The Home banner asks before anyone has seen the app do anything;
+the result screen is after. Once per device, dismissible, only in Safari itself (an in-app browser cannot add to the
+home screen), never in the installed app.
+
+### Objections to keep out of the code
+
+- The feedback row never asks a second question, never asks for a rating out of five, never blocks the post.
+- The no-outfit screen never shows a score, a share, a post button, or a word about who is in the photo.
+- No client offers a language the server did not list; no stylist call goes out in one.
+- The forgiveness is a number in one place (`Spend`), never a special case in a route.

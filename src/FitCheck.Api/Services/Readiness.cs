@@ -40,11 +40,15 @@ public sealed class Readiness
     private int _last = -1;
 
     /// <summary>
-    /// Round 13 — money: where a flip is shouted about (Program.cs hands the built app's <see cref="Alerter"/> over at
-    /// start). Static because this instance is made by hand in HealthEndpoints, not by the container; null in a test or
-    /// a process that never built the host, and then a flip is only the log line below, as before.
+    /// Round 13 — money: where a flip is shouted about, for this instance. <see cref="DefaultAlerts"/> is the fallback,
+    /// because the instance the app really probes is made by hand in <see cref="HealthEndpoints.MapHealthEndpoints"/>
+    /// and never passes through the container; Program.cs sets that one at start. Both null (a test, a process that
+    /// never built the host) means a flip is only the log line below, exactly as before.
     /// </summary>
-    public static Alerter? Alerts { get; set; }
+    public Alerter? Alerts { get; set; }
+
+    /// <summary>The alerter any instance without its own falls back to. One app per process, so one default.</summary>
+    public static Alerter? DefaultAlerts { get; set; }
 
     /// <summary>
     /// Runs every check and remembers the verdict. Never throws: a check that blows up is that check's reason, because a
@@ -132,16 +136,17 @@ public sealed class Readiness
             return;
         }
 
+        var alerter = Alerts ?? DefaultAlerts;
         if (ok)
         {
             logger.LogInformation("Readiness is ok again: every check passes.");
-            Alerts?.Raise(Alerter.Kind.ReadinessOk, "readiness is ok again: every check passes.");
+            alerter?.Raise(Alerter.Kind.ReadinessOk, "readiness is ok again: every check passes.");
         }
         else
         {
             var failing = string.Join(", ", checks.Where(c => c.Value != Ok).Select(c => $"{c.Key}={c.Value}"));
             logger.LogWarning("Readiness failed: {Checks}.", failing);
-            Alerts?.Raise(Alerter.Kind.ReadinessFailing, $"readiness failed: {failing}. This instance is out of rotation.");
+            alerter?.Raise(Alerter.Kind.ReadinessFailing, $"readiness failed: {failing}. This instance is out of rotation.");
         }
     }
 }

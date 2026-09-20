@@ -484,7 +484,7 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AnthropicVision
 
 // Round 13 — money: a readiness flip is one of the things the owner must hear about; Readiness is made by hand in
 // HealthEndpoints, so it is handed the alerter here, once, from the built app.
-Readiness.Alerts = app.Services.GetRequiredService<Alerter>();
+Readiness.DefaultAlerts = app.Services.GetRequiredService<Alerter>();
 
 {
     var alerts = app.Services.GetRequiredService<IOptions<AlertOptions>>().Value;

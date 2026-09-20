@@ -708,3 +708,77 @@ descriptive is dropped when the status is not `ok`.
 Every judgment call made while building, and every place the brief and instinct disagreed, is in
 [`DECISIONS.md`](DECISIONS.md). The plans each phase was built from are in [`PHASE2.md`](PHASE2.md) and
 [`PHASE3.md`](PHASE3.md); the visual system is [`DESIGN.md`](DESIGN.md).
+
+## Round 13 — the product made whole: the verdict's own verdict, the honest no-outfit answer, languages shipped only when real, the last polish
+
+*(One builder's section, appended for the lead to fold into the parts above.)*
+
+**The verdict's own verdict.** After the one tip, the result screen asks one quiet question, *Did the tip land?*, with two
+44px answers; a tap stores the answer at once, an optional one-line note follows (120 characters, Send or Skip), then
+thanks. It is the only number that says whether the stylist is any good, and it is on the numbers page.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `POST /api/checks/{id}/useful` | `{ useful: bool, note?: string }` | `200 { id, useful, usefulAt, note }`. The owner, or the guest whose cookie made the check; anyone else, and a call with neither a session nor a guest cookie, gets the 404 of `GET /api/checks/{id}` (`error.check_not_found`). Only a check the stylist scored can be rated (400 `error.useful_not_scored`); `useful` is required (400 `error.useful_invalid`); `note` is trimmed, line breaks and control characters folded, at most 120 characters (400 `error.useful_note_too_long`), stored as null when empty. May be changed: every call overwrites `Useful`, `UsefulAt` (the app's clock) and `UsefulNote`. 60 an hour per account or address through the `useful` policy (429 `error.too_fast`). Logged as `Useful: check {CheckId} yes|no`, never the note |
+
+`GET /api/checks/{id}` and `GET /api/users/me/checks` carry `useful`, `usefulAt` and `usefulNote` once the person has
+answered (absent before). The export's `checks[]` carries the same three. `POST /api/checks` alone answers with one more
+field, `counted`: whether this check counted against the day's allowance (below). `/api/metrics/pilot` gains `stylist`:
+`{ useful: { yes, no, unanswered, rate }, byIntent: { Date: {…}, … }, byLanguage: { en: {…}, … }, notOutfit, rejected }`
+over every `ok` check by an account (guest rows are left out until claimed, as everywhere on that page); `rate` is yes ÷
+(yes + no), four decimals, absent while nobody has answered. The numbers page draws it as *The stylist*: the rate as a
+hero figure, the three tiles, the door's two counts, and the split by intent and by language.
+
+**A photo with no outfit.** The rubric (now `v4`) names the cases the model answers `not_outfit` to: no clothes clearly
+visible; a landscape, a room, a street, an animal, food, an object, a product on its own; a screenshot, a drawing, a
+meme, text; clothes laid flat or on a hanger with nobody in them; a crop too tight to read the outfit; a crowd or a
+group where no one outfit is clearly the wearer's; and two people, which is a *Which one?* question, not a check.
+Nudity, sexual content or an apparent child stay `rejected`. The one-line reason the model gives must be about the
+photo, never about a person, and the server holds it to that: `OutfitAnalyzer.SafeNoOutfitMessage` folds it to one line,
+cuts it at 200 characters, and drops it entirely when it contains a body, face, skin, hair, weight, age, gender or looks
+word in English, Hebrew, Arabic or Russian; a comparison's `not_outfit` reason goes through the same filter. With the
+reason dropped, `feedback.message` is absent and the client shows its own line. The result screen for `not_outfit`: *We
+couldn't find an outfit in this photo*, the guidance (one outfit, full length, good light), the stylist's line when it
+survived, *This one didn't count as a check* when the server said so, and *Take another photo*, which goes back to the
+check screen with the photo button focused and the media sheet open. No score, no share, no post.
+
+**Whether a no-outfit answer spends the allowance: it does not, up to a point.** The person got nothing for it, so the
+first `Plans:NoOutfitForgivenPerDay` (3) no-outfit answers in a rolling day, oldest first, checks and comparisons alike,
+are left out of the plan cap, the guest's free look (cookie and address) and `me.checksToday`; from the fourth on they
+count like any stored check, so a stream of non-outfit photos still meets a cap. The global ceiling
+(`Limits:ChecksPerDayGlobal`) counts every one of them, because each was a model call and the ceiling is about the bill;
+the spend meter counts them too. `0` makes every no-outfit answer count, as before this round. The guest's brake on
+attempts (`Plans:GuestAttemptsPerDay`) stands in front as before.
+
+**Languages shipped only when real.** `Languages:Enabled` (default `["en", "he"]`; `Languages__Enabled__0=en`,
+`__1=he` as environment variables) is the list of UI languages that are live. `/api/config` publishes it as `languages`
+(English always first). The client offers only these in the switcher (with *More languages are on the way, once native
+speakers have reviewed them* under the list while some are not), auto-detects only among these (a browser in Arabic gets
+English), ignores a saved preference outside them, and fetches only their files; an account whose stored preference is
+not live reads the app in the language it sees and its preference follows quietly. The stylist is asked to answer only
+in a live language: a check or a comparison asked for in another one is written in English, the row says `en`, and the
+call's messages are English too. The account preference itself (`PATCH /api/users/me`), the server's own strings and
+the four locale files keep working in every language the app knows, so enabling Arabic or Russian is one setting after a
+native reader has reviewed `wwwroot/i18n/<code>.json` and the block in `Services/Localizer.cs`. The service worker
+precaches all four files regardless (they are small, and enabling one needs no new shell). The landing pages stay as
+they are: English and Hebrew, the two that are live.
+
+**The last polish.** `offline.html` is precached (`orevosh-shell-v6`) and answers a navigation with no network when
+there is no cached shell to fall back on, and every `/landing/` navigation that fails: the mark, one line, *Try again*;
+it reads the saved language and takes its three lines from the cached locale file, so it speaks Hebrew to someone who
+used the app in Hebrew. On iOS Safari (not an in-app browser, not the installed app) the result screen shows once per
+device, under the share row, *Keep OREVOSH on your home screen* with the Share → Add to Home Screen line and *Got it*;
+the flag lives in `localStorage` behind try/catch. Focus along check → result → post: the feedback row's answers are a
+labelled group, the note gets focus after a tap and thanks after Send or Skip, *Change* on an answered check returns focus
+to the first choice, and *Take another photo* lands on the photo button so closing the media sheet returns there.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Plans:NoOutfitForgivenPerDay` | `3` | How many no-outfit answers a person (an account, or a guest cookie) gets back in a rolling day: they spend neither the plan cap nor the guest's look; the ones after count. The global ceiling counts all of them. `0` counts every one |
+| `Languages:Enabled` | `["en", "he"]` | The UI languages that are live: offered, detected, asked of the stylist and published on `/api/config`. English is always in the list. Add `ar` or `ru` once a native reader has reviewed its files |
+
+Tests: `FeedbackTests` (the route's rules, the owner and the guest cookie, the 404, the brake, the export and the numbers
+page, the rule-1 filter over sixteen lines in four languages, the generic line, the forgiveness and the ceiling) and
+`LanguagesTests` (the list, `/api/config`, the stylist's language for a check, a comparison and an Arabic guest, one
+setting enabling Russian, and key parity of the four locale files with the Round 13 prefixes present). Three earlier
+tests that pinned `v3` now pin `v4`, and `GuestCheckTests` expects the forgiven no-outfit answer instead of the spent look.

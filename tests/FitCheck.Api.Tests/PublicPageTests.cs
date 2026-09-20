@@ -232,9 +232,27 @@ public class PublicPageTests : IClassFixture<TestApp>
 
         Assert.Equal(HttpStatusCode.OK, (await Anonymous().GetAsync($"/look/{postId}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await Anonymous().GetAsync($"/look/{postId}?via=share")).StatusCode);
+        // A look that is not there was not arrived at: a crawler re-fetching a deleted one must not move the funnel.
+        Assert.Equal(HttpStatusCode.NotFound, (await Anonymous().GetAsync($"/look/{Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Anonymous().GetAsync("/u/nobody-at-all")).StatusCode);
 
         Assert.Equal(arrivalsBefore + 2, await CounterAsync(_app, Funnel.LookArrivals(day)));
         Assert.Equal(sharesBefore + 1, await CounterAsync(_app, Funnel.ShareArrivals(day)));
+    }
+
+    [Fact]
+    public async Task A_profile_arrival_is_counted_once_a_profile_is_really_there()
+    {
+        var handle = NextHandle("arr");
+        var (client, _, _) = await _app.NewUserAsync(handle);
+        Assert.NotNull(client);
+        var day = DateOnly.FromDateTime(DateTime.UtcNow);
+        var before = await CounterAsync(_app, Funnel.ProfileArrivals(day));
+
+        Assert.Equal(HttpStatusCode.OK, (await Anonymous().GetAsync($"/u/{handle}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Anonymous().GetAsync("/u/still-nobody")).StatusCode);
+
+        Assert.Equal(before + 1, await CounterAsync(_app, Funnel.ProfileArrivals(day)));
     }
 
     [Fact]

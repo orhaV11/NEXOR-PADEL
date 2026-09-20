@@ -55,7 +55,10 @@ public static class PublicPageEndpoints
         app.MapGet(LookPath + "/{id:guid}", LookPageAsync);
         app.MapGet(LookPath + "/{id:guid}/image", LookImageAsync);
         app.MapGet(ProfilePath + "/{handle}", ProfilePageAsync);
-        app.MapGet(DigestOffPath + "/{token}", DigestOffAsync);
+        // A token this route takes is a mailed one, so it gets the same per-address brake the reset and verify links
+        // get (Limits:TokenAttemptsPerQuarterHourPerIp): generous, since one tap must never be refused, and enough,
+        // since the tag is 256 bits and the brake is on the noise rather than on the odds.
+        app.MapGet(DigestOffPath + "/{token}", DigestOffAsync).RequireRateLimiting(AuthEndpoints.TokenPolicy);
         // The same feature's switch inside the app: Settings reads it and flips it. The mailed link needs no session
         // (the person is in their inbox); this one is the account's own and needs one like every other preference.
         app.MapGet(DigestStatePath, GetDigestStateAsync).RequireAuthorization();
@@ -98,17 +101,18 @@ public static class PublicPageEndpoints
 
     private static async Task<IResult> LookPageAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, IConfiguration configuration, CancellationToken ct)
     {
+        var look = await FindLookAsync(db, id, ct);
+        if (look is null)
+        {
+            // A look that is not there was not arrived at: a crawler re-fetching a deleted one must not move the funnel.
+            return NotFoundPage(context, localizer);
+        }
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         await CountAsync(db, Funnel.LookArrivals(today), ct);
         if (string.Equals(context.Request.Query["via"].ToString(), ViaShare, StringComparison.OrdinalIgnoreCase))
         {
             await CountAsync(db, Funnel.ShareArrivals(today), ct);
-        }
-
-        var look = await FindLookAsync(db, id, ct);
-        if (look is null)
-        {
-            return NotFoundPage(context, localizer);
         }
 
         var language = Localizer.IsSupported(look.Language) ? look.Language : Localizer.DefaultLocale;
@@ -187,14 +191,14 @@ public static class PublicPageEndpoints
 
     private static async Task<IResult> ProfilePageAsync(string handle, HttpContext context, AppDbContext db, Localizer localizer, IConfiguration configuration, CancellationToken ct)
     {
-        await CountAsync(db, Funnel.ProfileArrivals(DateOnly.FromDateTime(DateTime.UtcNow)), ct);
-
         var lower = (handle ?? "").Trim().ToLowerInvariant();
         var user = lower.Length == 0 ? null : await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.HandleLower == lower && !u.Suspended, ct);
         if (user is null)
         {
             return NotFoundPage(context, localizer);
         }
+
+        await CountAsync(db, Funnel.ProfileArrivals(DateOnly.FromDateTime(DateTime.UtcNow)), ct);
 
         var language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
         var origin = Origin(context.Request, configuration);

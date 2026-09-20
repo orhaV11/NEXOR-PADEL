@@ -153,17 +153,19 @@ public class PlansTests
         var plans = config.GetProperty("plans");
         Assert.Equal(12, plans.GetProperty("proChecksPerDay").GetInt32());
         Assert.Equal(12, plans.GetProperty("proComparesPerDay").GetInt32());
-        // The wardrobe is Pro's by default, and the taste profile is not claimed until a server says it has it.
+        // Both are Pro's by default, and both are things this server really has: the wardrobe is Services/Wardrobe.cs and
+        // the taste profile is Services/Taste.cs. A server that turns either off stops claiming it on the Pro page.
         Assert.True(plans.GetProperty("wardrobe").GetBoolean());
-        Assert.False(plans.GetProperty("tasteProfile").GetBoolean());
+        Assert.True(plans.GetProperty("tasteProfile").GetBoolean());
     }
 
     [Fact]
-    public void A_taste_profile_is_never_claimed_by_default()
+    public void The_taste_profile_is_claimed_because_this_server_has_one()
     {
-        // The Pro page draws pro.benefit_taste only behind plans.tasteProfile, and the setting is off out of the box:
-        // turning it on is an operator saying, in configuration, that this server has the feature.
-        Assert.False(new PlanOptions().TasteProfile);
+        // The setting was off while the feature did not exist. Services/Taste.cs landed in Round 14, so it is on, and the
+        // Pro page may say so. What matters is the line below and not the default: the page draws pro.benefit_taste ONLY
+        // behind plans.tasteProfile, so a server that turns the feature off stops promising it in the same breath.
+        Assert.True(new PlanOptions().TasteProfile);
         Assert.Equal("plans.tasteProfile", Promises["pro.benefit_taste"].Guard);
     }
 

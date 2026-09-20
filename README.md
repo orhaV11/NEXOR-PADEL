@@ -70,8 +70,16 @@ cloudflared tunnel --url http://localhost:5000
 ngrok http 5000
 ```
 
-Send the printed `https://…` URL to your pilot users. On iPhone: Share → "Add to Home Screen". On Android,
-Chrome offers "Install" by itself and the app shows a one-time hint.
+Open the printed `https://…` URL on the phone, in the browser.
+
+**Do not add a quick tunnel to the home screen.** A quick tunnel's hostname is new every time it starts, and an
+installed web app is bound to the origin it was installed from: the next day the icon opens a Cloudflare error page
+with no browser chrome around it, and the new URL is a different site with no session, no saved language and no
+push. Installing, and anything you ask a pilot user to install, wants an origin that stays — the Fly URL, a named
+Cloudflare tunnel on a domain you own, or ngrok's static domain. A quick tunnel is for looking at the app in a
+browser tab, which is most of what a first phone test is.
+
+On that stable origin: iPhone → Share → "Add to Home Screen"; Android Chrome offers "Install" by itself.
 
 ### Maintenance commands
 

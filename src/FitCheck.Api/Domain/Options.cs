@@ -216,10 +216,11 @@ public sealed class PlanOptions
 
     /// <summary>
     /// Round 14: whether this server has the taste profile (the memory of what the person liked and turned down) built.
-    /// Off until it lands, and the Pro page lists it only when it is on — nothing on that page may promise a thing this
-    /// server cannot do. The setting is the switch, not the feature.
+    /// It landed with the loop (Services/Taste.cs), so this is on: the Pro page may list it because the server can do it.
+    /// Turn it off to take the benefit off that page and stop the advisory being built. The setting is the switch, not
+    /// the feature — an account's own learning switch is theirs, and a guest never has one either way.
     /// </summary>
-    public bool TasteProfile { get; set; } = false;
+    public bool TasteProfile { get; set; } = true;
 }
 
 /// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>

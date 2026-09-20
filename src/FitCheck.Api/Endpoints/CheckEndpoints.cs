@@ -176,6 +176,9 @@ public static class CheckEndpoints
             return UserEndpoints.Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(language, "error.image_format"));
         }
 
+        // Round 13: the Exif block (GPS, device, time) goes here, before the bytes reach the model or the disk.
+        bytes = Services.Security.ImageMetadata.Strip(bytes, format);
+
         // An optional clip of the same look. The stylist never sees it: the still above is the frame the wearer picked
         // for the check, and the clip is what gets posted next to the verdict. Only its size and container are checked
         // here, in the same order as the photo's and before the cap, so a user at the cap still learns about a bad file.

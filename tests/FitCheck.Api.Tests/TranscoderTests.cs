@@ -279,10 +279,30 @@ public class TranscoderTests : IClassFixture<TranscoderTests.TranscodeApp>
         file.Refresh();
         Assert.Equal(length, file.Length);
         Assert.Equal(written, file.LastWriteTimeUtc);
-        Assert.Equal(mp4, await File.ReadAllBytesAsync(file.FullName));
+        // Round 13: the store blanks the container's metadata boxes (udta and the like) in place as it saves, so "as
+        // uploaded" is the upload with those boxes turned into free space: same length, every other byte the same.
+        var expected = WithMetadataBlanked(mp4);
+        Assert.Equal(expected, await File.ReadAllBytesAsync(file.FullName));
         var served = await _app.NewClient().GetAsync($"/api/posts/{postId}/video");
         Assert.Equal("video/mp4", served.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(mp4, await served.Content.ReadAsByteArrayAsync());
+        Assert.Equal(expected, await served.Content.ReadAsByteArrayAsync());
+    }
+
+    /// <summary>The clip as the store writes it (Round 13): <see cref="FitCheck.Api.Services.Security.VideoMetadata.BlankMp4"/> over a copy.</summary>
+    private static byte[] WithMetadataBlanked(byte[] mp4)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "fitcheck-tests", Guid.NewGuid().ToString("N") + ".mp4");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, mp4);
+        try
+        {
+            FitCheck.Api.Services.Security.VideoMetadata.BlankMp4(path);
+            return File.ReadAllBytes(path);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

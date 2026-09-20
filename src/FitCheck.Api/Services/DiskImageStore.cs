@@ -1,9 +1,16 @@
 using FitCheck.Api.Domain;
+using FitCheck.Api.Services.Security;
 using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>Stores photos and clips as storage/&lt;userId&gt;/&lt;checkId&gt;.&lt;ext&gt; under a root that is outside wwwroot.</summary>
+/// <summary>
+/// Stores photos and clips as storage/&lt;userId&gt;/&lt;checkId&gt;.&lt;ext&gt; under a root that is outside wwwroot. Nothing
+/// is written with its metadata (Round 13): a photo goes through <see cref="ImageMetadata.Strip"/> before it touches the
+/// disk, an MP4 clip has its metadata boxes blanked in place once it is on it (<see cref="VideoMetadata.BlankMp4"/>), and
+/// the transcoder's MP4 gets the same treatment before it replaces the original. The endpoints strip a photo again before
+/// it goes to the model; the store strips whatever it is handed, so no caller can forget.
+/// </summary>
 public sealed class DiskImageStore : IImageStore
 {
     private readonly string _root;
@@ -25,7 +32,7 @@ public sealed class DiskImageStore : IImageStore
         var relative = Path.Combine(userId.ToString("N"), $"{checkId:N}.{format.Extension}");
         var full = Resolve(relative);
         Directory.CreateDirectory(Path.GetDirectoryName(full)!);
-        await File.WriteAllBytesAsync(full, bytes.ToArray(), ct);
+        await File.WriteAllBytesAsync(full, ImageMetadata.Strip(bytes.ToArray(), format), ct);
         return relative;
     }
 
@@ -37,8 +44,16 @@ public sealed class DiskImageStore : IImageStore
         try
         {
             // Copied through a 64 KB buffer: the clip goes from ASP.NET's request buffer to disk without being in memory whole.
-            await using var file = new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true);
-            await content.CopyToAsync(file, ct);
+            await using (var file = new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true))
+            {
+                await content.CopyToAsync(file, ct);
+            }
+
+            // On disk and closed: the location, the device and the date the phone wrote into the container are blanked in place.
+            if (format == VideoFormat.Mp4)
+            {
+                VideoMetadata.BlankMp4(full);
+            }
         }
         catch
         {
@@ -71,6 +86,8 @@ public sealed class DiskImageStore : IImageStore
                 await file.FlushAsync(ct);
             }
 
+            // ffmpeg copies the source's global tags into its output; they are blanked before the file takes the clip's place.
+            VideoMetadata.BlankMp4(part);
             File.Move(part, full, overwrite: true);
         }
         catch
@@ -98,7 +115,7 @@ public sealed class DiskImageStore : IImageStore
         }
 
         var relative = Path.Combine(userId.ToString("N"), $"avatar.{format.Extension}");
-        await File.WriteAllBytesAsync(Resolve(relative), bytes.ToArray(), ct);
+        await File.WriteAllBytesAsync(Resolve(relative), ImageMetadata.Strip(bytes.ToArray(), format), ct);
         return relative;
     }
 

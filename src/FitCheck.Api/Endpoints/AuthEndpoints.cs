@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
+using FitCheck.Api.Services.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,25 @@ public static partial class AuthEndpoints
     /// <summary>Forgot-password and verification-resend requests: a fixed window per client address (Limits:RecoveryPerHourPerIp).</summary>
     public const string RecoveryPolicy = "recovery";
     public const int RecoveryPerHourPerIpDefault = 5;
+    /// <summary>
+    /// Round 13: the two routes that take a mailed token (reset, verify-email), a fixed quarter hour per client address
+    /// (Limits:TokenAttemptsPerQuarterHourPerIp). Generous, since a person retyping a password must not be locked out of
+    /// their own link, and enough: a token is 256 random bits, so the brake is on the noise, not the odds.
+    /// </summary>
+    public const string TokenPolicy = "token";
+    public const int TokenAttemptsPerQuarterHourPerIpDefault = 30;
+    /// <summary>
+    /// Round 13: failed sign-ins per account per quarter hour, whatever addresses they come from
+    /// (Limits:LoginFailuresPerQuarterHourPerAccount), so a guess spread over many machines meets the same wall as one.
+    /// The count is kept only for handles that exist (<see cref="AccountBrake"/>), so a script cycling made-up handles fills nothing.
+    /// </summary>
+    public const int LoginFailuresPerQuarterHourPerAccountDefault = 30;
+    public static readonly TimeSpan LoginFailureWindow = TimeSpan.FromMinutes(15);
     public const int PasswordMinLength = 8;
+    /// <summary>Long passphrases are welcome; the ceiling only keeps the hasher's work bounded.</summary>
+    public const int PasswordMaxLength = 200;
+    /// <summary>A handle or an address part shorter than this is not refused inside a password ("al" would ban half the dictionary).</summary>
+    private const int PersonalMinLength = 3;
 
     // Handles appear in URLs and in notifications; letters in any script, digits, dot and underscore.
     [GeneratedRegex(@"^[\p{L}\p{N}_.]{2,40}$")]
@@ -32,12 +51,39 @@ public static partial class AuthEndpoints
         group.MapPost("/login", LoginAsync).RequireRateLimiting(LoginPolicy);
         group.MapPost("/logout", LogoutAsync);
         group.MapGet("/me", MeAsync).RequireAuthorization();
-        // Recovery: all three are public. The two that take a token are not rate-limited beyond the global brake: a token
-        // is 256 random bits, and a person retyping a password must not be locked out of their own link.
+        // Recovery: all three are public. The two that take a token get a generous per-address brake (Round 13): a token is
+        // 256 random bits, and a person retyping a password must not be locked out of their own link.
         group.MapPost("/forgot", ForgotAsync).RequireRateLimiting(RecoveryPolicy);
-        group.MapPost("/reset", ResetAsync);
-        group.MapPost("/verify-email", VerifyEmailAsync);
+        group.MapPost("/reset", ResetAsync).RequireRateLimiting(TokenPolicy);
+        group.MapPost("/verify-email", VerifyEmailAsync).RequireRateLimiting(TokenPolicy);
         return app;
+    }
+
+    /// <summary>
+    /// The password rule (Round 13): 8 to 200 characters (error.password_short), and neither the handle nor the email
+    /// address, nor the part of the address before the @, anywhere inside it, case-insensitively (error.password_personal).
+    /// Short handles and address parts (under three characters) are not looked for. No composition rules: length and
+    /// "not your own name" are what the guidance asks for, and the sign-in brakes do the rest. Null when the password passes.
+    /// </summary>
+    public static string? PasswordProblem(string? password, string? handle, string? email)
+    {
+        var value = password ?? "";
+        if (value.Length < PasswordMinLength || value.Length > PasswordMaxLength)
+        {
+            return "error.password_short";
+        }
+
+        var lower = value.ToLowerInvariant();
+        foreach (var personal in new[] { handle, email, email is { } address && address.IndexOf('@') is var at && at > 0 ? address[..at] : null })
+        {
+            var candidate = personal?.Trim().ToLowerInvariant();
+            if (candidate is { Length: >= PersonalMinLength } && lower.Contains(candidate, StringComparison.Ordinal))
+            {
+                return "error.password_personal";
+            }
+        }
+
+        return null;
     }
 
     public static IResult Error(int status, string message) =>
@@ -123,9 +169,9 @@ public static partial class AuthEndpoints
         }
 
         var password = body.Password ?? "";
-        if (password.Length < PasswordMinLength || password.Length > 200)
+        if (PasswordProblem(password, handle, null) is { } passwordProblem)
         {
-            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.password_short"));
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, passwordProblem));
         }
 
         var displayName = OutfitAnalyzer.SanitizeText(body.DisplayName, multiline: false) is { Length: > 0 } cleanName ? cleanName : null;
@@ -239,7 +285,8 @@ public static partial class AuthEndpoints
     }
 
     private static async Task<IResult> LoginAsync(
-        LoginRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, CancellationToken ct)
+        LoginRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, AccountBrake brake,
+        IConfiguration configuration, CancellationToken ct)
     {
         var language = Localizer.Resolve(null, context.Request);
         var handleLower = (body.Handle ?? "").Trim().ToLowerInvariant();
@@ -251,9 +298,21 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status401Unauthorized, localizer.Get(language, "error.login_failed"));
         }
 
+        // Round 13: the per-account brake, before the password is even looked at, so a guess spread over many addresses
+        // meets the same wall as one. The same 429 and message as the per-address brake; the window's end in Retry-After.
+        var now = DateTime.UtcNow;
+        var brakeKey = "login:" + handleLower;
+        var failuresAllowed = Math.Max(1, configuration.GetValue<int?>("Limits:LoginFailuresPerQuarterHourPerAccount") ?? LoginFailuresPerQuarterHourPerAccountDefault);
+        if (brake.IsBraked(brakeKey, failuresAllowed, LoginFailureWindow, now))
+        {
+            context.Response.Headers.RetryAfter = AccountBrake.SecondsUntilWindowEnds(LoginFailureWindow, now).ToString(CultureInfo.InvariantCulture);
+            return Error(StatusCodes.Status429TooManyRequests, localizer.Get(user.PreferredLanguage, "error.login_limited"));
+        }
+
         var verdict = hasher.VerifyHashedPassword(user, user.PasswordHash, body.Password ?? "");
         if (verdict == PasswordVerificationResult.Failed)
         {
+            brake.Hit(brakeKey, LoginFailureWindow, now);
             return Error(StatusCodes.Status401Unauthorized, localizer.Get(user.PreferredLanguage, "error.login_failed"));
         }
 
@@ -273,8 +332,19 @@ public static partial class AuthEndpoints
         return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
     }
 
-    private static async Task<IResult> LogoutAsync(HttpContext context, CancellationToken ct)
+    /// <summary>
+    /// Signs this device out for good (Round 13): the ticket's session id is revoked on the server, so a copy of the cookie
+    /// taken earlier is refused from now on, and the cookie itself is dropped. Other devices' sessions stay. Signed out
+    /// already (no ticket, or one already refused) it is still 204: there is nothing left to end.
+    /// </summary>
+    private static async Task<IResult> LogoutAsync(HttpContext context, AppDbContext db, SessionRevocation revocation, CancellationToken ct)
     {
+        var (sessionId, expires) = Sessions.CurrentSession(context);
+        if (sessionId is not null)
+        {
+            await revocation.RevokeAsync(db, sessionId, expires, DateTime.UtcNow, ct);
+        }
+
         await Sessions.SignOutAsync(context);
         return Results.NoContent();
     }
@@ -336,7 +406,8 @@ public static partial class AuthEndpoints
     /// person is signed in. A suspended account gets the same refusal as a bad token, so the door says nothing new.
     /// </summary>
     private static async Task<IResult> ResetAsync(
-        ResetPasswordRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, CancellationToken ct)
+        ResetPasswordRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, SessionRevocation revocation,
+        CancellationToken ct)
     {
         var language = Localizer.Resolve(null, context.Request);
         var token = await RecoveryTokens.FindValidAsync(db, body.Token, AuthTokenPurpose.Reset, ct);
@@ -349,9 +420,9 @@ public static partial class AuthEndpoints
 
         // The link stays valid past a password the rule refuses: the person fixes the password, not the link.
         var password = body.Password ?? "";
-        if (password.Length < PasswordMinLength || password.Length > 200)
+        if (PasswordProblem(password, user.Handle, user.Email) is { } passwordProblem)
         {
-            return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.password_short"));
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, passwordProblem));
         }
 
         var now = DateTime.UtcNow;
@@ -360,6 +431,9 @@ public static partial class AuthEndpoints
         token.UsedAt = now;
         await db.SaveChangesAsync(ct);
 
+        // Round 13: a reset is the moment the person says the old password was not theirs alone. Every session signed in
+        // before now ends; the one signed in next is the only one left.
+        await revocation.CutOffAsync(db, user.Id, now, ct);
         await Sessions.SignInAsync(context, user);
         return Results.Json(await ToMeAsync(db, user, ct), AppJson.Options);
     }

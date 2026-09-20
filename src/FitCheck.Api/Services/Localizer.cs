@@ -152,6 +152,8 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "Manage your plan by writing to us.",
             ["error.export_failed"] = "We couldn't put your data together. Try again in a moment.",
             ["error.portal_failed"] = "The billing page didn't open. Try again in a moment.",
+            // Round 13 — security
+            ["error.password_personal"] = "Your password can't contain your handle or your email address.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -288,6 +290,8 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "כדי לנהל את התוכנית, כותבים לנו.",
             ["error.export_failed"] = "לא הצלחנו להכין את הנתונים שלך. אפשר לנסות שוב עוד רגע.",
             ["error.portal_failed"] = "דף החיוב לא נפתח. אפשר לנסות שוב עוד רגע.",
+            // Round 13 — security
+            ["error.password_personal"] = "הסיסמה לא יכולה להכיל את שם המשתמש או את כתובת האימייל שלך.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -426,6 +430,8 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "لإدارة الخطة، يمكن مراسلتنا.",
             ["error.export_failed"] = "لم نتمكن من تجهيز بياناتك. يمكن المحاولة بعد لحظة.",
             ["error.portal_failed"] = "لم تُفتح صفحة الفوترة. يمكن المحاولة بعد لحظة.",
+            // Round 13 — security (plain Arabic, for native review)
+            ["error.password_personal"] = "لا يمكن أن تحتوي كلمة المرور على اسم المستخدم أو البريد الإلكتروني.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -563,6 +569,8 @@ public sealed class Localizer
             ["error.portal_unavailable"] = "Чтобы изменить план, напиши нам.",
             ["error.export_failed"] = "Не удалось собрать твои данные. Попробуй через минуту.",
             ["error.portal_failed"] = "Страница оплаты не открылась. Попробуй через минуту.",
+            // Round 13 — security (plain Russian, for native review)
+            ["error.password_personal"] = "Пароль не может содержать твой ник или адрес электронной почты.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

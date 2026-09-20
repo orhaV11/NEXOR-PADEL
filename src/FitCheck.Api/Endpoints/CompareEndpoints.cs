@@ -276,7 +276,8 @@ public static class CompareEndpoints
             return ([], null, UserEndpoints.Error(StatusCodes.Status415UnsupportedMediaType, localizer.Get(language, "error.image_format")));
         }
 
-        return (bytes, format, null);
+        // Round 13: the Exif block (GPS, device, time) goes here, before the bytes reach the model or the disk.
+        return (Services.Security.ImageMetadata.Strip(bytes, format), format, null);
     }
 
     /// <summary>

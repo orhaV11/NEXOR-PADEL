@@ -5,6 +5,7 @@ using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
+using FitCheck.Api.Services.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
@@ -288,6 +289,10 @@ builder.Services.AddSingleton<Board>();
 builder.Services.AddSingleton<BoardCloser>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<BoardCloser>());
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
+// Round 13 — security: the per-account sign-in brake and the server-side session revocation (both in memory over one
+// process, the revocation rows persisted in Counters). Services/Security/.
+builder.Services.AddSingleton<AccountBrake>();
+builder.Services.AddSingleton<SessionRevocation>();
 builder.Services.AddHttpClient<IOutfitVisionClient, AnthropicVisionClient>(client =>
     {
         // A vision call that takes longer than this is not a 10-second outfit check; fail and let the user retry.
@@ -322,6 +327,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.ExpireTimeSpan = TimeSpan.FromDays(90);
         options.SlidingExpiration = true;
+        // Round 13 — security: a ticket is refused once its session was signed out on the server (logout) or the account's
+        // password was reset (Services/Security/SessionRevocation.cs); a ticket without a session id is refused too.
+        options.Events.OnValidatePrincipal = SessionRevocation.ValidatePrincipalAsync;
         // An API never redirects to a login page; it answers with the same { error } shape as everything else.
         options.Events.OnRedirectToLogin = context => WriteAuthError(context.HttpContext, StatusCodes.Status401Unauthorized, "error.sign_in_required");
         options.Events.OnRedirectToAccessDenied = context => WriteAuthError(context.HttpContext, StatusCodes.Status403Forbidden, "error.forbidden");
@@ -353,9 +361,15 @@ var reportsPerHour = builder.Configuration.GetValue<int?>("Limits:ReportsPerHour
 // would spend it): the look itself, Plans:GuestChecksPerDay per cookie and per address, is counted by the handler from the
 // checks it actually stored. A signed-in call is not limited here; its plan is.
 var guestAttemptsPerDay = builder.Configuration.GetValue<int?>("Plans:GuestAttemptsPerDay") ?? new PlanOptions().GuestAttemptsPerDay;
+// Round 13 — security: the two token routes (reset, verify-email) get a generous quarter hour per address.
+var tokenAttemptsPerQuarterHour = builder.Configuration.GetValue<int?>("Limits:TokenAttemptsPerQuarterHourPerIp") ?? AuthEndpoints.TokenAttemptsPerQuarterHourPerIpDefault;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Round 13 — security
+    options.AddPolicy(AuthEndpoints.TokenPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, tokenAttemptsPerQuarterHour), Window = TimeSpan.FromMinutes(15), QueueLimit = 0 }));
     options.AddPolicy(AuthEndpoints.SignupPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = signupsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
@@ -450,33 +464,18 @@ app.UseForwardedHeaders();
 // read on the way out, once authentication has put it on the context. Never a body, a query string or a header.
 app.UseRequestLog();
 
-// Security headers on every response, set when the response starts so nothing downstream (the exception handler clears
-// the response) drops them. HSTS only over https, which behind the proxy means X-Forwarded-Proto, read just above; a plain
-// http://localhost run never pins itself, and the pin covers this host only: the owner may run the app on a bare domain
-// whose other subdomains are not ours to promise https for. No CSP yet: the fonts and the inline styles need one written
-// first (DEPLOY.md).
-app.Use((context, next) =>
-{
-    context.Response.OnStarting(() =>
-    {
-        var headers = context.Response.Headers;
-        headers["X-Content-Type-Options"] = "nosniff";
-        // A route may tighten this before the response starts (/api/items/{id}/out sends no referrer at all); the default is only a default.
-        if (!headers.ContainsKey("Referrer-Policy"))
-        {
-            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        }
-        headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()";
-        headers["X-Frame-Options"] = "DENY";
-        if (context.Request.IsHttps)
-        {
-            headers["Strict-Transport-Security"] = "max-age=31536000";
-        }
+// Round 13 — security: the headers every response carries (Content-Security-Policy, nosniff, the referrer and permissions
+// policies, no framing, HSTS over https, no-store and same-origin-only on /api answers), set when the response starts so
+// nothing downstream (the exception handler clears the response) drops them. The policy and the reasons for each line
+// are in Services/Security/SecurityHeaders.cs; SECURITY.md says what they protect.
+app.Use(SecurityHeaders.Apply);
 
-        return Task.CompletedTask;
-    });
-    return next(context);
-});
+// Round 13 — security: Email:Host=log prints every mailed link (the token in it) to the log. That is the laptop's and the
+// browser test's mode; on a server it would leave reset links in the log for as long as the log is kept.
+if (!app.Environment.IsDevelopment() && LogEmailSender.IsLogHost(app.Services.GetRequiredService<IOptions<EmailOptions>>().Value))
+{
+    app.Logger.LogWarning("Email:Host is \"log\": confirmation and reset links are written to this log instead of sent. Set a real mail host before anyone but you signs up.");
+}
 
 // Unhandled exceptions become the same { error } shape as every other failure, in the caller's language.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>

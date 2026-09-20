@@ -6,6 +6,8 @@ import {
   proBadge, fmtDate, intlLocale, onLeave
 } from '../core.js';
 import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
+// Round 13 — the growth loop: the invite link's sheet.
+import { inviteButton } from '../invite.js';
 
 // The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label, the push block.
 const CSS = `
@@ -37,6 +39,13 @@ const CSS = `
 .s-export-status { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .s-export-status p { color: var(--ok); font-weight: 600; }
 .s-export-status .s-export-size { color: var(--ink-2); font-weight: 400; }
+/* Round 13 — the growth loop: the weekly mail's switch and the invite row, in the same voice as the push block. */
+.s-digest { border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-digest .switch:has(input:disabled) .s-switch-text { color: var(--ink-2); }
+.s-digest .switch input:disabled { opacity: 0.45; cursor: not-allowed; }
+.s-digest-status { padding-inline: 2px; }
+.s-invite { display: flex; flex-direction: column; gap: 10px; border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-invite .btn { min-block-size: 44px; align-self: flex-start; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -129,6 +138,61 @@ function exportSection(ctx) {
     button,
     el('p', { class: 'hint', text: t('export.hint') }),
     status
+  ]);
+}
+
+// ---------- Round 13 — the growth loop: the weekly mail, and inviting a friend ----------
+
+/**
+ * "The week by email": one switch over GET/POST /api/users/me/digest. It starts disabled and asks the server what it
+ * is, because nothing in "me" carries it; when the server says the mail could not go out anyway (no mail on this
+ * server, or no confirmed address on the account) the switch stays off with the line that says which of the two is
+ * missing, rather than promising a Sunday note nobody would ever get.
+ */
+function digestSection(ctx) {
+  const input = el('input', { type: 'checkbox', id: 's-digest', name: 'digest', disabled: true, 'aria-describedby': 's-digest-status' });
+  const status = el('p', { class: 'hint s-digest-status', id: 's-digest-status', hidden: true });
+  const label = el('label', { class: 'switch', for: 's-digest' }, [
+    el('span', { class: 's-switch-text' }, [el('b', { text: t('digest.title') }), el('span', { class: 'hint', text: t('digest.hint') })]),
+    input
+  ]);
+  const setStatus = (text) => { status.textContent = text || ''; status.hidden = !text; };
+  let locked = true;
+
+  api('GET', '/api/users/me/digest').then((state_) => {
+    if (ctx.stale() || !state_) return;
+    input.checked = !!state_.on;
+    if (state_.canSend) { locked = false; input.disabled = false; setStatus(''); }
+    else setStatus(t(state.config.email ? 'digest.needs_email' : 'digest.mail_off'));
+  }).catch(() => { if (!ctx.stale()) setStatus(t('digest.unavailable')); });
+
+  input.addEventListener('change', async () => {
+    if (locked) { input.checked = !input.checked; return; }
+    const wantOn = input.checked;
+    input.disabled = true;
+    try {
+      const answer = await api('POST', '/api/users/me/digest', { on: wantOn });
+      if (ctx.stale()) return;
+      input.checked = !!(answer && answer.on);
+      toast(t(input.checked ? 'digest.on_toast' : 'digest.off_toast'));
+    } catch (e) {
+      if (ctx.stale()) return;
+      input.checked = !wantOn;
+      toast(e.message || t('error.generic'));
+    } finally {
+      if (!ctx.stale()) input.disabled = false;
+    }
+  });
+
+  return el('section', { class: 's-section s-digest', id: 'digest-section' }, [label, status]);
+}
+
+/** "Invite friends": the button that opens the link sheet, and the one line that says what an accepted invite is worth. */
+function inviteSection() {
+  return el('section', { class: 's-section s-invite', id: 'invite-section' }, [
+    el('h2', { text: t('invite.title') }),
+    el('p', { class: 'hint', text: t('invite.hint') }),
+    inviteButton('invite-friends')
   ]);
 }
 
@@ -418,6 +482,9 @@ register('settings', async (root, params, ctx) => {
   ]));
 
   root.appendChild(pushSection(ctx));
+  // Round 13 — the growth loop: the Sunday note, and the link that brings a friend.
+  root.appendChild(digestSection(ctx));
+  root.appendChild(inviteSection());
   root.appendChild(exportSection(ctx));
 
   // ---------- sign out, delete ----------

@@ -6,6 +6,8 @@
 import {
   register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe
 } from '../core.js';
+// Round 13 — the growth loop: the handle an invite link carried, spent once, here.
+import { takeInvite } from '../invite.js';
 
 // The few rules the shared stylesheet does not have: the date field, the agreement line, bigger onboarding steps and chips.
 const CSS = `
@@ -95,7 +97,8 @@ function authView(mode) {
       try {
         const me = signup
           // today: the phone's own calendar day, so the sixteen rule is measured on it and not on the server's UTC day.
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale() })
+          // invitedBy: the handle an invite link left in this browser (Round 13), sent once and then forgotten.
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
         renderShell();

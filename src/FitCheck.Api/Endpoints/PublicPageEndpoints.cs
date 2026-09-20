@@ -56,8 +56,15 @@ public static class PublicPageEndpoints
         app.MapGet(LookPath + "/{id:guid}/image", LookImageAsync);
         app.MapGet(ProfilePath + "/{handle}", ProfilePageAsync);
         app.MapGet(DigestOffPath + "/{token}", DigestOffAsync);
+        // The same feature's switch inside the app: Settings reads it and flips it. The mailed link needs no session
+        // (the person is in their inbox); this one is the account's own and needs one like every other preference.
+        app.MapGet(DigestStatePath, GetDigestStateAsync).RequireAuthorization();
+        app.MapPost(DigestStatePath, SetDigestStateAsync).RequireAuthorization();
         return app;
     }
+
+    /// <summary>The weekly mail's switch in Settings: GET reads it, POST sets it.</summary>
+    public const string DigestStatePath = "/api/users/me/digest";
 
     /// <summary>The public address of a look, as a share carries it and as the digest mail links it.</summary>
     public static string LookUrl(string origin, Guid postId) => $"{origin}{LookPath}/{postId}";
@@ -276,6 +283,39 @@ public static class PublicPageEndpoints
         context.Response.Headers.CacheControl = "no-store";
         return Page(context, new PageHead(language, title, text, CanonicalUrl: null, ImageUrl: null, ImageAlt: null, Index: false, OgType: "website"), body.ToString());
     }
+
+    // ---------- the weekly mail's switch ----------
+
+    private static async Task<IResult> GetDigestStateAsync(HttpContext context, AppDbContext db, Localizer localizer, IEmailSender email, CancellationToken ct)
+    {
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        return user is null ? failure! : Results.Json(StateOf(user, email), AppJson.Options);
+    }
+
+    private static async Task<IResult> SetDigestStateAsync(DigestRequest? body, HttpContext context, AppDbContext db, Localizer localizer, IEmailSender email, CancellationToken ct)
+    {
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        if (body?.On is not { } on)
+        {
+            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.invalid_request"));
+        }
+
+        user.DigestOn = on;
+        await db.SaveChangesAsync(ct);
+        return Results.Json(StateOf(user, email), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The switch and whether anything could come of it: mail has to be on for this server and the address has to be one
+    /// the person confirmed, or the toggle is a promise nothing keeps. Settings says which of the two is missing.
+    /// </summary>
+    private static DigestStateDto StateOf(AppUser user, IEmailSender email) =>
+        new(user.DigestOn, email.Enabled && user.Email is not null && user.EmailVerifiedAt is not null);
 
     // ---------- reading a look ----------
 

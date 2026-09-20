@@ -210,8 +210,27 @@ function drawWords(ctx, look, dir) {
     text(ctx, handle, x, NAME.baseline, { font: '500 30px ' + BODY, color: COLOR.ink3, dir, textDir: 'ltr' });
   }
 }
-/** The colophon: a hairline, the wordmark at the start edge (a logo: it never mirrors) and "Checked on OREVOSH" at the end. */
-function drawFooter(ctx, wordmark, dir) {
+/**
+ * Round 13 — the growth loop: the line the card and the video's end card carry, so the picture says where to go.
+ * "orevosh.app/look/<id>" for a look that is posted (the page anyone can open with no app and no account), the host
+ * alone for one that is not, and '' when the server publishes no origin of its own (/api/config publicOrigin, which is
+ * Email:PublicOrigin or Billing:PublicOrigin): a card travels, and a localhost line on somebody's story would be a lie.
+ */
+export function publicLinkLine(look) {
+  const configured = state.config && state.config.publicOrigin;
+  const origin = typeof configured === 'string' ? configured.trim() : '';
+  if (!origin) return '';
+  let host = '';
+  try { host = new URL(origin).host; } catch (e) { return ''; }
+  if (!host) return '';
+  return look && look.postId ? host + '/look/' + look.postId : host;
+}
+
+/**
+ * The colophon: a hairline, the wordmark at the start edge (a logo: it never mirrors) and, at the end, the look's
+ * public address when there is one, otherwise "Checked on OREVOSH" as before.
+ */
+function drawFooter(ctx, wordmark, dir, link) {
   ctx.fillStyle = COLOR.line;
   ctx.fillRect(MARGIN, FOOTER.rule, CARD_WIDTH - MARGIN * 2, 2);
   const h = FOOTER.wordmark;
@@ -221,9 +240,11 @@ function drawFooter(ctx, wordmark, dir) {
   else text(ctx, 'OREVOSH', dir === 'rtl' ? CARD_WIDTH - MARGIN : MARGIN, FOOTER.centre, { font: '800 40px ' + DISPLAY, color: COLOR.ink, dir: 'ltr', baseline: 'middle', tracking: '2px' });
   ctx.font = '500 26px ' + BODY;
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  const line = fit(ctx, t('sharecard.checked'), CARD_WIDTH - MARGIN * 2 - w - 40);
+  const line = fit(ctx, link || t('sharecard.checked'), CARD_WIDTH - MARGIN * 2 - w - 40);
   text(ctx, line, dir === 'rtl' ? MARGIN : CARD_WIDTH - MARGIN, FOOTER.centre, {
-    font: '500 26px ' + BODY, color: COLOR.ink2, dir, align: dir === 'rtl' ? 'left' : 'right', baseline: 'middle'
+    // An address is an address: left to right and in the accent, whatever direction the card itself runs.
+    font: '500 26px ' + BODY, color: link ? COLOR.accent : COLOR.ink2, dir, textDir: link ? 'ltr' : undefined,
+    align: dir === 'rtl' ? 'left' : 'right', baseline: 'middle'
   });
 }
 
@@ -261,7 +282,7 @@ export async function renderShareCard(look, opts) {
     drawPhoto(ctx, photo);
     drawRing(ctx, look.score, dir);
     drawWords(ctx, look, dir);
-    drawFooter(ctx, wordmark, dir);
+    drawFooter(ctx, wordmark, dir, publicLinkLine(look));
     return await encode(canvas, opts.maxBytes || MAX_BYTES);
   } finally {
     for (const url of revokes) URL.revokeObjectURL(url);
@@ -270,15 +291,21 @@ export async function renderShareCard(look, opts) {
 
 // ---------- the look, from what the app already has ----------
 
-/** A look from a PostDto: everything on the card is what the post shows everyone. */
+/** A look from a PostDto: everything on the card is what the post shows everyone. postId is what gives it a public address. */
 export function lookFromPost(post) {
-  return { imageUrl: post.imageUrl, score: post.score, intent: post.intent, headline: post.headline, user: post.user, createdAt: post.createdAt };
+  return { imageUrl: post.imageUrl, score: post.score, intent: post.intent, headline: post.headline, user: post.user, createdAt: post.createdAt, postId: post.id };
 }
-/** A look from a check result (the result screen) and the photo's URL (state.check.previewUrl, a blob: URL). The person is sharing their own check. */
+/**
+ * A look from a check result (the result screen) and the photo's URL (state.check.previewUrl, a blob: URL). The person
+ * is sharing their own check; postId is there only once they have posted it, and only then does the card carry a link.
+ */
 export function lookFromCheck(result, imageUrl) {
   const feedback = result.feedback || {};
   const me = state.me ? { name: state.me.name, handle: state.me.handle } : null;
-  return { imageUrl, score: feedback.score, intent: result.intent, headline: feedback.headline, user: me, createdAt: result.createdAt };
+  return {
+    imageUrl, score: feedback.score, intent: result.intent, headline: feedback.headline, user: me, createdAt: result.createdAt,
+    postId: state.resultPostId || result.postId || null
+  };
 }
 
 // ---------- the sheet ----------

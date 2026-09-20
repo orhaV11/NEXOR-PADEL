@@ -488,3 +488,12 @@ public sealed record InviterDto(string Handle, int Accepted);
 
 /// <summary>The growth block on the numbers page: fourteen days of the funnel, today's conversion, and the invites.</summary>
 public sealed record FunnelMetricsDto(List<FunnelDayDto> Days, FunnelConversionDto Today, InviteMetricsDto Invites);
+
+/// <summary>POST /api/users/me/digest: the weekly mail's switch in Settings.</summary>
+public sealed record DigestRequest(bool? On);
+
+/// <summary>
+/// The switch and whether it can do anything: CanSend is false when this server has no mail configured or the account
+/// has no confirmed address, so Settings can say which of the two is missing instead of showing a dead toggle.
+/// </summary>
+public sealed record DigestStateDto(bool On, bool CanSend);

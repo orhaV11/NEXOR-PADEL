@@ -15,7 +15,8 @@
 //   1.5–3.5   the score ring draws in the brand gradient and the number lands big with /10 under it
 //   3.5–6.0   Fit · Color · Accessories snap in with their numbers
 //   6.0–10.0  the one tip on its card with the accent bar: the longest hold, it is the product
-//   10.0–12.0 the end card: the mark, the wordmark, "Check the look.", the @handle when signed in, the app's public host
+//   10.0–12.0 the end card: the mark, the wordmark, "Check the look.", the @handle when signed in, and the look's
+//             public address when it has been posted (orevosh.app/look/<id>, Round 13), the app's host otherwise
 // Nothing readable sits in the bottom 320 px or the right 180 px: the platforms' own chrome lives there, so the content
 // column is x 72–876 and its centre (474) is the visible centre once that chrome is on.
 //
@@ -26,7 +27,7 @@
 import { t, el, icon, sheet, toast, state, api, getLocale, fmtNumber, fmtPercent, isIos } from './core.js';
 import {
   COLOR, DISPLAY, BODY, strongDir, loadFonts, loadImage, roundedRect, theGradient, fit, wrap, text, drawStage, coverImage,
-  openShareCard
+  openShareCard, publicLinkLine
 } from './sharecard.js';
 
 // ---------- the film ----------
@@ -83,8 +84,9 @@ async function stringsFor(lang) {
 }
 
 /**
- * The host the end card names: the one in /api/config's publicOrigin (Email:PublicOrigin, else Billing:PublicOrigin) and
- * nothing else; '' (the wordmark alone) when the server publishes none, never a guess from the page's own address.
+ * The host in /api/config's publicOrigin (Email:PublicOrigin, else Billing:PublicOrigin) and nothing else; '' when the
+ * server publishes none, never a guess from the page's own address. Round 13: the end card names publicLinkLine(look)
+ * instead, which is this host with the posted look's page on it; this stays as the host on its own.
  */
 export function publicHost() {
   const configured = state.config && state.config.publicOrigin;
@@ -99,11 +101,13 @@ export function videoLookFromCheck(result, imageUrl) {
   const me = state.me ? { name: state.me.name, handle: state.me.handle } : null;
   return {
     checkId: result.id, imageUrl, score: feedback.score, intent: result.intent, headline: feedback.headline,
-    breakdown: feedback.breakdown || null, tip: feedback.oneTip || '', language: result.language || getLocale(), user: me
+    breakdown: feedback.breakdown || null, tip: feedback.oneTip || '', language: result.language || getLocale(), user: me,
+    // Round 13 - the growth loop: the end card names the look's public address once the check has been posted.
+    postId: state.resultPostId || result.postId || null
   };
 }
 /** The same look for the PNG card (the fallback when the browser cannot make video). */
-const cardLook = (look) => ({ imageUrl: look.imageUrl, score: look.score, intent: look.intent, headline: look.headline, user: look.user });
+const cardLook = (look) => ({ imageUrl: look.imageUrl, score: look.score, intent: look.intent, headline: look.headline, user: look.user, postId: look.postId || null });
 
 /**
  * Everything measured once, before the first frame: the direction, the strings, the tip's lines and size, the card's box,
@@ -162,7 +166,7 @@ function planFilm(look, s, photo, wordmark) {
     dir, lang, s, score: Math.max(0, Math.min(10, Number(look.score) || 0)), rows, tip, card, badge, layers, wordmark,
     intent: (intentText === 'intent.' + look.intent ? String(look.intent || '') : intentText).toUpperCase(),
     outOf: s('result.out_of'), tipLabel: s('result.tip').toUpperCase(), cta: s('video.check_look'),
-    handle: look.user && look.user.handle ? '@' + look.user.handle : '', host: publicHost(),
+    handle: look.user && look.user.handle ? '@' + look.user.handle : '', host: publicLinkLine(look),
     mark: { canvas: Object.assign(document.createElement('canvas'), { width: MARK.box, height: MARK.box }), flame: new Path2D(MARK.flame) }
   };
 }

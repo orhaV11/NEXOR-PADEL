@@ -60,8 +60,18 @@ let seekSeq = 0;
 
 /** How many checks a visitor gets with no account (Plans:GuestChecksPerDay from /api/config); 0 means the door is shut. */
 const guestChecks = () => Number((state.config.plans || {}).guestChecksPerDay) || 0;
-/** True when a signed-out visitor may submit a check on this server. */
-const guestsOn = () => guestChecks() > 0;
+/** True when a signed-out visitor may submit a check on this server (Home's empty call reads it too, for its guest line). */
+export const guestsOn = () => guestChecks() > 0;
+
+/**
+ * The still this result was judged on, while it is still the picker's current photo: the post sheet places its dots on it
+ * and the share video is made from it. null once the photo has been replaced, and for a past check opened from "Your
+ * checks" (a check has no photo route), or the dots would land on, and the film would open with, another photo.
+ */
+function judgedPreview(result) {
+  const judged = state.check.judged;
+  return judged && judged.resultId === result.id && judged.previewUrl && judged.previewUrl === state.check.previewUrl ? state.check.previewUrl : null;
+}
 
 // ---------- check ----------
 
@@ -516,9 +526,12 @@ register('result', async (root) => {
   const postArea = el('div');
   container.appendChild(postArea);
   renderPostArea(postArea, result);
+  // The 12-second video (app/sharevideo.js): the share card brought to life, made on the phone from the judged still, so only
+  // while that still is here; a past check from "Your checks" has no photo and gets no #share-video (a video of a look is
+  // never made without the look). #share-video is busy while it renders.
+  const judged = judgedPreview(result);
   container.appendChild(el('div', { class: 'row share-row' }, [
-    // The 12-second video (app/sharevideo.js): the share card brought to life, made on the phone. #share-video is busy while it renders.
-    shareVideoButton(videoLookFromCheck(result, state.check.previewUrl)),
+    judged ? shareVideoButton(videoLookFromCheck(result, judged)) : null,
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
     el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));
@@ -633,11 +646,9 @@ function openPostSheet(area, result) {
   const after = afterPicker(result);
   // Round 10, the items: the stylist's pieces as chips (a brand it saw waits for Confirm / Edit / Not a brand), the person's
   // own additions, and the dot on the preview; value() goes with the post as items. The preview is handed over only when
-  // it is the still this result was judged on (a check has no photo route, so a past check from "Your checks" gets the
-  // editor without a photo box: the rows, no dots), or the dots would land on another photo.
-  const judged = state.check.judged;
-  const preview = judged && judged.resultId === result.id && judged.previewUrl && judged.previewUrl === state.check.previewUrl ? state.check.previewUrl : null;
-  const items = itemsEditor(result, preview);
+  // it is the still this result was judged on (judgedPreview: a past check from "Your checks" gets the editor without a
+  // photo box, the rows and no dots), or the dots would land on another photo.
+  const items = itemsEditor(result, judgedPreview(result));
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),

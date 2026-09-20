@@ -1372,7 +1372,8 @@ browser test proves that rung and phones take the other); the PNG story card wit
 at all. The server keeps one tally, `videos_made`, bumped by a small POST after a save or share — a count of intent,
 not a fact about the file — rate limited like the other counters and answering 404 to anyone who does not own the
 check. The end card names the site only when the server publishes a public origin on `/api/config` (Email or Billing
-PublicOrigin); a client on localhost or a bare IP prints the wordmark alone rather than guess.
+PublicOrigin); with none published the wordmark stands alone, never a host guessed from the page's own address (a laptop's
+localhost, a bare IP, or a real domain the owner has not named).
 
 **The first deploy was walked, not read.** The Release build was published and run as Production on an empty database
 with nothing configured, and LAUNCH.md's smoke was followed by hand. What that found and changed: HEAD on `/healthz`

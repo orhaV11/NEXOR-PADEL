@@ -10,7 +10,8 @@
 // there is no VideoEncoder at all.
 //
 // The film, in the check's own language (canvas text runs rtl for Hebrew and Arabic; the tip is wrapped by measureText):
-//   0.0–1.5   the look full bleed (the check's own photo, cover-cropped), the intent pill, a small wordmark in a corner
+//   0.0–1.5   the look full bleed (the check's own photo, cover-cropped: the video is never made without it), the intent
+//             pill, a small wordmark in a corner
 //   1.5–3.5   the score ring draws in the brand gradient and the number lands big with /10 under it
 //   3.5–6.0   Fit · Color · Accessories snap in with their numbers
 //   6.0–10.0  the one tip on its card with the accent bar: the longest hold, it is the product
@@ -18,9 +19,10 @@
 // Nothing readable sits in the bottom 320 px or the right 180 px: the platforms' own chrome lives there, so the content
 // column is x 72–876 and its centre (474) is the visible centre once that chrome is on.
 //
-// Wiring: shareVideoButton(videoLookFromCheck(result, state.check.previewUrl)) on the result screen (#share-video, busy while
-// it renders); openShareVideo(look) is the sheet (#sv-progress while it renders, then #sv-video with #sv-share / #sv-save);
-// renderShareVideo(look, { onProgress, signal }) is the pure rendering call the browser test drives.
+// Wiring: shareVideoButton(videoLookFromCheck(result, judgedStill)) on the result screen (#share-video, busy while it
+// renders; the screen draws it only while the still this result was judged on is at hand, so a past check opened from
+// "Your checks" has no #share-video); openShareVideo(look) is the sheet (#sv-progress while it renders, then #sv-video with
+// #sv-share / #sv-save); renderShareVideo(look, { onProgress, signal }) is the pure rendering call the browser test drives.
 import { t, el, icon, sheet, toast, state, api, getLocale, fmtNumber, fmtPercent, isIos } from './core.js';
 import {
   COLOR, DISPLAY, BODY, strongDir, loadFonts, loadImage, roundedRect, theGradient, fit, wrap, text, drawStage, coverImage,
@@ -80,23 +82,18 @@ async function stringsFor(lang) {
   } catch (e) { return t; }
 }
 
-/** True for a host worth printing on the end card: a real domain, never localhost, a bare address or a .local name. */
-function isPublicHost(host) {
-  if (!host) return false;
-  const lower = host.toLowerCase();
-  if (lower === 'localhost' || lower.endsWith('.localhost') || lower.endsWith('.local')) return false;
-  if (/^[\d.]+$/.test(lower) || lower.includes(':')) return false;
-  return lower.includes('.');
-}
-/** The host the end card names: /api/config's publicOrigin when the server publishes one, else the page's own host when it is a real one; '' means the wordmark alone. */
+/**
+ * The host the end card names: the one in /api/config's publicOrigin (Email:PublicOrigin, else Billing:PublicOrigin) and
+ * nothing else; '' (the wordmark alone) when the server publishes none, never a guess from the page's own address.
+ */
 export function publicHost() {
   const configured = state.config && state.config.publicOrigin;
-  const origin = typeof configured === 'string' && configured.trim() ? configured.trim() : (isPublicHost(location.hostname) ? location.origin : '');
+  const origin = typeof configured === 'string' ? configured.trim() : '';
   if (!origin) return '';
   try { return new URL(origin).host; } catch (e) { return ''; }
 }
 
-/** A look for the video from a check result and the photo's URL (state.check.previewUrl, a blob: URL). The person is sharing their own check. */
+/** A look for the video from a check result and the URL of the still it was judged on (a blob: URL). The person is sharing their own check. */
 export function videoLookFromCheck(result, imageUrl) {
   const feedback = result.feedback || {};
   const me = state.me ? { name: state.me.name, handle: state.me.handle } : null;
@@ -111,6 +108,7 @@ const cardLook = (look) => ({ imageUrl: look.imageUrl, score: look.score, intent
 /**
  * Everything measured once, before the first frame: the direction, the strings, the tip's lines and size, the card's box,
  * the pre-rendered layers (the photo cover-cropped to the frame, the stage, the big ring's halo). drawFrame reads only this.
+ * The photo is the look and is always there: renderShareVideo fails before this runs when it could not be loaded.
  */
 function planFilm(look, s, photo, wordmark) {
   const lang = look.language || 'en';
@@ -141,8 +139,8 @@ function planFilm(look, s, photo, wordmark) {
   // The ring badge: straddling the card's top-end corner, as the card's ring straddles the photo.
   const badge = { cx: dir === 'rtl' ? card.x + 40 + 76 : card.x + card.w - 40 - 76, cy: card.y, r: 76, stroke: 12 };
 
-  const layers = { photo: null, stage: layer(), halo: layer() };
-  if (photo) { layers.photo = layer(); coverImage(layers.photo.getContext('2d'), photo, 0, 0, W, H); }
+  const layers = { photo: layer(), stage: layer(), halo: layer() };
+  coverImage(layers.photo.getContext('2d'), photo, 0, 0, W, H);
   drawStage(layers.stage.getContext('2d'));
   // The big ring's lilac halo and lift, drawn once with shadows (expensive) and blended in when the ring has finished drawing.
   const halo = layers.halo.getContext('2d');
@@ -333,12 +331,8 @@ function drawMark(ctx, plan, x, y, size, ringProgress, flameScale, alpha) {
 /** Seconds 0–10: the look, the ring, the rows, the tip. */
 function drawLookScene(ctx, time, plan) {
   const { layers } = plan;
-  if (layers.photo) {
-    const zoom = 1 + 0.08 * span(time, 0, 10);   // the slow push in
-    ctx.drawImage(layers.photo, W / 2 - (W / 2) * zoom, H / 2 - (H / 2) * zoom, W * zoom, H * zoom);
-  } else {
-    ctx.drawImage(layers.stage, 0, 0);
-  }
+  const zoom = 1 + 0.08 * span(time, 0, 10);   // the slow push in
+  ctx.drawImage(layers.photo, W / 2 - (W / 2) * zoom, H / 2 - (H / 2) * zoom, W * zoom, H * zoom);
   // A scrim at the bottom, always, so the platforms' captions read over anything; then the dim once the score takes the stage.
   const scrim = ctx.createLinearGradient(0, H * 0.55, 0, H);
   scrim.addColorStop(0, 'rgba(11, 11, 15, 0)'); scrim.addColorStop(1, 'rgba(11, 11, 15, 0.6)');
@@ -372,7 +366,11 @@ function drawLookScene(ctx, time, plan) {
   }
 }
 
-/** Seconds 10–12: the stage, the mark drawing itself and the flame popping, the wordmark, "Check the look.", the handle, the host. */
+/**
+ * Seconds 10–12: the stage, the mark drawing itself and the flame popping, the wordmark, "Check the look.", the handle, the
+ * host. The call to action runs in the check's language; the @handle and the host are left-to-right whatever their script,
+ * as handleText() and the story card draw them (the @ first, never mirrored to the right of a Hebrew or Arabic name).
+ */
 function drawEndScene(ctx, time, plan) {
   ctx.drawImage(plan.layers.stage, 0, 0);
   const size = 320;
@@ -384,9 +382,9 @@ function drawEndScene(ctx, time, plan) {
   drawWordmark(ctx, plan, CX - wordW / 2, 880, wordH, wordIn, false);
   ctx.restore();
   const lines = [
-    { value: plan.cta, y: 1080, font: '700 66px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, at: 10.6 },
-    plan.handle ? { value: plan.handle, y: 1170, font: '500 40px ' + BODY, color: COLOR.ink2, dir: 'ltr', at: 10.8 } : null,
-    plan.host ? { value: plan.host, y: plan.handle ? 1250 : 1170, font: '600 36px ' + BODY, color: COLOR.accent, dir: 'ltr', at: 10.9 } : null
+    { value: plan.cta, y: 1080, font: '700 66px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: strongDir(plan.cta) || plan.dir, at: 10.6 },
+    plan.handle ? { value: plan.handle, y: 1170, font: '500 40px ' + BODY, color: COLOR.ink2, dir: 'ltr', textDir: 'ltr', at: 10.8 } : null,
+    plan.host ? { value: plan.host, y: plan.handle ? 1250 : 1170, font: '600 36px ' + BODY, color: COLOR.accent, dir: 'ltr', textDir: 'ltr', at: 10.9 } : null
   ].filter(Boolean);
   for (const line of lines) {
     const p = easeOut(span(time, line.at, line.at + 0.4));
@@ -394,7 +392,7 @@ function drawEndScene(ctx, time, plan) {
     ctx.save(); ctx.globalAlpha = p; ctx.translate(0, (1 - p) * 20);
     ctx.font = line.font;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-    text(ctx, fit(ctx, line.value, COL.w), CX, line.y, { font: line.font, color: line.color, dir: line.dir, textDir: strongDir(line.value) || line.dir, align: 'center' });
+    text(ctx, fit(ctx, line.value, COL.w), CX, line.y, { font: line.font, color: line.color, dir: line.dir, textDir: line.textDir, align: 'center' });
     ctx.restore();
   }
 }
@@ -447,7 +445,9 @@ const tick = (ms) => new Promise((resolve) => setTimeout(resolve, ms || 0));
 /**
  * Renders the video and resolves to { blob, mime, ext, codec, path, fps, frames, bytes, drawMsAvg, drawMsMax, totalMs }.
  * opts: { onProgress(fraction), signal (an AbortSignal) }. Throws NotSupportedError when no encoder is available,
- * AbortError when cancelled. 30 fps, or 24 when three rehearsal frames say drawing is the bottleneck on this device.
+ * AbortError when cancelled, and a plain Error when the look has no photo or it could not be loaded: the photo is the look,
+ * never an optional layer, so no film is made without it. 30 fps, or 24 when three rehearsal frames say drawing is the
+ * bottleneck on this device.
  */
 export async function renderShareVideo(look, opts) {
   opts = opts || {};
@@ -456,12 +456,13 @@ export async function renderShareVideo(look, opts) {
   const started = performance.now();
   const encoding = await pickEncoding(30);
   if (!encoding) { const e = new Error('no video encoder'); e.name = 'NotSupportedError'; throw e; }
+  if (!look.imageUrl) throw new Error('share video: no photo');
   const s = await stringsFor(look.language);
   const revokes = [];
   let encoder = null;
   try {
     const [photo, wordmark] = await Promise.all([
-      look.imageUrl ? loadImage(look.imageUrl, revokes).catch((e) => { console.warn('share video: photo', e); return null; }) : null,
+      loadImage(look.imageUrl, revokes),   // the look itself: a failure here is the video's failure
       loadImage('/brand/wordmark.svg', revokes).catch((e) => { console.warn('share video: wordmark', e); return null; }),
       loadFonts()
     ]);
@@ -534,13 +535,6 @@ function ensureStyle() {
 const fileName = (result) => 'orevosh-look.' + result.ext;
 const canShareFile = (file) => !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
 
-/** Tells the server the video was shared or saved (the videosMade tally): once per video, never blocking, never a message. */
-function count(look) {
-  if (look.counted || !look.checkId) return;
-  look.counted = true;
-  api('POST', '/api/checks/' + encodeURIComponent(look.checkId) + '/shared-video').catch(() => {});
-}
-
 /**
  * Makes the video in a sheet (a progress bar and Cancel), then shows it with Share (the system share sheet with the file,
  * when the browser can share files) and Save (a download). Without a VideoEncoder, or with none that takes 1080×1920, the
@@ -558,20 +552,34 @@ export async function openShareVideo(look) {
   let controller = null;
   const release = () => { if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = null; };
   const s = sheet({ title: t('video.title'), content, onClose: () => { closed = true; if (controller) controller.abort(); release(); } });
+  // The videosMade tally: one POST per video made, on its first save or share (a share and then a save of the same file
+  // count once; every video, a retry's or the next tap's, counts again since make() lifts the latch). Never blocking, never a message.
+  let counted = false;
+  const count = () => {
+    if (counted || !look.checkId) return;
+    counted = true;
+    api('POST', '/api/checks/' + encodeURIComponent(look.checkId) + '/shared-video').catch(() => {});
+  };
 
   const paintMaking = () => {
     const fill = el('div', { class: 'sv-fill' });
-    const bar = el('div', { class: 'sv-progress', id: 'sv-progress', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' }, [fill]);
     const status = el('span', { id: 'sv-status', role: 'status', text: t('video.rendering', { percent: fmtPercent(0) }) });
+    const bar = el('div', { class: 'sv-progress', id: 'sv-progress', role: 'progressbar', 'aria-labelledby': 'sv-status', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' }, [fill]);
     content.replaceChildren(el('div', { class: 'sv-making' }, [
       el('span', { class: 'loading-mark', 'aria-hidden': 'true' }), status, bar,
       el('button', { type: 'button', class: 'btn btn-ghost', id: 'sv-cancel', text: t('common.cancel'), onclick: () => s.close() })
     ]));
+    // The bar and aria-valuenow follow every frame; the live region is rewritten only when the whole percent has moved and
+    // at most twice a second (and at 100), or a screen reader would read the number out hundreds of times.
+    let spoken = 0; let spokenAt = 0;
     return (fraction) => {
       const percent = Math.round(fraction * 100);
       fill.style.inlineSize = percent + '%';
       bar.setAttribute('aria-valuenow', String(percent));
-      status.textContent = t('video.rendering', { percent: fmtPercent(fraction) });
+      const now = performance.now();
+      if (percent === spoken || (now - spokenAt < 500 && percent < 100)) return;
+      spoken = percent; spokenAt = now;
+      status.textContent = t('video.rendering', { percent: fmtPercent(percent / 100) });
     };
   };
   const paintError = () => content.replaceChildren(
@@ -585,11 +593,11 @@ export async function openShareVideo(look) {
     const share = canShareFile(file) ? el('button', { type: 'button', class: 'btn', id: 'sv-share', onclick: async () => {
       if (state.sharing) return;
       state.sharing = true;
-      try { await navigator.share({ files: [file], title: t('app.name') }); count(look); }
+      try { await navigator.share({ files: [file], title: t('app.name') }); count(); }
       catch (e) { if (!(e && (e.name === 'AbortError' || e.name === 'InvalidStateError'))) toast(t('video.error')); }
       finally { state.sharing = false; }
     } }, [icon('share'), t('video.share')]) : null;
-    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name, onclick: () => { count(look); if (!isIos()) toast(t('video.saved')); } }, [icon('clip'), t('video.save')]);
+    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name, onclick: () => { count(); if (!isIos()) toast(t('video.saved')); } }, [icon('clip'), t('video.save')]);
     const hints = [t('video.hint')];
     if (result.ext === 'webm') hints.push(t('video.webm_hint'));
     if (isIos() && share) hints.push(t('video.ios_hint'));
@@ -610,6 +618,7 @@ export async function openShareVideo(look) {
     requestAnimationFrame(() => { if (!closed && first.isConnected) first.focus({ preventScroll: true }); });
   };
   async function make() {
+    counted = false;   // a new video: its own save or share counts
     const progress = paintMaking();
     controller = new AbortController();
     let result = null;
@@ -622,15 +631,20 @@ export async function openShareVideo(look) {
   return s;
 }
 
-/** The result screen's button: secondary, the clip glyph, busy (and disabled) while the video renders. */
+/**
+ * The result screen's button: secondary, the clip glyph, aria-busy while the video renders. Never disabled: the page behind
+ * the sheet is inert, so a second tap cannot reach it, and the sheet hands focus back to this button when it closes (a
+ * cancel included), which a disabled button would refuse.
+ */
 export function shareVideoButton(look) {
   const button = el('button', { type: 'button', class: 'btn btn-secondary', id: 'share-video' }, [icon('clip'), t('video.action')]);
+  let busy = false;
   button.addEventListener('click', async () => {
-    if (button.disabled) return;
-    button.disabled = true;
+    if (busy) return;
+    busy = true;
     button.setAttribute('aria-busy', 'true');
     try { await openShareVideo(look); }
-    finally { button.disabled = false; button.removeAttribute('aria-busy'); }
+    finally { busy = false; button.removeAttribute('aria-busy'); }
   });
   return button;
 }

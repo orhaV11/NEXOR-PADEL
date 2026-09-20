@@ -6,6 +6,7 @@ import {
 } from '../core.js';
 import { todayStrip } from './today.js';
 import { boardResetCard, emptyCall } from './board.js';
+import { guestsOn } from './check.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
 // The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
@@ -88,7 +89,8 @@ register('feed', async (root, params, ctx) => {
 
   // The empty list tells a newcomer the one thing to do next (check a look) rather than that nothing is here: on Your
   // circle, what fills it and where everyone is meanwhile; on For you, what a check is and, signed out, that the first
-  // one is free; under an intent chip, that no look of that intent is posted yet.
+  // one is free (only while the server lets a guest check at all: Plans:GuestChecksPerDay above 0, what guestsOn reads
+  // from /api/config); under an intent chip, that no look of that intent is posted yet.
   const empty = () => {
     if (tab === 'following') {
       return emptyCall(t('empty.following_title'), t('empty.following_body', { foryou: t('feed.foryou') }), {
@@ -97,7 +99,7 @@ register('feed', async (root, params, ctx) => {
     }
     const intent = state.feed.intent;
     if (intent) return emptyCall(t('empty.feed_filtered', { intent: intentLabel(intent) }), t('empty.feed_filtered_body', { intent: intentLabel(intent) }), { id: 'feed-empty' });
-    return emptyCall(t('empty.feed_title'), t('empty.feed_body') + (state.me ? '' : ' ' + t('empty.feed_guest')), { id: 'feed-empty' });
+    return emptyCall(t('empty.feed_title'), t('empty.feed_body') + (!state.me && guestsOn() ? ' ' + t('empty.feed_guest') : ''), { id: 'feed-empty' });
   };
 
   const cacheKey = () => tab + '|' + state.feed.intent;

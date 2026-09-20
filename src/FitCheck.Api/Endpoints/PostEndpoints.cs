@@ -749,7 +749,7 @@ public static class PostEndpoints
     /// A moderator is not given this: it is the author's choice, and a moderator reads the number either way.
     /// </summary>
     private static async Task<IResult> SetScorePrivacyAsync(
-        Guid id, ScorePrivacyRequest body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+        Guid id, ScorePrivacyRequest body, HttpContext context, AppDbContext db, Board board, Localizer localizer, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -768,6 +768,10 @@ public static class PostEndpoints
         {
             post.ScorePrivate = wanted;
             await db.SaveChangesAsync(ct);
+            // The picks board does not carry a private grade, and a week is served from memory for a minute: a choice
+            // made now must not leave the number on that board until the cache turns over, so it is dropped here, the
+            // way a moderator's exclusion drops it.
+            board.Invalidate();
         }
 
         return Results.Json(new ScorePrivacyDto(post.ScorePrivate), AppJson.Options);

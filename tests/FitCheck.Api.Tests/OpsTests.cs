@@ -273,6 +273,44 @@ public class DoctorTests : IDisposable
     }
 
     [Fact]
+    public async Task An_unreadable_database_never_lets_the_doctor_claim_that_nobody_is_a_moderator()
+    {
+        // A folder where the file should be, and a file that is not a database: in both the doctor could not look, and
+        // --admin may well have made a moderator in the real file, so it says it could not read and points at the database
+        // line instead of asserting that no moderator exists. Neither is touched by the looking.
+        var folder = Path.Combine(_root, "folder.db");
+        Directory.CreateDirectory(folder);
+        var garbage = Path.Combine(_root, "garbage.db");
+        var noise = string.Concat(Enumerable.Repeat("this is not a database, and never was. ", 200));
+        File.WriteAllText(garbage, noise);
+
+        foreach (var path in new[] { folder, garbage })
+        {
+            var nobody = Healthy();
+            nobody["Admin:Handles:0"] = "";
+            nobody["ConnectionStrings:Default"] = $"Data Source={path}";
+            var report = await Inspect(nobody);
+            var admin = report["admin"]!;
+            Assert.Equal(DoctorStatus.Warn, admin.Status);
+            Assert.Contains("Admin__Handles is empty and the database could not be read", admin.Detail);
+            Assert.Contains("see the database line", admin.Detail);
+            Assert.DoesNotContain("no account is a moderator", admin.Detail);
+            Assert.Equal(DoctorStatus.Fail, report["database"]!.Status);
+
+            // With handles listed the line stays ok, and still does not pretend to have counted anything.
+            var listed = Healthy();
+            listed["ConnectionStrings:Default"] = $"Data Source={path}";
+            var line = (await Inspect(listed))["admin"]!;
+            Assert.Equal(DoctorStatus.Ok, line.Status);
+            Assert.Contains("orhav; the database could not be read", line.Detail);
+            Assert.DoesNotContain("moderator account", line.Detail);
+        }
+
+        Assert.True(Directory.Exists(folder));
+        Assert.Equal(noise, File.ReadAllText(garbage));
+    }
+
+    [Fact]
     public async Task The_storage_root_the_database_and_ffmpeg_are_read_from_the_box()
     {
         // A root that is really a file: nothing can be written inside it, whoever is running.

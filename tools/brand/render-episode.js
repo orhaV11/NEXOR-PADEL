@@ -33,10 +33,17 @@
  *   --keep-frames            also write every frame into the scratch folder
  *   --crf 18                 override the encoder's quality (default 20, 16 for an overlay)
  *
+ * The video is encoded as <name>.mp4.part beside its final name and renamed onto it only after
+ * ffmpeg has exited 0 and the file has been probed, so a failure half-way never leaves a short,
+ * playable <name>.mp4 behind and never replaces the previous good one; the cover is written the
+ * same way. A render runs on up to three browser pages (one fewer than the machine has cores;
+ * EPISODE_WORKERS=3 forces three), and the count is printed before the first frame is taken.
+ *
  * Playwright is the browser test's copy in tools/e2e; the browser is CHROMIUM_PATH or
- * /opt/pw-browsers/chromium; ffmpeg and ffprobe come from PATH. Nothing touches the network: the
- * faces are the local OFL copies in tools/brand/templates/fonts and the look is a local file.
- * Scratch frames go to EPISODE_SCRATCH (default <tmp>/orevosh-episode), never into the repository.
+ * /opt/pw-browsers/chromium; ffmpeg and ffprobe come from PATH, and both are asked for before a
+ * browser is launched. Nothing touches the network: the faces are the local OFL copies in
+ * tools/brand/templates/fonts and the look is a local file. Scratch frames go to EPISODE_SCRATCH
+ * (default <tmp>/orevosh-episode), never into the repository.
  */
 'use strict';
 
@@ -60,11 +67,37 @@ function loadPlaywright() {
   fail('playwright not found; tried:\n  ' + tries.join('\n  '));
 }
 
+/* Files being written that have not yet earned their final name: <name>.mp4.part and the cover's
+   .part. They are removed on every way out that is not a finished render, so a failure leaves the
+   folder as it found it. (A Ctrl-C can still leave a .part behind; it is never mistaken for a video,
+   and the next render overwrites it.) */
+const PARTIALS = new Set();
+function discardPartials() {
+  for (const p of PARTIALS) { try { fs.rmSync(p, { force: true }); } catch (e) { /* best effort */ } }
+  PARTIALS.clear();
+}
+process.on('exit', discardPartials);
+
 function fail(msg) {
+  discardPartials();
   console.error('\n  ' + String(msg).split('\n').join('\n  ') + '\n');
   process.exit(1);
 }
 function sh(cmd, args) { return execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 1 << 26 }); }
+
+/* ffmpeg and ffprobe are asked for once, before a browser is launched, so a machine without them
+   gets one readable line instead of a crash from the spawn half-way through the first render. */
+function checkTools() {
+  for (const tool of ['ffmpeg', 'ffprobe']) {
+    try { execFileSync(tool, ['-version'], { stdio: 'ignore' }); }
+    catch (e) {
+      fail(tool + ' is not on PATH, and the renderer needs both ffmpeg and ffprobe (they ship together).\n' +
+        'Install ffmpeg (apt install ffmpeg, brew install ffmpeg, or a build from ffmpeg.org), or put the\n' +
+        'folder it is in on PATH, then run the command again.\n' +
+        '(' + String(e.message || e).split('\n')[0] + ')');
+    }
+  }
+}
 
 /* ------------------------------------------------------------------ the arguments */
 function parseArgs(argv) {
@@ -132,12 +165,20 @@ function checkScore(where, v, key) {
 function checkPhoto(where, jsonDir, rel) {
   const abs = path.resolve(jsonDir, rel);
   if (!fs.existsSync(abs)) {
+    /* the hint is counted from the JSON's own folder, exactly as the path in the JSON is: from
+       brand-kit/episodes it is ../../tools/…, from brand-kit/episodes/week-1 it is ../../../tools/…;
+       a JSON outside the repository gets the absolute folder, which is the only readable answer there */
+    const photosDir = path.join(REPO, 'tools/brand/templates/photos');
+    const up = path.relative(REPO, jsonDir);
+    const inside = up === '' || (!up.startsWith('..') && !path.isAbsolute(up));
+    const photos = (inside ? (path.relative(jsonDir, photosDir) || '.') : photosDir).split(path.sep).join('/');
     fail(where + ': the photo "' + rel + '" does not exist.\n' +
       'Resolved to: ' + abs + '\n' +
-      'Photo paths are relative to the episode JSON. The three supplied looks are at\n' +
-      '  ../../tools/brand/templates/photos/look-1-streetwear.jpg\n' +
-      '  ../../tools/brand/templates/photos/look-2-camel.jpg\n' +
-      '  ../../tools/brand/templates/photos/look-3-pink.jpg');
+      'Photo paths are relative to the episode JSON (this one is in ' + jsonDir + ').\n' +
+      'From there the three supplied looks are at\n' +
+      '  ' + photos + '/look-1-streetwear.jpg\n' +
+      '  ' + photos + '/look-2-camel.jpg\n' +
+      '  ' + photos + '/look-3-pink.jpg');
   }
   return abs;
 }
@@ -287,16 +328,27 @@ function plan(meta, opt) {
 /* ffmpeg reading frames from its stdin. Silent on purpose: no music is licensed, and both platforms
    reward a sound picked inside their own app at upload. Nothing in an episode depends on audio —
    every word is on screen. */
-function startEncoder(mp4, pl) {
+function startEncoder(part, pl) {
+  /* the output is <name>.mp4.part, so the muxer is named rather than read off the extension */
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error',
     '-f', 'image2pipe', '-framerate', String(pl.fps), '-c:v', pl.format === 'jpeg' ? 'mjpeg' : 'png', '-i', 'pipe:0',
     ...(pl.scale !== 1 ? ['-vf', 'scale=' + Math.round(W * pl.scale) + ':' + Math.round(H * pl.scale) + ':flags=area'] : []),
     '-c:v', 'libx264', '-preset', pl.preset, '-crf', String(pl.crf),
-    '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4], { stdio: ['pipe', 'ignore', 'pipe'] });
-  let err = '', exited = null;
+    '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-f', 'mp4', part], { stdio: ['pipe', 'ignore', 'pipe'] });
+  let err = '', exited = null, settle;
+  const done = new Promise(resolve => { settle = resolve; });
   ff.stderr.on('data', d => { err += d; });
   ff.stdin.on('error', () => { /* EPIPE when ffmpeg stops early; the exit code tells the story */ });
-  const done = new Promise(resolve => ff.on('close', code => { exited = code; resolve({ code: code, err: err }); }));
+  ff.on('close', (code, signal) => {
+    if (exited === null) exited = code === null ? -1 : code;
+    settle({ code: code, signal: signal, err: err });
+  });
+  /* a spawn that fails outright (ffmpeg gone between the check and now, or not executable) raises
+     'error' rather than 'close'; unhandled, it would throw out of the render instead of failing it */
+  ff.on('error', e => {
+    if (exited === null) exited = -1;
+    settle({ code: null, signal: null, err: err + 'ffmpeg could not be run: ' + e.message });
+  });
   return {
     done: done,
     /* back-pressure: wait for the pipe to drain rather than piling frames up in memory, and stop
@@ -304,12 +356,15 @@ function startEncoder(mp4, pl) {
     write: buf => new Promise((resolve, reject) => {
       if (exited !== null) return reject(new Error('ffmpeg stopped early'));
       if (ff.stdin.write(buf)) return resolve();
-      const onDrain = () => { ff.off('close', onClose); resolve(); };
-      const onClose = () => { ff.stdin.off('drain', onDrain); reject(new Error('ffmpeg stopped early')); };
+      const onDrain = () => { ff.off('close', onClose); ff.off('error', onClose); resolve(); };
+      const onClose = () => { ff.stdin.off('drain', onDrain); ff.off('close', onClose); ff.off('error', onClose); reject(new Error('ffmpeg stopped early')); };
       ff.stdin.once('drain', onDrain);
       ff.once('close', onClose);
+      ff.once('error', onClose);
     }),
-    end: () => ff.stdin.end()
+    end: () => ff.stdin.end(),
+    /* once the render has failed there is nothing worth finishing: no faststart pass, no flush */
+    abort: () => { if (exited === null) ff.kill('SIGKILL'); }
   };
 }
 
@@ -333,7 +388,8 @@ function latch() {
    contexts that build the same data, and each takes every K-th frame. A writer sends the frames to
    ffmpeg in order with back-pressure, so the encoder runs while the pages are on the next frames and
    nothing is written to disk on the way (unless --keep-frames asks for a copy). */
-async function renderVideo(browser, page, data, label, meta, mp4, pl, keepDir) {
+async function renderVideo(browser, page, data, label, meta, part, pl, keepDir) {
+  const mp4 = part.replace(/\.part$/, '');
   const frames = Math.round(meta.duration * pl.fps);
   if (keepDir) { fs.rmSync(keepDir, { recursive: true, force: true }); fs.mkdirSync(keepDir, { recursive: true }); }
   const ext = pl.format === 'jpeg' ? '.jpg' : '.png';
@@ -369,8 +425,9 @@ async function renderVideo(browser, page, data, label, meta, mp4, pl, keepDir) {
     }
   }
   const K = workers.length;
+  console.log('    photographing on ' + K + (K === 1 ? ' page' : ' pages') + ', encoding to ' + path.basename(part));
 
-  const enc = startEncoder(mp4, pl);
+  const enc = startEncoder(part, pl);
   const slots = new Map();
   let next = 0, failed = null;
   const arrived = latch(), advanced = latch();
@@ -402,15 +459,19 @@ async function renderVideo(browser, page, data, label, meta, mp4, pl, keepDir) {
     advanced.fire(); arrived.fire();
   };
   await Promise.all([writer(), ...workers.map(worker)]);
-  enc.end();
+  if (failed) enc.abort(); else enc.end();
   const r = await enc.done;
   for (const w of workers) {
     await w.cdp.detach().catch(() => null);
     if (w.ctx) await w.ctx.close().catch(() => null);
   }
   if (r.code !== 0 || failed) {
-    fail(path.basename(mp4) + ': the render failed' + (r.code ? ' (ffmpeg exit ' + r.code + ')' : '') + '.\n' +
-      [r.err.trim(), failed && (failed.stack || failed.message)].filter(Boolean).join('\n'));
+    /* the .part is removed by fail(); the previous <name>.mp4, if there is one, was never touched */
+    const detail = [r.err.trim()];
+    if (failed && !(r.err.trim() && failed.message === 'ffmpeg stopped early')) detail.push(failed.stack || failed.message);
+    fail(path.basename(mp4) + ': the render failed' + (r.code ? ' (ffmpeg exit ' + r.code + ')' : '') +
+      ', so nothing was written' + (fs.existsSync(mp4) ? ' and the existing ' + path.basename(mp4) + ' is as it was' : '') + '.\n' +
+      detail.filter(Boolean).join('\n'));
   }
   return { frames: frames, secs: (Date.now() - t0) / 1000, workers: K };
 }
@@ -487,18 +548,25 @@ async function renderOne(browser, ep, opt) {
     return { cover: cover };
   }
 
+  /* Everything is written under a .part name and takes its final name only after the probe below
+     has passed: a failure anywhere in between leaves no short, playable .mp4 under the final name
+     and never replaces the previous good render or its cover. */
+  const part = mp4 + '.part', coverPart = cover + '.part';
+  PARTIALS.add(part);
   const keepDir = opt.keepFrames ? path.join(SCRATCH, base + pl.tag + '-frames') : null;
-  const run = await renderVideo(browser, page, withUrls(d), label, meta, mp4, pl, keepDir);
+  const run = await renderVideo(browser, page, withUrls(d), label, meta, part, pl, keepDir);
   await page.close(); await ctx.close();
   console.log('    ' + run.frames + ' frames captured and encoded in ' + run.secs.toFixed(1) + 's on ' +
     run.workers + (run.workers === 1 ? ' page' : ' pages') + (keepDir ? ', kept in ' + keepDir : ''));
 
   /* the cover comes out of the finished file, so it is exactly a frame of the video */
   if (!opt.preview) {
-    sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(meta.coverAt), '-i', mp4, '-frames:v', '1', cover]);
+    PARTIALS.add(coverPart);
+    sh('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(meta.coverAt), '-i', part, '-frames:v', '1',
+      '-c:v', 'png', '-update', '1', '-f', 'image2', coverPart]);
   }
 
-  const pr = probe(mp4);
+  const pr = probe(part);
   console.log('    ' + path.basename(mp4) + ' — ' + pr.codec + ' ' + pr.w + 'x' + pr.h + ' ' + pr.pix +
     ' ' + pr.rate + ' · ' + pr.duration.toFixed(2) + 's · ' + pr.mb.toFixed(2) + ' MB (crf ' + pl.crf + ')');
   if (opt.preview) {
@@ -513,7 +581,11 @@ async function renderOne(browser, ep, opt) {
   if (pr.pix !== 'yuv420p') bad.push('the pixel format is ' + pr.pix + ', not yuv420p');
   if (Math.abs(pr.duration - meta.duration) > 0.08) bad.push('it runs ' + pr.duration.toFixed(2) + 's, not ' + meta.duration.toFixed(2) + 's');
   if (pr.mb > MAX_MB) bad.push('it is ' + pr.mb.toFixed(2) + ' MB, over the ' + MAX_MB + ' MB limit');
-  if (bad.length) fail(path.basename(mp4) + ' came out wrong:\n  ' + bad.join('\n  '));
+  if (bad.length) fail(path.basename(mp4) + ' came out wrong, so it was not written:\n  ' + bad.join('\n  '));
+
+  /* only now the final names */
+  fs.renameSync(part, mp4); PARTIALS.delete(part);
+  if (!opt.preview) { fs.renameSync(coverPart, cover); PARTIALS.delete(coverPart); }
   return { mp4: mp4, cover: opt.preview ? null : cover, probe: pr, crops: crops };
 }
 
@@ -536,6 +608,16 @@ async function renderOne(browser, ep, opt) {
   /* Everything that can be judged from the files is judged before a browser is started: a typo in
      the tenth episode should not cost a browser launch and nine renders. */
   const episodes = files.map(f => ({ path: f, data: loadEpisode(f, opt.overlay) }));
+
+  /* a video needs the encoder; a cover or a probe is a screenshot and needs neither */
+  const encodes = !opt.coverOnly && !opt.probe;
+  if (encodes) {
+    checkTools();
+    const cores = os.cpus().length;
+    console.log('\n  ' + WORKERS + (WORKERS === 1 ? ' browser page' : ' browser pages') + ' per render (' +
+      cores + (cores === 1 ? ' core' : ' cores') +
+      (process.env.EPISODE_WORKERS ? ', EPISODE_WORKERS=' + process.env.EPISODE_WORKERS : '; one fewer than the cores, three at most') + ')');
+  }
 
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch({

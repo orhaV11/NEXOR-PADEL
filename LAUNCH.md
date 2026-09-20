@@ -512,8 +512,12 @@ Then, on your phone, at `https://looks.example.com`:
    Anthropic key, the storage folder and the model all have to be right at once.
 7. **Post it** and open `#/board`. On launch day the look sits on the **Stylist's picks** tab (by score, no fires
    needed); the **Looks** tab wants fires that count, and a fire from an account younger than `Board__NewAccountDays`
-   (2 days) does not count yet, so a fire from a second account you made just now raises the look's count and leaves
-   the Looks tab empty until that account is two days old. The dry run of this runbook proved exactly that.
+   (2 days) does not count, then or later: the age is judged at the moment of the fire, so a fire from a second
+   account you made just now raises the look's count and never fills the Looks tab, not even once that account is
+   two days old. To see the Looks tab fill, fire from an account that is already two days old (or, two days on,
+   unfire and fire again from the new one: that is a new fire, judged then), or set `Board__NewAccountDays=0` for
+   the smoke, which makes the launch-day fire count at once, and put it back after. The dry run of this runbook
+   proved exactly that.
 8. **Open the numbers page**, `https://looks.example.com/#/admin/metrics`, signed in as the moderator. It should show
    the checks and the people you made in steps 6 and 7 (one check and one person if you stopped at step 6; guest
    checks are not counted). Anyone who is not a moderator gets a refusal.
@@ -1509,9 +1513,11 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
 6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
    האחסון והמודל חייבים להיות נכונים בבת אחת.
 7. **מפרסמים אותו** ופותחים את `#/board`. ביום ההשקה הלוק יושב בלשונית **הבחירות של הסטייליסט** (לפי ציון, בלי אש);
-   לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) עדיין לא נספרת, ולכן אש מחשבון
-   שני שיצרתם הרגע מעלה את המונה של הלוק ומשאירה את לשונית הלוקים ריקה עד שהחשבון בן יומיים. ההרצה היבשה של המדריך
-   הזה הוכיחה בדיוק את זה.
+   לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) לא נספרת — לא עכשיו ולא
+   אחר כך: הגיל נמדד ברגע האש, ולכן אש מחשבון שני שיצרתם הרגע מעלה את המונה של הלוק ולעולם לא ממלאת את לשונית
+   הלוקים, גם לא כשהחשבון כבר בן יומיים. כדי לראות את לשונית הלוקים מתמלאת, תנו אש מחשבון שכבר בן יומיים (או,
+   כעבור יומיים, בטלו את האש ותנו אותה שוב מהחשבון החדש: זו אש חדשה, שנמדדת אז), או קבעו `Board__NewAccountDays=0`
+   לבדיקת העשן — ואז אש יום ההשקה נספרת מיד — והחזירו אחר כך. ההרצה היבשה של המדריך הזה הוכיחה בדיוק את זה.
 8. **פותחים את דף המספרים**, `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל. הוא אמור להראות את הבדיקות
    ואת האנשים שיצרתם בשלבים 6 ו-7 (בדיקה אחת ואדם אחד אם עצרתם בשלב 6; בדיקות אורח לא נספרות). מי שאינו מנהל מקבל
    סירוב.

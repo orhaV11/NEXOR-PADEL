@@ -12,7 +12,8 @@
 set -u
 
 usage() {
-  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+  # the comment block above, from line 2 down to the first line that is not a comment (so nothing below it can leak in)
+  sed -n '2,${/^#/!q;s/^# \{0,1\}//p;}' "$0"
   exit 2
 }
 

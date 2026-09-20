@@ -22,6 +22,13 @@ namespace FitCheck.Api.Endpoints;
 /// here: the webhook is what ends Pro, and it now tells subscriptions apart by <see cref="AppUser.BillingSubscriptionId"/>
 /// (see <see cref="WebhookAsync"/>).
 /// </para>
+/// <para>
+/// Round 13 — money: the webhook also reads <c>charge.refunded</c> and <c>charge.dispute.created</c>, which it used to
+/// ignore. Either one ends Pro on the matching customer's account (the end date moves to now, as for a deleted
+/// subscription), writes a warning, and raises a <see cref="Services.Alerter"/> alert, because a dispute has a deadline
+/// and a fee and the owner has to answer it. The endpoint must be subscribed to those two events in Stripe for them to
+/// arrive; <c>--stripe-check</c> does not yet require them (see DEPLOY.md, "Round 13 — Money").
+/// </para>
 /// </summary>
 public static class BillingEndpoints
 {
@@ -169,7 +176,8 @@ public static class BillingEndpoints
     /// </para>
     /// </summary>
     private static async Task<IResult> WebhookAsync(
-        HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, ILogger<StripeClient> logger, CancellationToken ct)
+        HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, ILogger<StripeClient> logger,
+        Alerter alerter, CancellationToken ct)
     {
         var language = Localizer.Resolve(null, context.Request);
         string body;
@@ -377,6 +385,36 @@ public static class BillingEndpoints
                     user.BillingSubscriptionId = null;
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
+                    break;
+                }
+
+                // ---- Round 13 — money: a payment that went backwards. Stripe sends these on the charge, not the
+                // subscription, and nothing here used to read them: a refunded or disputed month left the account Pro.
+                // Both end Pro now, log it, and alert the owner, who has to decide what to do about the person. ----
+                case "charge.refunded":
+                case "charge.dispute.created":
+                {
+                    var user = await FindByCustomerAsync(db, payload, logger, ct);
+                    if (user is null)
+                    {
+                        break;
+                    }
+
+                    var reversal = type == "charge.refunded" ? "refunded" : "disputed";
+                    if (!Plans.IsPro(user, now))
+                    {
+                        logger.LogInformation("Stripe {Type} for account {Handle}, which is not Pro; nothing to remove.", type, user.Handle);
+                        break;
+                    }
+
+                    // Same shape as a deleted subscription: the end date moves to now rather than the plan to free, so
+                    // the row still says a subscription existed. The subscription id is left alone — a dispute does not
+                    // cancel the subscription, and Stripe will send customer.subscription.deleted if it ends too.
+                    user.ProUntil = now;
+                    await db.SaveChangesAsync(ct);
+                    logger.LogWarning("Account {Handle} left Pro: a charge was {Reversal} ({Type}).", user.Handle, reversal, type);
+                    await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
+                        $"a Stripe charge was {reversal} ({type}) and Pro was removed from one account. Check the Stripe dashboard: a dispute has a deadline and a fee.", ct);
                     break;
                 }
 

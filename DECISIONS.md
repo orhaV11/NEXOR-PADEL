@@ -1454,3 +1454,68 @@ home screen), never in the installed app.
 - The no-outfit screen never shows a score, a share, a post button, or a word about who is in the photo.
 - No client offers a language the server did not list; no stylist call goes out in one.
 - The forgiveness is a number in one place (`Spend`), never a special case in a route.
+
+## Round 13 — the growth loop: a public address, an invite, the week by mail, the funnel
+
+**A shared look must land on something, not on a loading spinner.** The app is one hash-routed shell: a link to it
+unfurls as the same wordmark every time and, on a cold tap, shows a blank page while a megabyte of JavaScript loads.
+So a posted look gets its own server-rendered page at `/look/{id}` — one HTML document, no script, no session, no font
+fetched from anyone — and the Open Graph description carries the score, the intent **and the tip**. The tip is the
+product; it is also the only line that makes a stranger tap.
+
+**The public photo has its own door.** `/api/posts/{id}/image` already serves a look's photo, but it is the app's
+route: `Cache-Control: private`, `Cross-Origin-Resource-Policy: same-origin`, and its rules follow a viewer (a block
+hides a look from one person and not another). A crawler has no viewer and a CDN wants to keep the file. So
+`/look/{id}/image` is a second, stricter door: posted, not hidden, author not suspended, file still there — and 404
+otherwise, with no viewer in the question at all. Two doors is one more than none, which is why they are seven lines
+apart in the same file and the same test walks both.
+
+**The page speaks the look's language, not the reader's.** The stylist wrote that headline and that tip in one
+language, and the app has never re-displayed feedback in another. A crawler's `Accept-Language` does not change that.
+Only the "this look is not here" page follows the request, because there is no look to take a language from.
+
+**A stale invite link never costs anyone an account.** The handle in `?via=` was chosen by whoever sent the link, not
+by the person following it. If it names nobody, a suspended account, or the account being created, the signup goes
+through exactly as it would have and no bonus is handed out. Refusing a signup over someone else's stale link would
+trade a real account for a tidy error.
+
+**The invite bonus lives in the allowance, not in the cap.** One Counter row per account per day
+(`bonus:{userId:N}:yyyyMMdd`), which `Spend` takes off the front of that account's counted calls — the same shape as
+the forgiven no-outfit answer. The check route, the comparison route and `me.checksToday` then agree without a line
+each, and the global ceiling never sees it: that one is about the bill, and every call was made. The cost is that the
+allowance reads "0 of 1" with two checks left; the alternative was the same number computed in four places.
+
+**The weekly mail is sent by a clock, guarded by a row.** A hosted service wakes every hour and asks whether Sunday
+morning in `Board:TimeZone` has passed within the last day; `LastDigestAt`, stamped per person as each message goes,
+is what makes it idempotent. A schedule is not a guarantee — a server asleep at nine still sends when it wakes, and a
+deploy on a Wednesday sends nothing at all.
+
+**A mail with no links is not worth sending.** Every line of both messages is a link, and a mailed link must never be
+built from a request's Host header — there is no request here at all. With no `Email:PublicOrigin` (or
+`Billing:PublicOrigin`) the run logs a warning and sends nothing.
+
+**The welcome waits for a confirmed address.** Signup takes no email, so there is no address to welcome anyone at.
+Mailing an unconfirmed one would mail whoever really owns that inbox. So the welcome goes on the first hourly pass
+after the address is confirmed, once per account (a `welcome:{userId:N}` row), and only to accounts less than a week
+old, so switching mail on for an existing pilot mails nobody who has been here for months.
+
+**Unsubscribing needs no login and no row.** The link is an HMAC of the account id: it turns off exactly one account's
+mail, and forging another's means guessing a 256-bit tag. Recovery links stay what they are — one-time rows, hashed —
+because those hand out access; this one flips a flag, so it needs no row and never expires. `Digest:Secret` keys it;
+while that is empty the key is the account's stored password hash, a secret the server already has, at the price of
+voiding open links when that account resets its password. The link is a plain `GET` that acts, as the brief asks: a
+scanner that follows links in an inbox can unsubscribe someone, and the toggle in Settings puts it back.
+
+**The funnel is ours or it does not exist.** Landing views and invite arrivals are counted by twenty lines of
+middleware into the app's own `Counter` rows — no cookie, no client script, no address stored, nothing sent anywhere.
+Guest checks, signups and first posts are counted off rows that already exist, so nothing is double-booked and a
+restart loses nothing. The price is that it can only count what reaches this server, which is the honest limit of any
+number on that page.
+
+### Objections to keep out of the code
+
+- The public page never shows a photo that is not posted, never a hidden look, never a suspended account's anything.
+- The share card and the share video never guess an origin: with none configured they carry the wordmark, as before.
+- The invite never refuses a signup, never pays for a self-invite, and never pays twice for one pair.
+- No digest goes to an address nobody confirmed, and none goes to an account that had nothing happen that week.
+- The funnel never sets a cookie and never asks a third party anything.

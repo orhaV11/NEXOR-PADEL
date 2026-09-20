@@ -125,7 +125,9 @@ public static class PublicPageEndpoints
         var body = new StringBuilder();
         body.Append("<main class=\"look\">");
         body.Append(Wordmark(origin));
-        body.Append("<figure class=\"photo\"><img src=\"").Append(Esc(image)).Append("\" alt=\"").Append(Esc(alt)).Append("\"></figure>");
+        // The photo on the page is the route on this origin, not the canonical one: a page reached on any host still
+        // shows its look, while og:image stays absolute because a crawler has nothing to resolve a path against.
+        body.Append("<figure class=\"photo\"><img src=\"").Append(ImagePath(look.PostId)).Append("\" alt=\"").Append(Esc(alt)).Append("\"></figure>");
         body.Append("<div class=\"meta\">");
         body.Append(Ring(look.Score, localizer.Get(language, "public.score_out_of", look.Score)));
         body.Append("<div class=\"who\"><p class=\"handle\" dir=\"ltr\">@").Append(Esc(look.Handle)).Append("</p>");
@@ -231,7 +233,7 @@ public static class PublicPageEndpoints
             foreach (var look in looks)
             {
                 body.Append("<li><a href=\"").Append(Esc(LookUrl(origin, look.Id))).Append("\">");
-                body.Append("<img src=\"").Append(Esc(origin + ImagePath(look.Id))).Append("\" alt=\"").Append(Esc(alt)).Append("\" loading=\"lazy\">");
+                body.Append("<img src=\"").Append(ImagePath(look.Id)).Append("\" alt=\"").Append(Esc(alt)).Append("\" loading=\"lazy\">");
                 body.Append("<span class=\"n\">").Append(look.Score.ToString(CultureInfo.InvariantCulture)).Append("</span>");
                 body.Append("</a></li>");
             }
@@ -378,7 +380,8 @@ public static class PublicPageEndpoints
     private static IResult Page(HttpContext context, PageHead head, string body)
     {
         var dir = RtlLanguages.Contains(head.Language) ? "rtl" : "ltr";
-        var documentTitle = head.Title + " — OREVOSH";
+        // The tab's title carries the brand once: a headline does not name it, "@noa on OREVOSH" already does.
+        var documentTitle = head.Title.Contains("OREVOSH", StringComparison.Ordinal) ? head.Title : head.Title + " — OREVOSH";
         var html = new StringBuilder();
         html.Append("<!doctype html>\n<html lang=\"").Append(head.Language).Append("\" dir=\"").Append(dir).Append("\">\n<head>\n");
         html.Append("<meta charset=\"utf-8\">\n");
@@ -487,13 +490,14 @@ public static class PublicPageEndpoints
   --font-display:"Outfit","Heebo","Cairo",system-ui,sans-serif;
   --font-body:"Heebo","Cairo",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Hebrew","Noto Sans Arabic",sans-serif; }
 * { box-sizing:border-box; }
-body { margin:0; background:var(--bg); background-image:radial-gradient(120% 60% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
-  color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+body { margin:0; min-block-size:100vh; background:var(--bg); background-image:radial-gradient(120% 60% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+  background-attachment:fixed; color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; }
 main { max-inline-size:520px; margin:0 auto; padding:20px 16px 48px; }
 .wordmark { display:block; inline-size:132px; margin-block-end:18px; }
 .wordmark img { inline-size:100%; block-size:auto; display:block; }
 .photo { margin:0; border-radius:var(--radius); overflow:hidden; background:var(--surface); }
-.photo img { display:block; inline-size:100%; block-size:auto; }
+/* The look fills the width but never the whole screen: the score, the headline and the tip belong above the fold too. */
+.photo img { display:block; inline-size:100%; block-size:auto; max-block-size:54vh; object-fit:cover; object-position:top center; }
 .meta { display:flex; align-items:center; gap:14px; margin-block-start:14px; }
 .ring { position:relative; inline-size:64px; block-size:64px; flex:none; }
 .ring svg { display:block; }

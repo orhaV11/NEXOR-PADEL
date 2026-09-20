@@ -783,3 +783,75 @@ page, the rule-1 filter over sixteen lines in four languages, the generic line, 
 `LanguagesTests` (the list, `/api/config`, the stylist's language for a check, a comparison and an Arabic guest, one
 setting enabling Russian, and key parity of the four locale files with the Round 13 prefixes present). Three earlier
 tests that pinned `v3` now pin `v4`, and `GuestCheckTests` expects the forgiven no-outfit answer instead of the spent look.
+
+
+## Round 13 — the growth loop: a look has an address, a friend can be invited, the week comes back by mail
+
+**A look has a public address.** `GET /look/{id}` is a posted look as a page: server-rendered HTML with no session and
+no script — the photo, the score ring as inline SVG, the handle and the intent, the stylist's headline and the one tip,
+*Check yours* into the app and *Open in OREVOSH* to `/#/post/{id}`. `GET /u/{handle}` is the same for a person: their
+visible looks as a grid. Both carry the Open Graph and Twitter tags a paste into WhatsApp, Telegram, Facebook or X
+unfurls: the headline (or *@handle's look on OREVOSH*) as the title, the score, the intent and the tip as the
+description — the tip is what makes people tap — and `og:image` pointing at `GET /look/{id}/image`, the one public door
+to a look's photo: a post that exists, is not hidden and whose author is not suspended, and 404 for everything else
+(`/api/posts/{id}/image` stays the app's own route, cached `private`). The page runs in the look's own language and
+direction, not the reader's, and asks nothing off this origin: the brand's faces are named and the system's stack
+stands behind them, so nothing is fetched from a font host. `robots.txt` indexes `/look/` and `/u/` and disallows the
+API, the client modules, the locale files and the app shell itself (a hash route has nothing for a crawler).
+Every arrival is a day tally: `arrivals:look:yyyyMMdd`, `arrivals:look:share:yyyyMMdd` for one that carried
+`?via=share`, `arrivals:profile:yyyyMMdd`.
+
+**The share lands there.** The story card's colophon and the share video's end card name the look's public address
+(`orevosh.app/look/…`, the host from `/api/config` `publicOrigin`) once the check has been posted; with no public
+origin configured they stay as they were — the wordmark alone, never a guess from the page's own address. On a look,
+*Copy link* opens the share sheet (or the clipboard) with that address, carrying the sharer's own `?via` when they are
+signed in, so a look that travels is also an invite.
+
+**Invite a friend.** Settings carries *Invite friends*: the person's link (`/?via=<handle>`), a copy button and the
+share sheet. The shell and the landing pages read `?via` and keep the handle in `localStorage` (try/catch: private mode
+simply has no memory); the signup body sends it once as `invitedBy` and then forgets it. The server validates the
+handle — it must exist, not be suspended and not be the account being created — stores it as `AppUser.InvitedByUserId`
+and gives **both** accounts one more check that day (`bonus:{userId:N}:yyyyMMdd`, which `Services/Spend.cs` takes off
+the front of the day's counted calls, so the check route, the comparison route and `me.checksToday` honour it with no
+line of their own). A handle that does not resolve is quietly not an invite: nobody is refused an account over a link
+they did not choose.
+
+**The week comes back by mail.** With mail on and `Email:PublicOrigin` set, `Services/Digest.cs` wakes hourly and sends
+two plain-text messages, each three or four lines with one thing to tap and a signed unsubscribe: a welcome, once per
+account, as soon as it has an address the person confirmed; and, on Sunday morning at `Digest:Hour` in
+`Board:TimeZone`, the week — *your looks got N fires and M comments this week*, the week's top look on the board with
+its public link, and *check a look* — to accounts with the toggle on that had at least one look or one check that week.
+An account with nothing to say gets nothing. `AppUser.LastDigestAt` is stamped as each message goes, so a restart in
+the middle of a run finishes the rest and never writes to one inbox twice, and a run outside the Sunday window sends no
+digest at all. `GET /digest/off/{token}` — an HMAC of the account id, keyed by `Digest:Secret` or, while that is empty,
+by the account's stored password hash — flips the toggle off with no login and says so on a small page. Settings has
+the switch (`GET`/`POST /api/users/me/digest`), which says which of the two things is missing when the mail could not
+go out anyway.
+
+**The funnel.** One small middleware (`Services/Funnel.cs`) counts a landing-page view and an arrival carrying an
+invite, per day, in the app's own `Counter` rows: no cookie, no address, nothing third-party. The numbers page shows
+fourteen days — landing views, guest checks, signups, first posts, look pages, the ones from a share, invite links —
+today's conversion between the steps, and the invites: links followed, accepted, and the handles doing the inviting.
+Moderators only, like the rest of that page.
+
+| Route | What it is |
+|---|---|
+| `GET /look/{id}` | A posted look as a page, with the link-preview tags. 404 (and `noindex`) for hidden, unposted, suspended or missing |
+| `GET /look/{id}/image` | That look's photo, public, `Cache-Control: public, max-age=3600`. The only public door to a photo |
+| `GET /u/{handle}` | A person's visible looks as a grid, with the same tags |
+| `GET /digest/off/{token}` | The weekly mail's one-tap unsubscribe. No session |
+| `GET`/`POST /api/users/me/digest` | The same switch inside the app: `{ on, canSend }` |
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Digest:Enabled` | `true` | The weekly mail and the welcome. Off turns both off without touching the mail settings |
+| `Digest:Hour` | `9` | The hour of Sunday morning, local to `Board:TimeZone`, the digest goes out at |
+| `Digest:Secret` | *(empty)* | Environment only (`Digest__Secret`). Keys the unsubscribe links; while empty they are keyed by the account's password hash, which works and voids open links on a password reset |
+
+Tests: `PublicPageTests` (the tags a share unfurls, three real crawler user agents, the public image route and the four
+ways a photo must not leave, the look's own language and direction, the profile grid, the arrival tallies, robots),
+`InviteTests` (stored, both bonuses, case, the handles that cannot invite, the extra check the allowance really gives
+back, the numbers page's invite block), `DigestTests` (the Sunday send and what it says, the guard, the weekday, an
+account with nothing to say, the signed unsubscribe, a forged and a swapped token, a configured secret, the welcome
+once, an unconfirmed address, no public origin, mail off) and `FunnelTests` (what the middleware counts and what it
+leaves alone, the fourteen days, today's conversion, the moderator gate, a claimed guest check).

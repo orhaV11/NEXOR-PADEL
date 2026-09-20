@@ -2031,3 +2031,57 @@ stay where they are.
 
 **תמונה בלי לוק לא עולה לאף אחד בדיקה.** שלוש פעמים ביום לאדם ה"אין כאן לוק" של הסטייליסט לא נספר; אחרי זה הוא נספר.
 חשבון Anthropic סופר כל אחת מהן, ולכן בלם האורחים והתקרה הגלובלית נשארים במקומם.
+
+---
+
+## Round 13 — the growth loop (appended; the lead folds it into 3, 3.5 and the Hebrew half)
+
+**3, the first day: a look you share now lands somewhere.** Post a look, tap *Copy link* under it, and paste that link
+into a WhatsApp group. It unfurls with the photo, the headline and the tip — no app, no account, nothing to install —
+and the button on it says *Check yours*. Your own profile is `…/u/<yourhandle>`, the same way. This is the one thing
+to do on day one that nothing else replaces: the app cannot be seen from the outside until somebody shares a look, and
+a link that shows a grey box gets ignored. Check yours the honest way before you post it anywhere:
+
+```bash
+curl -sA "WhatsApp/2.2319.9 A" https://$DOMAIN/look/<id> | grep -E 'og:title|og:description|og:image'
+```
+
+**Invite the first ten by hand, from inside the app.** Settings → *Invite friends* gives you your own link
+(`…/?via=<yourhandle>`). When someone signs up on it you both get one extra check that day, and the numbers page
+counts it. Send it to ten people you can ask a real question afterwards; a hundred strangers tell you nothing.
+
+**The Sunday mail, once there is anyone to mail.** It only goes to accounts that added an email and confirmed it, and
+only about a week in which they actually posted or checked something. Before the first Sunday: set `Digest__Secret`
+(it signs the unsubscribe links, once, forever), set `Digest__Hour` if nine in the morning is wrong for your people,
+and read one to yourself first — add your own address in Settings, confirm it, and the welcome arrives within the hour.
+If nobody is getting anything, the answer is in one line of the log: `docker compose logs --since 24h app | grep Digest:`.
+
+**3.5, the shape of the week.** `#/admin/metrics` has *The funnel*: fourteen days of landing views, guest checks,
+signups, first posts, look pages and the ones that came from a share, and today's conversion between those steps. Read
+it in that order and fix the first step that is losing people — a landing page nobody converts on is a different
+problem from a signup nobody posts after. *Invites* under it says how many links were followed, how many were
+accepted, and who is doing the inviting. All of it is this server counting itself: no cookie, no analytics account, no
+banner to click away.
+
+---
+
+## סבב 13 — לולאת הצמיחה (נספח; המוביל משלב ב-3, ב-3.5 ובחלק העברי)
+
+**3, היום הראשון: לוק ששיתפתם נוחת על משהו.** מפרסמים לוק, לוחצים *להעתיק קישור* מתחתיו, ומדביקים בקבוצת ווטסאפ.
+הקישור נפתח עם התמונה, הכותרת והטיפ — בלי אפליקציה, בלי חשבון, בלי להתקין — והכפתור עליו אומר *לבדוק את שלך*. הפרופיל
+שלכם הוא `…/u/<ההאנדל-שלכם>`, באותה צורה. זה הדבר היחיד ביום הראשון ששום דבר אחר לא מחליף: אי אפשר לראות את האפליקציה
+מבחוץ עד שמישהו משתף לוק, וקישור שמראה ריבוע אפור פשוט לא נלחץ.
+
+**את העשרה הראשונים מזמינים ביד.** הגדרות ← *להזמין חברים* נותן לכם קישור משלכם (`…/?via=<ההאנדל-שלכם>`). כשמישהו
+נרשם דרכו שניכם מקבלים בדיקה אחת נוספת באותו יום, ועמוד המספרים סופר את זה. שלחו לעשרה אנשים שאפשר לשאול אותם שאלה
+אמיתית אחר כך; מאה זרים לא יגידו לכם כלום.
+
+**המייל של יום ראשון, כשיש למי לשלוח.** הוא נשלח רק לחשבונות שהוסיפו מייל ואישרו אותו, ורק על שבוע שבאמת פרסמו או
+בדקו בו משהו. לפני יום ראשון הראשון: קובעים `Digest__Secret` (הוא חותם את קישורי ההסרה, פעם אחת ולתמיד), קובעים
+`Digest__Hour` אם תשע בבוקר לא מתאים, וקוראים אחד לעצמכם קודם — מוסיפים את הכתובת שלכם בהגדרות, מאשרים אותה, ומכתב
+הפתיחה מגיע תוך שעה. אם לא מגיע כלום, התשובה בשורה אחת בלוג: `docker compose logs --since 24h app | grep Digest:`.
+
+**3.5, הצורה של השבוע.** ב-`#/admin/metrics` יש *המשפך*: ארבעה עשר ימים של כניסות לדף הנחיתה, בדיקות אורח, הרשמות,
+פרסום ראשון, דפי לוק ואלה שהגיעו משיתוף, ועוד ההמרה של היום בין השלבים. קוראים לפי הסדר ומתקנים את השלב הראשון שמאבד
+אנשים. *הזמנות* מתחת אומר כמה קישורים נפתחו, כמה התקבלו, ומי מזמין. הכול נספר בשרת עצמו: בלי עוגיות, בלי חשבון
+אנליטיקס, בלי באנר להסיר.

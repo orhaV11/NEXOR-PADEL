@@ -110,7 +110,9 @@ public static partial class AuthEndpoints
         // this with the same three arguments.
         var now = DateTime.UtcNow;
         var plans = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<PlanOptions>>(db).Value;
-        var checksToday = await Spend.CountForUserAsync(db, user.Id, now, ct, plans.NoOutfitForgivenPerDay);
+        // Round 14: on Pro this is the CHECK bucket alone — its comparisons have their own day (Plans:ProComparesPerDay)
+        // and are counted on the compare route, so "n of cap checks left" stays the truth about checks.
+        var checksToday = await Spend.CountForUserAsync(db, user.Id, now, ct, plans.NoOutfitForgivenPerDay, Plans.CheckAllowanceFor(user, now));
         var limits = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<LimitsOptions>>(db).Value;
         var (plan, proUntil) = BillingEndpoints.EffectivePlan(user, now);
         return new MeDto(user.Id, user.Handle, user.Name, user.AccountType.ToString(), user.PreferredLanguage, user.Bio, user.Website, user.StreakCount, unread,

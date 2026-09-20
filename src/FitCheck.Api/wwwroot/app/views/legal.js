@@ -8,8 +8,10 @@
 // does, in plain language; it is not legal advice, and the governing-law line in the terms is a placeholder.
 import { register, t, el, hasMessage, setTopBar, intlLocale } from '../core.js';
 
-const VERSION = '2';
-const DATED = '2026-09-12';
+// Round 14 moved to 3: Pro is described by what it gives rather than by a cap, and the wardrobe is named in
+// "what we store", "what we send to the model provider", "who sees what" and "deleting".
+const VERSION = '3';
+const DATED = '2026-09-20';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
 const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));

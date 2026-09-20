@@ -169,11 +169,13 @@ public static class CompareEndpoints
             return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
         }
 
-        // The allowance is one number for checks and comparisons together (Spend counts both, for this route, the check
-        // route and the global ceiling alike): the plan's cap, never above Limits:ChecksPerDay. Failed calls do not count,
-        // on either side: a model outage must not eat the user's allowance.
-        var cap = Plans.CapFor(user, plans.Value, limits.Value, now);
-        var recent = await Spend.RecentForUserAsync(db, userId, now, ct, plans.Value.NoOutfitForgivenPerDay);
+        // Round 14 — Pro worth paying for: a comparison is the moment people pay for, so a PRO account has its own
+        // allowance for it (Plans:ProComparesPerDay, never above Limits:ChecksPerDay), counted apart from its checks —
+        // comparing two looks never comes out of the day's checks. A FREE account is unchanged: one number for checks
+        // and comparisons together, the plan's cap. Failed calls do not count on either side: a model outage must not
+        // eat the user's allowance, and the global ceiling below still counts every stored call whatever the plan.
+        var cap = Plans.CompareCapFor(user, plans.Value, limits.Value, now);
+        var recent = await Spend.RecentForUserAsync(db, userId, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CompareAllowanceFor(user, now));
         var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 
         var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
@@ -184,10 +186,11 @@ public static class CompareEndpoints
                 context.Response.Headers.RetryAfter = retryAfter.ToString(CultureInfo.InvariantCulture);
             }
 
-            // A free account hears what Pro would give it; a Pro account at its own ceiling just hears the number.
+            // A free account hears what Pro would give it (its comparison allowance, which is what it just ran out of);
+            // a Pro account at its own ceiling just hears the number.
             var message = Plans.IsPro(user, now)
                 ? localizer.Get(language, "error.rate_limited", cap)
-                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCap(plans.Value, limits.Value));
+                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCompareCap(plans.Value, limits.Value));
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 

@@ -4,8 +4,11 @@
 // invoices, cancelling; it returns to #/settings and the webhook changes the plan here), or with Pro switched on by
 // hand, a line saying to write to us. Checkout returns to #/pro?checkout=success (thanks, and "me" is reloaded until the webhook has
 // flipped the plan; no button meanwhile, a second tap would open a second subscription) or #/pro?checkout=cancel
-// (just the screen again). The benefits are what Pro really gives on this server: the cap from /api/config, and
-// comparisons and insights only where the server keeps them for Pro (plans.compareNeedsPro).
+// (just the screen again).
+// Round 14 — the page is about what the person GETS, not how high a number goes. Every benefit below is gated on a flag
+// from /api/config, and a benefit whose flag is false is not drawn at all: NOTHING on this page may promise a thing this
+// server cannot do. PlansTests reads this file's benefit lines and fails the build over an invented promise, so a new
+// benefit needs both a flag here and a row in that table. The cap is not a benefit; it is one fair-use line, once, last.
 import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave } from '../core.js';
 
 const CSS = `
@@ -30,6 +33,7 @@ const CSS = `
 .pro-status p { flex: 1; min-inline-size: 0; font-size: 15px; }
 .pro-thanks { margin-block-end: 18px; }
 .pro-manage-hint { text-align: center; }
+.pro-fair { text-align: center; margin-block-start: 16px; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -92,12 +96,17 @@ register('pro', async (root, params, ctx) => {
     el('p', { class: 'lede', text: t('pro.lede') })
   ]));
 
+  // Each line: an optional guard from /api/config, then the benefit. One benefit per line, because PlansTests reads
+  // them from this file and matches every key against the thing in the server that makes it true.
   root.appendChild(el('ul', { class: 'pro-benefits' }, [
-    benefit('ring', t('pro.benefit_checks', { n }), t('pro.benefit_checks_hint', { free: plans.freeChecksPerDay || 0 })),
-    // Sold only where they are Pro's: by default comparisons and insights are free and the pitch does not name them.
-    plans.compareNeedsPro ? benefit('flip', t('pro.benefit_compare'), t('pro.benefit_compare_hint')) : null,
-    plans.compareNeedsPro ? benefit('sparkle', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
+    benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
+    plans.tasteProfile ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
+    plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint')) : null,
+    plans.compareNeedsPro ? benefit('ring', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
   ]));
+  // The cap, once and last, as what it is: a fair-use brake, not the product. Both numbers as the server really
+  // enforces them (clamped to Limits:ChecksPerDay before they leave /api/config).
+  root.appendChild(el('p', { class: 'hint pro-fair', id: 'pro-fair', text: t('pro.fair_use', { checks: n, compares: plans.proComparesPerDay || 0 }) }));
 
   if (plans.proPriceText) {
     root.appendChild(el('p', { class: 'pro-price', id: 'pro-price' }, [

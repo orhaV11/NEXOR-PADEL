@@ -213,6 +213,8 @@ async function profileView(root, handle, tab, ctx) {
   const links = mine ? el('div', { class: 'links' }, [
     el('a', { href: '#/saved' }, [t('profile.saved'), icon('bookmark')]),
     el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
+    // Round 14 — the wardrobe that builds itself: the pieces kept from the checks that named them.
+    el('a', { href: '#/wardrobe', id: 'profile-wardrobe' }, [t('wardrobe.title'), icon('bag')]),
     // Round 13 — the growth loop: the invite link's sheet, the same one Settings opens.
     el('button', { type: 'button', id: 'profile-invite', onclick: openInviteSheet }, [t('invite.title'), icon('share')]),
     el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })

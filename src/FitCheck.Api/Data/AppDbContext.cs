@@ -31,6 +31,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     // Round 14 — the loop: the "I tried it" pairs and the taste profile's two switches (Services/Taste.cs).
     public DbSet<CheckLink> CheckLinks => Set<CheckLink>();
     public DbSet<TasteSetting> TasteSettings => Set<TasteSetting>();
+    // Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs): the pieces an account kept from its checks,
+    // the looks each one appeared in, and the account's one say over whether they reach the stylist.
+    public DbSet<Services.WardrobeItem> WardrobeItems => Set<Services.WardrobeItem>();
+    public DbSet<Services.WardrobeAppearance> WardrobeAppearances => Set<Services.WardrobeAppearance>();
+    public DbSet<Services.WardrobeSetting> WardrobeSettings => Set<Services.WardrobeSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -331,6 +336,36 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             taste.HasKey(s => s.UserId);
             taste.HasOne<AppUser>().WithOne().HasForeignKey<TasteSetting>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ---------- Round 14 — the wardrobe ----------
+
+        modelBuilder.Entity<Services.WardrobeItem>(item =>
+        {
+            item.HasKey(i => i.Id);
+            item.Property(i => i.Name).HasMaxLength(Services.Wardrobe.NameMaxLength).IsRequired();
+            item.Property(i => i.NameKey).HasMaxLength(Services.Wardrobe.NameMaxLength).IsRequired();
+            item.Property(i => i.Category).HasMaxLength(16).IsRequired();
+            // One row per piece per account: keeping the camel coat from a second check adds a look, never a second coat.
+            item.HasIndex(i => new { i.UserId, i.NameKey }).IsUnique();
+            // Every read is "this account's pieces, most recently worn first": the list, and the names that go to the stylist.
+            item.HasIndex(i => new { i.UserId, i.LastSeenAt });
+            item.HasOne<AppUser>().WithMany().HasForeignKey(i => i.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Services.WardrobeAppearance>(appearance =>
+        {
+            appearance.HasKey(a => new { a.ItemId, a.CheckId });
+            appearance.HasIndex(a => a.CheckId);
+            appearance.HasOne<Services.WardrobeItem>().WithMany().HasForeignKey(a => a.ItemId).OnDelete(DeleteBehavior.Cascade);
+            // A deleted check takes its appearances with it; the piece stays, with one fewer look to its name.
+            appearance.HasOne<OutfitCheck>().WithMany().HasForeignKey(a => a.CheckId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Services.WardrobeSetting>(setting =>
+        {
+            setting.HasKey(s => s.UserId);
+            setting.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -177,6 +177,49 @@ public sealed class PlanOptions
     /// a cap on a real cost, not a feature wall.
     /// </summary>
     public bool CompareNeedsPro { get; set; } = false;
+
+    // ---------- Round 14 — Pro worth paying for, and the wardrobe ----------
+
+    /// <summary>
+    /// Round 14. A Pro account's comparisons get their OWN rolling-day allowance, counted apart from its checks, so
+    /// deciding between two outfits never eats the day's checks — the thing people actually pay for. Never above
+    /// <see cref="LimitsOptions.ChecksPerDay"/>, which stays the ceiling on either bucket. A FREE account is unchanged:
+    /// one allowance for checks and comparisons together, as before (<see cref="Services.Spend"/>,
+    /// <see cref="Services.Plans.CompareCapFor"/>). Not a promise of "unlimited": it is the fair-use brake on the
+    /// comparison side, and <see cref="LimitsOptions.ChecksPerDayGlobal"/> and <see cref="LimitsOptions.SpendPerDayUsd"/>
+    /// stand behind it as before.
+    /// </summary>
+    public int ProComparesPerDay { get; set; } = 30;
+
+    /// <summary>
+    /// Round 14 — the wardrobe. The most pieces one account may keep. A brake on a script, not a product limit: nobody
+    /// dresses out of two hundred named pieces, and keeping is one tap with no form behind it. The same for free and Pro:
+    /// the wardrobe itself is not what Pro sells (see <see cref="WardrobeNeedsPro"/>).
+    /// </summary>
+    public int WardrobeMaxItems { get; set; } = 200;
+
+    /// <summary>
+    /// Round 14 — what the wardrobe is FOR: how many of the wearer's own piece names travel with a check, so a tip can
+    /// say "the brown tights you wore on the 4th" instead of "buy sheer brown tights". Most recently seen first, clothes
+    /// only, each one short and cleaned like any other stored string (<see cref="Services.Wardrobe.PromptNames"/>).
+    /// A handful is context; a hundred is noise and tokens. 0 turns the wardrobe off in the prompt entirely.
+    /// </summary>
+    public int WardrobeNamesToStylist { get; set; } = 12;
+
+    /// <summary>
+    /// Round 14: whether the wardrobe reaching the STYLIST is Pro's (the wardrobe itself is everyone's — it cannot build
+    /// itself otherwise). True, and it is what Pro sells: a free account keeps, renames and deletes pieces and reads its
+    /// own list, and POST /api/wardrobe/stylist answers 403 error.pro_required. False gives it to everyone, for a server
+    /// that would rather not sell it.
+    /// </summary>
+    public bool WardrobeNeedsPro { get; set; } = true;
+
+    /// <summary>
+    /// Round 14: whether this server has the taste profile (the memory of what the person liked and turned down) built.
+    /// Off until it lands, and the Pro page lists it only when it is on — nothing on that page may promise a thing this
+    /// server cannot do. The setting is the switch, not the feature.
+    /// </summary>
+    public bool TasteProfile { get; set; } = false;
 }
 
 /// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>

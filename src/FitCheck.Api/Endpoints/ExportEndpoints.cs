@@ -17,7 +17,8 @@ namespace FitCheck.Api.Endpoints;
 /// outside ASCII gets an ASCII stand-in there and the real name in <c>filename*</c>, RFC 5987, which browsers prefer) and
 /// <c>Cache-Control: no-store</c>, so the browser saves it and no cache keeps it. Built in one read per table, the
 /// account's own rows only (checks, looks with their tags and pieces, comments, follows both ways, comparisons, blocks,
-/// notifications), newest first; hidden looks and hidden comments included (they are the person's words). Comments carry
+/// notifications, and from Round 14 the wardrobe with the checks each piece appeared in), newest first; hidden looks
+/// and hidden comments included (they are the person's words). Comments carry
 /// only the text the person wrote, follows and followers only handles, notifications only a type and a time: nothing in
 /// the file is another person's. No photo, no clip, no birth date, no password hash, no billing ids. A suspended account
 /// still exports (the session cookie it still holds opens this one door: the words are theirs whatever the account did).
@@ -170,7 +171,16 @@ public static class ExportEndpoints
             .Select(n => new { n.Type, n.CreatedAt })
             .ToListAsync(ct)).Select(n => new ExportNotificationDto(n.Type, Utc(n.CreatedAt))).ToList();
 
-        return new ExportDto(now, account, checks, posts, comments, follows, followers, comparisons, blocks, notifications);
+        // Round 14 — the wardrobe: the pieces this account kept and the checks each one appeared in. Two reads, the
+        // account's own rows only, most recently worn first, like everything else in the file.
+        var wardrobeRows = await Wardrobe.ListAsync(db, id, ct);
+        var wardrobe = wardrobeRows
+            .Select(row => new ExportWardrobeItemDto(
+                row.Item.Name, row.Item.Category, Utc(row.Item.CreatedAt), Utc(row.Item.LastSeenAt),
+                row.Looks.Select(look => look.CheckId).ToList()))
+            .ToList();
+
+        return new ExportDto(now, account, checks, posts, comments, follows, followers, comparisons, blocks, notifications, wardrobe);
     }
 
     /// <summary>One read of a handle-and-since query, newest first, the times marked UTC as the rest of the API does.</summary>

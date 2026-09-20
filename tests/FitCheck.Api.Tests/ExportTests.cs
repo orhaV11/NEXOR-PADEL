@@ -72,7 +72,8 @@ public class ExportTests : IClassFixture<TestApp>
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
         var raw = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(raw).RootElement;
-        Assert.Equal(["exportedAt", "account", "checks", "posts", "comments", "follows", "followers", "comparisons", "blocks", "notifications"], Keys(doc));
+        // Round 14 appends "wardrobe": the pieces this account kept, with the checks each one appeared in (WardrobeTests).
+        Assert.Equal(["exportedAt", "account", "checks", "posts", "comments", "follows", "followers", "comparisons", "blocks", "notifications", "wardrobe"], Keys(doc));
 
         // The account: the fields the person set, the effective plan, and no secret of any kind.
         var account = doc.GetProperty("account");

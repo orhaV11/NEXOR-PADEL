@@ -537,6 +537,13 @@ public static class UserEndpoints
         await db.BoardExclusions.Where(e => e.ByUserId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ByUserId, (Guid?)null), ct);
         await db.WeeklyWinners.Where(w => w.UserId == id).ExecuteDeleteAsync(ct);
 
+        // Round 14 — the wardrobe: the pieces, the looks they appeared in and this account's one setting go with it.
+        // The cascades agree, but the appearances hang off both a piece and a check and are named here so the order is
+        // plain: the looks first, then the pieces, then the setting, before the checks they point at are deleted below.
+        await db.WardrobeAppearances.Where(a => db.WardrobeItems.Any(i => i.Id == a.ItemId && i.UserId == id)).ExecuteDeleteAsync(ct);
+        await db.WardrobeItems.Where(i => i.UserId == id).ExecuteDeleteAsync(ct);
+        await db.WardrobeSettings.Where(w => w.UserId == id).ExecuteDeleteAsync(ct);
+
         await db.Posts.Where(p => p.UserId == id).ExecuteDeleteAsync(ct);
         await db.Checks.Where(c => c.UserId == id).ExecuteDeleteAsync(ct);
         // The recovery links cascade with the row, but a link that outlived its account would be a way back in; explicit.

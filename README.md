@@ -237,6 +237,11 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Plans:GuestAttemptsPerDay` | `20` | The brake on attempts: the `guest` rate-limit policy on `POST /api/checks`, a fixed 24-hour window per client address in memory for signed-out calls, whatever they come to, answering 429 `error.too_fast` with `Retry-After` beyond it. Well above `Plans:GuestChecksPerDay` on purpose, so a refused photo or a model outage never locks a shared address out of its look; a signed-in call passes through it unlimited |
 | `Plans:ProPriceText` | empty | Shown on the Pro page as the price, e.g. `₪19 / month`; empty hides it. Text only: the price itself is the Stripe price |
 | `Plans:CompareNeedsPro` | `false` | Whether "Which one?" and your insights need Pro (403 `error.pro_required` and a Pro card on `#/compare` and `#/insights` otherwise; the Pro page lists them as benefits only then). Off by default: Pro is a cap on a real cost, not a feature wall |
+| `Plans:ProComparesPerDay` | `30` | **Round 14.** A Pro account's own rolling-day allowance for comparisons, counted apart from its checks, never above `Limits:ChecksPerDay`. What Pro sells: deciding between two outfits never spends a check. A free account is unchanged — one allowance for checks and comparisons together |
+| `Plans:WardrobeMaxItems` | `200` | The most pieces one account may keep. A brake on a script, not a product limit, and the same for free and Pro |
+| `Plans:WardrobeNamesToStylist` | `12` | How many of the wearer's own piece names travel with a check, most recently worn first. `0` keeps the wardrobe but never sends it, and the doctor says so |
+| `Plans:WardrobeNeedsPro` | `true` | Whether the wardrobe REACHING THE STYLIST is Pro's. The wardrobe itself is everyone's on every server — it cannot build itself behind a wall — and this gates only the advice from it (`POST /api/wardrobe/stylist` answers 403 `error.pro_required` to a free account) |
+| `Plans:TasteProfile` | `false` | Whether this server has the taste profile built. The Pro page lists it as a benefit only when this is on: nothing on that page may promise a thing this server cannot do (`PlansTests`) |
 | `Billing:Provider` | `manual` | `manual`: Pro is granted with `--pro`, and the Pro page shows a note instead of a checkout button. `stripe`: Checkout and the webhook are live once the three keys below are set; until they are, the routes answer 400 `error.billing_disabled` |
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
@@ -296,7 +301,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
-| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks and comparisons in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. A suspended account gets 403 and is signed out |
+| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap; on a FREE account comparisons are counted in the same number, and on a PRO account they are not — Round 14 gives Pro a second allowance for comparisons alone (`Plans:ProComparesPerDay`, enforced on `POST /api/compare`), so `checksToday` on Pro is checks only. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. A suspended account gets 403 and is signed out |
 | `POST /api/auth/forgot` | `{ handleOrEmail }` | `202` always, same body whether or not the account exists; mails a reset link when the account has a confirmed email (5 per hour per address) |
 | `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
 | `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to, and only while that is still the account's address; works signed out, signs nobody in |
@@ -326,7 +331,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder, a claimed clip queued for the transcoder) and the cookie is dropped. All or nothing: a file that cannot be copied (a full disk, a file missing from the store) answers 500 `error.server`, the rows stay the guest's and the cookie stays, and the client claims again on its next load. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
 | `GET /api/checks/{id}` | — | The check, for its owner or for the guest whose cookie made it (404 to anyone else, the same as a missing id) |
 | `POST /api/checks/{id}/shared-video` | — | `204`. One tally (`videos_made`, on the numbers page as "Share videos made") after the person saved or shared the check's video. The video itself is drawn and encoded **on the phone** (a 12-second 1080×1920 file: H.264 MP4 where the browser can, else VP9/VP8 WebM, else the story card PNG) and never touches the server. Owner or guest-cookie only, 404 to anyone else like the GET; 30 per hour per account or address (429 `error.too_fast`) |
-| `POST /api/compare` 🔒 | multipart: `intent`, `occasion?`, `language`, `imageA`, `imageB` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v1`, the analyzer's rules and calibration) and one wins, `a` or `b`. Counts against the same daily allowance as a check; 400 `compare_two_photos` without both, 403 `pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro, and otherwise the same 413/415/429/502 as a check (at the cap a free account hears `error.plan_limit`, a Pro account `error.rate_limited`). `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
+| `POST /api/compare` 🔒 | multipart: `intent`, `occasion?`, `language`, `imageA`, `imageB` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v1`, the analyzer's rules and calibration) and one wins, `a` or `b`. Round 14: on a FREE account this counts against the same daily allowance as a check, as before; on a PRO account it counts against `Plans:ProComparesPerDay`, an allowance of its own, so comparing two looks never spends a check (`Limits:ChecksPerDayGlobal` and `Limits:SpendPerDayUsd` still count every stored call, whatever the plan). 400 `compare_two_photos` without both, 403 `pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro, and otherwise the same 413/415/429/502 as a check (at the cap a free account hears `error.plan_limit`, a Pro account `error.rate_limited`). `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
 | `GET /api/compare/{id}` 🔒 | — | The comparison, owner only (404 otherwise) |
 | `GET /api/compare/{id}/image/a` and `/b` 🔒 | — | The two photos, owner only, `Cache-Control: private`. The only route that serves them; 404 for a comparison that kept none |
 | `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item verdicts and notes stay private. With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name, normalised, equals a stylist row's name (the stylist's uncut name from the check and the stored name's first forty characters count as the same) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
@@ -426,6 +431,7 @@ src/FitCheck.Api/
   Services/ChallengeResolver.cs   fixes the winner exactly once when a challenge has ended
   Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches
   Services/Localizer.cs           server messages (en/he) and Accept-Language matching
+  Services/Wardrobe.cs            the pieces a check named, the rows kept from them, and the names that travel to the stylist
   Endpoints/                      auth, users, checks (+ claim), compare, posts (+ comments), items (tagging, the item search, the
                                   brands list, the out door), board (the week, the hall, the moderator's exclusion), feed,
                                   explore (+ search, tags), challenges, notifications, insights, today, billing, push, admin, metrics
@@ -440,6 +446,7 @@ src/FitCheck.Api/
   wwwroot/app/sharevideo.js       "Share as video": the story card as a 12-second vertical video, encoded on the device
   wwwroot/vendor/                 mp4-muxer and webm-muxer (MIT, local modules, no CDN)
   wwwroot/app/items.js            the tagging editor of the post sheet and of "Edit items": the rows, the brand suggestion, the dot
+  wwwroot/app/wardrobe.js         the keep line on the result screen (#wardrobe-keep) and the one cached read of /api/wardrobe
   wwwroot/manifest.webmanifest,   the installable app; the service worker caches the shell only, never the API, and lets
   wwwroot/sw.js, wwwroot/icons/   /landing/ navigations through to the network
   wwwroot/i18n/en.json, he.json   UI strings (the terms and the privacy policy among them); add a locale by adding a file
@@ -1096,3 +1103,61 @@ profile and a guest sending nothing, the request changed only in its own section
 a hostile note that cannot escape its quotes or blow the prompt, the last win's window, and the string, colour and cap
 units) and `TriedTests` (no trace of the first in the second, the pair linked only after both verdicts, the score left
 alone, the rules, the preference, the list, and what changed).
+## Round 14 — Pro worth paying for, and a wardrobe that builds itself
+
+Pro raised a cap from a few checks a day to thirty. Someone who dresses twice a day never touched either number, so Pro
+sold nothing. Round 14 makes Pro about what the person GETS, and gives the app a memory of the clothes they own.
+
+**The wardrobe builds itself.** Nobody photographs a closet: an hour of work before the first minute of value is how
+these features die. Instead the stylist already names the pieces it can see on every check, and the result screen shows
+one quiet line under the tip — *"Keep the White tee in your wardrobe?"* — with one tap and no form (`#wardrobe-keep`,
+`wwwroot/app/wardrobe.js`, mounted by `views/check.js` right after the "did the tip land?" row). A keep offers the next
+piece a moment later, so a wardrobe fills over a few checks. A piece can only be kept from a check that NAMED it, which
+is what keeps the list a list of clothes somebody was photographed wearing rather than a free-text store.
+
+**What it is for.** With those names in front of it, a tip can say *"swap the black tights for the brown ones you wore
+on the 4th"* instead of *"buy sheer brown tights"*. That is the difference between advice and shopping, and it is what
+makes the advice worth paying for. `Services/Wardrobe.cs` builds the list that travels: at most
+`Plans:WardrobeNamesToStylist` names, most recently worn first, clothes only (a row the stylist itself could not place
+stays home), each one cleaned and capped like any other stored string, and never one that names a body, a face, an age
+or a gender — a renamed piece is free text the person typed, and rule 1 holds there too. `OutfitAnalyzer.WardrobeRule`
+is the paragraph that goes with them; it says in its own words that the wardrobe informs the CHOICE of tip and is never
+a reason for a higher or lower score. An empty wardrobe adds nothing to the request: the call is byte for byte the one
+it always was.
+
+**What Pro is now**, in the order the Pro page says it:
+
+1. **"Which one?" whenever you are deciding.** A Pro account's comparisons have their own rolling-day allowance
+   (`Plans:ProComparesPerDay`), counted apart from its checks, so deciding between two outfits never spends a check.
+   A free account keeps the single allowance it always had.
+2. **The taste profile**, where this server has it (`Plans:TasteProfile`, off until it does).
+3. **Tips from your own wardrobe** (`Plans:WardrobeNeedsPro`): the list is everyone's, the advice from it is Pro's.
+4. **Your insights**, where they are Pro's (`Plans:CompareNeedsPro`, as before).
+
+The cap is named **once, last**, as one fair-use line naming both allowances. `PlansTests` reads
+`wwwroot/app/views/pro.js` itself, pulls out every benefit it can draw and matches each against a table that says what
+in the server makes it true: a benefit added to that page without a row there **fails the build**, and so does a cap
+sold as a benefit or a promise left in the copy after the code stopped drawing it.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `GET /api/wardrobe` 🔒 | — | `{ items: [{ id, name, category, keptAt, lastSeenAt, looks: [{ checkId, wornAt, postId? }] }], max, toStylist, stylistAvailable }`. The account's pieces, most recently worn first, each with the looks it appeared in (newest first; `postId` only where that check is a visible look of the caller's). `max` is `Plans:WardrobeMaxItems`, `toStylist` is this account's own switch and `stylistAvailable` is whether its plan honours it. A free account sees its whole wardrobe |
+| `POST /api/wardrobe` 🔒 | `{ checkId, name }` | `201` the piece, or `200` when it was already kept and this check was added to it (one row per piece per account, matched case-insensitively). `name` must be one the check actually named — the stylist's items, then the accessories it saw. 400 `wardrobe_name_invalid` for an empty name, 400 `wardrobe_unknown_piece` for anything else, 404 `check_not_found` for another account's check or a guest's, 409 `wardrobe_full` at `Plans:WardrobeMaxItems` (never for a piece already kept) |
+| `PATCH /api/wardrobe/{id}` 🔒 | `{ name }` | `200` the piece, renamed, keeping its looks. 400 `wardrobe_name_invalid`, 404 `wardrobe_not_found` (which is also what another account's piece answers), 409 `wardrobe_full` when the new name is already another of this account's pieces |
+| `DELETE /api/wardrobe/{id}` 🔒 | — | `204`. Its appearances go with it; the checks do not. Anything that is not a piece of the caller's answers `204` too, existing or not: a delete that said "not yours" for a real id and "gone" for a fake one would tell a stranger what other accounts keep |
+| `POST /api/wardrobe/stylist` 🔒 | `{ on }` | `200` the wardrobe. Whether this account's piece names travel with its checks; on by default. 403 `error.pro_required` to a free account while `Plans:WardrobeNeedsPro` is on |
+
+The wardrobe is the account's alone: `SecurityTests` declares the rule for both `{id}` routes. It travels in the data
+export (`wardrobe`: the name, the category, when it was kept, when it was last worn and the checks it appeared in) and
+it goes with the account on delete, appearances and setting and all. Migration `Round14Wardrobe` adds `WardrobeItems`
+(unique on owner + lower-cased name), `WardrobeAppearances` (item + check) and `WardrobeSettings` (one row per account).
+The legal pages moved to version 3: the wardrobe is named in "what we store", "what we send to the model provider",
+"who sees what" and "deleting", and "Free and Pro" describes Pro by what it gives.
+
+Tests: `WardrobeTests` (kept only from a check that named it, one row per piece with its looks, the post behind a
+published look, another account's check and another account's piece, rename and delete, the fair-use cap, a free
+account's list with the Pro-only switch refused in four languages, the switch on and off, the names in the prompt only
+when the plan, the switch and the setting all say so, a renamed piece that names a person never travelling, the
+handful and the order, `0` turning it off, the export and the account delete, and the cleaning of a name) and
+`PlansTests` (the promise table over the Pro page's own source, the cap once and last, the published allowances,
+the two buckets, and Pro's comparison never coming out of the day's checks).

@@ -15,6 +15,9 @@ namespace FitCheck.Api.Services;
 /// Round 13 also puts the invite bonus here (the block at the end of this file): an accepted invite gives both accounts
 /// one more check for that day, as a Counter row this file takes off the front of an account's counted calls, so the
 /// check route, the comparison route and the "me" answer honour it without a line of their own.
+/// Round 14: a PRO account's day is counted in two buckets (<see cref="Allowance"/>) — its checks apart from its
+/// comparisons — so deciding between two outfits never spends a check. A free account and a guest keep the one bucket
+/// they always had, and the global ceiling counts every call whatever the plan: it is about the bill.
 /// </summary>
 public static class Spend
 {
@@ -25,14 +28,17 @@ public static class Spend
     /// end of this file) is taken off the front of the list, so one extra check is what every caller sees — the check
     /// route, the comparison route and the "me" answer alike, with nothing to change in any of them.
     /// </summary>
-    public static async Task<List<DateTime>> RecentForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0)
+    public static async Task<List<DateTime>> RecentForUserAsync(
+        AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0, Allowance allowance = Allowance.Together)
     {
         var windowStart = now - Window;
         var times = await RecentAsync(
-            CountedChecks(db, windowStart).Where(c => c.UserId == userId),
-            CountedComparisons(db, windowStart).Where(c => c.UserId == userId),
+            allowance == Allowance.Compares ? null : CountedChecks(db, windowStart).Where(c => c.UserId == userId),
+            allowance == Allowance.Checks ? null : CountedComparisons(db, windowStart).Where(c => c.UserId == userId),
             forgivenNoOutfit, ct);
-        return DropBonus(times, await BonusAsync(db, userId, now, ct));
+        // The day's invite bonus is the check side's: one extra CHECK is what an invite promises, so a Pro account's
+        // comparison bucket never quietly grows by it.
+        return allowance == Allowance.Compares ? times : DropBonus(times, await BonusAsync(db, userId, now, ct));
     }
 
     /// <summary>When the counted calls made under a guest cookie's token were made, oldest first.</summary>
@@ -46,8 +52,9 @@ public static class Spend
     }
 
     /// <summary>How many counted calls this account made in the rolling day (MeDto.checksToday).</summary>
-    public static async Task<int> CountForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0) =>
-        (await RecentForUserAsync(db, userId, now, ct, forgivenNoOutfit)).Count;
+    public static async Task<int> CountForUserAsync(
+        AppDbContext db, Guid userId, DateTime now, CancellationToken ct, int forgivenNoOutfit = 0, Allowance allowance = Allowance.Together) =>
+        (await RecentForUserAsync(db, userId, now, ct, forgivenNoOutfit, allowance)).Count;
 
     /// <summary>Everyone's counted calls in the rolling day, accounts and guests, checks and comparisons: what Limits:ChecksPerDayGlobal caps.</summary>
     public static async Task<int> StoredGlobalAsync(AppDbContext db, DateTime now, CancellationToken ct)
@@ -112,10 +119,12 @@ public static class Spend
     /// The counted calls in time order: everything stored with a status that cost a model call, minus the first
     /// <paramref name="forgivenNoOutfit"/> no-outfit answers of the window (oldest first, checks and comparisons alike).
     /// </summary>
-    private static async Task<List<DateTime>> RecentAsync(IQueryable<OutfitCheck> checks, IQueryable<OutfitComparison> comparisons, int forgivenNoOutfit, CancellationToken ct)
+    private static async Task<List<DateTime>> RecentAsync(IQueryable<OutfitCheck>? checks, IQueryable<OutfitComparison>? comparisons, int forgivenNoOutfit, CancellationToken ct)
     {
-        var checkRows = await checks.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
-        var comparisonRows = await comparisons.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
+        // Round 14: a null side is a bucket this allowance does not count (Pro's checks apart from its comparisons).
+        // Left out here rather than read and discarded, so a split day is one database round trip, not two.
+        var checkRows = checks is null ? [] : await checks.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
+        var comparisonRows = comparisons is null ? [] : await comparisons.Select(c => new { c.CreatedAt, c.Status }).ToListAsync(ct);
         var forgiven = 0;
         var times = new List<DateTime>();
         foreach (var row in checkRows.Concat(comparisonRows).OrderBy(r => r.CreatedAt))

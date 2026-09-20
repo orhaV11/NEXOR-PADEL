@@ -206,6 +206,11 @@ public sealed class Localizer
             ["error.tried_already"] = "One of these looks is already paired with another.",
             ["error.prefer_invalid"] = "Say which one you prefer: the first or the second.",
             ["error.taste_invalid"] = "Say whether to keep learning: on or off.",
+            // Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs).
+            ["error.wardrobe_not_found"] = "We couldn't find this piece.",
+            ["error.wardrobe_full"] = "Your wardrobe is full at {0} pieces. Remove one to keep another.",
+            ["error.wardrobe_unknown_piece"] = "That piece isn't one this check named.",
+            ["error.wardrobe_name_invalid"] = "A piece needs a name, up to {0} characters.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -396,6 +401,11 @@ public sealed class Localizer
             ["error.tried_already"] = "אחד מהלוקים האלה כבר מחובר לאחר.",
             ["error.prefer_invalid"] = "צריך לומר מה עדיף: הראשון או השני.",
             ["error.taste_invalid"] = "צריך לומר אם להמשיך ללמוד: דלוק או כבוי.",
+            // Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs).
+            ["error.wardrobe_not_found"] = "לא מצאנו את הפריט הזה.",
+            ["error.wardrobe_full"] = "הארון מלא, {0} פריטים. מוחקים אחד כדי לשמור אחר.",
+            ["error.wardrobe_unknown_piece"] = "הפריט הזה לא מופיע בבדיקה הזו.",
+            ["error.wardrobe_name_invalid"] = "לפריט צריך שם, עד {0} תווים.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -588,6 +598,11 @@ public sealed class Localizer
             ["error.tried_already"] = "إحدى هاتين الإطلالتين مرتبطة بأخرى بالفعل.",
             ["error.prefer_invalid"] = "يلزم تحديد الأفضل: الأولى أم الثانية.",
             ["error.taste_invalid"] = "يلزم تحديد الاستمرار في التعلّم: تشغيل أم إيقاف.",
+            // Round 14 — the wardrobe that builds itself (plain Arabic, for native review).
+            ["error.wardrobe_not_found"] = "لم نجد هذه القطعة.",
+            ["error.wardrobe_full"] = "خزانتك ممتلئة عند {0} قطعة. حذف واحدة يسمح بحفظ أخرى.",
+            ["error.wardrobe_unknown_piece"] = "هذه القطعة ليست مما ذكره هذا التقييم.",
+            ["error.wardrobe_name_invalid"] = "القطعة تحتاج اسمًا، حتى {0} حرفًا.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -779,6 +794,11 @@ public sealed class Localizer
             ["error.tried_already"] = "Один из этих образов уже связан с другим.",
             ["error.prefer_invalid"] = "Скажи, что нравится больше: первое или второе.",
             ["error.taste_invalid"] = "Скажи, продолжать ли обучение: включить или выключить.",
+            // Round 14 — the wardrobe that builds itself (plain Russian, for native review).
+            ["error.wardrobe_not_found"] = "Мы не нашли эту вещь.",
+            ["error.wardrobe_full"] = "В гардеробе уже {0} вещей — это максимум. Удали одну, чтобы сохранить другую.",
+            ["error.wardrobe_unknown_piece"] = "Этой вещи нет среди названных в этой проверке.",
+            ["error.wardrobe_name_invalid"] = "У вещи должно быть название, до {0} символов.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

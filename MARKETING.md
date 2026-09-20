@@ -16,6 +16,14 @@ app sells nothing, it judges clothes, never the person, the check is private unt
 thing only, that a look caught fire. For a person it answers "does this work for tonight?" before they leave the
 house; for a brand it is where the people who actually wear it post it, tag it and shop it.
 
+Since Round 14 the app also remembers what the person owns, and that is what Pro sells. The wardrobe builds itself —
+after a check, one quiet line offers to keep a piece the stylist just named, one tap, no form, and nobody is ever asked
+to photograph a closet. With those names in front of it the stylist can say "swap the black tights for the brown ones
+you wore on the 4th" instead of "buy sheer brown tights", which is the whole difference between advice and shopping.
+So the pitch for Pro is not a bigger number: it is comparisons on their own daily allowance (deciding between two
+outfits is the moment people pay for, and it must not cost a check) and advice built from the clothes you already have.
+The cap is a fair-use brake and it is named once, last, on the Pro page and nowhere else.
+
 ## The slogan
 
 **Check the look.** / **בודקים את הלוק.** with the tagline *A stylist in your pocket, and a community that lights it
@@ -124,6 +132,8 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
 | Store pull | store-link taps (`itemOuts`) ÷ pieces with a link | 0.5 a week | a tagged piece is worth a tap; the number a brand will ask for |
 | Board pull | board reads (`boardViews`) ÷ people active in 7 days | 2 a week | the week has a rhythm; below 1 the board is decoration |
 | Rule-1 incidents | reports with reason `person` + calibration scan hits | 0 | the promise holds |
+| Wardrobe kept | people with at least one kept piece ÷ people with at least one OK check (count `WardrobeItems` by owner until a metric exists) | 40% by week 4 | the keep line is one tap and people take it; below 15% the line is in the wrong place or the wrong words |
+| "I do not own that" | checks whose typed reason is `dont_own` ÷ checks with a typed reason (the loop's Round 14 column) | falling | the wardrobe's worth, measured: a tip that draws that answer is exactly the tip the wardrobe should have prevented |
 
 ## What not to do
 
@@ -137,7 +147,11 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
   ran `--verify` for it, and every other brand account is self-declared.
 - Do not use exclamation marks, hype adjectives or emoji strings; do not use orange for anything but fire.
 - Do not open a second community before D7 retention holds in the first one.
-- Do not push Pro in the first four weeks; the habit comes first, the price after.
+- Do not push Pro in the first four weeks; the habit comes first, the price after. When it is time, sell what Pro
+  GIVES — comparisons that never cost a check, and tips from the wardrobe the person already filled — and never a
+  number of checks a day: a cap is a brake, not a product, and a pitch built on one sells nothing (Round 14).
+- Do not tell anyone to photograph their wardrobe, in a post, a caption or a reply. The wardrobe fills itself from the
+  checks people already make; an hour of setup before the first minute of value is how this feature dies.
 - Do not buy, trade or ask for fires for the board, and do not let a brand do it: only fires from people with a check
   count, three per person on one author's looks a week, and a moderator pulls a gamed look off the board. The
   stylist's picks board answers to nobody's fires at all. A week bought is a week the hall is worth nothing.

@@ -255,11 +255,13 @@ public static class CheckEndpoints
         GuestAddressCounter.Reservation? addressReservation = null;
         if (user is not null)
         {
-            // The plan's cap, never above Limits:ChecksPerDay. Comparisons are stylist calls too and share the allowance
-            // (Spend counts both). Failed calls do not count: a model outage must not eat the user's allowance.
+            // The plan's cap, never above Limits:ChecksPerDay. Failed calls do not count: a model outage must not eat the
+            // user's allowance. Round 14 — Pro worth paying for: a FREE account's comparisons still share this allowance
+            // (Spend counts both, as before), while a PRO account's checks are counted on their own (Allowance.Checks)
+            // and its comparisons have their own day on the compare route, so deciding between two outfits spends no check.
             cap = Plans.CapFor(user, plans.Value, limits.Value, now);
             reservationKey = user.Id;
-            recent = await Spend.RecentForUserAsync(db, user.Id, now, ct, plans.Value.NoOutfitForgivenPerDay);
+            recent = await Spend.RecentForUserAsync(db, user.Id, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CheckAllowanceFor(user, now));
         }
         else
         {
@@ -355,7 +357,11 @@ public static class CheckEndpoints
             // check or any attempt at an earlier tip; it is the wearer's own history of clothes, and the section itself
             // tells the stylist it may not move the score.
             var advisory = await taste.AdvisoryForAsync(user?.Id, ct);
-            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, occasion, style, note, language, advisory, ct);
+            // Round 14 — the wardrobe: the wearer's own piece names go with the check, so a tip can say "the brown ones
+            // you wore on the 4th" instead of "buy brown tights". Empty for a guest, for a plan the wardrobe does not
+            // reach the stylist on, and for anyone who turned it off, and then the call is byte for byte the old one.
+            var wardrobe = await Wardrobe.ForStylistAsync(db, user, plans.Value, now, ct);
+            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, occasion, style, note, language, advisory, wardrobe, ct);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = feedback.Status;
 

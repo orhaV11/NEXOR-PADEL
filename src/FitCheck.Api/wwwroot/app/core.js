@@ -558,6 +558,8 @@ export function parseRoute(hash) {
     // #/items?q=<term> (the query belongs to the view; brand and category are '' then).
     case 'board': return { name: a === 'hall' ? 'board-hall' : 'board', params: {} };
     case 'items': return { name: 'items', params: { brand: a || '', category: b || '' } };
+    // Round 14: #/wardrobe, the pieces you kept from the checks that named them (views/wardrobe.js).
+    case 'wardrobe': return { name: 'wardrobe', params: {} };
     default: return { name: 'feed', params: { tab: 'foryou' } };
   }
 }

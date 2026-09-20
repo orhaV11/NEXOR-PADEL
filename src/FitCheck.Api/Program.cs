@@ -617,6 +617,8 @@ app.MapFeedbackEndpoints();
 // Round 13 — the growth loop: the public pages a share lands on (GET /look/{id}, /look/{id}/image, /u/{handle}) and the
 // weekly mail's signed unsubscribe (GET /digest/off/{token}). Server-rendered HTML, no session, no client script.
 app.MapPublicPageEndpoints();
+// Round 14 — the wardrobe that builds itself: /api/wardrobe, kept one tap at a time from the checks that named the pieces.
+app.MapWardrobeEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
@@ -628,7 +630,11 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
         sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available,
         // The Pro cap as a Pro account really gets it (clamped to Limits:ChecksPerDay): what the Pro page promises.
         new PlansDto(plans.Value.FreeChecksPerDay, Plans.ProCap(plans.Value, limits.Value), plans.Value.GuestChecksPerDay, plans.Value.ProPriceText,
-            plans.Value.CompareNeedsPro, billing.Value.StripeEnabled),
+            plans.Value.CompareNeedsPro, billing.Value.StripeEnabled,
+            // Round 14 — what the Pro page may promise on this server: Pro's own comparison allowance as it really is
+            // (clamped like the check cap), whether the wardrobe reaching the stylist is Pro's, and whether this server
+            // has the taste profile built at all. A benefit whose flag is false is not on the page.
+            Plans.ProCompareCap(plans.Value, limits.Value), plans.Value.WardrobeNeedsPro, plans.Value.TasteProfile),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

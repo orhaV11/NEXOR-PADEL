@@ -57,13 +57,14 @@ function ensureStyle() {
   if (styled) return;
   styled = true;
   document.head.appendChild(el('style', { text: [
-    '.keep-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }',
-    '.keep-row p { flex: 1; min-inline-size: 0; margin: 0; font-size: 15px; line-height: 1.4; color: var(--ink); unicode-bidi: plaintext; }',
-    '.keep-row .keep-icon { flex: none; inline-size: 34px; block-size: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent); }',
+    '.keep-row { display: grid; grid-template-columns: 34px 1fr; gap: 6px 12px; align-items: center; padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }',
+    '.keep-row p { grid-column: 2; margin: 0; font-size: 15px; line-height: 1.4; color: var(--ink); unicode-bidi: plaintext; }',
+    '.keep-row .keep-icon { grid-row: 1; inline-size: 34px; block-size: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent); }',
     '.keep-row .keep-icon svg { inline-size: 18px; block-size: 18px; }',
-    '.keep-row .btn-sm { flex: none; }',
-    '.keep-row .keep-skip { flex: none; min-inline-size: 44px; min-block-size: 44px; }',
-    '.keep-done { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
+    '.keep-row .keep-answers { grid-column: 2; display: flex; align-items: center; gap: 14px; }',
+    '.keep-row .keep-skip { min-inline-size: 44px; min-block-size: 44px; }',
+    '.keep-done { grid-column: 2; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }',
+    '.keep-done p { grid-column: auto; }',
     '.keep-done a { font-weight: 600; }'
   ].join('\n') }));
 }
@@ -119,8 +120,7 @@ export function wardrobeKeep(result) {
     row.replaceChildren(
       el('span', { class: 'keep-icon', 'aria-hidden': 'true' }, [icon('bag')]),
       el('p', { dir: 'auto', text: t('wardrobe.keep_ask', { piece: name }) }),
-      button,
-      skip
+      el('div', { class: 'keep-answers' }, [button, skip])
     );
     row.hidden = false;
   };

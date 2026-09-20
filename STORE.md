@@ -30,11 +30,13 @@ The stylist judges clothes, never the person. Nothing about body, face, skin, ag
 
 English and Hebrew, and the stylist writes in your language.
 
-Free gives you a few checks a day. OREVOSH Pro gives you 30 checks a day, "Which one?" comparisons of two looks, and your insights over time.
+Your wardrobe builds itself: after a check, one tap keeps a piece the stylist named. Nobody photographs a closet. From then on a tip can name something you already own — "swap the black tights for the brown ones you wore on the 4th" instead of "buy brown tights".
+
+Free gives you a few checks a day and your own wardrobe. OREVOSH Pro gives you tips built from that wardrobe, and "Which one?" comparisons on their own daily allowance, so deciding between two outfits never spends a check.
 
 For people 16 and over.
 
-(1,694 characters)
+(2,040 characters; the limit is 4,000)
 
 ### Hebrew
 
@@ -50,7 +52,9 @@ OREVOSH היא אפליקציה חברתית ללוקים.
 
 עברית ואנגלית, והסטייליסט כותב בשפה שלכם.
 
-בחינם יש כמה בדיקות ביום. OREVOSH Pro נותן 30 בדיקות ביום, השוואות "איזה מהם?" בין שני לוקים, ואת התובנות שלכם לאורך זמן.
+הארון בונה את עצמו: אחרי בדיקה, נגיעה אחת שומרת פריט שהסטייליסט ציין. אף אחד לא מצלם ארון. מכאן טיפ יכול להצביע על משהו שכבר יש לכם — "להחליף את הגרביונים השחורים בחומים שלבשתם ב-4" במקום "לקנות גרביונים חומים".
+
+בחינם יש כמה בדיקות ביום והארון שלכם. OREVOSH Pro נותן טיפים שנבנים מהארון הזה, והשוואות "איזה מהם?" עם מכסה יומית משלהן, כך שהתלבטות בין שני לוקים לא מוציאה בדיקה.
 
 לגילאי 16 ומעלה.
 
@@ -89,6 +93,7 @@ advertising, nothing is shared with data brokers, and there is no third-party an
 | Name, handle, avatar | yes, linked | app functionality, public profile | The display name is optional. |
 | User ID | yes, linked | app functionality | An internal GUID. |
 | Purchase history | only with Pro | app functionality | Stripe on the web; StoreKit / Play Billing in the wrapped app (below). Card details never reach the app. |
+| Other user content | yes | app functionality | Round 14 — the wardrobe: the NAMES of pieces the person kept from their own checks (never a photo of a garment), private to the account, and sent to the model provider with a check only on a plan that includes it and only until the person switches it off. |
 | Device ID, precise location, contacts, health, financial info, browsing history, search history | no | — | Search queries are not stored. |
 | Crash data, performance data | no | — | Server logs keep the request path, the status and the client address for rate limiting (`X-Forwarded-For`), 30 days by default on the VPS setup. |
 | Push notification token | yes, if the person turns push on | app functionality | Web Push subscription endpoint; deleted when push is turned off or the push service reports it gone. |

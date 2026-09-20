@@ -33,7 +33,7 @@ const CSS = `
 .pro-status p { flex: 1; min-inline-size: 0; font-size: 15px; }
 .pro-thanks { margin-block-end: 18px; }
 .pro-manage-hint { text-align: center; }
-.pro-fair { text-align: center; margin-block-start: -4px; }
+.pro-fair { text-align: center; margin-block-start: 16px; }
 `;
 let styled = false;
 function ensureStyle() {

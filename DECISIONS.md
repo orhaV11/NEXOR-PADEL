@@ -1578,3 +1578,70 @@ number on that page.
 - The invite never refuses a signup, never pays for a self-invite, and never pays twice for one pair.
 - No digest goes to an address nobody confirmed, and none goes to an account that had nothing happen that week.
 - The funnel never sets a cookie and never asks a third party anything.
+
+## Round 14 — Pro worth paying for, and a wardrobe that builds itself
+
+**Pro sold a number, and nobody buys a number.** Free was a few checks a day, Pro was thirty, and a person who dresses
+twice a day never touched either. Raising a cap is not a product: the cap is a brake on a real cost, and a brake is not
+something anybody wants more of. So the cap stays exactly where it was and stops being the pitch — one fair-use line at
+the bottom of the Pro page, named once — and Pro is rebuilt around what the person gets. The test that keeps it that way
+(`PlansTests`) reads the Pro page's own source, pulls out every benefit it can draw, and matches each against a table
+that has to say what in the server makes it true. A future benefit with nothing behind it fails the build, and so does
+a promise left in the copy after the code stopped drawing it. Writing "the cap" into that table is impossible by
+construction: there is no row for it and the fair-use line is not a benefit.
+
+**"Which one?" is the moment people pay for, so it stops costing a check.** Deciding between two outfits for tonight is
+the thing somebody opens the app for and the thing they will pay not to be rationed on. Round 14 gives a Pro account a
+SECOND rolling-day allowance for comparisons alone (`Plans:ProComparesPerDay`), counted apart from its checks. The two
+buckets live in one place, `Spend` and `Plans` (`Allowance.Together | Checks | Compares`), so the check route, the
+compare route and `me.checksToday` cannot drift; a free account and a guest keep the single bucket they always had, and
+the global ceiling and the spend ceiling count every stored call whatever the plan, because those are about the bill.
+We did not promise "unlimited": a subscription that can spend an unbounded amount of somebody else's money is a
+promise the operator cannot keep, and the page says what the code actually enforces.
+
+**The wardrobe builds itself or it does not exist.** The obvious design is an onboarding that asks the person to
+photograph their closet. That is an hour of work before the first minute of value, and it is how these features die:
+the ones who finish it are the ones who would have been fine anyway. So nothing here asks for a photo, a form or a
+category. The stylist already names the pieces it can see on every check, and the result screen offers ONE of them,
+under the tip, as one line with one tap — and then the next one, a beat later, if the person took it. A wardrobe fills
+over a few checks that were going to happen anyway.
+
+**A piece can only be kept from a check that named it.** Both because it keeps the list to clothes somebody was
+actually photographed wearing, and because the alternative is an open text field that reaches a model: the server
+re-reads the check's own feedback and refuses any name that is not on it. Renaming is free text on a row that already
+exists — a person calling something "the brown ones" is the whole point — and that text is cleaned, capped and run past
+rule 1 before it can travel.
+
+**What the wardrobe is FOR is one paragraph in the prompt.** "Swap the black tights for the brown ones you wore on the
+4th" is advice; "buy sheer brown tights" is a shopping list the person has to go and act on. The names go out as a
+short, quoted, clothes-only list labelled context, never instructions, with the rule that a swap that can be made from
+the wearer's own wardrobe should be, naming the piece — and, in the same breath, that owning a lot of clothes is never
+a reason for a higher or lower score. An empty wardrobe adds nothing at all: the request is byte for byte the one it
+always was, so nobody pays a token for a feature they are not using.
+
+**The list is everyone's; the advice from it is Pro's.** Gating the wardrobe itself would stop it building, and a
+wardrobe that never builds is worth nothing to anybody, free or paid. So a free account keeps, renames, deletes and
+reads its own pieces, sees plainly what Pro adds, and `POST /api/wardrobe/stylist` — the switch that sends the names —
+is the one door that answers `error.pro_required`. The switch exists at all because those names are the person's own
+strings leaving the server: a Pro account that would rather they stayed home turns it off and keeps the list.
+
+**The taste profile is claimed by a setting, not by hope.** Another builder is landing it in the same round. Listing it
+on the Pro page from a branch that does not have it would be exactly the invented promise this round exists to stop, so
+`Plans:TasteProfile` is off out of the box, the benefit is drawn only behind it, and turning it on is an operator
+saying in configuration that this server has the feature. `PlansTests` asserts the default and the guard.
+
+**The measure of the wardrobe is somebody else's number.** "I do not own that" is one of the loop's four typed reasons,
+and a tip that draws it is exactly the tip a wardrobe should have prevented. So the wardrobe's worth is not how many
+pieces are kept but how far that reason falls, and `MARKETING.md` watches both.
+
+### What could not be built this round
+- **A piece has no photo.** The wardrobe is a list of names, because a name is all the stylist needs and a photo of a
+  garment is a second upload, a second store and a second thing to delete. If "which black boots" ever becomes a real
+  question, the row has an id to hang one on.
+- **Two rows cannot be merged.** Renaming a piece onto another of your own answers 409 rather than merging their looks,
+  because a merge silently loses one side's history and nobody asked for it.
+- **The wardrobe is not on the comparison route.** A comparison is two outfits judged against each other, and the tip it
+  gives is about one of the two photos; sending the wardrobe there is the same paragraph in a second prompt and was not
+  worth the tokens until the check route proves the tips get better.
+- **`Plans:ProComparesPerDay` is a number an operator sets, not a measured one.** Thirty is a guess with the same
+  shape as the check cap. It should move once real Pro accounts exist and the spend meter says what they cost.

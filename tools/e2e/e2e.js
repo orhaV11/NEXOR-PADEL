@@ -223,7 +223,11 @@ async function postIt(page, opts) {
   await go(dan, '#/explore');
   assert.strictEqual(await text(dan, '#view h1'), 'גילוי');
   await dan.waitForSelector('#search');
+  await dan.waitForSelector('#explore-empty #explore-empty-check');
   await shot(dan, '02-explore-empty-he');
+  // Round 12: the board with no week yet also tells the newcomer what to do.
+  await go(dan, '#/board');
+  await dan.waitForSelector('#board-empty #board-empty-check');
   // A visitor checks first and signs up later: one guest check, then the result offers to keep it.
   await go(dan, '#/check');
   await dan.waitForSelector('#guest-banner');
@@ -248,7 +252,8 @@ async function postIt(page, opts) {
   assert.strictEqual((await counted).status(), 204, 'the save is tallied once');
   await dan.waitForSelector('#toast');
   await shot(dan, '42-share-video-he');
-  await dan.click('#sv-cancel').catch(() => {});
+  await dan.keyboard.press('Escape');
+  await dan.waitForFunction(() => !document.querySelector('.sheet'));
   expected.push('POST /api/checks -> 429');
   const secondGuest = await dan.request.post(base + '/api/checks', { headers: { 'X-Requested-With': 'Orevosh' }, multipart: { intent: 'Casual', language: 'he', image: { name: 'outfit.jpg', mimeType: 'image/jpeg', buffer: await makeJpeg(dan, 300, 400) } } });
   assert.strictEqual(secondGuest.status(), 429, 'one free look per guest');
@@ -329,6 +334,7 @@ async function postIt(page, opts) {
   await shot(brand, '05-settings-brand-en');
   await go(brand, '#/me');
   await brand.waitForSelector('.profile-head');
+  await brand.waitForSelector('#profile-empty #profile-empty-check');   // Round 12: a profile with no looks yet says what to do
   assert.strictEqual(await text(brand, '.profile-head .brand-mark'), 'Brand');
   assert.ok(await brand.$('.profile-head .avatar img'), 'avatar shown on the profile');
   assert.strictEqual(await count(brand, '.profile-tabs button'), 3, 'brands get Looks, Community and Featured');
@@ -487,6 +493,8 @@ async function postIt(page, opts) {
   await shot(dan, '16-home-he');
   await go(dan, '#/feed/following');
   await dan.waitForSelector('#view .empty');
+  await dan.waitForSelector('#feed-empty #feed-empty-check');
+  await dan.waitForSelector('#feed-empty #feed-empty-find');   // Round 12: Your circle also offers to find people and brands
   await go(dan, '#/u/noa');
   await dan.waitForSelector('#follow, .profile-head');
   await dan.click('#follow');

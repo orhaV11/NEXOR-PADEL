@@ -283,6 +283,8 @@ builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<PostReader>();
 // Round 11: the pair predicate behind every block filter, read once per request.
 builder.Services.AddScoped<Blocks>();
+// Round 14 — the loop: the taste profile, built from the account's own rows, read by the check route and the taste card.
+builder.Services.AddScoped<Taste>();
 // Mail: SMTP when Email:Host and Email:From are set, otherwise the log. Email:Host=log keeps mail "on" (links are minted
 // and the client offers recovery) while every message goes to the log instead of a server: local runs and the browser test.
 builder.Services.AddSingleton<IEmailSender>(provider =>

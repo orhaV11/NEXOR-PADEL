@@ -12,6 +12,8 @@ import { profileBadge, emptyCall } from './board.js';
 import { blockAccount, unblockAccount } from './blocked.js';
 // Round 13 — the growth loop: "Invite friends" on your own profile, the same sheet Settings opens.
 import { openInviteSheet } from '../invite.js';
+// Round 14 — the loop: the typed reasons, "I tried it" and the taste card, all of them on #/checks (app/taste.js).
+import { tasteCard, reasonRow, triedBlock, pairBlock, offerLink, loadPairs, winLine, loadTaste } from '../taste.js';
 
 /** Three columns, so a page is whole rows; the server caps pages at 30 anyway. */
 const GRID_PAGE = 30;
@@ -25,7 +27,12 @@ document.head.appendChild(el('style', { text: [
   '.check-row .info { flex: 1; min-inline-size: 0; }',
   '.check-row .info > * + * { margin-block-start: 4px; }',
   '.check-row .pill { flex: none; min-block-size: 44px; }',
-  '.profile-head .blocked-state { display: inline-block; margin-block-start: 10px; }'
+  '.profile-head .blocked-state { display: inline-block; margin-block-start: 10px; }',
+  // Round 14 — the loop: the typed reasons, "I tried it" and the pair, under each row of the private check list.
+  '.check-entry { display: block; padding-block-end: 14px; }',
+  '.check-entry .check-row { border-block-end: 0; }',
+  '.check-entry .check-loop { display: grid; gap: 10px; padding-block-end: 4px; }',
+  '.check-entry + .check-entry { border-block-start: 1px solid var(--line); padding-block-start: 4px; }'
 ].join('\n') }));
 
 /** "@handle" as an isolated left-to-right run, so it never turns into "handle@" in a Hebrew top bar. */
@@ -249,11 +256,27 @@ register('saved', async (root, params, ctx) => {
   gridList(body, { path: '/api/users/me/saved', empty: () => emptyState(t('saved.empty')), stale: ctx.stale });
 });
 
+/**
+ * Round 14 — the loop, on the private list where a person comes back after trying a tip: under every ok check, the row of
+ * typed reasons and "I tried it", and the pair once two checks are linked. The result screen mounts the same pieces from
+ * app/taste.js at its own documented ids; this list is the one that exists whatever that screen does.
+ */
+function loopBlock(check, pair) {
+  const wrap = el('div', { class: 'check-loop', 'data-check': check.id });
+  wrap.appendChild(reasonRow(check, {}));
+  // The pair is drawn once, under the look that came after the change. The earlier look is half of a pair too, so it
+  // offers nothing more: it cannot be tried a second time, and the two are already side by side further up the list.
+  if (pair && pair.after.id === check.id) wrap.appendChild(pairBlock(pair, {}));
+  else if (!pair) wrap.appendChild(triedBlock(check, {}));
+  return wrap;
+}
+
 /** One ok check: score, intent, posted or private, headline, date, and the way to the look or to posting it. */
 function checkRow(check) {
   const posted = !!check.postId;
   const headline = check.feedback && check.feedback.headline;
-  return el('li', { class: 'check-row' }, [
+  // A div, not the list item: Round 14 puts the loop under the row inside one <li class="check-entry">.
+  return el('div', { class: 'check-row' }, [
     el('div', { class: 'num', role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(check.score) }) }, [fmtNumber(check.score), el('small', { text: t('result.out_of') })]),
     el('div', { class: 'info' }, [
       el('div', { class: 'chips', style: 'gap: 6px;' }, [
@@ -290,6 +313,47 @@ register('checks', async (root, params, ctx) => {
 
   // Only checks that produced a score can be posted or looked at; refusals stay out of sight.
   const ok = (checks || []).filter((check) => check.status === 'ok');
+
+  // Round 14 — the loop: what OREVOSH has learned, above the list it was learned from. The switch and the clear live in
+  // Settings; this card is the read of it, with the literal text the stylist is sent.
+  const card = el('div', { class: 'stack', style: 'margin-block-end: 18px;' }, [tasteCard({})]);
+  root.appendChild(card);
+  loadTaste().then((taste) => {
+    if (ctx.stale() || !taste || !taste.lastWin) return;
+    const line = winLine(taste.lastWin, { ids: true });
+    if (line) card.insertBefore(line, card.firstChild);
+  });
+
   if (ok.length === 0) { root.appendChild(emptyState(t('checks.empty'))); return; }
-  root.appendChild(el('ul', {}, ok.map(checkRow)));
+
+  // Each entry is the row as it was, with the loop under it: the flex row keeps its own layout inside the item.
+  const list = el('ul', {}, ok.map((check) => el('li', { class: 'check-entry' }, [checkRow(check), loopBlock(check, null)])));
+  root.appendChild(list);
+
+  // The pairs, and the offer to close an attempt the person started before they went to the camera. Both come after the
+  // list is on the screen, so the page never waits on them.
+  loadPairs().then(async (pairs) => {
+    if (ctx.stale()) return;
+    const repaint = (check, pair) => {
+      for (const node of list.querySelectorAll('.check-loop')) {
+        if (node.dataset.check === String(check.id)) { node.replaceWith(loopBlock(check, pair)); return; }
+      }
+    };
+    for (const pair of pairs) {
+      for (const check of ok) {
+        if (pair.before.id === check.id || pair.after.id === check.id) repaint(check, pair);
+      }
+    }
+
+    // The newest ok check that is not already half of a pair is the candidate for "is this the look after the change?".
+    const linked = new Set(pairs.flatMap((pair) => [pair.before.id, pair.after.id]));
+    const candidate = ok.find((check) => !linked.has(check.id));
+    if (!candidate) return;
+    const pair = await offerLink(candidate);
+    if (pair && !ctx.stale()) {
+      for (const check of ok) {
+        if (pair.before.id === check.id || pair.after.id === check.id) repaint(check, pair);
+      }
+    }
+  });
 });

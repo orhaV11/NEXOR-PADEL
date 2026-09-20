@@ -198,6 +198,14 @@ public sealed class Localizer
             // Round 14 - the occasion split: the two chips on the check screen, each refused on its own.
             ["error.occasion_invalid"] = "Pick where the outfit is going.",
             ["error.style_invalid"] = "Pick a style, or leave it open.",
+            // Round 14 — the loop: the typed reasons, "I tried it" and the taste profile.
+            ["error.reason_invalid"] = "We don't know that answer. Pick one of the four.",
+            ["error.tried_not_scored"] = "Both looks need a score before they can be put side by side.",
+            ["error.tried_same_check"] = "That's the same look. Take a new photo after the change.",
+            ["error.tried_order"] = "The second look has to come after the first one.",
+            ["error.tried_already"] = "One of these looks is already paired with another.",
+            ["error.prefer_invalid"] = "Say which one you prefer: the first or the second.",
+            ["error.taste_invalid"] = "Say whether to keep learning: on or off.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -380,6 +388,14 @@ public sealed class Localizer
             // Round 14 - the occasion split.
             ["error.occasion_invalid"] = "צריך לבחור לאן הלוק הולך.",
             ["error.style_invalid"] = "אפשר לבחור סגנון, או להשאיר פתוח.",
+            // Round 14 — the loop: the typed reasons, "I tried it" and the taste profile.
+            ["error.reason_invalid"] = "לא מכירים את התשובה הזו. שווה לבחור אחת מהארבע.",
+            ["error.tried_not_scored"] = "לשני הלוקים צריך ציון לפני שאפשר להעמיד אותם זה ליד זה.",
+            ["error.tried_same_check"] = "זה אותו לוק. שווה לצלם מחדש אחרי השינוי.",
+            ["error.tried_order"] = "הלוק השני צריך לבוא אחרי הראשון.",
+            ["error.tried_already"] = "אחד מהלוקים האלה כבר מחובר לאחר.",
+            ["error.prefer_invalid"] = "צריך לומר מה עדיף: הראשון או השני.",
+            ["error.taste_invalid"] = "צריך לומר אם להמשיך ללמוד: דלוק או כבוי.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -564,6 +580,14 @@ public sealed class Localizer
             // Round 14 - the occasion split. Arabic written plainly; flagged for native review.
             ["error.occasion_invalid"] = "يجب اختيار إلى أين تذهب الإطلالة.",
             ["error.style_invalid"] = "يمكن اختيار ستايل، أو تركه مفتوحًا.",
+            // Round 14 — the loop: the typed reasons, "I tried it" and the taste profile. Arabic needs a native review.
+            ["error.reason_invalid"] = "هذه الإجابة غير معروفة. يمكن اختيار واحدة من الأربع.",
+            ["error.tried_not_scored"] = "الإطلالتان تحتاجان إلى تقييم قبل وضعهما جنبًا إلى جنب.",
+            ["error.tried_same_check"] = "هذه هي الإطلالة نفسها. الأفضل التقاط صورة جديدة بعد التغيير.",
+            ["error.tried_order"] = "الإطلالة الثانية يجب أن تأتي بعد الأولى.",
+            ["error.tried_already"] = "إحدى هاتين الإطلالتين مرتبطة بأخرى بالفعل.",
+            ["error.prefer_invalid"] = "يلزم تحديد الأفضل: الأولى أم الثانية.",
+            ["error.taste_invalid"] = "يلزم تحديد الاستمرار في التعلّم: تشغيل أم إيقاف.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -747,6 +771,14 @@ public sealed class Localizer
             // Round 14 - the occasion split. Russian written plainly; flagged for native review.
             ["error.occasion_invalid"] = "Выбери, куда собирается образ.",
             ["error.style_invalid"] = "Выбери стиль или оставь без него.",
+            // Round 14 — the loop: the typed reasons, "I tried it" and the taste profile. Russian needs a native review.
+            ["error.reason_invalid"] = "Такой ответ нам неизвестен. Выбери один из четырёх.",
+            ["error.tried_not_scored"] = "Обоим образам нужна оценка, иначе их не поставить рядом.",
+            ["error.tried_same_check"] = "Это тот же образ. Сделай новое фото после изменения.",
+            ["error.tried_order"] = "Второй образ должен идти после первого.",
+            ["error.tried_already"] = "Один из этих образов уже связан с другим.",
+            ["error.prefer_invalid"] = "Скажи, что нравится больше: первое или второе.",
+            ["error.taste_invalid"] = "Скажи, продолжать ли обучение: включить или выключить.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

@@ -64,6 +64,10 @@ public static class CheckEndpoints
         Transcoder transcoder,
         IOptions<LanguagesOptions> languages,
         SpendMeter spend,
+        // Round 14 — the loop: the wearer's own taste, as one capped advisory section on the system prompt. Null for a
+        // guest, for an account that switched the learning off and for an empty profile, and then the request is the one
+        // this route always sent.
+        Taste taste,
         CancellationToken ct)
     {
         var request = context.Request;
@@ -347,7 +351,11 @@ public static class CheckEndpoints
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, occasion, style, note, language, ct);
+            // Round 14 — the loop: the taste advisory, read here and nowhere else. It never mentions this photo, this
+            // check or any attempt at an earlier tip; it is the wearer's own history of clothes, and the section itself
+            // tells the stylist it may not move the score.
+            var advisory = await taste.AdvisoryForAsync(user?.Id, ct);
+            var feedback = await analyzer.AnalyzeAsync(bytes, format.MediaType, occasion, style, note, language, advisory, ct);
             check.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             check.Status = feedback.Status;
 

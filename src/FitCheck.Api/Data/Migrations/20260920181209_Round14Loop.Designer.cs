@@ -3,6 +3,7 @@ using System;
 using FitCheck.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitCheck.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920181209_Round14Loop")]
+    partial class Round14Loop
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
@@ -514,16 +517,9 @@ namespace FitCheck.Api.Data.Migrations
                     b.Property<int>("LatencyMs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("Occasion");
-
                     b.Property<string>("Occasion")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("OccasionKind");
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PromptVersion")
                         .IsRequired()
@@ -536,10 +532,6 @@ namespace FitCheck.Api.Data.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Style")
-                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<bool?>("Useful")

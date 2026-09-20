@@ -359,6 +359,9 @@ public static class CounterName
 
     /// <summary>Share videos made on the phone and shared or saved, as the client reports through POST /api/checks/{id}/shared-video.</summary>
     public const string VideosMade = "videos_made";
+
+    /// <summary>Round 14 — the loop: pairs written by "I tried it" (POST /api/checks/{id}/tried), one per linked attempt.</summary>
+    public const string TriedPairs = "tried_pairs";
 }
 
 /// <summary>A named tally that survives a restart (an out-click, a board view). Incremented in place, never read for a decision.</summary>

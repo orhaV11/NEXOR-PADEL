@@ -1632,3 +1632,74 @@ No field means two things at once.
 - A keep never carries a swap, a replacement or a "but", on screen or in the rubric that produces it.
 - No sampling knob is ever added to the request to steady the scores: the API would reject every call.
 - The eval tool never pretends a run is free, and never reports numbers nobody has taken.
+## Round 14 — the loop (typed reasons, "I tried it", the taste profile)
+
+**A binary cannot teach.** Round 13's *Did the tip land?* could tell us a rate and nothing else. "I tried it and it
+worked", "I tried it and it did not", "that is not my style" and "I do not own that" are success, failure, taste and
+availability — four facts that call for four different answers from the app, and a yes/no flattens them into one. So the
+row has four taps and the column stores which one. The Round 13 `Useful` column stays, computed from the reason (only
+`worked` is a yes), because the rate on the numbers page is a real measure of the stylist and renaming what it counts
+mid-pilot would throw away the comparison. A person who answers the old way (an older client, the yes/no body) stores no
+reason, and the profile simply has less to read.
+
+**"I do not own that" is the valuable one.** It says the tip was right about the look and wrong about this person's
+wardrobe. It is the only answer that should change the *next* tip rather than the score of this one, and it is why the
+advisory carries the pieces the person actually owns.
+
+**The second check must be a real check, or the whole feature is a lie.** The temptation is obvious: the person is
+trying our advice, so tell the model that and let it reward the effort. Then the number means nothing, everybody finds
+out, and the one thing this app sells — an honest score — is gone. So the flow is built so that it *cannot* happen: the
+attempt is remembered on the phone, the second check goes out through the ordinary route with no field that could name
+the first, and the pair is written afterwards by a separate call that reads no score and writes none. The stylist has
+no way to know a photo is a second attempt, because nothing in the request says so and nothing in the request could.
+
+**The taste advisory is the one place that could leak an attempt, so it is fenced.** The profile is aggregate — which
+occasions, which colours, which pieces, how many of each answer — except for two strings: a tip the person turned down
+and the note they typed beside it. Both are read **only** for `not_my_style` and `dont_own`, the two answers a person
+gives *without* trying the tip. What someone says about a tip they tried never leaves its row. That keeps the useful
+signal ("stop telling me to size down") and closes the only door an attempt could have walked through.
+
+**Taste picks the tip, never the score, and the prompt says so out loud.** A person who likes oversize must not get a
+higher number for wearing oversize; they must stop being told to size down every single time. The section carries that
+sentence itself, so the instruction travels with the data rather than living in a comment here. The advisory is
+appended *after* the rubric, never in front of it, so the hard rules are read first and a taste section can never
+displace them.
+
+**The profile is short, human-readable text — not an embedding.** An embedding would be a thing we could not show
+anybody, could not explain, and could not honestly let someone delete. A handful of lines can be printed on a card, read
+by its subject, argued with, switched off and cleared. That is the whole reason for the shape.
+
+**Nothing in it is a secret from its subject.** The card shows the literal advisory text, not a friendly summary of it.
+If we would not show someone a sentence we send about them, we should not send it.
+
+**"Clear" draws a line rather than deleting rows.** The profile is derived; the rows it is derived from are the
+person's own checks, their own answers and their own looks, which they may well want to keep. So clearing stamps a time
+and nothing before it is ever read again — the card is empty on the next breath, the stylist is sent nothing, and the
+app learns again from what comes after. The card says exactly that, with the date. Deleting the account still deletes
+everything, as it always did.
+
+**The advisory is capped hard and every string is untrusted.** A note is free text a person typed, and the shortest path
+from free text to a broken stylist is a prompt. So each string is folded to one line, its double quotes turned into
+single ones so it cannot close the quoting around it, cut to a fixed length, dropped if it names a body, and the whole
+section is cut to 900 characters on a whole line, keeping the header and the "never the score" footer. A
+ten-thousand-character note comes out as eighty characters inside one pair of quotes.
+
+**The pair is one row, keyed both ways.** A check is at most one pair's *before* and at most one pair's *after*, enforced
+by two unique indexes rather than by a check in the handler, because two taps cannot argue with an index. The pair
+cascades away with either half: two halves are what it is.
+
+**"What changed" is computed, not asked.** Comparing the item lists of two stored verdicts costs nothing, cannot
+hallucinate and cannot say a word about a person. Asking a model to describe the difference would cost a call and could
+do both.
+
+**The line about the last tip that worked is rationed.** "Last time you swapped the shoes and said it worked" is worth
+something the first time and nothing the fifth, so it needs the win to be within thirty days and to have at most two
+checks after it. Only from their own rows, and only when true.
+
+### Objections to keep out of the code
+
+- No field of any request can tell the stylist that a photo is an attempt at its own tip, and none ever will.
+- A second check's score is the stylist's alone; no route reads it, compares it or writes it.
+- The taste profile never reads another account's rows, a hidden look, or a photo, and never names a body.
+- Learning off, an empty profile and a guest all send exactly nothing — not an empty section, nothing.
+- The card shows the text that is sent, word for word, or says plainly that nothing is sent.

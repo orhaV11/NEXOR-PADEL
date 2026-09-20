@@ -28,6 +28,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Counter> Counters => Set<Counter>();
     public DbSet<Block> Blocks => Set<Block>();
 
+    // Round 14 — the loop: the "I tried it" pairs and the taste profile's two switches (Services/Taste.cs).
+    public DbSet<CheckLink> CheckLinks => Set<CheckLink>();
+    public DbSet<TasteSetting> TasteSettings => Set<TasteSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AppUser>(user =>
@@ -69,6 +73,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             // Every user-facing query is "this user's checks, newest first"; the metrics endpoint groups on the same pair.
             check.HasIndex(c => new { c.UserId, c.CreatedAt });
             check.HasOne<AppUser>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Round 14 — the loop: the typed reason beside the yes/no, one of Domain.TipReason.
+            check.Property(c => c.UsefulReason).HasMaxLength(16);
         });
 
         modelBuilder.Entity<Post>(post =>
@@ -303,6 +309,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             check.Property(c => c.Occasion).HasColumnName("OccasionKind").HasConversion<string>().HasMaxLength(32);
             check.Property(c => c.Style).HasConversion<string>().HasMaxLength(32);
             check.Property(c => c.Note).HasColumnName("Occasion").HasMaxLength(120);
+        });
+
+        // ---- Round 14 — the loop: "I tried it" and the taste profile ----
+
+        modelBuilder.Entity<CheckLink>(link =>
+        {
+            link.HasKey(l => l.Id);
+            link.Property(l => l.Preferred).HasMaxLength(8).IsRequired();
+            // One pair per check on either side: a check is the "before" of one attempt and the "after" of one attempt.
+            link.HasIndex(l => l.BeforeCheckId).IsUnique();
+            link.HasIndex(l => l.AfterCheckId).IsUnique();
+            link.HasIndex(l => new { l.UserId, l.CreatedAt });
+            link.HasOne<AppUser>().WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+            // The pair goes when either check goes: two halves are what it is.
+            link.HasOne<OutfitCheck>().WithMany().HasForeignKey(l => l.BeforeCheckId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<OutfitCheck>().WithMany().HasForeignKey(l => l.AfterCheckId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TasteSetting>(taste =>
+        {
+            taste.HasKey(s => s.UserId);
+            taste.HasOne<AppUser>().WithOne().HasForeignKey<TasteSetting>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

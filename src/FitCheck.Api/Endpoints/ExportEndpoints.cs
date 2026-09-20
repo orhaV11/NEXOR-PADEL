@@ -105,7 +105,7 @@ public static class ExportEndpoints
         var checkRows = await db.Checks.AsNoTracking()
             .Where(c => c.UserId == id)
             .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Style, c.Note, c.Score, c.Status, c.FeedbackJson, c.Useful, c.UsefulAt, c.UsefulNote })
+            .Select(c => new { c.Id, c.CreatedAt, c.Intent, c.Occasion, c.Style, c.Note, c.Score, c.Status, c.FeedbackJson, c.Useful, c.UsefulAt, c.UsefulNote, c.UsefulReason })
             .ToListAsync(ct);
         var checks = checkRows.Select(c =>
         {
@@ -119,7 +119,9 @@ public static class ExportEndpoints
                 // Round 13: what the person said about the tip; their words, so they travel with the check.
                 c.Useful, c.UsefulAt is { } usefulAt ? Utc(usefulAt) : null, c.UsefulNote,
                 // Round 14: the pair behind the one word, and whether the tip was a change or a keep.
-                c.Occasion, c.Style, feedback is null || feedback.Status != CheckStatus.Ok ? null : feedback.TipKind);
+                c.Occasion, c.Style, feedback is null || feedback.Status != CheckStatus.Ok ? null : feedback.TipKind,
+                // Round 14 — the loop: the typed reason beside it.
+                c.UsefulReason);
         }).ToList();
 
         var postRows = await db.Posts.AsNoTracking()

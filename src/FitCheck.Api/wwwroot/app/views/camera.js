@@ -1,4 +1,5 @@
-// The in-app camera (#/camera, #/camera/clip): a full-bleed viewfinder, the ring as the shutter (tap = photo, hold = clip),
+// The in-app camera (#/camera, #/camera/clip): the viewfinder shows the whole frame the shutter keeps, the ring is the
+// shutter (photo mode: a tap. clip mode: a tap for a hands-free clip, or a hold while you hold it),
 // flip, a 3-second timer, a framing guide, then a preview with Retake / Use it. The capture goes to the check flow through
 // check.js's receiveCapture: a photo as the still, a clip whose frame is picked on the check screen like a library clip's.
 // When the camera cannot open (refused, or no getUserMedia), the native library picker takes over, through the same intake
@@ -30,9 +31,12 @@ html[data-route="camera"] main { max-inline-size: none; min-block-size: 0; }
 html[data-route="camera"] .view { padding: 0; }
 .cam { position: fixed; inset: 0; z-index: 7; background: #000; color: #fff; overflow: hidden; -webkit-user-select: none; user-select: none; }
 .cam-stage { position: absolute; inset: 0; background: #000; }
-.cam-stage video, .cam-stage img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; background: #000; }
+/* contain, never cover: takePhoto keeps the WHOLE track (frameToJpeg), so a viewfinder that cropped the sides would be
+   framing a photo nobody gets - the person lines the look up inside the dotted guide, taps, and the preview (which is
+   honestly contain) jumps out to a wider shot. Letterboxed on black is what a phone's own camera app does with a frame
+   that is not the screen's shape, and the 4:7 guide is then a miniature of the 9:16 frame rather than a third aspect. */
+.cam-stage video, .cam-stage img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; background: #000; }
 .cam-stage.mirror > video { transform: scaleX(-1); }
-.cam-stage.fit video, .cam-stage.fit img { object-fit: contain; }
 .cam-flash { position: absolute; inset: 0; z-index: 4; background: #fff; opacity: 0; pointer-events: none; }
 .cam-flash.on { animation: cam-flash 120ms ease-out; }
 @keyframes cam-flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
@@ -128,6 +132,7 @@ function mountCamera(root, initialMode) {
   let mode = initialMode;
   let phase = 'starting';       // starting | live | countdown | recording | stopping | preview | blocked
   let stream = null; let mirrored = false; let hasAudio = false;
+  let micRefused = false;      // asked for the microphone once and did not get it (no mic, or refused): never restart the camera for it again
   let openSeq = 0;              // only the newest open() keeps the stream it asked for; older ones stop theirs on arrival
   let recorder = null; let chunks = []; let recStart = 0; let recFrame = 0; let recStopTimer = 0; let capTimer = 0; let recordedMs = 0; let lastShownSecond = -1;
   let holdTimer = 0; let countdownTimer = 0; let guideTimer = 0;
@@ -199,10 +204,17 @@ function mountCamera(root, initialMode) {
   }
   async function getStream() {
     const videoConstraints = { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } };
-    try { return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: true }); }
+    // A photo has no sound, so photo mode never asks for the microphone. It is one prompt on iOS ("Camera and
+    // Microphone") and one site-level allow on Android, where a person who blocks the microphone has blocked the
+    // CAMERA too - for good, on every later visit - and taking a photo here is over before it began. The ask moves to
+    // the moment clip mode is chosen (setMode re-opens), where "and microphone" is the obvious half of the question.
+    const wantAudio = mode === 'clip' && typeof MediaRecorder !== 'undefined';
+    try { return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: wantAudio }); }
     catch (e) {
-      // No microphone, or one that was refused: the clip is silent and the camera still opens. A refused camera fails again here.
-      if (e && ['NotAllowedError', 'NotFoundError', 'NotReadableError', 'OverconstrainedError', 'SecurityError', 'AbortError'].includes(e.name)) {
+      // No microphone, or one that was refused: the clip is silent and the camera still opens. A refused camera fails
+      // again here. With no audio asked for there is nothing to retry, and the refusal is the camera's own.
+      if (wantAudio && e && ['NotAllowedError', 'NotFoundError', 'NotReadableError', 'OverconstrainedError', 'SecurityError', 'AbortError'].includes(e.name)) {
+        micRefused = true;
         return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
       }
       throw e;
@@ -257,10 +269,16 @@ function mountCamera(root, initialMode) {
     announce(t(key));   // the message is on screen; the live region says it to assistive tech, which the state layer alone would not
   }
   function setMode(next) {
+    const changed = next !== mode;
     mode = next;
     for (const button of modes.children) button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
     shutter.setAttribute('aria-label', t(mode === 'clip' ? 'camera.record' : 'camera.shutter'));
     paintNote();
+    // Clip chosen, on a live photo stream that has no sound in it: re-open for the microphone now, so the prompt arrives
+    // with the choice that explains it. Never on the shutter press - HOLD_MS is 250 ms and startRecording runs straight
+    // off pointerdown, so a prompt there would eat the first second of the clip - and never by adding a track to the
+    // live stream: on iOS a second granted getUserMedia ends the running capture track and blacks out the viewfinder.
+    if (changed && next === 'clip' && phase === 'live' && stream && !micRefused && !stream.getAudioTracks().length) open();
   }
   function setTimer(on) {
     timerOn = on;
@@ -280,7 +298,8 @@ function mountCamera(root, initialMode) {
   }
   function hideGuide() { clearTimeout(guideTimer); guideTimer = 0; guide.classList.add('hide'); }
 
-  // ---- the shutter: tap = photo (clip mode: start a hands-free clip), hold = clip while held, any release stops ----
+  // ---- the shutter: a tap takes the photo; in clip mode a tap starts a hands-free clip and a hold rolls while held,
+  //      and any release stops. The hold is clip-mode only: photo mode's stream has no microphone to record with. ----
   shutter.addEventListener('contextmenu', (event) => event.preventDefault());
   shutter.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || shutter.disabled) return;
@@ -289,7 +308,7 @@ function mountCamera(root, initialMode) {
     if (phase === 'countdown') { cancelCountdown(); return; }
     pressed = true; pressStartedClip = false;
     try { shutter.setPointerCapture(event.pointerId); } catch (e) { /* a mouse without capture still works */ }
-    if (phase === 'live' && canRecord()) {
+    if (phase === 'live' && mode === 'clip' && canRecord()) {   // a hold is a clip-mode gesture: in photo mode the stream has no microphone and the hold would record a silent clip
       holdTimer = setTimeout(() => { holdTimer = 0; if (pressed && phase === 'live') { pressStartedClip = true; startRecording(); } }, HOLD_MS);
     }
   });

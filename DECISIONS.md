@@ -1578,3 +1578,57 @@ number on that page.
 - The invite never refuses a signup, never pays for a self-invite, and never pays twice for one pair.
 - No digest goes to an address nobody confirmed, and none goes to an account that had nothing happen that week.
 - The funnel never sets a cookie and never asks a third party anything.
+
+
+### Round 14 — the stylist: two questions, and a tip that may be "change nothing"
+
+**The occasion and the style were never one list.** Casual, Date, Office, Party and Sport answer *where is it going*;
+Streetwear, OldMoney and Minimal answer *how should it read*. Asking for one of the eight forced people to throw one of
+the two questions away, and the most common real request — streetwear for a date, minimal for a party — could not be
+made at all. The split is two columns on the check, two chip rows on the screen, and two questions in the rubric. It
+was cheap now and would not have been after the first thousand users, because every stored check, every board and every
+share card speaks the old word.
+
+**The one word stays, and it is the occasion.** A look, a board, a challenge, the feed filter and the interests list all
+carry a single `StyleIntent`, and rewriting all of them would have been a much larger change with much more to break.
+So the check stores the pair *and* the one word derived from it, and every surface with room for one word shows the
+occasion — a streetwear look for a date is a *Date* look to a stranger. A style worn everyday keeps its own name, which
+is precisely what the old list meant by it.
+
+**Unset is an answer, not a missing field.** "No style" is a chip, and the stylist is told *none stated — judge the look
+on its own terms for this occasion and do not invent a style it should have been*. That is what Date, Office, Party and
+Sport have always done, so nothing regresses for anyone who does not care about styles.
+
+**The wearer's line kept its column.** The free text used to live in a column called `Occasion`; the chip wanted that
+name. Renaming the column would have been tidier in the schema and worse everywhere else: `DatabaseSetup` upgrades a
+pre-migration pilot database by matching the model's columns against the file's, so a rename leaves an orphan column
+nothing maps to, or hands 120 characters of someone's typing to a column that must parse as an enum. The property is
+`Note`, the column is still `Occasion`, and the one line of `HasColumnName` says why. Nobody's words moved.
+
+**A stylist who can only find fault is not believed twice.** `one_tip` was required and no line of the rubric permitted
+approval, so the app was structurally incapable of saying "this works". `tip_kind` fixes that without breaking the
+promise of one tip: a keep is still exactly one tip, and it names what to keep. The rubric makes a keep rare and gives
+a test for it, because the opposite failure — a keep on a mediocre look — costs exactly as much trust as an invented
+fault, just later.
+
+**A keep is never assumed.** Any value but the word `keep` maps to a change. A model that omits the field, sends a
+number, or invents a third kind gets the honest default, and every check stored before v5 reads as a change, which is
+what all of them were.
+
+**Consistency is measured, not configured.** claude-sonnet-5 removed `temperature`, `top_p` and `top_k`; a request
+carrying one is rejected outright. So the scale is anchored in the prompt, band by band, in concrete sentences about
+garments — and because a prompt is a hope until someone counts, `tools/eval/stylist.js` exists to count. It sends the
+same photo N times and shows the spread and the tips side by side. Real-model numbers have never been taken from this
+sandbox, and the README says so rather than implying a measurement nobody made.
+
+**An older client is still understood.** `POST /api/checks` tells the two shapes apart by whether the form carries
+`intent`, so an app that has not reloaded keeps working byte for byte, and its free line is still read as a free line.
+No field means two things at once.
+
+### Objections to keep out of the code
+
+- The stylist is never asked about a style nobody asked for, and never invents one to judge against.
+- The occasion wins when the two disagree, and the rubric says so in its own voice rather than implying it.
+- A keep never carries a swap, a replacement or a "but", on screen or in the rubric that produces it.
+- No sampling knob is ever added to the request to steady the scores: the API would reject every call.
+- The eval tool never pretends a run is free, and never reports numbers nobody has taken.

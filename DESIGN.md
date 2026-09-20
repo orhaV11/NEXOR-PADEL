@@ -342,3 +342,22 @@ its glyph; everything off under `prefers-reduced-motion`. Nothing else moves.
 (the score ring markup inside `.score-badge`, the `lit` class on the check control, the flame burst), `app/views/check.js`
 (the loading mark), `app/views/explore.js` and `profile.js` (structure unchanged from the previous system), `icons/` and
 `manifest.webmanifest` (regenerated from `brand/mark.svg`).
+
+## Round 14 — the two questions, and the keep (appended)
+
+The check screen asks twice now. **Where is it going?** is a row of six chips, one always pressed, and nothing can be
+checked until one is. **Your style** is the row under it, starting with *No style* — a chip like any other, because
+asking for nothing is an answer and should not look like a blank. Under those, one quiet line appears only when the
+style pressed is not the one saved (*This check only.* · **Make this my style**), so the preference is visible without
+ever being a settings trip. Same 40px chips, same pressed lilac, no new shapes.
+
+On the result, `#asked-for` sits under the vibe: two tags, the occasion first, the style (or *No style*, outlined in
+rose) after it — the reader should never have to remember what the score was measured against.
+
+**A keep is the one place the result screen changes colour.** A tip that says *change nothing* gets its own heading
+(*What to keep*), a *Change nothing* pill outlined in `--ok`, and the pull-quote's gradient bar swapped for the same
+green — the colour the item list already uses for a piece that works. Nothing else about the block moves, and no swap
+or replace verb goes anywhere near it.
+
+Three containers on the result render nothing until another module fills them: `#tip-feedback` and `#tried-it` under
+the tip, `#wardrobe-offer` with the item list. `.mount:empty { display: none }` keeps an unfilled one from leaving a gap.

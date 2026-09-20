@@ -925,3 +925,80 @@ back, the numbers page's invite block), `DigestTests` (the Sunday send and what 
 account with nothing to say, the signed unsubscribe, a forged and a swapped token, a configured secret, the welcome
 once, an unconfirmed address, no public origin, mail off) and `FunnelTests` (what the middleware counts and what it
 leaves alone, the fourteen days, today's conversion, the moderator gate, a claimed guest check).
+
+
+## Round 14 — the stylist: the occasion and the style are two questions, and a tip may be "change nothing"
+
+*(One builder's section, appended for the lead to fold into the parts above.)*
+
+**The category error, corrected.** `StyleIntent` was one list of eight — Casual, Date, Streetwear, OldMoney, Minimal,
+Office, Party, Sport — and five of those are OCCASIONS while three are STYLES. A person who wanted streetwear for a
+date, or minimal for a party, had no way to say so. A check now carries both:
+
+- **The occasion** — `Everyday`, `Date`, `Office`, `Party`, `Formal`, `Sport`. Where the outfit is going. Chosen on
+  every check; the score is always relative to it. `Formal` is new: a wedding or a ceremony is the one occasion with a
+  real dress code, and the old list had no word for it.
+- **The style** — `Streetwear`, `OldMoney`, `Minimal`, `Classic`, or **none**. How the wearer wants the look to read.
+  A preference, kept on the device (`prefs.style`), shown on the check screen and changeable for one check without
+  changing it. **None is a first-class answer**, not a blank: the stylist is told in words that no style was asked for
+  and judges the look on its own terms, which is exactly what Date, Office, Party and Sport always did.
+- **The one word** — `intent` on the check row and in every answer, derived from the pair (`StyleIntents.Legacy`): the
+  style's own name for a style worn everyday, the OCCASION anywhere else. A streetwear look for a date reads *Date* on
+  a card, a board, the share card and the share video, because that is what a stranger needs to know first. `Formal`
+  has no word of its own in that list and lands on `Party`. Looks, boards, challenges, the feed filter, search and the
+  interests list are untouched: they all still speak the one word.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `POST /api/checks` | multipart: `occasion`, `style?`, `note?`, `language`, `image`, `video?` | As before, plus `occasion` and `style` on the answer. `occasion` is one of the six names, case-insensitive (400 `error.occasion_invalid`); `style` is one of the four, or empty for none (400 `error.style_invalid`); `note` is the wearer's free line, ≤ 120 characters (400 `error.occasion_too_long`). **A client from before the split is still understood:** when the form carries `intent`, that one word is split into the pair and its `occasion` field is read as the free line, exactly as it was sent. The presence of `intent` is what tells the two shapes apart |
+
+`GET /api/checks/{id}`, `GET /api/users/me/checks` and the answer to `POST /api/checks` carry `occasion` and `style`
+(absent when no style was asked for) beside `intent`. **The wearer's free line is now `note`, not `occasion`** — the
+chip took that name. The export's `checks[]` carries `note`, `occasion`, `style` and `tipKind`. `POST /api/compare` is
+unchanged: the "which one?" screen still asks one question, and the comparer splits it on the way in.
+
+**Storage.** `Checks.OccasionKind` and `Checks.Style` are new text columns (`Round14Check`), backfilled from `Intent`
+row by row. The wearer's line stays in the column it has been in since the first migration — `Occasion`, now mapped to
+`OutfitCheck.Note` — because a pilot database made before migrations is upgraded by matching the model's columns
+against the file's, and renaming it would leave an orphan column or make 120 characters of someone's words have to
+parse as an enum. Nothing is copied, nothing is renamed, and `Down()` leaves every row as it was found.
+
+**"Change nothing" is now an answer.** `tip_kind` sits beside `one_tip` in the tool schema, both required — the promise
+is still one tip, and a stylist structurally incapable of approval is one nobody believes twice. `change` is the tip as
+it always was. `keep` means the look is already right for what was asked, and `one_tip` then names **what to keep and
+why it works**, never an invented improvement. The rubric's test for a keep is explicit: nothing you could name would
+meaningfully raise the score for this occasion and this style, and the weakest element is still fine — in practice an 8
+or above with no weak item — and it says out loud that a keep is RARE, because a keep on a mediocre look is the same
+dishonesty facing the other way. Anything the model sends that is not the word `keep` is read as a change, so a keep is
+never shown by accident, and every check made before v5 reads as a change, which is what all of them were. The result
+screen renders a keep with its own heading (*What to keep*), its own label (*Change nothing*) and the green accent of a
+piece that works, and with no swap or replace verb anywhere near it.
+
+**An anchored scale (rubric v5).** The model OREVOSH runs on (claude-sonnet-5) removed `temperature`, `top_p` and
+`top_k` from the API and answers 400 to a request carrying one, so there is no knob to pin the scores with — **do not
+add one**. Instead the rubric now anchors every scale band by band, one concrete sentence about garments each: the
+overall score, fit, colour, accessories, and `intent_match`, which has two dimensions to match now and says what to do
+when only one was asked for. The rubric also states the rule the split creates: the occasion and the style can
+disagree ("this is a fine streetwear look and a weak one for a wedding"), **the occasion wins**, and a look that nails
+the style while being wrong for the occasion scores 5 at most.
+
+**Measuring it.** `tools/eval/stylist.js` points at a running OREVOSH with a real key, sends the same photo N times
+(default 8) through `POST /api/checks`, and prints the score spread — min, max, mean, standard deviation — how often
+the breakdown moved, how often the tip was a keep, and the tips side by side to be read. `--photo` repeats for a
+per-photo table, `--json` gives the raw rows, and it exits non-zero when a spread is wider than `--max-spread`
+(default 2). `tools/eval/README.md` explains the numbers to a non-developer and the arithmetic of what a pass costs
+(photos × runs = model calls). **No real-model numbers have ever been taken**: the sandbox this was written in has no
+route to Anthropic, so the harness was only exercised against a local stand-in made to move its scores on purpose.
+
+**The check screen.** Two chip rows — `#occasions` (`.chip[data-occasion]`) and `#styles` (`.chip[data-style]`, with
+`data-style=""` for *No style*) — then the preference line `#style-default` when the pick differs from what is saved,
+then the free line (still `#occasion`, now labelled as a note). Every chip also carries `data-intent` with the one word
+it contributes. Asking for a style before saying where lights `Everyday`, because a style with nowhere to go is exactly
+what Streetwear, OldMoney and Minimal used to mean. On the result, `#asked-for` names both, and three empty containers
+wait for the modules other rounds are adding: `#tip-feedback` (under the tip), `#tried-it` (under that) and
+`#wardrobe-offer` (with the item list). Each renders nothing while its module is absent.
+
+Tests: `IntentSplitTests` (the round trip, an older client, the refusals by name, the two shapes mapping onto each
+other, a database written before the split, the keep from the model's word to the export, the anchors asserted on the
+request, and rule 1 over every string the split added in all four languages), plus the Round 14 cases in
+`OutfitAnalyzerTests` and `StylistV2Tests`.

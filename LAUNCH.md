@@ -226,14 +226,19 @@ The domain is baked into static files — the link-preview tags, the landing pag
 right **before** the image is built. Do it now, once:
 
 ```bash
-node tools/brand/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://your-domain.com     # YOUR domain, not the example one
 git diff --stat
 ```
 
+That address is the one thing on this page not to copy literally. `looks.example.com` is the placeholder the script
+looks **for**, so handing it back rewrites nothing, the `--check` below still fails, and the first link anyone shares
+unfurls with no picture. Use the domain from 0.1 — or, with no domain yet, `https://<your-app-name>.fly.dev` from
+1.3, and run the script again after 1.7 when the real name is live.
+
 It rewrites every place the placeholder `looks.example.com` appears in the eleven files it knows by name, and prints
 each one with a count. Four of them are shipped to a browser or a store, and they are why this runs before the build:
-`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), `wwwroot/landing/index.html` and
-`landing/index.he.html` (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`) and
+`src/FitCheck.Api/wwwroot/index.html` (`og:image`, `twitter:image`), `wwwroot/landing/index.html` and
+`landing/index.he.html` (canonical, both `hreflang` links, `og:image`, `twitter:image`) and
 `mobile/capacitor.config.json` (`server.url`, `allowNavigation`). The other seven are the documents that quote the
 origin, so the commands you paste from them are already yours: `mobile/README.md` (its `WKAppBoundDomains` note
 included), `STORE.md` (its URL table included), `MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, `README.md` and
@@ -350,6 +355,7 @@ fly secrets set \
   Plans__FreeChecksPerDay=3 \
   Plans__ProChecksPerDay=30 \
   Plans__GuestChecksPerDay=1 \
+  Plans__GuestChecksPerAddressPerDay=10 \
   Plans__GuestAttemptsPerDay=20 \
   "Plans__ProPriceText=₪19 / month" \
   Plans__CompareNeedsPro=false
@@ -612,8 +618,12 @@ Everything below runs from `/opt/orevosh`. **Set the origin before the build** �
 pages are static files inside the image:
 
 ```bash
-node tools/brand/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://your-domain.com     # הדומיין שלכם, לא של הדוגמה
 ```
+
+הכתובת הזאת היא הדבר היחיד בעמוד שאסור להעתיק כמו שהוא. `looks.example.com` הוא המחזיק‑מקום שהסקריפט מחפש,
+אז להחזיר לו אותו לא משנה כלום, ה‑`--check` שלמטה עדיין ייכשל, והלינק הראשון שמישהו ישתף ייפתח בלי תמונה.
+משתמשים בדומיין מסעיף 0.1 — או, אם עוד אין, ב‑`https://<your-app-name>.fly.dev` מסעיף 1.3, ומריצים שוב אחרי 1.7.
 
 (If node is not on the server, run it on your computer, commit, and `git pull` here. 1.2 lists the eleven files it
 rewrites; `node tools/brand/set-origin.js --check` here says whether the checkout you are about to build still carries
@@ -1239,9 +1249,13 @@ fly auth signup      # או: fly auth login
 **לפני** שהדמות נבנית. עושים את זה עכשיו, פעם אחת:
 
 ```bash
-node tools/brand/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://your-domain.com     # הדומיין שלכם, לא של הדוגמה
 git diff --stat
 ```
+
+הכתובת הזאת היא הדבר היחיד בעמוד שאסור להעתיק כמו שהוא. `looks.example.com` הוא המחזיק‑מקום שהסקריפט מחפש,
+אז להחזיר לו אותו לא משנה כלום, ה‑`--check` שלמטה עדיין ייכשל, והלינק הראשון שמישהו ישתף ייפתח בלי תמונה.
+משתמשים בדומיין מסעיף 0.1 — או, אם עוד אין, ב‑`https://<your-app-name>.fly.dev` מסעיף 1.3, ומריצים שוב אחרי 1.7.
 
 זה מחליף כל מקום שבו מופיע מציין המקום `looks.example.com` באחד-עשר הקבצים שהוא מכיר בשמם, ומדפיס כל אחד מהם עם
 מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`,
@@ -1360,6 +1374,7 @@ fly secrets set \
   Plans__FreeChecksPerDay=3 \
   Plans__ProChecksPerDay=30 \
   Plans__GuestChecksPerDay=1 \
+  Plans__GuestChecksPerAddressPerDay=10 \
   Plans__GuestAttemptsPerDay=20 \
   "Plans__ProPriceText=₪19 לחודש" \
   Plans__CompareNeedsPro=false
@@ -1609,8 +1624,12 @@ cd /opt/orevosh
 סטטיים בתוך הדמות:
 
 ```bash
-node tools/brand/set-origin.js https://looks.example.com
+node tools/brand/set-origin.js https://your-domain.com     # הדומיין שלכם, לא של הדוגמה
 ```
+
+הכתובת הזאת היא הדבר היחיד בעמוד שאסור להעתיק כמו שהוא. `looks.example.com` הוא המחזיק‑מקום שהסקריפט מחפש,
+אז להחזיר לו אותו לא משנה כלום, ה‑`--check` שלמטה עדיין ייכשל, והלינק הראשון שמישהו ישתף ייפתח בלי תמונה.
+משתמשים בדומיין מסעיף 0.1 — או, אם עוד אין, ב‑`https://<your-app-name>.fly.dev` מסעיף 1.3, ומריצים שוב אחרי 1.7.
 
 (אם אין node על השרת, הריצו את זה על המחשב שלכם, עשו commit, ו-`git pull` כאן. 1.2 מונה את אחד-עשר הקבצים שהוא
 משכתב; `node tools/brand/set-origin.js --check` כאן אומר אם העותק שאתם עומדים לבנות עדיין נושא את מציין המקום.)

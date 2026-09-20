@@ -36,15 +36,20 @@ brand-kit/episodes/001-camel-cover.png    the thumbnail
 
 and prints the size and the length, so you can see it worked.
 
-**It takes about half a minute.** The command photographs the video one frame at a time — 450 of them
-for a fifteen-second episode — on three browser pages at once, and hands every frame straight to the
-encoder as it comes. It prints its progress as it goes, so you can see it has not stalled.
+**How long it takes depends on your cores.** The command photographs the video one frame at a time — 450
+of them for a fifteen-second episode — on up to three browser pages at once: one fewer than the machine
+has cores, three at most (so three pages on four cores or more, one page on two; `EPISODE_WORKERS=3`
+forces three), and it hands every frame straight to the encoder as it comes. On three pages a
+fifteen-second episode takes about half a minute; on one page about a minute (measured on four cores:
+19 s of capture and encode on three pages against 30 s on one, plus the browser's start-up either way).
+It prints the page count before the first frame and its progress as it goes, so you can see it has not
+stalled.
 
 Other ways to run it:
 
 ```bash
 # every episode in the folder, one after another, in file-name order
-# (five episodes is about two minutes)
+# (five episodes is about two minutes on three pages)
 node tools/brand/render-episode.js --all brand-kit/episodes
 
 # just the thumbnail, for a quick look while you are still writing the words
@@ -305,10 +310,18 @@ compositor's surface (what `page.screenshot` does underneath, minus its per-call
 goes down a pipe into ffmpeg (`image2pipe`), which encodes while the browser is already on the next
 frame; nothing is written to disk on the way. One capture costs about 65 ms whatever the format or
 the size — the time is the compositor handing the surface over, not the encoding — so the renderer
-opens **three pages in separate contexts** (separate renderer processes; `EPISODE_WORKERS` overrides
-the count) and each takes every third frame, with a writer putting them back in order. Before it
-trusts the pool it photographs frame 0 on every page and demands the bytes match; if they ever do not,
-it says so and renders on one page.
+opens **up to three pages in separate contexts** (separate renderer processes: one fewer than the
+machine has cores and three at most, so a two-core machine gets one page; `EPISODE_WORKERS` overrides
+the count, and the count is printed before the first frame) and each takes every K-th frame, with a
+writer putting them back in order. Before it trusts the pool it photographs frame 0 on every page and
+demands the bytes match; if they ever do not, it says so and renders on one page.
+
+**A failure leaves nothing behind.** The video is encoded as `<name>.mp4.part` and the cover as
+`<name>-cover.png.part`, and they take their final names only after ffmpeg has exited 0 and the file
+has been probed (size, codec, length), so a render that fails half-way never leaves a short, playable
+`.mp4` under the final name and never replaces the previous good one; the `.part` is removed on the way
+out. `ffmpeg` and `ffprobe` are asked for before the browser is launched, so a machine without them
+gets one readable line instead of a crash mid-render.
 
 Over a photograph a frame is a **JPEG at quality 95**; on the chroma field it stays a **PNG**. The old
 pipeline wrote a 1080×1920 PNG per frame and Chromium's zlib pass over a photograph cost 0.55 s each:

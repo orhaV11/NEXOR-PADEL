@@ -147,16 +147,24 @@ public sealed record ProductLinkDto(string Label, string Url, string? Price);
 /// BeforePostId: "after the tip" — one of your own earlier looks this one improves on. Items (Round 10): the pieces as the
 /// post sheet leaves them, the whole list (PostItems.Apply); absent, the stylist's names go on the look as before.
 /// </summary>
-public sealed record CreatePostRequest(Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products, Guid? BeforePostId = null, List<PostItemInput>? Items = null);
+/// <summary>ScorePrivate (Round 14): post the look and keep the grade. Default false, which is what posting always did.</summary>
+public sealed record CreatePostRequest(
+    Guid CheckId, string? Caption, Guid? ChallengeId, List<ProductLinkDto>? Products, Guid? BeforePostId = null,
+    List<PostItemInput>? Items = null, bool ScorePrivate = false);
 
 public sealed record ReportRequest(string? Reason);
 
+/// <summary>
+/// Round 14 — post the look, keep the grade: Score, IntentMatch and Breakdown are null to everyone but the author and a
+/// moderator when ScorePrivate is on. The card then shows no number at all, rather than a blank where one was; every
+/// other field, the fire count included, reads exactly as it did.
+/// </summary>
 public sealed record PostDto(
     Guid Id,
     UserRefDto User,
     StyleIntent Intent,
-    int Score,
-    int IntentMatch,
+    int? Score,
+    int? IntentMatch,
     string Headline,
     string? Caption,
     Guid? ChallengeId,
@@ -178,10 +186,15 @@ public sealed record PostDto(
     BreakdownDto? Breakdown = null,
     BeforeDto? Before = null,
     List<PostItemDto>? Items = null,
-    int ItemCount = 0);
+    int ItemCount = 0,
+    bool ScorePrivate = false);
 
-/// <summary>The earlier look an "after the tip" post improves on: its score and photo, for the before/after strip.</summary>
-public sealed record BeforeDto(Guid PostId, int Score, string ImageUrl);
+/// <summary>
+/// The earlier look an "after the tip" post improves on: its score and photo, for the before/after strip. Score is null
+/// when that earlier look's own grade is private to this viewer (Round 14): the strip then shows the two looks and no
+/// numbers.
+/// </summary>
+public sealed record BeforeDto(Guid PostId, int? Score, string ImageUrl);
 
 // ---- items on a look (Round 10) ----
 
@@ -252,6 +265,20 @@ public sealed record BreakdownDto(int Fit, int Color, int Accessories);
 
 public sealed record FeatureStateDto(UserRefDto? FeaturedBy);
 
+// ---- Round 14 — post the look, keep the grade; before and after ----
+
+/// <summary>PATCH /api/posts/{id}/score-privacy: the author's choice, on or off.</summary>
+public sealed record ScorePrivacyRequest(bool ScorePrivate);
+
+/// <summary>What the look's grade now is: private or public.</summary>
+public sealed record ScorePrivacyDto(bool ScorePrivate);
+
+/// <summary>
+/// POST /api/posts/{id}/shared-after: a before/after card or video was shared or saved on the phone. WithScores says
+/// whether it carried the two verdicts or no numbers at all; nothing else is sent, and nothing else is kept.
+/// </summary>
+public sealed record SharedAfterRequest(bool WithScores = false);
+
 // ---- explore ----
 
 public sealed record ExploreDto(List<TagDto> TrendingTags, List<UserCardDto> Brands, List<PostDto> TopLooks, List<ChallengeDto> Challenges);
@@ -263,7 +290,11 @@ public sealed record FireStateDto(int FireCount, bool Fired);
 
 public sealed record SaveStateDto(bool Saved);
 
-public sealed record CreateCommentRequest(string? Text);
+/// <summary>
+/// Opener (Round 14): the key of the opener the comment box filled in, when one was tapped ("piece", "swap" or "where").
+/// It is counted once, in one tally for every opener, and stored nowhere: what a person edited it into is the comment.
+/// </summary>
+public sealed record CreateCommentRequest(string? Text, string? Opener = null);
 
 public sealed record CommentDto(Guid Id, UserRefDto User, string Text, bool IsMine, bool CanDelete, DateTime CreatedAt);
 
@@ -271,8 +302,14 @@ public sealed record FeedDto(List<PostDto> Items, int? NextOffset);
 
 // ---- challenges ----
 
-/// <summary>Tag is optional: when missing it is derived from the title. Letters, digits and underscores, 2–30 characters, no #.</summary>
-public sealed record CreateChallengeRequest(string? Title, string? Brief, string? Intent, string? Prize, string? PrizeUrl, DateTime? EndsAt, string? Tag = null);
+/// <summary>
+/// Tag is optional: when missing it is derived from the title. Letters, digits and underscores, 2–30 characters, no #.
+/// Constraint (Round 14) is the rule of a constraint challenge, ≤ 140 characters, in the brand's own words; absent or
+/// blank opens the hashtag challenge every challenge was until now. Nothing enforces it.
+/// </summary>
+public sealed record CreateChallengeRequest(
+    string? Title, string? Brief, string? Intent, string? Prize, string? PrizeUrl, DateTime? EndsAt, string? Tag = null,
+    string? Constraint = null);
 
 public sealed record VoteRequest(Guid PostId);
 
@@ -294,7 +331,9 @@ public sealed record ChallengeDto(
     Guid? WinnerPostId,
     List<PostDto> Top,
     ChallengeViewerDto Viewer,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    /// <summary>Round 14: the challenge's rule when it has one, null for an open hashtag challenge.</summary>
+    string? Constraint = null);
 
 public sealed record ChallengeDetailDto(ChallengeDto Challenge, List<PostDto> EntriesByVotes, PostDto? Winner);
 
@@ -421,7 +460,18 @@ public sealed record SocialMetricsDto(
     int ItemsTagged = 0,
     int ItemOuts = 0,
     int BoardViews = 0,
-    int VideosMade = 0);
+    int VideosMade = 0,
+    // ---- Round 14 — the community round: whether any of it changed anything ----
+    /// <summary>Visible looks whose author kept the grade private.</summary>
+    int PrivateScores = 0,
+    /// <summary>Comments begun from an opener (one tally for all three: which one was tapped is not counted).</summary>
+    int CommentOpeners = 0,
+    /// <summary>Before/after shares that carried the two verdicts.</summary>
+    int BeforeAfterShares = 0,
+    /// <summary>Before/after shares with no numbers at all: the two looks and the change.</summary>
+    int BeforeAfterSharesPlain = 0,
+    /// <summary>Challenges that state a rule rather than an open hashtag.</summary>
+    int ConstraintChallenges = 0);
 
 public sealed record PilotMetricsDto(
     int TotalChecks,

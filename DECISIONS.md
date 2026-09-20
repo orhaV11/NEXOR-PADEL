@@ -736,7 +736,12 @@ This section is completed by the docs builder after the merge, from the code.
   client calls it after signup, after login and at every signed-in boot, and a `0` is the usual answer). What nobody claims expires
   with the cookie: `GuestCheckSweeper` removes day-old guest rows and their files, hourly and at start, and says so in
   the log (`Guest sweep: …`). It is **capped per cookie and per address because it costs money**:
-  `Plans:GuestChecksPerDay` (1) per token from the rows and per client address from an in-memory count
+  `Plans:GuestChecksPerDay` (1) per token from the rows, and `Plans:GuestChecksPerAddressPerDay` (10) per client
+  address from an in-memory count — two numbers, because an address is not a person. Behind one router, office or
+  carrier NAT everybody shares one, so a single number meant showing the app to three friends and having two of them
+  refused before they had taken a photo, told it was their own free look when their cookie had spent nothing. The
+  address refusal says `error.too_fast` for that reason. The ordering 1 < 10 < 20 holds: the cookie, the address, then
+  the attempts brake
   (`GuestAddressCounter`), both counting looks actually given (a refused upload, a model outage or a dropped connection
   spends nothing, and `error.guest_limit` is only sent for a look given); attempts are braked separately by the `guest`
   rate-limit policy (`Plans:GuestAttemptsPerDay`, twenty a day per address, 429 `error.too_fast`), on top of the global

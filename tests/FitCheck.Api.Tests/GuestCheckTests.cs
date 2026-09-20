@@ -57,6 +57,20 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         }
     }
 
+    /// <summary>
+    /// The address's own look cap brought down to one, so a test can watch that brake without eleven uploads. In the
+    /// product it is ten and the cookie's is one: an address is a household, an office or a whole carrier, never a
+    /// person, so the two caps answer different questions and only this one is about abuse.
+    /// </summary>
+    private sealed class OneLookPerAddressApp : TestApp
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.UseSetting("Plans:GuestChecksPerAddressPerDay", "1");
+        }
+    }
+
     /// <summary>The real app over a store that can refuse to write into an account's folder, the way a full disk would, while the guest folder keeps working.</summary>
     private sealed class ClaimFailureApp : TestApp
     {
@@ -159,9 +173,12 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
     }
 
     /// <summary>A signed-out client from the given (or a fresh) address; its cookie jar keeps whatever the server sets.</summary>
-    private HttpClient Guest(string? address = null)
+    private HttpClient Guest(string? address = null) => Guest(_app, address);
+
+    /// <summary>The same, from an app a test stood up itself to see a cap it moved.</summary>
+    private static HttpClient Guest(TestApp app, string? address = null)
     {
-        var client = _app.NewClient();
+        var client = app.NewClient();
         client.DefaultRequestHeaders.Add("X-Forwarded-For", address ?? NextAddress());
         return client;
     }
@@ -291,58 +308,94 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         Assert.NotNull(GuestCookie(failed));
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(unlucky)).StatusCode);
 
-        // The second look from the address, with no cookie at all: that one is refused, the address had its look.
-        var refused = await CheckAsync(Guest(address));
+        // The address's own cap, on an app where it is one so the brake is reachable (in the product it is ten). The
+        // message is "too fast" and NOT "that was your free look": this request carries no cookie at all, so telling it
+        // the free look is spent would be false — and behind one router, one office or one carrier, everybody is this
+        // address. That is the whole reason the two caps are separate numbers.
+        using var onePerAddress = new OneLookPerAddressApp();
+        onePerAddress.Vision.Handler = _ => Payloads.Ok();
+        var busy = NextAddress();
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(onePerAddress, busy))).StatusCode);
+        var refused = await CheckAsync(Guest(onePerAddress, busy));
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        Assert.Equal(GuestLimit, await ErrorAsync(refused));
+        Assert.Equal(TooFast, await ErrorAsync(refused));
         var retryAfter = refused.Headers.RetryAfter?.Delta;
         Assert.True(retryAfter is { } delta && delta > TimeSpan.Zero && delta <= TimeSpan.FromHours(24), $"Retry-After: {retryAfter}");
         Assert.Null(GuestCookie(refused));
 
-        // The brake is for the anonymous path only: an account behind the same router checks as usual.
-        var member = Guest(address);
-        await _app.SignupAsync(member, "gc_same_address");
+        // The brake is for the anonymous path only: an account behind the same busy address checks as usual.
+        var member = Guest(onePerAddress, busy);
+        await onePerAddress.SignupAsync(member, "gc_same_address");
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(member)).StatusCode);
 
         // Round 13: not an outfit cost a model call but gave the visitor nothing, so it is forgiven (Plans:NoOutfitForgivenPerDay,
         // three by default): neither the cookie's look nor the address's is spent by it, and the real look still comes.
+        // Shown on the same one-per-address app, because the only way to prove the address's look was NOT spent is to
+        // watch it still be there afterwards and then be refused once it really is.
         var deskAddress = NextAddress();
-        _app.Vision.Handler = _ => Payloads.NotOutfit();
+        onePerAddress.Vision.Handler = _ => Payloads.NotOutfit();
         try
         {
-            var desk = await CheckAsync(Guest(deskAddress));
+            var desk = await CheckAsync(Guest(onePerAddress, deskAddress));
             Assert.Equal(HttpStatusCode.Created, desk.StatusCode);
             Assert.False((await desk.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("counted").GetBoolean());
         }
         finally
         {
-            _app.Vision.Handler = _ => Payloads.Ok();
+            onePerAddress.Vision.Handler = _ => Payloads.Ok();
         }
 
-        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(deskAddress))).StatusCode);
-        Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(Guest(deskAddress))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(Guest(onePerAddress, deskAddress))).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(Guest(onePerAddress, deskAddress))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Several_phones_on_one_address_each_get_their_own_free_look()
+    {
+        // The thing this cap exists to allow: showing the app to people. An address is a household, a café, an office or
+        // a carrier's whole pool, so five different phones behind one router are five visitors with five clean cookies,
+        // and each of them gets the free look the product promises — the address cap (ten) sits well above the cookie's
+        // (one) precisely so this works. It used to be the same number, and the third friend was told, before taking a
+        // photo, that they had already used a look they had never had.
+        var wifi = NextAddress();
+        for (var phone = 1; phone <= 5; phone++)
+        {
+            var response = await CheckAsync(Guest(wifi));
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            Assert.NotNull(GuestCookie(response));
+        }
+
+        // And each of those phones still has only ONE: the cookie's cap is untouched by any of this.
+        var second = Guest(wifi);
+        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(second)).StatusCode);
+        var refused = await CheckAsync(second);
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Equal(GuestLimit, await ErrorAsync(refused));
     }
 
     [Fact]
     public async Task A_parallel_burst_of_cookieless_requests_from_one_address_gets_one_look()
     {
+        // The address cap is one here, so four at once must not become four looks: the counter reserves before the model
+        // is called, and an in-flight reservation counts. On an app where the cap is ten this is simply four looks.
+        using var onePerAddress = new OneLookPerAddressApp();
         var address = NextAddress();
-        _app.Vision.Handler = _ => { Thread.Sleep(300); return Payloads.Ok(); };
+        onePerAddress.Vision.Handler = _ => { Thread.Sleep(300); return Payloads.Ok(); };
         HttpResponseMessage[] responses;
         try
         {
-            responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => CheckAsync(Guest(address))));
+            responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => CheckAsync(Guest(onePerAddress, address))));
         }
         finally
         {
-            _app.Vision.Handler = _ => Payloads.Ok();
+            onePerAddress.Vision.Handler = _ => Payloads.Ok();
         }
 
         Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
         Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
         foreach (var response in responses.Where(r => r.StatusCode == HttpStatusCode.TooManyRequests))
         {
-            Assert.Equal(GuestLimit, await ErrorAsync(response));
+            Assert.Equal(TooFast, await ErrorAsync(response));
         }
     }
 

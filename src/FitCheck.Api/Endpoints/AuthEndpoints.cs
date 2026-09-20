@@ -419,6 +419,15 @@ public static partial class AuthEndpoints
             }
         }
 
+        // A host with no origin to build links on is an operator problem, not a caller's, and it is silent otherwise: the
+        // answer below is the same 202 either way, so without this line nobody would ever learn why no mail arrives. It
+        // names no account — only the host — so it cannot be used to find out who has one.
+        if (email.Enabled && !RecoveryTokens.TryOrigin(context.Request, options.Value, out _))
+        {
+            loggerFactory.CreateLogger(typeof(AuthEndpoints))
+                .LogError("No link origin for host {Host}: set Email:PublicOrigin to the app's public https origin", context.Request.Host);
+        }
+
         // No link is ever built from a Host header a stranger chose, and no inbox gets more than three reset links an hour.
         if (email.Enabled && user is { Suspended: false, Email: not null, EmailVerifiedAt: not null }
             && RecoveryTokens.TryOrigin(context.Request, options.Value, out var origin)

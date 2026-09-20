@@ -657,9 +657,15 @@ app.MapWardrobeEndpoints();
 // to pings that never come.
 app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder,
         IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate, IConfiguration configuration,
-        IOptions<LanguagesOptions> languages) =>
+        IOptions<LanguagesOptions> languages, IOptions<EmailOptions> emailOptions, HttpContext context) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
-        sender.Enabled ? push.Value.PublicKey : null, email.Enabled, transcoder.Available,
+        sender.Enabled ? push.Value.PublicKey : null,
+        // "email" means mail can actually reach somebody FROM THIS HOST, not merely that a mail server is configured. A
+        // link carries a token, so it is only ever built on a configured Email:PublicOrigin or on a loopback host
+        // (RecoveryTokens.TryOrigin). Behind a tunnel, whose name is new every run and so cannot be pre-set, there is no
+        // origin and no mail is sent — and the screens read this one flag, so "forgot password" stops promising a link
+        // nobody will receive, and Settings stops offering to add an address it could never confirm.
+        email.Enabled && RecoveryTokens.TryOrigin(context.Request, emailOptions.Value, out _), transcoder.Available,
         // The Pro cap as a Pro account really gets it (clamped to Limits:ChecksPerDay): what the Pro page promises.
         new PlansDto(plans.Value.FreeChecksPerDay, Plans.ProCap(plans.Value, limits.Value), plans.Value.GuestChecksPerDay, plans.Value.ProPriceText,
             plans.Value.CompareNeedsPro, billing.Value.StripeEnabled,

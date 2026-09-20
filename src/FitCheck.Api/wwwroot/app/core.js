@@ -606,7 +606,7 @@ export function sheet(opts) {
       focused.blur();
       return;
     }
-    close();
+    dismiss();
   } });
   const panel = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', tabindex: '-1', 'aria-label': opts.title || '' }, [
     el('div', { class: 'handle', 'aria-hidden': 'true' }),
@@ -616,6 +616,12 @@ export function sheet(opts) {
   document.body.appendChild(backdrop);
   document.body.appendChild(panel);
   document.body.classList.add('sheet-open');
+  // An entry on the history stack that stands for "a sheet is open". Android's Back gesture IS history.back(), and
+  // without this it popped the hash behind the sheet — leaving the result screen, losing a caption — or, in an
+  // installed app opened at "/#/" with nothing behind it, closed the app outright with the sheet still on screen. Same
+  // URL, so no hashchange fires and no view re-renders. dismiss() below goes back through it; an action closes directly.
+  let pushed = false;
+  try { history.pushState({ sheet: true }, ''); pushed = true; } catch (e) { /* history refused; Back stays as it was */ }
   // The page behind is inert while the sheet is open, so neither taps nor Tab reach it.
   const behind = [view(), document.querySelector('header.top'), document.querySelector('nav.tabbar')].filter(Boolean);
   for (const node of behind) node.inert = true;
@@ -627,10 +633,10 @@ export function sheet(opts) {
     startY = e.touches[0].clientY;
   }, { passive: true });
   panel.addEventListener('touchmove', (e) => { if (startY !== null) { const dy = e.touches[0].clientY - startY; if (dy > 0) panel.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
-  panel.addEventListener('touchend', (e) => { if (startY === null) return; const dy = e.changedTouches[0].clientY - startY; startY = null; if (dy > 80) close(); else panel.style.transform = ''; });
+  panel.addEventListener('touchend', (e) => { if (startY === null) return; const dy = e.changedTouches[0].clientY - startY; startY = null; if (dy > 80) dismiss(); else panel.style.transform = ''; });
   const focusables = () => [...panel.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')];
   const onKey = (e) => {
-    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Escape') { dismiss(); return; }
     if (e.key !== 'Tab') return;
     const items = focusables();
     if (!items.length) { e.preventDefault(); return; }
@@ -661,9 +667,22 @@ export function sheet(opts) {
     vv.addEventListener('scroll', onViewport);
     onViewport();
   }
+  /**
+   * A dismissal — the backdrop, a swipe down, Escape, Android's Back. It unwinds the history entry instead of removing
+   * the sheet directly, and the popstate listener below does the closing, so the three gestures and the hardware button
+   * all take exactly one path. An ACTION inside a sheet still calls close() directly: it usually navigates or opens a
+   * file picker straight afterwards, and a history.back() in front of that would fight it.
+   */
+  function dismiss() {
+    if (closed) return;
+    if (pushed && history.state && history.state.sheet) history.back();
+    else close();
+  }
   function close(immediate) {
     if (closed) return;
     closed = true;
+    // Leave no entry behind for a Back press to spend on a sheet that has already gone.
+    if (pushed && history.state && history.state.sheet) { try { history.replaceState({}, ''); } catch (e) { /* ignore */ } }
     document.removeEventListener('keydown', onKey);
     if (vv) { vv.removeEventListener('resize', onViewport); vv.removeEventListener('scroll', onViewport); }
     for (const node of behind) node.inert = false;
@@ -682,6 +701,11 @@ export function closeSheet() {
   if (!openSheetNode) return;
   openSheetNode.close(true);
 }
+// Back, with a sheet open, lands here: the entry that stood for the sheet has just been popped, so the sheet goes and
+// the page behind it stays exactly where it was. One listener for every sheet the app will ever open.
+window.addEventListener('popstate', () => {
+  if (openSheetNode && !(history.state && history.state.sheet)) openSheetNode.close(true);
+});
 /** A sheet of tappable rows: [{ icon, text, onclick, danger, href }]. */
 export function actionSheet(title, items) {
   const list = el('div', { class: 'sheet-list' });

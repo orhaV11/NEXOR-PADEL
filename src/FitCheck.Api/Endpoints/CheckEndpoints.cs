@@ -289,14 +289,20 @@ public static class CheckEndpoints
 
             // Last in the branch, so nothing can throw between taking the slot and the lease below that gives it back.
             var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            if (!guestAddresses.TryReserve(address, cap, now, out addressReservation, out var addressRetryAfter))
+            // The address's own cap, never the cookie's: one address is a household, an office or a whole carrier, so the
+            // two are different questions and only this one is about abuse. Never below the cookie cap, whatever the
+            // configuration says, or the address would refuse a guest their first look.
+            var addressCap = Math.Max(cap, plans.Value.GuestChecksPerAddressPerDay);
+            if (!guestAddresses.TryReserve(address, addressCap, now, out addressReservation, out var addressRetryAfter))
             {
                 if (addressRetryAfter is { } seconds)
                 {
                     context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
                 }
 
-                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.guest_limit"));
+                // Not error.guest_limit: this phone's cookie may have spent nothing, and telling someone they have used
+                // their free look when they have not is a lie. It is the address that is busy, so it is "too fast".
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.too_fast"));
             }
         }
 

@@ -11,13 +11,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OREVOSH">
   <meta name="description" content="Check the look. A stylist in your pocket, and a community that lights it up.">
-  <!-- Link previews. The absolute URLs are the production origin: replace looks.example.com with the real domain
-       (DEPLOY.md), and keep /brand/og-1200x630.png (1200×630, rendered by tools/brand/render-kit.js). -->
+  <!-- Link previews. og:url is deliberately absent: every crawler falls back to the URL it actually fetched, so the
+       address is right on any host — a tunnel, a staging name, the real domain — with nothing to configure and nothing
+       to get wrong. og:image cannot do that (the spec wants it absolute, and relative resolution is unreliable in
+       exactly the unfurlers this is for), so it still carries the production origin: run
+       `node tools/brand/set-origin.js https://<your domain>` before a deploy, and `--doctor` warns while any is left. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="OREVOSH">
   <meta property="og:title" content="OREVOSH — Check the look.">
   <meta property="og:description" content="A stylist in your pocket, and a community that lights it up.">
-  <meta property="og:url" content="https://looks.example.com/">
   <meta property="og:image" content="https://looks.example.com/brand/og-1200x630.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">

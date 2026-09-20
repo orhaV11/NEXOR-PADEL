@@ -500,7 +500,7 @@ Then, on your phone, at `https://looks.example.com`:
    `--doctor` on its own reads the configuration and the machine — the database, the storage folder, ffmpeg, whether
    the Anthropic key is set and which model it points at, whether mail is configured and has a public origin, the push
    keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the
-   free disk space — fourteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
+   free disk space, and whether the shipped pages still carry the placeholder host in their link previews — fifteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
    everything a live server needs is there and 1 otherwise. `--live` adds the checks that leave the machine: one small
    call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
    when the provider is `stripe` (the price, and the webhook endpoint). It does not try the mail server: nothing here

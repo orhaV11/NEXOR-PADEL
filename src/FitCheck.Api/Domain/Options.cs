@@ -147,10 +147,20 @@ public sealed class PlanOptions
     public int ProChecksPerDay { get; set; } = 30;
 
     /// <summary>
-    /// For a guest (no account yet), per guest cookie and per client address: what is counted is a stored check (ok,
-    /// not_outfit or rejected, the ones that cost a model call), never a refused upload or a failed call.
+    /// For a guest (no account yet), per guest cookie: what is counted is a stored check (ok, not_outfit or rejected, the
+    /// ones that cost a model call), never a refused upload or a failed call.
     /// </summary>
     public int GuestChecksPerDay { get; set; } = 1;
+
+    /// <summary>
+    /// The same, per client ADDRESS rather than per cookie — and deliberately far above it, because an address is not a
+    /// person. Behind a router, an office, a café or a carrier's CGNAT, everyone shares one, so holding this at
+    /// <see cref="GuestChecksPerDay"/> meant showing the app to three friends and having two of them refused before they
+    /// had taken a photo, told it was their own free look when their cookie had spent nothing. It stays well below
+    /// <see cref="GuestAttemptsPerDay"/>: 1 &lt; 10 &lt; 20 is the ordering the docs promise. This is what stands between a
+    /// cookieless script and the vision bill, and Limits:ChecksPerDayGlobal and Limits:SpendPerDayUsd still bound the day.
+    /// </summary>
+    public int GuestChecksPerAddressPerDay { get; set; } = 10;
 
     /// <summary>
     /// The abuse brake on the anonymous check path: attempts (whatever their outcome) per client address per day, in the

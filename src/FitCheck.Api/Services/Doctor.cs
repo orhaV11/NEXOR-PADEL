@@ -163,6 +163,7 @@ public static class Doctor
 
         var publicOrigin = Origin(configuration);
         PublicOrigin(lines, configuration, publicOrigin);
+        LinkPreviews(lines, contentRoot);
         AnthropicKey(lines, apiKey);
         AnthropicBaseUrl(lines, anthropic);
         Email(lines, email, publicOrigin);
@@ -225,6 +226,56 @@ public static class Doctor
         }
 
         lines.Add(new(DoctorStatus.Ok, "origin", origin));
+    }
+
+    /// <summary>
+    /// The absolute URLs in the pages this server actually serves. og:image has to be absolute — the spec says so and
+    /// the unfurlers that matter do not resolve a relative one — so it ships carrying a placeholder host that
+    /// tools/brand/set-origin.js is meant to replace before a deploy. Forget it and every link anyone sends unfurls with
+    /// no picture, which is invisible from the server: nothing errors, the page is fine, only the preview is empty. So
+    /// the doctor reads the files. og:url is not among them; it was deleted so the address is right on any host.
+    /// </summary>
+    private static void LinkPreviews(List<DoctorLine> lines, string contentRoot)
+    {
+        const string placeholder = "looks.example.com";
+        string[] pages = ["wwwroot/index.html", "wwwroot/landing/index.html", "wwwroot/landing/index.he.html"];
+        var stale = new List<string>();
+        var read = 0;
+        foreach (var page in pages)
+        {
+            var path = Path.Combine(contentRoot, page.Replace('/', Path.DirectorySeparatorChar));
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                read++;
+                if (File.ReadAllText(path).Contains(placeholder, StringComparison.OrdinalIgnoreCase))
+                {
+                    stale.Add(page);
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                lines.Add(new(DoctorStatus.Warn, "previews", $"could not read {page}: {e.Message.TrimEnd('.')}."));
+                return;
+            }
+        }
+
+        // Finding no pages at all is not a pass. It means this is not the folder the app serves from, and a check that
+        // says "ok" because it looked in the wrong place is worse than no check: it is the one that gets believed.
+        if (read == 0)
+        {
+            lines.Add(new(DoctorStatus.Warn, "previews", $"no pages found under {contentRoot}: this doctor cannot tell whether a shared link would unfurl with a picture."));
+            return;
+        }
+
+        lines.Add(stale.Count == 0
+            ? new(DoctorStatus.Ok, "previews", $"no placeholder host left in the {read.ToString(CultureInfo.InvariantCulture)} shipped page(s).")
+            : new(DoctorStatus.Warn, "previews",
+                $"{string.Join(", ", stale)} still name {placeholder}, so a shared link unfurls with no picture. Run: node tools/brand/set-origin.js https://<your domain>"));
     }
 
     private static void AnthropicKey(List<DoctorLine> lines, string apiKey)

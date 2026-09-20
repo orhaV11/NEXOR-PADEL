@@ -8,6 +8,8 @@ import {
 import { pushSupport, getPushSubscription, enablePush, disablePush, syncPush, sendTestPush, madeWithCurrentKey, dropStalePush, unsubscribePush } from '../push.js';
 // Round 13 — the growth loop: the invite link's sheet.
 import { inviteButton } from '../invite.js';
+// Round 14 — the loop: "what OREVOSH has learned about your taste", with the switch and the clear (app/taste.js).
+import { tasteCard } from '../taste.js';
 
 // The few rules the shared stylesheet does not have: the photo row, taller chips, the two-line switch label, the push block.
 const CSS = `
@@ -46,6 +48,9 @@ const CSS = `
 .s-digest-status { padding-inline: 2px; }
 .s-invite { display: flex; flex-direction: column; gap: 10px; border-block-start: 1px solid var(--line); padding-block-start: 18px; }
 .s-invite .btn { min-block-size: 44px; align-self: flex-start; }
+/* Round 14 — the loop: the taste card sits in the same column as the other blocks and brings its own inner styles. */
+.s-taste { border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-taste .taste-card { box-shadow: none; background: transparent; padding: 0; }
 `;
 let styled = false;
 function ensureStyle() {
@@ -482,6 +487,9 @@ register('settings', async (root, params, ctx) => {
   ]));
 
   root.appendChild(pushSection(ctx));
+  // Round 14 — the loop: what OREVOSH has learned about this person's taste, the literal text the stylist is told, the
+  // switch that stops the learning and the button that clears it. Both are honoured at once.
+  root.appendChild(el('section', { class: 's-section s-taste' }, [tasteCard({ controls: true })]));
   // Round 13 — the growth loop: the Sunday note, and the link that brings a friend.
   root.appendChild(digestSection(ctx));
   root.appendChild(inviteSection());

@@ -486,4 +486,26 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
     }
 
     private static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
+
+    // ---- Round 14 — the loop: the taste advisory (Services/Taste.cs) ----
+
+    /// <summary>
+    /// The system prompt with one clearly-marked advisory section after it, or the prompt exactly as it was when there is
+    /// none (a guest, the learning switch off, an empty profile). The section is built and capped by <see cref="Taste"/>,
+    /// and it says in its own words that it informs WHICH tip is chosen and never the score. Nothing else about the
+    /// request changes: the user message, the image and the tool are what they were before Round 14.
+    /// </summary>
+    public static string BuildSystemPrompt(string language, string? tasteAdvisory) =>
+        Taste.Append(BuildSystemPrompt(language), tasteAdvisory);
+
+    /// <summary>
+    /// One check with the wearer's taste in front of the stylist. Identical to the call above in every other respect; a
+    /// null advisory makes the two byte-for-byte the same request.
+    /// </summary>
+    public async Task<OutfitFeedback> AnalyzeAsync(
+        ReadOnlyMemory<byte> imageBytes, string mediaType, StyleIntent intent, string? occasion, string language, string? tasteAdvisory, CancellationToken ct)
+    {
+        var request = new VisionRequest(BuildSystemPrompt(language, tasteAdvisory), BuildUserMessage(intent, occasion), imageBytes, mediaType, Tool);
+        return MapToolInput(await vision.AnalyzeAsync(request, ct));
+    }
 }

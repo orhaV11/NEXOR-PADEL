@@ -39,6 +39,14 @@ public sealed class OutfitCheck
     public DateTime? UsefulAt { get; set; }
     public string? UsefulNote { get; set; }
 
+    /// <summary>
+    /// Round 14 — the loop: which of the four typed answers they gave (<see cref="TipReason"/>), beside the yes/no above,
+    /// because "I tried it and it worked", "it did not", "that is not my style" and "I do not own that" are four different
+    /// facts and only the typed one can teach anything. Null for a check answered before Round 14, or not answered at all;
+    /// <see cref="Useful"/> stays the yes/no behind it (only <c>worked</c> is a yes).
+    /// </summary>
+    public string? UsefulReason { get; set; }
+
     /// <summary>One of <see cref="CheckStatus"/>.</summary>
     public string Status { get; set; } = CheckStatus.Error;
 

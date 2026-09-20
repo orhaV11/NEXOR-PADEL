@@ -96,7 +96,9 @@ public sealed record CheckDto(
     bool? Useful = null,
     DateTime? UsefulAt = null,
     string? UsefulNote = null,
-    bool? Counted = null)
+    bool? Counted = null,
+    // Round 14 — the loop: which of the four typed answers they gave (Domain.TipReason), beside the yes/no above.
+    string? UsefulReason = null)
 {
     /// <summary>
     /// Rejected rows store nothing but the status; the neutral message is added here, in the check's language. The feedback
@@ -135,7 +137,9 @@ public sealed record CheckDto(
             postId,
             check.Useful,
             check.UsefulAt is { } at ? DateTime.SpecifyKind(at, DateTimeKind.Utc) : null,
-            check.UsefulNote);
+            check.UsefulNote,
+            // Round 14 — the loop: the typed reason travels with the check, so the row of taps can show what was said.
+            UsefulReason: check.UsefulReason);
     }
 }
 
@@ -365,7 +369,9 @@ public sealed record ExportAccountDto(string Handle, string Name, string Account
 /// <summary>One check. Headline, Tip, Breakdown and Items come from the stored feedback (null or empty when the check was not ok).</summary>
 public sealed record ExportCheckDto(Guid Id, DateTime CreatedAt, StyleIntent Intent, string? Occasion, int? Score, string? Headline, string? Tip, BreakdownDto? Breakdown, List<ExportItemDto> Items, string Status,
     // Round 13: what the person said about the tip, when, and their note; null when they never said.
-    bool? Useful = null, DateTime? UsefulAt = null, string? UsefulNote = null);
+    bool? Useful = null, DateTime? UsefulAt = null, string? UsefulNote = null,
+    // Round 14 — the loop: the typed reason behind that yes or no (Domain.TipReason). Their answer, so it travels with the check.
+    string? UsefulReason = null);
 
 /// <summary>A piece: the stylist's name and category on a check; on a look, the row as the person tagged it.</summary>
 public sealed record ExportItemDto(string Name, string Category, string? Brand = null, string? Model = null, string? Url = null);
@@ -449,11 +455,15 @@ public sealed record BreakdownAveragesDto(double AvgFit, double AvgColor, double
 
 // ---- Round 13: the verdict's own verdict, the honest no-outfit answer ----
 
-/// <summary>POST /api/checks/{id}/useful: did the tip land (true / false), and an optional one-line note (≤ 120).</summary>
-public sealed record UsefulRequest(bool? Useful, string? Note = null);
+/// <summary>
+/// POST /api/checks/{id}/useful: did the tip land (true / false), and an optional one-line note (≤ 120).
+/// Round 14 appended <see cref="Reason"/>, one of <see cref="Domain.TipReason"/>: the typed answer the row of taps sends,
+/// which decides <see cref="Useful"/> on its own (only "worked" is a yes). One of the two is required.
+/// </summary>
+public sealed record UsefulRequest(bool? Useful, string? Note = null, string? Reason = null);
 
-/// <summary>The answer: what is now stored on the check.</summary>
-public sealed record UsefulDto(Guid Id, bool Useful, DateTime UsefulAt, string? Note);
+/// <summary>The answer: what is now stored on the check. Round 14 appended the typed reason, null when none was given.</summary>
+public sealed record UsefulDto(Guid Id, bool Useful, DateTime UsefulAt, string? Note, string? Reason = null);
 
 /// <summary>Yes, no and unanswered over a set of scored checks, and yes ÷ (yes + no) with four decimals, null while nobody has answered.</summary>
 public sealed record UsefulSplitDto(int Yes, int No, int Unanswered, double? Rate);
@@ -522,3 +532,67 @@ public sealed record DigestRequest(bool? On);
 /// has no confirmed address, so Settings can say which of the two is missing instead of showing a dead toggle.
 /// </summary>
 public sealed record DigestStateDto(bool On, bool CanSend);
+
+// ---- Round 14 — the loop: typed reasons, "I tried it", the taste profile ----
+
+/// <summary>POST /api/checks/{id}/tried: the earlier check this one is the attempt at. Linked only once both are scored.</summary>
+public sealed record TriedRequest(Guid? BeforeId);
+
+/// <summary>POST /api/checks/{id}/tried/prefer: "before" or "after", the person's own answer to "which do you prefer?".</summary>
+public sealed record PreferRequest(string? Prefer);
+
+/// <summary>One side of a pair: enough to draw the two results next to each other without a second request.</summary>
+public sealed record TriedSideDto(
+    Guid Id, StyleIntent Intent, DateTime CreatedAt, int Score, int IntentMatch, string Headline, string OneTip, string? Reason, Guid? PostId);
+
+/// <summary>
+/// What changed in the combination, per category: the pieces the stylist named before and the ones it named after, only
+/// where they differ. Either side is null when the category was not there at all. Clothes only, computed from the two
+/// stored verdicts.
+/// </summary>
+public sealed record ChangeDto(string Category, string? From, string? To);
+
+/// <summary>
+/// The pair: before, after, what changed, and which the person prefers (null until they say). The second check's score is
+/// whatever the stylist gave it looking at the photo alone; nothing here can move it.
+/// </summary>
+public sealed record TriedPairDto(
+    Guid Id, TriedSideDto Before, TriedSideDto After, List<ChangeDto> Changed, string? Preferred, DateTime? PreferredAt, DateTime CreatedAt);
+
+/// <summary>GET /api/users/me/tried: the caller's own pairs, newest first.</summary>
+public sealed record TriedListDto(List<TriedPairDto> Items);
+
+/// <summary>A name and how many times it came up: an occasion, a reason, a category.</summary>
+public sealed record TasteCountDto(string Name, int N);
+
+/// <summary>
+/// What OREVOSH has learned, as counts and short strings the person would recognise — never an embedding, never a photo,
+/// never a word about a body, and never a row of anybody else's. Avoid holds tips they turned down as not theirs or as
+/// something they do not own; Notes holds their own words beside those same two answers, folded to one line. The tip and
+/// the note behind "it worked" and "it did not" are deliberately absent: a person who answers those tried the tip, and
+/// nothing about an attempt may ever reach the stylist (Services/Taste.cs).
+/// </summary>
+public sealed record TasteFactsDto(
+    int Checks,
+    int Posted,
+    List<TasteCountDto> Intents,
+    List<TasteCountDto> Reasons,
+    List<string> Pieces,
+    List<TasteCountDto> Categories,
+    List<string> Colours,
+    List<string> Avoid,
+    List<string> Notes);
+
+/// <summary>"Last time you … and said it worked": their own words from their own row, with when they said it.</summary>
+public sealed record TasteWinDto(Guid CheckId, string Tip, DateTime At);
+
+/// <summary>
+/// GET / PATCH / DELETE /api/users/me/taste. Advisory is the literal text the stylist would be sent, so the card can show
+/// the person exactly what is said about them; null when learning is off or the profile is empty, which is also exactly
+/// when nothing is sent.
+/// </summary>
+public sealed record TasteCardDto(
+    bool Learning, DateTime? ClearedAt, bool Empty, TasteFactsDto Facts, string? Advisory, TasteWinDto? LastWin);
+
+/// <summary>PATCH /api/users/me/taste: the learning switch.</summary>
+public sealed record TasteRequest(bool? Learning);

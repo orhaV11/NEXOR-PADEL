@@ -77,6 +77,13 @@ public sealed class AppUser
     /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
     public bool Suspended { get; set; }
 
+    /// <summary>Round 13: the weekly digest mail is on unless the person turned it off in Settings; when the last one went.</summary>
+    public bool DigestOn { get; set; } = true;
+    public DateTime? LastDigestAt { get; set; }
+
+    /// <summary>Round 13: who invited this account (an invite link carrying a handle), for the referral bonus and the numbers page.</summary>
+    public Guid? InvitedByUserId { get; set; }
+
     /// <summary>
     /// A moderator. Persisted, never derived from the handle at request time: the cookie carries a handle, and a handle is
     /// something anyone can register once it is free. Set by the start-up sync for the handles in Admin:Handles (existing

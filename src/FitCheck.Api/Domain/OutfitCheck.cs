@@ -33,6 +33,12 @@ public sealed class OutfitCheck
     /// </summary>
     public string? VideoPath { get; set; }
 
+    /// <summary>Round 13: the person's own verdict on the verdict — true "the tip was right", false "it missed" — with when,
+    /// and an optional short note. Null until they say. The only signal that measures whether the stylist is any good.</summary>
+    public bool? Useful { get; set; }
+    public DateTime? UsefulAt { get; set; }
+    public string? UsefulNote { get; set; }
+
     /// <summary>One of <see cref="CheckStatus"/>.</summary>
     public string Status { get; set; } = CheckStatus.Error;
 

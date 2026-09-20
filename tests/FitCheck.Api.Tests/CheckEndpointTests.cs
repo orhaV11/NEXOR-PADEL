@@ -29,8 +29,11 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var check = await response.Content.ReadFromJsonAsync<JsonElement>();
         var checkId = check.GetProperty("id").GetGuid();
+        // Round 14: an older client's "intent" is still read, split into the pair, and its free line is the note.
         Assert.Equal("Streetwear", check.GetProperty("intent").GetString());
-        Assert.Equal("concert", check.GetProperty("occasion").GetString());
+        Assert.Equal("Everyday", check.GetProperty("occasion").GetString());
+        Assert.Equal("Streetwear", check.GetProperty("style").GetString());
+        Assert.Equal("concert", check.GetProperty("note").GetString());
         Assert.Equal("ok", check.GetProperty("status").GetString());
         Assert.Equal(7, check.GetProperty("score").GetInt32());
         Assert.False(check.TryGetProperty("postId", out var postId) && postId.ValueKind != JsonValueKind.Null);
@@ -216,7 +219,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
             Assert.Equal(CheckStatus.Rejected, row.Status);
             Assert.Null(row.FeedbackJson);
             Assert.Null(row.Score);
-            Assert.Null(row.Occasion);
+            Assert.Null(row.Note);
             Assert.Equal("", row.ImagePath);
         }
         finally
@@ -281,7 +284,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
                 {
                     Id = Guid.NewGuid(), UserId = userId, Intent = StyleIntent.Minimal, Language = "en",
                     Status = i % 5 == 0 ? CheckStatus.Error : CheckStatus.Ok, Score = i % 5 == 0 ? null : 5 + i % 5,
-                    PromptVersion = "v1", CreatedAt = start.AddMinutes(i), Occasion = i.ToString()
+                    PromptVersion = "v1", CreatedAt = start.AddMinutes(i), Note = i.ToString()
                 });
             }
             await db.SaveChangesAsync();
@@ -290,7 +293,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         var list = await client.GetFromJsonAsync<JsonElement>("/api/users/me/checks");
 
         Assert.Equal(50, list.GetArrayLength());
-        var occasions = list.EnumerateArray().Select(c => int.Parse(c.GetProperty("occasion").GetString()!)).ToList();
+        var occasions = list.EnumerateArray().Select(c => int.Parse(c.GetProperty("note").GetString()!)).ToList();
         Assert.Equal(54, occasions[0]);
         Assert.Equal(occasions.OrderByDescending(x => x), occasions);
     }

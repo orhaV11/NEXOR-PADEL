@@ -272,7 +272,7 @@ public class FeedbackTests
         var status = OutfitAnalyzer.ToolSchema.GetProperty("properties").GetProperty("status");
         Assert.Contains("not_outfit", status.GetProperty("description").GetString());
         Assert.Contains("never a word about a person", OutfitAnalyzer.ToolSchema.GetProperty("properties").GetProperty("message").GetProperty("description").GetString());
-        Assert.Equal("v4", OutfitAnalyzer.PromptVersion);
+        Assert.Equal("v5", OutfitAnalyzer.PromptVersion);
     }
 
     [Fact]

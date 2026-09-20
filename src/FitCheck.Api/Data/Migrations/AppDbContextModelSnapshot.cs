@@ -477,12 +477,14 @@ namespace FitCheck.Api.Data.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Occasion");
 
                     b.Property<string>("Occasion")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .HasColumnName("OccasionKind");
 
                     b.Property<string>("PromptVersion")
                         .IsRequired()

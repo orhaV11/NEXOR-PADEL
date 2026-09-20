@@ -182,7 +182,7 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
         Assert.Equal(0.3333, m.GetProperty("returnRate").GetDouble(), precision: 4);
         Assert.Equal(2, m.GetProperty("byLanguage").GetProperty("he").GetInt32());
         Assert.Equal(5, m.GetProperty("byPromptVersion").GetProperty("v1").GetInt32());
-        Assert.Equal(1, m.GetProperty("byPromptVersion").GetProperty("v4").GetInt32());
+        Assert.Equal(1, m.GetProperty("byPromptVersion").GetProperty("v5").GetInt32());
 
         // The sub-score averages cover the one check that has a breakdown; the v1 rows carry none.
         var averages = m.GetProperty("breakdownAverages");

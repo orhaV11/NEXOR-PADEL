@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitCheck.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260920181020_Round14Check")]
+    [Migration("20260920181507_Round14Check")]
     partial class Round14Check
     {
         /// <inheritdoc />
@@ -480,12 +480,14 @@ namespace FitCheck.Api.Data.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Occasion");
 
                     b.Property<string>("Occasion")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .HasColumnName("OccasionKind");
 
                     b.Property<string>("PromptVersion")
                         .IsRequired()

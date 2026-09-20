@@ -79,9 +79,9 @@ public class AnthropicVisionClientTests
         var tool = Assert.Single(root.GetProperty("tools").EnumerateArray());
         Assert.Equal(OutfitAnalyzer.ToolName, tool.GetProperty("name").GetString());
         Assert.False(string.IsNullOrEmpty(tool.GetProperty("description").GetString()));
-        // The analyzer's schema goes over verbatim (10 required fields since rubric v2 added breakdown and accessories).
+        // The analyzer's schema goes over verbatim (11 required fields: v2 added breakdown and accessories, v5 tip_kind).
         Assert.Equal(OutfitAnalyzer.ToolSchema.GetProperty("required").GetArrayLength(), tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
-        Assert.Equal(10, tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
+        Assert.Equal(11, tool.GetProperty("input_schema").GetProperty("required").GetArrayLength());
 
         Assert.Equal("tool", root.GetProperty("tool_choice").GetProperty("type").GetString());
         Assert.Equal(OutfitAnalyzer.ToolName, root.GetProperty("tool_choice").GetProperty("name").GetString());
@@ -96,7 +96,7 @@ public class AnthropicVisionClientTests
         Assert.Equal("image/jpeg", source.GetProperty("media_type").GetString());
         Assert.Equal(Convert.ToBase64String(TestImages.Jpeg(64)), source.GetProperty("data").GetString());
         Assert.Equal("text", content[1].GetProperty("type").GetString());
-        Assert.StartsWith("Stated intent: Date:", content[1].GetProperty("text").GetString());
+        Assert.StartsWith("Occasion: Date:", content[1].GetProperty("text").GetString());
     }
 
     [Fact]

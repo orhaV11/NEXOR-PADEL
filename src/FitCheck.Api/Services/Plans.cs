@@ -25,4 +25,52 @@ public static class Plans
     public static int ProCap(PlanOptions plans, LimitsOptions limits) => Clamp(plans.ProChecksPerDay, limits);
 
     private static int Clamp(int planCap, LimitsOptions limits) => Math.Max(0, Math.Min(planCap, limits.ChecksPerDay));
+
+    // ---------- Round 14 — Pro worth paying for: what the plan gets, not how high the cap goes ----------
+
+    /// <summary>
+    /// Which bucket a caller's checks are counted in. A free account keeps one allowance for checks and comparisons
+    /// together, exactly as before Round 14; a Pro account counts its checks apart from its comparisons, so the two
+    /// cannot eat each other. Guests are always <see cref="Allowance.Together"/>: they have one look, not two buckets.
+    /// </summary>
+    public static Allowance CheckAllowanceFor(AppUser? user, DateTime now) =>
+        user is not null && IsPro(user, now) ? Allowance.Checks : Allowance.Together;
+
+    /// <summary>The bucket a caller's comparisons are counted in; the other half of <see cref="CheckAllowanceFor"/>.</summary>
+    public static Allowance CompareAllowanceFor(AppUser? user, DateTime now) =>
+        user is not null && IsPro(user, now) ? Allowance.Compares : Allowance.Together;
+
+    /// <summary>
+    /// Comparisons per rolling day for this account. Pro has its own: Plans:ProComparesPerDay, never above
+    /// Limits:ChecksPerDay, counted apart from its checks — the thing Pro sells. A free account shares the one
+    /// allowance with its checks, so this is <see cref="CapFor"/> for it, unchanged from before Round 14.
+    /// </summary>
+    public static int CompareCapFor(AppUser user, PlanOptions plans, LimitsOptions limits, DateTime now) =>
+        IsPro(user, now) ? ProCompareCap(plans, limits) : CapFor(user, plans, limits, now);
+
+    /// <summary>What a Pro account's comparison allowance really is (clamped to Limits:ChecksPerDay): the number to publish.</summary>
+    public static int ProCompareCap(PlanOptions plans, LimitsOptions limits) => Clamp(plans.ProComparesPerDay, limits);
+
+    /// <summary>
+    /// Whether this account's own wardrobe may travel with its checks, so a tip can name a piece it already owns.
+    /// The wardrobe itself is everyone's; this is what Pro buys (Plans:WardrobeNeedsPro). A guest has no wardrobe.
+    /// </summary>
+    public static bool WardrobeReachesStylist(AppUser? user, PlanOptions plans, DateTime now) =>
+        user is not null && (!plans.WardrobeNeedsPro || IsPro(user, now));
+}
+
+/// <summary>
+/// Round 14: which stored calls a daily allowance counts. <see cref="Together"/> is the one bucket a free account and a
+/// guest have always had; Pro splits its day in two so that deciding between two outfits never spends a check.
+/// </summary>
+public enum Allowance
+{
+    /// <summary>Checks and comparisons in one list: a free account, a guest.</summary>
+    Together,
+
+    /// <summary>Checks only: a Pro account's check allowance.</summary>
+    Checks,
+
+    /// <summary>Comparisons only: a Pro account's comparison allowance.</summary>
+    Compares
 }

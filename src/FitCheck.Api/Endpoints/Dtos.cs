@@ -318,7 +318,13 @@ public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVi
 public sealed record AffiliateConfigDto(bool Disclosure);
 
 /// <summary>Billing: true when Stripe Checkout is live; false means Pro is granted by hand (--pro) and the Pro screen says so.</summary>
-public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int GuestChecksPerDay, string ProPriceText, bool CompareNeedsPro, bool Billing);
+public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int GuestChecksPerDay, string ProPriceText, bool CompareNeedsPro, bool Billing,
+    // Round 14 — what Pro actually gets. ProComparesPerDay is Pro's own comparison allowance, counted apart from its
+    // checks (Plans:ProComparesPerDay clamped to Limits:ChecksPerDay); Wardrobe says the wardrobe reaching the stylist
+    // is Pro's on this server (Plans:WardrobeNeedsPro); TasteProfile says this server has the taste profile built
+    // (Plans:TasteProfile). The Pro page lists a benefit only where its flag is true: nothing on that page may promise
+    // something this server cannot do, and PlansTests asserts exactly that over the page's keys.
+    int ProComparesPerDay = 0, bool Wardrobe = false, bool TasteProfile = false);
 
 // ---- comparisons, insights, today ----
 
@@ -353,7 +359,10 @@ public sealed record ExportDto(
     List<ExportHandleDto> Followers,
     List<ExportComparisonDto> Comparisons,
     List<ExportHandleDto> Blocks,
-    List<ExportNotificationDto> Notifications);
+    List<ExportNotificationDto> Notifications,
+    // Round 14: the pieces this account keeps and the looks each one appeared in. Their words about their own clothes,
+    // so they travel with the rest of it.
+    List<ExportWardrobeItemDto>? Wardrobe = null);
 
 /// <summary>
 /// The account's own fields. Email only when the account has one. No birth date, on purpose: no route returns it (README,
@@ -522,3 +531,31 @@ public sealed record DigestRequest(bool? On);
 /// has no confirmed address, so Settings can say which of the two is missing instead of showing a dead toggle.
 /// </summary>
 public sealed record DigestStateDto(bool On, bool CanSend);
+
+// ---- Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs, Endpoints/WardrobeEndpoints.cs) ----
+
+/// <summary>
+/// GET /api/wardrobe: the account's pieces and what this server lets the wardrobe do. <c>Max</c> is the fair-use brake
+/// (Plans:WardrobeMaxItems). <c>ToStylist</c> is this account's own switch; <c>StylistAvailable</c> is whether its plan
+/// lets the wardrobe reach the stylist at all, so a free account sees its own wardrobe and is told plainly what it is
+/// missing rather than shown a dead toggle.
+/// </summary>
+public sealed record WardrobeDto(List<WardrobeItemDto> Items, int Max, bool ToStylist, bool StylistAvailable);
+
+/// <summary>One kept piece: its name, the stylist's category, when it was kept and the looks it appeared in, newest first.</summary>
+public sealed record WardrobeItemDto(Guid Id, string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<WardrobeLookDto> Looks);
+
+/// <summary>A look a piece appeared in: the check, when it was worn, and the post when that check was published.</summary>
+public sealed record WardrobeLookDto(Guid CheckId, DateTime WornAt, Guid? PostId);
+
+/// <summary>POST /api/wardrobe: keep one piece the given check named. Name must be one of the names on that check.</summary>
+public sealed record KeepWardrobeItemRequest(Guid? CheckId, string? Name);
+
+/// <summary>PATCH /api/wardrobe/{id}: the person's own name for a piece.</summary>
+public sealed record RenameWardrobeItemRequest(string? Name);
+
+/// <summary>POST /api/wardrobe/stylist: whether this account's pieces travel with its checks.</summary>
+public sealed record WardrobeStylistRequest(bool? On);
+
+/// <summary>One kept piece in the data export, with the looks it appeared in.</summary>
+public sealed record ExportWardrobeItemDto(string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<Guid> Looks);

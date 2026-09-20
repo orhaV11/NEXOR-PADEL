@@ -195,6 +195,11 @@ public sealed class Localizer
             ["mail.digest_subject"] = "Your week on OREVOSH",
             ["mail.digest_body"] = "Hi {0},\n\nYour looks got {1} fires and {2} comments this week.\n\n{3}Check a look: {4}\n\nTo stop these emails: {5}\n",
             ["mail.digest_top"] = "The week's top look on the board: {0}",
+            // Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs).
+            ["error.wardrobe_not_found"] = "We couldn't find this piece.",
+            ["error.wardrobe_full"] = "Your wardrobe is full at {0} pieces. Remove one to keep another.",
+            ["error.wardrobe_unknown_piece"] = "That piece isn't one this check named.",
+            ["error.wardrobe_name_invalid"] = "A piece needs a name, up to {0} characters.",
             ["error.comment_not_found"] = "We couldn't find this comment.",
             ["error.too_fast"] = "Slow down a little. Try again in a bit.",
         },
@@ -374,6 +379,11 @@ public sealed class Localizer
             ["mail.digest_subject"] = "השבוע שלך ב-OREVOSH",
             ["mail.digest_body"] = "היי {0},\n\nהלוקים שלך קיבלו {1} אש ו-{2} תגובות השבוע.\n\n{3}לבדוק לוק: {4}\n\nלהפסיק את המיילים האלה: {5}\n",
             ["mail.digest_top"] = "הלוק המוביל של השבוע בלוח: {0}",
+            // Round 14 — the wardrobe that builds itself (Services/Wardrobe.cs).
+            ["error.wardrobe_not_found"] = "לא מצאנו את הפריט הזה.",
+            ["error.wardrobe_full"] = "הארון מלא, {0} פריטים. מוחקים אחד כדי לשמור אחר.",
+            ["error.wardrobe_unknown_piece"] = "הפריט הזה לא מופיע בבדיקה הזו.",
+            ["error.wardrobe_name_invalid"] = "לפריט צריך שם, עד {0} תווים.",
             ["error.comment_not_found"] = "לא מצאנו את התגובה הזו.",
             ["error.too_fast"] = "קצת יותר לאט. אפשר לנסות שוב עוד רגע.",
         },
@@ -555,6 +565,11 @@ public sealed class Localizer
             ["mail.digest_subject"] = "أسبوعك على OREVOSH",
             ["mail.digest_body"] = "مرحبًا {0}،\n\nحصلت إطلالاتك على {1} نار و{2} تعليق هذا الأسبوع.\n\n{3}افحص إطلالة: {4}\n\nلإيقاف هذه الرسائل: {5}\n",
             ["mail.digest_top"] = "أفضل إطلالة هذا الأسبوع على اللوحة: {0}",
+            // Round 14 — the wardrobe that builds itself (plain Arabic, for native review).
+            ["error.wardrobe_not_found"] = "لم نجد هذه القطعة.",
+            ["error.wardrobe_full"] = "خزانتك ممتلئة عند {0} قطعة. حذف واحدة يسمح بحفظ أخرى.",
+            ["error.wardrobe_unknown_piece"] = "هذه القطعة ليست مما ذكره هذا التقييم.",
+            ["error.wardrobe_name_invalid"] = "القطعة تحتاج اسمًا، حتى {0} حرفًا.",
             ["error.comment_not_found"] = "لم نجد هذا التعليق.",
             ["error.too_fast"] = "على مهل قليلًا. يمكن المحاولة بعد لحظة.",
         },
@@ -735,6 +750,11 @@ public sealed class Localizer
             ["mail.digest_subject"] = "Твоя неделя на OREVOSH",
             ["mail.digest_body"] = "Привет, {0},\n\nТвои образы получили {1} огней и {2} комментариев за неделю.\n\n{3}Проверить образ: {4}\n\nОтключить эти письма: {5}\n",
             ["mail.digest_top"] = "Лучший образ недели на доске: {0}",
+            // Round 14 — the wardrobe that builds itself (plain Russian, for native review).
+            ["error.wardrobe_not_found"] = "Мы не нашли эту вещь.",
+            ["error.wardrobe_full"] = "В гардеробе уже {0} вещей — это максимум. Удали одну, чтобы сохранить другую.",
+            ["error.wardrobe_unknown_piece"] = "Этой вещи нет среди названных в этой проверке.",
+            ["error.wardrobe_name_invalid"] = "У вещи должно быть название, до {0} символов.",
             ["error.comment_not_found"] = "Мы не нашли этот комментарий.",
             ["error.too_fast"] = "Чуть помедленнее. Попробуй через минуту.",
         }

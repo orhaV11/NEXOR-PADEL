@@ -24,8 +24,9 @@ namespace FitCheck.Api.Endpoints;
 /// name for a piece ("the brown tights"). 200 with the row. Errors: error.wardrobe_name_invalid (400),
 /// error.wardrobe_not_found (404, which is also what another account's piece answers), error.wardrobe_full (409 when the
 /// new name is already another of this account's pieces — two rows cannot become one without losing a look).</item>
-/// <item><c>DELETE /api/wardrobe/{id}</c> (session, owner): 204, and again 204 when it was already gone. Its appearances
-/// go with it; the checks do not.</item>
+/// <item><c>DELETE /api/wardrobe/{id}</c> (session, owner): 204. Its appearances go with it; the checks do not. Anything
+/// that is not a piece of the caller's answers 204 too, existing or not, so the route is idempotent for its owner and
+/// says nothing at all to anyone else.</item>
 /// <item><c>POST /api/wardrobe/stylist</c> (session): <see cref="WardrobeStylistRequest"/> — whether this account's piece
 /// names travel with its checks. 200 with the wardrobe. 403 error.pro_required for a free account while
 /// Plans:WardrobeNeedsPro is on: the list is everyone's, the advice from it is what Pro sells.</item>
@@ -145,15 +146,14 @@ public static class WardrobeEndpoints
             return failure!;
         }
 
-        // Someone else's piece is refused like a missing one, and a second tap on your own is not an error: the row is
-        // gone either way, which is all the person asked for.
+        // 204 for anything that is not a piece of the caller's, whether or not it exists: a second tap on your own is not
+        // an error, and a stranger's id must not answer differently from a made-up one — a delete that said "not yours"
+        // for a real id and "gone" for a fake one would be an oracle for what other accounts keep. The rule is declared
+        // that way in SecurityTests, and WardrobeTests proves the owner's piece is still there afterwards.
         var mine = await db.WardrobeItems.FirstOrDefaultAsync(i => i.Id == id && i.UserId == me.Id, ct);
         if (mine is null)
         {
-            var exists = await db.WardrobeItems.AnyAsync(i => i.Id == id, ct);
-            return exists
-                ? Error(StatusCodes.Status404NotFound, localizer.Get(me.PreferredLanguage, "error.wardrobe_not_found"))
-                : Results.NoContent();
+            return Results.NoContent();
         }
 
         await db.WardrobeAppearances.Where(a => a.ItemId == mine.Id).ExecuteDeleteAsync(ct);

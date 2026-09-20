@@ -12,24 +12,30 @@
 // the result screen and the list do not ask twice.
 import { state, t, el, api, icon, toast } from './core.js';
 
-/** The cached GET /api/wardrobe, or null when nothing has read it yet in this session. */
+/** The cached GET /api/wardrobe, whose account it belongs to, and the read in flight. */
 let cached = null;
+let cachedFor = null;
 let inFlight = null;
 
-/** Drop the cache: a keep, a rename, a delete or a sign-out makes what we hold stale. */
+/** Drop the cache: a keep, a rename or a delete makes what we hold stale. */
 export function forgetWardrobe() {
   cached = null;
+  cachedFor = null;
   inFlight = null;
 }
 
-/** The wardrobe, read once and remembered. Null on any failure: the caller shows nothing rather than an error. */
+/**
+ * The wardrobe, read once and remembered. Null on any failure and signed out: the caller shows nothing rather than an
+ * error. The cache is keyed by the account, so signing in as somebody else on the same phone never shows their pieces.
+ */
 export async function loadWardrobe(force) {
-  if (force) forgetWardrobe();
+  const me = state.me ? state.me.id : null;
+  if (force || me !== cachedFor) forgetWardrobe();
+  if (!me) return null;
   if (cached) return cached;
-  if (!state.me) return null;
   if (!inFlight) {
     inFlight = api('GET', '/api/wardrobe')
-      .then((data) => { cached = data; return data; })
+      .then((data) => { cached = data; cachedFor = me; return data; })
       .catch(() => null)
       .finally(() => { inFlight = null; });
   }
@@ -127,7 +133,6 @@ export function wardrobeKeep(result) {
 
   // The read is quiet: until it answers there is no row, and a failure leaves none.
   loadWardrobe().then((wardrobe) => {
-    if (!row.isConnected && row.parentNode === null) return;
     const kept = new Set(((wardrobe && wardrobe.items) || []).map((item) => String(item.name || '').toLowerCase()));
     queue = names.filter((name) => !kept.has(name.toLowerCase()));
     if (queue.length > 0) ask();

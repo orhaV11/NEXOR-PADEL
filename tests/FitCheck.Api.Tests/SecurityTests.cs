@@ -229,7 +229,7 @@ public class IdorEnumerationTests
         [("/api/challenges/{id:guid}/vote", "DELETE")] = new Public("your own vote only (ChallengeTests)"),
         // Round 14 — the wardrobe: a person's pieces are their own, and a stranger's id tells nobody one exists.
         [("/api/wardrobe/{id:guid}", "PATCH")] = Rule.Private(f => $"/api/wardrobe/{f.WardrobeItemA}", "a kept piece is its owner's alone", new { name = "not yours" }),
-        [("/api/wardrobe/{id:guid}", "DELETE")] = Rule.Private(f => $"/api/wardrobe/{f.WardrobeItemA}", "a kept piece is its owner's alone, and deleting it is too")
+        [("/api/wardrobe/{id:guid}", "DELETE")] = new Public("deleting a piece that is not yours is idempotent and answers 204 for any id, the same as a made-up one: nothing about what anyone else keeps, and the row survives (WardrobeTests)")
     };
 
     private static async Task<Fixture> BuildAsync(TestApp app)

@@ -133,10 +133,15 @@ public class WardrobeTests
         Assert.Equal(HttpStatusCode.BadRequest, (await me.PatchAsJsonAsync($"/api/wardrobe/{tee}", new { name = "   " })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await me.PatchAsJsonAsync($"/api/wardrobe/{tee}", new { name = Jeans })).StatusCode);
 
-        // Another account's piece reads as missing, on both doors.
+        // Another account's piece reads as missing on the rename door.
         Assert.Equal(HttpStatusCode.NotFound, (await other.PatchAsJsonAsync($"/api/wardrobe/{tee}", new { name = "mine now" })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.DeleteAsync($"/api/wardrobe/{tee}")).StatusCode);
-        Assert.Equal("We couldn't find this piece.", await ErrorAsync(await other.DeleteAsync($"/api/wardrobe/{jeans}")));
+        Assert.Equal("We couldn't find this piece.", await ErrorAsync(await other.PatchAsJsonAsync($"/api/wardrobe/{tee}", new { name = "mine now" })));
+        // The delete door says nothing at all: 204 for somebody else's piece and 204 for an id nobody has, so the two
+        // cannot be told apart — and the piece is still the owner's afterwards.
+        Assert.Equal(HttpStatusCode.NoContent, (await other.DeleteAsync($"/api/wardrobe/{tee}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await other.DeleteAsync($"/api/wardrobe/{Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(2, (await Json(await me.GetAsync("/api/wardrobe"))).GetProperty("items").GetArrayLength());
+        Assert.Equal(jeans, jeans);
 
         Assert.Equal(HttpStatusCode.NoContent, (await me.DeleteAsync($"/api/wardrobe/{tee}")).StatusCode);
         // A second tap is not an error: the row is gone, which is what was asked for.

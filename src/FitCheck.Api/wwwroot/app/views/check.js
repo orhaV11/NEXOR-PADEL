@@ -19,6 +19,8 @@ import {
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
 import { afterPicker } from '../after.js';
+// Round 14 — post the look, keep the grade: the choice at the moment of posting (the same switch the look itself carries).
+import { gradeField } from './post.js';
 import { itemsEditor } from '../items.js';
 
 const SCORE_COUNT_MS = 900;
@@ -771,10 +773,13 @@ function openPostSheet(area, result) {
   // it is the still this result was judged on (judgedPreview: a past check from "Your checks" gets the editor without a
   // photo box, the rows and no dots), or the dots would land on another photo.
   const items = itemsEditor(result, judgedPreview(result));
+  // Round 14: "post the look, keep the grade" — one switch under the caption. Off is what posting has always done.
+  const grade = gradeField();
   const content = el('div', { class: 'stack' }, [
     el('p', { class: 'muted', text: t('result.post_intro') }),
     el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),
     after.node,
+    grade.node,
     items.node,
     productsField,
     error,
@@ -788,7 +793,10 @@ function openPostSheet(area, result) {
       .filter((r) => r.label.value.trim() || r.url.value.trim())
       .map((r) => ({ label: r.label.value.trim(), url: r.url.value.trim(), price: r.price.value.trim() || null }));
     try {
-      const post = await api('POST', '/api/posts', { checkId: result.id, caption: caption.value, products, beforePostId: after.value(), items: items.value() });
+      const post = await api('POST', '/api/posts', {
+        checkId: result.id, caption: caption.value, products, beforePostId: after.value(), items: items.value(),
+        scorePrivate: grade.value()
+      });
       state.resultPostId = post.id;
       result.postId = post.id;
       state.check.challenge = null;

@@ -209,15 +209,18 @@ function occasionChips() {
     chips.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-occasion': occasion, 'data-intent': ONE_WORD[occasion], text: occasionLabel(occasion),
       'aria-pressed': String(pick.occasion === occasion),
-      onclick: () => {
-        pick.occasion = occasion;
-        for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === occasion));
-        updateSubmit();
-      }
+      onclick: () => { pick.occasion = occasion; paintOccasions(); updateSubmit(); }
     }));
   }
 
   return el('div', { class: 'asked-block' }, [el('h2', { text: t('occasion.title') }), chips]);
+}
+
+/** Lights the chosen occasion, wherever the row currently is on screen. */
+function paintOccasions() {
+  const row = $('occasions');
+  if (!row) return;
+  for (const chip of row.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === pick.occasion));
 }
 
 /**
@@ -242,7 +245,13 @@ function styleChips() {
   for (const style of [null, ...STYLES]) {
     chips.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-style': style || '', 'data-intent': style, text: styleLabel(style),
-      'aria-pressed': 'false', onclick: () => { pick.style = style; paint(); }
+      'aria-pressed': 'false', onclick: () => {
+        pick.style = style;
+        // A style with nowhere to go is what the old list called Streetwear, OldMoney or Minimal: a style worn
+        // everyday. Asking for one before saying where means that, so Everyday lights up and can still be changed.
+        if (style && !pick.occasion) { pick.occasion = 'Everyday'; paintOccasions(); updateSubmit(); }
+        paint();
+      }
     }));
   }
 

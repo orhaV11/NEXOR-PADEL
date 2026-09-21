@@ -1270,3 +1270,62 @@ public class UploadPathTests
         Assert.DoesNotContain("evil", full);
     }
 }
+
+// ---------- The phone pass: the policy's own claim, that nothing in a page we serve is inline ----------
+
+/// <summary>
+/// <see cref="SecurityHeaders"/> sends <c>script-src 'self'</c> with no <c>'unsafe-inline'</c>, no nonce and no hash,
+/// and its class comment says "no inline script anywhere in wwwroot". That was not true: offline.html carried an
+/// <c>onclick</c> and a <c>&lt;script&gt;</c> block, and the browser refused both — the retry button did nothing at all
+/// and the page stood in English for someone reading the app in Hebrew, on the one screen where nobody can open a
+/// console. Nothing in this suite renders a page, so nothing was ever going to catch it. This does, over every .html
+/// file the app serves and over the three documents that are built in C# and live outside wwwroot, which are under the
+/// same policy. A page that needs behaviour gets a .js file beside it.
+/// </summary>
+public class InlineScriptTests
+{
+    private static readonly Regex Comment = new("<!--.*?-->", RegexOptions.Singleline);
+    private static readonly Regex InlineScript = new(@"<script(?![^>]*\ssrc\s*=)[^>]*>", RegexOptions.IgnoreCase);
+    private static readonly Regex HandlerAttribute = new(@"\son[a-z]{2,20}\s*=\s*[""']", RegexOptions.IgnoreCase);
+
+    private static string Wwwroot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot"));
+
+    /// <summary>A comment may talk about inline script (offline.html's does, to say why there is none); markup may not.</summary>
+    private static void AssertNothingInline(string what, string html)
+    {
+        var markup = Comment.Replace(html, "");
+        Assert.False(InlineScript.IsMatch(markup), $"{what} has an inline <script>: script-src is 'self', so a browser refuses it. Put it in a .js file next to the page.");
+        var handler = HandlerAttribute.Match(markup);
+        Assert.False(handler.Success, $"{what} has an inline handler ({handler.Value.Trim()}): the same policy refuses it.");
+    }
+
+    [Fact]
+    public void No_page_in_wwwroot_carries_script_the_policy_refuses()
+    {
+        var files = Directory.GetFiles(Wwwroot, "*.html", SearchOption.AllDirectories);
+        Assert.True(files.Length >= 4, $"the shell, the offline page and the two landing pages are all under {Wwwroot}");
+        foreach (var file in files)
+        {
+            AssertNothingInline(Path.GetRelativePath(Wwwroot, file), File.ReadAllText(file));
+        }
+    }
+
+    [Fact]
+    public async Task No_page_built_in_csharp_carries_it_either()
+    {
+        using var app = new TestApp();
+        var (author, _, _) = await app.NewUserAsync("inlinescan");
+        var post = await app.PostAsync(author, await app.CheckAsync(author));
+        var id = post.GetProperty("id").GetGuid();
+        var anonymous = app.NewClient();
+        string[] pages = [$"/look/{id}", "/u/inlinescan", $"/look/{Guid.Empty}", "/digest/off/not-a-real-token"];
+        foreach (var path in pages)
+        {
+            var response = await anonymous.GetAsync(path);
+            var html = await response.Content.ReadAsStringAsync();
+            Assert.Contains("<html", html, StringComparison.OrdinalIgnoreCase);   // a page, not an empty body
+            AssertNothingInline(path, html);
+        }
+    }
+}

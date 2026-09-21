@@ -154,6 +154,25 @@ function draw(root, m, ctx, reload) {
   // Round 13 — the growth loop: the funnel and the invites (funnelSection, at the end of this file), last before the footer.
   if (m.funnel) root.appendChild(funnelSection(m.funnel));
 
+  // Round 15 — the wardrobe, counted: MARKETING.md's two numbers (/api/metrics/pilot -> wardrobe). Round 14 built a
+  // wardrobe that fills itself from the pieces a person keeps, and nothing counted it. The rates are null on a pilot
+  // with nothing to divide by, and this page says so with an en dash rather than the 0% percent() would print.
+  if (m.wardrobe) {
+    const w = m.wardrobe;
+    const rate = (value) => (value === null || value === undefined ? '\u2013' : percent(value));
+    root.appendChild(el('section', { class: 'dash-section' }, [
+      el('h2', { text: t('wardrobe.dash_title') }),
+      el('p', { class: 'hint', text: t('wardrobe.dash_hint') }),
+      el('div', { class: 'dash-tiles', id: 'dash-wardrobe' }, [
+        tile(t('wardrobe.dash_kept'), rate(w.keepRate)),
+        tile(t('wardrobe.dash_keepers'), fmtNumber(w.keepers || 0)),
+        tile(t('wardrobe.dash_items'), fmtNumber(w.items || 0)),
+        tile(t('wardrobe.dash_dont_own'), rate(w.dontOwnRate)),
+        tile(t('wardrobe.dash_off'), fmtNumber(w.toStylistOff || 0))
+      ])
+    ]));
+  }
+
   const refresh = el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'dash-refresh', text: t('dash.refresh') });
   refresh.addEventListener('click', () => { if (!refresh.disabled) { refresh.disabled = true; reload(); } });
   root.appendChild(el('footer', { class: 'dash-foot' }, [

@@ -30,7 +30,10 @@
 [CmdletBinding()]
 param(
   [string] $App    = 'orevosh-or',
-  [string] $Origin = 'https://orevosh-or.fly.dev',
+  # The real domain, since Round 17. The app still ANSWERS on orevosh-or.fly.dev (AllowedHosts is *), but this is the
+  # address it puts in its own link-preview tags, its canonical links, the landing pages and the mail it sends - and
+  # those have to be the name people actually see, or a shared link previews as somebody else's host.
+  [string] $Origin = 'https://orevosh.com',
   [string] $Branch = 'claude/fitcheck-phase-1-bxkyvx'
 )
 

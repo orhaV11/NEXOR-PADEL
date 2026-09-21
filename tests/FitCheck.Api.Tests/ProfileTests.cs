@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
+using FitCheck.Api.Endpoints;
 
 namespace FitCheck.Api.Tests;
 
@@ -233,7 +234,7 @@ public class ProfileTests : IClassFixture<TestApp>
         {
             var response = await client.PatchAsJsonAsync("/api/users/me", new { interests = bad });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Equal("Pick styles from the list, up to 8.", (await Json(response)).GetProperty("error").GetString());
+            Assert.Equal($"Pick styles from the list, up to {UserEndpoints.MaxInterests}.", (await Json(response)).GetProperty("error").GetString());
         }
 
         Assert.Equal(["Casual", "OldMoney", "Sport"], Interests(await client.GetFromJsonAsync<JsonElement>("/api/auth/me")));

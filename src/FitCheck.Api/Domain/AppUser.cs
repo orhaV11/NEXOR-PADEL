@@ -30,7 +30,7 @@ public sealed class AppUser
     /// <summary>Bumped on every upload and put in the avatar URL, so caches refresh without cache-busting headers.</summary>
     public int AvatarVersion { get; set; }
 
-    /// <summary>Comma-separated StyleIntent names the person picked at onboarding or in settings. At most 8.</summary>
+    /// <summary>Comma-separated StyleIntent names the person picked at onboarding or in settings. At most one of each.</summary>
     public string? Interests { get; set; }
 
     /// <summary>Self-declared for the pilot. Real age assurance is required before public launch.</summary>

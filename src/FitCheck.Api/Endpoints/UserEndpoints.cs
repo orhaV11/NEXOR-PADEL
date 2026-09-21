@@ -9,7 +9,12 @@ namespace FitCheck.Api.Endpoints;
 
 public static class UserEndpoints
 {
-    public const int MaxInterests = 8;
+    /// <summary>
+    /// At most one of each. The list is read into distinct values below, so the ceiling is simply how many words there
+    /// are: it was the literal 8 until Formal became the ninth, at which point "pick every style" stopped being
+    /// possible - the welcome screen and settings both offer the whole list and send exactly what was tapped.
+    /// </summary>
+    public static readonly int MaxInterests = Enum.GetValues<StyleIntent>().Length;
     public const long AvatarMaxBytes = 2 * 1024 * 1024;
 
     // Room for the multipart boundary and headers around the photo.
@@ -225,7 +230,7 @@ public static class UserEndpoints
             {
                 if (!TryParseName<StyleIntent>(entry, out var intent))
                 {
-                    return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.interests_invalid"));
+                    return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.interests_invalid", MaxInterests));
                 }
 
                 if (!interests.Contains(intent))
@@ -236,7 +241,7 @@ public static class UserEndpoints
 
             if (interests.Count > MaxInterests)
             {
-                return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.interests_invalid"));
+                return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.interests_invalid", MaxInterests));
             }
 
             // Canonical names in the order picked, so they come back the way the person chose them. An empty list clears them.

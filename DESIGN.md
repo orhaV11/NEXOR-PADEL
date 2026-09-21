@@ -185,8 +185,12 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
 - **The story card** (`app/sharecard.js`): 1080×1920, the stage with the lilac glow, the photo cover-fitted in a 936×1170
   block with 48px corners, the score ring at r=160 straddling the photo's bottom-end corner (numeral Outfit 800 160,
   "/10" under it), the headline Outfit 700 64 on two lines max, the intent as a caps pill, name + @handle, a hairline,
-  the wordmark 52px tall at the start edge and "Checked on OREVOSH" at the end edge. Mirrored for RTL. Shown in a sheet
-  with Share (when files can be shared) and Save image.
+  the wordmark 52px tall at the start edge and "Checked on OREVOSH" at the end edge. Mirrored for RTL, and every
+  wrapped block (the headline, the before/after change, the film's tip) is drawn with ONE base direction — the
+  paragraph's, not the line's, the way `unicode-bidi: plaintext` reads it, since a canvas has no bidi of its own.
+  Shown in a sheet with Share (when files can be shared) and Save image — named "Download to Files" on an iPhone, where
+  a blob download lands in Files and never in Photos, and left out altogether inside the installed app, where Share can
+  take the file and there is no download manager to show a download for.
 - **Moderation** (`views/admin.js`): the queue as compact look cards (or the comment text with its author row), a meta line
   with the report count, the reasons as small chips, Hidden/Suspended tags, and an action row of outlined pills; Delete
   and Suspend confirm in a danger sheet. Reached from Settings, only for `isAdmin`.

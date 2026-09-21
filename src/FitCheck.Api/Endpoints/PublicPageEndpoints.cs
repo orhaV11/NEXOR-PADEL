@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
@@ -28,12 +29,14 @@ namespace FitCheck.Api.Endpoints;
 /// <para>
 /// Every arrival is tallied per day in <see cref="Counter"/> rows (<c>arrivals:look:yyyyMMdd</c>,
 /// <c>arrivals:look:share:yyyyMMdd</c> for a <c>?via=share</c>, <c>arrivals:profile:yyyyMMdd</c>), so the numbers page
-/// can see the loop turn. No cookie is set and nothing third-party is asked for: the page is one HTML document, the
+/// can see the loop turn. An invite the link carried (<c>?via=&lt;handle&gt;</c>) is put back on every way from these
+/// pages into the app — see <see cref="ViaQuery"/> — because the app reads it off its own address and these pages set
+/// no cookie. No cookie is set and nothing third-party is asked for: the page is one HTML document, the
 /// photo, the wordmark and the brand's own faces as the system has them. The direction and the language are the look's,
 /// not the reader's: the stylist wrote those words in that language and they are never re-displayed in another.
 /// </para>
 /// </summary>
-public static class PublicPageEndpoints
+public static partial class PublicPageEndpoints
 {
     /// <summary>The look page's path, without the id: <c>{origin}/look/{id}</c> is the address a share carries.</summary>
     public const string LookPath = "/look";
@@ -97,6 +100,40 @@ public static class PublicPageEndpoints
         return $"{request.Scheme}://{request.Host}";
     }
 
+    // The shape a handle has: the same one AuthEndpoints accepts and Funnel's middleware counts on. Anything else in
+    // ?via is somebody's noise and is carried nowhere. A copy rather than a reach across into Services, so this file
+    // stands on its own; it must never be looser than that one.
+    [GeneratedRegex(@"^[\p{L}\p{N}_.]{2,40}$")]
+    private static partial Regex HandleRegex();
+
+    /// <summary>
+    /// The invite this page was reached with, ready to hang back on a link into the app: <c>"?via=&lt;handle&gt;"</c>,
+    /// or <c>""</c> when the query carries none, carries the share marker rather than a person, or carries something
+    /// that is not a handle.
+    /// <para>
+    /// This is the handoff the growth loop turns on. A signed-in share builds <c>/look/{id}?via={handle}</c>, but the
+    /// app reads <c>?via</c> off its OWN address and nowhere else (wwwroot/app/invite.js, once on import) and this page
+    /// sets no cookie — so a link out of here that drops the query loses the invite for good, and neither side ever
+    /// gets the extra check the invite promises. The landing page already does this for its own links
+    /// (wwwroot/landing/via.js); these pages are the other half.
+    /// </para>
+    /// <para>
+    /// The query goes BEFORE the hash on the "open in the app" links, so <c>location.search</c> sees it.
+    /// <see cref="Page"/> is already <c>no-cache</c> and every cache keys on the full URL including the query, so a
+    /// page carrying a via cannot poison a page without one.
+    /// </para>
+    /// </summary>
+    private static string ViaQuery(HttpRequest request)
+    {
+        var via = request.Query["via"].ToString().Trim();
+        if (via.Length == 0 || string.Equals(via, ViaShare, StringComparison.OrdinalIgnoreCase) || !HandleRegex().IsMatch(via))
+        {
+            return "";
+        }
+
+        return "?via=" + Uri.EscapeDataString(via);
+    }
+
     // ---------- the look ----------
 
     private static async Task<IResult> LookPageAsync(Guid id, HttpContext context, AppDbContext db, Localizer localizer, IConfiguration configuration, CancellationToken ct)
@@ -117,6 +154,9 @@ public static class PublicPageEndpoints
 
         var language = Localizer.IsSupported(look.Language) ? look.Language : Localizer.DefaultLocale;
         var origin = Origin(context.Request, configuration);
+        // The invite this share carried, kept on every way into the app below (see ViaQuery). Never on the canonical
+        // URL or og:url: those are the address of the look itself, the same one for everybody who is sent it.
+        var via = ViaQuery(context.Request);
         var url = LookUrl(origin, look.PostId);
         var image = origin + ImagePath(look.PostId);
         var intent = localizer.Get(language, "public.intent." + look.Intent);
@@ -133,7 +173,7 @@ public static class PublicPageEndpoints
 
         var body = new StringBuilder();
         body.Append("<main class=\"look\">");
-        body.Append(Wordmark(origin));
+        body.Append(Wordmark(origin, via));
         // The photo on the page is the route on this origin, not the canonical one: a page reached on any host still
         // shows its look, while og:image stays absolute because a crawler has nothing to resolve a path against.
         body.Append("<figure class=\"photo\"><img src=\"").Append(ImagePath(look.PostId)).Append("\" alt=\"").Append(Esc(alt)).Append("\"></figure>");
@@ -154,8 +194,9 @@ public static class PublicPageEndpoints
         }
 
         body.Append("<div class=\"actions\">");
-        body.Append("<a class=\"btn\" href=\"").Append(Esc(origin)).Append("/\">").Append(Esc(localizer.Get(language, "public.check_yours"))).Append("</a>");
-        body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append("/#/post/").Append(look.PostId).Append("\">")
+        body.Append("<a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("\">")
+            .Append(Esc(localizer.Get(language, "public.check_yours"))).Append("</a>");
+        body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/post/").Append(look.PostId).Append("\">")
             .Append(Esc(localizer.Get(language, "public.open_app"))).Append("</a>");
         body.Append("</div>");
         body.Append("<p class=\"tagline\">").Append(Esc(localizer.Get(language, "public.tagline"))).Append("</p>");
@@ -211,6 +252,7 @@ public static class PublicPageEndpoints
 
         var language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
         var origin = Origin(context.Request, configuration);
+        var via = ViaQuery(context.Request);
         var url = ProfileUrl(origin, user.Handle);
         var looks = await db.Posts.AsNoTracking()
             .Where(p => p.UserId == user.Id && !p.Hidden)
@@ -227,7 +269,7 @@ public static class PublicPageEndpoints
 
         var body = new StringBuilder();
         body.Append("<main class=\"profile\">");
-        body.Append(Wordmark(origin));
+        body.Append(Wordmark(origin, via));
         body.Append("<h1>").Append(Esc(name)).Append("</h1>");
         body.Append("<p class=\"handle\" dir=\"ltr\">@").Append(Esc(user.Handle)).Append("</p>");
         if (!string.IsNullOrWhiteSpace(user.Bio))
@@ -259,9 +301,10 @@ public static class PublicPageEndpoints
             body.Append("</ul>");
         }
 
-        body.Append("<div class=\"actions\"><a class=\"btn\" href=\"").Append(Esc(origin)).Append("/\">")
+        body.Append("<div class=\"actions\"><a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("\">")
             .Append(Esc(localizer.Get(language, "public.check_yours"))).Append("</a>");
-        body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append("/#/u/").Append(Esc(Uri.EscapeDataString(user.Handle))).Append("\">")
+        body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/u/")
+            .Append(Esc(Uri.EscapeDataString(user.Handle))).Append("\">")
             .Append(Esc(localizer.Get(language, "public.open_app"))).Append("</a></div>");
         body.Append("<p class=\"tagline\">").Append(Esc(localizer.Get(language, "public.tagline"))).Append("</p>");
         body.Append("</main>");
@@ -463,9 +506,12 @@ public static class PublicPageEndpoints
         return Page(context, new PageHead(language, title, text, null, null, null, Index: false, OgType: "website"), body);
     }
 
-    /// <summary>The wordmark, as an image from this origin: a logo, never mirrored, and the way back to the app.</summary>
-    private static string Wordmark(string origin) =>
-        "<a class=\"wordmark\" href=\"" + Esc(origin.Length > 0 ? origin + "/" : "/") + "\" aria-label=\"OREVOSH\">"
+    /// <summary>
+    /// The wordmark, as an image from this origin: a logo, never mirrored, and the way back to the app. It is a way in
+    /// like the buttons below it, so it carries the same invite (<paramref name="via"/>, "" on a page that has none).
+    /// </summary>
+    private static string Wordmark(string origin, string via = "") =>
+        "<a class=\"wordmark\" href=\"" + Esc(origin.Length > 0 ? origin + "/" : "/") + Esc(via) + "\" aria-label=\"OREVOSH\">"
         + "<img src=\"/brand/wordmark.svg\" alt=\"OREVOSH\" width=\"1626\" height=\"350\"></a>";
 
     /// <summary>

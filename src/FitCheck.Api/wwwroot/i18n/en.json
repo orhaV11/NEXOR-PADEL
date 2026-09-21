@@ -1045,5 +1045,10 @@
   "intent.Formal": "Formal",
   "loading.resumed": "Looking for the check you started…",
   "check.resume_missing": "We couldn't find the check you started. Add the photo again and the stylist will look.",
-  "error.image_heic": "This browser can’t open HEIC photos. Set your camera’s format to JPEG (most compatible) and take the photo again."
+  "error.image_heic": "This browser can’t open HEIC photos. Set your camera’s format to JPEG (most compatible) and take the photo again.",
+  "sharecard.save_ios": "Download to Files",
+  "sharecard.saved_ios": "iPhone saves this to Files, not Photos.",
+  "video.save_ios": "Download to Files",
+  "video.saved_ios": "iPhone saves this to Files, not Photos.",
+  "video.ios_files_hint": "There's no file share sheet here, so this downloads to Files. Open it in Files and share it from there to keep it in Photos."
 }

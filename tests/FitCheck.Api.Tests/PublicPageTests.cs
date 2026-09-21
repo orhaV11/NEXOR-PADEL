@@ -288,4 +288,82 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.Equal($"https://looks.test/look/{postId}", Meta(html, "property", "og:url"));
         Assert.Equal($"https://looks.test/look/{postId}/image", Meta(html, "property", "og:image"));
     }
+
+    // ---------- the invite's handoff from a shared page into the app (share/invite) ----------
+    //
+    // A signed-in share builds /look/{id}?via={handle}. The app reads ?via off its OWN address and these pages set no
+    // cookie, so every way from here into the app has to carry the query on or the invite dies at the door — which is
+    // the whole growth loop, since neither side gets the extra check and the counter never moves. The landing page's
+    // own script does the same for its links (wwwroot/landing/via.js).
+
+    /// <summary>Every way into the app from a shared look keeps the invite, with the query before the hash.</summary>
+    [Fact]
+    public async Task A_shared_looks_ways_into_the_app_carry_the_invite_on()
+    {
+        var (postId, _) = await PostedLookAsync();
+
+        var html = await Anonymous().GetStringAsync($"/look/{postId}?via=hannah");
+
+        Assert.Contains("href=\"http://localhost/?via=hannah\"", html);                     // "Check yours"
+        Assert.Contains($"href=\"http://localhost/?via=hannah#/post/{postId}\"", html);     // "Open in OREVOSH"
+        Assert.Contains("class=\"wordmark\" href=\"http://localhost/?via=hannah\"", html);  // and the way back at the top
+        // Not on the look's own address: the canonical and the unfurl are the same for everyone who is sent the link.
+        Assert.Equal($"http://localhost/look/{postId}", Meta(html, "property", "og:url"));
+        Assert.DoesNotContain("via=hannah", Meta(html, "property", "og:url")!);
+    }
+
+    /// <summary>A profile page is a share too, and hands the invite on the same way.</summary>
+    [Fact]
+    public async Task A_shared_profiles_ways_into_the_app_carry_the_invite_on()
+    {
+        var (_, handle) = await PostedLookAsync("profilevia");
+
+        var html = await Anonymous().GetStringAsync($"/u/{handle}?via=hannah");
+
+        Assert.Contains("href=\"http://localhost/?via=hannah\"", html);
+        Assert.Contains($"href=\"http://localhost/?via=hannah#/u/{handle}\"", html);
+        Assert.Equal($"http://localhost/u/{handle}", Meta(html, "property", "og:url"));
+    }
+
+    /// <summary>The share marker is not a person, and noise is not a handle: neither is carried anywhere.</summary>
+    [Theory]
+    [InlineData("share")]
+    [InlineData("SHARE")]
+    [InlineData("a")]
+    [InlineData("has a space")]
+    [InlineData("nope!")]
+    [InlineData("")]
+    public async Task Only_a_handle_is_carried_on_never_the_share_marker_and_never_noise(string via)
+    {
+        var (postId, _) = await PostedLookAsync("vianoise");
+
+        var html = await Anonymous().GetStringAsync($"/look/{postId}?via={Uri.EscapeDataString(via)}");
+
+        Assert.Contains("href=\"http://localhost/\"", html);
+        Assert.DoesNotContain("?via=", html);
+    }
+
+    /// <summary>A handle in someone's own script is escaped once, on the way onto the link.</summary>
+    [Fact]
+    public async Task A_handle_that_is_not_ascii_is_escaped_onto_the_link()
+    {
+        var (postId, _) = await PostedLookAsync("viaescape");
+
+        var html = await Anonymous().GetStringAsync($"/look/{postId}?via={Uri.EscapeDataString("נועה")}");
+
+        Assert.Contains("href=\"http://localhost/?via=%D7%A0%D7%95%D7%A2%D7%94\"", html);
+        Assert.DoesNotContain("נועה", html);
+    }
+
+    /// <summary>The page a via was carried on is still no-cache, so nothing serves it to somebody else's arrival.</summary>
+    [Fact]
+    public async Task A_page_carrying_an_invite_is_not_cached()
+    {
+        var (postId, _) = await PostedLookAsync("viacache");
+
+        var response = await Anonymous().GetAsync($"/look/{postId}?via=hannah");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("no-cache", response.Headers.CacheControl?.ToString() ?? "");
+    }
 }

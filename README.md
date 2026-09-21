@@ -891,9 +891,17 @@ Every arrival is a day tally: `arrivals:look:yyyyMMdd`, `arrivals:look:share:yyy
 
 **The share lands there.** The story card's colophon and the share video's end card name the look's public address
 (`orevosh.app/look/…`, the host from `/api/config` `publicOrigin`) once the check has been posted; with no public
-origin configured they stay as they were — the wordmark alone, never a guess from the page's own address. On a look,
-*Copy link* opens the share sheet (or the clipboard) with that address, carrying the sharer's own `?via` when they are
-signed in, so a look that travels is also an invite.
+origin configured they fall back to the address this browser reached the app at, but only when that address is a real
+`https` one somebody else could open — behind a quick tunnel that is the only address there is. A `localhost`, a LAN
+name (`*.local`, `*.internal`, a name with no dot) or a bare IP prints nothing at all, as before: a card travels, and
+such a line on somebody's story would be a lie. On a look, *Copy link* opens the share sheet (or the clipboard) with
+that address, carrying the sharer's own `?via` when they are signed in, so a look that travels is also an invite.
+
+**And the invite survives the link.** A share carries `/look/{id}?via=<handle>`, and both public pages hang that same
+`?via` back on every way into the app — *Check yours*, *Open in OREVOSH* and the wordmark — with the query before the
+hash, since the app reads `?via` off its own address and these pages set no cookie. The value is validated as a handle
+first (`?via=share` is the share loop's own marker, never a person) and escaped once. Every one of those arrivals is a
+day tally of its own, on the page and again on the hop into the app.
 
 **Invite a friend.** Settings carries *Invite friends*: the person's link (`/?via=<handle>`), a copy button and the
 share sheet. The shell and the landing pages read `?via` and keep the handle in `localStorage` (try/catch: private mode

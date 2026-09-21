@@ -24,10 +24,10 @@
 // renders; the screen draws it only while the still this result was judged on is at hand, so a past check opened from
 // "Your checks" has no #share-video); openShareVideo(look) is the sheet (#sv-progress while it renders, then #sv-video with
 // #sv-share / #sv-save); renderShareVideo(look, { onProgress, signal }) is the pure rendering call the browser test drives.
-import { t, el, icon, sheet, toast, state, api, getLocale, fmtNumber, fmtPercent, isIos } from './core.js';
+import { t, el, icon, sheet, toast, state, api, getLocale, fmtNumber, fmtPercent, isIos, isStandalone } from './core.js';
 import {
-  COLOR, DISPLAY, BODY, strongDir, loadFonts, loadImage, roundedRect, theGradient, fit, wrap, text, drawStage, coverImage,
-  openShareCard, publicLinkLine
+  COLOR, DISPLAY, BODY, strongDir, paragraphDir, loadFonts, loadImage, roundedRect, theGradient, fit, wrap, text, drawStage,
+  coverImage, openShareCard, publicLinkLine, shareableOrigin
 } from './sharecard.js';
 
 // ---------- the film ----------
@@ -84,13 +84,12 @@ async function stringsFor(lang) {
 }
 
 /**
- * The host in /api/config's publicOrigin (Email:PublicOrigin, else Billing:PublicOrigin) and nothing else; '' when the
- * server publishes none, never a guess from the page's own address. Round 13: the end card names publicLinkLine(look)
- * instead, which is this host with the posted look's page on it; this stays as the host on its own.
+ * The host a film may name, on its own: shareableOrigin()'s (app/sharecard.js — the configured public origin, else this
+ * browser's own address when it is a real https one), and '' when there is none. Round 13: the end card names
+ * publicLinkLine(look) instead, which is this host with the posted look's page on it; this stays as the host on its own.
  */
 export function publicHost() {
-  const configured = state.config && state.config.publicOrigin;
-  const origin = typeof configured === 'string' ? configured.trim() : '';
+  const origin = shareableOrigin();
   if (!origin) return '';
   try { return new URL(origin).host; } catch (e) { return ''; }
 }
@@ -102,8 +101,10 @@ export function videoLookFromCheck(result, imageUrl) {
   return {
     checkId: result.id, imageUrl, score: feedback.score, intent: result.intent, headline: feedback.headline,
     breakdown: feedback.breakdown || null, tip: feedback.oneTip || '', language: result.language || getLocale(), user: me,
-    // Round 13 - the growth loop: the end card names the look's public address once the check has been posted.
-    postId: state.resultPostId || result.postId || null
+    // Round 13 - the growth loop: the end card names the look's public address once the check has been posted. Read
+    // when the film is PLANNED, not when the button is made: the result screen builds its share row once, before the
+    // look is posted, so a snapshot here is null for anyone who posts and then taps Share as video (see lookFromCheck).
+    get postId() { return state.resultPostId || result.postId || null; }
   };
 }
 /** The same look for the PNG card (the fallback when the browser cannot make video). */
@@ -135,6 +136,9 @@ function planFilm(look, s, photo, wordmark) {
     if (lines.length <= 5) break;
   }
   tip.lineH = Math.round(tip.size * 1.22);
+  // One direction for the whole tip, measured once with its lines: a base direction belongs to the paragraph, not to
+  // the line that happened to start with a Latin word (app/sharecard.js, paragraphDir).
+  tip.dir = paragraphDir(tip.lines, dir);
   tip.labelBaseline = 90;
   tip.firstBaseline = tip.labelBaseline + 40 + Math.round(tip.size * 0.85);
   card.h = tip.firstBaseline + (tip.lines.length - 1) * tip.lineH + 68;
@@ -295,7 +299,7 @@ function drawTip(ctx, time, plan) {
   ctx.fill();
   text(ctx, fit(ctx, plan.tipLabel, card.w - 68 - 200), card.textX, card.y + tip.labelBaseline, { font: '700 ' + (rtl ? 32 : 28) + 'px ' + BODY, color: COLOR.accent, dir: plan.dir, tracking: rtl ? '0.6px' : '2.5px' });
   tip.lines.forEach((line, i) => text(ctx, line, card.textX, card.y + tip.firstBaseline + i * tip.lineH, {
-    font: '700 ' + tip.size + 'px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: strongDir(line) || plan.dir, tracking: '-0.5px'
+    font: '700 ' + tip.size + 'px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: tip.dir, tracking: '-0.5px'
   }));
   ctx.restore();
 }
@@ -540,7 +544,11 @@ const CSS = `
 .sv-fill { block-size: 100%; inline-size: 0%; border-radius: var(--pill); background: var(--grad); transition: inline-size 120ms linear; }
 .sv-making .btn-ghost { min-block-size: 44px; }
 .sv-stage { display: grid; place-items: center; }
-.sv-stage video { max-block-size: 55vh; max-inline-size: 100%; border-radius: 12px; background: #000; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+/* The stage is capped against the SMALL viewport: vh on iOS Safari is the LARGE one, toolbars collapsed, about 90px
+   taller than what the person can actually see, and .sheet is capped in dvh — so a preview sized in vh filled the sheet
+   and pushed Share and Save under the fold. The vh value stays in front of the dvh one, so an engine that does not know
+   dvh keeps a cap rather than dropping the declaration entirely. */
+.sv-stage video { max-block-size: 40vh; max-block-size: 40dvh; max-inline-size: 100%; border-radius: 12px; background: #000; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
 .sv-actions { display: flex; flex-direction: column; gap: 10px; }
 `;
 let styled = false;
@@ -555,8 +563,10 @@ const canShareFile = (file) => !!(navigator.share && navigator.canShare && navig
 
 /**
  * Makes the video in a sheet (a progress bar and Cancel), then shows it with Share (the system share sheet with the file,
- * when the browser can share files) and Save (a download). Without a VideoEncoder, or with none that takes 1080×1920, the
- * PNG share card opens instead, after a one-line toast. Resolves once the video is made, failed or cancelled.
+ * when the browser can share files) and Save (a download — named for Files on an iPhone, where a blob download actually
+ * goes, and dropped inside an installed iOS app where there is no download manager and Share can take the file
+ * instead). Without a VideoEncoder, or with none that takes 1080×1920, the PNG share card opens instead, after a
+ * one-line toast. Resolves once the video is made, failed or cancelled.
  */
 export async function openShareVideo(look, opts) {
   // Round 14 - before and after: opts lets the pair's film use this sheet as it is — { render(look, o) } makes another
@@ -622,11 +632,22 @@ export async function openShareVideo(look, opts) {
       catch (e) { if (!(e && (e.name === 'AbortError' || e.name === 'InvalidStateError'))) toast(t('video.error')); }
       finally { state.sharing = false; }
     } }, [icon('share'), t('video.share')]) : null;
-    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name, onclick: () => { count(); if (!isIos()) toast(t('video.saved')); } }, [icon('clip'), t('video.save')]);
+    // Save, named for where it goes. An <a download> of a blob lands in Files on an iPhone and never in Photos, which
+    // is where someone who tapped "Save video" looks — so on iOS the button and the toast say Files, and the hint says
+    // how to reach Photos. Inside an installed iOS app there is no download manager at all, so where Share can take
+    // the file the anchor is dropped rather than left looking live; where it cannot, it is the only thing there is and
+    // it stays, with the Files wording.
+    const ios = isIos();
+    const save = ios && share && isStandalone() ? null : el('a', {
+      class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sv-save', href: objectUrl, download: file.name,
+      onclick: () => { count(); toast(t(ios ? 'video.saved_ios' : 'video.saved')); }
+    }, [icon('clip'), t(ios ? 'video.save_ios' : 'video.save')]);
     // Round 14: the pair's film is not the single look's, so it says what it actually is (opts.hint).
     const hints = [opts.hint || t('video.hint')];
     if (result.ext === 'webm') hints.push(t('video.webm_hint'));
-    if (isIos() && share) hints.push(t('video.ios_hint'));
+    // On iOS: Share is the route to Photos when there is one, and when there is not, the download is going to Files and
+    // the person deserves to be told rather than left with a button that seems to do nothing.
+    if (ios) hints.push(t(share ? 'video.ios_hint' : 'video.ios_files_hint'));
     content.replaceChildren(
       // The data attributes are the browser test's window on the render: which rung of the ladder ran, at what rate, how big, how slow.
       el('div', { class: 'sv-stage' }, [el('video', {
@@ -717,6 +738,8 @@ function planPair(pair, s, before, after, wordmark) {
     if (lines.length <= 2) break;
   }
   change.lineH = Math.round(change.size * 1.22);
+  // One direction for the whole block, as the tip has: see paragraphDir in app/sharecard.js.
+  change.dir = paragraphDir(change.lines, dir);
   change.y = TWO.y + TWO.h + 150;
   change.h = change.lines.length ? 104 + (change.lines.length - 1) * change.lineH + 56 : 0;
 
@@ -837,7 +860,7 @@ function drawPairTogether(ctx, plan, time) {
       font: '700 ' + (rtl ? 30 : 26) + 'px ' + BODY, color: COLOR.accent, dir: plan.dir, tracking: rtl ? '0.6px' : '2.5px'
     });
     change.lines.forEach((line, i) => text(ctx, line, textX, change.y + 104 + 30 + i * change.lineH, {
-      font: '700 ' + change.size + 'px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: strongDir(line) || plan.dir, tracking: '-0.5px'
+      font: '700 ' + change.size + 'px ' + DISPLAY, color: COLOR.ink, dir: plan.dir, textDir: change.dir, tracking: '-0.5px'
     }));
     ctx.restore();
   }

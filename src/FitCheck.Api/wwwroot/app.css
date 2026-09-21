@@ -778,14 +778,6 @@ body.sheet-open { overflow: hidden; }
 .install .text span { color: var(--ink-3); font-size: 13px; }
 
 /* ---------- rules the view files' small inline style blocks still fight (drop these when those blocks move here) ---------- */
-/* The share card and the share video are the two sheets whose content can outgrow the sheet. Their stages size
-   themselves in vh — the LARGE viewport on iOS Safari, toolbars collapsed, which is about 90px taller than what the
-   person can see with the URL bar showing — while .sheet is capped in dvh, what is actually on screen. The preview
-   then filled the sheet and pushed Share and Save under the fold. Capped here in dvh (with the vh value first, so an
-   engine without dvh keeps a cap rather than losing the declaration), the whole sheet fits with both buttons visible;
-   these belong in sharecard.js/sharevideo.js's own style blocks the next time those files are opened. */
-.sheet .sc-stage img { max-block-size: 42vh; max-block-size: 42dvh; }
-.sheet .sv-stage video { max-block-size: 40vh; max-block-size: 40dvh; }
 .view .w-step h2 { font: 800 20px/1.15 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--ink); }
 .view .w-step h2::after { display: none; }
 .challenge-card .thumbs a { border-radius: 8px; }

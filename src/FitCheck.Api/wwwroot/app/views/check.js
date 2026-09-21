@@ -133,7 +133,9 @@ async function resumeInterrupted(root, ctx) {
   let found = null;
   let answered = false;
   const within = Math.ceil(pending.waited / 1000) + 30;   // the wait, plus a little for the seconds this call takes
-  try { found = await api('GET', '/api/checks/latest?withinSeconds=' + within, null, 20000); answered = true; }
+  // undefined, never null: api() sends anything that is not undefined as a JSON body, and a GET with a body is refused
+  // by fetch itself - which would arrive here as "no answer" and keep a marker whose check is sitting there, answered.
+  try { found = await api('GET', '/api/checks/latest?withinSeconds=' + within, undefined, 20000); answered = true; }
   catch (e) { answered = !!(e && e.status); }             // a 404 is an answer ("nothing landed"); a dead connection is not
   if (ctx && ctx.stale()) return;
   if (answered) clearInterruptedCheck();

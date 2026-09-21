@@ -740,3 +740,25 @@ public sealed record WardrobeMetricsDto(
     int Reasons,
     double? DontOwnRate,
     int ToStylistOff);
+
+// ---- Round 16: the affiliate line ----
+
+/// <summary>Taps that left for one store in the last 30 days, and whether that store earns anything.</summary>
+public sealed record AffiliateClicksDto(string Host, bool Earning, int Clicks);
+
+/// <summary>Money one store reported in one currency in one state. Expected and confirmed are never summed together.</summary>
+public sealed record AffiliateMoneyDto(string Host, string Currency, string State, decimal Amount, int Count);
+
+/// <summary>
+/// Clicks is every tap that left in the last 30 days; Earning is how many of those went to a store with a programme
+/// configured. The two being far apart is the finding: the rest of the taps are traffic given away for nothing.
+/// </summary>
+public sealed record AffiliateDto(int Clicks, int Earning, List<AffiliateClicksDto> Stores, List<AffiliateMoneyDto> Money);
+
+/// <summary>One row of a partner's report. OccurredAt is when the SALE happened, not when it was imported.</summary>
+public sealed record CommissionRowDto(string? Host, string? ExternalId, decimal Amount, string? Currency, string? State, DateTime OccurredAt, Guid? ItemId = null);
+
+public sealed record CommissionImportRequest(List<CommissionRowDto>? Rows);
+
+public sealed record CommissionImportDto(int Written);
+

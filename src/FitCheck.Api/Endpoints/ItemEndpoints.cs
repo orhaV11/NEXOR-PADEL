@@ -248,12 +248,30 @@ public static class ItemEndpoints
         }
 
         var url = item.Url!.Trim();
-        var target = PostItems.OutUrl(url, affiliate.Value.ParametersFor(new Uri(url, UriKind.Absolute).Host));
+        var host = new Uri(url, UriKind.Absolute).Host;
+        var parameters = affiliate.Value.ParametersFor(host);
+        var target = PostItems.OutUrl(url, parameters);
         // The header first: Kestrel refuses a value it cannot send, and a refusal must not be counted as a tap that left.
         context.Response.Headers.Location = target;
         context.Response.Headers["Referrer-Policy"] = "no-referrer";
         context.Response.Headers.CacheControl = "no-store";
         await Counters.IncrementAsync(db, CounterName.ItemOuts, ct);
+
+        // Round 16 - the row the single tally could never be. Which store, which look, whose look, and whether a
+        // programme was configured at the moment of the tap: a partner's report is reconciled on the store and the
+        // day, and "which looks earn" is a question about the look. No viewer is recorded, here or anywhere: who
+        // tapped is not needed to reconcile a commission, and a row naming a person browsing shops should not exist.
+        db.ItemClicks.Add(new ItemClick
+        {
+            Id = Guid.NewGuid(),
+            ItemId = id,
+            PostId = item.PostId,
+            OwnerId = await db.Posts.Where(p => p.Id == item.PostId).Select(p => (Guid?)p.UserId).FirstOrDefaultAsync(ct),
+            Host = Affiliates.NormaliseHost(host),
+            Earning = !string.IsNullOrWhiteSpace(parameters),
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync(ct);
         return Results.Redirect(target);
     }
 

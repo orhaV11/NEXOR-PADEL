@@ -42,6 +42,9 @@ public static class AdminEndpoints
         group.MapDelete("/comments/{id:guid}", DeleteCommentAsync);
         group.MapPost("/users/{handle}/suspend", SuspendAsync);
         group.MapPost("/users/{handle}/unsuspend", UnsuspendAsync);
+        // Round 16 - the affiliate line: what left for a shop, and what a partner says it earned.
+        group.MapGet("/affiliate", AffiliateAsync);
+        group.MapPost("/affiliate/commissions", ImportCommissionsAsync);
         return app;
     }
 
@@ -412,4 +415,81 @@ public static class AdminEndpoints
             return new AdminUserDto(PostReader.Ref(u), u.Suspended, p?.Count ?? 0, (p?.Reports ?? 0) + (c?.Reports ?? 0), DateTime.SpecifyKind(u.CreatedAt, DateTimeKind.Utc));
         }).ToList();
     }
+
+    // ---------- Round 16 - the affiliate line ----------
+
+    /// <summary>
+    /// What the shops sent us and what they say it earned. Clicks by store and by day, and money in its three states,
+    /// each currency on its own line because a partner reports in its own and nothing here converts.
+    /// <para>
+    /// Expected and confirmed are never added together. Expected money is a sale inside its return window; treating it
+    /// as income is how a business spends what it does not have, so the page keeps them apart and so does this.
+    /// </para>
+    /// </summary>
+    private static async Task<IResult> AffiliateAsync(AppDbContext db, IClock clock, CancellationToken ct)
+    {
+        var now = clock.UtcNow;
+        var since = now.AddDays(-30);
+
+        // Grouped into anonymous shapes and mapped after: EF cannot translate a record constructor inside a GroupBy,
+        // and the counts here are small enough that the mapping is free.
+        var clicks = (await db.ItemClicks.Where(c => c.CreatedAt >= since)
+                .GroupBy(c => new { c.Host, c.Earning })
+                .Select(g => new { g.Key.Host, g.Key.Earning, Clicks = g.Count() })
+                .OrderByDescending(row => row.Clicks)
+                .Take(50)
+                .ToListAsync(ct))
+            .Select(row => new AffiliateClicksDto(row.Host, row.Earning, row.Clicks))
+            .ToList();
+
+        var money = (await db.Commissions.Where(c => c.OccurredAt >= since)
+                .GroupBy(c => new { c.Host, c.Currency, c.State })
+                .Select(g => new { g.Key.Host, g.Key.Currency, g.Key.State, Amount = g.Sum(c => c.AmountMinor), Count = g.Count() })
+                .OrderByDescending(row => row.Amount)
+                .Take(50)
+                .ToListAsync(ct))
+            .Select(row => new AffiliateMoneyDto(row.Host, row.Currency, row.State, row.Amount / 100m, row.Count))
+            .ToList();
+
+        // The number that says whether any of this is switched on at all: clicks that could never have earned.
+        var total = await db.ItemClicks.CountAsync(c => c.CreatedAt >= since, ct);
+        var earning = await db.ItemClicks.CountAsync(c => c.CreatedAt >= since && c.Earning, ct);
+        return Results.Json(new AffiliateDto(total, earning, clicks, money), AppJson.Options);
+    }
+
+    /// <summary>
+    /// Import what a partner reported. Idempotent by (host, external id): the same sale arriving again — which is the
+    /// normal way a commission moves from expected to confirmed — updates its row rather than adding a second one.
+    /// A report is a file of rows and arrives in one call, so the answer says how many were written.
+    /// </summary>
+    private static async Task<IResult> ImportCommissionsAsync(
+        CommissionImportRequest body, AppDbContext db, Localizer localizer, IClock clock, HttpContext context, CancellationToken ct)
+    {
+        var language = Localizer.Resolve(null, context.Request);
+        var rows = body.Rows ?? [];
+        if (rows.Count == 0 || rows.Count > MaxCommissionRows)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.commissions_batch", MaxCommissionRows));
+        }
+
+        var now = clock.UtcNow;
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.Host) || string.IsNullOrWhiteSpace(row.ExternalId)
+                || string.IsNullOrWhiteSpace(row.Currency) || row.Currency.Trim().Length != 3
+                || !CommissionState.IsKnown(row.State))
+            {
+                return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.commission_row", row.ExternalId ?? ""));
+            }
+
+            await Affiliates.RecordAsync(db, row.Host, row.ExternalId, row.Amount, row.Currency, row.State!,
+                row.OccurredAt == default ? now : row.OccurredAt, row.ItemId, now, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.Json(new CommissionImportDto(rows.Count), AppJson.Options);
+    }
+
+    /// <summary>One partner report in one call; more than this is a file to split, not a request to make bigger.</summary>
+    public const int MaxCommissionRows = 500;
 }

@@ -37,6 +37,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Services.WardrobeAppearance> WardrobeAppearances => Set<Services.WardrobeAppearance>();
     public DbSet<Services.WardrobeSetting> WardrobeSettings => Set<Services.WardrobeSetting>();
 
+    // Round 16 - the affiliate line: every tap that left for a shop, and what a partner says it earned.
+    public DbSet<ItemClick> ItemClicks => Set<ItemClick>();
+    public DbSet<Commission> Commissions => Set<Commission>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AppUser>(user =>
@@ -121,6 +125,30 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             item.HasIndex(i => i.Category);
             item.HasIndex(i => new { i.PostId, i.Position });
             item.HasOne<Post>().WithMany().HasForeignKey(i => i.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ItemClick>(click =>
+        {
+            click.HasKey(c => c.Id);
+            click.Property(c => c.Host).HasMaxLength(120).IsRequired();
+            // The two questions this table exists to answer: what did a store send us, and which looks earn.
+            click.HasIndex(c => new { c.Host, c.CreatedAt });
+            click.HasIndex(c => new { c.PostId, c.CreatedAt });
+            click.HasIndex(c => c.CreatedAt);
+            // No foreign key to the item or the look on purpose: a click is a fact that happened, and deleting the look
+            // it happened on must not delete the money it earned or the record of what a partner will invoice us for.
+        });
+
+        modelBuilder.Entity<Commission>(commission =>
+        {
+            commission.HasKey(c => c.Id);
+            commission.Property(c => c.Host).HasMaxLength(120).IsRequired();
+            commission.Property(c => c.ExternalId).HasMaxLength(120).IsRequired();
+            commission.Property(c => c.Currency).HasMaxLength(3).IsRequired();
+            commission.Property(c => c.State).HasMaxLength(16).IsRequired();
+            // The one that stops a re-imported report doubling the revenue.
+            commission.HasIndex(c => new { c.Host, c.ExternalId }).IsUnique();
+            commission.HasIndex(c => new { c.State, c.OccurredAt });
         });
 
         modelBuilder.Entity<BoardExclusion>(exclusion =>

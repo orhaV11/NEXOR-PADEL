@@ -5,9 +5,9 @@
 // Round 13: /offline.html is precached and answers a navigation that has no network and no cached shell to fall back on
 // (a /landing/ page, or the app before its shell was ever cached): the brand, one line, retry. The four locale files stay
 // precached whether or not a language is live (Languages:Enabled): they are small, and enabling one needs no new shell.
-// Round 15, the three things a phone on a real network taught us: the offline page's own script (/offline.js) and the
-// font flip (/fonts.js) are precached beside the files they belong to; a 5xx from the edge gets our offline page
-// instead of Cloudflare's; and a cached shell stops waiting on a network that has gone quiet after SLOW_MS.
+// The phone pass: the offline page's own script (/offline.js) and the font flip (/fonts.js) are precached beside the
+// files they belong to; a 5xx from the edge gets our offline page instead of Cloudflare's; and a cached shell stops
+// waiting on a network that has gone quiet after SLOW_MS.
 const VERSION = 'orevosh-shell-v6';
 const OFFLINE = '/offline.html';
 const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/fonts.js', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json', OFFLINE, '/offline.js'];
@@ -31,7 +31,7 @@ self.addEventListener('activate', (event) => {
 // this server's own answer and it says something true, so it is passed through as it is.
 const edgeFailed = (response) => (response.status >= 500 ? caches.match(OFFLINE).then((page) => page || response) : response);
 /** A server-rendered document (a landing page, a look, a profile, the digest): the network, or our own page. */
-const document_ = (request) => fetch(request).then(edgeFailed).catch(() => caches.match(OFFLINE));
+const serverPage = (request) => fetch(request).then(edgeFailed).catch(() => caches.match(OFFLINE));
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -39,14 +39,14 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;               // live data and private photos: network only
   const isNavigation = event.request.mode === 'navigate';
   if (url.pathname.startsWith('/landing/')) {                 // the static landing pages are their own documents, not the shell:
-    if (isNavigation) event.respondWith(document_(event.request));
+    if (isNavigation) event.respondWith(serverPage(event.request));
     return;
   }
   // Round 13 — the growth loop: /look/<id>, /u/<handle> and the weekly mail's /digest/off/<token> are server-rendered
   // pages, each one a document of its own. Never the shell: a phone with the app installed must see the page a share
   // led it to, not the app's own index.html with an empty hash route.
   if (url.pathname.startsWith('/look/') || url.pathname.startsWith('/u/') || url.pathname.startsWith('/digest/')) {
-    if (isNavigation) event.respondWith(document_(event.request));
+    if (isNavigation) event.respondWith(serverPage(event.request));
     return;
   }
   const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || SHELL.includes(url.pathname);

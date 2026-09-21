@@ -243,7 +243,7 @@ main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
 }
 .pill.accent { background: var(--grad); border-color: transparent; color: var(--accent-ink); }
-select.pill { text-transform: none; font: 500 14px/1 var(--font-body); letter-spacing: 0; }
+select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-spacing: 0; }   /* 16 and not 14: iOS Safari zooms the page in on any input, select or textarea it focuses below 16px, and does not zoom back out */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding-block: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }   /* 40px chips in a 44px row */
 .chips.scroll::-webkit-scrollbar { display: none; }

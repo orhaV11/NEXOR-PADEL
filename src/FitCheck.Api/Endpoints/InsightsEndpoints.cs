@@ -27,6 +27,8 @@ public static class InsightsEndpoints
     public static IEndpointRouteBuilder MapInsightsEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/users/me/insights", GetAsync).RequireAuthorization();
+        // Round 16 - the month written back to the person. Pro's, and an ADDITION: nothing here was ever free.
+        app.MapGet("/api/users/me/recap", RecapAsync).RequireAuthorization();
         return app;
     }
 
@@ -169,6 +171,39 @@ public static class InsightsEndpoints
         {
             // A row from a build that stored something else: it still counts as a check, just without items.
             return null;
+        }
+    }
+
+    /// <summary>
+    /// This month's recap. Pro's, because it is a new thing given rather than an old thing fenced off. Null text with
+    /// a "needs" number when the month is too thin to say anything: an honest empty beats an invented paragraph.
+    /// </summary>
+    private static async Task<IResult> RecapAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, Recaps recaps, IClock clock, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var language = PostEndpoints.Language(context, me);
+        if (!Plans.IsPro(me, clock.UtcNow))
+        {
+            return UserEndpoints.Error(StatusCodes.Status403Forbidden, localizer.Get(language, "error.pro_required"));
+        }
+
+        try
+        {
+            var recap = await recaps.ForAsync(me, language, localizer, ct);
+            return Results.Json(recap is null
+                ? new RecapDto(null, 0, Recaps.MinChecks, null)
+                : new RecapDto(recap.Text, recap.Checks, Recaps.MinChecks, recap.Month), AppJson.Options);
+        }
+        catch (VisionClientException)
+        {
+            // The month is not urgent and the paragraph is not owed today: say so, keep no row, and let them ask again.
+            return UserEndpoints.Error(StatusCodes.Status502BadGateway, localizer.Get(language, "error.recap_failed"));
         }
     }
 }

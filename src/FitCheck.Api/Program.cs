@@ -287,6 +287,8 @@ builder.Services.AddScoped<PostReader>();
 builder.Services.AddScoped<Blocks>();
 // Round 14 — the loop: the taste profile, built from the account's own rows, read by the check route and the taste card.
 builder.Services.AddScoped<Taste>();
+// Round 16 - the month written back to the person (Pro): one text-only model call a month, kept in Recaps.
+builder.Services.AddScoped<Recaps>();
 // Mail: SMTP when Email:Host and Email:From are set, otherwise the log. Email:Host=log keeps mail "on" (links are minted
 // and the client offers recovery) while every message goes to the log instead of a server: local runs and the browser test.
 builder.Services.AddSingleton<IEmailSender>(provider =>

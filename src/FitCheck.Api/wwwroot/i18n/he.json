@@ -524,6 +524,8 @@
   "insights.best": "הכי גבוה",
   "insights.lines": "מה הן אומרות",
   "insights.based_on": "מ-{n} הבדיקות האחרונות שלך",
+  "recap.title": "החודש שלך",
+  "recap.based_on": "נכתב מ-{n} הבדיקות האחרונות שלך.",
   "insights.again": "לבדוק עוד לוק",
   "explore.looks_with": "לוקים עם {q}",
   "auth.dob": "תאריך לידה",

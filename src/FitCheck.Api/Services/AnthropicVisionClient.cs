@@ -146,6 +146,12 @@ public sealed class AnthropicVisionClient(
     /// </summary>
     private static object[] BuildContent(VisionRequest request)
     {
+        // No photograph: the text is the whole message. The recap reasons over numbers, not a picture.
+        if (!request.HasImage)
+        {
+            return [new { type = "text", text = request.UserText }];
+        }
+
         if (!request.HasSecondImage)
         {
             return

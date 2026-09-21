@@ -524,6 +524,8 @@
   "insights.best": "الأفضل",
   "insights.lines": "ما تقوله",
   "insights.based_on": "من آخر {n} تقييم لك",
+  "recap.title": "شهرك",
+  "recap.based_on": "مكتوب من آخر {n} تقييمات لك.",
   "insights.again": "تقييم إطلالة أخرى",
   "explore.looks_with": "إطلالات مع {q}",
   "auth.dob": "تاريخ الميلاد",

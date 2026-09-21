@@ -21,6 +21,13 @@ public sealed record VisionRequest(
 {
     /// <summary>True for a two-outfit request: a second image with its own media type rides along.</summary>
     public bool HasSecondImage => MediaType2 is not null && !ImageBytes2.IsEmpty;
+
+    /// <summary>
+    /// Round 16: false for a request that carries no photograph at all — the monthly recap, which reasons over numbers
+    /// this app computed rather than over a picture. A photograph is about 1,600 input tokens and four fifths of the
+    /// cost of an ordinary call, so leaving it out is most of why a recap is half a cent.
+    /// </summary>
+    public bool HasImage => !ImageBytes.IsEmpty;
 }
 
 /// <summary>

@@ -524,6 +524,8 @@
   "insights.best": "Best",
   "insights.lines": "What they say",
   "insights.based_on": "From your last {n} checks",
+  "recap.title": "Your month",
+  "recap.based_on": "Written from your last {n} checks.",
   "insights.again": "Check another look",
   "explore.looks_with": "Looks with {q}",
   "auth.dob": "Date of birth",

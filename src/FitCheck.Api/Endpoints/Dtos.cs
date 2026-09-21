@@ -402,6 +402,12 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
 public sealed record ComparisonDto(Guid Id, StyleIntent Intent, string? Occasion, string Language, DateTime CreatedAt, int LatencyMs, string Status, ComparisonFeedback? Feedback, string ImageUrlA, string ImageUrlB);
 
 /// <summary>What your checks say about you. Lines are ready sentences in your language; the numbers are for tiles.</summary>
+/// <summary>
+/// GET /api/users/me/recap. Text is null when the month was too thin to write about, and Needs says how many checks
+/// it takes — an honest empty rather than a paragraph nobody's month earned.
+/// </summary>
+public sealed record RecapDto(string? Text, int Checks, int Needs, DateTime? Month);
+
 public sealed record InsightsDto(int Checks, double? AvgScore, int? BestScore, string? BestIntent, string? WeakestCategory, double? WeakestShare, double? AccessoriesMissingShare, int Streak, List<string> Lines);
 
 /// <summary>The daily prompt: a hashtag, a title and a hint in the caller's language, and the looks posted with it today.</summary>

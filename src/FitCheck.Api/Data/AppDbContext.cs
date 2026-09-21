@@ -41,6 +41,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ItemClick> ItemClicks => Set<ItemClick>();
     public DbSet<Commission> Commissions => Set<Commission>();
 
+    // Round 16 - the month written back to the person, one per account per month per language.
+    public DbSet<Recap> Recaps => Set<Recap>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AppUser>(user =>
@@ -125,6 +128,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             item.HasIndex(i => i.Category);
             item.HasIndex(i => new { i.PostId, i.Position });
             item.HasOne<Post>().WithMany().HasForeignKey(i => i.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Recap>(recap =>
+        {
+            recap.HasKey(r => r.Id);
+            recap.Property(r => r.Language).HasMaxLength(8).IsRequired();
+            recap.Property(r => r.Text).HasMaxLength(2000).IsRequired();
+            // The uniqueness IS the cost control: one model call per account per month per language, and a second
+            // request in the same month reads the row instead of paying again.
+            recap.HasIndex(r => new { r.UserId, r.Month, r.Language }).IsUnique();
+            recap.HasOne<AppUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ItemClick>(click =>

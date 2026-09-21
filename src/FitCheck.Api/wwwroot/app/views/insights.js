@@ -39,7 +39,13 @@ function ensureStyle() {
     '.insights-lines .dot { flex: none; inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--grad); margin-block-start: 9px; }',
     '.insights-skel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }',
     '.insights-skel .skel { block-size: 116px; border-radius: var(--radius); }',
-    '.insights-foot { text-align: center; }'
+    '.insights-foot { text-align: center; }',
+    // The paragraph is the one thing on this page written for the person rather than measured about them, so it is
+    // set like prose: wider line height, its own tinted panel, and room around it.
+    '#insights-recap { background: var(--accent-tint); border-radius: var(--radius); padding: 16px 18px; }',
+    '#insights-recap h2 { margin-block-end: 8px; }',
+    '#insights-recap .recap-text { font-size: 16px; line-height: 1.6; color: var(--ink); }',
+    '#insights-recap .hint { margin-block-start: 8px; }'
   ].join('\n') }));
 }
 
@@ -69,6 +75,25 @@ function lineList(lines) {
     el('span', { class: 'dot', 'aria-hidden': 'true' }),
     el('span', { dir: 'auto', text: line })
   ])));
+}
+
+/**
+ * The month written back to the person: one paragraph, Pro's. Everything that can go wrong here is quiet on purpose —
+ * a free account (403), a month too thin to write about, or a model that did not answer — because this sits above a
+ * page that is already worth reading, and an error box over it would cost more than the paragraph is worth.
+ */
+async function paintRecap(section, ctx) {
+  let recap;
+  try { recap = await api('GET', '/api/users/me/recap'); }
+  catch (e) { return; }
+  if (ctx.stale() || !recap || !recap.text) return;
+
+  section.replaceChildren(
+    el('h2', { text: t('recap.title') }),
+    el('p', { class: 'recap-text', dir: 'auto', text: recap.text }),
+    el('p', { class: 'hint', text: t('recap.based_on', { n: fmtNumber(recap.checks) }) })
+  );
+  section.hidden = false;
 }
 
 const checkAnother = () => el('a', { class: 'btn', id: 'insights-again', href: '#/check', text: t('insights.again') });
@@ -104,10 +129,17 @@ register('insights', async (root, params, ctx) => {
     return;
   }
 
+  const recap = el('section', { id: 'insights-recap', hidden: true });
   root.appendChild(el('div', { class: 'stack', id: 'insights-body' }, [
+    recap,
     tiles(data),
     el('section', {}, [el('h2', { text: t('insights.lines') }), lineList(lines)]),
     el('p', { class: 'hint insights-foot', text: t('insights.based_on', { n: fmtNumber(data.checks) }) }),
     checkAnother()
   ]));
+
+  // Round 16 — the month in words, which is Pro's. Fetched after the numbers and never in front of them: the tiles
+  // are instant and this one waits on a model, so blocking the page on it would make the whole page feel slow.
+  // A free account is answered 403 and simply sees no block — nothing here was ever theirs to lose.
+  paintRecap(recap, ctx);
 });

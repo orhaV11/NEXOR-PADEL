@@ -524,6 +524,8 @@
   "insights.best": "Лучшая",
   "insights.lines": "О чём они говорят",
   "insights.based_on": "По твоим последним проверкам: {n}",
+  "recap.title": "Твой месяц",
+  "recap.based_on": "Написано по твоим последним {n} проверкам.",
   "insights.again": "Проверить ещё один образ",
   "explore.looks_with": "Образы с {q}",
   "auth.dob": "Дата рождения",

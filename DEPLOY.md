@@ -26,9 +26,12 @@ node tools/brand/set-origin.js https://looks.example.com
 
 It looks at eleven files, writes your origin into the ones that still carry the placeholder, and prints each with a
 count. Four of them are shipped to a browser or a store and are the reason this runs before the build:
-`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing pages
-(`wwwroot/landing/index.html` and `index.he.html`: canonical, both `hreflang` links, `og:url`, `og:image`,
-`twitter:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+`src/FitCheck.Api/wwwroot/index.html` (`og:image`, `twitter:image` — two), both landing pages
+(`wwwroot/landing/index.html` and `index.he.html`: canonical, both `hreflang` links, `og:image`, `twitter:image` —
+five each) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation` — two). **`og:url` is not on that
+list any more**: it was deleted from all three pages, because every crawler falls back to the URL it actually
+fetched, so the address unfurls right on a tunnel, a staging name or the real domain with nothing to configure.
+`og:image` cannot do the same — the spec wants it absolute — which is why these two remain.
 The other seven are the documents that quote the origin, rewritten so the commands you paste from them are already
 yours: `mobile/README.md`, `STORE.md`, `MARKETING.md`, `brand-kit/README.md`, this file, `README.md` and
 `.env.example`. So run it **before** `fly deploy` or `docker compose build`, commit the result, and read the diff —
@@ -197,8 +200,10 @@ your own, off Fly, the app's backup command works here too:
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"   # prints database: ... storage: ...
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"           # the session keys; see below
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"   # the copies share the 3 GB volume with the live data
 ```
 
@@ -208,6 +213,15 @@ fill the volume even if the last line is forgotten; without it nothing is pruned
 people gave the app; keep them as private on your computer as they are on the volume (server path, step 9, says how).
 There is no cron on Fly's machine: run this weekly from your computer, or from a scheduled GitHub Actions job with a
 `FLY_API_TOKEN` secret (`fly tokens create deploy`).
+
+**`--backup` does not take `/data/keys`, and that is why the third line is there.** `/data/keys` is the Data
+Protection key ring: the keys that encrypt every session cookie. The app persists them there deliberately — beside
+the database, **outside** `Storage:Root`, so a media backup never carries the keys off with the photos — and a
+Fly volume snapshot holds them because a snapshot is the whole volume. A copy you take by hand does not, unless you
+take it. **What a missing key ring costs:** nothing in the database, and everybody signed out. A restore onto a
+volume with no `/data/keys` mints a fresh one, and every phone in the pilot is signed out at once — with mail
+unconfigured, "forgot password" cannot bring them back either. They are about as secret as the photos are private:
+a stolen key ring forges sessions, so keep the `.tgz` where you keep the rest and no looser.
 
 Putting a copy back is the one place a server is simpler, because the app is running while you swap the file. At a
 quiet moment: `fly sftp shell`, then `put orevosh-<stamp>.db /data/incoming.db`, then
@@ -224,6 +238,21 @@ restart comes up with `unable to open database file` and the site stays down. Ch
 
 Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, `tar
 xzf` it over `/data/storage`, and hand that back too — `fly ssh console -C "chown -R app:app /data/storage"`.
+
+**Swapping the database alone does not sign anyone out**, because `/data/keys` is still sitting on the volume beside
+it — the sessions keep working over a database that has just been rolled back, which is what you want. The one case
+that needs the key ring back is a restore onto a **new** volume (a Fly snapshot carries it; a copy you took by hand
+does not):
+
+```bash
+fly sftp shell                                          # put keys-<stamp>.tgz /data/keys.tgz
+fly ssh console -C "sh -c 'cd /data && rm -rf keys && tar xzf keys.tgz && rm keys.tgz && chown -R app:app keys && chmod 700 keys'"
+fly machine restart <machine id>
+```
+
+Put it back **before** the first start on the new volume if you can: the app mints a fresh key the moment it starts
+without one, and every session issued against that fresh key dies when the old ring replaces it — so people who
+signed in during the gap are signed out a second time.
 
 ### 10. Updating
 
@@ -674,7 +703,7 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 | Command | What it does |
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
-| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts, the free disk space and whether the shipped pages still carry the placeholder host in their link previews, fifteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts, the free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen lines**, each `ok`, a warning, or a short reason, then the tally (`doctor: 9 ok, 7 warnings, 1 failure`) and the verdict. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it; only a failure changes the exit code, a warning is your call. Run it after every settings change |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe when the provider is `stripe`. **The mail server is never dialled** — no command in this app opens an SMTP connection; ask the app for a password reset with your own address to test the sender. This is the one that tells you whether a broken check is you or the provider |
 | `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the five events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
 | `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups/nightly` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete — it prunes whatever it finds there, so give each writer a folder of its own. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume, and `/data/backups/nightly` is the folder it defaults to |
@@ -719,6 +748,34 @@ would otherwise keep the container's world-readable modes). Nothing stays on the
 makes inside the container (`mktemp -d /data/backup-scratch.XXXXXXXX`, a fresh name every run) is removed whether the
 run succeeds or fails halfway.
 
+**Neither script takes the session keys, and one line a week fixes that.** `/data/keys` is the Data Protection key
+ring — the keys that encrypt every session cookie. The app keeps it beside the database and **outside**
+`Storage:Root` on purpose, so a media copy never carries the keys off with the photos, which also means the two
+backup scripts do not see it. It is tiny and it almost never changes, so take it once and again after anything that
+touches the volume:
+
+```bash
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+**What a missing key ring costs:** nothing in the database, and everybody signed out. Restore the database and the
+photos onto a machine with no `/data/keys` and the app mints a fresh ring on first start; every phone in the pilot is
+signed out at once, and with mail unconfigured "forgot password" cannot bring them back. Putting one back is the same
+idiom `tools/restore.sh` uses — one throwaway container on the same volume, as root, with the copy mounted in:
+
+```bash
+docker compose stop app
+docker compose run --rm --no-deps --user root \
+  -v "$(realpath backups/keys-<stamp>):/restore/keys:ro" --entrypoint sh app -c \
+  'rm -rf /data/keys && cp -r /restore/keys /data/keys && chown -R app:app /data/keys && chmod 700 /data/keys'
+docker compose start app
+```
+
+Do it **before** the first start on a fresh volume if you can: the app mints a key the moment it starts without one,
+and every session issued against that key dies when the old ring replaces it — so anyone who signed in during the gap
+is signed out a second time. Keep the copy as private as the photos: a stolen key ring forges sessions.
+
 **The two backup scripts never share a folder, and that is the point.** `tools/backup.sh` empties the scratch folder
 it made on every exit path; `scripts/backup.sh`, the other half, leaves its copies **on** the volume in
 `/data/backups/nightly` and lets the app prune them. Nothing either one removes is anything the other wrote, so a
@@ -753,7 +810,9 @@ To put a backup back (this replaces what is live, it asks first):
 tools/restore.sh backups/orevosh-20260905033000.db backups/storage-20260905033000
 ```
 
-Leave the second argument out to restore the database only.
+Leave the second argument out to restore the database only. `tools/restore.sh` never touches `/data/keys`, so a
+restore on the machine the backup came from keeps everyone signed in: the key ring is still there beside the database.
+Only a restore onto a **fresh** volume needs the key copy above.
 
 ## 10. Updating
 
@@ -937,9 +996,10 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 
 5. **The production origin in the code, before the build.** `node tools/brand/set-origin.js https://looks.example.com`
    writes your domain into eleven files it knows by name: the Open Graph and Twitter tags in
-   `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), the absolute URLs at the top of
+   `src/FitCheck.Api/wwwroot/index.html` (`og:image`, `twitter:image`; `og:url` was deleted on purpose, so a shared
+   link unfurls with the address it was actually fetched from), the absolute URLs at the top of
    `wwwroot/landing/index.html` and
-   `index.he.html` (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`),
+   `index.he.html` (canonical, both `hreflang` links, `og:image`, `twitter:image`),
    `mobile/capacitor.config.json` (`server.url`, `allowNavigation`), and then the documents that quote the origin —
    `mobile/README.md` (including its `WKAppBoundDomains` note), `STORE.md` (including the URL table), `MARKETING.md`,
    `brand-kit/README.md`, `DEPLOY.md`, `README.md` and `.env.example`. The first four are static files inside the

@@ -505,9 +505,13 @@ Then, on your phone, at `https://looks.example.com`:
    ```
    `--doctor` on its own reads the configuration and the machine — the database, the storage folder, ffmpeg, whether
    the Anthropic key is set and which model it points at, whether mail is configured and has a public origin, the push
-   keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the
-   free disk space, and whether the shipped pages still carry the placeholder host in their link previews — fifteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
-   everything a live server needs is there and 1 otherwise. `--live` adds the checks that leave the machine: one small
+   keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts, the
+   free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model
+   call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen
+   lines** — and prints one per check, `ok`, a warning or a short reason, then the tally
+   (`doctor: 9 ok, 7 warnings, 1 failure`) and the verdict, exiting 0 when
+   everything a live server needs is there and 1 otherwise. Only a failure changes the exit code; a warning is your
+   call to read. `--live` adds the checks that leave the machine: one small
    call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
    when the provider is `stripe` (the price, and the webhook endpoint). It does not try the mail server: nothing here
    logs in to SMTP, so the test of the sender is asking the app for a password reset with your own address. Run
@@ -539,8 +543,10 @@ Fly snapshots the volume daily and keeps five days. That is a backup on the same
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
@@ -550,13 +556,21 @@ app is writing) and a copy of the photo folder, and prints `database: …` and `
 is complete, so a weekly run does
 not fill the volume. The copies share the 3 GB volume with the live data, which is why the last line removes them.
 
-The `<stamp>` in lines 2 to 4 is the one the first line printed, so run them one at a time and read its output before
+The `<stamp>` in lines 2 to 6 is the one the first line printed, so run them one at a time and read its output before
 the rest. `/data/backups/manual` is a folder of its own on purpose: the last line empties it, and nothing else on the
 volume keeps copies there.
 
-**The files hold every photo and clip people gave the app.** Keep them as private on your computer as they are on the
-volume. There is no cron on Fly's machine: run the five lines weekly from your own computer, or from a scheduled
-GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
+**Line 3 is the one you will be tempted to skip.** `/data/keys` is the key ring that encrypts every session cookie.
+`--backup` does not take it — it lives outside the photo folder on purpose, so a media copy never carries the keys
+off with the pictures — and a Fly snapshot does (a snapshot is the whole volume), but a copy you take by hand does
+not unless you take it. Restore the database and the photos onto a machine with no `/data/keys` and the app mints a
+fresh ring on first start: nothing in the database is lost, and **every phone in the pilot is signed out at once** —
+with mail not yet configured, "forgot password" cannot bring them back either. `DEPLOY.md`, section 9, has the two
+lines that put it back.
+
+**The files hold every photo and clip people gave the app, and the key ring forges sessions.** Keep them as private
+on your computer as they are on the volume. There is no cron on Fly's machine: run the seven lines weekly from your
+own computer, or from a scheduled GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
 
 Skip to **section 3**.
 
@@ -718,6 +732,21 @@ Every night at 03:30:
 (crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 KEEP_STORAGE=2 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
 ```
 
+**Neither script takes the session keys, so take them once by hand.** `/data/keys` is the key ring that encrypts
+every session cookie. The app keeps it beside the database and outside the photo folder on purpose, which is exactly
+why the backup scripts do not see it. It is tiny and it almost never changes:
+
+```bash
+cd /opt/orevosh
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+Restore the database and the photos onto a machine with no `/data/keys` and the app mints a fresh ring on first
+start: nothing in the database is lost, and **every phone in the pilot is signed out at once**, with "forgot
+password" unable to bring them back while mail is not configured. `DEPLOY.md`, section 9, has the line that puts it
+back. Treat the copy as a secret: a stolen key ring forges sessions.
+
 **A backup on the same disk is not a backup.** Copy `backups/` off the machine at least weekly, and keep it as private
 there as it is here. To another Linux machine, keeping the modes:
 
@@ -803,7 +832,7 @@ line per request on top of all of this.
 
 ### 3.6 The backup routine
 
-- **On Fly:** the daily volume snapshots are automatic. Run the five lines of 1.9 weekly and keep the files somewhere
+- **On Fly:** the daily volume snapshots are automatic. Run the seven lines of 1.9 weekly and keep the files somewhere
   private.
 - **On a server:** the cron of 2.7 runs nightly. Copy `backups/` off the machine weekly.
 - **Either way:** restore one into a throwaway before you need to (6.4).
@@ -1002,6 +1031,11 @@ Writes between the swap and the restart are lost. The media folder goes back the
 over `/data/storage`, and hand it over too — `fly ssh console -C "chown -R app:app /data/storage"`. Fly's own volume
 snapshots are the other way back: `fly volumes snapshots list <volume id>`, then
 `fly volumes create data --snapshot-id <id> --region fra`.
+
+**Nobody is signed out by any of this**, because the key ring at `/data/keys` never moved: sessions keep working over
+a database that was just rolled back, which is what you want. The one case that needs the key copy from 1.9 or 2.7 is
+a restore onto a **new** machine or a **new** volume — a Fly snapshot carries the keys, a copy you took by hand does
+not. `DEPLOY.md`, section 9, has both lines, and says to put the ring back **before** the first start if you can.
 
 ### 6.5 Roll back the code
 
@@ -1258,9 +1292,12 @@ git diff --stat
 משתמשים בדומיין מסעיף 0.1 — או, אם עוד אין, ב‑`https://<your-app-name>.fly.dev` מסעיף 1.3, ומריצים שוב אחרי 1.7.
 
 זה מחליף כל מקום שבו מופיע מציין המקום `looks.example.com` באחד-עשר הקבצים שהוא מכיר בשמם, ומדפיס כל אחד מהם עם
-מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`,
-`twitter:image`), `wwwroot/landing/index.html` ו-`landing/index.he.html` (canonical, שני קישורי `hreflang`, `og:url`,
-`og:image`, `twitter:image`), ו-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`). שבעת האחרים הם
+מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html`
+(`og:image`, `twitter:image`), `wwwroot/landing/index.html` ו-`landing/index.he.html` (canonical, שני קישורי
+`hreflang`, `og:image`, `twitter:image`), ו-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+`og:url` נמחק משלושת העמודים בכוונה: כל סורק נופל בחזרה לכתובת שממנה הוא באמת משך את העמוד, ולכן הכתובת נכונה בכל
+מארח — מנהרה, שם זמני או הדומיין האמיתי — בלי להגדיר כלום. `og:image` לא יכול לעשות את זה (התקן דורש כתובת מוחלטת),
+ולכן הוא זה שנשאר. שבעת האחרים הם
 המסמכים שמצטטים את הכתובת, כדי שהפקודות שתעתיקו מהם כבר יהיו שלכם: `mobile/README.md` (כולל ההערה על
 `WKAppBoundDomains`), `STORE.md` (כולל טבלת הכתובות), `MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, `README.md`
 ו-`.env.example`. לא נשאר שום קובץ לערוך ביד.
@@ -1518,8 +1555,11 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    ```
    `--doctor` לבד קורא את ההגדרות ואת המכונה — בסיס הנתונים, תיקיית האחסון, ffmpeg, אם מפתח Anthropic מוגדר, אם הדואר
    מוגדר ויש לו כתובת ציבורית, מפתחות הפוש, הגדרות החיוב, מכסות התוכניות, אזור הזמן של הלוח, רשימת המנהלים, מארחי
-   השותפים והמקום הפנוי בדיסק — ארבע עשרה בדיקות בסך הכול — ומדפיס שורה לכל בדיקה,
-   `ok` או סיבה קצרה, ויוצא ב-0 כשכל מה ששרת חי צריך קיים וב-1 אחרת. `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
+   השותפים, המקום הפנוי בדיסק, אם העמודים שנשלחים לדפדפן עדיין נושאים את מציין המקום בתגיות התצוגה המקדימה, במה
+   מתומחרת כאן קריאה למודל יחד עם תקרת ההוצאה היומית, ואם מוגדר בכלל ערוץ התראות — **שבע עשרה שורות** — ומדפיס שורה
+   לכל בדיקה, `ok`, אזהרה או סיבה קצרה, ואז את הסיכום (`doctor: 9 ok, 7 warnings, 1 failure`) ואת הפסיקה, ויוצא ב-0
+   כשכל מה ששרת חי צריך קיים וב-1 אחרת. רק כישלון משנה את קוד היציאה; אזהרה היא שיקול שלכם.
+   `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
    קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.
    את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP, ולכן הבדיקה של השולח היא לבקש מהאפליקציה איפוס סיסמה
    לכתובת שלכם. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
@@ -1548,8 +1588,10 @@ Fly מצלמת את הנפח כל יום ושומרת חמישה ימים. זה 
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
@@ -1558,11 +1600,19 @@ fly ssh console -u app -C "rm -rf /data/backups/manual"
 בסיס הנתונים ול-`n` עותקי האחסון החדשים ביותר, אחרי שהעותק החדש הושלם, כדי שהרצה שבועית לא תמלא את הנפח. העותקים
 חולקים את הנפח של 3GB עם המידע החי, ולכן השורה האחרונה מוחקת אותם.
 
-ה-`<stamp>` בשורות 2 עד 4 הוא זה שהשורה הראשונה הדפיסה, אז הריצו שורה-שורה וקראו את הפלט לפני ההמשך.
+ה-`<stamp>` בשורות 2 עד 6 הוא זה שהשורה הראשונה הדפיסה, אז הריצו שורה-שורה וקראו את הפלט לפני ההמשך.
 `/data/backups/manual` היא תיקייה נפרדת בכוונה: השורה האחרונה מרוקנת אותה, ושום דבר אחר על הנפח לא שומר שם עותקים.
 
-**הקבצים מכילים כל תמונה וכל קליפ שאנשים נתנו לאפליקציה.** שמרו עליהם פרטיים אצלכם כמו שהם על הנפח. אין cron על המכונה
-של Fly: הריצו את חמש השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
+**שורה 3 היא זו שיתחשק לכם לדלג עליה.** `/data/keys` היא צרור המפתחות שמצפין כל עוגיית התחברות. `--backup` לא לוקח
+אותה — היא יושבת מחוץ לתיקיית התמונות בכוונה, כדי שעותק של המדיה לא ייקח איתו את המפתחות — וצילום נפח של Fly כן
+לוקח אותה (צילום הוא כל הנפח), אבל עותק שאתם לוקחים ביד לא, אלא אם תיקחו. שחזרו את בסיס הנתונים ואת התמונות למכונה
+בלי `/data/keys`, והאפליקציה תייצר צרור חדש בהפעלה הראשונה: שום דבר בבסיס הנתונים לא אובד, **וכל טלפון בפיילוט
+מתנתק בבת אחת** — ואם הדואר עוד לא מוגדר, גם "שכחתי סיסמה" לא יחזיר אותם. ב-`DEPLOY.md`, פרק 9, יש את שתי השורות
+שמחזירות אותה.
+
+**הקבצים מכילים כל תמונה וכל קליפ שאנשים נתנו לאפליקציה, וצרור המפתחות מזייף התחברויות.** שמרו עליהם פרטיים אצלכם
+כמו שהם על הנפח. אין cron על המכונה
+של Fly: הריצו את שבע השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
 (`fly tokens create deploy`).
 
 דלגו ל**פרק 3**.
@@ -1720,6 +1770,20 @@ ls -l backups/
 (crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 KEEP_STORAGE=2 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
 ```
 
+**אף אחד משני הסקריפטים לא לוקח את מפתחות ההתחברות, אז קחו אותם פעם אחת ביד.** `/data/keys` הוא צרור המפתחות
+שמצפין כל עוגיית התחברות. האפליקציה שומרת אותו ליד בסיס הנתונים ומחוץ לתיקיית התמונות בכוונה, ובדיוק לכן סקריפטי
+הגיבוי לא רואים אותו. הוא קטנטן וכמעט אף פעם לא משתנה:
+
+```bash
+cd /opt/orevosh
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+שחזרו את בסיס הנתונים ואת התמונות למכונה בלי `/data/keys`, והאפליקציה תייצר צרור חדש בהפעלה הראשונה: שום דבר בבסיס
+הנתונים לא אובד, **וכל טלפון בפיילוט מתנתק בבת אחת**, ו"שכחתי סיסמה" לא יחזיר אותם כל עוד הדואר לא מוגדר.
+ב-`DEPLOY.md`, פרק 9, יש את השורה שמחזירה אותו. התייחסו לעותק כאל סוד: צרור מפתחות גנוב מזייף התחברויות.
+
 **גיבוי על אותו דיסק הוא לא גיבוי.** העתיקו את `backups/` מחוץ למכונה לפחות פעם בשבוע, ושמרו עליו שם פרטי כמו שהוא
 כאן. למכונת לינוקס אחרת, תוך שמירה על ההרשאות:
 
@@ -1802,7 +1866,7 @@ fly logs | grep "Email"              # "Email sent to …: …" לכל אימו�
 
 ### 3.6 שגרת הגיבוי
 
-- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את חמש השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
+- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את שבע השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
 - **על שרת:** ה-cron של 2.7 רץ כל לילה. העתיקו את `backups/` מחוץ למכונה שבועית.
 - **בשני המקרים:** שחזרו גיבוי אחד למקום זמני לפני שתצטרכו (6.4).
 
@@ -1991,6 +2055,11 @@ fly machine restart <machine id>
 כתיבות שקרו בין ההחלפה להפעלה מחדש אבדו. תיקיית המדיה חוזרת באותה דרך: `put` לארכיון, פריסה שלו על `/data/storage`,
 ואז מעבירים גם אותה — `fly ssh console -C "chown -R app:app /data/storage"`. צילומי הנפח של Fly הם הדרך השנייה חזרה:
 `fly volumes snapshots list <volume id>`, ואז `fly volumes create data --snapshot-id <id> --region fra`.
+
+**אף אחד לא מתנתק מכל זה**, כי צרור המפתחות ב-`/data/keys` לא זז: ההתחברויות ממשיכות לעבוד מעל בסיס נתונים שזה עתה
+הוחזר אחורה, וזה בדיוק מה שרוצים. המקרה היחיד שדורש את עותק המפתחות מ-1.9 או מ-2.7 הוא שחזור למכונה **חדשה** או
+לנפח **חדש** — צילום נפח של Fly לוקח את המפתחות, עותק שלקחתם ביד לא. ב-`DEPLOY.md`, פרק 9, יש את שתי השורות, ושם
+גם כתוב להחזיר את הצרור **לפני** ההפעלה הראשונה אם אפשר.
 
 ### 6.5 חזרה לגרסה קודמת של הקוד
 

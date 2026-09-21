@@ -1041,5 +1041,12 @@
   "challenge.dash_constraint": "אתגרים עם כלל",
   "share.before_after_video_hint": "עשר שניות, אנכי, בלי קול: שני הלוקים והשינוי האחד. לשתף לטיקטוק או לאינסטגרם, או לשמור לטלפון.",
   "loading.sending": "שולח את הקליפ…",
-  "error.nothing_counted": "לא ניקו לך כלום."
+  "error.nothing_counted": "לא ניקו לך כלום.",
+  "wardrobe.dash_title": "הארון",
+  "wardrobe.dash_hint": "אם הארון מתמלא מעצמו, ואם הוא מונע טיפים שמציעים לקנות משהו שכבר יש.",
+  "wardrobe.dash_kept": "שמרו לפחות פריט אחד",
+  "wardrobe.dash_keepers": "אנשים ששומרים",
+  "wardrobe.dash_items": "פריטים שנשמרו",
+  "wardrobe.dash_dont_own": "“אין לי את זה”",
+  "wardrobe.dash_off": "כיבו את השליחה"
 }

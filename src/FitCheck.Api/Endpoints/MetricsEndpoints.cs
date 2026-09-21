@@ -108,8 +108,45 @@ public static class MetricsEndpoints
         // DTO, nothing read or changed on any tile above it.
         var funnel = await Funnel.ComputeAsync(db, now, ct);
 
-        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money, Funnel = funnel });
+        // ---- Round 15 — the wardrobe, counted (Services/Wardrobe.cs) ----
+        // Round 14 built a wardrobe and nothing counted it; MARKETING.md named the two numbers and said to count
+        // WardrobeItems by hand until this existed. Its own block, its own DTO, nothing read or changed above it. The
+        // keep rate's denominator is the same "accounts with at least one ok check" the hero tile already shows, so the
+        // two numbers on the page cannot disagree about who has checked.
+        var wardrobe = await WardrobeMetricsAsync(db, metrics.UsersWithAtLeastOneCheck, ct);
+
+        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money, Funnel = funnel, Wardrobe = wardrobe });
     }
+
+    /// <summary>
+    /// MARKETING.md's two wardrobe numbers, with the counts they are made of. Five counts, no rows pulled into memory:
+    /// pieces kept, accounts keeping, accounts that turned the wardrobe off for the stylist, checks answered with a
+    /// typed reason and checks answered <c>dont_own</c>. <paramref name="checkedUsers"/> is the keep rate's denominator
+    /// — accounts with at least one ok check, which the caller has already counted. Guests are left out of both sides:
+    /// a guest has no wardrobe and no account to be a keeper of, and every other number on this page leaves them out
+    /// until they are claimed.
+    /// </summary>
+    public static async Task<WardrobeMetricsDto> WardrobeMetricsAsync(AppDbContext db, int checkedUsers, CancellationToken ct)
+    {
+        var items = await db.WardrobeItems.CountAsync(ct);
+        var keepers = await db.WardrobeItems.Select(i => i.UserId).Distinct().CountAsync(ct);
+        var toStylistOff = await db.WardrobeSettings.CountAsync(s => !s.ToStylist, ct);
+        var reasons = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason != null, ct);
+        var dontOwn = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason == TipReason.DontOwn, ct);
+
+        return new WardrobeMetricsDto(
+            Items: items,
+            Keepers: keepers,
+            CheckedUsers: checkedUsers,
+            KeepRate: Rate(keepers, checkedUsers),
+            DontOwn: dontOwn,
+            Reasons: reasons,
+            DontOwnRate: Rate(dontOwn, reasons),
+            ToStylistOff: toStylistOff);
+    }
+
+    /// <summary>A share to four decimals, or null when there is nothing to divide by: no denominator is not zero percent.</summary>
+    public static double? Rate(int part, int whole) => whole == 0 ? null : Math.Round((double)part / whole, 4);
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>
     public sealed record MetricRow(Guid UserId, DateTime CreatedAt, int Score, int LatencyMs, string Language, string PromptVersion, ScoreBreakdown? Breakdown = null);

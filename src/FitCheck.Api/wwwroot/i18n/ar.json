@@ -1041,5 +1041,12 @@
   "challenge.dash_constraint": "تحديات بقاعدة",
   "share.before_after_video_hint": "عشر ثوانٍ، عمودي، بلا صوت: الإطلالتان والتغيير الواحد. شاركه على تيك توك أو إنستغرام، أو احفظه في هاتفك.",
   "loading.sending": "جارٍ إرسال المقطع…",
-  "error.nothing_counted": "لم يُحتسب شيء."
+  "error.nothing_counted": "لم يُحتسب شيء.",
+  "wardrobe.dash_title": "الخزانة",
+  "wardrobe.dash_hint": "هل تمتلئ الخزانة من تلقاء نفسها، وهل تمنع النصائح التي تقترح شراء شيء موجود بالفعل.",
+  "wardrobe.dash_kept": "احتفظوا بقطعة واحدة على الأقل",
+  "wardrobe.dash_keepers": "أشخاص يحتفظون بقطع",
+  "wardrobe.dash_items": "قطع محفوظة",
+  "wardrobe.dash_dont_own": "«ليس لديّ هذا»",
+  "wardrobe.dash_off": "أوقفوا الإرسال"
 }

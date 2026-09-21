@@ -203,3 +203,105 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
         Assert.Equal(2, social.GetProperty("activeUsers7d").GetInt32());
     }
 }
+
+// ---- Round 15 — the wardrobe, counted: MARKETING.md's two numbers on /api/metrics/pilot ----
+
+/// <summary>
+/// The wardrobe's own block. What these lock: the keep rate is people with a kept piece over people with an ok check
+/// (the same denominator the hero tile reads), the "I do not own that" rate is that reason over every typed reason, both
+/// are null rather than 0 while there is nothing to divide by, and the account that turned the wardrobe off for the
+/// stylist is counted — a wardrobe nobody sends cannot prevent the tip the second number is watching.
+/// Own fixture: these numbers are global, like every other number on this page.
+/// </summary>
+public class WardrobeMetricsTests : IClassFixture<WardrobeMetricsTests.WardrobeMetricsApp>
+{
+    public sealed class WardrobeMetricsApp : TestApp;
+
+    private readonly WardrobeMetricsApp _app;
+
+    public WardrobeMetricsTests(WardrobeMetricsApp app) => _app = app;
+
+    private void MakePro(Guid id)
+    {
+        using var scope = _app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = db.Users.Single(u => u.Id == id);
+        user.Plan = "pro";
+        user.ProUntil = DateTime.UtcNow.AddDays(30);
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public void A_share_with_nothing_under_it_is_null_not_zero()
+    {
+        Assert.Null(MetricsEndpoints.Rate(0, 0));
+        Assert.Null(MetricsEndpoints.Rate(3, 0));
+        Assert.Equal(0.0, MetricsEndpoints.Rate(0, 7));
+        Assert.Equal(0.4286, MetricsEndpoints.Rate(3, 7));
+        Assert.Equal(1.0, MetricsEndpoints.Rate(7, 7));
+    }
+
+    [Fact]
+    public async Task An_empty_pilot_reports_no_rate_rather_than_a_zero_that_reads_as_failure()
+    {
+        using var app = new TestApp();
+        var (moderator, _, _) = await app.NewUserAsync("wm_empty_mod");
+        await app.PromoteAsync("wm_empty_mod");
+
+        var wardrobe = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("wardrobe");
+        Assert.Equal(0, wardrobe.GetProperty("items").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("reasons").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("toStylistOff").GetInt32());
+        // A null rate is left off the wire entirely (AppJson drops nulls), which reads as "no number yet" on the page
+        // rather than as a zero percent nobody earned.
+        Assert.False(wardrobe.TryGetProperty("keepRate", out _));
+        Assert.False(wardrobe.TryGetProperty("dontOwnRate", out _));
+    }
+
+    [Fact]
+    public async Task The_two_numbers_marketing_watches_are_on_the_page()
+    {
+        // Three people check. Two keep a piece; one of the two also turns the wardrobe off for the stylist. The
+        // moderator never checks, so it is 2 keepers over 3 who checked, not over 4 accounts.
+        var (keeper, _, _) = await _app.NewUserAsync("wm_keeper");
+        var (quitter, quitterId, _) = await _app.NewUserAsync("wm_quitter");
+        var (empty, _, _) = await _app.NewUserAsync("wm_empty");
+        var (moderator, _, _) = await _app.NewUserAsync("wm_mod");
+        await _app.PromoteAsync("wm_mod");
+
+        var keeperCheck = await _app.CheckAsync(keeper);
+        Assert.True((await keeper.PostAsJsonAsync("/api/wardrobe", new { checkId = keeperCheck, name = "White tee" })).IsSuccessStatusCode);
+        Assert.True((await keeper.PostAsJsonAsync("/api/wardrobe", new { checkId = keeperCheck, name = "Dark jeans" })).IsSuccessStatusCode);
+
+        var quitterCheck = await _app.CheckAsync(quitter);
+        Assert.True((await quitter.PostAsJsonAsync("/api/wardrobe", new { checkId = quitterCheck, name = "White tee" })).IsSuccessStatusCode);
+        // Only an account the wardrobe reaches the stylist for can turn it off, so this one is on Pro (the switch is
+        // what Pro buys, Plans:WardrobeNeedsPro).
+        MakePro(quitterId);
+        Assert.True((await quitter.PostAsJsonAsync("/api/wardrobe/stylist", new { on = false })).IsSuccessStatusCode);
+
+        var emptyCheck = await _app.CheckAsync(empty);
+
+        // Three typed answers to the tip, one of them "I do not own that": the second number is 1 in 3.
+        Assert.True((await keeper.PostAsJsonAsync($"/api/checks/{keeperCheck}/useful", new { reason = TipReason.Worked })).IsSuccessStatusCode);
+        Assert.True((await quitter.PostAsJsonAsync($"/api/checks/{quitterCheck}/useful", new { reason = TipReason.DontOwn })).IsSuccessStatusCode);
+        Assert.True((await empty.PostAsJsonAsync($"/api/checks/{emptyCheck}/useful", new { reason = TipReason.NotMyStyle })).IsSuccessStatusCode);
+
+        var metrics = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        var wardrobe = metrics.GetProperty("wardrobe");
+
+        Assert.Equal(3, wardrobe.GetProperty("items").GetInt32());          // two pieces and one
+        Assert.Equal(2, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0.6667, wardrobe.GetProperty("keepRate").GetDouble(), precision: 4);
+        Assert.Equal(1, wardrobe.GetProperty("dontOwn").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("reasons").GetInt32());
+        Assert.Equal(0.3333, wardrobe.GetProperty("dontOwnRate").GetDouble(), precision: 4);
+        Assert.Equal(1, wardrobe.GetProperty("toStylistOff").GetInt32());
+
+        // The denominator is the hero tile's own number, so the page cannot say two different things about who checked.
+        Assert.Equal(metrics.GetProperty("usersWithAtLeastOneCheck").GetInt32(), wardrobe.GetProperty("checkedUsers").GetInt32());
+    }
+}

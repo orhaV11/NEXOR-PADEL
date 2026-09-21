@@ -1041,5 +1041,12 @@
   "challenge.dash_constraint": "Challenges with a rule",
   "share.before_after_video_hint": "Ten seconds, vertical, silent: the two looks and the one change. Share it to TikTok or Instagram, or save it to your phone.",
   "loading.sending": "Sending your clip…",
-  "error.nothing_counted": "Nothing was counted."
+  "error.nothing_counted": "Nothing was counted.",
+  "wardrobe.dash_title": "The wardrobe",
+  "wardrobe.dash_hint": "Whether the wardrobe is filling itself, and whether it is stopping tips that name something the wearer does not own.",
+  "wardrobe.dash_kept": "Kept at least one piece",
+  "wardrobe.dash_keepers": "People keeping",
+  "wardrobe.dash_items": "Pieces kept",
+  "wardrobe.dash_dont_own": "“I do not own that”",
+  "wardrobe.dash_off": "Sending turned off"
 }

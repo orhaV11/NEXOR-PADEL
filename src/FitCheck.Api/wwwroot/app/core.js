@@ -3,7 +3,10 @@
 
 export const AVAILABLE_LOCALES = ['en', 'he', 'ar', 'ru'];   // every locale with an i18n/<code>.json; which of them are live is the server's (Languages:Enabled, on /api/config)
 export const DEFAULT_LOCALE = 'en';
-export const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport'];
+// The one word every surface outside the check screen speaks, in the order the chips read in — the same order as
+// Domain/StyleIntent.cs, Formal appended last because the value is stored by name and an insert would renumber nothing
+// but would reorder every chip row in the app.
+export const INTENTS = ['Casual', 'Date', 'Streetwear', 'OldMoney', 'Minimal', 'Office', 'Party', 'Sport', 'Formal'];
 export const PAGE = 10;
 export const MAX_EDGE = 1280;
 export const AVATAR_EDGE = 320;

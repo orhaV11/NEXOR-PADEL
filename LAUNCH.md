@@ -361,6 +361,15 @@ fly secrets set \
   Plans__CompareNeedsPro=false
 ```
 
+**What Pro actually sells** (Round 14) — all four have pilot defaults, so set none of them unless you mean to:
+
+| Secret | Default | What it decides |
+|---|---|---|
+| `Plans__ProComparesPerDay` | `30` | A Pro account's own rolling-day allowance for "Which one?", counted apart from its checks, so deciding between two outfits never spends a check. Never above `Limits__ChecksPerDay`. A free account keeps one allowance for both. **Thirty is a guess**, the same shape as the check cap; move it once real Pro accounts exist and the `spend` block says what they cost |
+| `Plans__WardrobeNeedsPro` | `true` | Whether the wardrobe **reaching the stylist** is Pro's. The wardrobe itself is everyone's on every server — it cannot fill itself behind a wall — and this gates only the advice from it. `false` gives it to everyone |
+| `Plans__WardrobeNamesToStylist` | `12` | How many of the wearer's own piece names travel with a check and a comparison, most recently worn first. `0` keeps the wardrobe and never sends it, and `--doctor` says so in its `plans` line |
+| `Plans__TasteProfile` | `true` | Whether this server has the taste profile built. On, because it is. Turning it off takes the benefit off the Pro page in the same breath as it stops the advisory being built — nothing on that page may promise something the server cannot do |
+
 **The weekly board.** `Board__TimeZone` and `Board__WeekStartsOn` cut the week and label the archive, and changing
 them later moves every past week's edges — **set them before the first week runs**:
 
@@ -1449,6 +1458,15 @@ fly secrets set \
   "Plans__ProPriceText=₪19 לחודש" \
   Plans__CompareNeedsPro=false
 ```
+
+**מה ש-Pro באמת מוכר** (סבב 14) — לכולם יש ברירות מחדל של פילוט, אז אל תקבעו אף אחד מהם אלא אם אתם מתכוונים:
+
+| סוד | ברירת מחדל | מה הוא קובע |
+|---|---|---|
+| `Plans__ProComparesPerDay` | `30` | מכסה יומית מתגלגלת משלה להשוואות של חשבון Pro, שנספרת בנפרד מהבדיקות שלו, כך שההחלטה בין שני לוקים לא מוציאה בדיקה. אף פעם לא מעל `Limits__ChecksPerDay`. לחשבון חינמי יש מכסה אחת לשניהם. **שלושים הוא ניחוש**, באותה צורה כמו מכסת הבדיקות; הזיזו אותו כשיהיו חשבונות Pro אמיתיים ובלוק ה-`spend` יגיד כמה הם עולים |
+| `Plans__WardrobeNeedsPro` | `true` | אם **ההגעה של הארון לסטייליסט** היא של Pro. הארון עצמו הוא של כולם בכל שרת — הוא לא יכול להתמלא מאחורי חומה — וזה חוסם רק את העצה שיוצאת ממנו. `false` נותן אותה לכולם |
+| `Plans__WardrobeNamesToStylist` | `12` | כמה משמות הפריטים של הלובש נוסעים עם בדיקה ועם השוואה, הנלבשים לאחרונה קודם. `0` שומר את הארון ולא שולח אותו לעולם, ו-`--doctor` אומר את זה בשורת ה-`plans` שלו |
+| `Plans__TasteProfile` | `true` | אם לשרת הזה יש פרופיל טעם בנוי. דולק, כי יש. כיבוי מוריד את ההטבה מדף Pro באותה נשימה שבה הוא מפסיק לבנות את ההמלצה — שום דבר בדף ההוא לא מבטיח משהו שהשרת לא יודע לעשות |
 
 **לוח השבוע.** `Board__TimeZone` ו-`Board__WeekStartsOn` חותכים את השבוע ומתייגים את הארכיון, ושינוי שלהם אחר כך מזיז
 את הגבולות של כל שבוע שהיה — **קבעו אותם לפני שהשבוע הראשון רץ**:

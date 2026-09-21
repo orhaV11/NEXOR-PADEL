@@ -373,6 +373,12 @@ exceeds; checks and "Which one?" comparisons share the allowance. All of it is s
 | `Plans__GuestAttemptsPerDay` | The brake on attempts at the check route from a visitor, `20` per client address per 24 hours whatever they come to (429 `error.too_fast`). Well above the guest cap on purpose, so a refused photo never locks a shared address out of its look |
 | `Plans__ProPriceText` | What the Pro page shows as the price, e.g. `₪19 / month` or `$5 / month`. Text only; empty hides it |
 | `Plans__CompareNeedsPro` | `false`. Set `true` to keep "Which one?" for Pro accounts |
+| `Plans__NoOutfitForgivenPerDay` | `3`. How many "that is not an outfit" answers a day do not count against a person's own allowance. The model call was still made and the global ceiling still counts it; this is about not punishing somebody for a photo the stylist could not read |
+| `Plans__ProComparesPerDay` | **Round 14**, `30`. A Pro account's OWN rolling-day allowance for "Which one?", counted apart from its checks, so deciding between two outfits never spends a check. Never above `Limits__ChecksPerDay`; a free account keeps one allowance for both. Thirty is a guess with the same shape as the check cap — move it once real Pro accounts exist and the numbers page's `spend` block says what they cost |
+| `Plans__WardrobeMaxItems` | **Round 14**, `200`. The most pieces one account may keep. A brake on a script, not a product limit, and the same for free and Pro |
+| `Plans__WardrobeNamesToStylist` | **Round 14**, `12`. How many of the wearer's own piece names travel with a check and with a comparison, most recently worn first, so a tip can name something they already own. `0` keeps the wardrobe and never sends it, and `--doctor` says so on its `plans` line |
+| `Plans__WardrobeNeedsPro` | **Round 14**, `true`. Whether the wardrobe **reaching the stylist** is Pro's. The list itself is everyone's on every server — it cannot fill itself behind a wall — so this gates only the advice from it |
+| `Plans__TasteProfile` | **Round 14**, `true`. Whether this server has the taste profile built (`Services/Taste.cs`). It is, so it is on. Turning it off takes the benefit off the Pro page in the same breath as it stops the advisory being built. **`.env.example` still shows this commented out as `false` with a note to leave it off — that comment predates the feature landing; the shipped default is `true` and the example line is the one to ignore** |
 | `Billing__Provider` | `manual` (the default) or `stripe` |
 
 **With `manual`, Pro is a command.** The Pro page shows the benefits and a note that Pro is switched on by hand, and
@@ -636,7 +642,7 @@ Fill in:
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
 | `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
-| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1), the brake on guest attempts (20) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
+| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestChecksPerAddressPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro`, and the Round 14 four (`Plans__ProComparesPerDay`, `Plans__WardrobeMaxItems`, `Plans__WardrobeNamesToStylist`, `Plans__WardrobeNeedsPro`, `Plans__TasteProfile`) | The caps (3, 30, 1), the per-address guest number (10), the brake on guest attempts (20), the Pro page's price text, and what Pro actually sells. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 | `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__CacheSeconds`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30), the memory cache (60 seconds, two weeks at most) and the week's sponsor, by hand (its `Url` an `http(s)` link, or it is dropped with a warning). The defaults are the pilot's; "The weekly board and store links" above. |
 | `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows while `Affiliate__Disclosure` is `true`, the default. |
@@ -937,9 +943,13 @@ with nothing published except through Caddy; and on every response `Strict-Trans
 (over https, for this host only: no `includeSubDomains`, so nothing else under your domain is forced onto HTTPS by
 this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
 (`no-referrer` on the one route a store link leaves through, `/api/items/{id}/out`, which also answers
-`Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address) and a `Permissions-Policy`
-that keeps camera and microphone to the app itself. Store links themselves are stored only when they are `http(s)`
-with a host and no user info, and are never the `href` a person taps.
+`Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address), a `Permissions-Policy`
+that keeps camera and microphone to the app itself, and a **`Content-Security-Policy`** with `script-src 'self'` (no
+`unsafe-inline`, no nonce) — see item 4 below for the two openings that remain. Store links themselves are stored
+only when they are `http(s)` with a host and no user info, and are never the `href` a person taps. The session
+cookie's encryption keys are persisted on the data volume beside the database, at `/data/keys`, and deliberately
+outside `Storage:Root`: without that they would live in the container and a deploy would sign everyone out. They are
+a secret — "Backups" says how to take a copy and how private to keep it.
 
 Built, and waiting on a setting from you: account recovery works once `Email__*` points at a provider ("Email for
 account recovery"); Stripe Checkout runs once `Billing__*` is set and tested ("Plans and billing"); clip transcoding runs
@@ -957,8 +967,16 @@ Still missing before a public launch, in rough order of importance:
    scale, together with object storage (next).
 3. **Object storage.** Photos and clips sit on the server's disk behind `IImageStore`. An S3-compatible bucket
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
-4. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need
-   nonces or hashes before a strict policy can go in without breaking the app.
+4. **The fonts are still off-origin.** The Content-Security-Policy is set — that item used to say it was not, and it
+   has been since Round 13 (`Services/Security/SecurityHeaders.cs`, asserted by `SecurityTests` on `/`, `/landing/`,
+   an API answer and an error): `default-src 'self'`, **`script-src 'self'` with no `unsafe-inline` and no nonce**,
+   `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `img-src` and `media-src`
+   allowing `blob:` for the share card and the share video. Two deliberate openings remain. `style-src` keeps
+   `'unsafe-inline'` because the design system sets `style` attributes from code and appends one `<style>` per view
+   — a nonce cannot cover an attribute and a hash cannot cover a computed width, and CSS injection is not code
+   execution while every user string reaches the page as text. And `style-src`/`font-src` still name
+   `fonts.googleapis.com` and `fonts.gstatic.com`, which is a third party on every cold start. Self-hosting woff2
+   subsets under `/fonts` (Latin, Hebrew, Arabic) closes that one and lets both hosts leave the policy.
 5. **Brand verification is by hand** (`--verify`, no form and no process behind it), and **one process only**: the
    checks-per-day reservation, the per-address guest count and the rate limiters' windows live in memory, so run one
    `app` container (one machine on Fly). Multiple instances need a shared store.

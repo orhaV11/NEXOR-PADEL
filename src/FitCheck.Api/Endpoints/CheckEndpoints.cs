@@ -382,7 +382,11 @@ public static class CheckEndpoints
             // Round 14 — the loop: the taste advisory, read here and nowhere else. It never mentions this photo, this
             // check or any attempt at an earlier tip; it is the wearer's own history of clothes, and the section itself
             // tells the stylist it may not move the score.
-            var advisory = await taste.AdvisoryForAsync(user?.Id, ct);
+            // Round 16: Pro's, where Plans:TasteNeedsPro says so. Off by default, which is what this has always done —
+            // turning it on takes it from accounts that have it, so it is a decision rather than a default.
+            var advisory = plans.Value.TasteNeedsPro && !(user is not null && Plans.IsPro(user, now))
+                ? null
+                : await taste.AdvisoryForAsync(user?.Id, ct);
             // Round 14 — the wardrobe: the wearer's own piece names go with the check, so a tip can say "the brown ones
             // you wore on the 4th" instead of "buy brown tights". Empty for a guest, for a plan the wardrobe does not
             // reach the stylist on, and for anyone who turned it off, and then the call is byte for byte the old one.

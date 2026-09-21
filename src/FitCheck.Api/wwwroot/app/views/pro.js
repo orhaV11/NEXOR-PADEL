@@ -9,7 +9,7 @@
 // from /api/config, and a benefit whose flag is false is not drawn at all: NOTHING on this page may promise a thing this
 // server cannot do. PlansTests reads this file's benefit lines and fails the build over an invented promise, so a new
 // benefit needs both a flag here and a row in that table. The cap is not a benefit; it is one fair-use line, once, last.
-import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale } from '../core.js';
+import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale, getLocale } from '../core.js';
 
 const CSS = `
 .pro-hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-block: 6px 4px; }
@@ -71,6 +71,34 @@ function manageButton(ctx) {
 }
 
 /**
+ * Which currency to charge this reader in. The REGION, not the language: someone reading in Hebrew from Berlin holds
+ * euros, and someone reading in English from Tel Aviv holds shekels. navigator.languages carries both halves, so the
+ * first entry that names a region this server prices in wins; failing that, the server's own default currency.
+ *
+ * A region we have no PRICE for falls back too. Showing a currency with no price behind it would mean inventing one
+ * from an exchange rate, and a rate that moved overnight must never move what somebody is charged.
+ */
+function currencyForReader(plans) {
+  const prices = plans.proPrices || {};
+  const byRegion = plans.currencyByRegion || {};
+  const tags = [].concat(navigator.languages || [], navigator.language || [], getLocale());
+  for (const tag of tags) {
+    let region = '';
+    try {
+      region = (new Intl.Locale(tag).region || '').toUpperCase();
+    } catch (e) {
+      // A malformed tag from an old browser: read the region off the end of the string instead.
+      const parts = String(tag).split('-');
+      region = parts.length > 1 ? parts[parts.length - 1].toUpperCase() : '';
+    }
+    const currency = region && byRegion[region];
+    if (currency && prices[currency] > 0) return currency;
+  }
+  // A country this server does not price in: the world currency when one is set (usually USD), else the home one.
+  return plans.fallbackCurrency || plans.proPriceCurrency || '';
+}
+
+/**
  * The price in the reader's own language: Intl puts the symbol where that language puts it and uses its own digits.
  * Returns '' when this server publishes no amount, which is how the price stays off the page entirely. A currency
  * code the browser does not know throws rather than guessing, and an unpriced page is better than a wrong price.
@@ -115,7 +143,7 @@ register('pro', async (root, params, ctx) => {
   // them from this file and matches every key against the thing in the server that makes it true.
   root.appendChild(el('ul', { class: 'pro-benefits' }, [
     benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
-    plans.tasteProfile ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
+    plans.tasteNeedsPro ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
     plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint')) : null,
     plans.compareNeedsPro ? benefit('ring', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
   ]));
@@ -133,7 +161,9 @@ register('pro', async (root, params, ctx) => {
   // are used, how the decimal is marked - and proPriceText is ONE string shown to all four. So the server sends the
   // amount and the currency, and the browser, which already knows all of that, writes it. proPriceText stays as the
   // override for a price no format covers ("first month free, then...").
-  const priceText = plans.proPriceText || money(plans.proPriceAmount, plans.proPriceCurrency);
+  const currency = currencyForReader(plans);
+  const amount = (plans.proPrices && plans.proPrices[currency]) || plans.proPriceAmount;
+  const priceText = plans.proPriceText || money(amount, currency);
   if (priceText) {
     root.appendChild(el('p', { class: 'pro-price', id: 'pro-price' }, [
       el('span', { class: 'pro-amount', text: t('pro.per_month', { price: priceText }) }),

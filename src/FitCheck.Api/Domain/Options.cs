@@ -249,6 +249,110 @@ public sealed class PlanOptions
     public string ProPriceCurrency { get; set; } = "ILS";
 
     /// <summary>
+    /// Round 16 - the price in other currencies: ISO 4217 code to amount, e.g.
+    /// <c>Plans__ProPrices__USD=7.99</c>, <c>Plans__ProPrices__EUR=6.99</c>. A reader is shown the one for their
+    /// region, falling back to <see cref="ProPriceCurrency"/> when their region has no price here.
+    /// <para>
+    /// These are PRICES, not conversions: nothing here multiplies by an exchange rate, because a subscription is
+    /// priced per market and a rate that moved overnight must never move what a person is charged. Set each one
+    /// deliberately, and set them to whatever Stripe will really charge in that currency - a page that shows one
+    /// number and a checkout that takes another is the worst of the three possible outcomes.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, decimal> ProPrices { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Which currency a region is priced in: ISO 3166 region to ISO 4217 code, e.g. <c>Plans__CurrencyByRegion__IL=ILS</c>.
+    /// Merged over <see cref="DefaultCurrencyByRegion"/>, so only the corrections need setting.
+    /// <para>
+    /// The REGION, not the language. A Hebrew speaker in Berlin pays in euro and an English speaker in Tel Aviv pays
+    /// in shekels; what someone reads in and what their bank works in are different facts, and the browser reports
+    /// both. Language alone would have charged half the people in the app in a currency they do not hold.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, string> CurrencyByRegion { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Round 16 - what somebody reading from a country this server does not price in is shown. Empty means
+    /// <see cref="ProPriceCurrency"/>, which is right for a home market and wrong for everywhere else: with the home
+    /// currency as the only fallback, a reader in London or Sao Paulo meets a price in shekels. Setting this to USD
+    /// makes the home market local and the rest of the world dollars, which is what most apps do and what the owner
+    /// asked for. It needs a price of its own in <see cref="ProPrices"/> or it is ignored.
+    /// </summary>
+    public string ProPriceWorldCurrency { get; set; } = "";
+
+    /// <summary>The currency for a region this server does not price: the world currency when it has a price, else the default one.</summary>
+    public string FallbackCurrency()
+    {
+        var world = (ProPriceWorldCurrency ?? "").Trim().ToUpperInvariant();
+        return world.Length == 3 && PriceTable().ContainsKey(world) ? world : (ProPriceCurrency ?? "").Trim().ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// The region-to-currency map every server starts with, so an owner sets prices and nothing else. Not exhaustive
+    /// and not meant to be: a region that is missing, or whose currency has no price set, is shown the default one.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> DefaultCurrencyByRegion =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["IL"] = "ILS", ["PS"] = "ILS",
+            ["US"] = "USD", ["EC"] = "USD", ["PA"] = "USD", ["SV"] = "USD",
+            ["GB"] = "GBP", ["CH"] = "CHF", ["CA"] = "CAD", ["AU"] = "AUD", ["NZ"] = "NZD",
+            ["RU"] = "RUB", ["BY"] = "BYN", ["UA"] = "UAH", ["KZ"] = "KZT", ["GE"] = "GEL", ["AM"] = "AMD",
+            ["AE"] = "AED", ["SA"] = "SAR", ["EG"] = "EGP", ["MA"] = "MAD", ["JO"] = "JOD", ["QA"] = "QAR",
+            ["KW"] = "KWD", ["BH"] = "BHD", ["OM"] = "OMR", ["LB"] = "LBP", ["TN"] = "TND", ["DZ"] = "DZD",
+            ["IQ"] = "IQD", ["LY"] = "LYD", ["SD"] = "SDG", ["YE"] = "YER", ["SY"] = "SYP",
+            ["TR"] = "TRY", ["PL"] = "PLN", ["CZ"] = "CZK", ["HU"] = "HUF", ["RO"] = "RON", ["BG"] = "BGN",
+            ["SE"] = "SEK", ["NO"] = "NOK", ["DK"] = "DKK", ["IS"] = "ISK",
+            ["IN"] = "INR", ["BR"] = "BRL", ["MX"] = "MXN", ["AR"] = "ARS", ["CL"] = "CLP", ["CO"] = "COP",
+            ["JP"] = "JPY", ["CN"] = "CNY", ["KR"] = "KRW", ["SG"] = "SGD", ["HK"] = "HKD", ["TH"] = "THB",
+            ["ID"] = "IDR", ["MY"] = "MYR", ["PH"] = "PHP", ["VN"] = "VND", ["ZA"] = "ZAR", ["NG"] = "NGN",
+            // The euro, by country, because there is no "EU" region code on a browser's locale.
+            ["AT"] = "EUR", ["BE"] = "EUR", ["CY"] = "EUR", ["DE"] = "EUR", ["EE"] = "EUR", ["ES"] = "EUR",
+            ["FI"] = "EUR", ["FR"] = "EUR", ["GR"] = "EUR", ["HR"] = "EUR", ["IE"] = "EUR", ["IT"] = "EUR",
+            ["LT"] = "EUR", ["LU"] = "EUR", ["LV"] = "EUR", ["MT"] = "EUR", ["NL"] = "EUR", ["PT"] = "EUR",
+            ["SI"] = "EUR", ["SK"] = "EUR"
+        };
+
+    /// <summary>The map the client is given: the defaults with this server's own corrections over them.</summary>
+    public Dictionary<string, string> RegionCurrencies()
+    {
+        var map = new Dictionary<string, string>(DefaultCurrencyByRegion, StringComparer.OrdinalIgnoreCase);
+        foreach (var (region, currency) in CurrencyByRegion)
+        {
+            var code = (currency ?? "").Trim().ToUpperInvariant();
+            if (region.Trim().Length > 0 && code.Length == 3)
+            {
+                map[region.Trim().ToUpperInvariant()] = code;
+            }
+        }
+
+        return map;
+    }
+
+    /// <summary>Every currency this server has a price for, the default one included. Upper-cased, amounts above zero only.</summary>
+    public Dictionary<string, decimal> PriceTable()
+    {
+        var table = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var fallback = (ProPriceCurrency ?? "").Trim().ToUpperInvariant();
+        if (ProPriceAmount > 0 && fallback.Length == 3)
+        {
+            table[fallback] = ProPriceAmount;
+        }
+
+        foreach (var (currency, amount) in ProPrices)
+        {
+            var code = (currency ?? "").Trim().ToUpperInvariant();
+            if (code.Length == 3 && amount > 0)
+            {
+                table[code] = amount;
+            }
+        }
+
+        return table;
+    }
+
+    /// <summary>
     /// Round 13: how many "no outfit in this photo" answers a person (an account, or a guest cookie) gets back in the
     /// rolling day. Such an answer spent a model call and gave the person nothing, so the first ones are not counted
     /// against the plan cap, the guest's free look or me.checksToday; from the one after this number on they count like
@@ -307,6 +411,19 @@ public sealed class PlanOptions
     /// the feature — an account's own learning switch is theirs, and a guest never has one either way.
     /// </summary>
     public bool TasteProfile { get; set; } = true;
+
+    /// <summary>
+    /// Round 16: whether the taste profile reaching the stylist is PRO's, the way the wardrobe is (WardrobeNeedsPro).
+    /// False - the default, and what this app has always done - gives it to every signed-in account, free included.
+    /// <para>
+    /// The distinction matters because the Pro page reads a flag per benefit and lists the benefit when the flag is
+    /// true, and <see cref="TasteProfile"/> only ever meant "this server has the feature built". So "the stylist
+    /// remembers you" was on the page while every free account already had it: a third of the pitch was something the
+    /// reader could disprove by cancelling. The page now asks THIS flag, so the benefit is listed exactly when it is
+    /// one. Turning it on takes something away from accounts that have it, which is a decision, not a default.
+    /// </para>
+    /// </summary>
+    public bool TasteNeedsPro { get; set; }
 }
 
 /// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>

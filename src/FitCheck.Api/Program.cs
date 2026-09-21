@@ -684,7 +684,9 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
             // has the taste profile built at all. A benefit whose flag is false is not on the page.
             Plans.ProCompareCap(plans.Value, limits.Value), plans.Value.WardrobeNeedsPro, plans.Value.TasteProfile,
             Math.Max(0, plans.Value.ProCallsPerMonth),
-            Math.Max(0m, plans.Value.ProPriceAmount), (plans.Value.ProPriceCurrency ?? "").Trim().ToUpperInvariant()),
+            Math.Max(0m, plans.Value.ProPriceAmount), (plans.Value.ProPriceCurrency ?? "").Trim().ToUpperInvariant(),
+            plans.Value.TasteProfile && plans.Value.TasteNeedsPro,
+            plans.Value.PriceTable(), plans.Value.RegionCurrencies(), plans.Value.FallbackCurrency()),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

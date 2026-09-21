@@ -382,7 +382,17 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     int ProCallsPerMonth = 0,
     // Round 16 - the price as a number plus its currency, so the client can write it the way the reader's language
     // writes money. 0 means this server shows no price. ProPriceText, when set, still overrides both.
-    decimal ProPriceAmount = 0, string ProPriceCurrency = "");
+    decimal ProPriceAmount = 0, string ProPriceCurrency = "",
+    // Round 16 - whether the taste profile is Pro's on this server (Plans:TasteNeedsPro). TasteProfile above only says
+    // the server HAS the feature; the Pro page needs to know whether it is a thing a subscriber gets and a free
+    // account does not, which is a different question and was being answered with the wrong flag.
+    bool TasteNeedsPro = false,
+    // Round 16 - the price in every currency this server sells in, and which currency a region is sold in. The client
+    // reads the reader's REGION from the browser (not their language: where somebody reads and where their bank is
+    // are different facts) and shows the price for it, falling back to ProPriceCurrency.
+    Dictionary<string, decimal>? ProPrices = null, Dictionary<string, string>? CurrencyByRegion = null,
+    // What a reader from a country this server does not price in is shown (Plans:ProPriceWorldCurrency, else ProPriceCurrency).
+    string FallbackCurrency = "");
 
 // ---- comparisons, insights, today ----
 

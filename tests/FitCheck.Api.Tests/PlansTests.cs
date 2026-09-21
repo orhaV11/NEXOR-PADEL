@@ -47,8 +47,8 @@ public class PlansTests
     {
         ["pro.benefit_which"] = ("",
             "Pro's comparisons have their own rolling-day allowance (Plans:ProComparesPerDay, Plans.CompareCapFor, Allowance.Compares), counted apart from its checks on every server"),
-        ["pro.benefit_taste"] = ("plans.tasteProfile",
-            "the taste profile and its memory, which exist only where Plans:TasteProfile says this server has them built"),
+        ["pro.benefit_taste"] = ("plans.tasteNeedsPro",
+            "the taste profile reaching the stylist, which is Pro's exactly where Plans:TasteNeedsPro is on - Plans:TasteProfile only says the server has it built, and guarding on that listed a benefit every free account already had"),
         ["pro.benefit_wardrobe"] = ("plans.wardrobe",
             "the wardrobe reaching the stylist (Wardrobe.ForStylistAsync), which is Pro's where Plans:WardrobeNeedsPro is on"),
         ["pro.benefit_insights"] = ("plans.compareNeedsPro",
@@ -159,14 +159,21 @@ public class PlansTests
         Assert.True(plans.GetProperty("tasteProfile").GetBoolean());
     }
 
+    /// <summary>
+    /// Round 16 fixed what this test was pinning. Plans:TasteProfile says the server HAS the taste profile built; it
+    /// never said the profile was Pro's, and it is not — every signed-in account gets the advisory. So the Pro page,
+    /// which lists a benefit wherever its flag is true, was selling a third of its pitch to people who already had it
+    /// for nothing, and a subscriber could disprove it by cancelling. The page now asks Plans:TasteNeedsPro, which is
+    /// off, so the benefit is off the page until somebody decides to gate it.
+    /// </summary>
     [Fact]
-    public void The_taste_profile_is_claimed_because_this_server_has_one()
+    public void The_taste_profile_is_claimed_only_where_it_is_actually_pros()
     {
-        // The setting was off while the feature did not exist. Services/Taste.cs landed in Round 14, so it is on, and the
-        // Pro page may say so. What matters is the line below and not the default: the page draws pro.benefit_taste ONLY
-        // behind plans.tasteProfile, so a server that turns the feature off stops promising it in the same breath.
+        // The feature exists on this server (Services/Taste.cs, Round 14)...
         Assert.True(new PlanOptions().TasteProfile);
-        Assert.Equal("plans.tasteProfile", Promises["pro.benefit_taste"].Guard);
+        // ...and is given to free accounts too, so it is not a thing to sell.
+        Assert.False(new PlanOptions().TasteNeedsPro);
+        Assert.Equal("plans.tasteNeedsPro", Promises["pro.benefit_taste"].Guard);
     }
 
     [Fact]

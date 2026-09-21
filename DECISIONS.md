@@ -1376,9 +1376,12 @@ the last MP4 rung before falling to WebM); VP9 or VP8 into a WebM where H.264 is
 browser test proves that rung and phones take the other); the PNG story card with a toast where there is no encoder
 at all. The server keeps one tally, `videos_made`, bumped by a small POST after a save or share — a count of intent,
 not a fact about the file — rate limited like the other counters and answering 404 to anyone who does not own the
-check. The end card names the site only when the server publishes a public origin on `/api/config` (Email or Billing
-PublicOrigin); with none published the wordmark stands alone, never a host guessed from the page's own address (a laptop's
-localhost, a bare IP, or a real domain the owner has not named).
+check. The end card names the site when the server publishes a public origin on `/api/config` (Email or Billing
+PublicOrigin) and, with none published, the address this browser actually reached the app at — but only when that
+address is a real `https` one a stranger could open. The rule it is protecting never moved: a laptop's localhost, a LAN
+name and a bare IP still print nothing at all, because a card travels and such a line on somebody's story leads
+nowhere. What changed is only that a tunnel's own https hostname is an honest address, and on the `dotnet run` +
+cloudflared path it is the only one there is.
 
 **The first deploy was walked, not read.** The Release build was published and run as Production on an empty database
 with nothing configured, and LAUNCH.md's smoke was followed by hand. What that found and changed: HEAD on `/healthz`
@@ -1579,7 +1582,9 @@ number on that page.
 ### Objections to keep out of the code
 
 - The public page never shows a photo that is not posted, never a hidden look, never a suspended account's anything.
-- The share card and the share video never guess an origin: with none configured they carry the wordmark, as before.
+- The share card and the share video never guess an origin: with none configured they may name the real https address
+  this browser reached the app at and nothing else — never a localhost, a LAN name or a bare IP, which carry the
+  wordmark alone as before.
 - The invite never refuses a signup, never pays for a self-invite, and never pays twice for one pair.
 - No digest goes to an address nobody confirmed, and none goes to an account that had nothing happen that week.
 - The funnel never sets a cookie and never asks a third party anything.

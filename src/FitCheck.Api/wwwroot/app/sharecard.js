@@ -437,7 +437,7 @@ export async function openShareCard(look, opts) {
     }, [icon('image'), t(ios ? 'sharecard.save_ios' : 'sharecard.save')]);
     content.replaceChildren(
       el('div', { class: 'sc-stage' }, [el('img', { src: objectUrl, alt: t('sharecard.title'), id: 'sc-card' })]),
-      el('p', { class: 'hint', text: t('sharecard.hint') + (isIos() ? ' ' + t('sharecard.ios_hint') : '') }),
+      el('p', { class: 'hint', text: t('sharecard.hint') + (ios ? ' ' + t('sharecard.ios_hint') : '') }),
       el('div', { class: 'sc-actions' }, [share, save])
     );
     const first = share || save;

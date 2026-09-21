@@ -342,7 +342,10 @@ public static class CheckEndpoints
             // the compare route; a guest hears that the look was the free one.
             var message = user is null ? localizer.Get(language, "error.guest_limit")
                 : Plans.IsPro(user, now) ? localizer.Get(language, "error.rate_limited", cap)
-                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCap(plans.Value, limits.Value));
+                // The month, not the day: it is the number Pro actually sells, and this message sells Pro to far
+                // more people than the Pro page does. Falls back to the daily cap on a server with no monthly bound.
+                : localizer.Get(language, "error.plan_limit", cap,
+                    plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCap(plans.Value, limits.Value));
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 

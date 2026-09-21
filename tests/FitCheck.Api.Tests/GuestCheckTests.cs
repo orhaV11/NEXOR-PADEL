@@ -626,10 +626,10 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
 
         var refused = await CheckAsync(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        Assert.Equal("That's today's 2 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(refused));
+        Assert.Equal("That's today's 2 free checks. Pro gives you 100000 a month, and the stylist sees your whole wardrobe. Or come back tomorrow.", await ErrorAsync(refused));
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
         var hebrew = await CheckAsync(client, language: "he");
-        Assert.Equal("אלה 2 הבדיקות החינמיות של היום. עוברים לפרו ל-30 ביום, או חוזרים מחר.", await ErrorAsync(hebrew));
+        Assert.Equal("אלה 2 הבדיקות החינמיות של היום. ב-Pro יש 100000 בחודש, והסטייליסט רואה את כל הארון. או שחוזרים מחר.", await ErrorAsync(hebrew));
 
         // A comparison is a stylist call too and shares the allowance; a failed one does not count, like a failed check.
         var (comparer, comparerId, _) = await _app.NewUserAsync("gc_compares");
@@ -681,7 +681,7 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
 
         var lapsed = await CheckAsync(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, lapsed.StatusCode);
-        Assert.Equal("That's today's 2 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(lapsed));
+        Assert.Equal("That's today's 2 free checks. Pro gives you 100000 a month, and the stylist sees your whole wardrobe. Or come back tomorrow.", await ErrorAsync(lapsed));
     }
 
     [Fact]

@@ -94,7 +94,7 @@ public class SpendTests
         var expected = TimeSpan.FromMinutes(60 + 70);
         var check = await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
         Assert.Equal(HttpStatusCode.TooManyRequests, check.StatusCode);
-        Assert.Equal("That's today's 3 free checks. Go Pro for 30 a day, or come back tomorrow.", (await check.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        Assert.Equal("That's today's 3 free checks. Pro gives you 100000 a month, and the stylist sees your whole wardrobe. Or come back tomorrow.", (await check.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
         Assert.InRange(check.Headers.RetryAfter!.Delta!.Value, expected - TimeSpan.FromMinutes(2), expected);
 
         var comparison = await client.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()));

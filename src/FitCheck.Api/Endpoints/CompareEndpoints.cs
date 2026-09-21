@@ -198,7 +198,9 @@ public static class CompareEndpoints
             // a Pro account at its own ceiling just hears the number.
             var message = Plans.IsPro(user, now)
                 ? localizer.Get(language, "error.rate_limited", cap)
-                : localizer.Get(language, "error.plan_limit", cap, Plans.ProCompareCap(plans.Value, limits.Value));
+                // The month, for the same reason as the check route.
+                : localizer.Get(language, "error.plan_limit", cap,
+                    plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCompareCap(plans.Value, limits.Value));
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
         }
 

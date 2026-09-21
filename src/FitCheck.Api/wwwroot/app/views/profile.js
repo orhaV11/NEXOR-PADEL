@@ -221,7 +221,15 @@ async function profileView(root, handle, tab, ctx) {
   ]) : null;
   // My own profile: what my checks say, one link right under the statline (views/insights.js draws the page and styles the link).
   const insights = mine ? el('a', { class: 'insights-link', id: 'insights-link', href: '#/insights' }, [icon('sparkle'), el('span', { text: t('insights.open') })]) : null;
-  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, bio, stats, insights, colophon(profile), links]));
+  // Round 16: until this, #/pro was reachable only by walking into a wall — out of checks, a locked comparison, a
+  // locked wardrobe — or by digging through Settings. Nobody could go and look at it because they wanted to. It sits
+  // beside the insights link on your own profile, which is where somebody already goes to see their own things; a
+  // subscriber sees the same row saying they are on Pro, so it is a status line rather than an advert they cannot escape.
+  const proLink = mine ? el('a', { class: 'insights-link', id: 'profile-pro-link', href: '#/pro' }, [
+    icon('ring'),
+    el('span', { text: t(state.me && state.me.plan === 'pro' ? 'profile.pro_yours' : 'profile.pro_open') })
+  ]) : null;
+  root.appendChild(el('div', { class: 'stack', style: 'padding-inline: 16px;' }, [head, bio, stats, insights, proLink, colophon(profile), links]));
 
   // Looks for everyone; Community for brands; Featured for brands and for people a brand has featured.
   const available = ['looks'];

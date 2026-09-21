@@ -191,13 +191,54 @@ public class TestApp : WebApplicationFactory<Program>
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    /// <summary>A fresh signed-in client for one user.</summary>
+    /// <summary>
+    /// A fresh signed-in client for one user.
+    /// <para>
+    /// Round 17: a Brand goes the way a real one now has to. Signup refuses Brand outright (a brand-new account
+    /// cannot be verified, and the label is a claim about a company somebody may not own), and settings refuses the
+    /// switch until the owner has verified the account. So this signs up as a Person, marks the account verified the
+    /// way <c>--verify</c> does, and then switches it over through the real route — which means every test that asks
+    /// for a brand exercises the real path, and a gate that stopped working would fail all of them at once.
+    /// </para>
+    /// </summary>
     public async Task<(HttpClient Client, Guid Id, string Handle)> NewUserAsync(
         string handle, string language = "en", string accountType = "Person", string? displayName = null)
     {
         var client = NewClient();
-        var me = await SignupAsync(client, handle, language: language, accountType: accountType, displayName: displayName);
-        return (client, me.GetProperty("id").GetGuid(), handle);
+        var brand = string.Equals(accountType, "Brand", StringComparison.OrdinalIgnoreCase);
+        var me = await SignupAsync(client, handle, language: language,
+            accountType: brand ? "Person" : accountType, displayName: displayName);
+        var id = me.GetProperty("id").GetGuid();
+
+        if (brand)
+        {
+            SetVerified(id, true);
+            var switched = await client.PatchAsJsonAsync("/api/users/me", new { accountType = "Brand" });
+            if (switched.StatusCode != HttpStatusCode.OK)
+            {
+                throw new InvalidOperationException(
+                    $"could not make {handle} a brand: {switched.StatusCode} {await switched.Content.ReadAsStringAsync()}");
+            }
+
+            // And put the flag back. The gate is on BECOMING a brand, not on being one, so an account can be Brand and
+            // unverified - that is what --unverify leaves behind, and it is the state every test here had before
+            // Round 17. Leaving these accounts verified would have quietly changed what a brand looks like in dozens
+            // of tests, and hidden the two that are about the verified mark itself.
+            SetVerified(id, false);
+        }
+
+        return (client, id, handle);
+    }
+
+    /// <summary>The flag <c>--verify</c> and <c>--unverify</c> set, straight on the row.</summary>
+    public void Verify(Guid id, bool verified) => SetVerified(id, verified);
+
+    private void SetVerified(Guid id, bool verified)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Users.Single(u => u.Id == id).Verified = verified;
+        db.SaveChanges();
     }
 
     public static MultipartFormDataContent CheckForm(byte[] image, string intent = "Date", string? language = "en", string? occasion = null, string fileName = "outfit.jpg")

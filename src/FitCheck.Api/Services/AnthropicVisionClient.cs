@@ -38,6 +38,14 @@ public sealed class AnthropicVisionClient(
         var apiKey = Environment.GetEnvironmentVariable(ApiKeyVariable);
         if (string.IsNullOrWhiteSpace(apiKey))
         {
+            // Round 17: and SAY so. This threw in silence, so a key wiped by a bad deploy turned every check in the
+            // app into a 502 that nobody was told about - not the ten-minute failure window either, because nothing
+            // was counted for a call that was never made.
+            if (meter is not null)
+            {
+                await meter.ModelKeyMissingAsync(CancellationToken.None);
+            }
+
             throw new VisionClientException($"{ApiKeyVariable} is not set.");
         }
 
@@ -64,6 +72,24 @@ public sealed class AnthropicVisionClient(
                 if (ex is TaskCanceledException && meter is not null)
                 {
                     await meter.RecordFailedAsync(VisionUsage.Unknown, CancellationToken.None);
+                }
+
+                // Round 17. A connection that never opened was invisible: nothing billed, so nothing counted, so the
+                // ten-minute window stayed at zero while every check in the app failed and /healthz went on saying ok.
+                // One retry first, because a single reset is common and costs nothing to repeat; then shout.
+                if (ex is HttpRequestException)
+                {
+                    logger.LogWarning(ex, "Anthropic could not be reached on attempt {Attempt}.", attempt);
+                    if (attempt < 2)
+                    {
+                        await Task.Delay(RetryBackoff, ct);
+                        continue;
+                    }
+
+                    if (meter is not null)
+                    {
+                        await meter.ModelUnreachableAsync(ex.Message, CancellationToken.None);
+                    }
                 }
 
                 throw new VisionClientException("Vision request failed before a response arrived.", ex);

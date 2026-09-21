@@ -268,6 +268,154 @@ public class AlertTests
         Assert.Equal(120, today.InputTokens);
     }
 
+    /// <summary>
+    /// Round 17 — the outage that was invisible.
+    /// <para>
+    /// A call that reaches Anthropic and fails there is billed, so it was counted, and the count fed the ten-minute
+    /// window that raises the alert. A call that never left the machine — a connection refused, a name that did not
+    /// resolve, a handshake that failed — is billed by nobody, so nothing was counted, so the window stayed at zero
+    /// while every check in the app answered 502 and /healthz went on saying ok. The owner would have heard it from
+    /// a user, or not at all.
+    /// </para>
+    /// <para>
+    /// It is its own alert rather than a bigger number in the window, because counting is the right shape for a model
+    /// answering badly and the wrong one for a model not answering. And it still records nothing: a meter that
+    /// counted these would lie about a day the app did not spend.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_model_that_cannot_be_reached_is_shouted_about_and_costs_nothing()
+    {
+        // The window set high enough that it could not possibly be what fires.
+        using var app = BothChannels(("Alerts:ModelFailuresIn10Min", "1000"));
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var meter = app.Meter;
+
+        await meter.ModelUnreachableAsync("Connection refused (api.anthropic.com:443)");
+
+        var raised = await app.Hook.WaitForAsync("cannot be reached");
+        Assert.Single(raised);
+        Assert.Contains("502", raised[0], StringComparison.Ordinal);
+        // And it says plainly that this one is not costing anything, so nobody goes looking at the bill.
+        Assert.Contains("never left the machine", raised[0], StringComparison.Ordinal);
+
+        // Nothing on the day's meter: no call, no tokens.
+        var today = await meter.TodayAsync(db, CancellationToken.None);
+        Assert.Equal(0, today.Calls);
+        Assert.Equal(0, today.InputTokens);
+    }
+
+    /// <summary>
+    /// Round 17 — a key wiped by a bad deploy. This threw in silence, and not even into the failure window, because
+    /// nothing is counted for a call that was never built. One alert on the first check that meets it: a missing key
+    /// is not a blip that might pass, and waiting for a count would mean five real people meeting a 502 first.
+    /// </summary>
+    [Fact]
+    public async Task A_missing_api_key_is_shouted_about_once_and_names_the_command()
+    {
+        using var app = BothChannels(("Alerts:ModelFailuresIn10Min", "1000"));
+        var meter = app.Meter;
+
+        await meter.ModelKeyMissingAsync();
+
+        var raised = await app.Hook.WaitForAsync("ANTHROPIC_API_KEY is not set");
+        Assert.Single(raised);
+        Assert.Contains("fly secrets set", raised[0], StringComparison.Ordinal);
+
+        // A second check inside the quiet hour does not send a second alert: every kind is rate-limited the same way.
+        await meter.ModelKeyMissingAsync();
+        Assert.Single(app.Hook.TextsContaining("ANTHROPIC_API_KEY is not set"));
+    }
+
+    /// <summary>A socket that never opens: what a real unreachable Anthropic looks like from inside the client.</summary>
+    private sealed class DeadSocketHandler : HttpMessageHandler
+    {
+        public int Attempts { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Attempts++;
+            throw new HttpRequestException("Connection refused (api.anthropic.test:443)");
+        }
+    }
+
+    /// <summary>
+    /// Round 17 — the same outage through the REAL client, because the wiring is the part that was broken. The alert
+    /// existing is not the fix; the client reaching it is. It also has to retry once first: a single reset is common,
+    /// costs nothing to repeat, and shouting on the first one would cry wolf all day.
+    /// </summary>
+    [Fact]
+    public async Task The_client_retries_a_dead_socket_once_and_then_raises_the_alert()
+    {
+        using var app = BothChannels(("Alerts:ModelFailuresIn10Min", "1000"));
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var meter = app.Meter;
+
+        Environment.SetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable, "test-key");
+        var handler = new DeadSocketHandler();
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        var client = new AnthropicVisionClient(
+            http,
+            Microsoft.Extensions.Options.Options.Create(new AnthropicOptions { Model = "claude-sonnet-5", MaxTokens = 1200, BaseUrl = "https://api.anthropic.test/" }),
+            NullLogger<AnthropicVisionClient>.Instance,
+            meter);
+
+        var request = new VisionRequest(
+            OutfitAnalyzer.BuildSystemPrompt("en"),
+            OutfitAnalyzer.BuildUserMessage(StyleIntent.Date, "dinner"),
+            TestImages.Jpeg(64),
+            "image/jpeg",
+            OutfitAnalyzer.Tool);
+
+        await Assert.ThrowsAsync<VisionClientException>(() => client.AnalyzeAsync(request, CancellationToken.None));
+
+        Assert.Equal(2, handler.Attempts);
+        var raised = await app.Hook.WaitForAsync("cannot be reached");
+        Assert.Single(raised);
+
+        // Still nothing billed: two connections that never opened cost nothing and must not show on the meter.
+        var today = await meter.TodayAsync(db, CancellationToken.None);
+        Assert.Equal(0, today.Calls);
+    }
+
+    /// <summary>Round 17 — and the missing key, through the client, before a request is even built.</summary>
+    [Fact]
+    public async Task The_client_raises_the_missing_key_alert_before_it_builds_a_request()
+    {
+        using var app = BothChannels(("Alerts:ModelFailuresIn10Min", "1000"));
+        var meter = app.Meter;
+
+        Environment.SetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable, null);
+        var handler = new DeadSocketHandler();
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        var client = new AnthropicVisionClient(
+            http,
+            Microsoft.Extensions.Options.Options.Create(new AnthropicOptions { Model = "claude-sonnet-5", MaxTokens = 1200, BaseUrl = "https://api.anthropic.test/" }),
+            NullLogger<AnthropicVisionClient>.Instance,
+            meter);
+
+        try
+        {
+            var request = new VisionRequest(
+                OutfitAnalyzer.BuildSystemPrompt("en"),
+                OutfitAnalyzer.BuildUserMessage(StyleIntent.Date, "dinner"),
+                TestImages.Jpeg(64),
+                "image/jpeg",
+                OutfitAnalyzer.Tool);
+
+            await Assert.ThrowsAsync<VisionClientException>(() => client.AnalyzeAsync(request, CancellationToken.None));
+            Assert.Single(await app.Hook.WaitForAsync("ANTHROPIC_API_KEY is not set"));
+            // Nothing was sent: the key is checked before a socket is opened.
+            Assert.Equal(0, handler.Attempts);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable, "test-key");
+        }
+    }
+
     [Fact]
     public async Task The_app_says_it_started_and_names_its_version()
     {

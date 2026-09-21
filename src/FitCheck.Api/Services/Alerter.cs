@@ -63,6 +63,22 @@ public sealed class Alerter(
         /// <summary>More than Alerts:ModelFailuresIn10Min failed model calls in ten minutes.</summary>
         public const string ModelFailing = "model.failing";
 
+        /// <summary>
+        /// Round 17. The model could not be REACHED at all - a connection that never opened, a name that did not
+        /// resolve, a handshake that failed. Kept apart from <see cref="ModelFailing"/> on purpose: that one is a
+        /// count over ten minutes, and counting is right for a model that is answering badly and wrong for one that
+        /// is not answering. Nothing is billed for a call that never left, so nothing is counted for it either - and
+        /// with nothing counted, the ten-minute window would have stayed at zero while every check in the app failed.
+        /// </summary>
+        public const string ModelUnreachable = "model.unreachable";
+
+        /// <summary>
+        /// Round 17. ANTHROPIC_API_KEY is not set, so every check fails before a request is built. One alert, on the
+        /// first check that meets it, rather than a count: this is not a blip that might pass, and on a quiet night
+        /// the count would have needed five real people to hit a 502 before anything was said.
+        /// </summary>
+        public const string ModelKeyMissing = "model.key_missing";
+
         /// <summary>Free space on the data volume is below Alerts:DiskFreeMb.</summary>
         public const string DiskLow = "disk.low";
 
@@ -153,6 +169,19 @@ public sealed class Alerter(
                 $"the stylist failed {count.ToString(CultureInfo.InvariantCulture)} times in the last ten minutes (Alerts:ModelFailuresIn10Min is {threshold.ToString(CultureInfo.InvariantCulture)}). Checks are answering 502.", ct)
             : Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Round 17. The model is unreachable, or its key is missing. Neither goes through the ten-minute counter: both
+    /// mean every check in the app is failing right now, and <see cref="RaiseAsync"/>'s own per-kind quiet hour is
+    /// the only throttle either needs.
+    /// </summary>
+    public Task ModelUnreachableAsync(string detail, CancellationToken ct = default) =>
+        RaiseAsync(Kind.ModelUnreachable,
+            $"the stylist cannot be reached, so every check is answering 502. Nothing is being billed for these - the calls never left the machine. ({detail})", ct);
+
+    public Task ModelKeyMissingAsync(CancellationToken ct = default) =>
+        RaiseAsync(Kind.ModelKeyMissing,
+            $"{AnthropicVisionClient.ApiKeyVariable} is not set, so every check fails before it is even built. Set it with: fly secrets set {AnthropicVisionClient.ApiKeyVariable}=sk-ant-...", ct);
 
     /// <summary>The version this build reports, for the "started" line. Never a path, never a commit nobody can read.</summary>
     public static string Version =>

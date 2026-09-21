@@ -348,7 +348,9 @@ public class SpendMeterTests
         Assert.Equal(2, two.Calls);
         Assert.Equal(1900, two.InputTokens);
 
-        // A connection that never opened: nobody billed anything, so nothing is counted.
+        // A connection that never opened: nobody billed anything, so nothing is counted. Twice, because Round 17
+        // retries this case once - which is exactly why it is free to retry, and why the count below stays at two.
+        handler.Responses.Enqueue(() => throw new HttpRequestException("no route to host"));
         handler.Responses.Enqueue(() => throw new HttpRequestException("no route to host"));
         await Assert.ThrowsAsync<VisionClientException>(() => client.AnalyzeAsync(request, CancellationToken.None));
         var three = await app.TodayAsync();

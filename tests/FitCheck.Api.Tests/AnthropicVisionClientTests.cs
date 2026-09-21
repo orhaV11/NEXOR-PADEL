@@ -152,14 +152,34 @@ public class AnthropicVisionClientTests
         Assert.IsNotType<VisionRefusedException>(ex);
     }
 
+    /// <summary>
+    /// Round 17 — a connection that never opened IS retried, once. It was not before, and the reasoning has changed:
+    /// nobody bills for a socket that never opened, so the retry costs no money and only the backoff in latency,
+    /// while a single TCP reset is common enough that refusing to repeat it turns ordinary network noise into a 502
+    /// somebody sees. A response that ARRIVED and failed is still the other case — that one was billed, and its
+    /// retry rules (429 and 5xx only, never a 4xx) are unchanged.
+    /// </summary>
     [Fact]
-    public async Task Connection_failures_are_not_retried()
+    public async Task A_connection_that_never_opened_is_retried_once()
     {
         var (client, handler) = Create();
         handler.Responses.Enqueue(() => throw new HttpRequestException("connection refused"));
+        handler.Responses.Enqueue(() => throw new HttpRequestException("connection refused"));
 
         await Assert.ThrowsAsync<VisionClientException>(() => client.AnalyzeAsync(Request(), CancellationToken.None));
-        Assert.Single(handler.Requests);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task A_connection_that_opens_on_the_retry_is_answered_normally()
+    {
+        var (client, handler) = Create();
+        handler.Responses.Enqueue(() => throw new HttpRequestException("connection refused"));
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok", score = 6 })));
+
+        var result = await client.AnalyzeAsync(Request(), CancellationToken.None);
+        Assert.Equal(6, result.GetProperty("score").GetInt32());
+        Assert.Equal(2, handler.Requests.Count);
     }
 
     [Fact]

@@ -186,9 +186,17 @@ public static partial class AuthEndpoints
             return Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.profile_invalid"));
         }
 
+        // Round 17: and never Brand at signup. A brand-new account cannot be verified, and the label is a claim about
+        // a company somebody may not own, made in front of other people. It is granted by the owner (--verify) and
+        // switched on afterwards in settings; the refusal says so rather than quietly creating a Person, because
+        // silently giving somebody a different account than they asked for is its own kind of lie.
         var accountType = Enum.TryParse<AccountType>(body.AccountType, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
             ? parsed
             : AccountType.Person;
+        if (accountType == AccountType.Brand)
+        {
+            return Error(StatusCodes.Status403Forbidden, localizer.Get(language, "error.brand_needs_verification"));
+        }
 
         // A handle in Admin:Handles is the owner's, whether or not the owner has signed up yet (the sync at start promotes an
         // existing account, so the owner signs up before listing it). To anyone else it is simply taken: nobody gets to

@@ -120,6 +120,23 @@ Fly builds the image from the `Dockerfile` on its own builders, starts one machi
 it. `--ha=false` matters: without it Fly starts two machines for high availability, and this app must run as one process
 (the README's limitations; a second machine would also want a volume of its own). Then:
 
+### Brand accounts are granted, never taken (Round 17)
+
+"Brand" used to be a checkbox anybody could tick, and it buys far more than it looks like it buys: a brand mark beside
+the name, a rail on the Explore front page, and a sort that puts brands above every person in search. Somebody could
+type a real shop's name, tick the box, and be at the top of the app in one tap — impersonating a company, in front of
+real people, on a name they do not own.
+
+A brand account is now yours to grant:
+
+```bash
+fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --verify <handle>"
+```
+
+They sign up as a person, you verify them, and then the switch in Settings goes through. Signing up **as** a brand is
+refused outright — a brand-new account cannot be verified — and the refusal tells them to write in. Turning brand mode
+back off needs nothing: leaving is never the dangerous direction. Accounts that were already brands are untouched.
+
 **When a deploy ends in `401 Unauthorized`.** Usually it reads `ensure depot builder failed, please try again
 (status 401)`, and it is confusing because the build clearly worked: the image built, every layer says `pushing
 layer`, and only the last step failed. That is not a contradiction. flyctl asks Fly for a builder, gets back a

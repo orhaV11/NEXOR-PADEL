@@ -390,6 +390,23 @@ function checkClientModules() {
   await brand.waitForSelector('#s-save');
   await brand.fill('#s-name', 'NEXOR');
   await brand.fill('#s-web', 'https://nexor.example');
+  await brand.click('#s-save');
+  await brand.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+
+  // Round 17: a brand account is granted, not taken. The box is there for everybody and the server refuses the
+  // switch until the owner has verified the account - because "Brand" puts a company's name in front of other
+  // people, on the Explore front page and above every person in search. Somebody could have typed a real shop's
+  // name and been at the top of the app in one tap. This is the real flow a brand goes through now.
+  expected.push('PATCH /api/users/me -> 403');
+  await brand.check('#s-brand');
+  await brand.click('#s-save');
+  await brand.waitForSelector('form .alert:not([hidden])');
+  assert.strictEqual((await me(brand)).accountType, 'Person', 'the box alone does not make a brand');
+  assert.ok(/nexor/.test(maintenance('--verify', 'nexor')), '--verify reports the handle');
+  await brand.reload();
+  await brand.waitForSelector(settled);
+  await go(brand, '#/settings');
+  await brand.waitForSelector('#s-save');
   await brand.check('#s-brand');
   await brand.click('#s-save');
   await brand.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);

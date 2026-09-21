@@ -212,12 +212,22 @@ public static class UserEndpoints
             user.Website = website.Length == 0 ? null : website;
         }
 
-        // Brand mode is a setting, switchable any time; what changes is which routes open up, not what exists.
+        // Round 17. Brand used to be a checkbox anybody could tick, and it buys far more than the three write powers
+        // it looks like it buys: a "Brand" mark beside the name, a rail on the Explore front page, and a sort that
+        // puts brands above every person in search. Somebody could type "Castro", tick the box, and be at the top of
+        // the app in one tap - impersonating a real company, in front of real people, on a name they do not own.
+        // A brand account is now granted by the owner (--verify) and only then switched on here. Turning it OFF needs
+        // nothing: leaving is never the dangerous direction. Accounts that are already Brand are untouched.
         if (body.AccountType is not null)
         {
             if (!TryParseName<AccountType>(body.AccountType, out var accountType))
             {
                 return Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.account_type_invalid"));
+            }
+
+            if (accountType == AccountType.Brand && user.AccountType != AccountType.Brand && !user.Verified)
+            {
+                return Error(StatusCodes.Status403Forbidden, localizer.Get(user.PreferredLanguage, "error.brand_needs_verification"));
             }
 
             user.AccountType = accountType;

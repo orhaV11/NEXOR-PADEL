@@ -143,6 +143,31 @@ public sealed class SpendMeter(
         }
     }
 
+    /// <summary>
+    /// Round 17. The model could not be reached, or has no key: alert, and record NOTHING. A call that never left the
+    /// machine was never billed, so counting it would make the spend meter lie about a day it did not spend. The
+    /// alerter's own per-kind quiet hour is the throttle; this deliberately does not go through the ten-minute
+    /// failure window, which counts calls and would have stayed at zero through exactly this outage.
+    /// </summary>
+    public Task ModelUnreachableAsync(string detail, CancellationToken ct = default) =>
+        SafelyAsync(() => alerter.ModelUnreachableAsync(detail, ct), "The model-unreachable alert could not be raised.");
+
+    public Task ModelKeyMissingAsync(CancellationToken ct = default) =>
+        SafelyAsync(() => alerter.ModelKeyMissingAsync(ct), "The missing-key alert could not be raised.");
+
+    /// <summary>An alert must never be the reason a check fails differently than it would have failed anyway.</summary>
+    private async Task SafelyAsync(Func<Task> raise, string whenItFails)
+    {
+        try
+        {
+            await raise();
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            logger.LogWarning(e, "{Message}", whenItFails);
+        }
+    }
+
     private async Task RecordAsync(VisionUsage usage, bool failed, CancellationToken ct)
     {
         var day = Today;

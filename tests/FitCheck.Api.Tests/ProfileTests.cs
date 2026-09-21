@@ -181,9 +181,18 @@ public class ProfileTests : IClassFixture<TestApp>
     [Fact]
     public async Task Account_type_switches_both_ways_and_rejects_anything_else()
     {
-        var (client, _, _) = await _app.NewUserAsync("pf_switch");
+        var (client, id, _) = await _app.NewUserAsync("pf_switch");
         Assert.Equal("Person", (await client.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("accountType").GetString());
 
+        // Round 17: not by ticking a box. Brand carries a company's name in front of other people, puts the account on
+        // the Explore front page and sorts it above every person in search - so it is granted, not taken. An account
+        // the owner has not verified is refused, and stays exactly what it was.
+        var refused = await client.PatchAsJsonAsync("/api/users/me", new { accountType = "brand" });
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Equal("Person", (await client.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("accountType").GetString());
+
+        // Once the owner has verified it (--verify), the switch goes through.
+        _app.Verify(id, true);
         var brand = await client.PatchAsJsonAsync("/api/users/me", new { accountType = "brand" });
         Assert.Equal(HttpStatusCode.OK, brand.StatusCode);
         Assert.Equal("Brand", (await Json(brand)).GetProperty("accountType").GetString());

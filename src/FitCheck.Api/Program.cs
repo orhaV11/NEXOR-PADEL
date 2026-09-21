@@ -52,6 +52,7 @@ builder.Services.Configure<LimitsOptions>(builder.Configuration.GetSection(Limit
 builder.Services.Configure<PushOptions>(builder.Configuration.GetSection(PushOptions.Section));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+builder.Services.Configure<LegalOptions>(builder.Configuration.GetSection(LegalOptions.Section));
 builder.Services.Configure<PlanOptions>(builder.Configuration.GetSection(PlanOptions.Section));
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.Section));
 builder.Services.Configure<BoardOptions>(builder.Configuration.GetSection(BoardOptions.Section));
@@ -666,7 +667,7 @@ app.MapWardrobeEndpoints();
 // to pings that never come.
 app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOptions> push, PushSender sender, IEmailSender email, Transcoder transcoder,
         IOptions<PlanOptions> plans, IOptions<LimitsOptions> limits, IOptions<BillingOptions> billing, IOptions<AffiliateOptions> affiliate, IConfiguration configuration,
-        IOptions<LanguagesOptions> languages, IOptions<EmailOptions> emailOptions, HttpContext context) =>
+        IOptions<LanguagesOptions> languages, IOptions<EmailOptions> emailOptions, IOptions<LegalOptions> legal, HttpContext context) =>
     Results.Json(new ConfigDto(storage.Value.MaxImageBytes, storage.Value.MaxVideoBytes, storage.Value.MaxVideoSeconds,
         sender.Enabled ? push.Value.PublicKey : null,
         // "email" means mail can actually reach somebody FROM THIS HOST, not merely that a mail server is configured. A
@@ -688,7 +689,10 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
         // client on localhost or a bare IP prints the wordmark alone rather than guess. Empty when neither is set.
         PublicOrigin: string.IsNullOrWhiteSpace(configuration["Email:PublicOrigin"]) ? (string.IsNullOrWhiteSpace(configuration["Billing:PublicOrigin"]) ? null : configuration["Billing:PublicOrigin"]!.Trim()) : configuration["Email:PublicOrigin"]!.Trim(),
         // Round 13: the UI languages that are live (Languages:Enabled); the client's switcher and detection read this, never the file list.
-        Languages: languages.Value.List.ToList()), AppJson.Options));
+        Languages: languages.Value.List.ToList(),
+        // The address the terms and the privacy policy tell a reader to write to (Legal:ContactEmail, else Email:From).
+        // Null on a server with neither, and then those pages leave the section out instead of naming nobody.
+        ContactEmail: LegalOptions.Contact(legal.Value, emailOptions.Value)), AppJson.Options));
 
 // For the reverse proxy and uptime checks: 200 when the database answers, 503 otherwise. Never cached. GET or HEAD: an
 // uptime checker (and `curl -I`) may probe with either, and a 405 on HEAD would read as the site being down.

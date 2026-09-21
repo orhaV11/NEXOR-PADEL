@@ -362,7 +362,9 @@ public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 /// <summary>Public, unauthenticated: what the client needs before it can do anything. No secrets.</summary>
 public sealed record ConfigDto(long MaxImageBytes, long MaxVideoBytes, int MaxVideoSeconds, string? PushPublicKey, bool Email = false, bool Transcoding = false, PlansDto? Plans = null, AffiliateConfigDto? Affiliate = null, string? PublicOrigin = null,
     // Round 13: the UI languages that are live (Languages:Enabled, English always first); the client offers and detects only these.
-    List<string>? Languages = null);
+    List<string>? Languages = null,
+    // Legal:ContactEmail (else Email:From): the address the terms and the privacy policy print. Null when this server has none.
+    string? ContactEmail = null);
 
 /// <summary>Affiliate:Disclosure: whether the item sheet shows the commission line under a store link. The hosts and their parameters stay on the server.</summary>
 public sealed record AffiliateConfigDto(bool Disclosure);

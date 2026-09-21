@@ -6,7 +6,7 @@
 //
 // OWNER: have a lawyer review the terms and the privacy policy before launch. The copy describes what the app actually
 // does, in plain language; it is not legal advice, and the governing-law line in the terms is a placeholder.
-import { register, t, el, hasMessage, setTopBar, intlLocale } from '../core.js';
+import { register, t, el, hasMessage, setTopBar, intlLocale, state } from '../core.js';
 
 // Round 14 moved to 3: Pro is described by what it gives rather than by a cap, and the wardrobe is named in
 // "what we store", "what we send to the model provider", "who sees what" and "deleting".
@@ -38,13 +38,24 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: CSS }));
 }
 
-/** The sections that have a title, in order, up to MAX_SECTIONS: legal.<page>_1 … legal.<page>_10. */
+/**
+ * The sections that have a title, in order, up to MAX_SECTIONS: legal.<page>_1 … legal.<page>_10.
+ *
+ * A section written around {email} is the one that tells a reader how to reach a human — a privacy question, deleting
+ * their data, reporting an account belonging to someone under 16. The address comes from the server
+ * (Legal:ContactEmail, else Email:From) rather than from the wording, because the wording ships to everyone who runs
+ * this code and an address in it is a dead letterbox for all of them but one. A server with no address at all gets no
+ * such section: "write to us at ." promises less than saying nothing, and --doctor names the setting.
+ */
 function sections(page) {
   const items = [];
+  const email = (state.config && state.config.contactEmail) || '';
   for (let n = 1; n <= MAX_SECTIONS; n++) {
     const key = 'legal.' + page + '_' + n;
     if (!hasMessage(key + '_title')) break;
-    items.push(el('li', {}, [el('div', {}, [el('h2', { text: t(key + '_title') }), el('p', { text: t(key) })])]));
+    // t() with no params leaves placeholders standing, which is how a section that needs an address is recognised.
+    if (!email && t(key).includes('{email}')) continue;
+    items.push(el('li', {}, [el('div', {}, [el('h2', { text: t(key + '_title') }), el('p', { text: t(key, { email }) })])]));
   }
   return items;
 }

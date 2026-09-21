@@ -55,6 +55,48 @@ public sealed class StorageOptions
 }
 
 /// <summary>Outgoing mail for verification and password reset links. Host and From empty means mail is off: links are logged instead.</summary>
+/// <summary>
+/// The address the terms of use and the privacy policy tell a reader to write to. Those two pages promise a way to
+/// reach a human — for a privacy question, for deleting an account's data, for reporting an account belonging to
+/// someone under 16 — so the address in them has to be a mailbox that is actually read. It was a constant in the
+/// translation files (<c>hello@orevosh.app</c>) until this, which is fine for whoever owns that domain and a dead
+/// letterbox for everybody else who runs this code.
+/// <para>
+/// Unset, it falls back to <see cref="EmailOptions.From"/>: a server that sends mail has a mailbox by definition, and
+/// the owner reads it. With neither set the client drops the contact section rather than print "write to us at .", and
+/// <c>--doctor</c> says so.
+/// </para>
+/// </summary>
+public sealed class LegalOptions
+{
+    public const string Section = "Legal";
+
+    /// <summary>One address, shown to the public on two pages. Not a secret.</summary>
+    public string ContactEmail { get; set; } = "";
+
+    /// <summary>The address those pages should print, or null when this server has none.</summary>
+    public static string? Contact(LegalOptions legal, EmailOptions email)
+    {
+        var configured = legal.ContactEmail.Trim();
+        if (configured.Length > 0)
+        {
+            return configured;
+        }
+
+        // Email:From is often written as a display name around the address ("OREVOSH <hello@example.com>"), which is
+        // right on an envelope and wrong in the middle of a sentence on a privacy page. Take the address out of it.
+        var from = email.From.Trim();
+        var open = from.LastIndexOf('<');
+        var close = from.LastIndexOf('>');
+        if (open >= 0 && close > open + 1)
+        {
+            from = from[(open + 1)..close].Trim();
+        }
+
+        return from.Length > 0 ? from : null;
+    }
+}
+
 public sealed class EmailOptions
 {
     public const string Section = "Email";

@@ -2222,6 +2222,11 @@ ceiling and the money tiles are computed from. The defaults are the list prices 
 you changed `Anthropic__Model`, or you have an agreement, put your numbers in — everything money-shaped in the app is
 built on those two. Run `dotnet FitCheck.Api.dll --doctor` and read the `spend` line back to yourself.
 
+**Put your address on the legal pages.** The terms of use and the privacy policy tell readers where to write — about
+privacy, about deleting their data, about an account belonging to someone under 16. Set `Legal__ContactEmail` to a
+mailbox you actually read. Leave it empty and the address in `Email__From` is used instead; with neither, those pages
+drop the contact section rather than send people to nobody, and `--doctor` has a `contact` line that says which.
+
 **Set somewhere for the app to shout.** `Alerts__Webhook` (a Slack or Discord incoming webhook — paste the Discord
 URL as Discord gives it to you) or `Alerts__Email` (one address, which only works if you also run a mail server:
 `Email__Host` and `Email__From`. An address without those sends nothing at all). The webhook needs no mail server and
@@ -2254,6 +2259,11 @@ tax and produce documents, but it does not register you, decide whether you owe 
 **בודקים את המחירים פעם אחת, עכשיו.** `Anthropic__PriceInPerMillion` ו-`Anthropic__PriceOutPerMillion` הם מה שהתקרה
 והאריחים הכספיים מחושבים ממנו. ברירות המחדל הן מחירי המחירון של המודל שהאפליקציה יוצאת איתו. אם שיניתם את
 `Anthropic__Model`, או שיש לכם הסכם — מכניסים את המספרים שלכם. `--doctor` מדפיס את שניהם בשורת `spend`.
+
+**שמים את הכתובת שלכם בעמודים המשפטיים.** התנאים ומדיניות הפרטיות אומרים לקוראים לאן לכתוב — על פרטיות, על מחיקת
+נתונים, על חשבון של מישהו מתחת לגיל 16. מגדירים את `Legal__ContactEmail` לתיבה שבאמת קוראים. אם משאירים ריק, משתמשים
+בכתובת שב-`Email__From`; בלי אף אחת מהן, העמודים משמיטים את סעיף יצירת הקשר במקום להפנות לאף אחד, ול-`--doctor` יש שורת
+`contact` שאומרת מה מהשניים.
 
 **קובעים לאן האפליקציה צועקת.** `Alerts__Webhook` (Webhook נכנס של Slack או Discord — מדביקים את הכתובת של Discord
 בדיוק כפי שהיא) או `Alerts__Email` (כתובת אחת, שעובדת רק אם מריצים גם שרת מייל: `Email__Host` ו-`Email__From`. כתובת

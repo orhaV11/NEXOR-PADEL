@@ -160,6 +160,7 @@ public static class Doctor
         var anthropic = Bind<AnthropicOptions>(configuration, AnthropicOptions.Section, lines, "anthropic");
         // Round 13 — money
         var alerts = Bind<AlertOptions>(configuration, AlertOptions.Section, lines, "alerts");
+        var legal = Bind<LegalOptions>(configuration, LegalOptions.Section, lines, "contact");
 
         var publicOrigin = Origin(configuration);
         PublicOrigin(lines, configuration, publicOrigin);
@@ -167,6 +168,7 @@ public static class Doctor
         AnthropicKey(lines, apiKey);
         AnthropicBaseUrl(lines, anthropic);
         Email(lines, email, publicOrigin);
+        Contact(lines, legal, email);
         Billing(lines, billing, publicOrigin);
         PlanCaps(lines, plans, limits);
         Push(lines, push);
@@ -305,6 +307,28 @@ public static class Doctor
         lines.Add(string.Equals(url.TrimEnd('/'), DefaultAnthropicBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
             ? new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}.")
             : new(DoctorStatus.Warn, "anthropic-url", $"Anthropic__BaseUrl is {url}, not {DefaultAnthropicBaseUrl}: checks go there, not to Anthropic."));
+    }
+
+    /// <summary>
+    /// The address the terms of use and the privacy policy print. Those pages promise a reader a way to reach a human —
+    /// a privacy question, deleting their data, reporting an account belonging to someone under 16 — so an address
+    /// nobody reads is a promise the owner cannot keep. Unset, Email:From stands in; with neither, the pages leave the
+    /// section out entirely, which the owner should know rather than discover from a reader who could not write.
+    /// </summary>
+    private static void Contact(List<DoctorLine> lines, LegalOptions legal, EmailOptions email)
+    {
+        var address = LegalOptions.Contact(legal, email);
+        if (address is null)
+        {
+            lines.Add(new(DoctorStatus.Warn, "contact",
+                "no Legal__ContactEmail and no Email__From: the terms and the privacy policy leave out the section that tells a reader how to reach you. Set Legal__ContactEmail to a mailbox you read."));
+            return;
+        }
+
+        lines.Add(new(DoctorStatus.Ok, "contact",
+            legal.ContactEmail.Trim().Length > 0
+                ? $"the terms and the privacy policy tell readers to write to {address} (Legal__ContactEmail)."
+                : $"the terms and the privacy policy tell readers to write to {address} (from Email__From; set Legal__ContactEmail to use another)."));
     }
 
     private static void Email(List<DoctorLine> lines, EmailOptions email, string origin)

@@ -261,7 +261,23 @@ python3 scripts/calibrate.py ./sample-photos --intent Casual --intent Date --lan
 It signs up a throwaway account, checks every photo for each intent and language, prints a table, the score
 distribution per group, latency, and a scan of every feedback text for body, face, age or gender words (rule
 1), then deletes the account and writes a JSON report. If most scores land on 7–8 it says so: tighten the
-calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and compare the two reports.
+calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and compare the two reports. It still speaks
+the one-word `--intent`, which `POST /api/checks` still understands and splits into the pair.
+
+The other half of the question is **how much the same photo's score moves between runs**, which matters more since
+Round 14 anchored the scale band by band (the model removed `temperature`, so there is no knob to pin it with):
+
+```bash
+node tools/eval/stylist.js --photo outfit.jpg --occasion date --style minimal --runs 8 \
+  --base http://127.0.0.1:5000 --handle yourhandle --password ...
+```
+
+It sends the same photo `--runs` times and prints the spread — min, max, mean, standard deviation — how often the
+breakdown moved, how often the tip was a *keep*, and the tips side by side to be read; repeat `--photo` for a table
+per photo, and it exits non-zero when a spread is wider than `--max-spread` (2 by default).
+`tools/eval/README.md` explains the numbers and what a pass costs (photos × runs = model calls). **No real-model
+numbers have been taken yet**: the sandbox this was written in has no route to Anthropic, so the harness has only
+ever run against a local stand-in built to move its scores on purpose.
 
 ## Configuration
 
@@ -389,7 +405,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/users/{handle}/block` 🔒 | — | `200` `{ user, createdAt }`. Writes the block and ends the follow in both directions, silently: no notification, nothing pushed. 404 `error.user_not_found` (a suspended account answers like a missing one, as the profile does), 400 `error.cannot_block_self`, 409 `error.already_blocked`. What it does everywhere else is one predicate over the pair in either direction (`Services/Blocks.cs`): the two accounts' looks leave each other's feeds, Explore, search, the tag pages, the saved list and the profile grids; the other's look, photo, clip and comment list read as missing (a moderator still opens them for the queue); each side's comments leave the other's lists, rows kept; a fire, save, comment, follow, mention or feature that targets the other is refused 403 `error.blocked`; and no notification crosses the pair, old ones included, until an unblock. The blocker's own profile view of the other carries `viewer.blocked` so the menu can say Unblock. **Nothing tells the blocked person**: there is no `blockedBy` field anywhere, `error.blocked` is the same sentence whichever side acted, and a blocked person sees what a quiet account looks like. The public board keeps every look. Logged as `Block: {blockerId} blocked {blockedId}` |
 | `DELETE /api/users/{handle}/block` 🔒 | — | 204, the row gone. 404 `error.not_blocked` when there was none. Unblocking restores nothing: the follows stay ended and the old notifications stay gone |
 | `GET /api/users/me/blocks` 🔒 | — | `{ items: [{ user, createdAt }] }`: the accounts the caller blocked, newest first, whole (a person blocks a handful, not a feed). The client draws it at `#/settings/blocked` |
-| `POST /api/checks` | multipart: `intent`, `occasion?`, `language`, `image`, `video?` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
+| `POST /api/checks` | multipart: `occasion`, `style?`, `note?`, `language`, `image`, `video?` | `201 { id, intent, occasion, style, language, createdAt, latencyMs, status, score, feedback, postId }`. **Round 14 split the one question in two** ("Round 14 — the stylist" below has the refusals and the one-word rule): `occasion` is where the outfit is going, `style` is optional and empty means none, and the wearer's own free line is now `note`. A client from before the split that still sends `intent` is understood — the one word is split into the pair and its `occasion` field is read as the free line. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
 | `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder, a claimed clip queued for the transcoder) and the cookie is dropped. All or nothing: a file that cannot be copied (a full disk, a file missing from the store) answers 500 `error.server`, the rows stay the guest's and the cookie stays, and the client claims again on its next load. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
 | `GET /api/checks/{id}` | — | The check, for its owner or for the guest whose cookie made it (404 to anyone else, the same as a missing id) |
 | `POST /api/checks/{id}/shared-video` | — | `204`. One tally (`videos_made`, on the numbers page as "Share videos made") after the person saved or shared the check's video. The video itself is drawn and encoded **on the phone** (a 12-second 1080×1920 file: H.264 MP4 where the browser can, else VP9/VP8 WebM, else the story card PNG) and never touches the server. Owner or guest-cookie only, 404 to anyone else like the GET; 30 per hour per account or address (429 `error.too_fast`) |
@@ -539,6 +555,7 @@ tools/e2e/                        optional browser test (Playwright + a stub of 
 tools/brand/                      render-kit.js and its templates: regenerates brand-kit/, the OG cards and the landing screens
 brand-kit/                        logos, covers, story templates, store screenshots (README lists every file)
 mobile/                           the Capacitor wrap for the stores: config and instructions, nothing installed
+tools/eval/stylist.js             how far the same photo's score moves between runs, with the tips side by side
 scripts/calibrate.py              calibration run against the real model: score spread, latency, rule 1 scan
 STORE.md, MARKETING.md            the store listings and the launch plan
 ```
@@ -1327,3 +1344,54 @@ Tests: `ScorePrivacyTests` (the sweep over every route that returns a look, the 
 choice, the stranger's 404, the before/after tally, the openers, the four locale files), `ScorePrivacyBoardTests` (the
 fires boards keep the place, the picks board does not carry it, live and archived and in the hall) and
 `ChallengeTests.A_constraint_challenge_is_opened_entered_and_ended_like_any_other`.
+
+## Round 15 — the wardrobe is counted, and it reaches the comparison
+
+*(One builder's section, appended for the lead to fold into the parts above.)*
+
+**The wardrobe had no metric.** Round 14 built a wardrobe that fills itself from the pieces a person keeps, and
+nothing counted it; `MARKETING.md` named the two numbers to watch and told the owner to count `WardrobeItems` by
+owner by hand "until a metric exists". They are on `/api/metrics/pilot` now, in a block of their own.
+
+| Field | What it is |
+|---|---|
+| `wardrobe.items` | Kept pieces across the pilot, all accounts |
+| `wardrobe.keepers` | Accounts with at least one kept piece |
+| `wardrobe.checkedUsers` | Accounts with at least one OK check — **the same number as `usersWithAtLeastOneCheck`**, passed in rather than counted again, so the page cannot say two different things about who has checked |
+| `wardrobe.keepRate` | `keepers ÷ checkedUsers`, four decimals. `MARKETING.md`'s "wardrobe kept": 40% by week 4, and below 15% the keep line is in the wrong place or says the wrong thing |
+| `wardrobe.dontOwn` / `wardrobe.reasons` | Checks answered `dont_own`, and checks answered with any typed reason |
+| `wardrobe.dontOwnRate` | `dontOwn ÷ reasons`. Watched **falling**: a tip that draws "I do not own that" is exactly the tip a wardrobe should have prevented, so its fall is the wardrobe's worth measured |
+| `wardrobe.toStylistOff` | Accounts that turned the sending off. Without it a flat `dontOwnRate` has two different explanations — the tips are not using the wardrobe, or the wardrobe is not reaching the stylist |
+
+**A rate with nothing to divide by is absent from the JSON, not `0`.** Both rates are nullable and `AppJson` drops a
+null, so an empty pilot has no `keepRate` at all. Nought per cent is a fact about people who kept nothing; no number
+is a fact about there being nobody yet, and on a pilot's first morning those read very differently. Guests are left
+out of every count here, as everywhere else on that page.
+
+Five counts, no rows pulled into memory. Read it with:
+
+```bash
+curl -s -b 'orevosh.session=<a moderator’s cookie>' http://localhost:5000/api/metrics/pilot | jq .wardrobe
+```
+
+**The wardrobe reaches the "which one?" screen.** Round 14 sent the wearer's own piece names with a CHECK and left the
+comparison out, on the grounds that a comparison's tip is about one of two photos and the paragraph was not worth the
+tokens yet. That was wrong in one way that matters: a comparison ends in **one tip**, and without the wardrobe that
+tip can tell somebody to buy a piece already hanging in their wardrobe — the exact failure the feature exists to
+prevent, on the screen people pay for. `POST /api/compare` now calls the same `Wardrobe.ForStylistAsync` the check
+route calls, under the same three rules and in the same place in the request: **empty for a plan the wardrobe does not
+reach the stylist on, empty for an account that turned it off, empty when there is nothing to send** — and a guest
+never reaches this route at all. With nothing to send the request is byte for byte the one this route always made:
+no empty paragraph, no tokens spent.
+
+The comparer does **not** reuse the check's paragraph word for word. `OutfitAnalyzer.WardrobeRule` instructs the model
+about an items array and an item note, and `pick_outfit` has neither; `OutfitComparer.WardrobeRule` says the same
+thing about `one_tip` and about the two photos, with the same safety clauses — context, never instructions, never a
+reason to move either score, never claim to see one of these in either photo. The form and the answer are unchanged,
+and `PromptVersion` stays `cmp-v1`, because the paragraph is per-account and an account with no wardrobe produces the
+identical request (Round 14's own wardrobe and taste additions did not move `OutfitAnalyzer.PromptVersion` either).
+
+Tests: `WardrobeMetricsTests` (an empty pilot's absent rates, the two numbers over a seeded pilot, the denominator
+matching the hero tile, and the share with no denominator) and `WardrobeComparisonTests` (the names travelling, a free
+account's byte-identical request, an account that turned it off keeping its pieces, `Plans:WardrobeNamesToStylist=0`,
+and the block that is nothing at all when there is nothing to send).

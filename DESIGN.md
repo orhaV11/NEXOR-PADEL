@@ -398,14 +398,17 @@ one they pick.
 The three Round 14 screens the sections above never described. All of them draw their own rules through their own
 `ensureStyle()`, and all of them use §1's tokens and §8's shapes and add no new ones.
 
-- **The typed reasons** (`app/taste.js`, `#taste-reasons`, mounted under the tip on `#/result`, on `#/checks` and
-  nowhere else). One `.loop` card — `--surface`, `var(--radius)`, the card shadow — with a 17px display heading and
+- **The typed reasons** (`app/taste.js` `reasonRow`, drawn by `views/profile.js` on **`#/checks`**; the result screen
+  still shows Round 13's yes/no `.useful` row and leaves its `#tip-feedback` mount empty — `taste.js`'s own
+  `mountResult` is written but nothing calls it, which is a wiring gap, not a design choice). One `.loop` card —
+  `--surface`, `var(--radius)`, the card shadow — with a 17px display heading and
   four chips below it in a two-up wrap, each one at least 44px and at least 46% of the row, so the four read as a
   square of answers rather than a line to scroll. *It worked* / *It didn't* / *Not my style* / *I don't own that*,
   and a quiet text skip below at the start edge. Once answered, the card collapses to one line of what was said
   with a text button to change it. The optional note is a row that appears only after a reason is chosen: the
   person's words are never the first thing asked for.
-- **"I tried it"** (`app/taste.js`, `#tried-action`, under the reasons). One 44px button while nothing is linked; a
+- **"I tried it"** (`app/taste.js` `triedBlock`, under the reasons on `#/checks`; the result screen's `#tried-it`
+  mount is empty for the same reason). One 44px button while nothing is linked; a
   waiting line with a cancel while the second photo is owed; and, once both verdicts exist, the pair — the two
   scores, the two tips, and what changed — with the preference question under it. The second check went through the
   ordinary check screen, so nothing here is a second camera.
@@ -420,6 +423,8 @@ The three Round 14 screens the sections above never described. All of them draw 
   the wardrobe is a list of names, because a name is all the stylist needs and photographing a closet is the hour of
   work that would kill it. A free account on a server where the advice is Pro's sees the whole list and one plain
   line about what Pro adds, never a dead toggle.
-- **The keep line** (`app/wardrobe.js`, `#wardrobe-offer`, with the item list on the result): one question and two
-  chips — *Keep* and *Not this one* — for a piece this check named. One tap, no form, no category to pick: the
-  category is the stylist's own word for it.
+- **The keep line** (`app/wardrobe.js`, `#wardrobe-keep`, appended by `views/check.js` right under the tip): one
+  question and two controls — *Keep* and a quiet *Not this one* — for a piece this check named. One tap, no form, no
+  category to pick: the category is the stylist's own word for it. The row stays `hidden` until it has something to
+  ask, so a screen with nothing to offer looks exactly as it did. (`#wardrobe-offer`, beside the item list, is a
+  second mount `check.js` reserves and nothing fills.)

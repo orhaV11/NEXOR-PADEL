@@ -1915,6 +1915,16 @@ crawler falls back to the URL it actually fetched, so a shared link unfurls corr
 the real domain with nothing to configure. `og:image` cannot do that, so it stays absolute and `set-origin` still
 rewrites it — two occurrences in `index.html`, five in each landing page, which is what `--check` prints.
 
+**One thing the documents could not be made true about, and so say plainly.** Round 14's typed reasons and "I tried
+it" do **not** appear on the result screen. `views/check.js` reserves `#tip-feedback` and `#tried-it` under the tip
+and draws Round 13's yes/no `.useful` row above them; `app/taste.js` exports a `mountResult(container, check)` written
+for exactly those two ids, and **nothing calls it** — the only caller of `reasonRow` and `triedBlock` is
+`views/profile.js`, on `#/checks`. So the loop works and teaches, but on the wrong screen: the person answers a
+thumbs-up on the result and finds the four typed answers later, in their history. `taste.js` half-admits it ("the
+loop is whole without the result screen"), which is true of the data and not of the design. One call in `check.js`
+closes it. It was left alone here because `views/check.js` belongs to another builder this round, and `DESIGN.md`
+§12 now says where these actually draw rather than where they were meant to.
+
 **What could not be verified here.** There is no Docker daemon reachable, no Fly account and no network to Anthropic
 in this sandbox, so every `fly …`, `docker compose …`, `--doctor --live` and `--stripe-check` line is unchanged from
 what was already there and was read rather than run. What was run: `--doctor`, `--vapid`, `--backup` with and without

@@ -520,10 +520,12 @@ Then, on your phone, at `https://looks.example.com`:
    secret never reached the machine (1.5).
 6. **Do a real check.** Photograph an outfit in the app, say where it is going (and a style, or none), and read the
    verdict. This is the moment the Anthropic key, the storage folder and the model all have to be right at once.
-   Read the tip, and answer the row under it — *it worked*, *it didn't*, *not my style*, *I don't own that*. That
-   row is what the numbers page's `stylist` block is made of, so it is worth being the first person to use it. If
-   the tip says **change nothing**, that is a real answer, not a bug: the stylist may keep a look it thinks is
-   already right, and it is told to do it rarely.
+   Read the tip and answer *Did the tip land?* under it — that row is what the numbers page's `stylist` block is
+   made of, so it is worth being the first person to use it. (On **Your checks**, `#/checks`, the same question is
+   asked as four typed answers instead — *it worked*, *it didn't*, *not my style*, *I don't own that* — and only
+   those teach the taste profile anything, so answer it there too.) If the tip says **change nothing**, that is a
+   real answer and not a bug: the stylist may keep a look it thinks is already right, and it is told to do that
+   rarely.
 7. **Post it** and open `#/board`. On launch day the look sits on the **Stylist's picks** tab (by score, no fires
    needed); the **Looks** tab wants fires that count, and a fire from an account younger than `Board__NewAccountDays`
    (2 days) does not count, then or later: the age is judged at the moment of the fire, so a fire from a second
@@ -1597,10 +1599,11 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    בפריסה ראשונה מצפים ל-`WARN push` (אין מפתחות VAPID עד שלב 7 ב-`DEPLOY.md`) ולשום כישלון; `FAIL anthropic` אומר
    שסוד המפתח לא הגיע למכונה (1.5).
 6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, אומרים לאן הוא הולך (וסגנון, או בלי), וקוראים את הפסיקה. זה הרגע
-   שבו מפתח Anthropic, תיקיית האחסון והמודל חייבים להיות נכונים בבת אחת. קראו את הטיפ, וענו על השורה שמתחתיו —
-   *עבד*, *לא עבד*, *לא הסגנון שלי*, *אין לי את זה*. השורה הזאת היא מה שבונה את בלוק ה-`stylist` בדף המספרים, אז
-   שווה להיות האדם הראשון שמשתמש בה. אם הטיפ אומר **לא לשנות כלום**, זו תשובה אמיתית ולא תקלה: הסטייליסט רשאי
-   לשמור לוק שהוא חושב שכבר נכון, ונאמר לו לעשות את זה רק לעיתים רחוקות.
+   שבו מפתח Anthropic, תיקיית האחסון והמודל חייבים להיות נכונים בבת אחת. קראו את הטיפ וענו על *הטיפ קלע?* שמתחתיו
+   — השורה הזאת היא מה שבונה את בלוק ה-`stylist` בדף המספרים, אז שווה להיות האדם הראשון שמשתמש בה. (ב**הבדיקות
+   שלך**, `#/checks`, אותה שאלה נשאלת כארבע תשובות מסומנות — *עבד*, *לא עבד*, *לא הסגנון שלי*, *אין לי את זה* —
+   ורק הן מלמדות את פרופיל הטעם משהו, אז ענו גם שם.) אם הטיפ אומר **לא לשנות כלום**, זו תשובה אמיתית ולא תקלה:
+   הסטייליסט רשאי לשמור לוק שהוא חושב שכבר נכון, ונאמר לו לעשות את זה רק לעיתים רחוקות.
 7. **מפרסמים אותו** ופותחים את `#/board`. ביום ההשקה הלוק יושב בלשונית **הבחירות של הסטייליסט** (לפי ציון, בלי אש);
    לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) לא נספרת — לא עכשיו ולא
    אחר כך: הגיל נמדד ברגע האש, ולכן אש מחשבון שני שיצרתם הרגע מעלה את המונה של הלוק ולעולם לא ממלאת את לשונית

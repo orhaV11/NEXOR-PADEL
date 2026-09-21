@@ -19,9 +19,16 @@ public class CapacityTests
 
         var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))));
 
+        // The counts are asserted WITH the codes that produced them. This test failed once in a full parallel run and
+        // could not be reproduced in eleven tries afterwards, six of them under CPU load - and "Expected 3, Actual 2"
+        // does not say which way it went. The two directions mean opposite things: MORE than three Created would be a
+        // real leak in the per-user cap (money), fewer is a request that never arrived (timing). Whoever sees this
+        // next should not have to re-derive that.
+        var codes = string.Join(", ", responses.Select(r => (int)r.StatusCode).OrderBy(c => c));
         Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
         Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
-        Assert.Equal(3, app.Vision.Requests.Count);
+        Assert.True(app.Vision.Requests.Count == 3,
+            $"the model was asked {app.Vision.Requests.Count} time(s) for a cap of 3; the six responses were [{codes}]");
     }
 
     [Fact]

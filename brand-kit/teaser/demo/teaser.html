@@ -1,0 +1,712 @@
+<!doctype html>
+<!--
+  OREVOSH launch teaser — "The ten seconds" (1080x1920, 12 s, silent).
+
+  Every frame is drawn from one time value by window.seek(t) in plain JavaScript: no CSS animation, no
+  transition, no requestAnimationFrame anywhere, so a screenshot taken at t is always the same picture and
+  the export never catches an element mid-flight. render-teaser.js walks t = f/30 and captures 360 frames.
+
+  Tokens and the two faces come from DESIGN.md §1–§2 through the local font copies in
+  tools/brand/templates/fonts (never the network). The phone beats put the real app captures from
+  tools/brand/templates/screens inside the same CSS phone frame the story and store templates use; the
+  score ring, the breakdown rings, the tip card, the feed card and the fire count are rebuilt as live
+  elements so they move. Nothing here claims a feature the app does not have.
+
+  The look being checked is tools/brand/templates/photos/look-2-camel.jpg, a real outfit used with the
+  owner's permission, in all three places a photo appears: the card the finger taps on the check screen,
+  the block that settles into the result layout and the feed card at the end. Each slot is 4:5 and the
+  photo is anchored to the top of the crop. Every score, headline, occasion and tip in the cut is that
+  look's stylist copy, and it judges the clothes only.
+
+  Safe area: TikTok and Instagram draw their own UI over the bottom 320 px and the right 180 px. Every word,
+  the wordmark and the mark stay inside x < 900 and y < 1600.
+-->
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>OREVOSH — launch teaser</title>
+<link rel="stylesheet" href="../../../tools/brand/templates/fonts/fonts.css">
+<style>
+  :root {
+    --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
+    --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
+    --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+    --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+    --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
+    --accent-tint: rgba(179,157,255,.14);
+    --fire: #ff6a2b; --fire-2: #ffa83a; --ok: #5ee6a0;
+    --glow: rgba(179,157,255,.16);
+    --font-display: "Outfit", "Heebo", system-ui, sans-serif;
+    --font-body: "Heebo", system-ui, sans-serif;
+    /* the phone, and the screen inside it at the app's 390:844 viewport */
+    --pw: 620px;             /* phone width */
+    --sw: 586.52px;          /* screen width  = pw - 2 * pw*.027 */
+    --sh: 1269.04px;         /* screen height = sw * 844/390 */
+    --k: 1.5039;             /* screen px per app CSS px */
+  }
+  html, body { margin: 0; padding: 0; overflow: clip; background: #0b0b0f; }
+  body { width: 1080px; height: 1920px; position: relative;
+    color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision; }
+
+  #stage { position: absolute; inset: 0; background: #0b0b0f;
+    background-image: radial-gradient(90% 34% at 46% -6%, var(--glow), transparent 62%); }
+  #warm { position: absolute; left: -120px; right: -120px; top: 560px; height: 900px;
+    background: radial-gradient(46% 42% at 44% 50%, rgba(255,143,177,.10), transparent 70%); }
+
+  .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -.022em; line-height: 1.04; margin: 0; }
+  .caps { font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+  .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+  img { display: block; }
+  .wm { direction: ltr; }
+
+  /* ---------- stage furniture ---------- */
+  #wordmarkTop { position: absolute; left: 387.1px; top: 84px; height: 44px; width: 204.4px; }
+  .cap { position: absolute; left: 80px; width: 800px; top: 168px; text-align: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 66px; line-height: 1.06;
+    letter-spacing: -.022em; color: var(--ink); }
+  .cap span { display: inline-block; }
+
+  /* ---------- the phone ---------- */
+  #phone { position: absolute; left: 170px; top: 330px; width: var(--pw); box-sizing: border-box;
+    padding: 16.74px; border-radius: 83.7px; background: #1a1a22;
+    box-shadow: 0 0 0 1px #2b2b36, 0 37px 99px rgba(0,0,0,.55); transform-origin: 50% 46%; }
+  #screen { position: relative; width: var(--sw); height: var(--sh); overflow: hidden;
+    border-radius: 68.2px; background: #0b0b0f;
+    background-image: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%); }
+  .layer { position: absolute; inset: 0; }
+  #phoneScrim { position: absolute; inset: 0; background: #06060a; opacity: 0; border-radius: 68.2px; }
+
+  /* beat 1 — the real check-screen capture, with three live chips over it */
+  #shotCheck { position: absolute; left: 0; top: 0; width: var(--sw); height: var(--sh); object-fit: cover; object-position: top center; }
+  /* the capture was taken with the browser test's placeholder in the photo slot; the real look is laid
+     over that card, and the capture's own dock disc is put back on top so the stacking is unchanged */
+  #lookCheck { position: absolute; overflow: hidden; border-radius: 24px; background: #15151c; }
+  /* the capture's occasion field, refilled with this look's occasion; #1e1e27 is the field's own fill,
+     so the overlay sits inside the purple border and no seam shows */
+  #checkOccasion { position: absolute; box-sizing: border-box; background: #1e1e27; border-radius: 14px;
+    display: flex; align-items: center; font-family: var(--font-body); font-weight: 400; color: var(--ink);
+    white-space: nowrap; }
+  .lookImg { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; }
+  #checkPill { position: absolute; border-radius: 999px; box-sizing: border-box;
+    background: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); color: #150f2e;
+    font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+  #checkDisc { position: absolute; border-radius: 50%; overflow: hidden; }
+  #checkDisc img { position: absolute; width: var(--sw); max-width: none; }
+  .chipHi { position: absolute; border-radius: 999px; opacity: 0; background: rgba(179,157,255,.20);
+    box-shadow: inset 0 0 0 2px #b39dff; }
+  #chipDate { position: absolute; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-body); font-weight: 700; font-size: 25px; background: #1e1e27; color: #b9b9c6; }
+  #touchRing { position: absolute; border-radius: 50%; border: 3px solid rgba(244,244,247,.75); opacity: 0; }
+  #touchDot { position: absolute; border-radius: 50%; background: rgba(244,244,247,.30);
+    box-shadow: inset 0 0 0 2px rgba(244,244,247,.85); opacity: 0; }
+
+  /* beat 2–5 — the live result view */
+  .appbar { position: absolute; left: 0; top: 0; width: 100%; height: 82px; background: #13121a;
+    border-bottom: 1px solid #2b2b36; box-sizing: border-box; }
+  .appbar b { position: absolute; left: 0; right: 0; top: 24px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 27px; color: var(--ink); }
+  #photoBlock { position: absolute; left: 82px; top: 104px; width: 422px; height: 527.5px;
+    border-radius: 20px; overflow: hidden; background: #15151c; transform-origin: 50% 40%; }
+  /* 422 x 527.5 and 522.5 x 653 are both 4:5, the slot the app crops a look into; cover + top anchor
+     keeps this look's coat, knit, necklaces, bag and skirt in frame (see the README on the crop) */
+  #photoScrim { position: absolute; inset: 0; background: #0b0b0f; opacity: 0; }
+  #ringWrap { position: absolute; left: 0; top: 0; width: 400px; height: 400px; transform-origin: 0 0; }
+  #ringGlow { position: absolute; left: 60px; top: 60px; width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(179,157,255,.26), transparent 70%); opacity: 0; }
+  #scoreWrap { position: absolute; left: 0; top: 0; width: 400px; height: 400px; transform-origin: 0 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
+  #scoreNum { font-family: var(--font-display); font-weight: 800; font-size: 168px; line-height: .92;
+    color: var(--ink); direction: ltr; }
+  #scoreDen { font-family: var(--font-body); font-weight: 700; font-size: 40px; color: var(--ink-3);
+    margin-top: 6px; opacity: 0; direction: ltr; }
+  #checkMeta { position: absolute; left: 40px; width: 506px; top: 1064px; text-align: center; font-size: 20px; opacity: 0; }
+  #counter { position: absolute; left: 40px; width: 506px; top: 1000px; text-align: center;
+    font-family: var(--font-body); font-weight: 500; font-size: 32px; color: var(--ink-3);
+    font-variant-numeric: tabular-nums; direction: ltr; opacity: 0; }
+  /* 52px, not 54: "Camel and chocolate," measures 493 px against the 510 px column, where 54 px ran to
+     512 px and wrapped to a third line over the occasion */
+  #headline { position: absolute; left: 40px; top: 480px; width: 510px;
+    font-family: var(--font-display); font-weight: 700; font-size: 52px; line-height: 1.12;
+    letter-spacing: -.02em; color: var(--ink); }
+  #headline span { display: inline-block; }
+  #occasion { position: absolute; left: 40px; top: 616px; font-family: var(--font-body); font-weight: 400;
+    font-size: 24px; color: var(--ink-3); opacity: 0; }
+  #bdLabel { position: absolute; left: 40px; top: 704px; font-size: 20px; opacity: 0; }
+  #bdRule { position: absolute; left: 250px; top: 714px; height: 1px; width: 0; background: #2b2b36; }
+  .bd { position: absolute; top: 762px; width: 150px; text-align: center; opacity: 0; transform-origin: 50% 40%; }
+  .bd svg { display: block; margin: 0 auto; }
+  .bd .v { position: absolute; left: 0; width: 150px; top: 30px; font-family: var(--font-display);
+    font-weight: 800; font-size: 54px; color: var(--ink); direction: ltr; }
+  .bd .d { position: absolute; left: 0; width: 150px; top: 88px; font-family: var(--font-body);
+    font-weight: 700; font-size: 18px; color: var(--ink-3); direction: ltr; }
+  .bd .l { position: absolute; left: -12px; width: 174px; top: 148px; font-size: 19px; }
+  #readsRow { position: absolute; left: 40px; top: 986px; width: 506px; opacity: 0; }
+  #readsRow .a { position: absolute; left: 0; top: 0; font-size: 19px; }
+  #readsRow .b { position: absolute; right: 0; top: -2px; font-family: var(--font-display); font-weight: 700;
+    font-size: 24px; color: var(--ink); direction: ltr; }
+  #readsTrack { position: absolute; left: 0; top: 40px; width: 506px; height: 8px; border-radius: 999px; background: #1e1e27; }
+  #readsFill { position: absolute; left: 0; top: 0; height: 8px; width: 0; border-radius: 999px;
+    background: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); }
+
+  /* the app's pill dock, drawn once and shared by the live layers */
+  #dock { position: absolute; left: 21px; top: 1170px; width: 544.5px; height: 84px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line); box-sizing: border-box;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55); opacity: 0; }
+  #dock .t { position: absolute; top: 32px; width: 160px; margin-left: -80px; text-align: center; font-size: 17px; }
+  #dockDisc { position: absolute; left: 245.2px; top: -37px; width: 96px; height: 96px; border-radius: 50%;
+    background: #0b0b0f; padding: 8px; box-sizing: border-box;
+    box-shadow: 0 0 0 6px rgba(179,157,255,.12), 0 10px 26px rgba(179,157,255,.35); }
+  #dockDisc img { width: 80px; height: 80px; }
+  #dockCheck { position: absolute; left: 213px; top: 1229px; width: 160px; text-align: center; font-size: 16px;
+    letter-spacing: .10em; color: var(--ink-2); opacity: 0; }
+  #dockDot { position: absolute; left: 68px; top: 56px; width: 8px; height: 8px; border-radius: 999px;
+    background: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); opacity: 0; }
+
+  /* beat 6 — the live feed */
+  #masthead { position: absolute; left: 0; top: 0; width: 100%; height: 82px; background: #13121a;
+    border-bottom: 1px solid #2b2b36; box-sizing: border-box; }
+  #masthead img { position: absolute; left: 24px; top: 26px; height: 30px; width: 139.4px; }
+  #feedCard { position: absolute; left: 20px; top: 90px; width: 546.5px; height: 962px;
+    background: var(--surface); border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  #avatar { position: absolute; left: 12px; top: 12px; width: 52px; height: 52px; border-radius: 50%;
+    background: #3fd9bd; color: #08201c; font-family: var(--font-body); font-weight: 700; font-size: 21px;
+    display: flex; align-items: center; justify-content: center; }
+  #who { position: absolute; left: 76px; top: 14px; font-family: var(--font-body); font-weight: 700;
+    font-size: 25px; color: var(--ink); }
+  #handle { position: absolute; left: 76px; top: 46px; font-size: 19px; color: var(--ink-3); }
+  #intentPill { position: absolute; right: 12px; top: 20px; height: 38px; padding: 0 18px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent); font-family: var(--font-body); font-weight: 700;
+    font-size: 16px; letter-spacing: .08em; display: flex; align-items: center; }
+  #feedPhoto { position: absolute; left: 12px; top: 84px; width: 522.5px; height: 653px; border-radius: 18px;
+    overflow: hidden; background: #1e1e27; }
+  #feedBadge { position: absolute; left: 456px; top: 693px; width: 76px; height: 76px; border-radius: 50%;
+    border: 4px solid transparent;
+    background: linear-gradient(#15151c, #15151c) padding-box, linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%) border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #feedBadge .v { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: .9; color: var(--ink); }
+  #feedBadge .d { font-family: var(--font-body); font-weight: 700; font-size: 13px; color: var(--ink-3); margin-top: 1px; }
+  #feedHead { position: absolute; left: 12px; top: 762px; width: 470px; font-family: var(--font-display);
+    font-weight: 700; font-size: 31px; line-height: 1.14; letter-spacing: -.02em; color: var(--ink); }
+  #feedCap { position: absolute; left: 12px; top: 848px; font-size: 21px; color: var(--ink-2); }
+  #feedCap i { font-style: normal; color: var(--accent); font-weight: 600; }
+  #feedRule { position: absolute; left: 12px; top: 890px; width: 522px; height: 1px; background: #2b2b36; }
+  .act { position: absolute; top: 902px; height: 48px; border-radius: 999px; border: 1px solid var(--line-soft);
+    box-sizing: border-box; display: flex; align-items: center; gap: 9px; padding: 0 18px; }
+  .act .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--ink); direction: ltr; }
+  .act .l { font-size: 14px; }
+  #actFire { left: 12px; }
+  #actCom { left: 196px; }
+  #burst { position: absolute; left: 206px; top: 296px; width: 134px; height: 220px; opacity: 0;
+    transform-origin: 50% 62%; filter: drop-shadow(0 6px 18px rgba(11,11,15,.45)); }
+  #comment { position: absolute; left: 34px; top: 1062px; width: 500px; height: 62px; opacity: 0; }
+  #comment .a { position: absolute; left: 0; top: 4px; width: 44px; height: 44px; border-radius: 50%;
+    background: #6b5fd0; color: #f4f4f7; font-family: var(--font-body); font-weight: 700; font-size: 18px;
+    display: flex; align-items: center; justify-content: center; }
+  #comment .h { position: absolute; left: 58px; top: 2px; font-size: 19px; font-weight: 600; color: var(--accent); }
+  #comment .c { position: absolute; left: 58px; top: 30px; font-size: 22px; color: var(--ink-2); }
+
+  /* beat 5 — the one tip, on the stage so it is the most readable thing in the frame */
+  #tipCard { position: absolute; left: 80px; top: 1018px; width: 800px; box-sizing: border-box;
+    padding: 42px 46px 58px 58px; background: #15151c; border-radius: 26px;
+    box-shadow: 0 26px 70px rgba(0,0,0,.62); opacity: 0; }
+  #tipBar { position: absolute; left: 26px; top: 42px; bottom: 54px; width: 8px; border-radius: 999px;
+    background: linear-gradient(180deg, #b39dff 0%, #ff8fb1 100%); }
+  #tipLabel { font-family: var(--font-body); font-weight: 700; font-size: 26px; text-transform: uppercase;
+    letter-spacing: .16em; color: var(--accent); }
+  /* 40px, a step down from the 48px the shorter tip took: the longest line measures 670 px against the
+     card's 696 px of content, so both lines stay on one line each and nothing overflows */
+  #tipCard .tl { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1.16;
+    letter-spacing: -.02em; color: var(--ink); white-space: nowrap; }
+  #tl1 { margin-top: 22px; }
+
+  /* beat 7 — the end card */
+  #end { position: absolute; inset: 0; opacity: 0; }
+  #endMark { position: absolute; left: 380px; top: 520px; width: 200px; height: 200px; }
+  #endWordmark { position: absolute; left: 50%; top: 782px; height: 88px; width: 408.8px; margin-left: -204.4px; }
+  #endSlogan { position: absolute; left: 80px; top: 932px; width: 800px; text-align: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 72px; letter-spacing: -.022em; color: var(--ink); opacity: 0; }
+  #endSoon { position: absolute; left: 80px; top: 1062px; width: 800px; text-align: center;
+    font-family: var(--font-body); font-weight: 700; font-size: 30px; text-transform: uppercase;
+    letter-spacing: .22em; color: var(--accent); opacity: 0; }
+  #endAge { position: absolute; left: 80px; top: 1150px; width: 800px; text-align: center;
+    font-family: var(--font-body); font-weight: 600; font-size: 22px; letter-spacing: .06em; color: var(--ink-3); opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="warm"></div></div>
+
+<img id="wordmarkTop" class="wm" src="../../../src/FitCheck.Api/wwwroot/brand/wordmark.svg" alt="OREVOSH">
+
+<div class="cap" id="cap1"></div>
+<div class="cap" id="cap2" style="top:168px"></div>
+
+<div id="phone">
+  <div id="screen">
+
+    <!-- beat 1: the real capture -->
+    <div class="layer" id="layerCheck">
+      <img id="shotCheck" src="../../../tools/brand/templates/screens/07-check-ready-en.png" alt="">
+      <div id="checkOccasion">coffee and a walk</div>
+      <div id="lookCheck"><img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt=""></div>
+      <div id="checkPill">Change photo or clip</div>
+      <div id="checkDisc"><img src="../../../tools/brand/templates/screens/07-check-ready-en.png" alt=""></div>
+      <div class="chipHi" id="chipCasual"></div>
+      <div class="chipHi" id="chipStreet"></div>
+      <div id="chipDate">Date</div>
+      <div id="touchRing"></div>
+      <div id="touchDot"></div>
+    </div>
+
+    <!-- beats 2–5: the live result -->
+    <div class="layer" id="layerResult" style="opacity:0">
+      <div class="appbar"><b>Your check</b></div>
+      <div id="photoBlock">
+        <img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt="">
+        <div id="photoScrim"></div>
+      </div>
+      <div id="ringGlowWrap" style="position:absolute;left:0;top:0;width:400px;height:400px;transform-origin:0 0">
+        <div id="ringGlow"></div>
+      </div>
+      <div id="ringWrap">
+        <svg width="400" height="400" viewBox="0 0 400 400">
+          <defs>
+            <linearGradient id="ringGrad" gradientUnits="userSpaceOnUse" x1="70" y1="70" x2="330" y2="330">
+              <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/>
+            </linearGradient>
+          </defs>
+          <circle cx="200" cy="200" r="150" fill="none" stroke="rgba(255,255,255,.055)" stroke-width="20"/>
+          <path id="ringArc" d="M200 50 A150 150 0 1 1 200 350 A150 150 0 1 1 200 50" fill="none"
+                stroke="url(#ringGrad)" stroke-width="20" stroke-linecap="round" stroke-dasharray="0 942.478"/>
+        </svg>
+      </div>
+      <div id="scoreWrap"><div id="scoreNum" class="num">9</div><div id="scoreDen" class="num">/10</div></div>
+      <div id="counter" class="num">0.0s</div>
+      <div id="checkMeta" class="caps">Date · coffee and a walk</div>
+      <div id="headline"></div>
+      <div id="occasion">coffee and a walk</div>
+      <div id="bdLabel" class="caps">The breakdown</div>
+      <div id="bdRule"></div>
+
+      <div class="bd" id="bd1" style="left:32px">
+        <svg width="150" height="130" viewBox="0 0 150 130">
+          <defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="15" y1="5" x2="135" y2="125">
+            <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/></linearGradient></defs>
+          <circle cx="75" cy="65" r="55" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g1)"
+                stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
+        </svg>
+        <div class="v num">9</div><div class="d num">/10</div><div class="l caps">Fit</div>
+      </div>
+      <div class="bd" id="bd2" style="left:218px">
+        <svg width="150" height="130" viewBox="0 0 150 130">
+          <defs><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="15" y1="5" x2="135" y2="125">
+            <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/></linearGradient></defs>
+          <circle cx="75" cy="65" r="55" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g2)"
+                stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
+        </svg>
+        <div class="v num">9</div><div class="d num">/10</div><div class="l caps">Color</div>
+      </div>
+      <div class="bd" id="bd3" style="left:404px">
+        <svg width="150" height="130" viewBox="0 0 150 130">
+          <defs><linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="15" y1="5" x2="135" y2="125">
+            <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/></linearGradient></defs>
+          <circle cx="75" cy="65" r="55" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <path class="arc" d="M75 10 A55 55 0 1 1 75 120 A55 55 0 1 1 75 10" fill="none" stroke="url(#g3)"
+                stroke-width="10" stroke-linecap="round" stroke-dasharray="0 345.575"/>
+        </svg>
+        <div class="v num">8</div><div class="d num">/10</div><div class="l caps">Accessories</div>
+      </div>
+
+      <div id="readsRow">
+        <div class="a caps">Reads as Date</div><div class="b num">72%</div>
+        <div id="readsTrack"><div id="readsFill"></div></div>
+      </div>
+    </div>
+
+    <!-- beat 6: the live feed -->
+    <div class="layer" id="layerFeed" style="opacity:0">
+      <div id="masthead"><img class="wm" src="../../../src/FitCheck.Api/wwwroot/brand/wordmark.svg" alt="OREVOSH"></div>
+      <div id="feedCard">
+        <div id="avatar">no</div>
+        <div id="who">noa</div>
+        <div id="handle">@noa · now</div>
+        <div id="intentPill">DATE</div>
+        <div id="feedPhoto"><img class="lookImg" src="../../../tools/brand/templates/photos/look-2-camel.jpg" alt=""></div>
+        <div id="feedBadge"><div class="v num">9</div><div class="d num">/10</div></div>
+        <div id="feedHead">Camel and chocolate,<br>done right</div>
+        <div id="feedCap">Coffee and a walk. <i>#datenight</i></div>
+        <div id="feedRule"></div>
+        <div class="act" id="actFire">
+          <svg width="24" height="26" viewBox="-80 -190 160 270"><path id="fireIcon"
+            d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+            fill="none" stroke="#b9b9c6" stroke-width="16" stroke-linejoin="round"/></svg>
+          <div class="n num" id="fireCount">0</div><div class="l caps" id="fireLbl">Fire</div>
+        </div>
+        <div class="act" id="actCom">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H4l2.2-2.6A8 8 0 1 1 21 12Z"
+            fill="none" stroke="#b9b9c6" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <div class="n num" id="comCount">0</div><div class="l caps" id="comLbl">Comments</div>
+        </div>
+        <svg id="burst" viewBox="-86 -196 172 282">
+          <defs><linearGradient id="burstFire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+            <stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+          </linearGradient></defs>
+          <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+                fill="url(#burstFire)" stroke="rgba(11,11,15,.55)" stroke-width="9" stroke-linejoin="round"/></svg>
+      </div>
+      <div id="comment">
+        <div class="a">ma</div><div class="h">@maya</div><div class="c">that coat over the white knit</div>
+      </div>
+    </div>
+
+    <!-- the dock, shared by the live layers -->
+    <div id="dock">
+      <div class="t caps" style="left:53px" id="dkHome">Home</div>
+      <div class="t caps" style="left:159.2px">Explore</div>
+      <div class="t caps" style="left:385.3px">Activity</div>
+      <div class="t caps" style="left:491.4px">Profile</div>
+      <div id="dockDot"></div>
+      <div id="dockDisc"><img src="../../../src/FitCheck.Api/wwwroot/brand/mark.svg" alt=""></div>
+    </div>
+    <div id="dockCheck" class="caps">Check</div>
+
+    <div id="phoneScrim"></div>
+  </div>
+</div>
+
+<div id="tipCard">
+  <div id="tipBar"></div>
+  <div id="tipLabel">The one tip</div>
+  <div class="tl" id="tl1">Swap the black tights for sheer brown</div>
+  <div class="tl" id="tl2">and the column runs unbroken.</div>
+</div>
+
+<div id="end">
+  <svg id="endMark" viewBox="0 0 512 512">
+    <defs>
+      <linearGradient id="ov-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442">
+        <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/>
+      </linearGradient>
+      <linearGradient id="ov-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+        <stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+      </linearGradient>
+      <mask id="ov-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+        <rect width="512" height="512" fill="#fff"/>
+        <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+              fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+      </mask>
+    </defs>
+    <path id="endRing" d="M155.59 392.41 A142 142 0 1 1 356.41 191.59 A142 142 0 1 1 155.59 392.41"
+          fill="none" stroke="url(#ov-ring)" stroke-width="68" mask="url(#ov-cut)" stroke-dasharray="0 892.212"/>
+    <g id="endFlame" transform="translate(351.02 186.47) rotate(42)">
+      <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="url(#ov-fire)"/>
+    </g>
+  </svg>
+  <img id="endWordmark" class="wm" src="../../../src/FitCheck.Api/wwwroot/brand/wordmark.svg" alt="OREVOSH">
+  <div id="endSlogan">Check the look.</div>
+  <div id="endSoon">Coming soon</div>
+  <div id="endAge">16+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var lerp = function (a, b, p) { return a + (b - a) * p; };
+  var E = {
+    lin:  function (p) { return p; },
+    out:  function (p) { return 1 - Math.pow(1 - p, 3); },
+    out4: function (p) { return 1 - Math.pow(1 - p, 4); },
+    io:   function (p) { return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
+    back: function (p) { var c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); }
+  };
+  // progress of t through [a,b], eased and clamped to 0..1
+  function seg(t, a, b, ease) {
+    if (b <= a) return t >= b ? 1 : 0;
+    return (ease || E.out)(clamp((t - a) / (b - a), 0, 1));
+  }
+  // 0 -> 1 -> 0 over [a,b]
+  function pulse(t, a, b) {
+    var p = clamp((t - a) / (b - a), 0, 1);
+    return Math.sin(p * Math.PI);
+  }
+  function op(el, v) { el.style.opacity = v; }
+  function tr(el, v) { el.style.transform = v; }
+
+  // ---- geometry (screen coordinates inside the phone) -------------------------------
+  // the check capture is 780x1688 and the screen is 586.52 wide, so s = .75195
+  var S = 586.52 / 780;
+  function rect(el, x, y, w, h) {
+    el.style.left = (x * S) + 'px'; el.style.top = (y * S) + 'px';
+    el.style.width = (w * S) + 'px'; el.style.height = (h * S) + 'px';
+  }
+  rect($('chipCasual'),  33, 187, 153, 79);
+  rect($('chipStreet'), 355, 187, 210, 79);
+  rect($('chipDate'),   200, 186, 136, 81);
+
+  // the occasion field's interior, inside its 4 px #b39dff border at (28, 530) 724 x 108
+  rect($('checkOccasion'), 32, 534, 716, 100);
+  $('checkOccasion').style.paddingLeft = (30 * S).toFixed(2) + 'px';
+  $('checkOccasion').style.fontSize = (33 * S).toFixed(2) + 'px';
+
+  // the photo card in the capture is 712 x 890 at (34, 672) — a 4:5 slot. The real look covers it; the
+  // capture's Change-photo pill is redrawn on the brand gradient, and a circular cut of the capture puts
+  // the dock disc back over the pill's right end, exactly as the screen stacks it.
+  rect($('lookCheck'), 34, 672, 712, 890);
+  rect($('checkPill'), 59, 1494, 386, 56);
+  $('checkPill').style.fontSize = (27 * S).toFixed(2) + 'px';
+  var DISC = { cx: 391, cy: 1593, r: 62 };
+  rect($('checkDisc'), DISC.cx - DISC.r, DISC.cy - DISC.r, DISC.r * 2, DISC.r * 2);
+  $('checkDisc').firstElementChild.style.left = (-(DISC.cx - DISC.r) * S).toFixed(2) + 'px';
+  $('checkDisc').firstElementChild.style.top = (-(DISC.cy - DISC.r) * S).toFixed(2) + 'px';
+
+  // ---- copy -------------------------------------------------------------------------
+  function words(el, text, extra) {
+    el.innerHTML = '';
+    var parts = text.split(' '), out = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i] === '\n') { el.appendChild(document.createElement('br')); continue; }
+      var s = document.createElement('span');
+      s.textContent = parts[i];
+      el.appendChild(s);
+      if (i < parts.length - 1) el.appendChild(document.createTextNode(' '));
+      out.push(s);
+    }
+    if (extra) extra(out);
+    return out;
+  }
+  var cap1w = words($('cap1'), 'Where is this going?');
+  var cap2w = words($('cap2'), 'Then the community decides.');
+  var headw = words($('headline'), 'Camel and chocolate, \n done right');
+
+  // ---- the ring ---------------------------------------------------------------------
+  var SCORE = 0.9;            // the look's score out of 10, as a fraction of the ring
+  var RC = 942.478;           // 2 * pi * 150; the arc path starts at twelve o'clock, so no dash offset
+  var ringArc = $('ringArc');
+  var ringWrap = $('ringWrap'), glowWrap = $('ringGlowWrap'), scoreWrap = $('scoreWrap');
+  var grad = document.querySelector('#ringGrad');
+
+  // position A: over the photo while the check runs. position B: the result layout.
+  var A = { x: 293.3, y: 854, k: 112 / 150 };
+  var B = { x: 170,   y: 300, k: 108 / 150 };
+  function placeRing(cx, cy, k) {
+    var v = 'translate(' + (cx - 200 * k) + 'px,' + (cy - 200 * k) + 'px) scale(' + k + ')';
+    tr(ringWrap, v); tr(glowWrap, v); tr(scoreWrap, v);
+  }
+
+  var bdArcs = [
+    document.querySelector('#bd1 .arc'),
+    document.querySelector('#bd2 .arc'),
+    document.querySelector('#bd3 .arc')
+  ];
+  var BC = 345.575;           // 2 * pi * 55
+  var bdEls = [$('bd1'), $('bd2'), $('bd3')];
+  var bdVals = [9, 9, 8];
+
+  // ---- the timeline -----------------------------------------------------------------
+  window.seek = function (t) {
+    t = +t;
+
+    /* ---------------- stage ---------------- */
+    var topGone = seg(t, 10.38, 10.58, E.io);
+    op($('wordmarkTop'), (1 - topGone).toFixed(4));
+    tr($('wordmarkTop'), 'translateY(' + (-18 * topGone) + 'px)');
+
+    // caption 1 — present from the first frame, so two seconds are enough to read the promise
+    var c1out = seg(t, 1.05, 1.38, E.io);
+    op($('cap1'), (1 - c1out).toFixed(4));
+    tr($('cap1'), 'translateY(' + (-22 * c1out) + 'px)');
+    for (var i = 0; i < cap1w.length; i++) tr(cap1w[i], 'none');
+
+    // caption 2 — word by word as the look is posted
+    var c2out = seg(t, 10.34, 10.54, E.io);
+    op($('cap2'), t < 8.92 ? 0 : (1 - c2out).toFixed(4));
+    tr($('cap2'), 'translateY(' + (-22 * c2out) + 'px)');
+    for (var j = 0; j < cap2w.length; j++) {
+      var p2 = seg(t, 8.95 + j * 0.075, 9.16 + j * 0.075, E.out);
+      op(cap2w[j], p2.toFixed(4));
+      tr(cap2w[j], 'translateY(' + (18 * (1 - p2)) + 'px)');
+    }
+
+    /* ---------------- the phone ---------------- */
+    var phOut = seg(t, 10.32, 10.60, E.io);
+    op($('phone'), (1 - phOut).toFixed(4));
+    tr($('phone'), 'scale(' + lerp(1, 0.9, phOut) + ') translateY(' + (26 * phOut) + 'px)');
+
+    // the tip beat pushes the phone back a little so the card is the brightest thing in frame
+    var dim = seg(t, 6.58, 6.92, E.io) * (1 - seg(t, 8.52, 8.76, E.io));
+    op($('phoneScrim'), (0.24 * dim).toFixed(4));
+
+    /* ---------------- beat 1 — the check screen ---------------- */
+    var checkOut = seg(t, 1.32, 1.56, E.io);
+    op($('layerCheck'), (1 - checkOut).toFixed(4));
+
+    // the finger: a touch dot with a ripple on the photo
+    var tap = seg(t, 0.26, 0.34, E.out), tapOff = seg(t, 0.58, 0.72, E.io);
+    op($('touchDot'), (tap * (1 - tapOff)).toFixed(4));
+    var td = 46;
+    $('touchDot').style.width = td + 'px'; $('touchDot').style.height = td + 'px';
+    $('touchDot').style.left = (293.3 - td / 2) + 'px'; $('touchDot').style.top = (851 - td / 2) + 'px';
+    var rip = seg(t, 0.28, 0.72, E.out4);
+    var rr = lerp(34, 132, rip);
+    $('touchRing').style.width = rr + 'px'; $('touchRing').style.height = rr + 'px';
+    $('touchRing').style.left = (293.3 - rr / 2) + 'px'; $('touchRing').style.top = (851 - rr / 2) + 'px';
+    op($('touchRing'), ((1 - rip) * 0.9 * (t > 0.26 ? 1 : 0)).toFixed(4));
+
+    // the intent chips light one by one, Date lands
+    op($('chipCasual'), pulse(t, 0.50, 0.70).toFixed(4));
+    op($('chipStreet'), pulse(t, 0.66, 0.86).toFixed(4));
+    var lit = t >= 0.86;
+    var pop = 1 + 0.14 * pulse(t, 0.86, 1.04);
+    var cd = $('chipDate');
+    cd.style.background = lit ? '#b39dff' : '#1e1e27';
+    cd.style.color = lit ? '#150f2e' : '#b9b9c6';
+    cd.style.fontWeight = lit ? 700 : 500;
+    cd.style.boxShadow = lit
+      ? '0 0 0 2px #b39dff, 0 0 0 ' + (2 + 12 * (1 - seg(t, 0.86, 1.18, E.out))) + 'px rgba(179,157,255,.22)'
+      : '0 0 0 2px #1e1e27';
+    tr(cd, 'scale(' + pop + ')');
+
+    /* ---------------- beats 2–5 — the live result ---------------- */
+    var resIn = seg(t, 1.34, 1.58, E.io);
+    var resOut = seg(t, 8.74, 8.96, E.io);
+    op($('layerResult'), (resIn * (1 - resOut)).toFixed(4));
+
+    // the photo settles into the frame, then hands the screen to the score
+    var pset = seg(t, 1.30, 1.72, E.out);
+    var pgo = seg(t, 3.42, 3.80, E.io);
+    op($('photoBlock'), (1 - pgo).toFixed(4));
+    tr($('photoBlock'), 'scale(' + lerp(lerp(1.06, 1, pset), 0.93, pgo) + ') translateY(' + (-26 * pgo) + 'px)');
+    op($('photoScrim'), (0.10 + 0.14 * seg(t, 1.5, 3.25, E.io)).toFixed(4));
+
+    // the ring: fills to 9/10 while a counter under it ticks the ten seconds
+    var fill = seg(t, 1.50, 3.25, E.io) * SCORE;
+    ringArc.setAttribute('stroke-dasharray', (RC * fill).toFixed(2) + ' ' + RC.toFixed(3));
+    ringArc.setAttribute('opacity', fill > 0.002 ? 1 : 0);
+    grad.setAttribute('gradientTransform', 'rotate(' + (-180 * (1 - fill / SCORE)) + ' 200 200)');
+    op($('ringGlow'), (seg(t, 1.5, 3.4, E.io) * (1 - seg(t, 8.3, 8.9, E.io))).toFixed(4));
+
+    var move = seg(t, 3.40, 3.88, E.io);
+    placeRing(lerp(A.x, B.x, move), lerp(A.y, B.y, move), lerp(A.k, B.k, move));
+
+    var sIn = seg(t, 3.08, 3.32, E.out);
+    op($('scoreWrap'), sIn.toFixed(4));
+    tr($('scoreNum'), 'translateY(' + (-30 * (1 - sIn)) + 'px) scale(' + lerp(1.3, 1, sIn) + ')');
+    op($('scoreDen'), seg(t, 3.28, 3.48, E.out).toFixed(4));
+
+    var cIn = seg(t, 1.46, 1.70, E.out), cOut = seg(t, 3.28, 3.56, E.io);
+    op($('counter'), (cIn * (1 - cOut)).toFixed(4));
+    $('counter').textContent = (clamp((t - 1.50) / (3.25 - 1.50), 0, 1) * 10).toFixed(1) + 's';
+    op($('checkMeta'), (seg(t, 1.62, 1.90, E.out) * (1 - seg(t, 3.26, 3.52, E.io))).toFixed(4));
+
+    // the headline, word by word
+    for (var h = 0; h < headw.length; h++) {
+      var ph = seg(t, 3.90 + h * 0.085, 4.12 + h * 0.085, E.out);
+      op(headw[h], ph.toFixed(4));
+      tr(headw[h], 'translateY(' + (16 * (1 - ph)) + 'px)');
+    }
+    op($('occasion'), seg(t, 4.40, 4.60, E.out).toFixed(4));
+
+    // the breakdown: three small rings, held long enough to read
+    op($('bdLabel'), seg(t, 4.58, 4.76, E.out).toFixed(4));
+    $('bdRule').style.width = (296 * seg(t, 4.62, 4.94, E.out)) + 'px';
+    for (var b = 0; b < 3; b++) {
+      var t0 = 4.74 + b * 0.15;
+      var pin = seg(t, t0, t0 + 0.26, E.back);
+      op(bdEls[b], clamp(seg(t, t0, t0 + 0.14, E.out), 0, 1).toFixed(4));
+      tr(bdEls[b], 'scale(' + lerp(0.7, 1, pin) + ')');
+      var pf = seg(t, t0 + 0.06, t0 + 0.42, E.io) * (bdVals[b] / 10);
+      bdArcs[b].setAttribute('stroke-dasharray', (BC * pf).toFixed(2) + ' ' + BC.toFixed(3));
+      bdArcs[b].setAttribute('opacity', pf > 0.002 ? 1 : 0);
+    }
+    op($('readsRow'), seg(t, 5.72, 5.96, E.out).toFixed(4));
+    $('readsFill').style.width = (506 * 0.72 * seg(t, 5.82, 6.30, E.io)) + 'px';
+
+    /* ---------------- the dock ---------------- */
+    var dockOn = seg(t, 1.40, 1.64, E.out) * (1 - seg(t, 10.30, 10.52, E.io));
+    op($('dock'), dockOn.toFixed(4));
+    op($('dockCheck'), dockOn.toFixed(4));
+    var onFeed = t >= 8.82 ? 1 : 0;
+    $('dkHome').style.color = onFeed ? '#f4f4f7' : '#7f7f8e';
+    op($('dockDot'), onFeed);
+
+    /* ---------------- beat 5 — the one tip ---------------- */
+    var tipIn = seg(t, 6.60, 6.98, E.out);
+    var tipOut = seg(t, 8.54, 8.80, E.io);
+    op($('tipCard'), (tipIn * (1 - tipOut)).toFixed(4));
+    tr($('tipCard'), 'translateY(' + (lerp(430, 0, tipIn) - 34 * tipOut) + 'px)');
+    op($('tipLabel'), seg(t, 6.86, 7.02, E.out).toFixed(4));
+    var l1 = seg(t, 6.92, 7.14, E.out), l2 = seg(t, 7.04, 7.26, E.out);
+    op($('tl1'), l1.toFixed(4)); tr($('tl1'), 'translateY(' + (14 * (1 - l1)) + 'px)');
+    op($('tl2'), l2.toFixed(4)); tr($('tl2'), 'translateY(' + (14 * (1 - l2)) + 'px)');
+
+    /* ---------------- beat 6 — posted ---------------- */
+    var feedIn = seg(t, 8.76, 8.98, E.io);
+    op($('layerFeed'), feedIn.toFixed(4));
+    var drop = seg(t, 8.80, 9.20, E.back);
+    tr($('feedCard'), 'translateY(' + lerp(-560, 0, drop) + 'px)');
+
+    var fired = t >= 9.38;
+    var fi = document.getElementById('fireIcon');
+    fi.setAttribute('stroke', fired ? '#ff6a2b' : '#b9b9c6');
+    fi.setAttribute('fill', fired ? '#ff6a2b' : 'none');
+    $('actFire').style.background = fired ? 'rgba(255,106,43,.12)' : 'transparent';
+    $('actFire').style.borderColor = fired ? '#ff6a2b' : 'rgba(255,255,255,.08)';
+    $('fireCount').style.color = fired ? '#ff6a2b' : '#f4f4f7';
+    $('fireLbl').style.color = fired ? '#ff6a2b' : '#7f7f8e';
+    var firePop = 1 + 0.22 * pulse(t, 9.38, 9.60);
+    tr($('actFire'), 'scale(' + firePop + ')');
+    $('actFire').style.transformOrigin = '0 50%';
+
+    var bp = clamp((t - 9.36) / 0.48, 0, 1);
+    op($('burst'), (t < 9.36 || bp >= 1 ? 0 : (bp < 0.62 ? 1 : 1 - (bp - 0.62) / 0.38)).toFixed(4));
+    tr($('burst'), 'scale(' + lerp(0.45, 0.98, E.out4(bp)) + ')');
+
+    var n = 0;
+    if (t >= 9.50) n = 1;
+    if (t >= 9.66) n = 2;
+    if (t >= 9.82) n = 3;
+    $('fireCount').textContent = n;
+    tr($('fireCount'), 'scale(' + (1 + 0.28 * (pulse(t, 9.50, 9.62) + pulse(t, 9.66, 9.78) + pulse(t, 9.82, 9.94))) + ')');
+
+    var cm = seg(t, 10.00, 10.26, E.out);
+    op($('comment'), cm.toFixed(4));
+    tr($('comment'), 'translateY(' + (30 * (1 - cm)) + 'px)');
+    var cn = t >= 10.06 ? 1 : 0;
+    $('comCount').textContent = cn;
+    $('comLbl').textContent = cn === 1 ? 'Comment' : 'Comments';
+
+    /* ---------------- beat 7 — the end card ---------------- */
+    op($('end'), (t >= 10.58 ? 1 : 0));
+    var draw = seg(t, 10.62, 11.02, E.io);
+    $('endRing').setAttribute('stroke-dasharray', (892.212 * draw).toFixed(2) + ' 892.212');
+    $('endRing').setAttribute('opacity', draw > 0.002 ? 1 : 0);
+    var fl = clamp((t - 10.96) / 0.20, 0, 1);
+    var fk = fl <= 0 ? 0 : (fl < 0.55 ? lerp(0.6, 1.12, E.out(fl / 0.55)) : lerp(1.12, 1, E.io((fl - 0.55) / 0.45)));
+    $('endFlame').setAttribute('transform',
+      'translate(351.02 186.47) rotate(42) translate(0 72) scale(' + fk.toFixed(4) + ') translate(0 -72)');
+    var mk = seg(t, 10.62, 11.24, E.out);
+    tr($('endMark'), 'scale(' + lerp(0.94, 1, mk) + ')');
+    $('endMark').style.transformOrigin = '50% 50%';
+
+    var wm = seg(t, 11.06, 11.34, E.out);
+    op($('endWordmark'), wm.toFixed(4));
+    tr($('endWordmark'), 'translateY(' + (26 * (1 - wm)) + 'px)');
+    var sg = seg(t, 11.24, 11.52, E.out);
+    op($('endSlogan'), sg.toFixed(4));
+    tr($('endSlogan'), 'translateY(' + (20 * (1 - sg)) + 'px)');
+    op($('endSoon'), seg(t, 11.44, 11.70, E.out).toFixed(4));
+    op($('endAge'), seg(t, 11.58, 11.82, E.out).toFixed(4));
+  };
+
+  window.seek(0);
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

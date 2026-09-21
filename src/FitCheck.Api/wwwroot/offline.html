@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b0b0f">
+  <meta name="robots" content="noindex">
+  <title>OREVOSH</title>
+  <!--
+    The offline page (Round 13). The service worker (sw.js) answers a navigation with this file when the network is gone
+    and it has no shell to show: a /landing/ page, the app itself before its shell was ever cached, or a 5xx from the
+    edge with nothing behind it. No app JS, no fonts, nothing fetched: the brand, one line, retry. The three lines read
+    the person's saved language and take their words from the locale file the service worker has in its cache
+    (offline.title, offline.body, offline.retry), so the page speaks Hebrew to someone who used the app in Hebrew;
+    English stands until then, or when nothing is cached.
+
+    The button and those three lines live in offline.js beside this file, precached with it: the policy is
+    script-src 'self' (SecurityHeaders.cs), so an onclick= or a <script> block here is refused by the browser — which
+    is exactly what used to happen. Nothing inline, ever, anywhere in wwwroot. The src is absolute on purpose: this
+    page is served for whatever address the person asked for — /landing/, /look/<id> — and a relative one would be
+    looked for next to that.
+  -->
+  <style>
+    :root { --bg: #0b0b0f; --surface: #15151c; --line: #2b2b36; --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e; --accent: #b39dff; --accent-ink: #150f2e; --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); --radius: 18px; --pill: 999px; }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); background-image: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%); color: var(--ink); font: 16px/1.5 "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif; -webkit-text-size-adjust: 100%; min-height: 100%; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+    main { text-align: center; max-width: 360px; width: 100%; }
+    .mark { width: 96px; height: 96px; margin: 0 auto 18px; direction: ltr; }
+    .mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    h1 { font-family: "Outfit", "Heebo", system-ui, sans-serif; font-weight: 800; font-size: 26px; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 10px; unicode-bidi: plaintext; }
+    p { margin: 0 0 24px; color: var(--ink-2); unicode-bidi: plaintext; }
+    button { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 20px; border: 0; border-radius: var(--pill); background: var(--grad); color: var(--accent-ink); font: 700 16px/1 inherit; font-family: inherit; cursor: pointer; box-shadow: 0 8px 24px rgba(255,143,177,.25); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .name { display: block; margin-top: 28px; font: 700 11px/1 "Heebo", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); direction: ltr; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" focusable="false"><defs><linearGradient id="ov-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442" gradientTransform="rotate(-135 256 292)"><stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/></linearGradient><linearGradient id="ov-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190"><stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/></linearGradient><mask id="ov-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/></mask></defs><g mask="url(#ov-cut)"><circle cx="256" cy="292" r="142" fill="none" stroke="url(#ov-ring)" stroke-width="68" transform="rotate(135 256 292)"/></g><g transform="translate(351.02 186.47) rotate(42)"><path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="url(#ov-fire)"/></g></svg></div>
+    <h1 id="title">You're offline</h1>
+    <p id="body">OREVOSH needs a connection for this page. Check your network and try again.</p>
+    <!-- A form, so the retry is a same-origin GET of this address even with no script at all (form-action 'self');
+         offline.js takes the click first and reloads, which keeps the #route the person was on. -->
+    <form action="" method="get"><button type="submit" id="retry">Try again</button></form>
+    <span class="name">OREVOSH</span>
+  </main>
+  <script src="/offline.js" defer></script>
+</body>
+</html>

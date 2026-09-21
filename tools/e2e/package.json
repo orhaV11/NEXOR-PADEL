@@ -1,0 +1,7 @@
+{
+  "name": "fitcheck-e2e",
+  "private": true,
+  "description": "Browser smoke test for the FitCheck client with the Anthropic API stubbed",
+  "scripts": { "test": "node e2e.js" },
+  "devDependencies": { "playwright": "1.55.0" }
+}

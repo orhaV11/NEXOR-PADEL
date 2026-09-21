@@ -1,0 +1,1107 @@
+<!doctype html>
+<!--
+  OREVOSH — the episode template. 1080x1920, 30 fps, silent, wordless by construction.
+
+  One page renders all four variants (verdict, versus, board, overlay) in two grounds (the look full
+  bleed, or a flat #00B140 chroma-key field for dropping over the owner's own masked footage). It is
+  never opened by hand: tools/brand/render-episode.js loads it, calls window.__build(data) with one
+  episode JSON, then walks window.seek(t) frame by frame.
+
+  THE RULE THIS FILE EXISTS TO KEEP: there is no CSS animation, no transition and no
+  requestAnimationFrame anywhere in it. The exporter screenshots between frames and would catch an
+  element mid-flight, so every transform, opacity, dash length and glyph is a pure function of t in
+  seek(t). Frame N is identical on every run. Keep it that way.
+
+  Nothing speaks and no face is needed: every word is on screen, in the episode's language, and the
+  stylist judges the clothes and never the person.
+
+  Paths are relative to this folder and local, so a render never touches the network:
+    episode.css      the tokens of DESIGN.md §1
+    fonts/           the OFL copies of Outfit and Heebo (DESIGN.md §2)
+  The look itself is handed in as an absolute file:// URL by the renderer.
+-->
+<meta charset="utf-8">
+<title>OREVOSH — episode</title>
+<link rel="stylesheet" href="episode.css">
+
+<body class="mode-photo">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="ep-grad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/>
+  </linearGradient>
+  <linearGradient id="ep-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190">
+    <stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/>
+  </linearGradient>
+  <mask id="ep-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+    <rect width="512" height="512" fill="#fff"/>
+    <path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z"
+      fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/>
+  </mask>
+</defs></svg>
+
+<div id="stage">
+  <div id="beats"></div>
+  <!-- the safe-area proof; drawn only by window.__debugSafe(true), never into a video -->
+  <div id="safe">
+    <div style="position:absolute;left:0;top:1600px;width:1080px;height:320px;background:rgba(255,93,122,.32);border-top:3px solid #ff5d7a"></div>
+    <div style="position:absolute;left:900px;top:0;width:180px;height:1920px;background:rgba(255,93,122,.32);border-left:3px solid #ff5d7a"></div>
+    <div style="position:absolute;left:0;top:0;width:900px;height:1600px;border:3px solid #5ee6a0"></div>
+    <div style="position:absolute;left:0;top:0;width:980px;height:1920px;border-right:2px dashed rgba(94,230,160,.6)"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================== the clock */
+const FPS = 30;
+const DUR = { verdict: 15.0, overlay: 15.0, versus: 15.0, board: 18.0 };
+/* The frame the owner gets as the thumbnail, per variant: the beat that sells the post. */
+const COVER = { verdict: 8.60, overlay: 8.60, versus: 3.00, board: 11.50 };
+
+/* ============================================================== easings */
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const p     = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const eOut  = x => 1 - Math.pow(1 - x, 3);
+const eOut4 = x => 1 - Math.pow(1 - x, 4);
+const eIn   = x => x * x * x;
+const eInOut= x => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp  = (a, b, x) => a + (b - a) * x;
+/* one overshoot, then settle: 0 -> 1 with a kick past 1 */
+const kick  = x => { const c = 2.2; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const r3    = x => (Math.round(x * 1000) / 1000);
+
+/* ============================================================== the words */
+/* Every word an episode can put on screen, in both languages. The Hebrew is the app's own wording
+   where the app has one (i18n/he.json: גזרה / צבע / אקססוריז / הטיפ האחד / איזה מהם? / מנצח /
+   בודקים את הלוק.), so an episode and the product say the same thing. Nothing here judges a person. */
+const COPY = {
+  en: {
+    hook: "Score it before we do.",
+    tipLabel: "THE ONE TIP",
+    bd: ["FIT", "COLOR", "ACCESSORIES"],
+    slogan: "Check the look.",
+    soon: "COMING SOON",
+    age: "16+",
+    ask: "What did you give it?",
+    occasion: o => "FOR " + o.toUpperCase(),
+    credit: h => "Look by " + h,
+    question: "Which one?",
+    questionSub: "A or B in the comments.",
+    wins: l => l + " WINS",
+    tie: "IT'S A TIE",
+    tieSub: "You decide.",
+    boardTitle: "The week's top looks",
+    boardKicker: "THIS WEEK",
+    rank: n => "#" + n
+  },
+  he: {
+    hook: "מה הציון שלכם?",
+    tipLabel: "הטיפ האחד",
+    bd: ["גזרה", "צבע", "אקססוריז"],
+    slogan: "בודקים את הלוק.",
+    soon: "בקרוב",
+    age: "16+",
+    ask: "מה נתתם לו?",
+    occasion: o => "אירוע · " + o,
+    credit: h => "הלוק של " + h,
+    question: "איזה מהם?",
+    questionSub: "A או B בתגובות.",
+    wins: l => l + " מנצח",
+    tie: "תיקו",
+    tieSub: "אתם מחליטים.",
+    boardTitle: "הלוקים של השבוע",
+    boardKicker: "השבוע",
+    rank: n => "#" + n
+  }
+};
+
+/* ============================================================== the layouts */
+/* Two grounds, two tables. Every number is a pixel in the 1080x1920 frame.
+   SAFE: TikTok and Instagram draw their own UI over the bottom 320 px and the right 180 px, so every
+   readable thing lives inside x 0..900 / y 0..1600 and centred type is centred on x = 490, not 540.
+   OVERLAY: the same beats, pushed into the lower middle (y 880..1570) so the owner's masked upper
+   body stays clear above them, and put on opaque plates so the chroma key has nothing to decide. */
+const SAFE_CX = 490, SAFE_W = 800;
+
+/* One end card for every variant, so a viewer who has seen one episode recognises the last three
+   seconds of the next. It is the kit's own: the wordmark, the slogan, "coming soon", 16+, and the
+   line that asks for the comment. No standalone mark above it — the wordmark already carries one. */
+const END_PHOTO = () => ({
+  wm: 560, wmY: 604, slog: { y: 800, fs: 90 },
+  soon: { y: 968, fs: 34 }, age: { y: 1044, fs: 24 }, ask: { y: 1170, fs: 54 }
+});
+const END_OVERLAY = () => ({
+  plate: { x: 100, y: 952, w: 780, h: 542 },
+  wm: 400, wmY: 1002, slog: { y: 1130, fs: 62 },
+  soon: { y: 1244, fs: 26 }, age: { y: 1300, fs: 20 }, ask: { y: 1382, fs: 38 }
+});
+
+const LAYOUT = {
+  photo: {
+    verdict: {
+      /* the pill sits in the top start corner, not across the middle of the frame: on a full-length
+         look the centre of the top third is somebody's head, and a centred bar there reads as a
+         censor strip. The hook takes the lower third, where a phone's eye lands and where the
+         platform's own caption would be. */
+      pill:    { edge: true, y: 126, h: 70, fs: 30, pad: 34 },
+      hook:    { y: 1174, fs: 78, w: 800, lines: 2, lh: 1.06 },
+      count:   { cy: 900, fs: 400 },
+      ring:    { cx: 490, cy: 830, d: 420, sw: 14, fs: 208, dfs: 46 },
+      ringTip: { cx: 490, cy: 648, d: 200 },
+      head:    { y: 1096, fs: 62, w: 800, lines: 2, lh: 1.12 },
+      occ:     { y: 1258, fs: 30 },
+      bd:      { y: 1336, w: 800, fs: 90, lfs: 26, gap: 14 },
+      tip:     { x: 90, y: 800, w: 900, h: 530, fs: 52, lines: 5, lh: 1.34, lfs: 28 },
+      credit:  { y: 1512, fs: 26 },
+      end: END_PHOTO()
+    },
+    versus: {
+      q:      { y: 170, fs: 92, w: 800, lines: 1, lh: 1.06 },
+      qsub:   { y: 306, fs: 42 },
+      card:   { w: 430, h: 764, y: 400, gap: 30 },
+      ring:   { d: 200, sw: 10, fs: 96, dfs: 24, dy: 0 },
+      label:  { y: 1290, fs: 32 },
+      winner: { y: 1368, h: 84, fs: 40, pad: 44 },
+      wsub:   { y: 1478, fs: 36 },
+      count:  { cy: 780, fs: 380 },
+      credit: { y: 92, fs: 26 },
+      end: END_PHOTO()
+    },
+    board: {
+      kicker: { y: 104, fs: 30 },
+      /* the opening title: the board's hook, up before anyone would have scrolled past */
+      intro:  { y: 672, fs: 84, w: 800, lines: 2, lh: 1.06 },
+      rank:   { cy: 232, d: 132, fs: 92 },
+      card:   { x: 287, y: 326, w: 506, h: 900 },
+      ring:   { d: 180, sw: 10, fs: 88, dfs: 22 },
+      intent: { y: 1330, fs: 28 },
+      head:   { y: 1386, fs: 46, w: 800, lines: 2, lh: 1.12 },
+      credit: { y: 1522, fs: 24 },
+      title:  { y: 360, fs: 66, w: 800, lines: 2, lh: 1.08 },
+      /* the medal stamps clear above the winner's card: over the top of it, it would land on
+         whoever is in the photograph */
+      podium: { midW: 286, midH: 508, midY: 600, sideW: 236, sideH: 420, sideY: 660,
+                xl: 91, xm: 347, xr: 653, label: { y: 1140, fs: 30, sfs: 54 },
+                medal: { d: 118, fs: 60, cy: 520 } },
+      end: END_PHOTO()
+    }
+  },
+  overlay: {
+    verdict: {
+      pill:    { y: 902, h: 64, fs: 28, pad: 30 },
+      hook:    { y: 1010, fs: 56, w: 700, lines: 2, lh: 1.08, plate: { x: 100, y: 970, w: 780, h: 210 } },
+      count:   { cy: 1220, fs: 300 },
+      ring:    { cx: 490, cy: 1050, d: 310, sw: 12, fs: 154, dfs: 34 },
+      ringTip: { cx: 490, cy: 950, d: 150 },
+      head:    { y: 1252, fs: 44, w: 680, lines: 2, lh: 1.16, plate: { x: 100, y: 1228, w: 780, h: 182 } },
+      occ:     { y: 1368, fs: 24 },
+      bd:      { y: 1462, w: 700, fs: 64, lfs: 22, gap: 10, plate: { x: 100, y: 1430, w: 780, h: 132 } },
+      tip:     { x: 100, y: 1050, w: 780, h: 420, fs: 42, lines: 5, lh: 1.34, lfs: 26 },
+      credit:  { y: 1506, fs: 24 },
+      end: END_OVERLAY()
+    },
+    versus: {
+      q:      { y: 918, fs: 64, w: 700, lines: 1, lh: 1.06, plate: { x: 100, y: 890, w: 780, h: 186 } },
+      qsub:   { y: 1010, fs: 36 },
+      card:   { w: 0, h: 0, y: 0, gap: 0 },
+      ring:   { d: 210, sw: 10, fs: 100, dfs: 24, cx: [300, 680], cy: 1220 },
+      label:  { y: 1356, fs: 30 },
+      winner: { y: 1424, h: 76, fs: 36, pad: 40 },
+      wsub:   { y: 1526, fs: 30 },
+      count:  { cy: 1220, fs: 280 },
+      credit: { y: 1552, fs: 22 },
+      end: END_OVERLAY()
+    },
+    board: {
+      kicker: { y: 900, fs: 26 },
+      title:  { y: 944, fs: 52, w: 700, lines: 2, lh: 1.1, plate: { x: 100, y: 880, w: 780, h: 660 } },
+      row:    { y: 1070, h: 140, fs: 64, ifs: 26, x0: 140, x1: 840 },
+      rank:   { cy: 0, d: 0, fs: 0 },
+      card:   { x: 0, y: 0, w: 0, h: 0 },
+      ring:   { d: 0, sw: 0, fs: 0, dfs: 0 },
+      head:   { y: 0, fs: 0, w: 700, lines: 2, lh: 1.12 },
+      credit: { y: 1552, fs: 22 },
+      podium: null,
+      end: END_OVERLAY()
+    }
+  }
+};
+
+/* ============================================================== dom helpers */
+const $ = id => document.getElementById(id);
+const HOST = $("beats");
+let DIR = "ltr", RTL = false;
+
+function el(tag, cls, css) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (css) e.style.cssText = css;
+  return e;
+}
+function add(parent, e) { parent.appendChild(e); return e; }
+function show(e, v) { e.style.display = v ? "block" : "none"; }
+/* A run of type centred on the safe column's middle, not the frame's. The words go in an
+   inline-block span so their real width can be measured: the outer div is 1080 px wide whatever is
+   in it, and measuring that would let any line overflow unnoticed. */
+function centred(parent, cls, y, fs, css) {
+  const e = add(parent, el("div", cls, "position:absolute;left:0;top:" + y + "px;width:1080px;" +
+    "text-align:center;font-size:" + fs + "px;margin-left:" + (SAFE_CX - 540) + "px;" + (css || "")));
+  e._in = add(e, el("span", null, "display:inline-block;white-space:nowrap"));
+  return e;
+}
+function setText(e, s) { (e && e._in ? e._in : e).textContent = s; }
+/* A block of wrapping type, centred on the safe column and measured against a box. */
+function block(parent, cls, y, fs, w, lh, css) {
+  const e = add(parent, el("div", cls, "position:absolute;left:" + (SAFE_CX - w / 2) + "px;top:" + y +
+    "px;width:" + w + "px;text-align:center;font-size:" + fs + "px;line-height:" + lh + ";" + (css || "")));
+  return e;
+}
+
+/* The wordmark, inlined from src/FitCheck.Api/wwwroot/brand/wordmark.svg. It already carries the mark
+   as its first glyph, so the end card does not stack a second one above it — the same end card the
+   launch teaser in brand-kit/teaser/brand uses. It is a logo: the flame stays top-right in both
+   directions, so it never mirrors. */
+const FLAME_D = "M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 " +
+  "C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z";
+function wordmarkSvg(w, y) {
+  const h = w * 350 / 1626;
+  const s = el("div", "layer wordmark", "left:" + (SAFE_CX - w / 2) + "px;top:" + y + "px;width:" + w +
+    "px;height:" + h + "px");
+  const L = '" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>';
+  s.innerHTML =
+    '<svg viewBox="0 0 1626 350" width="' + w + '" height="' + h + '" style="overflow:visible">' +
+      '<g transform="translate(-28.27 20.2) scale(0.65)">' +
+        '<circle cx="256" cy="292" r="142" fill="none" stroke="url(#ep-grad)" stroke-width="68" mask="url(#ep-cut)"/>' +
+        '<path d="' + FLAME_D + '" fill="url(#ep-fire)" transform="translate(351.02 186.47) rotate(42)"/>' +
+      '</g>' +
+      '<path d="M0 186 V0 H82 A46 46 0 0 1 82 92 H0 M58 92 L128 186" transform="translate(326 118)' + L +
+      '<path d="M112 0 H0 V186 H112 M0 93 H94" transform="translate(544 118)' + L +
+      '<path d="M0 0 L79 186 L158 0" transform="translate(732 118)' + L +
+      '<path d="M93 0 A93 93 0 1 1 93 186 A93 93 0 1 1 93 0 Z" transform="translate(966 118)' + L +
+      '<path d="M120 40 C120 12 100 0 60 0 C22 0 0 16 0 46 C0 80 30 88 60 91 C92 94 120 104 120 140 ' +
+        'C120 172 98 186 60 186 C22 186 0 174 0 146" transform="translate(1238 118)' + L +
+      '<path d="M0 0 V186 M132 0 V186 M0 93 H132" transform="translate(1448 118)' + L +
+    '</svg>';
+  return s;
+}
+
+/* The score ring of DESIGN.md §3, as SVG so the gradient stroke can be laid down from seek(t).
+   The disc inside is opaque in both grounds: over a photo it is what makes a 200 px numeral
+   readable, over the chroma field it is what stops the numeral fringing green. */
+function makeRing(cx, cy, d, sw, value, fs, dfs) {
+  const wrap = el("div", "ring", "left:" + (cx - d / 2) + "px;top:" + (cy - d / 2) + "px;width:" + d +
+    "px;height:" + d + "px");
+  const r = (d - sw) / 2, C = 2 * Math.PI * r, NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + d + " " + d);
+  svg.setAttribute("width", d); svg.setAttribute("height", d);
+  const disc = document.createElementNS(NS, "circle");
+  disc.setAttribute("cx", d / 2); disc.setAttribute("cy", d / 2); disc.setAttribute("r", r);
+  disc.style.fill = "var(--plate)";
+  const arc = document.createElementNS(NS, "circle");
+  arc.setAttribute("cx", d / 2); arc.setAttribute("cy", d / 2); arc.setAttribute("r", r);
+  arc.setAttribute("fill", "none"); arc.setAttribute("stroke", "url(#ep-grad)");
+  arc.setAttribute("stroke-width", sw); arc.setAttribute("stroke-linecap", "round");
+  arc.setAttribute("transform", "rotate(-90 " + (d / 2) + " " + (d / 2) + ")");
+  arc.setAttribute("stroke-dasharray", C.toFixed(2));
+  arc.setAttribute("stroke-dashoffset", C.toFixed(2));
+  svg.appendChild(disc); svg.appendChild(arc);
+  wrap.appendChild(svg);
+  const val = el("div", "val");
+  val.innerHTML = '<b style="font-size:' + fs + 'px">' + value + '</b>' +
+    '<i style="font-size:' + dfs + 'px;margin-top:' + Math.round(dfs * 0.22) + 'px">/10</i>';
+  wrap.appendChild(val);
+  wrap._arc = arc; wrap._C = C; wrap._val = val;
+  wrap.draw = q => arc.setAttribute("stroke-dashoffset", (C * (1 - clamp(q, 0, 1))).toFixed(2));
+  return wrap;
+}
+
+/* The look, cover-fitted into a box. object-fit does the crop, so the focus point is the only knob
+   and an episode can move it per photo ("focus": {"x":0.5,"y":0.3}). */
+function makePhoto(x, y, w, h, radius, src, focus, withScrim) {
+  const box = el("div", "photo", "left:" + x + "px;top:" + y + "px;width:" + w + "px;height:" + h +
+    "px;border-radius:" + radius + "px");
+  const img = el("img", null, "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" +
+    "object-position:" + (focus.x * 100).toFixed(2) + "% " + (focus.y * 100).toFixed(2) + "%");
+  img.src = src;
+  box.appendChild(img);
+  if (withScrim) box.appendChild(el("div", "scrim"));
+  box._img = img;
+  return box;
+}
+
+/* ============================================================== measuring */
+/* An overflowing tip is the one defect that would put a broken video on the account, so nothing is
+   quietly shrunk: every run of type that could run long is measured in the browser at the size it
+   will be rendered, and anything that does not fit comes back as a problem the renderer prints
+   before it exits non-zero. */
+const problems = [];
+const pending = [];
+/* A plate on the chroma field is only there to give type something opaque to sit on, so it is sized
+   to what it holds rather than guessed at: after the faces are in, it is pulled tight around its
+   content with a padding. A plate that is 60 px taller than its line is 60 px of his footage hidden
+   for no reason. */
+const hugs = [];
+function hug(plate, items, padT, padB) {
+  if (!plate) return;
+  hugs.push(() => {
+    const live = items.filter(Boolean).map(e => e.getBoundingClientRect()).filter(r => r.height > 0);
+    if (!live.length) return;
+    const top = Math.min.apply(null, live.map(r => r.top));
+    const bot = Math.max.apply(null, live.map(r => r.bottom));
+    plate.style.top = Math.round(top - padT) + "px";
+    plate.style.height = Math.round(bot - top + padT + padB) + "px";
+  });
+}
+/* Nothing is measured while it is being built: the faces of DESIGN.md §2 load with font-display:block
+   and until they are in, every box is the fallback's size. Each check is recorded here and run after
+   document.fonts.ready, against the type the video will actually show. */
+function fits(what, e, maxW, maxH, text) { pending.push(() => {
+  /* getBoundingClientRect is the laid-out box; scrollWidth catches a single word wider than it. */
+  const h = e.getBoundingClientRect().height;
+  const w = e.scrollWidth;
+  if (h > maxH + 1) {
+    problems.push({ what: what, text: text, got: Math.round(h) + "px tall",
+      max: Math.round(maxH) + "px", hint: "it wraps to too many lines — shorten it" });
+  } else if (w > maxW + 1) {
+    problems.push({ what: what, text: text, got: Math.round(w) + "px wide",
+      max: Math.round(maxW) + "px", hint: "one word is wider than the column" });
+  }
+}); }
+function fitsLine(what, e, maxW, text) { pending.push(() => {
+  const w = (e._in || e).getBoundingClientRect().width;
+  if (w > maxW + 1) {
+    problems.push({ what: what, text: text, got: Math.round(w) + "px wide",
+      max: Math.round(maxW) + "px", hint: "shorten it, it has to stay on one line" });
+  }
+}); }
+
+/* ============================================================== build */
+let D = null, MODE = "photo", VARIANT = "verdict", LAY = null, C = null, DURATION = 15, COVER_AT = 8.6;
+const S = {};                                       /* every element seek(t) touches */
+
+/* The last three seconds, built into a wrapper that already holds the cover and the stage glow, in
+   that order: the cover blacks the look out, the glow lights the stage behind the wordmark. */
+function endWrapper(beat, isOverlay) {
+  const wrap = add(beat, el("div", "layer", "inset:0;width:1080px;height:1920px"));
+  const g = { wrap: wrap };
+  if (!isOverlay) {
+    g.cover = add(wrap, el("div", null, "position:absolute;inset:0;background:var(--bg);opacity:0"));
+    g.glow = add(wrap, el("div", "glow", "opacity:0"));
+  }
+  return g;
+}
+function endCard(parent, E) {
+  const g = {};
+  if (E.plate) g.plate = add(parent, el("div", "plate", "left:" + E.plate.x + "px;top:" + E.plate.y +
+    "px;width:" + E.plate.w + "px;height:" + E.plate.h + "px"));
+  g.wm   = add(parent, wordmarkSvg(E.wm, E.wmY));
+  g.slog = block(parent, "display", E.slog.y, E.slog.fs, SAFE_W, RTL ? 1.18 : 1.04, "color:var(--ink)");
+  g.slog.textContent = C.slogan;
+  /* Hebrew does not take Latin tracking: DESIGN.md §2 gives caps .08em and Hebrew .02em, so the
+     end card's wide-tracked kicker is wide in English and restrained in Hebrew. */
+  g.soon = centred(parent, "caps", E.soon.y, E.soon.fs,
+    "color:var(--accent);letter-spacing:" + (RTL ? ".12em" : ".34em"));
+  setText(g.soon, C.soon);
+  /* "16+" is a rating, not a sentence: left to right in both languages, or the plus jumps to the
+     wrong side of the number and it reads "+16". */
+  g.age  = centred(parent, "caps", E.age.y, E.age.fs,
+    "color:var(--ink-3);letter-spacing:.24em;direction:ltr;unicode-bidi:isolate");
+  setText(g.age, C.age);
+  g.ask  = block(parent, "body", E.ask.y, E.ask.fs, SAFE_W, 1.2, "color:var(--ink-2);font-weight:600;text-align:center");
+  g.ask.textContent = D.ask || C.ask;
+  fits("the end card's question", g.ask, SAFE_W, E.ask.fs * 1.2 * 2, g.ask.textContent);
+  fits("the slogan", g.slog, SAFE_W, E.slog.fs * (RTL ? 1.18 : 1.04) * 2, C.slogan);
+  return g;
+}
+
+function creditLine(parent, cfg) {
+  if (!D.credit) return null;
+  const e = centred(parent, "body", cfg.y, cfg.fs, "color:var(--ink-3);font-weight:600");
+  setText(e, C.credit(D.credit));
+  if (MODE === "overlay") {
+    /* on the field the credit has no scrim and, once keyed, no known ground: a step brighter and a
+       hard dark outline, so it reads over whatever he filmed */
+    e.style.color = "var(--ink-2)";
+    e.style.textShadow = "2px 2px 0 #0b0b0f, -2px 2px 0 #0b0b0f, 2px -2px 0 #0b0b0f, -2px -2px 0 #0b0b0f";
+  }
+  fitsLine("the credit", e, SAFE_W, C.credit(D.credit));
+  return e;
+}
+
+function buildVerdict() {
+  const beat = add(HOST, el("div", "beat", "display:block"));
+  S.beat = beat;
+
+  if (MODE === "photo") {
+    S.photo = add(beat, makePhoto(0, 0, 1080, 1920, 0, D._photoUrl, D._focus, true));
+    S.dim = add(beat, el("div", "dim", "opacity:0"));
+  }
+
+  /* the intent pill */
+  const pl = LAY.pill;
+  S.pill = add(beat, el("div", "pill intent", "height:" + pl.h + "px;padding:0 " + pl.pad + "px;font-size:" +
+    pl.fs + "px;left:0;top:" + pl.y + "px"));
+  S.pill.textContent = D.intent;
+  /* placed once it has a width: at the start edge of the safe column over a photo, centred on the
+     chroma field where it heads a centred stack */
+  S.pillCentre = () => {
+    const w = S.pill.getBoundingClientRect().width;
+    S.pill.style.left = (pl.edge ? (RTL ? 900 - w : 90) : SAFE_CX - w / 2) + "px";
+  };
+  fitsLine("the intent pill", S.pill, SAFE_W, D.intent);
+
+  /* the hook: one line that invites a reply, up in the first second */
+  const hk = LAY.hook;
+  if (hk.plate) S.hookPlate = add(beat, el("div", "plate", "left:" + hk.plate.x + "px;top:" + hk.plate.y +
+    "px;width:" + hk.plate.w + "px;height:" + hk.plate.h + "px"));
+  S.hook = block(beat, "display", hk.y, hk.fs, hk.w, hk.lh, "color:var(--ink)");
+  S.hook.textContent = D.hook || C.hook;
+  fits("the hook", S.hook, hk.w, hk.fs * hk.lh * hk.lines, S.hook.textContent);
+  hug(S.hookPlate, [S.hook], 42, 42);
+
+  /* the 3-2-1 count, so the viewer stays for the reveal */
+  S.count = centred(beat, "num display outline", 0, LAY.count.fs, "color:var(--ink);line-height:1;top:" +
+    (LAY.count.cy - LAY.count.fs * 0.62) + "px");
+
+  /* the ring and the score */
+  const rg = LAY.ring;
+  S.ring = add(beat, makeRing(rg.cx, rg.cy, rg.d, rg.sw, D.score, rg.fs, rg.dfs));
+
+  /* the headline and the occasion */
+  const hd = LAY.head;
+  if (hd.plate) S.headPlate = add(beat, el("div", "plate", "left:" + hd.plate.x + "px;top:" + hd.plate.y +
+    "px;width:" + hd.plate.w + "px;height:" + hd.plate.h + "px"));
+  S.head = block(beat, "display", hd.y, hd.fs, hd.w, hd.lh, "color:var(--ink)");
+  S.head.textContent = D.headline;
+  fits("the headline", S.head, hd.w, hd.fs * hd.lh * hd.lines, D.headline);
+  if (D.occasion) {
+    S.occ = centred(beat, "caps", LAY.occ.y, LAY.occ.fs, "color:var(--accent)");
+    setText(S.occ, C.occasion(D.occasion));
+    fitsLine("the occasion", S.occ, hd.w, C.occasion(D.occasion));
+  }
+  hug(S.headPlate, [S.head, S.occ], 32, 32);
+
+  /* the breakdown: three numbers, in a row that mirrors itself in Hebrew */
+  const bdc = LAY.bd;
+  if (bdc.plate) S.bdPlate = add(beat, el("div", "plate", "left:" + bdc.plate.x + "px;top:" + bdc.plate.y +
+    "px;width:" + bdc.plate.w + "px;height:" + bdc.plate.h + "px"));
+  S.bd = add(beat, el("div", "bd", "left:" + (SAFE_CX - bdc.w / 2) + "px;top:" + bdc.y + "px;width:" +
+    bdc.w + "px"));
+  S.bdCells = [];
+  const bdVals = [D.breakdown.fit, D.breakdown.color, D.breakdown.accessories];
+  const bdLabels = [];
+  C.bd.forEach((label, i) => {
+    const cell = add(S.bd, el("div", null, "flex:1 1 0;min-width:0"));
+    const n = add(cell, el("div", "n", "font-size:" + bdc.fs + "px"));
+    n.textContent = bdVals[i];
+    const l = add(cell, el("div", "caps", "font-size:" + bdc.lfs + "px;margin-top:" + bdc.gap + "px"));
+    l.innerHTML = '<span style="display:inline-block;white-space:nowrap"></span>';
+    l._in = l.firstChild;
+    setText(l, label);
+    S.bdCells.push(cell);
+    bdLabels.push([label, l]);
+  });
+  /* measured after the row exists: a cell asked for its width mid-loop answers with the row's */
+  bdLabels.forEach(([label, l]) => fitsLine("the breakdown label " + label, l, bdc.w / 3 - 8, label));
+  hug(S.bdPlate, [S.bd], 30, 30);
+
+  /* the one tip, on its own card with the accent bar: the longest hold on screen */
+  const tp = LAY.tip;
+  const cardW = Math.min(tp.w, 900 - tp.x);            /* never past the platform's right rail */
+  S.tipCard = add(beat, el("div", "card", "left:" + tp.x + "px;top:" + tp.y + "px;width:" +
+    cardW + "px;height:" + tp.h + "px"));
+  add(S.tipCard, el("div", "bar"));
+  const inner = add(S.tipCard, el("div", "inner"));
+  const tlabel = add(inner, el("div", "caps", "font-size:" + tp.lfs + "px;color:var(--accent);margin-bottom:22px"));
+  tlabel.textContent = C.tipLabel;
+  S.tipText = add(inner, el("div", "display", "font-size:" + tp.fs + "px;line-height:" + tp.lh +
+    ";color:var(--ink);text-align:start"));
+  S.tipText.textContent = D.tip;
+  /* the real constraint is the card, not a line count: content box minus the label's row */
+  const tipW = cardW - 84 - 48;
+  const tipH = tp.h - 88 - (tp.lfs * 1.1 + 22);
+  fits("the one tip", S.tipText, tipW, Math.min(tipH, tp.fs * tp.lh * tp.lines), D.tip);
+
+  S.credit = creditLine(beat, LAY.credit);
+
+  /* the end card */
+  const ew = endWrapper(beat, MODE === "overlay");
+  S.endCover = ew.cover; S.endGlow = ew.glow;
+  S.end = endCard(ew.wrap, LAY.end);
+}
+
+function buildVersus() {
+  const beat = add(HOST, el("div", "beat", "display:block"));
+  S.beat = beat;
+  /* versus and board leave the frame's top and bottom clear, so they get the stage of DESIGN.md §1
+     behind them — the lilac glow — instead of flat black. It never moves, so it is set once. */
+  if (MODE === "photo") add(beat, el("div", "glow"));
+  const A = D.photoA, B = D.photoB;
+  S.sides = [];
+
+  if (MODE === "photo") {
+    const cd = LAY.card;
+    const total = cd.w * 2 + cd.gap;
+    const x0 = SAFE_CX - total / 2;
+    [A, B].forEach((side, i) => {
+      const x = x0 + i * (cd.w + cd.gap);
+      const box = add(beat, makePhoto(x, cd.y, cd.w, cd.h, 34, side._photoUrl, side._focus, false));
+      box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      S.sides.push({ box: box, cx: x + cd.w / 2, data: side });
+    });
+    S.dim = add(beat, el("div", "dim", "opacity:0"));
+  } else {
+    [A, B].forEach((side, i) => S.sides.push({ box: null, cx: LAY.ring.cx[i], data: side }));
+  }
+
+  /* the question, held long enough to actually answer: the argument is the product */
+  const q = LAY.q;
+  if (q.plate) S.qPlate = add(beat, el("div", "plate", "left:" + q.plate.x + "px;top:" + q.plate.y +
+    "px;width:" + q.plate.w + "px;height:" + q.plate.h + "px"));
+  S.q = block(beat, "display", q.y, q.fs, q.w, q.lh, "color:var(--ink)");
+  S.q.textContent = D.question || C.question;
+  fits("the question", S.q, q.w, q.fs * q.lh * q.lines, S.q.textContent);
+  S.qsub = block(beat, "body", LAY.qsub.y, LAY.qsub.fs, q.w, 1.25, "color:var(--ink-2);font-weight:600;text-align:center");
+  S.qsub.textContent = D.questionSub || C.questionSub;
+  fits("the question's second line", S.qsub, q.w, LAY.qsub.fs * 1.25 * 2, S.qsub.textContent);
+  hug(S.qPlate, [S.q, S.qsub], 38, 38);
+
+  S.count = centred(beat, "num display outline", 0, LAY.count.fs, "color:var(--ink);line-height:1;top:" +
+    (LAY.count.cy - LAY.count.fs * 0.62) + "px");
+
+  /* the two scores */
+  const rg = LAY.ring;
+  S.sides.forEach((s, i) => {
+    const cy = MODE === "photo" ? (LAY.card.y + LAY.card.h + rg.dy) : rg.cy;
+    s.ring = add(beat, makeRing(s.cx, cy, rg.d, rg.sw, s.data.score, rg.fs, rg.dfs));
+    const lab = centred(beat, "caps", LAY.label.y, LAY.label.fs, "color:var(--ink-2)");
+    lab.style.left = (s.cx - 540) + "px"; lab.style.marginLeft = "0";
+    const labText = s.data.label + (s.data.intent ? " · " + s.data.intent : "");
+    setText(lab, labText);
+    s.label = lab;
+    fitsLine("the label " + s.data.label, lab, MODE === "photo" ? LAY.card.w : 360, labText);
+  });
+
+  /* the verdict: a winner, or a tie — which is the better post, because the comments settle it */
+  const tie = A.score === B.score;
+  const win = tie ? null : (A.score > B.score ? A : B);
+  const wcfg = LAY.winner;
+  S.win = add(beat, el("div", "pill", "height:" + wcfg.h + "px;padding:0 " + wcfg.pad + "px;font-size:" +
+    wcfg.fs + "px;left:0;top:" + wcfg.y + "px;background:linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%);" +
+    "color:var(--accent-ink);letter-spacing:.14em"));
+  S.win.textContent = tie ? C.tie : C.wins(win.label);
+  S.winCentre = () => { S.win.style.left = (SAFE_CX - S.win.getBoundingClientRect().width / 2) + "px"; };
+  S.wsub = block(beat, "body", LAY.wsub.y, LAY.wsub.fs, SAFE_W, 1.25,
+    "color:var(--ink-2);font-weight:600;text-align:center");
+  S.wsub.textContent = tie ? C.tieSub : (D.ask || C.ask);
+  S.winnerSide = tie ? -1 : (A.score > B.score ? 0 : 1);
+  fitsLine("the winner pill", S.win, SAFE_W, S.win.textContent);
+  fits("the winner's line", S.wsub, SAFE_W, LAY.wsub.fs * 1.25 * 2, S.wsub.textContent);
+
+  S.credit = creditLine(beat, LAY.credit);
+
+  const ew = endWrapper(beat, MODE === "overlay");
+  S.endCover = ew.cover; S.endGlow = ew.glow;
+  S.end = endCard(ew.wrap, LAY.end);
+}
+
+function buildBoard() {
+  const beat = add(HOST, el("div", "beat", "display:block"));
+  S.beat = beat;
+  if (MODE === "photo") add(beat, el("div", "glow"));
+  S.looks = [];
+
+  /* THE ORDER: looks[0] is rank 1, the week's winner. The cut counts down 3, 2, 1, so it plays them
+     backwards and ends on looks[0]. */
+  S.kicker = centred(beat, "caps", LAY.kicker.y, LAY.kicker.fs,
+    "color:var(--accent);letter-spacing:" + (RTL ? ".1em" : ".3em"));
+  setText(S.kicker, C.boardKicker);
+
+  if (MODE === "photo") {
+    S.intro = block(beat, "display", LAY.intro.y, LAY.intro.fs, LAY.intro.w, LAY.intro.lh, "color:var(--ink)");
+    S.intro.textContent = C.boardTitle;
+    fits("the board title", S.intro, LAY.intro.w, LAY.intro.fs * LAY.intro.lh * LAY.intro.lines, C.boardTitle);
+    D.looks.forEach((L, i) => {
+      const cd = LAY.card;
+      const g = {};
+      g.box = add(beat, makePhoto(cd.x, cd.y, cd.w, cd.h, 34, L._photoUrl, L._focus, false));
+      g.box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      const rcx = RTL ? (cd.x + 74) : (cd.x + cd.w - 74);
+      g.ring = add(beat, makeRing(rcx, cd.y + cd.h, LAY.ring.d, LAY.ring.sw, L.score, LAY.ring.fs, LAY.ring.dfs));
+      g.rank = add(beat, el("div", "layer", "left:" + (SAFE_CX - LAY.rank.d / 2) + "px;top:" +
+        (LAY.rank.cy - LAY.rank.d / 2) + "px;width:" + LAY.rank.d + "px;height:" + LAY.rank.d +
+        "px;border-radius:50%;border:5px solid transparent;" +
+        "background:linear-gradient(var(--plate),var(--plate)) padding-box," +
+        "linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%) border-box;" +
+        "display:flex;align-items:center;justify-content:center"));
+      const rn = add(g.rank, el("div", "num", "font-size:" + LAY.rank.fs + "px;color:var(--ink);line-height:1"));
+      rn.textContent = String(i + 1);        /* looks[0] is rank 1; the cut plays them backwards */
+      g.rankNum = rn;
+      g.head = block(beat, "display", LAY.head.y, LAY.head.fs, LAY.head.w, LAY.head.lh, "color:var(--ink)");
+      g.head.textContent = L.headline || "";
+      if (L.headline) fits("look " + (i + 1) + "'s headline", g.head, LAY.head.w,
+        LAY.head.fs * LAY.head.lh * LAY.head.lines, L.headline);
+      g.intent = centred(beat, "caps", LAY.intent.y, LAY.intent.fs, "color:var(--accent)");
+      setText(g.intent, L.intent);
+      S.looks.push(g);
+    });
+    /* the podium: the three of them together, the winner in the middle with the medal */
+    const pd = LAY.podium;
+    S.pod = add(beat, el("div", "layer", "inset:0;width:1080px;height:1920px"));
+    S.podTitle = block(S.pod, "display", pd ? LAY.title.y : 0, LAY.title.fs, LAY.title.w, LAY.title.lh,
+      "color:var(--ink)");
+    S.podTitle.textContent = C.boardTitle;
+    fits("the board title", S.podTitle, LAY.title.w, LAY.title.fs * LAY.title.lh * LAY.title.lines, C.boardTitle);
+    S.podCards = [];
+    const slots = [
+      { L: D.looks[1], x: pd.xl, y: pd.sideY, w: pd.sideW, h: pd.sideH, rank: 2 },
+      { L: D.looks[0], x: pd.xm, y: pd.midY,  w: pd.midW,  h: pd.midH,  rank: 1 },
+      { L: D.looks[2], x: pd.xr, y: pd.sideY, w: pd.sideW, h: pd.sideH, rank: 3 }
+    ];
+    slots.forEach(sl => {
+      const g = {};
+      g.box = add(S.pod, makePhoto(sl.x, sl.y, sl.w, sl.h, 26, sl.L._photoUrl, sl.L._focus, false));
+      g.box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      g.lab = add(S.pod, el("div", null, "position:absolute;left:" + sl.x + "px;top:" + pd.label.y +
+        "px;width:" + sl.w + "px;text-align:center"));
+      const rk = add(g.lab, el("div", "caps", "font-size:" + pd.label.fs +
+        "px;color:var(--accent);direction:ltr;unicode-bidi:isolate"));
+      rk.textContent = C.rank(sl.rank);
+      const sc = add(g.lab, el("div", "num", "font-size:" + pd.label.sfs + "px;color:var(--ink);" +
+        "line-height:1.05;letter-spacing:-.02em"));
+      sc.textContent = sl.L.score + "/10";
+      g.rank = sl.rank;
+      if (sl.rank === 1) {
+        g.medal = add(S.pod, el("div", "layer", "left:" + (sl.x + sl.w / 2 - pd.medal.d / 2) + "px;top:" +
+          (pd.medal.cy - pd.medal.d / 2) + "px;width:" + pd.medal.d + "px;height:" + pd.medal.d +
+          "px;border-radius:50%;border:5px solid transparent;" +
+          "background:linear-gradient(var(--bg),var(--bg)) padding-box," +
+          "linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%) border-box;" +
+          "display:flex;align-items:center;justify-content:center"));
+        const mn = add(g.medal, el("div", "num", "font-size:" + pd.medal.fs + "px;color:var(--ink);line-height:1"));
+        mn.textContent = "1";
+      }
+      S.podCards.push(g);
+    });
+  } else {
+    /* on the chroma field there is no photograph, so the board is the three ranks themselves */
+    const pl = LAY.title.plate;
+    S.boardPlate = add(beat, el("div", "plate", "left:" + pl.x + "px;top:" + pl.y + "px;width:" + pl.w +
+      "px;height:" + pl.h + "px"));
+    S.podTitle = block(beat, "display", LAY.title.y, LAY.title.fs, LAY.title.w, LAY.title.lh, "color:var(--ink)");
+    S.podTitle.textContent = C.boardTitle;
+    fits("the board title", S.podTitle, LAY.title.w, LAY.title.fs * LAY.title.lh * LAY.title.lines, C.boardTitle);
+    const rw = LAY.row;
+    [2, 1, 0].forEach((idx, slot) => {
+      const L = D.looks[idx];
+      const g = {};
+      const y = rw.y + slot * rw.h;
+      g.row = add(beat, el("div", "layer", "left:" + rw.x0 + "px;top:" + y + "px;width:" +
+        (rw.x1 - rw.x0) + "px;height:" + rw.h + "px;display:flex;align-items:center;gap:26px;direction:" + DIR));
+      const rk = add(g.row, el("div", "num", "font-size:" + rw.fs + "px;color:var(--accent);line-height:1;min-width:110px;text-align:" + (RTL ? "right" : "left")));
+      rk.textContent = C.rank(idx + 1);
+      const it = add(g.row, el("div", "caps", "font-size:" + rw.ifs + "px;color:var(--ink-2);flex:1 1 auto;text-align:center"));
+      it.textContent = L.intent;
+      const sc = add(g.row, el("div", "num", "font-size:" + rw.fs + "px;color:var(--ink);line-height:1;min-width:190px;text-align:" + (RTL ? "left" : "right")));
+      sc.textContent = L.score + "/10";
+      if (idx === 0) rk.style.color = "var(--accent-2)";
+      S.looks.push(g);
+    });
+    S.podCards = [];
+  }
+
+  S.credit = creditLine(beat, LAY.credit);
+  const ew = endWrapper(beat, MODE === "overlay");
+  S.endCover = ew.cover; S.endGlow = ew.glow;
+  S.end = endCard(ew.wrap, LAY.end);
+}
+
+window.__build = async function (data) {
+  D = data;
+  VARIANT = data.variant === "overlay" ? "verdict" : data.variant;
+  MODE = (data.variant === "overlay" || data.overlay) ? "overlay" : "photo";
+  DIR = data.lang === "he" ? "rtl" : "ltr";
+  RTL = DIR === "rtl";
+  document.documentElement.dir = DIR;
+  document.documentElement.lang = data.lang || "en";
+  document.body.className = MODE === "overlay" ? "mode-overlay" : "mode-photo";
+  C = COPY[data.lang === "he" ? "he" : "en"];
+  LAY = LAYOUT[MODE][VARIANT];
+  DURATION = DUR[data.variant === "overlay" ? "overlay" : data.variant];
+  COVER_AT = typeof data.cover_at === "number" ? data.cover_at : COVER[data.variant === "overlay" ? "overlay" : data.variant];
+
+  HOST.innerHTML = "";
+  /* a second build on the same page must not inherit the first one's elements */
+  Object.keys(S).forEach(k => { delete S[k]; });
+  problems.length = 0;
+  pending.length = 0;
+  hugs.length = 0;
+
+  if (VARIANT === "verdict") buildVerdict();
+  else if (VARIANT === "versus") buildVersus();
+  else buildBoard();
+
+  await document.fonts.ready;
+  const imgs = Array.from(document.images);
+  await Promise.all(imgs.map(i => (i.complete ? null : i.decode().catch(() => null))));
+  /* centring and measuring both wait for the faces: until Outfit and Heebo are in, every box is the
+     fallback's size and a line that overflows would measure as if it did not */
+  if (S.pillCentre) S.pillCentre();
+  if (S.winCentre) S.winCentre();
+  hugs.forEach(fn => fn());
+  hugs.length = 0;
+  pending.forEach(fn => fn());
+  pending.length = 0;
+
+  const missing = imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.src);
+  const faces = { outfit: document.fonts.check("800 64px Outfit"), heebo: document.fonts.check("700 20px Heebo") };
+  const crops = imgs.map(i => ({ src: i.src, w: i.naturalWidth, h: i.naturalHeight,
+    box: [Math.round(i.getBoundingClientRect().width), Math.round(i.getBoundingClientRect().height)] }));
+
+  seek(0);
+  return { problems: problems.slice(), missing: missing, faces: faces, crops: crops,
+    meta: { fps: FPS, duration: DURATION, frames: Math.round(FPS * DURATION), coverAt: COVER_AT,
+            variant: data.variant, mode: MODE, dir: DIR } };
+};
+
+/* ============================================================== seek(t) */
+/* The verdict beats. The hook has to land inside the first second or the video is dead; the tip gets
+   the longest hold, because it is the only thing that proves the app is worth anything. */
+const V = {
+  hook:  [0.00, 1.00],
+  count: [1.00, 2.60],
+  score: [2.60, 4.60],
+  bd:    [4.60, 7.00],
+  tip:   [7.00, 12.00],
+  end:   [12.00, 15.00]
+};
+const VS = {
+  q:     [0.00, 4.60],
+  count: [4.60, 6.20],
+  score: [6.20, 8.60],
+  win:   [8.60, 12.00],
+  end:   [12.00, 15.00]
+};
+const BD = {
+  intro: [0.00, 1.40],
+  looks: [1.40, 13.40],     /* three looks, 4.00 s each, counting down 3, 2, 1 */
+  pod:   [13.40, 15.80],
+  end:   [15.80, 18.00]
+};
+
+/* THE CHROMA RULE: nothing on the green field is ever half-way transparent. A white numeral at 50 %
+   over #00B140 is a pale green numeral — the key eats it, or leaves a ghost. So in overlay mode every
+   fade becomes a cut and the motion is carried by position and scale instead, which is how broadcast
+   overlays have always been built. Over a photograph the fades stay. */
+function fade(e, o) {
+  if (!e) return;
+  o = clamp(o, 0, 1);
+  if (MODE === "overlay") o = o >= 0.5 ? 1 : 0;
+  e.style.opacity = r3(o);
+}
+function place(e, dx, dy, k) {
+  if (!e) return;
+  e.style.transform = "translate(" + r3(dx) + "px," + r3(dy) + "px)" + (k === undefined ? "" : " scale(" + r3(k) + ")");
+}
+
+function seekVerdict(t) {
+  const isOv = MODE === "overlay";
+  /* the look, and how far it gets out of the type's way */
+  if (S.photo) {
+    /* no entrance zoom: the photograph is the subject, and 6 % of scale for half a second is half a
+       second with the shoes cut off the bottom of a full-length look */
+    fade(S.photo, 1);
+    /* the look steps back for the beats the type has to carry: a little under the score and the
+       breakdown, more under the tip card, all the way under the end card */
+    const d0 = 0.34 * p(t, V.count[0] - 0.20, V.count[0] + 0.25);
+    const d1 = 0.46 * p(t, V.tip[0] - 0.3, V.tip[0] + 0.2);
+    const d2 = p(t, V.end[0] - 0.45, V.end[0] - 0.05);
+    fade(S.dim, Math.max(d0, d1, d2));
+  }
+
+  /* The pill and the hook are at full strength on FRAME 0 and only move into place: a cold scroll
+     lands on frame 0, and a frame 0 that is a photograph with no words on it has said nothing. They
+     fade only on the way out, where a fade is free. */
+  const pIn = eOut(p(t, 0, 0.30));
+  const pOut = 1 - p(t, V.tip[0] - 0.2, V.tip[0] + 0.1);
+  fade(S.pill, pOut);
+  place(S.pill, 0, lerp(-26, 0, pIn));
+
+  const hIn = eOut(p(t, 0, 0.36));
+  const hOut = 1 - eIn(p(t, V.hook[1] - 0.18, V.hook[1] + 0.06));
+  fade(S.hook, hOut);
+  place(S.hook, 0, lerp(34, 0, hIn) - 26 * (1 - hOut));
+  fade(S.hookPlate, hOut);
+
+  /* the count: 3, 2, 1 over the look */
+  const cw = (V.count[1] - V.count[0]) / 3;
+  let cn = "", co = 0, ck = 1;
+  if (t >= V.count[0] && t < V.count[1]) {
+    const i = Math.min(2, Math.floor((t - V.count[0]) / cw));
+    cn = String(3 - i);
+    const u = (t - V.count[0] - i * cw) / cw;
+    /* in fast, out late: the numeral stands at full strength for most of its half-second, or over a
+       bright photograph it is a grey smudge for half the beat */
+    co = Math.min(eOut(clamp(u / 0.14, 0, 1)), 1 - eIn(clamp((u - 0.86) / 0.14, 0, 1)));
+    ck = lerp(1.5, 0.92, eOut(clamp(u / 0.55, 0, 1)));
+  }
+  setText(S.count, cn);
+  fade(S.count, co);
+  place(S.count, 0, 0, ck);
+
+  /* the ring draws in the brand gradient and the score lands */
+  const drawn = eOut4(p(t, V.score[0] + 0.05, V.score[0] + 0.80));
+  S.ring.draw(drawn);
+  const rIn = p(t, V.score[0], V.score[0] + 0.18);
+  const land = p(t, V.score[0] + 0.72, V.score[0] + 0.98);
+  fade(S.ring._val, land > 0 ? Math.min(1, land / 0.35) : 0);
+  const valK = land <= 0 ? 0 : lerp(1.75, 1, kick(land));
+  S.ring._val.style.transform = "scale(" + r3(valK) + ")";
+  /* through the tip beat the ring shrinks and moves up, so the card gets the frame */
+  const move = eInOut(p(t, V.tip[0] - 0.30, V.tip[0] + 0.35));
+  const rt = LAY.ringTip;
+  const dx = lerp(0, rt.cx - LAY.ring.cx, move);
+  const dy = lerp(0, rt.cy - LAY.ring.cy, move);
+  const rk = lerp(1, rt.d / LAY.ring.d, move);
+  const ringOut = 1 - eIn(p(t, V.end[0] - 0.40, V.end[0] - 0.05));
+  fade(S.ring, rIn * ringOut);
+  place(S.ring, dx, dy, lerp(1.22, 1, eOut(rIn)) * rk);
+  if (!isOv) {
+    const g = 1 - p(t, V.score[0] + 0.72, V.score[0] + 1.25);
+    S.ring.style.filter = g > 0.01 ? "drop-shadow(0 0 " + r3(90 * g) + "px rgba(179,157,255," + r3(0.5 * g) + "))" : "none";
+  }
+
+  /* the headline and the occasion, under the score */
+  const hdIn = eOut(p(t, V.score[0] + 0.95, V.score[0] + 1.30));
+  const hdOut = 1 - eIn(p(t, V.tip[0] - 0.32, V.tip[0] - 0.02));
+  fade(S.head, hdIn * hdOut);
+  place(S.head, 0, lerp(30, 0, hdIn));
+  fade(S.headPlate, hdIn * hdOut);
+  if (S.occ) {
+    const oIn = eOut(p(t, V.score[0] + 1.15, V.score[0] + 1.48));
+    fade(S.occ, oIn * hdOut);
+    place(S.occ, 0, lerp(18, 0, oIn));
+  }
+
+  /* the breakdown snaps in, one number at a time */
+  const bdOut = 1 - eIn(p(t, V.tip[0] - 0.32, V.tip[0] - 0.02));
+  fade(S.bdPlate, eOut(p(t, V.bd[0], V.bd[0] + 0.22)) * bdOut);
+  S.bdCells.forEach((cell, i) => {
+    const a = V.bd[0] + 0.06 + i * 0.22;
+    const u = p(t, a, a + 0.26);
+    fade(cell, eOut(u) * bdOut);
+    cell.style.transform = "translateY(" + r3(lerp(26, 0, eOut(u))) + "px) scale(" +
+      r3(u <= 0 ? 0.8 : lerp(1.28, 1, kick(u))) + ")";
+  });
+
+  /* the one tip */
+  const tIn = eOut(p(t, V.tip[0], V.tip[0] + 0.34));
+  const tOut = 1 - eIn(p(t, V.end[0] - 0.42, V.end[0] - 0.06));
+  fade(S.tipCard, tIn * tOut);
+  place(S.tipCard, 0, lerp(46, 0, tIn), lerp(0.97, 1, tIn));
+
+  /* the credit rides along under everything until the end card */
+  if (S.credit) {
+    const cIn = eOut(p(t, 0.5, 0.9));
+    fade(S.credit, cIn * (1 - p(t, V.end[0] - 0.45, V.end[0] - 0.1)));
+  }
+
+  endBeat(t, V.end[0], isOv);
+}
+
+function seekVersus(t) {
+  const isOv = MODE === "overlay";
+  /* both looks slam in together: the comparison is the first thing on screen */
+  S.sides.forEach((s, i) => {
+    if (!s.box) return;
+    /* Both looks are whole and in place on FRAME 0 — that is what a scroll lands on — so the entrance
+       is a small settle in scale and nothing else. A slide would put half a card off the edge on the
+       one frame that has to do the most work. The winner's later swell is folded into the same
+       transform, because one element takes one transform per frame. */
+    const inp = eOut(p(t, 0, 0.42));
+    const grow = S.winnerSide === i ? 0.035 * eOut(p(t, VS.win[0], VS.win[0] + 0.5)) : 0;
+    fade(s.box, 1);
+    place(s.box, 0, 0, lerp(1.03, 1, inp) + grow);
+  });
+  if (S.dim) {
+    const d1 = 0.42 * p(t, VS.count[0] - 0.2, VS.count[0] + 0.25) * (1 - p(t, VS.count[1] - 0.25, VS.count[1]));
+    const d2 = p(t, VS.end[0] - 0.45, VS.end[0] - 0.05);
+    fade(S.dim, Math.max(d1, d2));
+  }
+
+  /* The question, up on frame 0 and held: it is the hook, and it gets real screen time before the
+     answer, because the argument in the comments is the product. Like the verdict's hook it only
+     moves on the way in and only fades on the way out. */
+  const qIn = eOut(p(t, 0, 0.40));
+  const qOut = 1 - eIn(p(t, VS.q[1] - 0.22, VS.q[1] + 0.02));
+  fade(S.q, qOut);
+  place(S.q, 0, lerp(30, 0, qIn), lerp(1.05, 1, qIn));
+  fade(S.qPlate, qOut);
+  const sIn = eOut(p(t, 0, 0.52));
+  fade(S.qsub, qOut);
+  place(S.qsub, 0, lerp(30, 0, sIn));
+
+  /* the count */
+  const cw = (VS.count[1] - VS.count[0]) / 3;
+  let cn = "", co = 0, ck = 1;
+  if (t >= VS.count[0] && t < VS.count[1]) {
+    const i = Math.min(2, Math.floor((t - VS.count[0]) / cw));
+    cn = String(3 - i);
+    const u = (t - VS.count[0] - i * cw) / cw;
+    /* in fast, out late: the numeral stands at full strength for most of its half-second, or over a
+       bright photograph it is a grey smudge for half the beat */
+    co = Math.min(eOut(clamp(u / 0.14, 0, 1)), 1 - eIn(clamp((u - 0.86) / 0.14, 0, 1)));
+    ck = lerp(1.5, 0.92, eOut(clamp(u / 0.55, 0, 1)));
+  }
+  setText(S.count, cn);
+  fade(S.count, co);
+  place(S.count, 0, 0, ck);
+
+  /* both scores land, half a beat apart, then the winner */
+  S.sides.forEach((s, i) => {
+    const a = VS.score[0] + i * 0.55;
+    s.ring.draw(eOut4(p(t, a, a + 0.62)));
+    const rIn = p(t, a, a + 0.16);
+    const land = p(t, a + 0.55, a + 0.80);
+    const out = 1 - eIn(p(t, VS.end[0] - 0.40, VS.end[0] - 0.05));
+    fade(s.ring, rIn * out);
+    fade(s.ring._val, land > 0 ? Math.min(1, land / 0.35) : 0);
+    s.ring._val.style.transform = "scale(" + r3(land <= 0 ? 0 : lerp(1.7, 1, kick(land))) + ")";
+    place(s.ring, 0, 0, lerp(1.2, 1, eOut(rIn)));
+    const lIn = eOut(p(t, a + 0.20, a + 0.50));
+    fade(s.label, lIn * out);
+    place(s.label, 0, lerp(16, 0, lIn));
+    /* the loser dims; on a tie neither does, and the comments settle it */
+    if (s.box) {
+      const lose = S.winnerSide >= 0 && i !== S.winnerSide
+        ? 0.45 * eOut(p(t, VS.win[0], VS.win[0] + 0.45)) * (1 - p(t, VS.end[0] - 0.45, VS.end[0] - 0.05)) : 0;
+      s.box.style.filter = lose > 0.01 ? "brightness(" + r3(1 - lose) + ") saturate(" + r3(1 - lose * 0.6) + ")" : "none";
+    }
+  });
+
+  const wIn = p(t, VS.win[0] + 0.05, VS.win[0] + 0.40);
+  const wOut = 1 - eIn(p(t, VS.end[0] - 0.40, VS.end[0] - 0.05));
+  fade(S.win, (wIn > 0 ? 1 : 0) * wOut);
+  place(S.win, 0, 0, wIn <= 0 ? 0 : lerp(1.6, 1, kick(wIn)));
+  const wsIn = eOut(p(t, VS.win[0] + 0.35, VS.win[0] + 0.70));
+  fade(S.wsub, wsIn * wOut);
+  place(S.wsub, 0, lerp(20, 0, wsIn));
+
+  if (S.credit) fade(S.credit, eOut(p(t, 0.5, 0.9)) * (1 - p(t, VS.end[0] - 0.45, VS.end[0] - 0.1)));
+
+  endBeat(t, VS.end[0], isOv);
+}
+
+function seekBoard(t) {
+  const isOv = MODE === "overlay";
+  const kIn = eOut(p(t, 0, 0.40));
+  const kOut = 1 - eIn(p(t, BD.pod[0] - 0.25, BD.pod[0]));
+  fade(S.kicker, kOut);
+  place(S.kicker, 0, lerp(-22, 0, kIn));
+
+  if (MODE === "photo") {
+    /* the opening title, on frame 0, so the first second is not an empty stage */
+    const iIn = eOut(p(t, 0, 0.44));
+    const iOut = 1 - eIn(p(t, BD.intro[1] - 0.32, BD.intro[1]));
+    fade(S.intro, iOut);
+    place(S.intro, 0, lerp(36, 0, iIn));
+
+    const each = (BD.looks[1] - BD.looks[0]) / 3;
+    /* backwards: rank 3 first, rank 1 last */
+    const order = [2, 1, 0];
+    S.looks.forEach((g, idx) => {
+      const slot = order.indexOf(idx);
+      const a = BD.looks[0] + slot * each, b = a + each;
+      const live = t >= a - 0.4 && t < b;
+      if (!live) { [g.box, g.ring, g.rank, g.head, g.intent].forEach(e => fade(e, 0)); return; }
+      const u = p(t, a, b);
+      const inp = eOut(p(t, a, a + 0.34));
+      const out = 1 - eIn(p(t, b - 0.28, b));
+      fade(g.box, inp * out);
+      place(g.box, 0, 0, lerp(1.07, 1, inp) * (1 + 0.02 * u));
+      g.rankNum.textContent = String(idx + 1);
+      const st = p(t, a + 0.18, a + 0.48);
+      fade(g.rank, (st > 0 ? 1 : 0) * out);
+      place(g.rank, 0, 0, st <= 0 ? 0 : lerp(1.7, 1, kick(st)));
+      const rs = p(t, a + 0.36, a + 0.68);
+      g.ring.draw(eOut4(p(t, a + 0.30, a + 0.85)));
+      fade(g.ring, (rs > 0 ? 1 : 0) * out);
+      fade(g.ring._val, rs > 0 ? Math.min(1, rs / 0.4) : 0);
+      g.ring._val.style.transform = "scale(" + r3(rs <= 0 ? 0 : lerp(1.6, 1, kick(rs))) + ")";
+      const hIn = eOut(p(t, a + 0.55, a + 0.90));
+      fade(g.head, hIn * out); place(g.head, 0, lerp(24, 0, hIn));
+      fade(g.intent, eOut(p(t, a + 0.45, a + 0.78)) * out);
+    });
+
+    /* the podium */
+    const live = t >= BD.pod[0] - 0.3 && t < BD.end[0];
+    const pIn = eOut(p(t, BD.pod[0], BD.pod[0] + 0.40));
+    const pOut = 1 - eIn(p(t, BD.end[0] - 0.40, BD.end[0] - 0.05));
+    fade(S.podTitle, eOut(p(t, BD.pod[0] + 0.30, BD.pod[0] + 0.66)) * pOut);
+    place(S.podTitle, 0, lerp(26, 0, eOut(p(t, BD.pod[0] + 0.30, BD.pod[0] + 0.66))));
+    S.podCards.forEach((g, i) => {
+      const a = BD.pod[0] + [0.10, 0.00, 0.20][i];
+      const u = eOut(p(t, a, a + 0.42));
+      fade(g.box, live ? u * pOut : 0);
+      place(g.box, 0, lerp(46, 0, u), lerp(0.94, 1, u));
+      fade(g.lab, live ? eOut(p(t, a + 0.20, a + 0.55)) * pOut : 0);
+      if (g.medal) {
+        const st = p(t, BD.pod[0] + 0.45, BD.pod[0] + 0.78);
+        fade(g.medal, live ? (st > 0 ? 1 : 0) * pOut : 0);
+        place(g.medal, 0, 0, st <= 0 ? 0 : lerp(2.0, 1, kick(st)));
+      }
+    });
+  } else {
+    const each = (BD.looks[1] - BD.looks[0]) / 3;
+    fade(S.boardPlate, eOut(p(t, 0.05, 0.40)) * (1 - eIn(p(t, BD.end[0] - 0.40, BD.end[0] - 0.05))));
+    fade(S.podTitle, eOut(p(t, 0.16, 0.52)) * (1 - eIn(p(t, BD.end[0] - 0.40, BD.end[0] - 0.05))));
+    S.looks.forEach((g, slot) => {
+      const a = BD.looks[0] + slot * each;
+      const u = eOut(p(t, a, a + 0.40));
+      const out = 1 - eIn(p(t, BD.end[0] - 0.40, BD.end[0] - 0.05));
+      fade(g.row, u * out);
+      place(g.row, 0, lerp(30, 0, u));
+    });
+  }
+
+  if (S.credit) fade(S.credit, eOut(p(t, 0.6, 1.0)) * (1 - p(t, BD.end[0] - 0.45, BD.end[0] - 0.1)));
+  endBeat(t, BD.end[0], isOv);
+}
+
+function endBeat(t, T0, isOv) {
+  if (t < T0 - 0.5) {
+    fade(S.endCover, 0);
+    fade(S.endGlow, 0);
+    ["plate", "wm", "slog", "soon", "age", "ask"].forEach(k => fade(S.end[k], 0));
+    return;
+  }
+  const eo = p(t, T0 - 0.45, T0 - 0.05);
+  fade(S.endCover, eo);
+  fade(S.endGlow, isOv ? 0 : eo * 0.95);
+  const mk = eOut(p(t, T0 - 0.02, T0 + 0.30));
+  const wm = eOut(p(t, T0 + 0.04, T0 + 0.34));
+  const sl = eOut(p(t, T0 + 0.22, T0 + 0.52));
+  const so = eOut(p(t, T0 + 0.40, T0 + 0.66));
+  const ag = eOut(p(t, T0 + 0.52, T0 + 0.74));
+  const as = eOut(p(t, T0 + 0.70, T0 + 1.00));
+  fade(S.end.plate, mk);
+  fade(S.end.wm, wm);   place(S.end.wm, 0, lerp(26, 0, wm));
+  fade(S.end.slog, sl); place(S.end.slog, 0, lerp(28, 0, sl));
+  fade(S.end.soon, so);
+  S.end.soon.style.letterSpacing = r3(RTL ? lerp(0.26, 0.12, so) : lerp(0.60, 0.34, so)) + "em";
+  fade(S.end.age, ag * 0.9);
+  fade(S.end.ask, as);  place(S.end.ask, 0, lerp(22, 0, as));
+}
+
+function seek(t) {
+  t = clamp(t, 0, DURATION);
+  if (VARIANT === "verdict") seekVerdict(t);
+  else if (VARIANT === "versus") seekVersus(t);
+  else seekBoard(t);
+}
+
+window.seek = seek;
+window.__debugSafe = v => { $("safe").style.display = v ? "block" : "none"; };
+</script>

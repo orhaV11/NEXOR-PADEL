@@ -134,7 +134,6 @@ public sealed class Localizer
             ["insights.intent_Party"] = "party",
             ["insights.intent_Sport"] = "sport",
             ["error.already_pro"] = "You're already on Pro.",
-            ["error.not_built"] = "This part of OREVOSH isn't built yet.",
             ["error.item_not_found"] = "We couldn't find this item.",
             ["error.item_invalid"] = "An item needs a name up to 40 characters; a brand up to 40, a model up to 60.",
             ["error.item_url_invalid"] = "A store link has to start with http:// or https://.",
@@ -333,7 +332,6 @@ public sealed class Localizer
             ["insights.intent_Party"] = "מסיבה",
             ["insights.intent_Sport"] = "ספורט",
             ["error.already_pro"] = "כבר יש לך פרו.",
-            ["error.not_built"] = "החלק הזה של OREVOSH עדיין לא בנוי.",
             ["error.item_not_found"] = "לא מצאנו את הפריט הזה.",
             ["error.item_invalid"] = "לפריט צריך שם עד 40 תווים; מותג עד 40, דגם עד 60.",
             ["error.item_url_invalid"] = "קישור לחנות צריך להתחיל ב-http:// או ב-https://.",
@@ -534,7 +532,6 @@ public sealed class Localizer
             ["insights.intent_Sport"] = "رياضي",
             ["error.already_pro"] = "أنت مشترك في Pro بالفعل.",
             // Round 10 (needs a native review, like the rest of the Arabic).
-            ["error.not_built"] = "هذا الجزء من OREVOSH لم يُبنَ بعد.",
             ["error.item_not_found"] = "لم نجد هذه القطعة.",
             ["error.item_invalid"] = "القطعة تحتاج إلى اسم حتى 40 حرفًا؛ الماركة حتى 40، والموديل حتى 60.",
             ["error.item_url_invalid"] = "رابط المتجر يجب أن يبدأ بـ http:// أو https://.",
@@ -734,7 +731,6 @@ public sealed class Localizer
             ["insights.intent_Sport"] = "спорт",
             ["error.already_pro"] = "У тебя уже есть Pro.",
             // Round 10 (needs a native review, like the rest of the Russian).
-            ["error.not_built"] = "Эта часть OREVOSH ещё не готова.",
             ["error.item_not_found"] = "Мы не нашли эту вещь.",
             ["error.item_invalid"] = "Вещи нужно название до 40 символов; бренд до 40, модель до 60.",
             ["error.item_url_invalid"] = "Ссылка на магазин должна начинаться с http:// или https://.",

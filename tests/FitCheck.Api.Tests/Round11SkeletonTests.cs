@@ -172,12 +172,9 @@ public class Round11MigrationTests : IDisposable
     }
 }
 
-/// <summary>The routes the skeleton maps answer 501 with a sentence, behind the gates the builders keep.</summary>
+/// <summary>The routes Round 11 mapped as stubs, now all built: each one answered here behind the gate its builder kept.</summary>
 public class Round11StubTests : IClassFixture<TestApp>
 {
-    private const string NotBuiltEnglish = "This part of OREVOSH isn't built yet.";
-    private const string NotBuiltHebrew = "החלק הזה של OREVOSH עדיין לא בנוי.";
-
     private readonly TestApp _app;
 
     public Round11StubTests(TestApp app)

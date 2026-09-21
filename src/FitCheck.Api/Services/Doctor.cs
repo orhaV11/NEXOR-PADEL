@@ -300,14 +300,31 @@ public static class Doctor
             : new(DoctorStatus.Warn, "anthropic", $"{AnthropicVisionClient.ApiKeyVariable} is set ({apiKey.Length} characters) but does not start with {ApiKeyPrefix}."));
     }
 
+    /// <summary>
+    /// Where the checks go, on which model, and under what token ceiling. The ceiling is printed because it is the one
+    /// number here that can be wrong without anything looking wrong: appsettings.json outranks the code, so a ceiling
+    /// pinned there below what a full verdict needs cuts every long answer off mid-JSON — billed in full, thrown away —
+    /// while the code, the README and the runbook all say a larger number. It is a ceiling, not a charge.
+    /// </summary>
     private static void AnthropicBaseUrl(List<DoctorLine> lines, AnthropicOptions anthropic)
     {
         var url = (anthropic.BaseUrl ?? "").Trim();
         var model = (anthropic.Model ?? "").Trim();
-        lines.Add(string.Equals(url.TrimEnd('/'), DefaultAnthropicBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
-            ? new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}.")
-            : new(DoctorStatus.Warn, "anthropic-url", $"Anthropic__BaseUrl is {url}, not {DefaultAnthropicBaseUrl}: checks go there, not to Anthropic."));
+        var ceiling = anthropic.MaxTokens.ToString(CultureInfo.InvariantCulture);
+        if (!string.Equals(url.TrimEnd('/'), DefaultAnthropicBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            lines.Add(new(DoctorStatus.Warn, "anthropic-url", $"Anthropic__BaseUrl is {url}, not {DefaultAnthropicBaseUrl}: checks go there, not to Anthropic."));
+            return;
+        }
+
+        lines.Add(anthropic.MaxTokens < MinimumMaxTokens
+            ? new(DoctorStatus.Warn, "anthropic-url",
+                $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}: below {MinimumMaxTokens.ToString(CultureInfo.InvariantCulture)} a full verdict does not fit and long answers are cut off, billed and discarded. Raise Anthropic__MaxTokens.")
+            : new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}."));
     }
+
+    /// <summary>Below this a verdict with its breakdown, its accessories read and its tip does not reliably fit.</summary>
+    private const int MinimumMaxTokens = 3000;
 
     /// <summary>
     /// The address the terms of use and the privacy policy print. Those pages promise a reader a way to reach a human —

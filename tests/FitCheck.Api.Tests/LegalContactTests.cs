@@ -102,3 +102,79 @@ public class LegalContactTests
         Assert.Contains("t(key, { email })", source, StringComparison.Ordinal);
     }
 }
+
+/// <summary>
+/// Round 17 — the way out of the app.
+/// <para>
+/// The terms, the privacy policy and the community guidelines had routes, pages and translations in four languages,
+/// and NOTHING inside the app linked to them. They appeared on the signup form, inside a guard that hid them on the
+/// login screen, and on two landing pages nothing links to. So the moment somebody had an account, the documents they
+/// had just agreed to were unreachable from every screen — and the privacy policy asks a reader to write in about an
+/// account belonging to someone under 16 without saying where.
+/// </para>
+/// <para>
+/// This walks the settings screen's own source rather than asserting a list, because a list would agree with itself
+/// while the screen drifted. The address row is conditional on purpose: a mailto with nothing behind it is worse than
+/// no row, so it is drawn only where the server has an address to give (Legal:ContactEmail, else Email:From).
+/// </para>
+/// </summary>
+public class SettingsLinksTests
+{
+    private static string Source(string view)
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "src", "FitCheck.Api", "wwwroot", "app", "views", view));
+        Assert.True(File.Exists(path), "not where this test looks for it: " + path);
+        return File.ReadAllText(path);
+    }
+
+    [Fact]
+    public void Settings_carries_the_documents_and_a_way_to_reach_a_human()
+    {
+        var settings = Source("settings.js");
+
+        foreach (var route in new[] { "#/terms", "#/privacy", "#/guidelines" })
+        {
+            Assert.Contains($"href: '{route}'", settings, StringComparison.Ordinal);
+        }
+
+        // The address row: drawn from the server's value, and only when there is one.
+        Assert.Contains("state.config.contactEmail", settings, StringComparison.Ordinal);
+        Assert.Contains("'mailto:' + contact", settings, StringComparison.Ordinal);
+        Assert.Contains("contact ?", settings, StringComparison.Ordinal);
+
+        // Every locale can name the row.
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+                "src", "FitCheck.Api", "wwwroot", "i18n", code + ".json"));
+            var strings = JsonDocument.Parse(File.ReadAllText(path)).RootElement
+                .EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
+            foreach (var key in new[] { "settings.contact", "legal.terms_title", "legal.privacy_title", "guidelines.title" })
+            {
+                Assert.True(strings.ContainsKey(key), $"{code}.json is missing {key}");
+                Assert.False(string.IsNullOrWhiteSpace(strings[key]), $"{code}: {key} is empty");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Round 17 — the camera opens to a visitor with no account. The guest check is the whole funnel: one free look is
+    /// what turns a stranger into an account. The camera used to bounce anyone without a session back to the check
+    /// screen, and the check screen hid the "Take a photo" row from them, so the one person the guest path exists for
+    /// was sent to a file picker. Somebody standing in front of a mirror has no file to pick.
+    /// </summary>
+    [Fact]
+    public void The_camera_opens_to_a_guest()
+    {
+        var camera = Source("camera.js");
+        Assert.DoesNotContain("if (!state.me) { redirect('#/check'); return; }", camera, StringComparison.Ordinal);
+        // Not by loosening one line while another still checks: the camera must not consult the session at all.
+        Assert.DoesNotContain("state.me", camera, StringComparison.Ordinal);
+
+        // And the row that opens it is offered to everybody.
+        var check = Source("check.js");
+        Assert.Contains("row('media-camera'", check, StringComparison.Ordinal);
+        Assert.DoesNotContain("if (state.me) list.appendChild(row('media-camera'", check, StringComparison.Ordinal);
+    }
+}

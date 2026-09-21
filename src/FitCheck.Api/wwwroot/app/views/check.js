@@ -570,8 +570,10 @@ function chooseMedia() {
   const s = sheet({ title: t(state.check.previewUrl || state.check.clipUrl ? 'check.media_replace' : 'check.media_add'), content: list });
   // Closing first, then acting: the picker's input.click() must run inside the tap that chose the row.
   const row = (id, name, text, onclick) => el('button', { type: 'button', id, onclick: () => { s.close(); onclick(); } }, [icon(name), text]);
-  // LEAD: camera.js sends a signed-out visitor back to #/check; drop this guard when the camera opens to guests.
-  if (state.me) list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
+  // Round 17: offered to everybody, signed in or not. The guest check is the whole funnel - a visitor's one free look
+  // is the thing that turns them into an account - and it used to send them to a file picker, because the camera
+  // bounced anyone without a session. A person standing in front of a mirror has no file to pick.
+  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
   list.appendChild(row('media-library', 'image', t('check.from_library'), async () => { const file = await pickFile('file'); if (file) takePhotoFile(file); }));
   list.appendChild(row('media-clip', 'clip', t('camera.clip') + ' · ' + t('check.from_library'), async () => { const file = await pickFile('clip-file'); if (file) takeClipFile(file); }));
 }

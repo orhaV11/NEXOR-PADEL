@@ -746,6 +746,7 @@
   "block.undone": "Unblocked.",
   "block.coming": "Blocked accounts are coming in this round.",
   "settings.blocked": "Blocked accounts",
+  "settings.contact": "Contact us",
   "settings.export": "Download your data",
   "export.hint": "A file with your checks, looks, comments and follows. Photos stay on the server; delete your account to remove them.",
   "export.ready": "Your data is ready.",

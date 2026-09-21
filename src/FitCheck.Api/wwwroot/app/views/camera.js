@@ -121,7 +121,6 @@ function shutterRing() {
 
 register('camera', async (root, params) => {
   ensureStyle();
-  if (!state.me) { redirect('#/check'); return; }
   const cam = mountCamera(root, params.mode === 'clip' ? 'clip' : 'photo');
   onLeave(cam.destroy);
   await cam.open();

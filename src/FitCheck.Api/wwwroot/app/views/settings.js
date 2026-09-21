@@ -521,9 +521,21 @@ register('settings', async (root, params, ctx) => {
   });
   // The accounts you blocked (Round 11), and for moderators the door to the queue; the server decides who is one
   // (Admin:Handles), the client only shows the door.
+  //
+  // Round 17 - and the way OUT of the app. The terms, the privacy policy and the guidelines had routes and pages and
+  // nothing inside the app linked to them: they appeared once, on the signup form, inside a guard that hid them on
+  // the login screen, and on two landing pages nothing links to. So the moment somebody had an account, the documents
+  // they had just agreed to were unreachable. The address is the same story from the other side - the privacy policy
+  // asks a reader to write in about an under-16 account, and never says where. It is only drawn when the server has
+  // one (Legal:ContactEmail, else Email:From): a row that opens an empty mail window is worse than no row.
+  const contact = (state.config && state.config.contactEmail) || '';
   const links = el('div', { class: 'links' }, [
     el('a', { href: '#/settings/blocked', id: 'settings-blocked' }, [t('settings.blocked'), el('span', { class: 'icon', icon: 'x' })]),
-    state.me.isAdmin ? el('a', { href: '#/admin', id: 'moderation' }, [t('settings.moderation'), el('span', { class: 'icon', icon: 'shield' })]) : null
+    state.me.isAdmin ? el('a', { href: '#/admin', id: 'moderation' }, [t('settings.moderation'), el('span', { class: 'icon', icon: 'shield' })]) : null,
+    el('a', { href: '#/guidelines', id: 'settings-guidelines' }, [t('guidelines.title'), el('span', { class: 'icon', icon: 'shield' })]),
+    el('a', { href: '#/terms', id: 'settings-terms' }, [t('legal.terms_title'), el('span', { class: 'icon', icon: 'card' })]),
+    el('a', { href: '#/privacy', id: 'settings-privacy' }, [t('legal.privacy_title'), el('span', { class: 'icon', icon: 'card' })]),
+    contact ? el('a', { href: 'mailto:' + contact, id: 'settings-contact' }, [t('settings.contact'), el('span', { class: 'icon', icon: 'bell' })]) : null
   ]);
   root.appendChild(el('section', { class: 's-account' }, [links, logout, del, dangerError]));
 });

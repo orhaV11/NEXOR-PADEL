@@ -477,6 +477,88 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Null(UserOf(_stripe, id).BillingSubscriptionId);
     }
 
+    /// <summary>
+    /// Round 17. A declined card used to move a paying person to three days from the end of Pro in silence: they
+    /// would find the app smaller one morning, having done nothing wrong and having been asked for nothing. A card
+    /// expires — that is not a decision to cancel, and treating it as one loses a subscriber who wanted to stay.
+    /// <para>
+    /// Billing news goes only to an address the person CONFIRMED. An unverified address is a typo as often as it is a
+    /// mailbox, and a letter about somebody's card must not reach a stranger.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Webhook_tells_a_subscriber_when_the_card_fails_and_when_pro_ends()
+    {
+        // Counted per address rather than by clearing the recorder: these tests share one app and run in parallel, so
+        // a recorder somebody else is waiting on must never be wiped. Every account here has an address of its own.
+        const string address = "dunning@example.test";
+        var (_, id, handle) = await _stripe.NewUserAsync("bill_notice");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Email = address;
+            u.EmailVerifiedAt = DateTime.UtcNow;
+        });
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_notice", "sub_notice"))).StatusCode);
+
+        // The card is declined. Pro is cut to the slack — and the person is told, with the date and a way to fix it.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_notice", "past_due", id: "sub_notice"))).StatusCode);
+        var warned = Assert.Single(_stripe.Email.To(address));
+        Assert.Contains("didn't go through", warned.Subject, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(handle, warned.Body, StringComparison.Ordinal);
+        // The link goes to Settings, where "Manage subscription" opens the portal: a portal url cannot be linked to
+        // directly, because Stripe mints one per person on demand.
+        Assert.Contains("/#/settings", warned.Body, StringComparison.Ordinal);
+
+        // Pro ends. A second, different letter — and it says the account and everything in it is still there.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_notice", "sub_notice"))).StatusCode);
+        var sent = _stripe.Email.To(address);
+        Assert.Equal(2, sent.Count);
+        Assert.Contains("ended", sent[1].Subject, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(warned.Subject, sent[1].Subject);
+
+        // A subscription deleted for somebody who was not Pro anyway says nothing: there was nothing to lose.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_notice", "sub_notice"))).StatusCode);
+        Assert.Equal(2, _stripe.Email.To(address).Count);
+
+        // An UNVERIFIED address hears nothing at all: it is as likely to be a typo as a mailbox.
+        const string typo = "typo@example.test";
+        var (_, unverifiedId, _) = await _stripe.NewUserAsync("bill_notice_typo");
+        WithDb(_stripe, db =>
+        {
+            var u = db.Users.Single(x => x.Id == unverifiedId);
+            u.Email = typo;
+            u.EmailVerifiedAt = null;
+        });
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(unverifiedId.ToString("N"), null, "cus_notice_typo", "sub_notice_typo"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_notice_typo", "past_due", id: "sub_notice_typo"))).StatusCode);
+        Assert.Empty(_stripe.Email.To(typo));
+        // And Pro was still cut to the slack: the letter is a courtesy, never the mechanism.
+        Assert.True(UserOf(_stripe, unverifiedId).ProUntil <= DateTime.UtcNow.AddDays(3).AddSeconds(1));
+    }
+
+    /// <summary>
+    /// Round 17. Mail that throws must not fail the webhook: Stripe retries a non-200 and the work beside the letter
+    /// would run twice. Its own app, because making the shared recorder throw would break everything running beside it.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_still_answers_stripe_when_the_letter_cannot_be_sent()
+    {
+        await using var app = new StripeBillingApp();
+        var (_, id, _) = await app.NewUserAsync("bill_mailbroken");
+        WithDb(app, db =>
+        {
+            var u = db.Users.Single(x => x.Id == id);
+            u.Email = "broken@example.test";
+            u.EmailVerifiedAt = DateTime.UtcNow;
+        });
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(app, CheckoutCompleted(id.ToString("N"), null, "cus_broken", "sub_broken"))).StatusCode);
+
+        app.Email.Fail = true;
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(app, SubscriptionUpdated("cus_broken", "past_due", id: "sub_broken"))).StatusCode);
+        Assert.True(UserOf(app, id).ProUntil <= DateTime.UtcNow.AddDays(3).AddSeconds(1));
+    }
+
     /// <summary>A charge Stripe refunded, in full or in part. A dispute carries neither field and is always the whole charge.</summary>
     private static object ChargeRefunded(string customer, long amount, long refunded) => new
     {

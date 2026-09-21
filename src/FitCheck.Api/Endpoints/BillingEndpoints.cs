@@ -204,7 +204,7 @@ public static class BillingEndpoints
     /// </summary>
     private static async Task<IResult> WebhookAsync(
         HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, ILogger<StripeClient> logger,
-        Alerter alerter, CancellationToken ct)
+        Alerter alerter, IEmailSender email, CancellationToken ct)
     {
         var language = Localizer.Resolve(null, context.Request);
         string body;
@@ -383,6 +383,11 @@ public static class BillingEndpoints
                         user.ProUntil = cutoff;
                         await db.SaveChangesAsync(ct);
                         logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
+                        // Round 17: and TELL them. Until now a declined card moved a paying person to three days from
+                        // Pro in silence — they would simply find the app smaller one morning, having done nothing
+                        // wrong and been asked for nothing. A card expires; that is not a decision to cancel, and
+                        // treating it as one loses a subscriber who wanted to stay.
+                        await TellAboutTheCardAsync(email, localizer, billing.Value, context.Request, user, cutoff, logger, ct);
                     }
 
                     break;
@@ -408,10 +413,20 @@ public static class BillingEndpoints
 
                     // The end date moves to now rather than the plan to free: the row still says a subscription existed. The
                     // id is cleared so the next Checkout starts clean.
+                    var wasPro = Plans.IsPro(user, now);
                     user.ProUntil = now;
                     user.BillingSubscriptionId = null;
                     await db.SaveChangesAsync(ct);
                     logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
+                    // Round 17: only when they actually had it to lose. Stripe deletes a subscription for a cancellation
+                    // they asked for AND for one that quietly ran out of retries, and the two feel identical from the
+                    // inside - the app simply gets smaller. A line saying so, and that the wardrobe and the looks are
+                    // still there, is the difference between a lapse and a loss.
+                    if (wasPro)
+                    {
+                        await TellProEndedAsync(email, localizer, billing.Value, context.Request, user, logger, ct);
+                    }
+
                     break;
                 }
 
@@ -608,6 +623,62 @@ public static class BillingEndpoints
         }
 
         return DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime;
+    }
+
+    /// <summary>
+    /// Round 17 — the letter a declined card earns. Sent only to an address the person confirmed: an unverified one
+    /// is a typo as often as it is a mailbox, and billing news must not go to a stranger. A failure to send is logged
+    /// and swallowed: Stripe must still get its 200, or it retries the event and the work above runs twice.
+    /// </summary>
+    private static async Task TellAboutTheCardAsync(
+        IEmailSender email, Localizer localizer, BillingOptions billing, HttpRequest request, AppUser user,
+        DateTime until, ILogger logger, CancellationToken ct)
+    {
+        if (!email.Enabled || user.EmailVerifiedAt is null || string.IsNullOrWhiteSpace(user.Email))
+        {
+            return;
+        }
+
+        try
+        {
+            // Settings is where the "Manage subscription" button lives, which is the portal, which is where a card is
+            // changed. Linking straight at Stripe is impossible: a portal session is minted per person, on demand.
+            var link = Origin(request, billing) + PortalReturnPath;
+            var language = user.PreferredLanguage;
+            await email.SendAsync(new EmailMessage(
+                user.Email!,
+                localizer.Get(language, "email.billing_problem_subject"),
+                localizer.Get(language, "email.billing_problem_body", user.Handle, until.ToString("d MMMM", System.Globalization.CultureInfo.InvariantCulture), link)), ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Could not tell account {Handle} that their card was declined.", user.Handle);
+        }
+    }
+
+    /// <summary>Round 17 — Pro has ended and the person should hear it from the app, not notice it. Same rules as above.</summary>
+    private static async Task TellProEndedAsync(
+        IEmailSender email, Localizer localizer, BillingOptions billing, HttpRequest request, AppUser user,
+        ILogger logger, CancellationToken ct)
+    {
+        if (!email.Enabled || user.EmailVerifiedAt is null || string.IsNullOrWhiteSpace(user.Email))
+        {
+            return;
+        }
+
+        try
+        {
+            var link = Origin(request, billing) + "/#/pro";
+            var language = user.PreferredLanguage;
+            await email.SendAsync(new EmailMessage(
+                user.Email!,
+                localizer.Get(language, "email.billing_ended_subject"),
+                localizer.Get(language, "email.billing_ended_body", user.Handle, link)), ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Could not tell account {Handle} that Pro ended.", user.Handle);
+        }
     }
 
     /// <summary>

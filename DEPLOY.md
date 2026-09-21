@@ -472,7 +472,16 @@ or `paused` down to three days from now at most;
 the charge was refunded in full** — a partial refund (five shekels back as an apology, a proration) leaves Pro alone
 and alerts you instead, because a refund does not cancel the subscription and Stripe goes on billing: ending Pro
 there would leave somebody paying for something they had lost. `charge.dispute.created` always ends Pro and always
-alerts, because a dispute is the whole charge and it has a clock on it. No event ids are kept: a repeated
+alerts, because a dispute is the whole charge and it has a clock on it.
+
+**The subscriber hears about it too** (Round 17). A declined card used to move a paying person to three days from the
+end of Pro in silence — they would find the app smaller one morning, having done nothing wrong and been asked for
+nothing. A card expires; that is not a decision to cancel. So `past_due`/`unpaid`/`paused` now sends them a note with
+the date and a link to Settings, where "Manage subscription" opens the portal, and a subscription that ends sends a
+second, different note saying their account, looks and wardrobe are all still there. Both go **only to an address the
+person confirmed** — an unverified one is as likely to be a typo as a mailbox, and billing mail must not reach a
+stranger — and both need `Email__*` configured. A letter that cannot be sent is logged and swallowed: Stripe still
+gets its 200, or it retries the event and everything beside the letter runs twice. No event ids are kept: a repeated
 `checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends
 what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
 app, and the secret key is redacted from the app's logs.

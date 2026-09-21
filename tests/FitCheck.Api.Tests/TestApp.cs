@@ -28,6 +28,16 @@ public class TestApp : WebApplicationFactory<Program>
     /// here matches it; the product default is 3, and GuestCheckTests sets it to see the plan cap.
     /// </summary>
     public int FreeChecksPerDay { get; init; } = 20;
+
+    /// <summary>
+    /// Plans:FreeCallsPerMonth and Plans:ProCallsPerMonth. The month is a bound on the BILL and the day is a bound on
+    /// the burst, and almost every fixture here is about the day: with the product's 20 a month over this app's 20 a
+    /// day, the month would silently become the cap and a test of the daily refusal would get the monthly one. So both
+    /// are out of the way by default, and MonthlyAllowanceTests sets them to see the month itself.
+    /// </summary>
+    public int FreeCallsPerMonth { get; init; } = 100000;
+
+    public int ProCallsPerMonth { get; init; } = 100000;
     public int ChecksPerDayGlobal { get; init; } = 100000;
     /// <summary>
     /// Plans:GuestAttemptsPerDay, the "guest" policy's brake on attempts per client address. Out of the way like the other
@@ -95,6 +105,8 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Storage:MaxVideoBytes", MaxVideoBytes.ToString());
         builder.UseSetting("Limits:ChecksPerDay", ChecksPerDay.ToString());
         builder.UseSetting("Plans:FreeChecksPerDay", FreeChecksPerDay.ToString());
+        builder.UseSetting("Plans:FreeCallsPerMonth", FreeCallsPerMonth.ToString());
+        builder.UseSetting("Plans:ProCallsPerMonth", ProCallsPerMonth.ToString());
         builder.UseSetting("Limits:ChecksPerDayGlobal", ChecksPerDayGlobal.ToString());
         builder.UseSetting("Plans:GuestAttemptsPerDay", GuestAttemptsPerDay.ToString());
         builder.UseSetting("Limits:SignupsPerHourPerIp", SignupsPerHourPerIp.ToString());

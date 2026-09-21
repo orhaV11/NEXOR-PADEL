@@ -516,8 +516,7 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
 
         // Nothing left to claim; the old cookie names nothing any more.
         Assert.Equal(0, (await Json(await guest.PostAsync("/api/checks/claim", null))).GetProperty("claimed").GetInt32());
-        // The claimed check counts toward the account's day: two more, then the plan says no.
-        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(guest)).StatusCode);
+        // The claimed check counts toward the account's day: with the free day at two, one more and then the plan says no.
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(guest)).StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(guest)).StatusCode);
     }
@@ -615,20 +614,22 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
     }
 
     [Fact]
-    public async Task A_free_accounts_fourth_check_in_a_day_is_429_naming_the_caps_and_comparisons_count()
+    public async Task A_free_accounts_third_check_in_a_day_is_429_naming_the_caps_and_comparisons_count()
     {
+        // Round 16: the free day is two, not three. It is the number a person feels, so it is set to read as generous
+        // rather than to control cost — the bill is bounded by Plans:FreeCallsPerMonth, which nobody ordinary meets.
         var (client, _, _) = await _app.NewUserAsync("gc_free");
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 2; i++)
         {
             Assert.Equal(HttpStatusCode.Created, (await CheckAsync(client)).StatusCode);
         }
 
         var refused = await CheckAsync(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        Assert.Equal("That's today's 3 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(refused));
+        Assert.Equal("That's today's 2 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(refused));
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
         var hebrew = await CheckAsync(client, language: "he");
-        Assert.Equal("אלה 3 הבדיקות החינמיות של היום. עוברים לפרו ל-30 ביום, או חוזרים מחר.", await ErrorAsync(hebrew));
+        Assert.Equal("אלה 2 הבדיקות החינמיות של היום. עוברים לפרו ל-30 ביום, או חוזרים מחר.", await ErrorAsync(hebrew));
 
         // A comparison is a stylist call too and shares the allowance; a failed one does not count, like a failed check.
         var (comparer, comparerId, _) = await _app.NewUserAsync("gc_compares");
@@ -640,7 +641,7 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
             await db.SaveChangesAsync();
         }
 
-        Assert.Equal(HttpStatusCode.Created, (await CheckAsync(comparer)).StatusCode);
+        // One counted comparison is already on the day, and the free day is two: one check more, then no.
         Assert.Equal(HttpStatusCode.Created, (await CheckAsync(comparer)).StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, (await CheckAsync(comparer)).StatusCode);
     }
@@ -680,7 +681,7 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
 
         var lapsed = await CheckAsync(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, lapsed.StatusCode);
-        Assert.Equal("That's today's 3 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(lapsed));
+        Assert.Equal("That's today's 2 free checks. Go Pro for 30 a day, or come back tomorrow.", await ErrorAsync(lapsed));
     }
 
     [Fact]
@@ -894,10 +895,12 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
     }
 
     [Fact]
-    public void The_product_defaults_are_three_free_thirty_pro_and_one_guest()
+    public void The_product_defaults_are_two_free_a_day_thirty_pro_and_one_guest()
     {
         var plans = new PlanOptions();
-        Assert.Equal(3, plans.FreeChecksPerDay);
+        // Round 16: two a day, not three. The day is what a person feels and is set to be generous; the bill is bounded
+        // by the month (FreeCallsPerMonth), which only the rare heavy account ever meets.
+        Assert.Equal(2, plans.FreeChecksPerDay);
         Assert.Equal(30, plans.ProChecksPerDay);
         Assert.Equal(1, plans.GuestChecksPerDay);
         Assert.Equal(20, plans.GuestAttemptsPerDay);

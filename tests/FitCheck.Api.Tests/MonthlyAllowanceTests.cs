@@ -16,14 +16,15 @@ namespace FitCheck.Api.Tests;
 /// </summary>
 public class MonthlyAllowanceTests
 {
-    private sealed class MonthApp : TestApp
+    /// <summary>
+    /// The month itself, so both bounds come from this fixture rather than from TestApp's out-of-the-way defaults.
+    /// The day is left wide (TestApp's 20) on purpose: every refusal in these tests must be the month's.
+    /// </summary>
+    private static TestApp MonthApp(int proMonth, int freeMonth = 100000)
     {
-        public MonthApp(int proMonth, int freeMonth = 0)
-        {
-            Settings["Plans:ProCallsPerMonth"] = proMonth.ToString();
-            Settings["Plans:FreeCallsPerMonth"] = freeMonth.ToString();
-            Vision.Handler = _ => Payloads.Ok();
-        }
+        var app = new TestApp { ProCallsPerMonth = proMonth, FreeCallsPerMonth = freeMonth };
+        app.Vision.Handler = _ => Payloads.Ok();
+        return app;
     }
 
     private static async Task<string> ErrorOf(HttpResponseMessage response) =>
@@ -36,14 +37,21 @@ public class MonthlyAllowanceTests
         // 150 a month at the measured $0.0204 a call is about $3 of stylist, which a subscription can carry. The old
         // daily cap alone permitted 1,980.
         Assert.Equal(150, new PlanOptions().ProCallsPerMonth);
-        // The free plan keeps its day and nothing else, so nobody is refused on a bound they were never told about.
-        Assert.Equal(0, new PlanOptions().FreeCallsPerMonth);
+        // The free plan is bounded too, but only in the tail: two a day is what a person feels and is set to be
+        // generous, while twenty a month is what bounds the bill and is met by nobody ordinary - the day alone would
+        // allow sixty. The social half of this app costs no model calls at all, so free is unlimited there.
+        Assert.Equal(2, new PlanOptions().FreeChecksPerDay);
+        Assert.Equal(20, new PlanOptions().FreeCallsPerMonth);
+        Assert.True(new PlanOptions().FreeCallsPerMonth < new PlanOptions().FreeChecksPerDay * 30,
+            "a monthly bound at or above the day x 30 bounds nothing");
+        // And Pro is worth having: seven and a half times the month, not the 1.67x a day-only cap left it at.
+        Assert.True(new PlanOptions().ProCallsPerMonth >= new PlanOptions().FreeCallsPerMonth * 5);
     }
 
     [Fact]
     public async Task A_pro_account_is_refused_once_the_month_is_spent_and_told_the_number()
     {
-        using var app = new MonthApp(proMonth: 2);
+        using var app = MonthApp(proMonth: 2);
         var (pro, _, _) = await app.NewUserAsync("month_pro");
         await AdminSync.SetProAsync(app.ConnectionString, "month_pro", DateTime.UtcNow.AddDays(30));
 
@@ -65,7 +73,7 @@ public class MonthlyAllowanceTests
     [Fact]
     public async Task A_comparison_spends_the_month_too_and_the_two_buckets_add_up()
     {
-        using var app = new MonthApp(proMonth: 2);
+        using var app = MonthApp(proMonth: 2);
         var (pro, _, _) = await app.NewUserAsync("month_both");
         await AdminSync.SetProAsync(app.ConnectionString, "month_both", DateTime.UtcNow.AddDays(30));
 
@@ -87,7 +95,7 @@ public class MonthlyAllowanceTests
     [Fact]
     public async Task Zero_leaves_the_plan_bounded_by_its_day_alone()
     {
-        using var app = new MonthApp(proMonth: 0);
+        using var app = MonthApp(proMonth: 0);
         var (pro, _, _) = await app.NewUserAsync("month_off");
         await AdminSync.SetProAsync(app.ConnectionString, "month_off", DateTime.UtcNow.AddDays(30));
 
@@ -106,7 +114,7 @@ public class MonthlyAllowanceTests
     [Fact]
     public async Task The_free_plan_can_be_given_a_month_as_well()
     {
-        using var app = new MonthApp(proMonth: 150, freeMonth: 1);
+        using var app = MonthApp(proMonth: 150, freeMonth: 1);
         var (free, _, _) = await app.NewUserAsync("month_free");
 
         Assert.Equal(HttpStatusCode.Created, (await free.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);

@@ -476,6 +476,20 @@ public static class Doctor
             notes.Add($"Plans__ProCallsPerMonth is not set, so Pro is bounded by its day alone: up to {proCap} checks AND {Plans.ProCompareCap(plans, limits)} comparisons every day, which is what one subscriber may cost");
         }
 
+        // A month at or below the day x 30 is the real cap, whatever the day says — and the cap message, the Pro page
+        // and the client all quote the day. The suite's own fixtures walked into this before an owner could.
+        foreach (var (plan, perDay, perMonth) in new[]
+                 {
+                     ("free", freeCap, plans.FreeCallsPerMonth),
+                     ("pro", proCap, plans.ProCallsPerMonth)
+                 })
+        {
+            if (perMonth > 0 && perDay > 0 && perMonth < perDay)
+            {
+                notes.Add($"the {plan} plan allows {perDay} a day but only {perMonth} a MONTH, so a person meets the month on their first day and the daily number they are shown is never true");
+            }
+        }
+
         if (plans.ProChecksPerDay > limits.ChecksPerDay)
         {
             notes.Add($"Plans__ProChecksPerDay ({plans.ProChecksPerDay}) is above Limits__ChecksPerDay ({limits.ChecksPerDay}), so Pro really gets {proCap} — the number the Pro page quotes");

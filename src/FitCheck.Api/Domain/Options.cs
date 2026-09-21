@@ -190,8 +190,18 @@ public sealed class PlanOptions
 {
     public const string Section = "Plans";
 
-    /// <summary>Checks (and comparisons) per rolling 24 hours for a free account.</summary>
-    public int FreeChecksPerDay { get; set; } = 3;
+    /// <summary>
+    /// Checks (and comparisons) per rolling 24 hours for a free account. This is the number a person FEELS, so it is
+    /// set to be generous rather than to control cost: almost nobody reaches a cap, and an app that reads as though it
+    /// is chasing money loses the users it is chasing. The bill is bounded by
+    /// <see cref="FreeCallsPerMonth"/> instead, which only the rare heavy user ever meets.
+    /// <para>
+    /// Worth remembering when this number is next argued about: the social half of this app - browsing, posting,
+    /// fires, comments, challenges, brands - costs no model calls at all, so a free account can be unlimited there
+    /// and generous here. The stylist is the only thing that costs money.
+    /// </para>
+    /// </summary>
+    public int FreeChecksPerDay { get; set; } = 2;
 
     /// <summary>For a Pro account. Limits:ChecksPerDayGlobal still caps everyone together.</summary>
     public int ProChecksPerDay { get; set; } = 30;
@@ -207,8 +217,13 @@ public sealed class PlanOptions
     /// </summary>
     public int ProCallsPerMonth { get; set; } = 150;
 
-    /// <summary>The same for a free account. 0 (the default) leaves the free plan bounded by its day alone.</summary>
-    public int FreeCallsPerMonth { get; set; }
+    /// <summary>
+    /// The same for a free account, and the one that actually bounds what free costs. Twenty is far above what anyone
+    /// ordinary does - the day's 2 would allow sixty - so it is felt by nobody except the one person who checks every
+    /// outfit they own, which is the tail it exists for. At the measured cost of a call that is about 41 cents a month
+    /// for the heaviest free account there can be. 0 turns it off.
+    /// </summary>
+    public int FreeCallsPerMonth { get; set; } = 20;
 
     /// <summary>
     /// For a guest (no account yet), per guest cookie: what is counted is a stored check (ok, not_outfit or rejected, the

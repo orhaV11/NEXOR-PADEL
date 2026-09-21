@@ -197,6 +197,20 @@ public sealed class PlanOptions
     public int ProChecksPerDay { get; set; } = 30;
 
     /// <summary>
+    /// Round 16 - the month, which is the number that decides whether a subscription pays for itself. A daily cap of 30
+    /// is a promise of 900 a month, and in Pro it is 1,980, because comparisons are a second bucket: at the measured
+    /// cost of a model call that is about $40 of stylist for one subscriber, and up to $102 with the invite bonus. No
+    /// consumer price survives that tail, and nobody real is anywhere near it - so the daily cap stays as the burst
+    /// limit it always was, and this is the one that bounds the bill. Counted over a rolling 30 days, checks and
+    /// comparisons together, both plans' buckets added up, because a bill does not care which bucket a call came from.
+    /// 0 turns it off.
+    /// </summary>
+    public int ProCallsPerMonth { get; set; } = 150;
+
+    /// <summary>The same for a free account. 0 (the default) leaves the free plan bounded by its day alone.</summary>
+    public int FreeCallsPerMonth { get; set; }
+
+    /// <summary>
     /// For a guest (no account yet), per guest cookie: what is counted is a stored check (ok, not_outfit or rejected, the
     /// ones that cost a model call), never a refused upload or a failed call.
     /// </summary>

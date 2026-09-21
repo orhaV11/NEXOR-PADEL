@@ -24,6 +24,24 @@ public static class Spend
     public static readonly TimeSpan Window = TimeSpan.FromHours(24);
 
     /// <summary>
+    /// Round 16 - the window the monthly allowance is counted over. A rolling 30 days rather than a calendar month, for
+    /// the same reason the day is rolling: no cliff at midnight on the 1st, and nothing to reset.
+    /// </summary>
+    public static readonly TimeSpan MonthWindow = TimeSpan.FromDays(30);
+
+    /// <summary>
+    /// Every counted call this account made in the rolling month - checks AND comparisons, both Pro buckets added back
+    /// together, with no forgiveness and no invite bonus taken off. Those two are kindnesses about a single day; the
+    /// month is about the bill, and a call that was made was paid for whichever bucket it landed in.
+    /// </summary>
+    public static async Task<int> MonthCountForUserAsync(AppDbContext db, Guid userId, DateTime now, CancellationToken ct)
+    {
+        var from = now - MonthWindow;
+        return await CountedChecks(db, from).Where(c => c.UserId == userId).CountAsync(ct)
+            + await CountedComparisons(db, from).Where(c => c.UserId == userId).CountAsync(ct);
+    }
+
+    /// <summary>
     /// When this account's counted calls were made, oldest first. Round 13: the day's invite bonus (see the block at the
     /// end of this file) is taken off the front of the list, so one extra check is what every caller sees — the check
     /// route, the comparison route and the "me" answer alike, with nothing to change in any of them.

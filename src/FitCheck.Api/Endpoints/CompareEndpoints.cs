@@ -175,6 +175,14 @@ public static class CompareEndpoints
         // and comparisons together, the plan's cap. Failed calls do not count on either side: a model outage must not
         // eat the user's allowance, and the global ceiling below still counts every stored call whatever the plan.
         var cap = Plans.CompareCapFor(user, plans.Value, limits.Value, now);
+        // Round 16 - the same monthly bound as the check route: a comparison is a stylist call and costs the same.
+        var monthlyCalls = Plans.MonthlyCallsFor(user, plans.Value, now);
+        if (monthlyCalls > 0 && await Spend.MonthCountForUserAsync(db, userId, now, ct) >= monthlyCalls)
+        {
+            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests,
+                localizer.Get(language, "error.month_limit", monthlyCalls));
+        }
+
         var recent = await Spend.RecentForUserAsync(db, userId, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CompareAllowanceFor(user, now));
         var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 

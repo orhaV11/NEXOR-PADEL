@@ -106,7 +106,13 @@ register('pro', async (root, params, ctx) => {
   ]));
   // The cap, once and last, as what it is: a fair-use brake, not the product. Both numbers as the server really
   // enforces them (clamped to Limits:ChecksPerDay before they leave /api/config).
-  root.appendChild(el('p', { class: 'hint pro-fair', id: 'pro-fair', text: t('pro.fair_use', { checks: n, compares: plans.proComparesPerDay || 0 }) }));
+  // Round 16: the month is the allowance that means something. A daily number reads as a boast nobody tests - "30 a
+  // day" when a person does one or two - while the month is the number that is actually there to be used, and the one
+  // the price is built on. The day stays as the burst limit it is, and is not advertised.
+  const month = plans.proCallsPerMonth || 0;
+  root.appendChild(el('p', { class: 'hint pro-fair', id: 'pro-fair', text: month > 0
+    ? t('pro.allowance_month', { n: month })
+    : t('pro.fair_use', { checks: n, compares: plans.proComparesPerDay || 0 }) }));
 
   if (plans.proPriceText) {
     root.appendChild(el('p', { class: 'pro-price', id: 'pro-price' }, [

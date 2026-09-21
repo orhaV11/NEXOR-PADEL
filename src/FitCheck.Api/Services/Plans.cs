@@ -24,6 +24,13 @@ public static class Plans
     /// </summary>
     public static int ProCap(PlanOptions plans, LimitsOptions limits) => Clamp(plans.ProChecksPerDay, limits);
 
+    /// <summary>
+    /// Round 16 - how many model calls this account may make in a rolling month, 0 when the plan has no monthly bound.
+    /// The day is the burst limit; this is the one that decides whether the subscription pays for itself.
+    /// </summary>
+    public static int MonthlyCallsFor(AppUser user, PlanOptions plans, DateTime now) =>
+        Math.Max(0, IsPro(user, now) ? plans.ProCallsPerMonth : plans.FreeCallsPerMonth);
+
     private static int Clamp(int planCap, LimitsOptions limits) => Math.Max(0, Math.Min(planCap, limits.ChecksPerDay));
 
     // ---------- Round 14 — Pro worth paying for: what the plan gets, not how high the cap goes ----------

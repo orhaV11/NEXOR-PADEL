@@ -272,6 +272,16 @@ public static class CheckEndpoints
             cap = Plans.CapFor(user, plans.Value, limits.Value, now);
             reservationKey = user.Id;
             recent = await Spend.RecentForUserAsync(db, user.Id, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CheckAllowanceFor(user, now));
+
+            // Round 16 - the month. The day above is a burst limit; this is the one that bounds what an account can
+            // cost. Checked before the daily reservation so a refusal here spends nothing at all, and refused with the
+            // same 429 the day uses, because to the person it is the same sentence with a different number.
+            var monthly = Plans.MonthlyCallsFor(user, plans.Value, now);
+            if (monthly > 0 && await Spend.MonthCountForUserAsync(db, user.Id, now, ct) >= monthly)
+            {
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests,
+                    localizer.Get(language, "error.month_limit", monthly));
+            }
         }
         else
         {

@@ -467,6 +467,15 @@ public static class Doctor
         var proCap = Plans.ProCap(plans, limits);
         var freeCap = Math.Max(0, Math.Min(plans.FreeChecksPerDay, limits.ChecksPerDay));
         var notes = new List<string>();
+
+        // Round 16 - the month. Without it a Pro account may make 66 calls a day, which is 1,980 a month: more
+        // stylist than any consumer price carries, and far more than anybody real uses. A month that IS set is good
+        // news and belongs in the ok line below, not here.
+        if (plans.ProCallsPerMonth <= 0)
+        {
+            notes.Add($"Plans__ProCallsPerMonth is not set, so Pro is bounded by its day alone: up to {proCap} checks AND {Plans.ProCompareCap(plans, limits)} comparisons every day, which is what one subscriber may cost");
+        }
+
         if (plans.ProChecksPerDay > limits.ChecksPerDay)
         {
             notes.Add($"Plans__ProChecksPerDay ({plans.ProChecksPerDay}) is above Limits__ChecksPerDay ({limits.ChecksPerDay}), so Pro really gets {proCap} — the number the Pro page quotes");
@@ -504,7 +513,7 @@ public static class Doctor
         lines.Add(notes.Count > 0
             ? new(DoctorStatus.Warn, "plans", string.Join("; ", notes) + ".")
             : new(DoctorStatus.Ok, "plans",
-                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
+                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; pro {plans.ProCallsPerMonth} model calls a month; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
     }
 
     private static void Push(List<DoctorLine> lines, PushOptions push)

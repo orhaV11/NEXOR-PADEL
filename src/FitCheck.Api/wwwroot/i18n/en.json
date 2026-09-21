@@ -967,6 +967,7 @@
   "pro.benefit_wardrobe": "Tips from your own wardrobe",
   "pro.benefit_wardrobe_hint": "\"Swap the black tights for the brown ones you wore on the 4th\" instead of \"buy brown tights\".",
   "pro.fair_use": "Fair use: {checks} checks and {compares} comparisons a day.",
+  "pro.allowance_month": "{n} checks a month, split between looks and comparisons however you like.",
   "wardrobe.title": "Your wardrobe",
   "wardrobe.lede": "The pieces you kept from your checks. A tip can name one of these instead of something to buy.",
   "wardrobe.keep_ask": "Keep the {piece} in your wardrobe?",

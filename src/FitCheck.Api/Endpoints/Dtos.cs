@@ -376,7 +376,10 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     // is Pro's on this server (Plans:WardrobeNeedsPro); TasteProfile says this server has the taste profile built
     // (Plans:TasteProfile). The Pro page lists a benefit only where its flag is true: nothing on that page may promise
     // something this server cannot do, and PlansTests asserts exactly that over the page's keys.
-    int ProComparesPerDay = 0, bool Wardrobe = false, bool TasteProfile = false);
+    int ProComparesPerDay = 0, bool Wardrobe = false, bool TasteProfile = false,
+    // Round 16 — the month, which is the allowance that decides whether a subscription pays for itself and therefore
+    // the one worth putting on the page. 0 means this server bounds the plan by its day alone.
+    int ProCallsPerMonth = 0);
 
 // ---- comparisons, insights, today ----
 

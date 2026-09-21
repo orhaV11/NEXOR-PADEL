@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using FitCheck.Api.Domain;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace FitCheck.Api.Services;
 
@@ -79,7 +80,7 @@ public sealed class AnthropicVisionClient(
                         await meter.RecordAsync(VisionUsage.ReadFrom(text), CancellationToken.None);
                     }
 
-                    return ExtractToolInput(text, request.Tool.Name);
+                    return ExtractToolInput(text, request.Tool.Name, options.Value.MaxTokens);
                 }
 
                 // Raw API errors stay in server logs only; the user gets a localized retry message.
@@ -175,7 +176,7 @@ public sealed class AnthropicVisionClient(
         }
     };
 
-    private static JsonElement ExtractToolInput(string responseJson, string toolName)
+    private static JsonElement ExtractToolInput(string responseJson, string toolName, int maxTokens)
     {
         JsonDocument doc;
         try
@@ -195,9 +196,21 @@ public sealed class AnthropicVisionClient(
                 throw new VisionClientException("The API response was not an object.");
             }
 
-            if (StringProperty(root, "stop_reason") == "refusal")
+            var stop = StringProperty(root, "stop_reason");
+            if (stop == "refusal")
             {
                 throw new VisionRefusedException("The API refused to process this image.");
+            }
+
+            // A tool call cut off at max_tokens still arrives as a tool_use block, carrying the fields the model had
+            // finished and nothing after them. The schema's order is status, score, intent_match, headline, vibe, then
+            // items, working, one_tip, breakdown, accessories — so a cut lands the cheap strings and loses the entire
+            // verdict, and the result screen drew a score and a headline with nothing underneath. Nothing errored,
+            // nothing logged, and the person had paid for it. It is a failed answer, and it says which one.
+            if (stop == "max_tokens")
+            {
+                throw new VisionClientException(
+                    $"The answer was cut off at max_tokens ({maxTokens.ToString(CultureInfo.InvariantCulture)}); raise Anthropic:MaxTokens.");
             }
 
             if (root.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)

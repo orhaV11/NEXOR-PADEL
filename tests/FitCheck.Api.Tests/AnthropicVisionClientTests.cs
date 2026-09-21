@@ -177,4 +177,39 @@ public class AnthropicVisionClientTests
             Environment.SetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable, "test-key");
         }
     }
+    /// <summary>
+    /// Round 16: an answer cut off at max_tokens is a failed answer, not a verdict. A truncated tool call still arrives
+    /// as a tool_use block carrying the fields the model finished and nothing after them, and the schema's order puts
+    /// the cheap strings first — status, score, intent_match, headline, vibe — and the whole verdict after them: every
+    /// garment, what is working, the tip, the breakdown. So the cut was invisible, the check was charged for, and the
+    /// person read a score and a headline with nothing underneath. stop_reason said so all along and nobody read it.
+    /// </summary>
+    [Fact]
+    public async Task An_answer_cut_off_at_max_tokens_is_refused_and_names_the_setting()
+    {
+        var (client, handler) = Create();
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new
+        {
+            status = "ok", score = 5, intent_match = 30,
+            headline = "Comfortable family-dinner casual, not party or old money",
+            vibe = "relaxed off-duty casual"
+        }, stopReason: "max_tokens")));
+
+        var error = await Assert.ThrowsAsync<VisionClientException>(() => client.AnalyzeAsync(Request(), CancellationToken.None));
+        Assert.Contains("max_tokens", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1200", error.Message, StringComparison.Ordinal);
+        // One call: the same prompt under the same ceiling would be cut in the same place, so this is not retried.
+        Assert.Single(handler.Requests);
+    }
+
+    /// <summary>The ordinary stop_reason for a forced tool call still returns the input, unchanged.</summary>
+    [Fact]
+    public async Task A_complete_tool_call_is_untouched()
+    {
+        var (client, handler) = Create();
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok", score = 6 })));
+        var input = await client.AnalyzeAsync(Request(), CancellationToken.None);
+        Assert.Equal(6, input.GetProperty("score").GetInt32());
+    }
+
 }

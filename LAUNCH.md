@@ -88,7 +88,7 @@ which lists at **2 USD per million input tokens and 10 USD per million output to
 rubric (about 1,900 tokens), the tool schema the answer must fit (about 600), the intent line, and one photo that the
 phone has already downscaled to 1280 px on its long side before upload (about 1,600 tokens for an image that size) —
 call it 4,000 to 4,500 input tokens. The answer is a single tool call with reasoning switched off
-(`AnthropicVisionClient` sends `thinking: disabled`) and `Anthropic:MaxTokens` is 1200, so 300 to 700 output tokens in
+(`AnthropicVisionClient` sends `thinking: disabled`) and `Anthropic:MaxTokens` is 3000 — a ceiling, not a charge — so 300 to 700 output tokens in
 practice and 1,200 at the absolute most.
 
 That is about **1.5 US cents a check**, and about 2.1 cents in the worst case (0.0045 × 2 + 0.0012 × 10). A "Which
@@ -1199,7 +1199,7 @@ Caddy מבקש את התעודה ברגע שהוא עולה.
 שמחירו **2 דולר למיליון טוקני קלט ו-10 דולר למיליון טוקני פלט**. בדיקה אחת שולחת את הרובריקה של הסטייליסט (בערך 1,900
 טוקנים), את סכמת הכלי שהתשובה חייבת להיכנס אליה (בערך 600), את שורת הכוונה, ותמונה אחת שהטלפון כבר הקטין ל-1280 פיקסל
 בצלע הארוכה לפני ההעלאה (בערך 1,600 טוקנים לתמונה בגודל כזה) — נניח 4,000 עד 4,500 טוקני קלט. התשובה היא קריאת כלי
-אחת, בלי חשיבה (`AnthropicVisionClient` שולח `thinking: disabled`) ועם `Anthropic:MaxTokens` 1200, ולכן 300 עד 700
+אחת, בלי חשיבה (`AnthropicVisionClient` שולח `thinking: disabled`) ועם `Anthropic:MaxTokens` 3000 — תקרה, לא חיוב — ולכן 300 עד 700
 טוקני פלט בפועל ו-1,200 לכל היותר.
 
 זה בערך **1.5 סנט לבדיקה**, ובמקרה הגרוע בערך 2.1 סנט (0.0045 × 2 + 0.0012 × 10). השוואת "איזה מהשניים?" שולחת שתי

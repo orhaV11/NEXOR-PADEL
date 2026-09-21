@@ -7,7 +7,15 @@ public sealed class AnthropicOptions
     /// <summary>Must support forced tool use (tool_choice type "tool"): Sonnet 5, Opus 5, the 4.x family, Haiku 4.5.</summary>
     public string Model { get; set; } = "claude-sonnet-5";
 
-    public int MaxTokens { get; set; } = 1200;
+    /// <summary>
+    /// The ceiling on ONE answer. It is not a charge: the bill is the tokens the model actually writes, so headroom is
+    /// free and a ceiling that is too low is not. At 1200 a full verdict had almost none — the schema asks for a
+    /// headline, a vibe, every garment with a note, what is working, the tip, a three-part breakdown and the accessories,
+    /// and the model writes them in that order, so a cut lands the first few and silently drops the entire verdict. That
+    /// is what a person saw as a score with nothing under it. Raised with room to spare, and a cut is now a failed
+    /// answer that says so (AnthropicVisionClient) rather than half a screen.
+    /// </summary>
+    public int MaxTokens { get; set; } = 3000;
 
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
 

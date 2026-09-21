@@ -287,7 +287,7 @@ ever run against a local stand-in built to move its scores on purpose.
 |---|---|---|
 | `ConnectionStrings:Default` | `Data Source=orevosh.db` | SQLite file, switched to WAL mode on start. Migrations run on start (`Data/DatabaseSetup.cs`); a pre-migration pilot file is backed up and upgraded in place. A relative path resolves against the project folder |
 | `Anthropic:Model` | `claude-sonnet-5` | Must support forced tool use: Sonnet 5, Opus 5, the 4.x family, Haiku 4.5 |
-| `Anthropic:MaxTokens` | `1200` | Output budget for the tool call (Hebrew is token-heavy) |
+| `Anthropic:MaxTokens` | `3000` | The ceiling on ONE answer, not a charge — the bill is the tokens the model actually writes, so headroom is free and a ceiling that is too low is not. A typical verdict is 300–700 output tokens; the ceiling is far above that on purpose, because a cut lands the early fields (status, score, headline, vibe) and silently drops the whole verdict after them. An answer that hits it is refused with the reason named, never stored as half a screen |
 | `Anthropic:BaseUrl` | `https://api.anthropic.com` | Override to point at a stub in tests |
 | `Storage:Root` | `storage` | Private photo folder (checks and avatars). Relative paths resolve against the content root, never `wwwroot` |
 | `Storage:MaxImageBytes` | `6291456` | Upload limit for the still of a check (6 MB). Avatars are capped at 2 MB. The client downscales first |

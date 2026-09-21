@@ -2,7 +2,7 @@
 // pages as you scroll and refreshes when you pull down. The intent filter lives in state.feed so it survives a
 // trip to a post and back; the tab comes from the route (#/ or #/feed/following).
 import {
-  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, signInPrompt, announce, onLeave, feedVersion
+  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, languageOffer, signInPrompt, announce, onLeave, feedVersion
 } from '../core.js';
 import { todayStrip } from './today.js';
 import { boardResetCard, emptyCall } from './board.js';
@@ -76,6 +76,10 @@ register('feed', async (root, params, ctx) => {
     return;
   }
 
+  // Round 16: "read this in your language?", once, above the install banner — which language you read in comes before
+  // where you keep the app.
+  const offer = languageOffer();
+  if (offer) root.appendChild(offer);
   const banner = installBanner();
   if (banner) root.appendChild(banner);
   // "The board reset" on the first day of the week (views/board.js decides, and remembers a dismissal for the day): above the Today strip.

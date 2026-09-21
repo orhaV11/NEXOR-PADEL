@@ -1057,5 +1057,9 @@
   "wardrobe.dash_keepers": "אנשים ששומרים",
   "wardrobe.dash_items": "פריטים שנשמרו",
   "wardrobe.dash_dont_own": "“אין לי את זה”",
-  "wardrobe.dash_off": "כיבו את השליחה"
+  "wardrobe.dash_off": "כיבו את השליחה",
+  "lang.offer_title": "לקרוא את OREVOSH בעברית?",
+  "lang.offer_body": "האפליקציה נפתחת באנגלית. אפשר להחליף כאן, או בכל רגע בהגדרות.",
+  "lang.offer_no": "להשאיר אנגלית",
+  "result.no_tip": "הסטייליסט נתן ללוק הזה ציון אבל לא שלח עליו טיפ. שווה לבדוק שוב — אמור להגיע."
 }

@@ -344,6 +344,17 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
             Accessories = ReadAccessories(input)
         };
 
+        // The one tip is the whole promise, and one_tip is in the tool's required list — but "required" steers a model, it
+        // does not bind it, and an empty string satisfies it. A verdict that arrives without its tip used to be stored and
+        // drawn as a score with nothing under it: no tip, and (because the client hangs them off the tip) no "did it
+        // land?", no typed reasons, no "I tried it" either. A screen that quietly loses half of itself is worse than an
+        // error, so this is a failed answer like any other — the caller stores an error row, the person is told nothing
+        // was counted, and their allowance is untouched.
+        if (status == CheckStatus.Ok && string.IsNullOrWhiteSpace(feedback.OneTip))
+        {
+            throw new VisionClientException("The answer was ok but carried no one_tip.");
+        }
+
         if (status == CheckStatus.NotOutfit)
         {
             // The reason is shown to the person, so it obeys rule 1 like everything else: a word about a body, a face,

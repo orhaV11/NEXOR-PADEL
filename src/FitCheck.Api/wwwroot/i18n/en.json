@@ -1057,5 +1057,9 @@
   "wardrobe.dash_keepers": "People keeping",
   "wardrobe.dash_items": "Pieces kept",
   "wardrobe.dash_dont_own": "“I do not own that”",
-  "wardrobe.dash_off": "Sending turned off"
+  "wardrobe.dash_off": "Sending turned off",
+  "lang.offer_title": "Read OREVOSH in your language?",
+  "lang.offer_body": "The app opens in English. You can change it here, or any time in Settings.",
+  "lang.offer_no": "Keep English",
+  "result.no_tip": "The stylist scored this look but did not send a tip for it. Check it again and you should get one."
 }

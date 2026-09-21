@@ -545,4 +545,40 @@ public class OutfitAnalyzerTests
         Assert.Equal("", feedback.OneTip);
         Assert.Equal(TipKinds.Change, feedback.TipKind);
     }
+    /// <summary>
+    /// Round 16: an ok verdict that carries no tip is a failed answer, not a verdict. The one tip is the promise, and
+    /// one_tip is required by the tool — but required steers a model, it does not bind it, and "" satisfies it. Stored,
+    /// such a row drew a score with nothing under it: no tip, and, because the client hangs them off the tip, no "did it
+    /// land?", no typed reasons and no "I tried it" either.
+    /// </summary>
+    [Theory]
+    [InlineData("\"\"")]
+    [InlineData("\"   \"")]
+    public void An_ok_verdict_with_no_tip_is_refused(string tip)
+    {
+        var input = Payloads.Parse($$"""
+            {
+              "status": "ok", "score": 7, "intent_match": 72, "headline": "Clean casual",
+              "vibe": "relaxed weekend", "items": [], "working": ["The palette is tight"],
+              "one_tip": {{tip}}
+            }
+            """);
+        var error = Assert.Throws<VisionClientException>(() => OutfitAnalyzer.MapToolInput(input));
+        Assert.Contains("one_tip", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A refusal blanks the tip itself and must still map: the rule above is about a verdict that claims to be one.
+    /// </summary>
+    [Fact]
+    public void A_refusal_still_maps_with_no_tip()
+    {
+        foreach (var payload in new[] { Payloads.NotOutfit(), Payloads.Rejected() })
+        {
+            var feedback = OutfitAnalyzer.MapToolInput(payload);
+            Assert.NotEqual(CheckStatus.Ok, feedback.Status);
+            Assert.Equal("", feedback.OneTip);
+        }
+    }
+
 }

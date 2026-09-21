@@ -818,6 +818,10 @@ register('result', async (root, params, ctx) => {
       el('ul', { class: 'working', style: 'margin-block-start: 6px;' }, feedback.working.map((line) => el('li', { text: line })))
     ]));
   }
+  // The tip, and everything that is ABOUT the tip, under one condition on purpose: asking "did it land?" about a tip
+  // that is not on the screen is nonsense. The server no longer lets an ok verdict through without one (OutfitAnalyzer),
+  // so this is the belt to that braces — and if it ever does happen, the notice below says so instead of the screen
+  // simply ending early, which is what it used to do.
   if (feedback.oneTip) {
     ensureStyle();
     container.appendChild(tipBlock(feedback));
@@ -827,6 +831,8 @@ register('result', async (root, params, ctx) => {
     // here; the modules that own them fill them in place, and an absent module leaves nothing on the screen.
     container.appendChild(el('div', { class: 'mount', id: 'tip-feedback' }));
     container.appendChild(el('div', { class: 'mount', id: 'tried-it' }));
+  } else if (feedback.status === 'ok') {
+    container.appendChild(el('p', { class: 'notice', id: 'tip-missing', text: t('result.no_tip') }));
   }
 
   // Round 14 — the wardrobe that builds itself (app/wardrobe.js): the documented mount point, #wardrobe-keep, one quiet

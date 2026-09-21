@@ -117,11 +117,16 @@ function matchLocale(tag) {
   const language = String(tag).toLowerCase().split(/[-_]/)[0];
   return enabledLocales().includes(language) ? language : null;
 }
-/** The browser's languages in order, the first live one wins; a browser in a language that is not live gets English. */
+/**
+ * The first live language among the browser's own, or null when none of them is live. This is NOT what the app opens in
+ * — it opens in English (see boot) — it is what the one-line offer below is built from: OREVOSH is meant to be read by
+ * people who do not share a language, so the front door is the one language most of them have, and the person's own is
+ * one tap away rather than assumed from a phone setting they may not have chosen.
+ */
 function detectLocale() {
   const tags = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
-  for (const tag of tags) { const match = matchLocale(tag); if (match) return match; }
-  return DEFAULT_LOCALE;
+  for (const tag of tags) { const match = matchLocale(tag); if (match && match !== DEFAULT_LOCALE) return match; }
+  return null;
 }
 async function loadLocale(code) {
   if (messages[code]) return;
@@ -1476,6 +1481,39 @@ const canAddToHomeScreen = () => {
   return isIos() && /safari/i.test(ua) && !/crios|fxios|edgios|opios|instagram|fban|fbav|line\//i.test(ua);
 };
 
+/**
+ * "Read OREVOSH in <your language>?" — offered once, to a browser whose own language is live here and is not English.
+ * The app opens in English on purpose (boot): the audience does not share one language, so the front door is the one
+ * most of them have. This is the other half of that decision — nobody has to hunt through Settings to read the app in
+ * their own language, and the offer is made in THAT language, so it is legible to exactly the person it is for.
+ * Either button is an answer and neither is asked again: taking it saves the preference (which then decides at every
+ * boot), and declining records only that the offer was made.
+ */
+export function languageOffer() {
+  const prefs = loadPrefs();
+  if (prefs.language || prefs.languageOfferSeen) return null;
+  const code = detectLocale();
+  if (!code || !messages[code]) return null;
+  savePrefs({ languageOfferSeen: true });
+  const inTheirs = (key) => (messages[code] && messages[code][key]) || t(key);
+
+  // The card is written in the offered language, so it carries that language's own direction — isRtl() reads the one
+  // the app is currently in, which is English here and would lay Hebrew out left to right.
+  const node = el('div', { class: 'install', id: 'lang-offer', role: 'note', lang: code, dir: inTheirs('meta.dir') === 'rtl' ? 'rtl' : 'ltr' }, [
+    el('div', { class: 'mark', 'aria-hidden': 'true' }, [logoMark(44) || 'O']),
+    el('div', { class: 'text' }, [
+      el('b', { text: inTheirs('lang.offer_title') }),
+      el('span', { text: inTheirs('lang.offer_body') })
+    ]),
+    el('button', {
+      type: 'button', class: 'btn btn-sm', id: 'lang-offer-yes', text: localeName(code),
+      onclick: () => { node.remove(); switchLocale(code); }
+    }),
+    iconButton('x', inTheirs('lang.offer_no'), () => node.remove())
+  ]);
+  return node;
+}
+
 export function installBanner() {
   const prefs = loadPrefs();
   if (isStandalone() || prefs.installDismissed) return null;
@@ -1558,7 +1596,11 @@ export async function boot() {
   // preference or a browser language that is not live falls to English, and only the live files are fetched.
   await loadConfig();
   savePrefs({ languages: enabledLocales() });   // offline.html reads this: it cannot ask the server which languages are live
-  const initial = matchLocale(prefs.language) || detectLocale();
+  // English unless this browser has said otherwise before. A phone set to Hebrew is not a request to read OREVOSH in
+  // Hebrew — it is where the phone was bought — and the audience this is built for does not share one language. The
+  // offer below makes the other one a single tap; choosing it saves the preference, and then it is the preference that
+  // decides, here, for good.
+  const initial = matchLocale(prefs.language) || DEFAULT_LOCALE;
   await Promise.all(enabledLocales().map((code) => loadLocale(code).catch((e) => console.warn(e))));
   if (!messages[DEFAULT_LOCALE]) messages[DEFAULT_LOCALE] = {};
   applyLocale(messages[initial] ? initial : DEFAULT_LOCALE);

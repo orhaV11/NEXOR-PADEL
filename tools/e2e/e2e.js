@@ -258,7 +258,10 @@ function checkClientModules() {
   const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, name + '.png'), fullPage: true });
 
   step = '1';
-  // 1. PWA surface and a signed-out visitor with a Hebrew browser: OREVOSH wordmark, RTL, empty feed, Explore, sign-in prompts.
+  // 1. PWA surface and a signed-out visitor with a Hebrew browser: the app opens in ENGLISH whatever the phone is set to
+  // (Round 16 - the audience does not share one language, so the front door is the one most of them have), offers that
+  // browser its own language once, and becomes Hebrew and RTL when the offer is taken. Then: wordmark, empty feed,
+  // Explore, sign-in prompts.
   const manifest = await get(`${base}/manifest.webmanifest`);
   assert.strictEqual(manifest.status, 200);
   assert.strictEqual(JSON.parse(manifest.body.toString()).name, 'OREVOSH');
@@ -267,11 +270,27 @@ function checkClientModules() {
   expected.push('GET /api/auth/me -> 401');
   await dan.goto(base + '/');
   await dan.waitForSelector(settled);
-  assert.strictEqual(await dan.getAttribute('html', 'lang'), 'he');
+  // English first, on a he-IL browser, with nothing saved.
+  assert.strictEqual(await dan.getAttribute('html', 'lang'), 'en');
+  assert.strictEqual(await dan.getAttribute('html', 'dir'), 'ltr');
+  assert.strictEqual(await text(dan, '.tab[data-tab=home] span'), 'Home');
+  // The offer is written in the language it offers, and carries that language's direction, not the app's.
+  await dan.waitForSelector('#lang-offer');
+  assert.strictEqual(await dan.getAttribute('#lang-offer', 'dir'), 'rtl');
+  assert.strictEqual(await text(dan, '#lang-offer-yes'), 'עברית');
+  await shot(dan, '01a-language-offer');
+  await dan.click('#lang-offer-yes');
+  await dan.waitForSelector('html[lang=he]');
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
+  assert.strictEqual(await dan.$('#lang-offer'), null, 'the offer goes once it is answered');
   assert.strictEqual(await text(dan, '.wordmark'), 'OREVOSH');
   assert.strictEqual(await dan.getAttribute('meta[name="apple-mobile-web-app-capable"]', 'content'), 'yes');
   assert.strictEqual(await text(dan, '.tab[data-tab=home] span'), 'בית');
+  // And it is not asked again: the choice is saved, so a reload comes straight back in Hebrew.
+  await dan.reload();
+  await dan.waitForSelector(settled);
+  assert.strictEqual(await dan.getAttribute('html', 'lang'), 'he');
+  assert.strictEqual(await dan.$('#lang-offer'), null, 'answered once, never asked again');
   assert.strictEqual(await text(dan, '.tab[data-tab=explore] span'), 'גילוי');
   assert.strictEqual(await text(dan, '#top-auth'), 'הצטרפות');
   await dan.waitForSelector('#view .empty');

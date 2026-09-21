@@ -241,7 +241,8 @@ public class TriedTests
 
         // A piece that is only on one side reads as added or gone, and nothing is said about a person.
         var withJacket = Payloads.Parse("""
-            { "status": "ok", "score": 7, "intent_match": 70, "headline": "", "vibe": "", "working": [], "one_tip": "",
+            { "status": "ok", "score": 7, "intent_match": 70, "headline": "", "vibe": "", "working": [],
+              "one_tip": "Close the blazer when you stand.",
               "items": [ { "name": "Navy blazer", "category": "outerwear", "verdict": "works", "note": "" } ] }
             """);
         var jacket = JsonSerializer.Serialize(OutfitAnalyzer.MapToolInput(withJacket), AppJson.Options);

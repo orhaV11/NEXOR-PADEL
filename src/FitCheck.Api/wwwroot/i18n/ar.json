@@ -1057,5 +1057,9 @@
   "wardrobe.dash_keepers": "أشخاص يحتفظون بقطع",
   "wardrobe.dash_items": "قطع محفوظة",
   "wardrobe.dash_dont_own": "«ليس لديّ هذا»",
-  "wardrobe.dash_off": "أوقفوا الإرسال"
+  "wardrobe.dash_off": "أوقفوا الإرسال",
+  "lang.offer_title": "هل تقرأ OREVOSH بالعربية؟",
+  "lang.offer_body": "يفتح التطبيق بالإنجليزية. يمكن تغيير ذلك هنا أو في الإعدادات في أي وقت.",
+  "lang.offer_no": "البقاء بالإنجليزية",
+  "result.no_tip": "منح المصمم هذا المظهر درجة لكنه لم يرسل نصيحة. جرّب مرة أخرى وستصلك."
 }

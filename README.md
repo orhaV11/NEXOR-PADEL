@@ -1226,3 +1226,57 @@ Tests: `ScorePrivacyTests` (the sweep over every route that returns a look, the 
 choice, the stranger's 404, the before/after tally, the openers, the four locale files), `ScorePrivacyBoardTests` (the
 fires boards keep the place, the picks board does not carry it, live and archived and in the hall) and
 `ChallengeTests.A_constraint_challenge_is_opened_entered_and_ended_like_any_other`.
+
+## The check that was interrupted, the camera's microphone, and Formal's own word
+
+**A check in flight survives the phone.** The stylist's minute is the longest wait in the app, and a phone can take the
+screen away in the middle of it: iOS discards a backgrounded tab, a locked phone suspends the page, an app is swiped
+away, a lift eats the connection while the answer is on the wire. The check itself was never in danger — the row is
+written and it is the person's — but the answer was travelling to a page that no longer exists, and **a guest's lost
+check was their one free look.**
+
+On submit the client writes a marker to `localStorage` (`orevosh.check.pending`): when the wait started, the occasion,
+the style, and who was waiting. **Never the photo.** Every read and write is behind try/catch, so private mode and
+blocked site data simply have no recovery and the app is otherwise exactly itself. The marker goes the moment the answer
+is in hand, either way — the verdict, or a refusal the server actually sent (429, 413, 502). A connection that died
+keeps it, because the check may have landed after the page stopped listening.
+
+The next boot, with a marker younger than ten minutes, opens on `#/result` instead of the feed — only from the addresses
+an interrupted person lands on (the app's own start_url, a reopened home screen, the check screen a restored tab comes
+back to), never over a link somebody tapped — and asks for the check. Three ends: the verdict, drawn as though the
+answer had arrived; a check that never landed, which puts the two answers back on the chips with one line, so only the
+photo has to come again; or no answer at all, which keeps the marker for the next open. The marker is also dropped when
+the person starts another check, and it is never recovered by anyone but the account (or guest) that wrote it.
+
+| Route | What it is |
+|---|---|
+| `GET /api/checks/latest` | The caller's own newest check, with **no id in the address**, because the client that was holding the id is the thing that died. The rule is `GET /api/checks/{id}`'s, unchanged: the owner's row, or — signed out — the row this browser's own guest cookie made; 404 to everyone else, the same as a missing id, so it says nothing about what exists. `?withinSeconds=` is **how long the caller has been waiting, by the caller's own clock**, and the answer must be younger than that: two durations, each measured by the side that measures it, so a phone whose clock is days out gets the honest 404 instead of this morning's verdict. Clamped to `CheckEndpoints.MaxWithinSeconds` (900). A row the model failed on (`error`) is never the answer — it cost the person nothing (`Spend`) and the screen it would draw talks about the photo, which is not what went wrong. A read: no CSRF header, and nothing for the script policy to allow |
+
+**The camera asks for the microphone only when a clip is what it is about.** `#/camera` opened photo mode with
+`getUserMedia({ audio: true })`, which is a second prompt on iOS and, on Android, one site-level camera-and-microphone
+question — where a person who blocks the microphone has blocked the camera too, for good, on every later visit. Photo
+mode now asks for video alone, and choosing **Clip** re-opens the camera for the microphone, where "and microphone"
+is the obvious half of the question; a device with no microphone, or one that was refused, keeps the silent stream and
+is never asked again. Because photo mode's stream has no sound in it, the press-and-hold shortcut is a clip-mode
+gesture now: a hold in photo mode takes the photo on release rather than recording a silent clip.
+
+**The viewfinder shows the frame the shutter keeps.** The stage painted the stream `cover` over a full-bleed box while
+`takePhoto` keeps the whole camera track, so on any phone taller than the camera's frame the person framed one photo and
+got a wider one — the dotted guide was marking a rectangle that was not the one being kept. The stage is `contain` now:
+the frame sits on black the way a phone's own camera app shows one, live and preview agree, and the 4:7 guide is a
+miniature of the frame rather than a third aspect. The capture is untouched — the 4:5 crops downstream and the share
+video need that width.
+
+**A wedding has a word of its own.** Round 14 added the Formal *occasion* and had no one-word value for it, so
+`StyleIntents.Legacy` folded it onto `Party`: a wedding look said PARTY on its card, its board, its share card and its
+share video. `StyleIntent.Formal` is that word — appended to the enum (`Checks.Intent` is TEXT, so nothing renumbers),
+with `intent.Formal` in the four locale files and `public.intent.Formal` in the four server dictionaries for the shared
+look page. Boards, search, interests, challenges and comparisons read the enum and learned it for nothing; a database
+written before the split cannot hold the word, so no migration changes. The client's own `INTENTS` list in `app/core.js`
+still names the eight, so Formal has no *chip* yet in the feed filter, the interests list, a new challenge or the
+compare screen (and a Formal winner's board badge falls back to the raw word): one entry in that list closes it.
+
+Tests: `CheckRecoveryTests` (the signed-in and guest recoveries, a guest who cannot read another guest's, a wait that is
+over, a window nobody can widen, a check that never landed, an error row that is not a verdict, and the read that needs
+no header), `LatestCheckRuleTests` in `SecurityTests` (the one private route with no id, and why its rule is not in
+`IdorEnumerationTests.Rules`), and `IntentSplitTests` for the word.

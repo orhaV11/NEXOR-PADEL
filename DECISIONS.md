@@ -1824,3 +1824,55 @@ else depends on it.
 - A before/after share of somebody else's look is not a thing: the pair is the author's two looks, and only the author
   moves the tally.
 - Nothing checks a look against a challenge's rule, and no route pretends to.
+
+## The check that was interrupted (the camera, the way back, the word)
+
+**The way back to a check has no id, because the id died with the client.** A check whose answer never arrived is the
+one case where the person cannot name what they are asking for: the id lived in a page that was discarded. So
+`GET /api/checks/latest` answers "your newest", under exactly the predicate `GET /api/checks/{id}` already keeps — the
+owner's row, or the row this browser's own guest cookie made. It is not `GET /api/users/me/checks`: a guest cannot open
+that route at all, and a guest's lost check is the one this is really for; and fifty full verdicts is the wrong thing to
+ask a phone that is trying to recover one.
+
+**The two sides compare durations, never timestamps.** The marker holds when the wait started by the phone's clock, and
+the phone asks for a check younger than the wait it has had. Nothing crosses the two clocks, so a phone that is days out
+of sync loses the recovery (an honest 404 and "add the photo again") instead of being handed an older verdict as this
+minute's. The server clamps the window to fifteen minutes whatever is asked, and the client's marker expires at ten.
+
+**The marker never holds the photo.** It is a few bytes about a wait — when, the occasion, the style, who — so that the
+thing a person would mind leaking is not sitting in `localStorage` on a shared phone, and so that private mode losing it
+costs nothing but the recovery. Every read and write is behind try/catch for the same reason.
+
+**A row the model failed on is not a verdict to come back to.** It cost the person nothing, and the screen it would draw
+says "we couldn't see an outfit in this photo", which is a sentence about their photo that is not true. The recovery
+steps over it and the person is sent back to take the check again.
+
+**The first screen is only taken over where somebody was interrupted.** The boot redirect runs on the app's own start
+address and the check screen, and nowhere else: a tapped link goes where it was pointed, marker or no marker.
+
+**The microphone belongs to the clip, not to the camera.** One "Block" on Android is a site-level refusal of camera and
+microphone together, permanently — so asking for a microphone in order to take a photograph could cost a careful person
+the camera for good. The ask moved to the moment clip is chosen, where the combined prompt reads as the obvious question
+and where a refusal only costs what was refused. It is not asked on the shutter press (the prompt would eat the first
+second of the clip) and not added to the live stream (on iOS a second granted `getUserMedia` ends the running capture
+track and blacks out the viewfinder mid-gesture). The cost is honest and small: press-and-hold is a clip-mode gesture
+now, because a hold in photo mode would have recorded a clip with no sound in it.
+
+**A viewfinder that crops is a promise the shutter does not keep.** The capture is the whole camera track and nothing
+downstream should change (the 4:5 crops and the share video need that width), so the viewfinder is what moved: it shows
+the frame, letterboxed on black, the way a phone's own camera app does. A person now frames the photo they get.
+
+**Formal is a word, not a borrowed one.** Round 14 split occasion from style and left one seam: the Formal occasion had
+no one-word value, so every surface with room for a single word said PARTY over a wedding. Adding the ninth value to the
+enum is safe because the column stores the name, and the migration that split the old rows is left alone: no database
+written before Round 14 can contain a word that did not exist then.
+
+### Objections to keep out of the code
+
+- The recovery never reads anybody else's row: the route's predicate is the ownership one, and the marker also refuses
+  to be recovered by a different person than the one who wrote it.
+- The marker is not a place to keep a photo, a preview URL, or anything the person typed beyond the two chips.
+- Nothing claims a check was or was not counted on the strength of a failed recovery: the line says only that we could
+  not find it.
+- The camera never asks for a microphone in photo mode, in any path — the first open, a flip, a return from the lock
+  screen, a retake.

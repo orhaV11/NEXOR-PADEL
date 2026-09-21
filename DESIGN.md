@@ -163,13 +163,17 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
 
 ## 8b. Round 7 surfaces: the camera, clips, the story card, moderation
 
-- **The camera** (`views/camera.js`, `#/camera`): a full-bleed viewfinder with the masthead and the dock hidden. Chrome is
-  three 44px discs on translucent dark (close at the top start, timer and flip at the top end), a dashed 4:7 framing guide
-  with the hint under it (fades after 3s, back on tap), two mode pills (Photo / Clip) and **the shutter, which is the
-  ring**: 76px, the gradient stroke, a white disc inside. Tap = photo (a 120ms white flash). Hold, or tap in Clip mode,
-  and the disc becomes a red rounded square while the ring draws itself clockwise toward the 30-second cap, with a
-  "Recording · Ns" pill and a blinking red dot at the top. The countdown is the display face at 168px. The preview
-  after a capture is honest (`object-fit: contain`) with Retake (secondary) and Use it (gradient).
+- **The camera** (`views/camera.js`, `#/camera`): the viewfinder fills the screen with the masthead and the dock hidden,
+  and shows **the whole frame the shutter keeps** — `object-fit: contain` on black, letterboxed the way a phone's own
+  camera app shows a frame that is not the screen's shape, so the live view, the dashed guide and the preview all mean the
+  same rectangle. Chrome is three 44px discs on translucent dark (close at the top start, timer and flip at the top end),
+  a dashed 4:7 framing guide with the hint under it (fades after 3s, back on tap) — a miniature of the 9:16 frame —
+  two mode pills (Photo / Clip) and **the shutter, which is the ring**: 76px, the gradient stroke, a white disc inside.
+  Tap = photo (a 120ms white flash). In Clip mode a tap starts a hands-free clip and a press-and-hold rolls while it is
+  held (the hold is clip-mode only: the photo stream carries no microphone to record with), and the disc becomes a red
+  rounded square while the ring draws itself clockwise toward the 30-second cap, with a "Recording · Ns" pill and a
+  blinking red dot at the top. The countdown is the display face at 168px. The preview after a capture is the same
+  honest `object-fit: contain`, with Retake (secondary) and Use it (gradient).
 - **Clips in cards** (`core.js` media helpers, `app.css`): a `<video>` in the same 4:5 box as a photo, poster = the picked
   frame, muted autoplay when 60% visible (never more than two at once), a `.clip-pill` (the clip glyph + CLIP, caps
   label style) at the top start corner of cards and grid tiles, and a 32px sound disc at the top end corner of cards

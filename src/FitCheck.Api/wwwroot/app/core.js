@@ -751,15 +751,17 @@ export function confirmSheet(title, body, confirmText, danger) {
 
 // ---------- gestures & lists ----------
 
-const TAP_WINDOW = 300;    // two taps this close are one gesture
-const TAP_MIN_WAIT = 160;  // ...and however late the browser delivers the first tap's click, the second tap's follows it by about this much
+const TAP_WINDOW = 300;    // two clicks this close are one gesture
+const TAP_DEFER = 280;     // ...and a single tap acts this long after the TOUCH that began it
+const TAP_MIN_WAIT = 180;  // ...but never less than this after its click, or a late-delivered second tap has no room to land
 /**
  * Fires handler on two taps within 300ms on node; a single tap runs single after the window (so links can still navigate).
  *
- * The window is measured from the TOUCH, not from the click. A browser delivers click well after pointerdown - a third
- * of a second on an engine still waiting to see whether the tap becomes a zoom - and waiting the whole window again on
- * top of that is what reads as a slow app rather than as a gesture. A tap with no pointerdown behind it (a keyboard
- * Enter, which cannot be doubled) waits not at all.
+ * The deferral is measured from the TOUCH, not from the click. A browser delivers click well after pointerdown - a
+ * third of a second on an engine still waiting to see whether the tap becomes a zoom - and spending the whole window
+ * again on top of that is what reads as a slow app rather than as a gesture. The budget is the same 280ms it always
+ * was; it now starts where the person thinks it starts. A tap with no pointerdown behind it (a keyboard Enter, which
+ * cannot be doubled) waits not at all.
  */
 export function doubleTap(node, handler, single) {
   let last = 0; let timer = null; let downAt = 0;
@@ -773,7 +775,7 @@ export function doubleTap(node, handler, single) {
     if (single) {
       event.preventDefault();
       const hashAtTap = location.hash;
-      const wait = down ? Math.max(TAP_MIN_WAIT, TAP_WINDOW - (now - down)) : 0;
+      const wait = down ? Math.max(TAP_MIN_WAIT, TAP_DEFER - (now - down)) : 0;
       clearTimeout(timer);
       timer = setTimeout(() => { if (location.hash === hashAtTap) single(event); }, wait);
     }

@@ -5,8 +5,8 @@
 .DESCRIPTION
   Two facts belong to THIS deployment and not to the repository, and both have to be re-applied after every pull:
 
-    * The production origin. tools/brand/set-origin.js writes it into nine files — the app's own link-preview tags,
-      both landing pages, the phone wrapper's config, and the five docs that quote the address — because a crawler
+    * The production origin. tools/brand/set-origin.js writes it into nine files - the app's own link-preview tags,
+      both landing pages, the phone wrapper's config, and the five docs that quote the address - because a crawler
       reading a canonical link never runs our code, so it cannot be a setting. Two of the nine are DEPLOY.md and
       README.md, the files that change most.
     * The Fly app's name in fly.toml. The repository ships "orevosh-yourname" so anybody can deploy their own.
@@ -15,12 +15,12 @@
   merge that stops half-way blocks everything behind it. So this script treats them as build steps instead:
 
       1. abandon a merge left half-finished by an earlier attempt
-      2. make the working tree exactly the remote branch  (this DISCARDS local changes — see the warning)
+      2. make the working tree exactly the remote branch  (this DISCARDS local changes - see the warning)
       3. put this deployment's app name back into fly.toml, so `fly ...` typed by hand also finds the app
       4. put this deployment's origin back into the nine files
       5. deploy
 
-  WARNING: step 2 throws away anything you changed here. That is the point — this folder is a deployment checkout, not
+  WARNING: step 2 throws away anything you changed here. That is the point - this folder is a deployment checkout, not
   a place to write code. If you ever do edit something here and want to keep it, commit and push it first.
 
 .EXAMPLE
@@ -34,7 +34,7 @@ param(
 )
 
 # NOT 'Stop': git and fly are native programs, and several of them write ordinary progress to stderr. Under 'Stop'
-# PowerShell turns that into a fatal error even when the command succeeded — which is exactly what `git merge --abort`
+# PowerShell turns that into a fatal error even when the command succeeded - which is exactly what `git merge --abort`
 # with no merge in progress did to the first version of this script. Native tools report through $LASTEXITCODE, and
 # every call below checks it.
 $ErrorActionPreference = 'Continue'
@@ -77,7 +77,19 @@ $named = [regex]::Replace($toml, '(?m)^app\s*=\s*".*"\s*$', ('app = "' + $App + 
 if ($named -notmatch [regex]::Escape('app = "' + $App + '"')) {
   Fail "Could not find the app line in fly.toml. Send me the first few lines of that file."
 }
-Set-Content -LiteralPath $tomlPath -Value $named -NoNewline -Encoding utf8
+# NOT Set-Content -Encoding utf8: in Windows PowerShell 5.1 that writes a UTF-8 BOM, and fly's TOML parser reads those
+# three bytes as the first characters of the first key ("invalid character at start of key: U+00EF"). .NET's own writer
+# with encoderShouldEmitUTF8Identifier = $false is the one way to say UTF-8 and mean it on both PowerShell 5 and 7.
+[System.IO.File]::WriteAllText($tomlPath, $named, (New-Object System.Text.UTF8Encoding $false))
+
+# Read it back the way fly will. A byte-order mark here cost a deploy once; it does not get a second chance.
+$written = [System.IO.File]::ReadAllBytes($tomlPath)
+if ($written.Length -ge 3 -and $written[0] -eq 0xEF -and $written[1] -eq 0xBB -and $written[2] -eq 0xBF) {
+  Fail 'fly.toml was written with a byte-order mark, which fly cannot parse. Send me this message.'
+}
+if (-not ((Get-Content -LiteralPath $tomlPath -Raw) -match [regex]::Escape('app = "' + $App + '"'))) {
+  Fail 'fly.toml does not name the app after writing it. Send me this message.'
+}
 
 Step "Pointing the app at $Origin"
 node tools/brand/set-origin.js $Origin
@@ -92,7 +104,7 @@ if ($LASTEXITCODE -ne 0) {
   Fail @"
 The deploy failed.
 
-If it says 'unauthorized', your Fly session has expired — this happens every few hours. Run:
+If it says 'unauthorized', your Fly session has expired - this happens every few hours. Run:
 
     fly auth login
 

@@ -18,6 +18,13 @@ public static class NotificationEndpoints
     /// <summary>
     /// This account's notifications without those whose actor is on either side of a block with it (Round 11). The rows
     /// stay, so an unblock brings them back; the list and its unread count read the same query.
+    /// <para>
+    /// Round 16: a report is exempt. Its actor is the REPORTED account, so a block between that account and a
+    /// moderator would hide the report from the one person able to act on it — and an account that blocked every
+    /// moderator would become unreportable, which is the whole of moderation defeated by a button any user has. The
+    /// writing side skips the block check for the same reason (Services/Notifier.cs, ReportedAsync); both sides have
+    /// to, because either one alone still swallows it.
+    /// </para>
     /// </summary>
     public static async Task<IQueryable<Notification>> VisibleAsync(AppDbContext db, Blocks blocks, Guid userId, CancellationToken ct)
     {
@@ -29,7 +36,7 @@ public static class NotificationEndpoints
         }
 
         var handles = hidden.ToList();
-        return query.Where(n => !handles.Contains(n.ActorHandle));
+        return query.Where(n => n.Type == NotificationType.Reported || !handles.Contains(n.ActorHandle));
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, AppDbContext db, Blocks blocks, Localizer localizer, CancellationToken ct)

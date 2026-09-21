@@ -597,7 +597,7 @@ public static class PostEndpoints
     }
 
     private static async Task<IResult> ReportAsync(
-        Guid id, ReportRequest body, HttpContext context, AppDbContext db, IOptions<LimitsOptions> limits, Localizer localizer, CancellationToken ct)
+        Guid id, ReportRequest body, HttpContext context, AppDbContext db, IOptions<LimitsOptions> limits, Localizer localizer, Notifier notifier, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -641,6 +641,13 @@ public static class PostEndpoints
         {
             post.Hidden = true;
         }
+
+        // Until this, a report wrote a row and stopped: no notification, no badge, not a log line. On a small server
+        // the auto-hide at ReportsToHide never trips, because a second and a third stranger reporting the same look is
+        // unlikely — so the first report was also the last thing that happened, and the look stayed public. The
+        // moderators hear about it now, on the first report rather than the third.
+        var author = await db.Users.Where(u => u.Id == post.UserId).Select(u => u.Handle).FirstOrDefaultAsync(ct) ?? "";
+        await notifier.ReportedAsync(id, author, ct);
 
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
@@ -928,7 +935,7 @@ public static class PostEndpoints
     }
 
     private static async Task<IResult> ReportCommentAsync(
-        Guid id, ReportRequest body, HttpContext context, AppDbContext db, IOptions<LimitsOptions> limits, Localizer localizer, CancellationToken ct)
+        Guid id, ReportRequest body, HttpContext context, AppDbContext db, IOptions<LimitsOptions> limits, Localizer localizer, Notifier notifier, CancellationToken ct)
     {
         var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (me is null)
@@ -978,6 +985,11 @@ public static class PostEndpoints
                     .ExecuteUpdateAsync(s => s.SetProperty(p => p.CommentCount, p => p.CommentCount - 1), ct);
             }
         }
+
+        // A reported comment reaches the moderators through the look it sits under: that is the thing the queue shows
+        // and the thing a moderator opens. The actor is the comment's author, never the reporter.
+        var commenter = await db.Users.Where(u => u.Id == comment.UserId).Select(u => u.Handle).FirstOrDefaultAsync(ct) ?? "";
+        await notifier.ReportedAsync(comment.PostId, commenter, ct);
 
         await db.SaveChangesAsync(ct);
         return Results.NoContent();

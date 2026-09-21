@@ -194,6 +194,13 @@ public static class NotificationType
 
     /// <summary>"You finished #7 this week": sent by the board's closer (Round 10), the rank in <see cref="Notification.Rank"/>.</summary>
     public const string BoardRank = "board_rank";
+
+    /// <summary>
+    /// Round 16: a look or a comment was reported, sent to every moderator. Not a social event — it carries the
+    /// reported account as its actor so the moderator can see whose look it is, never the reporter's name, and it
+    /// opens the queue rather than the look, because the queue is where hiding and suspending live.
+    /// </summary>
+    public const string Reported = "reported";
 }
 
 /// <summary>In-app activity only. No push, no email.</summary>

@@ -705,6 +705,7 @@
   "badge.board_intent": "By intent · {intent}",
   "affiliate.disclosure": "This link may earn OREVOSH a commission.",
   "activity.board_rank": "You finished #{rank} this week",
+  "activity.reported": "A look by {actor} was reported. Open the queue.",
   "items.editor_title": "Tag the pieces",
   "items.editor_hint": "Name each piece, add the brand if you know it, and drop a dot where it sits on the photo.",
   "items.place_hint": "Tap the photo on {name}. Drag the dot to move it.",

@@ -143,6 +143,7 @@ public sealed class Localizer
             ["error.board_excluded"] = "This look is already off the board.",
             ["error.board_not_excluded"] = "This look isn't off the board.",
             ["push.board_rank"] = "You finished #{0} this week",
+            ["push.reported"] = "A look by {0} was reported — open the queue",
             // Round 11: blocking, the billing portal, the data export.
             ["error.cannot_block_self"] = "You can't block yourself.",
             ["error.already_blocked"] = "You've already blocked this account.",
@@ -341,6 +342,7 @@ public sealed class Localizer
             ["error.board_excluded"] = "הלוק הזה כבר הורד מהלוח.",
             ["error.board_not_excluded"] = "הלוק הזה לא הורד מהלוח.",
             ["push.board_rank"] = "סיימת במקום {0} השבוע",
+            ["push.reported"] = "דווח על לוק של {0} — פתח את התור",
             // Round 11: blocking, the billing portal, the data export.
             ["error.cannot_block_self"] = "אי אפשר לחסום את עצמך.",
             ["error.already_blocked"] = "החשבון הזה כבר חסום.",
@@ -541,6 +543,7 @@ public sealed class Localizer
             ["error.board_excluded"] = "هذه الإطلالة خارج اللوحة أصلًا.",
             ["error.board_not_excluded"] = "هذه الإطلالة ليست خارج اللوحة.",
             ["push.board_rank"] = "المركز {0} لك هذا الأسبوع",
+            ["push.reported"] = "تم الإبلاغ عن إطلالة لـ {0} — افتح القائمة",
             // Round 11 (plain copy by the lead; needs a native review, like the rest of the Arabic).
             ["error.cannot_block_self"] = "لا يمكن حظر حسابك.",
             ["error.already_blocked"] = "هذا الحساب محظور بالفعل.",
@@ -740,6 +743,7 @@ public sealed class Localizer
             ["error.board_excluded"] = "Этот образ уже снят с доски.",
             ["error.board_not_excluded"] = "Этот образ не снят с доски.",
             ["push.board_rank"] = "Твоё место на этой неделе: {0}",
+            ["push.reported"] = "Пожаловались на образ пользователя {0} — открой очередь",
             // Round 11 (plain copy by the lead; needs a native review, like the rest of the Russian).
             ["error.cannot_block_self"] = "Заблокировать себя нельзя.",
             ["error.already_blocked"] = "Этот аккаунт уже заблокирован.",

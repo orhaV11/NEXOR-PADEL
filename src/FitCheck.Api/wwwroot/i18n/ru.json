@@ -705,6 +705,7 @@
   "badge.board_intent": "По направлению · {intent}",
   "affiliate.disclosure": "По этой ссылке OREVOSH может получить комиссию.",
   "activity.board_rank": "Твоё место на этой неделе: {rank}",
+  "activity.reported": "Пожаловались на образ пользователя {actor}. Открой очередь.",
   "items.editor_title": "Отметить вещи",
   "items.editor_hint": "Назови каждую вещь, добавь бренд, если знаешь, и поставь точку на фото там, где она.",
   "items.place_hint": "Нажми на фото там, где {name}. Точку можно перетащить.",

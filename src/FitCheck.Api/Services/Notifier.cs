@@ -42,6 +42,38 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
         }
     }
 
+    /// <summary>
+    /// A report, to everyone who can act on it. Three things make this different from every other notification here
+    /// and each of them is deliberate:
+    /// <list type="bullet">
+    /// <item>No block check. Moderation that two people can switch off between them is not moderation.</item>
+    /// <item>The actor is the REPORTED account, never the reporter: a moderator needs to know whose look it is, and a
+    /// reporter whose name travels to the person they reported stops reporting.</item>
+    /// <item>One per post per moderator. Three people reporting the same look is one queue item, not three.</item>
+    /// </list>
+    /// Returns how many moderators were told, which is 0 on a server that has none — worth knowing, because then the
+    /// report reaches nobody at all.
+    /// </summary>
+    public async Task<int> ReportedAsync(Guid postId, string reportedHandle, CancellationToken ct)
+    {
+        var moderators = await db.Users.Where(u => u.IsAdmin && !u.Suspended).Select(u => u.Id).ToListAsync(ct);
+        var told = 0;
+        foreach (var moderator in moderators)
+        {
+            var already = await db.Notifications.AnyAsync(
+                n => n.UserId == moderator && n.Type == NotificationType.Reported && n.PostId == postId, ct);
+            if (already)
+            {
+                continue;
+            }
+
+            Write(moderator, NotificationType.Reported, reportedHandle, postId, null, null);
+            told++;
+        }
+
+        return told;
+    }
+
     /// <summary>The row and the push job that announces it, once the pair has been cleared. The one place either is made.</summary>
     private void Write(Guid userId, string type, string actorHandle, Guid? postId, Guid? challengeId, int? rank)
     {

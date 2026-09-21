@@ -705,6 +705,7 @@
   "badge.board_intent": "بحسب الوجهة · {intent}",
   "affiliate.disclosure": "قد يكسب OREVOSH عمولة من هذا الرابط.",
   "activity.board_rank": "المركز {rank} لك هذا الأسبوع",
+  "activity.reported": "تم الإبلاغ عن إطلالة لـ {actor}. افتحوا القائمة.",
   "items.editor_title": "وسم القطع",
   "items.editor_hint": "اكتب اسم كل قطعة، وأضف الماركة إن عرفتها، وضع نقطة على الصورة حيث تقع.",
   "items.place_hint": "انقر على الصورة عند {name}. اسحب النقطة لتحريكها.",

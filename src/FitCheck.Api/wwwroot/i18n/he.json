@@ -705,6 +705,7 @@
   "badge.board_intent": "לפי כיוון · {intent}",
   "affiliate.disclosure": "הקישור הזה עשוי להכניס עמלה ל-OREVOSH.",
   "activity.board_rank": "סיימת במקום {rank} השבוע",
+  "activity.reported": "דווח על לוק של {actor}. פתחו את התור.",
   "items.editor_title": "תיוג הפריטים",
   "items.editor_hint": "שם לכל פריט, מותג אם ידוע, ונקודה על התמונה במקום שבו הוא נמצא.",
   "items.place_hint": "הקשה על התמונה במקום של {name}. גרירת הנקודה מזיזה אותה.",

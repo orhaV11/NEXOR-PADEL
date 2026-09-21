@@ -7,7 +7,8 @@ import {
   pullToRefresh, announce, toast, renderShell
 } from '../core.js';
 
-const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank'];
+// 'reported' only ever reaches a moderator, and its actor is the reported account rather than whoever reported it.
+const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank', 'reported'];
 
 let styled = false;
 /**
@@ -59,6 +60,9 @@ function weekWon(n) {
 /** The look when there is one, else the challenge, else the person who did it. A board place opens the week it was won. */
 function target(n) {
   if (n.type === 'board_rank') { const week = weekWon(n); return week ? '#/board?week=' + week : '#/board'; }
+  // A report opens the queue, not the look: hiding it and suspending the account are there, and the queue carries the
+  // reason somebody gave. The row still shows the look's thumbnail, so the moderator sees what it is before tapping.
+  if (n.type === 'reported') return '#/admin';
   if (n.postId) return '#/post/' + n.postId;
   if (n.challengeId) return '#/challenge/' + n.challengeId;
   return '#/u/' + encodeURIComponent(n.actorHandle);

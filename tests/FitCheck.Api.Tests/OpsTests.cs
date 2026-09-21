@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
@@ -472,15 +473,33 @@ public class DoctorTests : IDisposable
         Assert.Contains("customer.subscription.deleted", missing["stripe-webhook"]!.Detail);
         Assert.DoesNotContain("checkout.session.completed", missing["stripe-webhook"]!.Detail);
 
-        // The endpoint an older runbook told people to build: the four events that move the plan, and not the fifth.
-        // Nothing a paying person does is lost, so it is a warning and the run still exits 0.
-        var four = new CannedHandler(HttpStatusCode.OK)
+        // Round 17: the endpoint an older runbook told people to build — everything that grants and ends Pro, and
+        // nothing about money coming back. This USED to be a warning that exited 0, which is how an owner could read
+        // a green --stripe-check and still never be told about a chargeback: a deadline and a fee, answered by
+        // default because nobody knew. It is a failure now, and it names the two events to add.
+        var subscriptionOnly = new CannedHandler(HttpStatusCode.OK)
         {
             WebhookBody = CannedHandler.Endpoints(
                 CannedHandler.StripeOrigin + "/api/billing/webhook",
-                "checkout.session.completed", "invoice.paid", "customer.subscription.updated", "customer.subscription.deleted")
+                "checkout.session.completed", "customer.subscription.created", "invoice.paid",
+                "customer.subscription.updated", "customer.subscription.deleted")
         };
-        var older = await Inspect(Healthy(), live: true, stripeOnly: true, handler: four);
+        var blind = await Inspect(Healthy(), live: true, stripeOnly: true, handler: subscriptionOnly);
+        Assert.Equal(DoctorStatus.Fail, blind["stripe-webhook"]!.Status);
+        Assert.Contains("charge.refunded", blind["stripe-webhook"]!.Detail);
+        Assert.Contains("charge.dispute.created", blind["stripe-webhook"]!.Detail);
+        Assert.Equal(1, blind.ExitCode);
+
+        // The one event whose absence is still only a warning: it fills in a subscription id that
+        // checkout.session.completed already recorded, so nothing a paying person does is lost.
+        var withoutCreated = new CannedHandler(HttpStatusCode.OK)
+        {
+            WebhookBody = CannedHandler.Endpoints(
+                CannedHandler.StripeOrigin + "/api/billing/webhook",
+                "checkout.session.completed", "invoice.paid", "customer.subscription.updated",
+                "customer.subscription.deleted", "charge.refunded", "charge.dispute.created")
+        };
+        var older = await Inspect(Healthy(), live: true, stripeOnly: true, handler: withoutCreated);
         Assert.Equal(DoctorStatus.Warn, older["stripe-webhook"]!.Status);
         Assert.Contains("customer.subscription.created", older["stripe-webhook"]!.Detail);
         Assert.Equal(0, older.ExitCode);
@@ -512,10 +531,110 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Skip, skipped["stripe-webhook"]!.Status);
         Assert.Equal(0, skipped.ExitCode);
 
-        // The events the check compares against are the ones the webhook handler switches on, in its order.
-        Assert.Equal(
-            ["checkout.session.completed", "customer.subscription.created", "invoice.paid", "customer.subscription.updated", "customer.subscription.deleted"],
-            Doctor.WebhookEvents.ToArray());
+        // Round 17. The events the check compares against are the ones the webhook handler switches on — and that is
+        // now asserted against the HANDLER'S OWN SOURCE, not against a copy of the list written here. The copy is how
+        // charge.refunded and charge.dispute.created came to be handled by the webhook for four rounds while
+        // --stripe-check never asked Stripe to send them: both this list and the literal in the test agreed with each
+        // other and neither agreed with the code. Drift in either direction fails now.
+        var handler = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "Endpoints", "BillingEndpoints.cs")));
+        var switched = Regex.Matches(handler, @"^\s*case ""([a-z_]+(?:\.[a-z_]+)+)"":", RegexOptions.Multiline)
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .OrderBy(e => e, StringComparer.Ordinal)
+            .ToArray();
+        Assert.NotEmpty(switched);
+        Assert.Equal(switched, Doctor.WebhookEvents.OrderBy(e => e, StringComparer.Ordinal).ToArray());
+
+        // And the two that only tell the owner money left are among the ones whose absence fails the run.
+        foreach (var money in new[] { "charge.refunded", "charge.dispute.created" })
+        {
+            Assert.Contains(money, Doctor.WebhookEvents);
+        }
+    }
+
+    /// <summary>A Stripe price answer: a base currency and amount, plus any per-currency amounts, in the smallest unit.</summary>
+    private static string Price(string currency, long minor, params (string Currency, long Minor)[] others)
+    {
+        var options = others.Length == 0 ? "" :
+            $$""","currency_options":{{{string.Join(",", others.Select(o => $"\"{o.Currency.ToLowerInvariant()}\":{{\"unit_amount\":{o.Minor}}}"))}}}""";
+        return $$"""{"id":"price_1NotAReal","object":"price","active":true,"type":"recurring","recurring":{"interval":"month","interval_count":1},"currency":"{{currency.ToLowerInvariant()}}","unit_amount":{{minor}}{{options}}}""";
+    }
+
+    /// <summary>
+    /// Round 17 — the number a person is SHOWN against the number they are CHARGED.
+    /// <para>
+    /// The Pro page prices per region and Checkout sends Stripe one price id, and nothing tied the two together: a
+    /// price table offering EUR on a Stripe price that only knew ILS quoted a German in euros and billed them in
+    /// shekels. Only the app believed the euro number. This makes that arrangement impossible to leave running.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task What_the_pro_page_quotes_has_to_be_what_stripe_would_charge()
+    {
+        // Two currencies on the page, both on the Stripe price, both the same amount: the only arrangement that is ok.
+        var settings = Healthy();
+        settings["Plans:ProPriceAmount"] = "19.90";
+        settings["Plans:ProPriceCurrency"] = "ILS";
+        settings["Plans:ProPrices:EUR"] = "4.99";
+        var matching = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 1990, ("eur", 499)) };
+        var ok = await Inspect(settings, live: true, stripeOnly: true, handler: matching);
+        Assert.Equal(DoctorStatus.Ok, ok["stripe-price"]!.Status);
+        Assert.Equal(0, ok.ExitCode);
+
+        // The bug itself: the page offers a euro price the Stripe price cannot charge at all.
+        var ilsOnly = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 1990) };
+        var uncharged = await Inspect(settings, live: true, stripeOnly: true, handler: ilsOnly);
+        Assert.Equal(DoctorStatus.Fail, uncharged["stripe-price"]!.Status);
+        Assert.Contains("cannot charge EUR", uncharged["stripe-price"]!.Detail);
+        Assert.Equal(1, uncharged.ExitCode);
+
+        // Both currencies exist, but one is a different number. The person reads 4.99 and pays 7.99.
+        var different = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 1990, ("eur", 799)) };
+        var mismatch = await Inspect(settings, live: true, stripeOnly: true, handler: different);
+        Assert.Equal(DoctorStatus.Fail, mismatch["stripe-price"]!.Status);
+        Assert.Contains("4.99 EUR", mismatch["stripe-price"]!.Detail);
+        Assert.Contains("7.99 EUR", mismatch["stripe-price"]!.Detail);
+        Assert.Equal(1, mismatch.ExitCode);
+
+        // The base currency is checked too, not only the extras.
+        var wrongBase = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 2990, ("eur", 499)) };
+        var baseOff = await Inspect(settings, live: true, stripeOnly: true, handler: wrongBase);
+        Assert.Equal(DoctorStatus.Fail, baseOff["stripe-price"]!.Status);
+        Assert.Contains("29.9 ILS", baseOff["stripe-price"]!.Detail);
+
+        // Stripe knowing a currency the app never shows is harmless: nobody is ever quoted it.
+        var extra = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 1990, ("eur", 499), ("usd", 599)) };
+        var spare = await Inspect(settings, live: true, stripeOnly: true, handler: extra);
+        Assert.Equal(DoctorStatus.Ok, spare["stripe-price"]!.Status);
+        Assert.Contains("USD", spare["stripe-price"]!.Detail);
+        Assert.Equal(0, spare.ExitCode);
+
+        // A currency with no decimals at all. 1200 JPY is 1200 in the smallest unit, not 120000 — a table of
+        // exponents written by hand in this repo would have got this wrong, so the platform's own data is used.
+        var yen = Healthy();
+        yen["Plans:ProPriceAmount"] = "1200";
+        yen["Plans:ProPriceCurrency"] = "JPY";
+        var zeroDecimal = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("jpy", 1200) };
+        var tokyo = await Inspect(yen, live: true, stripeOnly: true, handler: zeroDecimal);
+        Assert.Equal(DoctorStatus.Ok, tokyo["stripe-price"]!.Status);
+
+        var asIfTwo = new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("jpy", 120000) };
+        var hundredfold = await Inspect(yen, live: true, stripeOnly: true, handler: asIfTwo);
+        Assert.Equal(DoctorStatus.Fail, hundredfold["stripe-price"]!.Status);
+
+        // currency_options is asked for explicitly, or Stripe leaves every currency but the base one out and they
+        // would all look missing.
+        var request = Assert.Single(matching.Requests, r => r.Uri.AbsolutePath.StartsWith("/v1/prices/", StringComparison.Ordinal));
+        Assert.Contains("currency_options", request.Uri.Query, StringComparison.Ordinal);
+
+        // With no price of its own the app quotes nobody, so there is nothing to disagree about.
+        var free = Healthy();
+        free["Plans:ProPriceAmount"] = "0";
+        free["Plans:ProPriceCurrency"] = "";
+        var silent = await Inspect(free, live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK) { PriceBody = Price("ils", 1990) });
+        Assert.Equal(DoctorStatus.Warn, silent["stripe-price"]!.Status);
+        Assert.Equal(0, silent.ExitCode);
     }
 
     [Fact]
@@ -542,7 +661,8 @@ public class DoctorTests : IDisposable
     {
         var handler = new CannedHandler(HttpStatusCode.OK);
         var report = await Inspect(Healthy(), live: true, stripeOnly: true, handler: handler);
-        Assert.Equal(["billing", "stripe-live", "stripe-webhook"], report.Lines.Select(l => l.Name).ToArray());
+        // Round 17: stripe-price joined them — what the Pro page quotes, checked against what Stripe would charge.
+        Assert.Equal(["billing", "stripe-live", "stripe-price", "stripe-webhook"], report.Lines.Select(l => l.Name).ToArray());
         Assert.Equal(0, report.ExitCode);
         // Only Stripe was called: no Anthropic request, no key spent. Two reads, both GETs, nothing written.
         Assert.Equal(2, handler.Requests.Count);

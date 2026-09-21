@@ -8,7 +8,12 @@ using Microsoft.Extensions.Options;
 namespace FitCheck.Api.Services;
 
 /// <summary>What a Checkout Session needs from us: who is paying and where Stripe sends them afterwards.</summary>
-public sealed record CheckoutSessionRequest(Guid UserId, string? CustomerId, string? CustomerEmail, string SuccessUrl, string CancelUrl);
+/// <summary>
+/// Round 17: <paramref name="Currency"/> is the currency the Pro page QUOTED this person, validated by the caller
+/// against the server's own price table. It is sent to Stripe so a multi-currency price charges in the same currency
+/// the person read, instead of in whatever the price happens to be denominated in. Empty leaves the choice to Stripe.
+/// </summary>
+public sealed record CheckoutSessionRequest(Guid UserId, string? CustomerId, string? CustomerEmail, string SuccessUrl, string CancelUrl, string Currency = "");
 
 /// <summary>
 /// The little of Stripe we use, over a raw HttpClient: two form-encoded POSTs, one that opens a Checkout Session and
@@ -53,6 +58,13 @@ public sealed class StripeClient
             new("cancel_url", request.CancelUrl),
             new("metadata[userId]", request.UserId.ToString("N"))
         };
+        // Stripe wants it lower-case, and only sends it when there is one: an empty currency on a single-currency price
+        // is fine, but a WRONG one is a 400 at the moment somebody presses the button.
+        if (request.Currency.Length == 3)
+        {
+            form.Add(new("currency", request.Currency.ToLowerInvariant()));
+        }
+
         // A returning customer keeps their Stripe record (and their saved card); a first-timer gets the address prefilled
         // when we know it belongs to them.
         if (!string.IsNullOrWhiteSpace(request.CustomerId))

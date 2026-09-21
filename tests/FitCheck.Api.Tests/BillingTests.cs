@@ -39,7 +39,7 @@ public sealed class StripeBillingApp : TestApp
 /// <summary>
 /// Plans and billing: the state route for free and Pro, Checkout refused without Stripe (and for an account that is Pro
 /// already) and the exact request that goes out with it, the Billing Portal (Round 11: 404 on the manual provider or
-/// without a customer, the exact request, 502 when Stripe refuses), the webhook (signature, the five events, unknown
+/// without a customer, the exact request, 502 when Stripe refuses), the webhook (signature, the seven events, unknown
 /// ones, and the subscription id that tells one subscription on a customer from another) and its CSRF exemption, the
 /// --pro command through AdminSync, the plan fields on "me", and the plans block on /api/config.
 /// </summary>
@@ -475,6 +475,70 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_subid"))).StatusCode);
         Assert.Equal("pro", UserOf(_stripe, id).Plan);
         Assert.Null(UserOf(_stripe, id).BillingSubscriptionId);
+    }
+
+    /// <summary>A charge Stripe refunded, in full or in part. A dispute carries neither field and is always the whole charge.</summary>
+    private static object ChargeRefunded(string customer, long amount, long refunded) => new
+    {
+        id = "evt_refund",
+        type = "charge.refunded",
+        data = new { @object = new { id = "ch_1", @object = "charge", customer, amount, amount_refunded = refunded, refunded = refunded >= amount } }
+    };
+
+    private static object ChargeDisputed(string customer) => new
+    {
+        id = "evt_dispute",
+        type = "charge.dispute.created",
+        data = new { @object = new { id = "dp_1", @object = "dispute", customer, amount = 1990L } }
+    };
+
+    /// <summary>
+    /// Round 17. A refund does not cancel a subscription — Stripe goes on billing — so taking Pro away for a PARTIAL
+    /// one is the worst outcome available: the person keeps paying and loses what they are paying for. Five shekels
+    /// back as an apology used to end a subscription. Only a charge refunded in full ends Pro now; a partial one
+    /// still reaches the owner, because a refund he did not issue is worth knowing about either way.
+    ///
+    /// None of this had a test before Round 17 — the handler shipped in Round 13 and nothing ever exercised it.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_only_a_full_refund_ends_pro_and_a_dispute_always_does()
+    {
+        // A partial refund on a paying account: Pro is untouched.
+        var (client, id, _) = await _stripe.NewUserAsync("bill_partial");
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_partial", "sub_partial"))).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, id).Plan);
+        var granted = UserOf(_stripe, id).ProUntil;
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, ChargeRefunded("cus_partial", 1990, 500))).StatusCode);
+        var after = UserOf(_stripe, id);
+        Assert.Equal(granted, after.ProUntil);
+        Assert.Equal("pro", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+        // And the subscription id is left alone: the subscription is still live and still billing.
+        Assert.Equal("sub_partial", after.BillingSubscriptionId);
+
+        // A refund of everything but one minor unit is still not everything.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, ChargeRefunded("cus_partial", 1990, 1989))).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, id).Plan);
+
+        // The whole charge back: Pro ends now.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, ChargeRefunded("cus_partial", 1990, 1990))).StatusCode);
+        Assert.True(UserOf(_stripe, id).ProUntil <= DateTime.UtcNow.AddSeconds(1));
+        Assert.Equal("free", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+
+        // A dispute names no amounts at all and is always the whole charge: it ends Pro on its own.
+        var (disputed, disputedId, _) = await _stripe.NewUserAsync("bill_dispute");
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(disputedId.ToString("N"), null, "cus_dispute", "sub_dispute"))).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, disputedId).Plan);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, ChargeDisputed("cus_dispute"))).StatusCode);
+        Assert.True(UserOf(_stripe, disputedId).ProUntil <= DateTime.UtcNow.AddSeconds(1));
+        Assert.Equal("free", (await Json(await disputed.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+
+        // A payload with no amounts on a refund is not evidence of a full one, so it leaves Pro alone.
+        var (_, quietId, _) = await _stripe.NewUserAsync("bill_quiet");
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(quietId.ToString("N"), null, "cus_quiet", "sub_quiet"))).StatusCode);
+        var shapeless = new { id = "evt_bare", type = "charge.refunded", data = new { @object = new { id = "ch_2", @object = "charge", customer = "cus_quiet" } } };
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, shapeless)).StatusCode);
+        Assert.Equal("pro", UserOf(_stripe, quietId).Plan);
     }
 
     [Fact]

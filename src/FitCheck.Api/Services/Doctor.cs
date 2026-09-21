@@ -94,12 +94,19 @@ public static class Doctor
         "customer.subscription.created",
         "invoice.paid",
         "customer.subscription.updated",
-        "customer.subscription.deleted"
+        "customer.subscription.deleted",
+        // Round 17. These two were handled by the webhook from Round 13 and were NOT on this list, so --stripe-check
+        // printed green on an endpoint that would never be told about a refund or a chargeback. A dispute carries a
+        // deadline and a fee and is answered from the Stripe dashboard by a person; an owner who is not told loses by
+        // default. Green has to mean the money is covered, not that the grant is.
+        "charge.refunded",
+        "charge.dispute.created"
     ];
 
     /// <summary>
-    /// The four of <see cref="WebhookEvents"/> that move the plan or its end date. An endpoint missing one of these is a
-    /// failure. The fifth, <c>customer.subscription.created</c>, only fills in a subscription id that
+    /// The events of <see cref="WebhookEvents"/> whose absence is a failure, not a warning: each one either moves the
+    /// plan or its end date, or is the only way the owner hears about money leaving. The one that is merely a warning
+    /// is <c>customer.subscription.created</c>, which only fills in a subscription id that
     /// <c>checkout.session.completed</c> already records — it matters for a subscription started on Stripe's side, so an
     /// endpoint without it is a warning worth fixing, not a reason to hold the launch.
     /// </summary>
@@ -108,7 +115,10 @@ public static class Doctor
         "checkout.session.completed",
         "invoice.paid",
         "customer.subscription.updated",
-        "customer.subscription.deleted"
+        "customer.subscription.deleted",
+        // Round 17: a refund in full ends Pro, and a dispute ends it and starts a clock the owner has to answer.
+        "charge.refunded",
+        "charge.dispute.created"
     };
 
     private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(10);
@@ -138,6 +148,9 @@ public static class Doctor
     {
         var lines = new List<DoctorLine>();
         var billing = Bind<BillingOptions>(configuration, BillingOptions.Section, lines, "billing");
+        // Round 17: the price check compares Stripe against the table the Pro page draws from, so --stripe-check needs
+        // the plans too. Bound here rather than below, because the stripe-only path returns before the rest is read.
+        var planPrices = Bind<PlanOptions>(configuration, PlanOptions.Section, lines, "plans");
         var apiKey = (configuration[AnthropicVisionClient.ApiKeyVariable]
             ?? Environment.GetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable) ?? "").Trim();
 
@@ -145,7 +158,7 @@ public static class Doctor
         {
             var origin = Origin(configuration);
             Billing(lines, billing, origin);
-            await StripeLiveAsync(lines, billing, origin, handler, ct);
+            await StripeLiveAsync(lines, billing, planPrices, origin, handler, ct);
             return new DoctorReport(lines);
         }
 
@@ -186,7 +199,7 @@ public static class Doctor
         if (live)
         {
             await AnthropicLiveAsync(lines, anthropic, apiKey, handler, ct);
-            await StripeLiveAsync(lines, billing, publicOrigin, handler, ct);
+            await StripeLiveAsync(lines, billing, planPrices, publicOrigin, handler, ct);
             // Round 13 — money: one real alert down every configured channel, so the owner sees it arrive.
             await AlertsLiveAsync(lines, configuration, alerts, email, handler, ct);
         }
@@ -838,14 +851,14 @@ public static class Doctor
     /// back to. Two GETs, nothing written, nothing charged. Both lines are always added, skipped or not, so a run always
     /// prints the same names.
     /// </summary>
-    private static async Task StripeLiveAsync(List<DoctorLine> lines, BillingOptions billing, string origin, HttpMessageHandler? handler, CancellationToken ct)
+    private static async Task StripeLiveAsync(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, string origin, HttpMessageHandler? handler, CancellationToken ct)
     {
-        await StripePriceAsync(lines, billing, handler, ct);
+        await StripePriceAsync(lines, billing, plans, handler, ct);
         await StripeWebhookAsync(lines, billing, origin, handler, ct);
     }
 
     /// <summary>Reads the Pro price back from Stripe: the key is accepted, the price exists, it is in the same mode as the key, and it is a recurring price (Checkout runs in subscription mode and refuses a one-time one).</summary>
-    private static async Task<DoctorLine> StripePriceAsync(List<DoctorLine> lines, BillingOptions billing, HttpMessageHandler? handler, CancellationToken ct)
+    private static async Task<DoctorLine> StripePriceAsync(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, HttpMessageHandler? handler, CancellationToken ct)
     {
         var secret = (billing.StripeSecretKey ?? "").Trim();
         var price = (billing.StripePriceId ?? "").Trim();
@@ -860,7 +873,10 @@ public static class Doctor
         }
 
         using var http = Client(handler);
-        using var request = new HttpRequestMessage(HttpMethod.Get, StripeClient.BaseUrl + "v1/prices/" + Uri.EscapeDataString(price));
+        // expand[]=currency_options or Stripe leaves the per-currency amounts out, and every currency but the base one
+        // would look missing. Expanding a field that is already there is harmless, so this is right either way.
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            StripeClient.BaseUrl + "v1/prices/" + Uri.EscapeDataString(price) + "?expand[]=currency_options");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
         try
         {
@@ -903,9 +919,13 @@ public static class Doctor
                 var count = recurring.Value.TryGetProperty("interval_count", out var many) && many.ValueKind == JsonValueKind.Number && many.TryGetInt32(out var parsed) ? parsed : 1;
                 var cadence = interval.Length == 0 ? "recurring" : count == 1 ? $"every {interval}" : $"every {count.ToString(CultureInfo.InvariantCulture)} {interval}s";
                 var active = !root.TryGetProperty("active", out var enabled) || enabled.ValueKind != JsonValueKind.False;
-                return Add(lines, active
-                    ? new(DoctorStatus.Ok, "stripe-live", $"HTTP 200: the key is accepted and {price} exists, {cadence}.")
-                    : new(DoctorStatus.Fail, "stripe-live", $"HTTP 200: {price} is {cadence} but archived in Stripe (active is false). Checkout will refuse it."));
+                if (!active)
+                {
+                    return Add(lines, new(DoctorStatus.Fail, "stripe-live", $"HTTP 200: {price} is {cadence} but archived in Stripe (active is false). Checkout will refuse it."));
+                }
+
+                Add(lines, new(DoctorStatus.Ok, "stripe-live", $"HTTP 200: the key is accepted and {price} exists, {cadence}."));
+                return StripePriceMatchesTheTable(lines, plans, root, price);
             }
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
@@ -913,6 +933,189 @@ public static class Doctor
             return Add(lines, new(DoctorStatus.Fail, "stripe-live", $"no answer from Stripe: {e.Message.TrimEnd('.')}."));
         }
     }
+
+    /// <summary>
+    /// Round 17 — the number a person is SHOWN and the number they are CHARGED.
+    /// <para>
+    /// The Pro page prices per region: it reads <see cref="PlanOptions.PriceTable"/>, picks the currency for where the
+    /// reader is, and formats it with the browser's own Intl. Checkout, meanwhile, sends Stripe one price id. Nothing
+    /// tied those two together, so a price table listing EUR on a Stripe price that only knows ILS showed a German
+    /// EUR 6.99 and charged them shekels — the app was the only place that believed the euro number.
+    /// </para>
+    /// <para>
+    /// Stripe's answer is the authority here and the app's table is what is checked against it. A currency the page
+    /// would show and Stripe cannot charge is a failure; so is an amount that differs. The other direction — Stripe
+    /// carrying a currency the app never shows — is fine and only worth a note, because nobody is ever quoted it.
+    /// </para>
+    /// </summary>
+    private static DoctorLine StripePriceMatchesTheTable(List<DoctorLine> lines, PlanOptions plans, JsonElement price, string id)
+    {
+        var table = plans.PriceTable();
+        if (table.Count == 0)
+        {
+            return Add(lines, new(DoctorStatus.Warn, "stripe-price",
+                "the app has no price of its own (Plans__ProPriceAmount and Plans__ProPrices are both empty), so the Pro page shows no number and there is nothing to compare with Stripe."));
+        }
+
+        // What Stripe would really charge, by currency, in minor units: the base currency, then each currency_option.
+        var offers = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        if (price.TryGetProperty("currency", out var baseCurrency) && baseCurrency.ValueKind == JsonValueKind.String
+            && baseCurrency.GetString() is { Length: 3 } code
+            && price.TryGetProperty("unit_amount", out var baseAmount) && baseAmount.ValueKind == JsonValueKind.Number
+            && baseAmount.TryGetInt64(out var baseMinor))
+        {
+            offers[code] = baseMinor;
+        }
+
+        if (price.TryGetProperty("currency_options", out var options) && options.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var option in options.EnumerateObject())
+            {
+                if (option.Name.Length == 3 && option.Value.ValueKind == JsonValueKind.Object
+                    && option.Value.TryGetProperty("unit_amount", out var amount) && amount.ValueKind == JsonValueKind.Number
+                    && amount.TryGetInt64(out var minor))
+                {
+                    offers[option.Name] = minor;
+                }
+            }
+        }
+
+        if (offers.Count == 0)
+        {
+            return Add(lines, new(DoctorStatus.Warn, "stripe-price",
+                $"Stripe's answer for {id} named no currency and amount that could be read, so the {Count(table.Count, "price")} the Pro page shows could not be checked against it."));
+        }
+
+        var problems = new List<string>();
+        foreach (var (currency, amount) in table.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            if (!offers.TryGetValue(currency, out var charged))
+            {
+                problems.Add($"the page offers {Money(amount, currency)} but Stripe's price cannot charge {currency} at all");
+                continue;
+            }
+
+            // The exponent comes from the platform's own currency data (ICU), not a list kept here: JPY has none,
+            // KWD has three, and a list in this file would be wrong the first time somebody prices in a currency
+            // nobody thought about. When the platform does not know the currency, the amount is left unchecked
+            // rather than guessed — the currency itself was the part that mattered and it has just been confirmed.
+            if (MinorUnits(amount, currency) is not { } expected)
+            {
+                problems.Add($"{currency} is charged {charged.ToString(CultureInfo.InvariantCulture)} in the smallest unit and this machine does not know how many decimals {currency} has, so whether that is {Money(amount, currency)} could not be checked");
+                continue;
+            }
+
+            if (expected != charged)
+            {
+                problems.Add($"the page offers {Money(amount, currency)} and Stripe would charge {Minor(charged, currency)}");
+            }
+        }
+
+        // Upper-cased for the message: Stripe answers in lower case ("ils"), the app's table and every other line
+        // here are in upper ("ILS"), and an owner comparing the two should not have to notice that.
+        var extra = offers.Keys.Where(currency => !table.ContainsKey(currency))
+            .Select(currency => currency.ToUpperInvariant())
+            .OrderBy(currency => currency, StringComparer.Ordinal).ToList();
+        var note = extra.Count == 0 ? "" : $" Stripe also prices in {string.Join(", ", extra)}, which the app never shows — harmless, but Plans__ProPrices could offer {(extra.Count == 1 ? "it" : "them")}.";
+
+        if (problems.Count > 0)
+        {
+            return Add(lines, new(DoctorStatus.Fail, "stripe-price",
+                $"what the Pro page shows and what Stripe would charge are not the same: {string.Join("; ", problems)}. Fix it in one of the two places — add the currency to the price in Stripe (Product, then the price's other currencies), or take it out of Plans__ProPrices so nobody is quoted a number this price cannot honour.{note}"));
+        }
+
+        return Add(lines, new(DoctorStatus.Ok, "stripe-price",
+            $"every price the Pro page shows is one Stripe would really charge ({string.Join(", ", table.OrderBy(entry => entry.Key, StringComparer.Ordinal).Select(entry => Money(entry.Value, entry.Key)))}).{note}"));
+    }
+
+    /// <summary>An amount in a currency's smallest unit, or null when this machine has no decimal count for that currency.</summary>
+    private static long? MinorUnits(decimal amount, string currency)
+    {
+        if (CurrencyDecimals(currency) is not { } digits)
+        {
+            return null;
+        }
+
+        // Rounded rather than truncated, so a table written 19.90 and a Stripe price of 1990 agree. An amount with
+        // more precision than the currency has (19.999 EUR) rounds here and then fails the comparison, which is the
+        // right outcome: it is not a number anybody can be charged.
+        return (long)Math.Round(amount * Pow10(digits), MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>The smallest unit rendered back as an amount, for a message a person can compare with what they saw.</summary>
+    private static string Minor(long minor, string currency)
+    {
+        var digits = CurrencyDecimals(currency);
+        return digits is null
+            ? $"{minor.ToString(CultureInfo.InvariantCulture)} {currency} (smallest unit)"
+            : Money(minor / Pow10(digits.Value), currency);
+    }
+
+    private static decimal Pow10(int digits)
+    {
+        decimal value = 1m;
+        for (var i = 0; i < digits; i++)
+        {
+            value *= 10m;
+        }
+
+        return value;
+    }
+
+    private static string Money(decimal amount, string currency) =>
+        $"{amount.ToString("0.####", CultureInfo.InvariantCulture)} {currency.ToUpperInvariant()}";
+
+    private static string Count(int n, string noun) =>
+        n == 1 ? $"one {noun}" : $"{n.ToString(CultureInfo.InvariantCulture)} {noun}s";
+
+    /// <summary>
+    /// How many decimals a currency is written with, from the platform's culture data, or null when nothing on this
+    /// machine names that currency (or two cultures disagree about it, which no real currency does but a container
+    /// with a trimmed ICU could produce). Cached: this walks every culture.
+    /// </summary>
+    private static int? CurrencyDecimals(string currency)
+    {
+        if (currency.Length != 3)
+        {
+            return null;
+        }
+
+        return DecimalsByCurrency.GetOrAdd(currency.ToUpperInvariant(), static code =>
+        {
+            int? found = null;
+            foreach (var culture in CultureInfo.GetCultures(CultureTypes.SpecificCultures))
+            {
+                RegionInfo region;
+                try
+                {
+                    region = new RegionInfo(culture.Name);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+
+                if (!string.Equals(region.ISOCurrencySymbol, code, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var digits = culture.NumberFormat.CurrencyDecimalDigits;
+                if (found is null)
+                {
+                    found = digits;
+                }
+                else if (found != digits)
+                {
+                    return null;
+                }
+            }
+
+            return found;
+        });
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, int?> DecimalsByCurrency = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Lists the webhook endpoints on the account and looks for the one this app is behind: the configured origin plus

@@ -27,7 +27,9 @@ namespace FitCheck.Api.Endpoints;
 /// ignore. Either one ends Pro on the matching customer's account (the end date moves to now, as for a deleted
 /// subscription), writes a warning, and raises a <see cref="Services.Alerter"/> alert, because a dispute has a deadline
 /// and a fee and the owner has to answer it. The endpoint must be subscribed to those two events in Stripe for them to
-/// arrive; <c>--stripe-check</c> does not yet require them (see DEPLOY.md, "Round 13 — Money").
+/// arrive, and since Round 17 <c>--stripe-check</c> requires them: it used to print green on an endpoint that would
+/// never hear about a chargeback. Round 17 also stopped a PARTIAL refund from ending Pro — see
+/// <see cref="FullyRefunded"/>, and the reason there.
 /// </para>
 /// </summary>
 public static class BillingEndpoints
@@ -122,8 +124,29 @@ public static class BillingEndpoints
         return Results.Json(new BillingStateDto(plan, proUntil, billing.Value.StripeEnabled, plans.Value.ProPriceText), AppJson.Options);
     }
 
+    /// <summary>
+    /// Round 17. The currency to charge in: the one the Pro page quoted this person, if the server really has a price
+    /// in it, and the server's own fallback otherwise. It comes from the browser because the browser is the only thing
+    /// that knows where the reader is (the page picks it with Intl from the reader's region) — but it is never trusted:
+    /// a currency outside <see cref="PlanOptions.PriceTable"/> is a currency no page ever showed, and it is dropped.
+    /// This is what ties the number on the screen to the number on the card.
+    /// </summary>
+    private static string QuotedCurrency(HttpRequest request, PlanOptions plans)
+    {
+        var table = plans.PriceTable();
+        var asked = (request.Query["currency"].ToString() ?? "").Trim().ToUpperInvariant();
+        if (asked.Length == 3 && table.ContainsKey(asked))
+        {
+            return asked;
+        }
+
+        var fallback = plans.FallbackCurrency();
+        return fallback.Length == 3 && table.ContainsKey(fallback) ? fallback : "";
+    }
+
     private static async Task<IResult> CheckoutAsync(
-        HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing, StripeClient stripe, CancellationToken ct)
+        HttpContext context, AppDbContext db, Localizer localizer, IOptions<BillingOptions> billing,
+        IOptions<PlanOptions> plans, StripeClient stripe, CancellationToken ct)
     {
         var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
         if (user is null)
@@ -151,7 +174,8 @@ public static class BillingEndpoints
             // Only an address the person confirmed: a typo'd one would follow them onto the receipt.
             user.EmailVerifiedAt is not null ? user.Email : null,
             $"{origin}/#/pro?checkout=success",
-            $"{origin}/#/pro?checkout=cancel");
+            $"{origin}/#/pro?checkout=cancel",
+            QuotedCurrency(context.Request, plans.Value));
         var url = await stripe.CreateCheckoutSessionAsync(request, ct);
         if (url is null)
         {
@@ -404,6 +428,23 @@ public static class BillingEndpoints
                     }
 
                     var reversal = type == "charge.refunded" ? "refunded" : "disputed";
+
+                    // Round 17. charge.refunded fires for ANY refund, and most refunds are not the whole month: a
+                    // goodwill five shekels back, a proration, a duplicate line. Taking Pro away for one of those is
+                    // the worst outcome available - the person keeps being billed by Stripe (a refund does not cancel
+                    // a subscription) and loses what they are paying for. So only a charge refunded IN FULL ends Pro.
+                    // A partial one still reaches the owner, because a refund he did not issue is worth knowing about.
+                    // The Charge carries both answers (amount, amount_refunded, refunded); a dispute has neither and
+                    // is always the whole charge.
+                    var partial = type == "charge.refunded" && !FullyRefunded(payload);
+                    if (partial)
+                    {
+                        logger.LogWarning("Account {Handle}: a Stripe charge was refunded in part. Pro was left alone.", user.Handle);
+                        await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
+                            $"part of a Stripe charge was refunded for one account ({type}). Pro was NOT removed, because the charge was not refunded in full and the subscription is still billing. Check the Stripe dashboard if this was not you.", ct);
+                        break;
+                    }
+
                     if (!Plans.IsPro(user, now))
                     {
                         logger.LogInformation("Stripe {Type} for account {Handle}, which is not Pro; nothing to remove.", type, user.Handle);
@@ -567,6 +608,39 @@ public static class BillingEndpoints
         }
 
         return DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime;
+    }
+
+    /// <summary>
+    /// Round 17. Was this charge refunded in full? Stripe answers twice and the two can disagree while a refund is
+    /// still settling, so both have to say yes: <c>refunded</c> is the flag Stripe sets when nothing is left, and
+    /// <c>amount_refunded</c> against <c>amount</c> is the arithmetic behind it. A payload that carries neither is
+    /// not evidence of a full refund and is treated as partial - the safe direction, because the cost of being wrong
+    /// here is taking Pro from somebody who is still paying for it.
+    /// </summary>
+    private static bool FullyRefunded(JsonElement charge)
+    {
+        if (charge.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        var flag = charge.TryGetProperty("refunded", out var refunded) && refunded.ValueKind == JsonValueKind.True;
+        var amount = Amount(charge, "amount");
+        var back = Amount(charge, "amount_refunded");
+        var arithmetic = amount is { } total && total > 0 && back is { } given && given >= total;
+        return flag && arithmetic;
+    }
+
+    /// <summary>A minor-units amount from the payload, or null when it is missing or not a whole non-negative number.</summary>
+    private static long? Amount(JsonElement obj, string name)
+    {
+        if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt64(out var minor) || minor < 0)
+        {
+            return null;
+        }
+
+        return minor;
     }
 
     /// <summary>A string field, or the id of an expanded object in its place (Stripe expands "customer" on request); null off a non-object.</summary>

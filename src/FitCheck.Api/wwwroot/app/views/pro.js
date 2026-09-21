@@ -200,7 +200,10 @@ register('pro', async (root, params, ctx) => {
       go.disabled = true;
       go.textContent = t('common.loading');
       try {
-        const { url } = await api('POST', '/api/billing/checkout');
+        // Round 17: the currency this page QUOTED, so Stripe charges the number the person just read rather than
+        // whatever the price is denominated in. The server drops anything it has no price for, so this can only ever
+        // pick from what the server itself offers.
+        const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency));
         location.href = url;   // Stripe's hosted page; it comes back to #/pro?checkout=...
       } catch (e) {
         if (ctx.stale()) return;

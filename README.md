@@ -974,7 +974,10 @@ sends one real test alert down every configured channel, or skips when there is 
 **Stripe, honestly.** The webhook now reads `charge.refunded` and `charge.dispute.created`, which it used to ignore:
 either ends Pro on the matching customer's account (the end date moves to now, as for a deleted subscription), logs a
 warning and raises `billing.reversed`. **The endpoint must be subscribed to those two events in Stripe** — `--stripe-check`
-does not yet require them (see `DEPLOY.md`, "Round 13 — Money").
+requires them since Round 17 (see `DEPLOY.md`, "Round 13 — Money"): green used to be printable on an endpoint that
+would never be told about a chargeback. A refund only ends Pro when the charge was refunded **in full** — a partial
+refund leaves Pro alone and alerts the owner, because a refund does not cancel the subscription and Stripe keeps
+billing, so the person would have gone on paying for something they had lost.
 
 | Key | Default | Meaning |
 |---|---|---|

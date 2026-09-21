@@ -427,13 +427,23 @@ Settings and on the Pro page, and a lapsed period falls back to Free by itself. 
 starting `sk_test_`):
 
 1. A product "OREVOSH Pro" with one recurring monthly price; copy its id (`price_…`).
-2. An API secret key (Developers → API keys).
-3. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to the five events the app reads:
-   `checkout.session.completed`, `customer.subscription.created`, `invoice.paid`, `customer.subscription.updated` and
-   `customer.subscription.deleted`; copy its signing secret (`whsec_…`). `--stripe-check` names any you missed.
-4. Settings → Billing → **Customer portal**: open it once and save a configuration (what a customer may do there —
+2. **If you price in more than one currency** — which you do the moment `Plans__ProPrices` has an entry — open that
+   price and add each currency to it (on the price, "Add another currency"). One price carries them all, and Checkout
+   charges in whichever one the app asks for. The amounts here must be the SAME numbers as `Plans__ProPrices`: the
+   Pro page shows its own table and Checkout charges Stripe's, and if they disagree a reader is quoted one number and
+   billed another. `--stripe-check` refuses to pass while they differ, and names both numbers. See "The price a person
+   sees" below.
+3. An API secret key (Developers → API keys).
+4. A webhook endpoint at `https://looks.example.com/api/billing/webhook` subscribed to the **seven** events the app
+   reads: `checkout.session.completed`, `customer.subscription.created`, `invoice.paid`,
+   `customer.subscription.updated`, `customer.subscription.deleted`, `charge.refunded` and `charge.dispute.created`;
+   copy its signing secret (`whsec_…`). `--stripe-check` names any you missed and fails on all but one of them. The
+   last two are the ones people forget and the ones that cost money: a chargeback has a deadline and a fee, and it is
+   answered by a person in the Stripe dashboard. Without the event, nobody knows there is anything to answer.
+5. Settings → Billing → **Customer portal**: open it once and save a configuration (what a customer may do there —
    cancel, change the payment method). Stripe creates no portal session until that configuration exists, and the app's
-   "Manage subscription" is a portal session, so without this it answers 502 `error.portal_failed`.
+   "Manage subscription" is a portal session, so without this it answers 502 `error.portal_failed`. If a subscriber
+   cannot cancel by themselves, cancelling becomes your inbox.
 
 Then:
 
@@ -458,10 +468,41 @@ the first, `subscription_create`, which the checkout already counted) moves the 
 three days, from the event and never below the current end; `customer.subscription.updated` follows the status,
 `active` or `trialing` to the current period end plus three days (never below the current end), `past_due`, `unpaid`
 or `paused` down to three days from now at most;
-`customer.subscription.deleted` ends it now; a missed renewal simply lapses. No event ids are kept: a repeated
+`customer.subscription.deleted` ends it now; a missed renewal simply lapses. `charge.refunded` ends Pro **only when
+the charge was refunded in full** — a partial refund (five shekels back as an apology, a proration) leaves Pro alone
+and alerts you instead, because a refund does not cancel the subscription and Stripe goes on billing: ending Pro
+there would leave somebody paying for something they had lost. `charge.dispute.created` always ends Pro and always
+alerts, because a dispute is the whole charge and it has a clock on it. No event ids are kept: a repeated
 `checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends
 what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
 app, and the secret key is redacted from the app's logs.
+
+### The price a person sees, and the price their card is charged
+
+These are two different numbers held in two different places, and keeping them equal is the whole job.
+
+- **What the page shows** comes from the app: `Plans__ProPriceAmount` + `Plans__ProPriceCurrency`, plus
+  `Plans__ProPrices__USD`, `__EUR` and so on. The browser picks the one for the reader's **region** and formats it
+  the way that region writes money.
+- **What the card is charged** comes from Stripe: the price id, and the currencies that price carries.
+
+Round 17 ties them together at both ends. Checkout now tells Stripe which currency the page quoted, so a
+multi-currency price bills in the currency the person actually read — the app sends it, but never trusts it: a
+currency the server has no price for is dropped, so nobody can ask to be charged in something no page ever showed.
+And `--stripe-check` fails, rather than warns, when the two tables disagree:
+
+```
+FAIL  stripe-price  what the Pro page shows and what Stripe would charge are not the same: the page offers
+                    4.99 EUR and Stripe would charge 7.99 EUR. Fix it in one of the two places...
+```
+
+Fix it in **one** of the two places. Either add the currency (or correct the amount) on the price in Stripe, or take
+it out of `Plans__ProPrices` so nobody is ever quoted a number that price cannot honour. A currency Stripe carries
+and the app never shows is harmless and only noted.
+
+Amounts are compared in each currency's smallest unit, using this machine's own currency data rather than a table
+written here — so ¥1200 is 1200 and not 120000, and a three-decimal currency like KWD is handled without anyone
+having thought about Kuwait.
 
 **Before a test purchase, ask Stripe whether what you set is real:**
 
@@ -741,7 +782,7 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts, the free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen lines**, each `ok`, a warning, or a short reason, then the tally (`doctor: 9 ok, 7 warnings, 1 failure`, with your own run's numbers) and the verdict. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it; only a failure changes the exit code, a warning is your call. Run it after every settings change |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe when the provider is `stripe`. **The mail server is never dialled** — no command in this app opens an SMTP connection; ask the app for a password reset with your own address to test the sender. This is the one that tells you whether a broken check is you or the provider |
-| `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the five events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
+| `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, whether every price the Pro page quotes is one that price could really charge (Round 17), and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the seven events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
 | `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups/nightly` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete — it prunes whatever it finds there, so give each writer a folder of its own. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume, and `/data/backups/nightly` is the folder it defaults to |
 | `docker compose exec app dotnet FitCheck.Api.dll --admin <handle>` | Makes an existing account a moderator |
 | `docker compose exec app dotnet FitCheck.Api.dll --unadmin <handle>` | Takes that away |

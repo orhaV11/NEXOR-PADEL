@@ -379,7 +379,10 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     int ProComparesPerDay = 0, bool Wardrobe = false, bool TasteProfile = false,
     // Round 16 — the month, which is the allowance that decides whether a subscription pays for itself and therefore
     // the one worth putting on the page. 0 means this server bounds the plan by its day alone.
-    int ProCallsPerMonth = 0);
+    int ProCallsPerMonth = 0,
+    // Round 16 - the price as a number plus its currency, so the client can write it the way the reader's language
+    // writes money. 0 means this server shows no price. ProPriceText, when set, still overrides both.
+    decimal ProPriceAmount = 0, string ProPriceCurrency = "");
 
 // ---- comparisons, insights, today ----
 

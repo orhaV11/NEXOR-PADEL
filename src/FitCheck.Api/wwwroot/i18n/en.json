@@ -479,6 +479,7 @@
   "pro.benefit_insights": "Your insights",
   "pro.benefit_insights_hint": "What your checks say about you, over time.",
   "pro.price_note": "Billed monthly. Cancel any time.",
+  "pro.per_month": "{price} a month",
   "pro.go": "Go Pro",
   "pro.secure": "Payment runs on Stripe. We never see your card.",
   "pro.manual": "Pro is switched on by hand for now. Write to us and we'll sort it.",

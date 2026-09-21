@@ -683,7 +683,8 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
             // (clamped like the check cap), whether the wardrobe reaching the stylist is Pro's, and whether this server
             // has the taste profile built at all. A benefit whose flag is false is not on the page.
             Plans.ProCompareCap(plans.Value, limits.Value), plans.Value.WardrobeNeedsPro, plans.Value.TasteProfile,
-            Math.Max(0, plans.Value.ProCallsPerMonth)),
+            Math.Max(0, plans.Value.ProCallsPerMonth),
+            Math.Max(0m, plans.Value.ProPriceAmount), (plans.Value.ProPriceCurrency ?? "").Trim().ToUpperInvariant()),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

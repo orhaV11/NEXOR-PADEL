@@ -479,6 +479,7 @@
   "pro.benefit_insights": "رؤى إطلالاتك",
   "pro.benefit_insights_hint": "ما تقوله تقييماتك عنك، مع الوقت.",
   "pro.price_note": "فوترة شهرية. الإلغاء في أي وقت.",
+  "pro.per_month": "{price} شهريًا",
   "pro.go": "الانتقال إلى Pro",
   "pro.secure": "الدفع عبر Stripe. لا نرى بطاقتك أبدًا.",
   "pro.manual": "Pro يُفعَّل يدويًا حاليًا. رسالة لنا تكفي، ونرتّب الأمر.",

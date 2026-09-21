@@ -9,7 +9,7 @@
 // from /api/config, and a benefit whose flag is false is not drawn at all: NOTHING on this page may promise a thing this
 // server cannot do. PlansTests reads this file's benefit lines and fails the build over an invented promise, so a new
 // benefit needs both a flag here and a row in that table. The cap is not a benefit; it is one fair-use line, once, last.
-import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave } from '../core.js';
+import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale } from '../core.js';
 
 const CSS = `
 .pro-hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-block: 6px 4px; }
@@ -70,6 +70,21 @@ function manageButton(ctx) {
   return button;
 }
 
+/**
+ * The price in the reader's own language: Intl puts the symbol where that language puts it and uses its own digits.
+ * Returns '' when this server publishes no amount, which is how the price stays off the page entirely. A currency
+ * code the browser does not know throws rather than guessing, and an unpriced page is better than a wrong price.
+ */
+function money(amount, currency) {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0 || !currency) return '';
+  try {
+    return new Intl.NumberFormat(intlLocale(), { style: 'currency', currency: currency }).format(value);
+  } catch (e) {
+    return '';
+  }
+}
+
 function benefit(name, title, hint) {
   return el('li', { class: 'pro-benefit' }, [
     el('span', { class: 'pro-icon', 'aria-hidden': 'true' }, [icon(name)]),
@@ -114,9 +129,14 @@ register('pro', async (root, params, ctx) => {
     ? t('pro.allowance_month', { n: month })
     : t('pro.fair_use', { checks: n, compares: plans.proComparesPerDay || 0 }) }));
 
-  if (plans.proPriceText) {
+  // Round 16: money is written differently in every language this app speaks - where the symbol sits, which digits
+  // are used, how the decimal is marked - and proPriceText is ONE string shown to all four. So the server sends the
+  // amount and the currency, and the browser, which already knows all of that, writes it. proPriceText stays as the
+  // override for a price no format covers ("first month free, then...").
+  const priceText = plans.proPriceText || money(plans.proPriceAmount, plans.proPriceCurrency);
+  if (priceText) {
     root.appendChild(el('p', { class: 'pro-price', id: 'pro-price' }, [
-      el('span', { class: 'pro-amount', text: plans.proPriceText }),
+      el('span', { class: 'pro-amount', text: t('pro.per_month', { price: priceText }) }),
       plans.billing ? el('span', { class: 'hint', text: t('pro.price_note') }) : null
     ]));
   }

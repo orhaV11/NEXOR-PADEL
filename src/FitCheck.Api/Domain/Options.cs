@@ -237,6 +237,18 @@ public sealed class PlanOptions
     public string ProPriceText { get; set; } = "";
 
     /// <summary>
+    /// Round 16 - the price as a NUMBER, so every language sees it written the way that language writes money.
+    /// <see cref="ProPriceText"/> is one string shown to everybody: "29.90 ILS / month" typed once reaches a Russian
+    /// reader as "29.90 ILS / month", and a Hebrew reader with the shekel sign on the wrong side of the digits. The
+    /// browser already knows all of this, so it is given the amount and the currency and asked to write it.
+    /// 0 leaves the price off the page entirely, as an empty ProPriceText always did.
+    /// </summary>
+    public decimal ProPriceAmount { get; set; }
+
+    /// <summary>The ISO 4217 code for <see cref="ProPriceAmount"/>, e.g. ILS, USD, EUR. Ignored when the amount is 0.</summary>
+    public string ProPriceCurrency { get; set; } = "ILS";
+
+    /// <summary>
     /// Round 13: how many "no outfit in this photo" answers a person (an account, or a guest cookie) gets back in the
     /// rolling day. Such an answer spent a model call and gave the person nothing, so the first ones are not counted
     /// against the plan cap, the guest's free look or me.checksToday; from the one after this number on they count like

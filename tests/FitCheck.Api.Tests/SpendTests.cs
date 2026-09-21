@@ -211,6 +211,69 @@ public class SpendMeterTests
         Assert.False(spend.GetProperty("alertWebhook").GetBoolean());
     }
 
+    /// <summary>
+    /// Round 17 — the ceiling stops the people who pay nothing, and lets a subscriber through.
+    /// <para>
+    /// Limits:SpendPerDayUsd exists to bound what free and guest checks cost. It used to refuse EVERYBODY, which
+    /// gives the worst failure available: free users burn the day's budget by lunchtime and the person who paid for
+    /// the month reads "the stylist is resting". Their calls are already paid for — a month's allowance against a
+    /// month's price — so refusing them is refusing revenue already taken.
+    /// </para>
+    /// <para>
+    /// Two things stay exactly as they were: the ceiling is still ASKED on every request, so the owner's alert fires
+    /// when it always did, and Limits:ChecksPerDayGlobal still counts every call whatever the plan, so the hard stop
+    /// behind all of this is untouched.
+    /// </para>
+    /// </summary>
+    /// <summary>One unit of work straight on the app's own database, for the rows no route can set.</summary>
+    private static void WithDb(TestApp app, Action<AppDbContext> action)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        action(db);
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task The_ceiling_rests_the_stylist_for_free_accounts_and_not_for_pro()
+    {
+        using var app = new MoneyApp { Settings = { ["Limits:SpendPerDayUsd"] = "3" } };
+        app.Clock.Now = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (free, _, _) = await app.NewUserAsync("ceiling_free");
+        var (pro, proId, _) = await app.NewUserAsync("ceiling_pro");
+        WithDb(app, db =>
+        {
+            var u = db.Users.Single(x => x.Id == proId);
+            u.Plan = "pro";
+            u.ProUntil = app.Clock.UtcNow.AddDays(20);
+        });
+
+        // Two calls at 2.00 USD each puts the day over the ceiling.
+        Assert.Equal(HttpStatusCode.Created, (await free.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await free.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        Assert.Equal(4.0m, (await app.TodayAsync()).EstimatedUsd);
+
+        // The free account rests.
+        var refused = await free.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.StatusCode);
+
+        // The subscriber does not — on the check route and on the comparison route alike.
+        var served = await pro.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.Created, served.StatusCode);
+        var compared = await pro.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.Created, compared.StatusCode);
+
+        // A guest is not a subscriber either.
+        var guest = app.NewClient();
+        var guestRefused = await guest.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, guestRefused.StatusCode);
+
+        // And a lapsed subscription is a free account again: ProUntil in the past is not Pro.
+        WithDb(app, db => db.Users.Single(x => x.Id == proId).ProUntil = app.Clock.UtcNow.AddDays(-1));
+        var lapsed = await pro.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, lapsed.StatusCode);
+    }
+
     [Fact]
     public async Task The_gate_closes_at_the_ceiling_and_opens_again_after_midnight_utc()
     {

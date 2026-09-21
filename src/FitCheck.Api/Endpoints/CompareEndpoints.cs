@@ -164,7 +164,14 @@ public static class CompareEndpoints
 
         // Round 13 — money: the daily spend ceiling (Limits:SpendPerDayUsd), before the allowance is touched and
         // before the model is asked. Nothing is stored and no allowance is spent by a 503.
-        if (await spend.CeilingReachedAsync(db, ct))
+        // Round 17 - and a PRO account passes it. The ceiling bounds what people who pay nothing cost; a subscriber's
+        // calls are already paid for (150 a month against a month's price, and their own 30 a day besides), so
+        // refusing them is refusing revenue already taken - and the shape of the failure is the worst kind: free
+        // users burn the day's budget by lunchtime and the person who paid reads "the stylist is resting". The
+        // ceiling is still ASKED on every request so the owner's alert fires exactly when it did before, and
+        // Limits:ChecksPerDayGlobal (which counts every call whatever the plan) is still the hard stop behind all
+        // of this.
+        if (await spend.CeilingReachedAsync(db, ct) && !Plans.IsPro(user, now))
         {
             return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
         }

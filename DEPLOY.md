@@ -120,6 +120,21 @@ Fly builds the image from the `Dockerfile` on its own builders, starts one machi
 it. `--ha=false` matters: without it Fly starts two machines for high availability, and this app must run as one process
 (the README's limitations; a second machine would also want a volume of its own). Then:
 
+### The daily spend ceiling stops free checks, not paid ones (Round 17)
+
+`Limits__SpendPerDayUsd` is there to bound what people who pay nothing cost. It used to refuse **everybody**, which is
+the worst shape the failure could take: free and guest checks burn the day's budget by lunchtime, and then the person
+who paid for the month opens the app and reads "the stylist is resting". Their calls were already paid for — a month's
+allowance against a month's price — so refusing them is refusing revenue you have already taken.
+
+A Pro account now passes the money ceiling. Three things are unchanged and are what keep this safe:
+
+- The ceiling is still **asked** on every request, so your alert fires exactly when it did before.
+- `Limits__ChecksPerDayGlobal` (1000) counts every call whatever the plan, and is the hard stop behind all of it.
+- A subscriber is still bounded by their own plan: `Plans__ProCallsPerMonth` (150) and `Plans__ProChecksPerDay` (30).
+
+A lapsed subscription is a free account again the moment the period ends, and a guest was never exempt.
+
 ### Brand accounts are granted, never taken (Round 17)
 
 "Brand" used to be a checkbox anybody could tick, and it buys far more than it looks like it buys: a brand mark beside

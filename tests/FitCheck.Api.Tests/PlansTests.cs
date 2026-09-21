@@ -140,6 +140,60 @@ public class PlansTests
         }
     }
 
+    private static string CheckPageSource()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "app", "views", "check.js"));
+        Assert.True(File.Exists(path), "the check screen is not where PlansTests looks for it: " + path);
+        return File.ReadAllText(path);
+    }
+
+    /// <summary>
+    /// Round 16. Pro's allowance is the month; its day is a burst brake. The check screen used to quote the day at
+    /// everybody — a Pro subscriber opened the app and read "27 of 30 checks left today", which is the old pitch, the
+    /// one Pro is no longer sold on, in the one place a subscriber looks every single day. It was the fourth screen
+    /// found saying it, and each of the first three was fixed alone because the tests asserted the NUMBER and not the
+    /// SENTENCE: change 30 to something else and they all still passed.
+    ///
+    /// So this asserts the sentence. The line has to read the month from MeDto (callsPerMonth / callsThisMonth) and
+    /// have a month string to say it with, in every language. A rewrite that goes back to quoting only the day fails
+    /// here whatever the numbers are.
+    /// </summary>
+    [Fact]
+    public void The_check_screen_can_quote_the_month_not_only_the_day()
+    {
+        var source = CheckPageSource();
+        var line = Regex.Match(source, @"function checksLeftLine\(\)\s*\{.*?\n\}", RegexOptions.Singleline);
+        Assert.True(line.Success, "checksLeftLine is not in check.js under that name any more — this test guards it and needs to follow it");
+        var body = line.Value;
+
+        Assert.Contains("callsPerMonth", body, StringComparison.Ordinal);
+        Assert.Contains("callsThisMonth", body, StringComparison.Ordinal);
+        Assert.Contains("check.left_month", body, StringComparison.Ordinal);
+        Assert.Contains("check.left", body, StringComparison.Ordinal);
+
+        // MeDto has to carry both, or the line above reads undefined and silently falls back to the day.
+        var dto = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "Endpoints", "Dtos.cs")));
+        var me = Regex.Match(dto, @"record MeDto\((?:.|\n)*?\);");
+        Assert.True(me.Success, "MeDto is not where this test looks for it");
+        Assert.Contains("CallsPerMonth", me.Value, StringComparison.Ordinal);
+        Assert.Contains("CallsThisMonth", me.Value, StringComparison.Ordinal);
+
+        // And a sentence to say it in, everywhere, with both blanks — a missing one prints "{cap}" at a paying subscriber.
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            var strings = Strings(code);
+            foreach (var key in new[] { "check.left_month", "check.left_month_one" })
+            {
+                Assert.True(strings.ContainsKey(key), $"{code}.json has no {key}");
+            }
+            Assert.Contains("{n}", strings["check.left_month"], StringComparison.Ordinal);
+            Assert.Contains("{cap}", strings["check.left_month"], StringComparison.Ordinal);
+            // The "one" form spells the 1 out, so it must not also carry the {n} blank.
+            Assert.DoesNotContain("{n}", strings["check.left_month_one"]);
+            Assert.Contains("{cap}", strings["check.left_month_one"], StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public async Task Config_publishes_the_allowances_as_the_server_really_enforces_them()
     {

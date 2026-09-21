@@ -353,8 +353,9 @@ it or run `--admin`, which needs no restart:
 fly secrets set Admin__Handles__0=<handle>      # only after that account exists
 ```
 
-**Plans** — the defaults (3 free checks a day, 30 on Pro, 1 for a visitor) are the pilot's, so set only what you want
-different. `Plans__ProPriceText` is text on the Pro page, not a price Stripe charges:
+**Plans** — the defaults (2 free checks a day and 20 a month, 150 a month on Pro with 30 a day as a burst brake, 1
+for a visitor) are the pilot's, so set only what you want different. The month is the number a plan is sold on;
+`Plans__ProCallsPerMonth` is the one that moves both the pitch and the model bill. `Plans__ProPriceText` is text on the Pro page, not a price Stripe charges:
 
 ```bash
 fly secrets set \

@@ -472,6 +472,8 @@
   "guest.kept": "حُفظ في حسابك.",
   "check.left": "المتبقي اليوم: {n} من {cap} تقييمات",
   "check.left_one": "المتبقي اليوم: 1 من {cap} تقييمات",
+  "check.left_month": "المتبقي هذا الشهر: {n} من {cap} تقييمات",
+  "check.left_month_one": "المتبقي هذا الشهر: 1 من {cap} تقييمات",
   "check.go_pro": "المزيد مع Pro",
   "pro.badge": "Pro",
   "pro.headline": "مصمّم يعرف ملابسك.",

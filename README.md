@@ -602,8 +602,10 @@ descriptive is dropped when the status is not `ok`.
   or login makes the check an ordinary one (posting, history, deletion), all or nothing: a claim that cannot copy a
   file leaves the rows the guest's and runs again on the next load. Unclaimed guest checks and their photos are
   swept after a day (the log says `Guest sweep: …`). Guests cannot post, compare, or read anyone else's check.
-- **Cost control.** Every check is a paid model call, so the caps are the product: 3 a day on Free, 30 on Pro, 1 as
-  a guest, checks and comparisons counted together over a rolling 24 hours (429 with a friendly message and a
+- **Cost control.** Every check is a paid model call, so the caps are the product, and every plan has two: a month
+  and a day. Free is 2 a day and 20 a month, Pro is 150 a month with 30 a day as a burst brake (the month is what Pro
+  is sold on and what the app quotes; the day is never advertised), 1 as
+  a guest, checks and comparisons counted together over a rolling 24 hours and a rolling 30 days (429 with a friendly message and a
   `Retry-After` that names when a permit really frees up: a Free account is told what Pro gives, a Pro account at
   its ceiling just hears the number), `Limits:ChecksPerDay` as the ceiling no plan exceeds, a global ceiling of 1000
   a day across both routes, a 6 MB upload cap, and the client downscales to 1280px JPEG (avatars to 320px) before

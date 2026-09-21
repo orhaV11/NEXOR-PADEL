@@ -472,6 +472,8 @@
   "guest.kept": "Сохранено в твой аккаунт.",
   "check.left": "Осталось на сегодня: {n} из {cap}",
   "check.left_one": "Осталась 1 проверка из {cap} на сегодня",
+  "check.left_month": "Осталось в этом месяце: {n} из {cap}",
+  "check.left_month_one": "Осталась 1 проверка из {cap} в этом месяце",
   "check.go_pro": "Больше с Pro",
   "pro.badge": "Pro",
   "pro.headline": "Стилист, который знает твою одежду.",

@@ -751,7 +751,10 @@ This section is completed by the docs builder after the merge, from the code.
 - **Pro is a cap on a real cost, not a feature wall.** Every check is a model call, so the plan is the daily number:
   three on Free, thirty on Pro, `Limits:ChecksPerDay` as the ceiling no plan exceeds (the clamped number is what
   `/api/config` publishes and the Pro page promises), checks and comparisons counted together over the same rolling
-  day on both routes, failed calls left out. Comparisons and insights stay free by default
+  day on both routes, failed calls left out. *(Superseded in Round 16: a plan is now a month AND a day — two on Free
+  and twenty a month, a hundred and fifty a month on Pro with the thirty kept as a burst brake that is never
+  advertised. The day alone could not be priced: thirty a day is 900 calls a month a subscriber never makes, so the
+  number the page promised and the number the bill was built from were not the same number.)* Comparisons and insights stay free by default
   (`Plans:CompareNeedsPro` is off): a cap is honest about what Pro pays for, a wall around a feature would be theatre.
   Pro is two fields on the account (`Plan`, `ProUntil`), written by Stripe's webhook or by `--pro`, never by a
   request; a lapsed period reads as Free by itself, and `MeDto` carries `plan`, `proUntil`, `checksToday` and

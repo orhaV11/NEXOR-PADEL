@@ -36,7 +36,10 @@ public sealed record VerifyEmailRequest(string? Token);
 public sealed record MeDto(
     Guid Id, string Handle, string Name, string AccountType, string Language, string? Bio, string? Website, int Streak, int UnreadNotifications,
     string? AvatarUrl = null, List<string>? Interests = null, bool IsAdmin = false, string? Email = null, bool EmailVerified = false,
-    string Plan = "free", DateTime? ProUntil = null, bool Verified = false, int ChecksToday = 0, int ChecksPerDay = 0, BadgeDto? Badge = null);
+    string Plan = "free", DateTime? ProUntil = null, bool Verified = false, int ChecksToday = 0, int ChecksPerDay = 0, BadgeDto? Badge = null,
+    // Round 16: the month as well as the day, because the month is usually the one that runs out first and the screen
+    // was quoting the day at somebody whose real answer was the other number. 0 for the allowance means no monthly bound.
+    int CallsThisMonth = 0, int CallsPerMonth = 0);
 
 /// <summary>AvatarUrl is versioned (?v=) so it can be cached hard; null when the account has no photo.</summary>
 public sealed record UserRefDto(string Handle, string Name, string AccountType, string? AvatarUrl = null, bool Verified = false);

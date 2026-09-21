@@ -772,8 +772,13 @@ function checkClientModules() {
   await shot(noa, '28-compare-en');
   await go(noa, '#/u/noa');
   await noa.waitForSelector('#insights-link');
+  // Round 16: the numbers page asks for the month written back (Pro's) on every visit and swallows the refusal, so a
+  // free account gets a 403 here by design - noa is still free at this point. It is listed rather than hidden,
+  // because a 403 the watchdog cannot see is a 403 nobody notices when it starts arriving for the wrong reason.
+  expected.push('/api/users/me/recap -> 403');
   await noa.click('#insights-link');
   await noa.waitForSelector('#insights-body');
+  assert.ok(await noa.$('#insights-recap[hidden]'), 'the month paragraph stays out for a free account');
   await shot(noa, '29-insights-en');
   await go(dan, '#/search/running');
   await dan.waitForSelector('#search-looks .grid a');
@@ -791,6 +796,14 @@ function checkClientModules() {
   await go(noa, '#/pro');
   await noa.waitForSelector('#pro-current');
   await shot(noa, '30-pro-en');
+  // Round 16: what a subscriber reads on the screen they open every day. Pro is sold on the month, so the month is
+  // the number quoted - the 30-a-day burst brake is never advertised, and quoting it here was the bug a real Pro
+  // account found ("27 of 30 checks left today", the old pitch, on the one screen a subscriber sees daily). The
+  // remaining count moves with the checks made earlier in this run, so only the allowance is pinned.
+  await go(noa, '#/check');
+  await noa.waitForSelector('#checks-left');
+  assert.match(await text(noa, '#checks-left'), /^\d+ of 150 checks left this month$/, 'Pro quotes the month, not the day');
+  await shot(noa, '31-check-pro-month-en');
 
   // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
   await go(noa, '#/feed');

@@ -119,7 +119,11 @@ public static partial class AuthEndpoints
             PostReader.AvatarUrl(user.Handle, user.AvatarPath, user.AvatarVersion), interests, user.IsAdmin, user.Email, user.EmailVerifiedAt is not null,
             plan, proUntil, user.Verified, checksToday, Plans.CapFor(user, plans, limits, now),
             // Last week's place on the looks board (Round 10), worn for this week only; the board comes the same way as the options.
-            Badge: await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Board>(db).BadgeAsync(db, user.Id, ct));
+            Badge: await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Board>(db).BadgeAsync(db, user.Id, ct),
+            // Round 16 - the month. For a Pro account it is the bound that actually runs out, so the check screen has to
+            // know it; without it the screen quoted "of 30 today" at somebody whose real answer was 150 for the month.
+            CallsThisMonth: await Spend.MonthCountForUserAsync(db, user.Id, now, ct),
+            CallsPerMonth: Plans.MonthlyCallsFor(user, plans, now));
     }
 
     /// <summary>

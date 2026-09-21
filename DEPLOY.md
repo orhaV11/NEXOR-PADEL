@@ -274,7 +274,8 @@ package is public; see "Continuous checks".
 - **Memory:** `fly machine status <machine id>`. 512 MB is comfortable for the app's ~150 MB; `fly scale memory 1024`
   is the fix if clips and transcoding push it.
 - **The model bill:** the spend limit in the Anthropic console is the backstop; the plan caps (`Plans__FreeChecksPerDay`
-  3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1), the per-account ceiling `Limits__ChecksPerDay` and the
+  2 and `Plans__FreeCallsPerMonth` 20, `Plans__ProChecksPerDay` 30 and `Plans__ProCallsPerMonth` 150,
+  `Plans__GuestChecksPerDay` 1), the per-account ceiling `Limits__ChecksPerDay` and the
   global `Limits__ChecksPerDayGlobal` (1000) are the caps. Guest checks are calls nobody signed up for: `fly logs` shows
   `Guest sweep: …` once an hour with how many went unclaimed.
 - **The board:** a few minutes after the week closes (Saturday midnight in `Board__TimeZone`), `fly logs` shows
@@ -359,15 +360,19 @@ provider's answer (a refused sender, a wrong password), or the missing-origin li
 
 ## Plans and billing
 
-Every check is a paid model call, so the plans are caps, not features. A visitor gets one free check as a guest, a
-free account gets three a day, OREVOSH Pro gets thirty, and `Limits__ChecksPerDay` (30) is the ceiling no plan
-exceeds; checks and "Which one?" comparisons share the allowance. All of it is settings, in `.env` on a server and
-`fly secrets set` on Fly:
+Every check is a paid model call, so the plans are caps, not features. **Each plan has two caps: a month and a
+day.** The month is the allowance the plan is really sold on and the one the bill is built from; the day is a burst
+brake, there so one person cannot spend a month of calls in an afternoon. A visitor gets one free check as a guest, a
+free account gets two a day and twenty a month, OREVOSH Pro gets 150 a month with 30 a day as its brake, and
+`Limits__ChecksPerDay` (30) is the ceiling no plan's day exceeds; checks and "Which one?" comparisons share both
+allowances. All of it is settings, in `.env` on a server and `fly secrets set` on Fly:
 
 | Variable | What to put |
 |---|---|
-| `Plans__FreeChecksPerDay` | Checks a day on Free. `3` by default: a taste, not the habit |
-| `Plans__ProChecksPerDay` | Checks a day on Pro, `30`. Clamped to `Limits__ChecksPerDay`: the clamped number is the effective Pro cap, what `/api/config` publishes and the Pro page promises, and the start log warns when the plan's number is above the ceiling |
+| `Plans__FreeChecksPerDay` | Checks a day on Free. `2` by default: a taste, not the habit. Two and not one because a free account is the app's content and the audience a brand pays to reach — an app that feels like it is chasing money on the first screen dies before the money arrives |
+| `Plans__FreeCallsPerMonth` | Checks a **month** on Free, `20`. The backstop behind the day: two a day for thirty days would be sixty paid calls given away, and this is the number that actually bounds it. `0` removes the monthly bound |
+| `Plans__ProChecksPerDay` | Checks a day on Pro, `30`. Clamped to `Limits__ChecksPerDay`. This is Pro's **burst brake, not its promise** — it is deliberately not advertised anywhere in the app, because "30 a day" reads as a boast to somebody who checks twice — and the start log warns when the plan's number is above the ceiling |
+| `Plans__ProCallsPerMonth` | Checks a **month** on Pro, `150`. This is the number Pro is sold on, the one the Pro page and the check screen quote, and the one the price is built from. Raise it and you raise the model bill for every subscriber directly: at the measured ~$0.02 a call, 150 is about $3.06 of model cost a month. `0` removes the monthly bound and falls the Pro page back to quoting the day |
 | `Plans__GuestChecksPerDay` | Free checks for a visitor with no account, `1`, per guest cookie over a rolling day, counted from looks actually given (a refused photo, a model outage or a dropped connection spends nothing). `0` turns guests off and the check screen asks to sign in |
 | `Plans__GuestChecksPerAddressPerDay` | The same per client **address**, `10`, over a rolling day and in memory (a restart forgets it). Far above the per-cookie cap on purpose: one address is a household, an office or a whole carrier, so equal numbers meant the second person you showed the app to was refused before taking a photo. Refuses with `error.too_fast`, not `error.guest_limit` |
 | `Plans__GuestAttemptsPerDay` | The brake on attempts at the check route from a visitor, `20` per client address per 24 hours whatever they come to (429 `error.too_fast`). Well above the guest cap on purpose, so a refused photo never locks a shared address out of its look |
@@ -642,7 +647,7 @@ Fill in:
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
 | `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
-| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestChecksPerAddressPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro`, and the Round 14 four (`Plans__ProComparesPerDay`, `Plans__WardrobeMaxItems`, `Plans__WardrobeNamesToStylist`, `Plans__WardrobeNeedsPro`, `Plans__TasteProfile`) | The caps (3, 30, 1), the per-address guest number (10), the brake on guest attempts (20), the Pro page's price text, and what Pro actually sells. The defaults are fine for a pilot; "Plans and billing" above. |
+| `Plans__FreeChecksPerDay`, `Plans__FreeCallsPerMonth`, `Plans__ProChecksPerDay`, `Plans__ProCallsPerMonth`, `Plans__GuestChecksPerDay`, `Plans__GuestChecksPerAddressPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceAmount`, `Plans__ProPriceCurrency`, `Plans__ProPriceText`, `Plans__CompareNeedsPro`, and the Round 14 four (`Plans__ProComparesPerDay`, `Plans__WardrobeMaxItems`, `Plans__WardrobeNamesToStylist`, `Plans__WardrobeNeedsPro`, `Plans__TasteProfile`) | The day caps (2, 30, 1) and the month caps (20 Free, 150 Pro — the ones the plans are really sold on), the per-address guest number (10), the brake on guest attempts (20), the price and its currency (the browser formats it per the reader's region) with `ProPriceText` as the override for a price no format covers, and what Pro actually sells. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 | `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__CacheSeconds`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30), the memory cache (60 seconds, two weeks at most) and the week's sponsor, by hand (its `Url` an `http(s)` link, or it is dropped with a warning). The defaults are the pilot's; "The weekly board and store links" above. |
 | `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows while `Affiliate__Disclosure` is `true`, the default. |
@@ -914,7 +919,8 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
   SMTP server, so a password reset you ask for yourself is the test of the sender.
 - **Logs.** `docker compose logs --since 1h app` for the app (every 5xx is logged with the path), `docker compose logs
   caddy` for certificates and traffic. Logs are rotated by Docker.
-- **The model bill.** The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay`
+- **The model bill.** The plan caps (`Plans__FreeChecksPerDay` 2 / `Plans__FreeCallsPerMonth` 20,
+  `Plans__ProChecksPerDay` 30 / `Plans__ProCallsPerMonth` 150, `Plans__GuestChecksPerDay`
   1), the ceiling `Limits__ChecksPerDay` and the global `Limits__ChecksPerDayGlobal` cap it; the spend limit in the
   Anthropic console is the backstop. `https://looks.example.com/#/admin/metrics` shows how much the pilot is used
   (signed in as a moderator; anyone else gets the refusal), and `docker compose logs app | grep "Guest sweep"` says how
@@ -992,7 +998,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 ### Before you start (LAUNCH.md, section 0)
 
 1. **The Anthropic key, with a spend limit.** Set a monthly limit in the console; it is the only backstop that is not
-   the app's. The plan caps (`Plans__FreeChecksPerDay` 3, `Plans__ProChecksPerDay` 30, `Plans__GuestChecksPerDay` 1),
+   the app's. The plan caps (`Plans__FreeChecksPerDay` 2 / `Plans__FreeCallsPerMonth` 20, `Plans__ProChecksPerDay` 30 /
+   `Plans__ProCallsPerMonth` 150, `Plans__GuestChecksPerDay` 1),
    the ceiling `Limits__ChecksPerDay` (30) and `Limits__ChecksPerDayGlobal` (1000) cap the volume from the app's side.
    A thousand checks a day is a real bill: do the arithmetic for your model and your pilot's size before raising any of
    them, and remember that guest checks are calls made by people who never signed up (`Plans__GuestChecksPerDay=0`

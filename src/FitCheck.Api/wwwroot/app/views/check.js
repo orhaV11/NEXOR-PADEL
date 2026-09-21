@@ -372,18 +372,34 @@ function guestBanner() {
 }
 
 /**
- * "{n} of {cap} checks left today" for a signed-in person, from MeDto.checksToday / checksPerDay (the server fills them in;
- * 0 for the cap means unknown and the line stays out). At zero left, the way to more is the Pro screen, unless the person is
- * on Pro already: at their own ceiling they just hear the number.
+ * How many are left, of the allowance that means something to this person. Two real bounds run at once - the day
+ * (MeDto.checksToday / checksPerDay) and the month (callsThisMonth / callsPerMonth) - and a screen has one line.
+ *
+ * Round 16: it used to quote the day always, which told a Pro subscriber "27 of 30 checks left today" when what Pro
+ * sells is the month; the day is a burst brake they will almost never feel. So each plan's headline allowance is the
+ * one quoted - the month on Pro, the day on Free, where two a day IS the offer and the month is the backstop - and
+ * the other one only speaks when it is the one that has actually run out, because then it is the sentence that helps:
+ * come back tomorrow, or come back next month. A cap of 0 means the server did not send that bound; with no day cap
+ * at all there is nothing honest to say and the line stays out.
+ *
+ * At zero left the way to more is the Pro screen, unless the person is on Pro already: at their own ceiling they just
+ * hear the number.
  */
 function checksLeftLine() {
   const me = state.me;
   if (!me || !(me.checksPerDay > 0)) return null;
-  const cap = me.checksPerDay;
-  const n = Math.max(0, cap - (me.checksToday || 0));
+  const dayCap = me.checksPerDay;
+  const dayLeft = Math.max(0, dayCap - (me.checksToday || 0));
+  const monthCap = me.callsPerMonth || 0;
+  const monthLeft = monthCap > 0 ? Math.max(0, monthCap - (me.callsThisMonth || 0)) : null;
+  const isPro = me.plan === 'pro';
+  // Pro: the month, unless the day is the one that stopped them. Free: the day, unless the month ran out first.
+  const month = monthLeft !== null && (isPro ? !(dayLeft === 0 && monthLeft > 0) : monthLeft === 0);
+  const n = month ? monthLeft : dayLeft;
+  const cap = month ? monthCap : dayCap;
   return el('p', { class: 'hint checks-left', id: 'checks-left' }, [
-    el('span', { text: t('check.left', { n, cap: fmtNumber(cap) }) }),
-    n === 0 && me.plan !== 'pro' ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
+    el('span', { text: t(month ? 'check.left_month' : 'check.left', { n, cap: fmtNumber(cap) }) }),
+    n === 0 && !isPro ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
   ]);
 }
 

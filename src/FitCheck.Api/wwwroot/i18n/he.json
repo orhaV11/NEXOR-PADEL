@@ -472,6 +472,8 @@
   "guest.kept": "נשמר בחשבון שלך.",
   "check.left": "נשארו {n} מתוך {cap} בדיקות להיום",
   "check.left_one": "נשארה בדיקה אחת מתוך {cap} להיום",
+  "check.left_month": "נשארו {n} מתוך {cap} בדיקות החודש",
+  "check.left_month_one": "נשארה בדיקה אחת מתוך {cap} החודש",
   "check.go_pro": "עוברים לפרו לעוד",
   "pro.badge": "פרו",
   "pro.headline": "סטייליסט שמכיר את הבגדים שלך.",

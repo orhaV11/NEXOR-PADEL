@@ -472,6 +472,8 @@
   "guest.kept": "Saved to your account.",
   "check.left": "{n} of {cap} checks left today",
   "check.left_one": "1 of {cap} checks left today",
+  "check.left_month": "{n} of {cap} checks left this month",
+  "check.left_month_one": "1 of {cap} checks left this month",
   "check.go_pro": "Go Pro for more",
   "pro.badge": "Pro",
   "pro.headline": "A stylist that knows your clothes.",

@@ -527,9 +527,18 @@ Readiness.DefaultAlerts = app.Services.GetRequiredService<Alerter>();
 
 {
     var alerts = app.Services.GetRequiredService<IOptions<AlertOptions>>().Value;
-    if (!alerts.Enabled)
+
+    // AlertOptions.Enabled only knows that an address was typed. Alerter.AnyChannel knows whether anything can actually
+    // leave the box, which is the question here: an address with no mail server behind it is a channel that silently
+    // sends nothing, and the owner who set it is the one most likely to believe they are covered.
+    if (!app.Services.GetRequiredService<Alerter>().AnyChannel)
     {
-        app.Logger.LogWarning("No alert channel is set (Alerts__Webhook, Alerts__Email): a readiness flip, the spend ceiling, a run of model failures or a full disk will only be a log line nobody is watching.");
+        if (!string.IsNullOrWhiteSpace(alerts.Email))
+        {
+            app.Logger.LogWarning("Alerts__Email is set to an address but mail is off (Email__Host and Email__From are empty), so no alert can be sent to it. Set those, or set Alerts__Webhook, which needs no mail server.");
+        }
+
+        app.Logger.LogWarning("No alert channel is reachable (Alerts__Webhook, Alerts__Email): a readiness flip, the spend ceiling, a run of model failures or a full disk will only be a log line nobody is watching.");
     }
 
     var spendCeiling = app.Services.GetRequiredService<IOptions<LimitsOptions>>().Value.SpendPerDayUsd;

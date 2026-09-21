@@ -2222,8 +2222,10 @@ ceiling and the money tiles are computed from. The defaults are the list prices 
 you changed `Anthropic__Model`, or you have an agreement, put your numbers in — everything money-shaped in the app is
 built on those two. Run `dotnet FitCheck.Api.dll --doctor` and read the `spend` line back to yourself.
 
-**Set somewhere for the app to shout.** `Alerts__Webhook` (a Slack or Discord incoming webhook) or `Alerts__Email`
-(one address). Then you hear, before a user tells you: the app started, readiness broke and came back, the spend
+**Set somewhere for the app to shout.** `Alerts__Webhook` (a Slack or Discord incoming webhook — paste the Discord
+URL as Discord gives it to you) or `Alerts__Email` (one address, which only works if you also run a mail server:
+`Email__Host` and `Email__From`. An address without those sends nothing at all). The webhook needs no mail server and
+takes a minute, so set that one first. Then you hear, before a user tells you: the app started, readiness broke and came back, the spend
 ceiling was reached, the model is failing repeatedly, the disk is filling, a backup failed, someone charged back. At
 most one of each per hour, so it will not wake you up in a loop. Prove it: `--doctor --live` sends one test alert now.
 **Treat the webhook URL like a password.**
@@ -2253,8 +2255,9 @@ tax and produce documents, but it does not register you, decide whether you owe 
 והאריחים הכספיים מחושבים ממנו. ברירות המחדל הן מחירי המחירון של המודל שהאפליקציה יוצאת איתו. אם שיניתם את
 `Anthropic__Model`, או שיש לכם הסכם — מכניסים את המספרים שלכם. `--doctor` מדפיס את שניהם בשורת `spend`.
 
-**קובעים לאן האפליקציה צועקת.** `Alerts__Webhook` (Webhook נכנס של Slack או Discord) או `Alerts__Email` (כתובת אחת).
-אז שומעים, לפני שמשתמש מספר: האפליקציה עלתה, המוכנות נפלה וחזרה, התקרה נגמרה, המודל נכשל שוב ושוב, הדיסק מתמלא, גיבוי
+**קובעים לאן האפליקציה צועקת.** `Alerts__Webhook` (Webhook נכנס של Slack או Discord — מדביקים את הכתובת של Discord
+בדיוק כפי שהיא) או `Alerts__Email` (כתובת אחת, שעובדת רק אם מריצים גם שרת מייל: `Email__Host` ו-`Email__From`. כתובת
+בלי אלה לא שולחת כלום). ה-Webhook לא דורש שרת מייל ולוקח דקה, אז מתחילים ממנו. אז שומעים, לפני שמשתמש מספר: האפליקציה עלתה, המוכנות נפלה וחזרה, התקרה נגמרה, המודל נכשל שוב ושוב, הדיסק מתמלא, גיבוי
 נכשל, מישהו עשה ביטול חיוב. לכל היותר אחת מכל סוג בשעה. מוכיחים את זה: `--doctor --live` שולח התראת בדיקה עכשיו.
 **מתייחסים לכתובת ה-Webhook כמו לסיסמה.**
 

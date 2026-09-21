@@ -1133,8 +1133,11 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
     different model or a volume agreement they are wrong. `--doctor` prints the two in use; check them after any model
     change. These are estimates, never Anthropic's invoice: reconcile against the console monthly.
 30. **Set at least one alert channel.** `Alerts__Webhook` is any https URL that takes `{ "text": "…" }` — a Slack
-    incoming webhook as-is, or a Discord webhook URL with `/slack` on the end. `Alerts__Email` is one address and goes
-    through the same mail server as the recovery links, so it needs `Email__Host`/`Email__From`. **The webhook URL is a
+    incoming webhook as-is, or a Discord webhook URL exactly as Discord hands it to you (the app appends Discord's own
+    `/slack` compatibility suffix itself, so you do not have to know about it). `Alerts__Email` is one address and goes
+    through the same mail server as the recovery links, **so on its own it sends nothing**: without `Email__Host` and
+    `Email__From` the address sits there and no alert ever reaches it, which the startup log and `--doctor` both say.
+    The webhook is the channel that needs no mail server, which makes it the one to set first. **The webhook URL is a
     secret**: `.env` only, never `appsettings.json`, and never in a screenshot. You get: the app starting (with the
     version), readiness flipping to failing and back, the spend ceiling, more than `Alerts__ModelFailuresIn10Min`
     (default 5) failed model calls in ten minutes, free space under `Alerts__DiskFreeMb` (default 512), a failed

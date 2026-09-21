@@ -160,6 +160,43 @@ public sealed class Alerter(
         ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
         ?? "unknown";
 
+    /// <summary>
+    /// The body above is Slack's <c>{ "text": "..." }</c>, which a Slack incoming webhook takes as it is. Discord takes
+    /// <c>{ "content": "..." }</c> and answers 400 to Slack's shape — unless <c>/slack</c> is appended to the webhook
+    /// URL, which is Discord's own compatibility endpoint for exactly this. The owner setting this up copies a URL out
+    /// of Discord and pastes it into a secret; nobody tells them about the suffix, and the 400 that follows is a log
+    /// line in a log nobody reads, so the alert channel they believe they configured is silently dead. Appending it
+    /// here is what makes the pasted URL work. A URL that already ends in <c>/slack</c> is left alone, and every other
+    /// host is left alone.
+    /// </summary>
+    public static string SlackShaped(string webhook)
+    {
+        if (!Uri.TryCreate(webhook, UriKind.Absolute, out var uri))
+        {
+            return webhook;
+        }
+
+        var host = uri.Host;
+        var discord = host.Equals("discord.com", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("discordapp.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".discord.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".discordapp.com", StringComparison.OrdinalIgnoreCase);
+        if (!discord)
+        {
+            return webhook;
+        }
+
+        // Only a webhook path; Discord's other routes are not ours to rewrite.
+        var path = uri.AbsolutePath.TrimEnd('/');
+        if (!path.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase) || path.EndsWith("/slack", StringComparison.OrdinalIgnoreCase))
+        {
+            return webhook;
+        }
+
+        var builder = new UriBuilder(uri) { Path = path + "/slack" };
+        return builder.Uri.ToString();
+    }
+
     /// <summary>Whether this kind may speak now, and if so, that it has. One dictionary entry per kind, set on the way past.</summary>
     private bool Allow(string kind)
     {
@@ -189,7 +226,7 @@ public sealed class Alerter(
                 using var client = http.CreateClient(HttpClientName);
                 var body = JsonSerializer.Serialize(new { text = message });
                 using var content = new StringContent(body, Encoding.UTF8, "application/json");
-                using var response = await client.PostAsync(webhook, content, ct);
+                using var response = await client.PostAsync(SlackShaped(webhook), content, ct);
                 if (!response.IsSuccessStatusCode)
                 {
                     // The URL is a secret, so the status is all that goes in the log.

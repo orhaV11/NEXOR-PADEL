@@ -442,4 +442,41 @@ public class AlertTests
         var skipped = await Doctor.InspectAsync(none, root, live: true, stripeOnly: false, new RecordingAlertHandler());
         Assert.Equal(DoctorStatus.Skip, skipped["alerts-live"]!.Status);
     }
+
+    /// <summary>
+    /// Round 16 — the webhook the owner will actually paste. Slack's incoming webhook takes { "text": ... } as it is;
+    /// Discord answers 400 to it unless the URL carries Discord's own /slack compatibility suffix, and that 400 is a log
+    /// line in a log nobody reads, so the channel looks configured and is dead. The suffix is added for a Discord
+    /// webhook URL and for nothing else.
+    /// </summary>
+    [Fact]
+    public void A_discord_webhook_url_is_posted_to_its_slack_endpoint_and_no_other_host_is_touched()
+    {
+        const string discord = "https://discord.com/api/webhooks/123456789/TokenABC";
+        Assert.Equal(discord + "/slack", Alerter.SlackShaped(discord));
+        Assert.Equal(discord + "/slack", Alerter.SlackShaped(discord + "/"));
+        Assert.Equal("https://discordapp.com/api/webhooks/1/t/slack", Alerter.SlackShaped("https://discordapp.com/api/webhooks/1/t"));
+        Assert.Equal("https://ptb.discord.com/api/webhooks/1/t/slack", Alerter.SlackShaped("https://ptb.discord.com/api/webhooks/1/t"));
+
+        // Already suffixed, a different Discord route, another host, and something that is not a URL at all: untouched.
+        Assert.Equal(discord + "/slack", Alerter.SlackShaped(discord + "/slack"));
+        Assert.Equal("https://discord.com/api/channels/1", Alerter.SlackShaped("https://discord.com/api/channels/1"));
+        Assert.Equal(AlertApp.WebhookUrl, Alerter.SlackShaped(AlertApp.WebhookUrl));
+        Assert.Equal("https://hooks.slack.com/services/T/B/X", Alerter.SlackShaped("https://hooks.slack.com/services/T/B/X"));
+        Assert.Equal("not a url", Alerter.SlackShaped("not a url"));
+        Assert.Equal("", Alerter.SlackShaped(""));
+    }
+
+    /// <summary>The rewrite is what the HTTP client is actually handed, not merely what a helper returns.</summary>
+    [Fact]
+    public async Task The_post_goes_to_the_rewritten_url()
+    {
+        using var app = new AlertApp { Settings = { ["Alerts:Webhook"] = "https://discord.com/api/webhooks/42/SecretToken" } };
+        _ = app.NewClient();
+        Assert.True(await app.Alerter.RaiseAsync(Alerter.Kind.Test, "this is a test alert"));
+        await app.Hook.WaitForAsync("this is a test alert");
+
+        var posted = Assert.Single(app.Hook.Posts.Where(p => p.Body.Contains("this is a test alert", StringComparison.Ordinal)));
+        Assert.Equal("https://discord.com/api/webhooks/42/SecretToken/slack", posted.Url.ToString());
+    }
 }

@@ -196,12 +196,14 @@ export function iconButton(name, label, onclick, attrs) { return el('button', { 
 export function link(href, text, cls) { return el('a', { href, text, class: cls || undefined }); }
 
 let toastTimer = null;
-export function toast(message) {
+const TOAST_MS = 2400;
+/** A line at the foot of the screen. ms is for the rare toast that is an instruction rather than an acknowledgement. */
+export function toast(message, ms) {
   const node = $('toast');
   node.classList.add('show');
   node.textContent = message;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { node.classList.remove('show'); node.textContent = ''; }, 2400);
+  toastTimer = setTimeout(() => { node.classList.remove('show'); node.textContent = ''; }, ms || TOAST_MS);
 }
 export function announce(text) {
   const live = $('live');
@@ -749,18 +751,33 @@ export function confirmSheet(title, body, confirmText, danger) {
 
 // ---------- gestures & lists ----------
 
-/** Fires handler on two taps within 300ms on node; a single tap runs single after the window (so links can still navigate). */
+const TAP_WINDOW = 300;    // two clicks this close are one gesture
+const TAP_DEFER = 280;     // ...and a single tap acts this long after the TOUCH that began it
+const TAP_MIN_WAIT = 180;  // ...but never less than this after its click, or a late-delivered second tap has no room to land
+/**
+ * Fires handler on two taps within 300ms on node; a single tap runs single after the window (so links can still navigate).
+ *
+ * The deferral is measured from the TOUCH, not from the click. A browser delivers click well after pointerdown - a
+ * third of a second on an engine still waiting to see whether the tap becomes a zoom - and spending the whole window
+ * again on top of that is what reads as a slow app rather than as a gesture. The budget is the same 280ms it always
+ * was; it now starts where the person thinks it starts. A tap with no pointerdown behind it (a keyboard Enter, which
+ * cannot be doubled) waits not at all.
+ */
 export function doubleTap(node, handler, single) {
-  let last = 0; let timer = null;
+  let last = 0; let timer = null; let downAt = 0;
+  node.addEventListener('pointerdown', () => { downAt = performance.now(); });
   node.addEventListener('click', (event) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;   // open in a new tab etc.
     const now = performance.now();
-    if (now - last < 300) { last = 0; clearTimeout(timer); event.preventDefault(); handler(event); return; }
+    const down = downAt; downAt = 0;
+    if (now - last < TAP_WINDOW) { last = 0; clearTimeout(timer); event.preventDefault(); handler(event); return; }
     last = now;
     if (single) {
       event.preventDefault();
       const hashAtTap = location.hash;
-      timer = setTimeout(() => { if (location.hash === hashAtTap) single(event); }, 280);
+      const wait = down ? Math.max(TAP_MIN_WAIT, TAP_DEFER - (now - down)) : 0;
+      clearTimeout(timer);
+      timer = setTimeout(() => { if (location.hash === hashAtTap) single(event); }, wait);
     }
   });
 }
@@ -864,6 +881,43 @@ export function infiniteList(container, opts) {
 
 // ---------- images ----------
 
+// The ISO base media major brands that mean HEIF. AVIF is deliberately absent: its major brand is 'avif' and every
+// browser that ships AVIF decodes it. 'mif1' is shared with a few other HEIF-shaped files, which costs nothing here:
+// the brand only decides who pays for the decode test below, never who is refused.
+const HEIF_BRANDS = ['heic', 'heix', 'heim', 'heis', 'hevc', 'hevx', 'hevm', 'hevs', 'mif1', 'msf1'];
+/** True when the file's own first bytes (or the type the picker put on it) say HEIF. Never throws; false when unsure. */
+async function looksHeif(file) {
+  const type = (file.type || '').toLowerCase();
+  if (type.indexOf('image/heic') === 0 || type.indexOf('image/heif') === 0) return true;
+  if (type && type.indexOf('image/') !== 0 && type !== 'application/octet-stream') return false;
+  try {
+    if (!file.slice) return false;
+    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    if (head.length < 12) return false;
+    let box = '';
+    for (let i = 4; i < 12; i += 1) box += String.fromCharCode(head[i]);
+    return box.slice(0, 4) === 'ftyp' && HEIF_BRANDS.indexOf(box.slice(4, 8)) >= 0;
+  } catch (e) { return false; }
+}
+/**
+ * A photo this browser cannot open is refused at the picker, not after the stylist's loading screen. Chromium has no
+ * HEIF decoder on any platform, and a Galaxy or Pixel with high-efficiency pictures on hands a .heic straight out of
+ * the gallery: without this it previews as a broken glyph, the check button stays live, and the server answers 415 a
+ * minute later. The test is a decode, not the format name - WebKit opens HEIF, so an iPhone is never refused a photo
+ * it can actually read - and only a file whose first bytes say HEIF pays for it.
+ */
+async function browserCanOpen(file) {
+  if (!(await looksHeif(file))) return true;
+  try {
+    const source = await decodeImage(file);
+    if (source && source.close) source.close();
+    return true;
+  } catch (e) {
+    toast(t('error.image_heic'), 5200);
+    return false;
+  }
+}
+
 const pendingPicks = new Map();
 export function pickFile(inputId) {
   const input = $(inputId);
@@ -877,7 +931,14 @@ export function pickFile(inputId) {
       input.removeEventListener('cancel', onCancel);
       resolve(file);
     };
-    const onChange = () => { const file = input.files && input.files[0]; input.value = ''; done(file || null); };
+    // An image input screens what came back before anyone sees it; a clip input takes the file as it is.
+    const wantsImage = (input.getAttribute('accept') || '').indexOf('image/') === 0;
+    const onChange = () => {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file || !wantsImage) { done(file || null); return; }
+      browserCanOpen(file).then((ok) => done(ok ? file : null), () => done(file));
+    };
     const onCancel = () => done(null);
     pendingPicks.set(inputId, done);
     input.addEventListener('change', onChange);
@@ -1095,6 +1156,24 @@ export function frameToJpeg(video) {
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', JPEG_QUALITY));
 }
+/**
+ * Where nothing starts by itself: under reduced motion by choice, and on a phone that refused a muted autoplay (iOS
+ * with Low Power Mode on refuses every autoplay, muted included). The disc on the card is the play/pause control in
+ * both cases, and the observer stops trying.
+ */
+function manualClip(video) { return reducedMotion() || video.dataset.autoplayRefused === '1'; }
+/** The { video, button } pair for a clip: a refusal fires no media event, so its disc has to be repainted by hand. */
+function clipEntry(video) { for (const entry of clips) { if (entry.video === video) return entry; } return null; }
+/** The browser would not start this clip on its own: free the slot it was holding and let its disc say so. */
+function clipRefused(video, error) {
+  playingClips.delete(video);
+  // An AbortError is pauseClip landing on a play() that had not settled - the person scrolled past. Not a refusal.
+  if (error && error.name && error.name !== 'NotAllowedError') return;
+  if (video.dataset.autoplayRefused === '1') return;
+  video.dataset.autoplayRefused = '1';
+  const entry = clipEntry(video);
+  if (entry) paintSound(entry);
+}
 /** Plays a clip, muted unless sound is on for the session or the person asked for it; a refused unmuted play falls back to silent. */
 function playClip(video, withSound) {
   if (!video.paused) return;
@@ -1104,9 +1183,15 @@ function playClip(video, withSound) {
   }
   video.muted = !(withSound || clipSound);
   const attempt = video.play();
-  if (attempt && attempt.catch) attempt.catch(() => {
+  if (attempt && attempt.catch) attempt.catch((error) => {
     // sound refused without a gesture on this page: play silent rather than not at all
-    if (!video.muted) { video.muted = true; const again = video.play(); if (again && again.catch) again.catch(() => {}); }
+    if (!video.muted) {
+      video.muted = true;
+      const again = video.play();
+      if (again && again.catch) again.catch((silent) => clipRefused(video, silent));
+      return;
+    }
+    clipRefused(video, error);
   });
 }
 function pauseClip(video) {
@@ -1117,8 +1202,9 @@ function observeClip(video) {
   if (!clipObserver) {
     clipObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        // Under reduced motion nothing starts by itself: the disc on the card is the play button. Leaving the screen still pauses.
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden) { if (!reducedMotion()) playClip(entry.target); }
+        // Under reduced motion, and on a phone that already refused one, nothing starts by itself: the disc on the
+        // card is the play button. Leaving the screen still pauses.
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden) { if (!manualClip(entry.target)) playClip(entry.target); }
         else pauseClip(entry.target);
       }
     }, { threshold: [0, 0.6] });
@@ -1133,11 +1219,12 @@ function observeClip(video) {
   clipObserver.observe(video);
 }
 /**
- * The disc on a clip: a plain button named for what a tap does, "Sound on" while muted and "Sound off" while not. Under
- * reduced motion, where nothing autoplays, it is the play/pause control instead ("Play" / "Pause"). .on lights it either way.
+ * The disc on a clip: a plain button named for what a tap does, "Sound on" while muted and "Sound off" while not. Where
+ * nothing autoplays - reduced motion, or a phone that refused one - it is the play/pause control instead ("Play" /
+ * "Pause"). .on lights it either way.
  */
 function paintSound(entry) {
-  const manual = reducedMotion();
+  const manual = manualClip(entry.video);
   const on = manual ? !entry.video.paused : clipSound;
   entry.button.setAttribute('aria-label', t(manual ? (on ? 'video.pause' : 'video.play') : (on ? 'video.mute' : 'video.unmute')));
   entry.button.classList.toggle('on', on);
@@ -1152,12 +1239,16 @@ export function setClipSound(on) {
 export function clipPill() {
   return el('span', { class: 'clip-pill', 'aria-hidden': 'true' }, [icon('clip'), el('span', { text: t('video.clip') })]);
 }
-/** The card's <video>: the still as the poster, muted, looping, inline; only metadata up front (nothing on a data saver). */
+/**
+ * The card's <video>: the still as the poster, muted, looping, inline, and nothing fetched up front. preload='none' is
+ * unconditional - <video> has no loading="lazy", so a page of ten clip cards otherwise opens ten range requests for
+ * looks the reader may never scroll to, racing the ten posters in front of them. The observer's play() loads the media
+ * at the moment it is wanted, and the poster carries the card until it does.
+ */
 function clipVideo(post) {
-  const saveData = !!(navigator.connection && navigator.connection.saveData);
   const video = el('video', {
     src: post.videoUrl, poster: post.imageUrl, muted: true, loop: true, playsinline: true, 'webkit-playsinline': true,
-    preload: saveData ? 'none' : 'metadata', disablepictureinpicture: true, disableremoteplayback: true, 'aria-hidden': 'true', tabindex: '-1'
+    preload: 'none', disablepictureinpicture: true, disableremoteplayback: true, 'aria-hidden': 'true', tabindex: '-1'
   });
   video.muted = !clipSound; video.defaultMuted = true; video.loop = true;
   return video;
@@ -1167,7 +1258,7 @@ function clipControls(video) {
   const entry = { video, button: null };
   entry.button = el('button', { type: 'button', class: 'sound', onclick: (event) => {
     event.preventDefault(); event.stopPropagation();
-    if (!reducedMotion()) { setClipSound(!clipSound); return; }
+    if (!manualClip(video)) { setClipSound(!clipSound); return; }
     if (video.paused) playClip(video, true); else pauseClip(video);   // the tap is the gesture: the clip starts with sound
     paintSound(entry);
   } });
@@ -1240,6 +1331,16 @@ export function afterStrip(post) {
   ]);
 }
 
+// The look photo's gesture rules live here with the gesture (app.css is the lead's). touch-action: manipulation is
+// what stops a double-tap-to-fire from also zooming the page on an engine that still offers double-tap zoom on a
+// width=device-width page - preventDefault on a click cannot cancel that, and app.css:88 sets it on button only, so
+// the photo, which is an <a>, had none. :active replaces the platform tap highlight the shell turns off, so the
+// window doubleTap holds the first tap open for reads as a press and not as a swallowed tap.
+document.head.appendChild(el('style', { text: [
+  '.card-photo, .card-media { touch-action: manipulation; }',
+  '.card-photo:active { opacity: .92; }'
+].join('\n') }));
+
 /** A look card. opts: inChallenge, votes, onDelete, onChange, compact (no caption/match). */
 export function postCard(post, opts) {
   opts = opts || {};
@@ -1269,10 +1370,13 @@ export function postCard(post, opts) {
   ]);
   // The sound button is a sibling of the link (a button inside a link is not a thing), in a wrapper that positions it.
   const mediaNode = isClip ? el('div', { class: 'card-media' }, [photo, clipControls(media)]) : photo;
+  // On the look's own page the photo links to the address we are already at, so the single tap can only do nothing:
+  // holding it open for the double-tap window there is a third of a second of dead screen and no gesture lost.
+  const alreadyHere = state.route.name === 'post' && String(state.route.params.id) === String(post.id);
   doubleTap(photo, () => {
     if (!post.fired) toggleFire(post, fireBtn);
     if (!reducedMotion()) { const burst = el('span', { class: 'burst-flame', icon: 'flameFill' }); photo.appendChild(burst); setTimeout(() => burst.remove(), 750); }
-  }, opts.noOpen ? null : () => { location.hash = '#/post/' + post.id; });
+  }, opts.noOpen || alreadyHere ? null : () => { location.hash = '#/post/' + post.id; });
   const body = el('div', { class: 'card-body' }, [
     post.hidden ? el('p', { class: 'alert danger', text: t('post.hidden') + ' · ' + t('post.hidden_hint') }) : null,
     el('p', { class: 'headline', text: post.headline }),
@@ -1358,10 +1462,22 @@ export function postGrid(posts, opts) {
 
 // ---------- install banner ----------
 
+/**
+ * Add to Home Screen exists in Safari itself and nowhere else on iOS. Every in-app browser - WhatsApp, Telegram, TikTok,
+ * Gmail - is a WKWebView whose share menu has no such item, and Chrome, Firefox, Edge and Opera on iOS carry Safari's
+ * token in their user agent but not its menu. A plain webview's user agent has no "Safari/" token at all, which is the
+ * guard none of the named apps can dodge; the list catches the browsers that do carry it.
+ */
+const canAddToHomeScreen = () => {
+  const ua = navigator.userAgent || '';
+  return isIos() && /safari/i.test(ua) && !/crios|fxios|edgios|opios|instagram|fban|fbav|line\//i.test(ua);
+};
+
 export function installBanner() {
   const prefs = loadPrefs();
   if (isStandalone() || prefs.installDismissed) return null;
-  const ios = isIos() && !state.installPrompt;
+  // The iOS half of the banner spells out a menu; it is offered only where that menu exists.
+  const ios = canAddToHomeScreen() && !state.installPrompt;
   if (!state.installPrompt && !ios) return null;
   const node = el('div', { class: 'install' }, [
     el('div', { class: 'mark', 'aria-hidden': 'true' }, [logoMark(44) || 'O']),
@@ -1379,9 +1495,7 @@ export function installBanner() {
  * Null everywhere else. The Home banner (installBanner) stays what it was: this one sits where the value just landed.
  */
 export function iosInstallHint() {
-  if (!isIos() || isStandalone()) return null;
-  const ua = navigator.userAgent || '';
-  if (!/safari/i.test(ua) || /crios|fxios|edgios|opios|instagram|fban|fbav|line\//i.test(ua)) return null;
+  if (!canAddToHomeScreen() || isStandalone()) return null;
   if (loadPrefs().installHintSeen) return null;
   savePrefs({ installHintSeen: true });
   const node = el('div', { class: 'install', id: 'install-hint', role: 'note' }, [
@@ -1390,6 +1504,25 @@ export function iosInstallHint() {
     el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'install-hint-ok', text: t('install.ok'), onclick: () => node.remove() })
   ]);
   return node;
+}
+
+/**
+ * Chrome fires beforeinstallprompt only once the manifest, the icon and the installability check are through, which on
+ * a first visit is after the feed has painted - and the banner is drawn once, at the top of that render, with nothing
+ * to show. preventDefault() stays: the mini-infobar Chrome would show instead pins itself to the bottom of the
+ * viewport, over the tab bar and the Check control, and once the browser's own UI owns the event the deferred prompt()
+ * behind the banner's Install button is no longer reliably callable. So the banner is placed when the event lands.
+ */
+function offerInstallNow() {
+  if (!state.route || state.route.name !== 'feed') return;
+  const root = view();
+  // .ptr is the pull indicator, which the feed appends after its banner slot and only on the tab that drew a list:
+  // its absence means this render has no place for a banner (a signed-out Your circle) or has not got there yet.
+  if (!root || root.querySelector('.install') || !root.querySelector('.ptr')) return;
+  const node = installBanner();
+  if (!node) return;
+  const anchor = root.querySelector('.sticky-tabs');
+  if (anchor) anchor.after(node); else root.prepend(node);
 }
 
 // ---------- boot ----------
@@ -1433,7 +1566,7 @@ export async function boot() {
     });
   }
   litCheckControl(document.querySelector('.tab.check'));
-  window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); state.installPrompt = event; });
+  window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); state.installPrompt = event; offerInstallNow(); });
   const offline = () => { state.online = navigator.onLine; const bar = $('offline'); bar.hidden = state.online; bar.textContent = t('pwa.offline'); };
   window.addEventListener('online', offline); window.addEventListener('offline', offline); offline();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {

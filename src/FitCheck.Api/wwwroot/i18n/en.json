@@ -1044,5 +1044,6 @@
   "error.nothing_counted": "Nothing was counted.",
   "intent.Formal": "Formal",
   "loading.resumed": "Looking for the check you started…",
-  "check.resume_missing": "We couldn't find the check you started. Add the photo again and the stylist will look."
+  "check.resume_missing": "We couldn't find the check you started. Add the photo again and the stylist will look.",
+  "error.image_heic": "This browser can’t open HEIC photos. Set your camera’s format to JPEG (most compatible) and take the photo again."
 }

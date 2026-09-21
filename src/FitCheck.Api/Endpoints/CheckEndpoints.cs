@@ -546,6 +546,10 @@ public static class CheckEndpoints
             : guestToken is not null
                 ? db.Checks.Where(c => c.UserId == null && c.GuestToken == guestToken)
                 : null;
+        // A row the model failed on is not an answer to go back to: it cost the person nothing (Spend counts every
+        // status but this one) and the screen it would draw talks about the photo, which is not what went wrong. The
+        // caller gets the 404 and the client's own honest line, which sends them back to take it again.
+        mine = mine?.Where(c => c.Status != CheckStatus.Error);
 
         OutfitCheck? check = null;
         if (mine is not null)

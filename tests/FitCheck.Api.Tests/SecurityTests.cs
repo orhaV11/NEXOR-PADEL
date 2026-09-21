@@ -1270,3 +1270,34 @@ public class UploadPathTests
         Assert.DoesNotContain("evil", full);
     }
 }
+
+// ---------- 11. The check that was interrupted: the one private route with no id ----------
+
+/// <summary>
+/// GET /api/checks/latest is the way back to a check whose answer never arrived (CheckRecoveryTests). It is private, and
+/// it is the only private route that carries no id at all - which is why its rule is here and not in
+/// <see cref="IdorEnumerationTests"/>: that test reads every route WITH a parameter and rejects, as stale, a rule for one
+/// without. The rule it would have carried: "the caller's own newest check - the owner's row, or the row this browser's
+/// own guest cookie made; the same 404 as a missing id for everyone else, so it says nothing about what exists."
+/// </summary>
+public class LatestCheckRuleTests
+{
+    [Fact]
+    public async Task There_is_no_id_to_enumerate_and_user_B_still_gets_only_their_own()
+    {
+        using var app = new TestApp();
+        var (a, _, _) = await app.NewUserAsync("latest_a");
+        var checkA = await app.CheckAsync(a);
+        var (b, _, _) = await app.NewUserAsync("latest_b");
+
+        // It is mapped, it is a read, and there is nothing in the address a stranger could put someone else's id into.
+        Assert.Contains(("/api/checks/latest", "GET"), SecurityFixtures.ApiRoutes(app));
+        Assert.False(SecurityFixtures.HasParameter("/api/checks/latest"));
+
+        // B owns nothing here, and nobody owns anything: both get the 404 of a check that does not exist, never A's.
+        Assert.Equal(HttpStatusCode.NotFound, (await b.GetAsync("/api/checks/latest")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await app.NewClient().GetAsync("/api/checks/latest")).StatusCode);
+        var mine = await (await a.GetAsync("/api/checks/latest")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(checkA, mine.GetProperty("id").GetGuid());
+    }
+}

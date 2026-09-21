@@ -1041,5 +1041,6 @@
   "challenge.dash_constraint": "אתגרים עם כלל",
   "share.before_after_video_hint": "עשר שניות, אנכי, בלי קול: שני הלוקים והשינוי האחד. לשתף לטיקטוק או לאינסטגרם, או לשמור לטלפון.",
   "loading.sending": "שולח את הקליפ…",
-  "error.nothing_counted": "לא ניקו לך כלום."
+  "error.nothing_counted": "לא ניקו לך כלום.",
+  "error.image_heic": "הדפדפן הזה לא יודע לפתוח תמונות HEIC. שנו את פורמט המצלמה ל‑JPEG (התואם ביותר) וצלמו שוב."
 }

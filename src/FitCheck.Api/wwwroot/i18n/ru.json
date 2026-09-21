@@ -1041,5 +1041,6 @@
   "challenge.dash_constraint": "Челленджи с правилом",
   "share.before_after_video_hint": "Десять секунд, вертикально, без звука: два образа и одно изменение. Поделитесь в TikTok или Instagram или сохраните на телефон.",
   "loading.sending": "Отправляем видео…",
-  "error.nothing_counted": "Ничего не списано."
+  "error.nothing_counted": "Ничего не списано.",
+  "error.image_heic": "Этот браузер не открывает фото HEIC. Переключите формат камеры на JPEG (наиболее совместимый) и снимите заново."
 }

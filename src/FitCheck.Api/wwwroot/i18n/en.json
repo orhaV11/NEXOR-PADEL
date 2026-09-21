@@ -1041,5 +1041,6 @@
   "challenge.dash_constraint": "Challenges with a rule",
   "share.before_after_video_hint": "Ten seconds, vertical, silent: the two looks and the one change. Share it to TikTok or Instagram, or save it to your phone.",
   "loading.sending": "Sending your clip…",
-  "error.nothing_counted": "Nothing was counted."
+  "error.nothing_counted": "Nothing was counted.",
+  "error.image_heic": "This browser can’t open HEIC photos. Set your camera’s format to JPEG (most compatible) and take the photo again."
 }

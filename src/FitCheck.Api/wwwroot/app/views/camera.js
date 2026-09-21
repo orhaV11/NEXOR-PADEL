@@ -208,7 +208,7 @@ function mountCamera(root, initialMode) {
     // Microphone") and one site-level allow on Android, where a person who blocks the microphone has blocked the
     // CAMERA too - for good, on every later visit - and taking a photo here is over before it began. The ask moves to
     // the moment clip mode is chosen (setMode re-opens), where "and microphone" is the obvious half of the question.
-    const wantAudio = mode === 'clip' && typeof MediaRecorder !== 'undefined';
+    const wantAudio = mode === 'clip' && !micRefused && typeof MediaRecorder !== 'undefined';   // asked once and refused: a flip must not ask again
     try { return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: wantAudio }); }
     catch (e) {
       // No microphone, or one that was refused: the clip is silent and the camera still opens. A refused camera fails

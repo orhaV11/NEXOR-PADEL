@@ -55,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     ? new Request('/index.html', { cache: 'no-cache', credentials: 'same-origin' })
     : new Request(event.request, { cache: 'no-cache' });
   const cacheKey = isNavigation ? '/index.html' : url.pathname;
-  const cached = caches.match(cacheKey);
+  const cached = caches.match(cacheKey).catch(() => undefined);   // a cache that refuses to answer is simply no cache
   // Network first, exactly as before: the fetch starts on this line, revalidates, and a good answer replaces the entry,
   // so a deploy is picked up as one consistent set. What is new is only what happens while it neither answers nor
   // fails. waitUntil keeps this worker alive for the cache.put even when the answer below came from the cache.

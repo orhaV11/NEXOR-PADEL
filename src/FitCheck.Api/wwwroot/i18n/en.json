@@ -966,7 +966,7 @@
   "pro.benefit_taste": "The stylist remembers you",
   "pro.benefit_taste_hint": "What you tried, what worked and what you turned down, carried into the next tip.",
   "pro.benefit_wardrobe": "Tips from your own wardrobe",
-  "pro.benefit_wardrobe_hint": "\"Swap the black tights for the brown ones you wore on the 4th\" instead of \"buy brown tights\".",
+  "pro.benefit_wardrobe_hint": "Your whole wardrobe reaches the stylist, not the first {free}. \"Swap the black tights for the brown ones you wore on the 4th\" instead of \"buy brown tights\".",
   "pro.fair_use": "Fair use: {checks} checks and {compares} comparisons a day.",
   "pro.allowance_month": "{n} checks a month, split between looks and comparisons however you like.",
   "wardrobe.title": "Your wardrobe",

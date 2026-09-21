@@ -391,6 +391,9 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     // reads the reader's REGION from the browser (not their language: where somebody reads and where their bank is
     // are different facts) and shows the price for it, falling back to ProPriceCurrency.
     Dictionary<string, decimal>? ProPrices = null, Dictionary<string, string>? CurrencyByRegion = null,
+    // How many wardrobe pieces reach the stylist on each plan (Plans:WardrobeNamesToStylist and its Pro twin). The Pro
+    // page names the free number, so the benefit reads as the addition it is rather than a vague "more".
+    int WardrobeNames = 0, int WardrobeNamesPro = 0,
     // What a reader from a country this server does not price in is shown (Plans:ProPriceWorldCurrency, else ProPriceCurrency).
     string FallbackCurrency = "");
 

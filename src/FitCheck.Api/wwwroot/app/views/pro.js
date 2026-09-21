@@ -144,7 +144,7 @@ register('pro', async (root, params, ctx) => {
   root.appendChild(el('ul', { class: 'pro-benefits' }, [
     benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
     plans.tasteNeedsPro ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
-    plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint')) : null,
+    plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint', { free: plans.wardrobeNames || 12 })) : null,
     plans.compareNeedsPro ? benefit('ring', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
   ]));
   // The cap, once and last, as what it is: a fair-use brake, not the product. Both numbers as the server really

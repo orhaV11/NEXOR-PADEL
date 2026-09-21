@@ -412,6 +412,23 @@ public sealed class PlanOptions
     public int WardrobeNamesToStylist { get; set; } = 12;
 
     /// <summary>
+    /// Round 16 - how many wardrobe pieces reach the stylist for a PRO account. This is what Pro is: an ADDITION that
+    /// takes nothing from anybody, and the one benefit that grows the longer somebody stays.
+    /// <para>
+    /// Twelve is a handful. Somebody who has kept sixty pieces has a closet the stylist has never seen four fifths of,
+    /// so "the brown ones you wore on the 4th" only ever reaches for the same dozen. Forty is most people's real
+    /// wardrobe, and it costs about a tenth of a cent a check - roughly 110 more input tokens - so the thing worth
+    /// paying for is also the cheapest thing here to give.
+    /// </para>
+    /// Below <see cref="WardrobeNamesToStylist"/> it is ignored: Pro is never the smaller slice.
+    /// </summary>
+    public int WardrobeNamesToStylistPro { get; set; } = 40;
+
+    /// <summary>How many pieces reach the stylist for this account, which is <see cref="WardrobeNamesToStylist"/> unless Pro buys more.</summary>
+    public int WardrobeNamesFor(bool isPro) =>
+        isPro ? Math.Max(WardrobeNamesToStylist, WardrobeNamesToStylistPro) : WardrobeNamesToStylist;
+
+    /// <summary>
     /// Round 14: whether the wardrobe reaching the STYLIST is Pro's (the wardrobe itself is everyone's — it cannot build
     /// itself otherwise). True, and it is what Pro sells: a free account keeps, renames and deletes pieces and reads its
     /// own list, and POST /api/wardrobe/stylist answers 403 error.pro_required. False gives it to everyone, for a server

@@ -287,7 +287,12 @@ public class WardrobeTests
     [Fact]
     public async Task Only_a_handful_of_names_travel_most_recently_worn_first()
     {
-        using var app = new TestApp { Settings = { ["Plans:WardrobeNamesToStylist"] = "1" } };
+        // Round 16: the Pro slice is its own number and this account is Pro, so both have to be pinned or the wider
+        // one wins and nothing is cut. The test is about the cut, not about which plan gets how much.
+        using var app = new TestApp
+        {
+            Settings = { ["Plans:WardrobeNamesToStylist"] = "1", ["Plans:WardrobeNamesToStylistPro"] = "1" }
+        };
         var (me, id, _) = await app.NewUserAsync("wr_few");
         MakePro(app, id);
 

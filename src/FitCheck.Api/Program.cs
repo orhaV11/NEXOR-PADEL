@@ -686,7 +686,9 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
             Math.Max(0, plans.Value.ProCallsPerMonth),
             Math.Max(0m, plans.Value.ProPriceAmount), (plans.Value.ProPriceCurrency ?? "").Trim().ToUpperInvariant(),
             plans.Value.TasteProfile && plans.Value.TasteNeedsPro,
-            plans.Value.PriceTable(), plans.Value.RegionCurrencies(), plans.Value.FallbackCurrency()),
+            plans.Value.PriceTable(), plans.Value.RegionCurrencies(),
+            plans.Value.WardrobeNamesToStylist, plans.Value.WardrobeNamesFor(true),
+            plans.Value.FallbackCurrency()),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

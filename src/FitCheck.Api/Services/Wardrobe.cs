@@ -269,14 +269,19 @@ public static class Wardrobe
             return [];
         }
 
+        // Round 16: how much of the closet the stylist gets to see is what Pro buys. Free keeps the same handful it
+        // always had; Pro's is wider, so a tip can reach for the piece somebody actually owns rather than one of the
+        // same twelve. About 110 more input tokens on a call - a tenth of a cent.
+        var names = plans.WardrobeNamesFor(Plans.IsPro(user, now));
+
         // A few more rows than the prompt takes, so the ones dropped for being "other" or for naming a person do not
         // leave the list short; PromptNames does the ordering and the cut again over what comes back.
         var items = await db.WardrobeItems.AsNoTracking()
             .Where(i => i.UserId == userId)
             .OrderByDescending(i => i.LastSeenAt).ThenByDescending(i => i.CreatedAt)
-            .Take(plans.WardrobeNamesToStylist * 3)
+            .Take(names * 3)
             .ToListAsync(ct);
-        return PromptNames(items, plans.WardrobeNamesToStylist);
+        return PromptNames(items, names);
     }
 }
 

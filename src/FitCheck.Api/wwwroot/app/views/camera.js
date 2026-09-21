@@ -12,6 +12,7 @@ import { receiveCapture, takePhotoFile, takeClipFile, cameraReturn } from './che
 const HOLD_MS = 250;        // a press this long starts a clip
 const MIN_CLIP_MS = 1000;   // a clip released before this keeps rolling to a second
 const GUIDE_MS = 3000;      // the framing guide fades after this; a tap brings it back
+const MIN_GUIDE_PX = 160;   // a dashed frame shorter than this marks nothing useful, so it is not drawn
 const RING_R = 36;          // the 76px shutter ring: r 36, stroke 4
 const RING_C = 2 * Math.PI * RING_R;
 // The first container MediaRecorder can write, asked for with explicit codecs so isTypeSupported can refuse: H.264 mp4 on
@@ -43,7 +44,7 @@ html[data-route="camera"] .view { padding: 0; }
 /* the framing guide: a dotted rounded frame for a full-length look, dimmed edges, the hint under it */
 .cam-guide { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding-block: calc(60px + var(--safe-t)) calc(206px + var(--safe-b)); padding-inline: 32px; pointer-events: none; transition: opacity 400ms ease; }
 .cam-guide.hide { opacity: 0; }
-.cam-guide .box { flex: none; block-size: min(62vh, 460px, 100%); max-block-size: calc(100% - 60px); aspect-ratio: 4 / 7; border: 2px dashed rgba(255, 255, 255, 0.78); border-radius: 30px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.16); }
+.cam-guide .box { flex: none; block-size: min(62vh, 460px, 100%); max-block-size: min(calc(100% - 60px), var(--cam-room, 100%)); aspect-ratio: 4 / 7; border: 2px dashed rgba(255, 255, 255, 0.78); border-radius: 30px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.16); }
 .cam-guide p { text-align: center; font-size: 14px; line-height: 1.4; font-weight: 500; color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 html[data-route="camera"] .toast { inset-block-end: calc(236px + var(--safe-b)); }   /* above the shutter, not on it: the dock it normally clears is hidden here */
 .cam-top { position: absolute; inset-inline: 0; inset-block-start: 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; padding-block: calc(8px + var(--safe-t)) 8px; padding-inline: 8px; }
@@ -168,6 +169,35 @@ function mountCamera(root, initialMode) {
     stage, guide, flash, count, top, rec, bottom, preview, stateLayer
   ]);
   root.appendChild(cam);
+  // The dotted guide marks the frame, so it may never reach past the frame's edge into the letterbox. The stage paints
+  // the track with object-fit: contain, so the painted rectangle is known from the track's own shape; this is how much
+  // room the box has inside it, given where the column (box, gap, hint) centres. On a phone, where the track is portrait
+  // and the frame is nearly the whole screen, it is larger than the caps beside it and nothing changes. 'resize' on the
+  // video fires when a track turns; the window's fires when the phone does.
+  function fitGuide() {
+    const r = stage.getBoundingClientRect();
+    if (!video.videoWidth || !video.videoHeight || !r.height) return;
+    const painted = video.videoHeight * Math.min(r.width / video.videoWidth, r.height / video.videoHeight);
+    const frameTop = r.top + (r.height - painted) / 2;
+    const frameBottom = r.bottom - (r.height - painted) / 2;
+    const style = getComputedStyle(guide);
+    const box = guide.getBoundingClientRect();
+    const padTop = parseFloat(style.paddingTop) || 0;
+    const contentTop = box.top + padTop;
+    const contentHeight = Math.max(0, box.height - padTop - (parseFloat(style.paddingBottom) || 0));
+    const under = (parseFloat(style.rowGap) || 0) + (guide.lastElementChild ? guide.lastElementChild.offsetHeight : 0);   // the gap and the hint, which sit under the box in the same column
+    const room = Math.min(
+      contentHeight - under - 2 * (frameTop - contentTop),                       // the height at which the box's top meets the frame's
+      2 * (frameBottom - contentTop - contentHeight / 2 + under / 2)             // and the one at which its bottom does
+    );
+    guide.style.setProperty('--cam-room', Math.max(0, room) + 'px');
+    // A frame with no room for a full-length box - a laptop's landscape webcam, say - gets no box at all rather than a
+    // dashed stub that marks nothing. The hint under it is the instruction and it stays, on screen and in the tree.
+    guide.firstElementChild.hidden = room < MIN_GUIDE_PX;
+  }
+  video.addEventListener('loadedmetadata', fitGuide);
+  video.addEventListener('resize', fitGuide);
+  window.addEventListener('resize', fitGuide);
   if (typeof MediaRecorder === 'undefined') modes.hidden = true;   // photos only where clips cannot be recorded
   setMode(mode);
 
@@ -199,6 +229,7 @@ function mountCamera(root, initialMode) {
     if (destroyed || seq !== openSeq) { if (stream === next) stopStream(); return; }
     setPhase('live');
     paintNote();
+    fitGuide();
     showGuide();
     countCameras();
   }
@@ -523,6 +554,7 @@ function mountCamera(root, initialMode) {
     dropCapture();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', stopStream);
+    window.removeEventListener('resize', fitGuide);
   }
 
   return { open, destroy };

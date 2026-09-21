@@ -1041,5 +1041,10 @@
   "challenge.dash_constraint": "אתגרים עם כלל",
   "share.before_after_video_hint": "עשר שניות, אנכי, בלי קול: שני הלוקים והשינוי האחד. לשתף לטיקטוק או לאינסטגרם, או לשמור לטלפון.",
   "loading.sending": "שולח את הקליפ…",
-  "error.nothing_counted": "לא ניקו לך כלום."
+  "error.nothing_counted": "לא ניקו לך כלום.",
+  "sharecard.save_ios": "הורדה לקבצים",
+  "sharecard.saved_ios": "באייפון זה נשמר לקבצים, לא לתמונות.",
+  "video.save_ios": "הורדה לקבצים",
+  "video.saved_ios": "באייפון זה נשמר לקבצים, לא לתמונות.",
+  "video.ios_files_hint": "אין כאן שיתוף קבצים, אז הסרטון יורד לקבצים. אפשר לפתוח אותו בקבצים ולשתף משם כדי לשמור בתמונות."
 }

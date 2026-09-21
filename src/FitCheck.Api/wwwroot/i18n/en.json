@@ -1041,5 +1041,10 @@
   "challenge.dash_constraint": "Challenges with a rule",
   "share.before_after_video_hint": "Ten seconds, vertical, silent: the two looks and the one change. Share it to TikTok or Instagram, or save it to your phone.",
   "loading.sending": "Sending your clip…",
-  "error.nothing_counted": "Nothing was counted."
+  "error.nothing_counted": "Nothing was counted.",
+  "sharecard.save_ios": "Download to Files",
+  "sharecard.saved_ios": "iPhone saves this to Files, not Photos.",
+  "video.save_ios": "Download to Files",
+  "video.saved_ios": "iPhone saves this to Files, not Photos.",
+  "video.ios_files_hint": "There's no file share sheet here, so this downloads to Files. Open it in Files and share it from there to keep it in Photos."
 }

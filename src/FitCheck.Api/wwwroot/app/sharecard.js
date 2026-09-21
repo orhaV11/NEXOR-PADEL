@@ -8,7 +8,7 @@
 // draws the card, shows it, and offers Share (the system share sheet with the file, where the browser can) and Save.
 // The drawing helpers (the stage, the cover crop, the gradient, the ring's colours, text with its own direction, fit and
 // wrap by measureText, the image and font loaders) are exported: app/sharevideo.js draws the 12-second video with them.
-import { t, el, icon, sheet, toast, state, intentLabel, fmtNumber, isIos } from './core.js';
+import { t, el, icon, sheet, toast, state, intentLabel, fmtNumber, isIos, isStandalone, configuredOrigin } from './core.js';
 
 // ---------- the card ----------
 
@@ -38,6 +38,28 @@ export function strongDir(text) {
   const m = new RegExp(rtl.source + '|' + ltr.source).exec(text || '');
   if (!m) return null;
   return rtl.test(m[0]) ? 'rtl' : 'ltr';
+}
+
+/**
+ * The base direction of a WRAPPED paragraph, for the lines wrap() just made of it.
+ *
+ * Base direction is a property of a paragraph, not of a line: it is decided by the paragraph's first strong character
+ * and then every line of it is reordered against that one direction. A canvas has no bidi of its own, so each line has
+ * to be told — and telling each line its OWN direction is what goes wrong: a Hebrew sentence that wraps so one line
+ * starts with a Latin word gets that line laid out left-to-right while the rest runs right-to-left, and the Latin word
+ * lands at the far end of the line from where it was written. (unicode-bidi: plaintext, app.css:120, is exactly this
+ * rule and is what the page does with the same strings.)
+ *
+ * wrap() only splits on whitespace and keeps the order, and fit() only trims a tail, so the paragraph's first strong
+ * character is the first strong character of the first line that has one. A paragraph with no strong character at all
+ * (a number, an emoji) falls back to the card's own direction.
+ */
+export function paragraphDir(lines, dir) {
+  for (const line of lines) {
+    const own = strongDir(line);
+    if (own) return own;
+  }
+  return dir;
 }
 
 /** The fonts the card sets; a missing face falls back to the stack, and a slow network never holds the card for more than a moment. */
@@ -188,8 +210,10 @@ function drawWords(ctx, look, dir) {
   ctx.font = '700 ' + HEADLINE.size + 'px ' + DISPLAY;
   if ('letterSpacing' in ctx) ctx.letterSpacing = '-0.5px';
   const lines = wrap(ctx, look.headline, width, HEADLINE.lines);
+  // One direction for the whole headline, not one per line: see paragraphDir.
+  const par = paragraphDir(lines, dir);
   lines.forEach((line, i) => text(ctx, line, startX, HEADLINE.baseline + i * HEADLINE.line, {
-    font: '700 ' + HEADLINE.size + 'px ' + DISPLAY, color: COLOR.ink, dir, textDir: strongDir(line) || dir, tracking: '-0.5px'
+    font: '700 ' + HEADLINE.size + 'px ' + DISPLAY, color: COLOR.ink, dir, textDir: par, tracking: '-0.5px'
   }));
   // The intent as the label pill: caps in lilac on the lilac tint. Hebrew has no capitals; its label steps up a size, as in app.css.
   const label = intentLabel(look.intent).toUpperCase();
@@ -222,14 +246,39 @@ function drawWords(ctx, look, dir) {
   }
 }
 /**
+ * A host somebody else could actually open. Anything that only resolves on this machine or this network is not one: a
+ * card travels, and "localhost/look/…" on a story is a dead end with a brand on it.
+ */
+function reachableHost(host) {
+  const h = (host || '').toLowerCase();
+  if (!h || h === 'localhost' || /\.(?:localhost|local|internal|home\.arpa)$/.test(h)) return false;
+  if (h.startsWith('[') || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(h)) return false;   // an address literal, v6 or v4: never a shared address
+  return h.includes('.');   // a single-label name is a LAN name, not a public one
+}
+
+/**
+ * The origin a card may print, and the only rule for it: the one the server publishes for itself (/api/config
+ * publicOrigin — Email:PublicOrigin, else Billing:PublicOrigin), else this browser's own address when that address is a
+ * real https one somebody else could open.
+ *
+ * The second half is the tunnel: on `dotnet run` + cloudflared neither setting is there, but the phone looking at the
+ * app reached it at https://something.trycloudflare.com, and that IS the address of the thing — the card is the one
+ * piece that has to say where to go. It is deliberately NOT linkOrigin() (core.js): that falls back to location.origin
+ * unconditionally, which is right for a link the person is about to copy and wrong for a file that travels.
+ */
+export function shareableOrigin() {
+  const configured = configuredOrigin();
+  if (configured) return configured;
+  return location.protocol === 'https:' && reachableHost(location.hostname) ? location.origin : '';
+}
+
+/**
  * Round 13 — the growth loop: the line the card and the video's end card carry, so the picture says where to go.
  * "orevosh.app/look/<id>" for a look that is posted (the page anyone can open with no app and no account), the host
- * alone for one that is not, and '' when the server publishes no origin of its own (/api/config publicOrigin, which is
- * Email:PublicOrigin or Billing:PublicOrigin): a card travels, and a localhost line on somebody's story would be a lie.
+ * alone for one that is not, and '' when there is no address worth printing at all.
  */
 export function publicLinkLine(look) {
-  const configured = state.config && state.config.publicOrigin;
-  const origin = typeof configured === 'string' ? configured.trim() : '';
+  const origin = shareableOrigin();
   if (!origin) return '';
   let host = '';
   try { host = new URL(origin).host; } catch (e) { return ''; }
@@ -316,7 +365,10 @@ export function lookFromCheck(result, imageUrl) {
   const me = state.me ? { name: state.me.name, handle: state.me.handle } : null;
   return {
     imageUrl, score: feedback.score, intent: result.intent, headline: feedback.headline, user: me, createdAt: result.createdAt,
-    postId: state.resultPostId || result.postId || null
+    // Read when the card is DRAWN, not when the button is made. The result screen builds its share row once, before the
+    // look has been posted, and posting re-renders only the post area — so a snapshot taken here is null for the person
+    // who checks, taps Post it, and taps Share card in the next breath, and their card carries no address at all.
+    get postId() { return state.resultPostId || result.postId || null; }
   };
 }
 
@@ -340,7 +392,8 @@ const canShareFile = (file) => !!(navigator.share && navigator.canShare && navig
 
 /**
  * Draws the card in a sheet ("Drawing the card…"), then shows it with Share (the system share sheet with the image, when
- * the browser can share files) and Save (a download; on iOS the hint says to press and hold the image instead).
+ * the browser can share files) and Save (a download — named for where it goes on an iPhone, which is Files and not
+ * Photos; the hint there says to press and hold the image, which is the route to Photos).
  */
 export async function openShareCard(look, opts) {
   // Round 14 - before and after: opts lets the pair's card use this sheet as it is — { render(look) } draws something
@@ -372,7 +425,16 @@ export async function openShareCard(look, opts) {
       catch (e) { if (!(e && (e.name === 'AbortError' || e.name === 'InvalidStateError'))) toast(t('sharecard.error')); }
       finally { state.sharing = false; }
     } }, [icon('share'), t('sharecard.share')]) : null;
-    const save = el('a', { class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sc-save', href: objectUrl, download: file.name, onclick: () => { if (opts.onKept) opts.onKept(); if (!isIos()) toast(t('sharecard.saved')); } }, [icon('image'), t('sharecard.save')]);
+    // What Save actually is, per platform. An <a download> of a blob lands in Files on an iPhone and never in Photos,
+    // so on iOS it says so and the toast says so; the press-and-hold hint below is the route to Photos and stays.
+    // Inside an installed iOS app there is no download manager at all, so where Share can take the file the anchor is
+    // dropped rather than left to look live: a chrome-less window has nothing to show for a download and a no-op
+    // download attribute could navigate the hash router out of it.
+    const ios = isIos();
+    const save = ios && share && isStandalone() ? null : el('a', {
+      class: 'btn ' + (share ? 'btn-secondary' : ''), id: 'sc-save', href: objectUrl, download: file.name,
+      onclick: () => { if (opts.onKept) opts.onKept(); toast(t(ios ? 'sharecard.saved_ios' : 'sharecard.saved')); }
+    }, [icon('image'), t(ios ? 'sharecard.save_ios' : 'sharecard.save')]);
     content.replaceChildren(
       el('div', { class: 'sc-stage' }, [el('img', { src: objectUrl, alt: t('sharecard.title'), id: 'sc-card' })]),
       el('p', { class: 'hint', text: t('sharecard.hint') + (isIos() ? ' ' + t('sharecard.ios_hint') : '') }),
@@ -494,8 +556,10 @@ function drawChange(ctx, plan, dir) {
   text(ctx, t('share.change_label').toUpperCase(), textX, y + 62, {
     font: '700 ' + (rtl ? 30 : 26) + 'px ' + BODY, color: COLOR.accent, dir, tracking: rtl ? '0.6px' : '2.5px'
   });
+  // One direction for the whole block, not one per line: see paragraphDir.
+  const par = paragraphDir(lines, dir);
   lines.forEach((line, i) => text(ctx, line, textX, y + 130 + i * lineH, {
-    font: '700 ' + size + 'px ' + DISPLAY, color: COLOR.ink, dir, textDir: strongDir(line) || dir, tracking: '-0.5px'
+    font: '700 ' + size + 'px ' + DISPLAY, color: COLOR.ink, dir, textDir: par, tracking: '-0.5px'
   }));
 }
 

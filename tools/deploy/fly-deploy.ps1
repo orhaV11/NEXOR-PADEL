@@ -14,11 +14,12 @@
   Committing either one locally is the obvious thing to do and the wrong one: every pull then becomes a merge, and a
   merge that stops half-way blocks everything behind it. So this script treats them as build steps instead:
 
-      1. abandon a merge left half-finished by an earlier attempt
-      2. make the working tree exactly the remote branch  (this DISCARDS local changes - see the warning)
-      3. put this deployment's app name back into fly.toml, so `fly ...` typed by hand also finds the app
-      4. put this deployment's origin back into the nine files
-      5. deploy
+      1. check the Fly session is alive, before spending three minutes finding out it is not
+      2. abandon a merge left half-finished by an earlier attempt
+      3. make the working tree exactly the remote branch  (this DISCARDS local changes - see the warning)
+      4. put this deployment's app name back into fly.toml, so `fly ...` typed by hand also finds the app
+      5. put this deployment's origin back into the nine files
+      6. deploy
 
   WARNING: step 2 throws away anything you changed here. That is the point - this folder is a deployment checkout, not
   a place to write code. If you ever do edit something here and want to keep it, commit and push it first.
@@ -49,6 +50,49 @@ foreach ($tool in 'git', 'node', 'fly') {
     Fail "$tool is not installed, or not on PATH. Open a new terminal and try again; if it still says this, reinstall $tool."
   }
 }
+
+# The Fly session, BEFORE anything expensive. flyctl makes you log in again 30 days after your last login whatever
+# else is true (internal/command.TokenTimeout), and a token can also stop working earlier, so this comes up. This is not a guess about which check is meaningful: flyctl signs the
+# calls that set up and finish a build (internal/uiex/builders.go - CreateBuild, FinishBuild, EnsureDepotBuilder) with
+# cfg.Tokens.GraphQL(), and `fly auth whoami` asks the same API with the same token. So a whoami that works means those
+# calls will authenticate, and a whoami that fails means the deploy was going to fail three minutes from now instead.
+#
+# It also explains a failure that looks impossible: the image can build and every layer can PUSH successfully and the
+# deploy still ends in 401, because the push runs on a separate build token the builder handed out earlier
+# (depotbuild.FromExistingBuild with the BuildToken), while the calls around it use the session token. A dead session
+# with a live build token gives you exactly that - a perfect build and a 401 at the end.
+Step 'Checking the Fly session'
+
+# A token in the environment REPLACES the one `fly auth login` writes (flyctl's config.applyEnv: FLY_ACCESS_TOKEN,
+# then FLY_API_TOKEN, either one wins over the file). If a stale one is set, logging in again changes nothing and the
+# 401 comes back looking identical - so say it here rather than let it be debugged twice.
+foreach ($name in 'FLY_ACCESS_TOKEN', 'FLY_API_TOKEN') {
+  if ([Environment]::GetEnvironmentVariable($name)) {
+    Write-Host "    WARNING: $name is set in this terminal. flyctl uses it INSTEAD of the account you log in as." -ForegroundColor Yellow
+    Write-Host "    If the deploy fails with 'unauthorized', clear it first:  Remove-Item Env:\$name" -ForegroundColor Yellow
+  }
+}
+
+# --json is not for the output, it is to keep this non-interactive. Without it, flyctl's RequireSession asks "Would
+# you like to sign in?" on a terminal and waits - and since this captures the command's output, the question would be
+# invisible and the script would look frozen. With --json it returns an error instead, which is what a check wants.
+$whoLines = @(fly auth whoami --json 2>&1 | ForEach-Object { $_.ToString() })
+$whoExit = $LASTEXITCODE
+$who = (($whoLines -join ' ').Trim())
+if ($whoExit -ne 0) {
+  Fail @"
+Your Fly session has expired, so the deploy would have failed at the end. Nothing has been changed. Run:
+
+    fly auth login
+
+(a browser opens; approve it) and then this script again.
+
+Fly said: $who
+"@
+}
+# {"email":"you@example.com"} -> you@example.com, and the raw line if it ever stops looking like that.
+$email = if ($who -match '"email"\s*:\s*"([^"]+)"') { $Matches[1] } else { $who }
+Write-Host "    signed in to Fly as $email"
 
 Step 'Clearing anything left half-done'
 # Ask whether a merge is in progress rather than trying and ignoring the failure: quieter, and it cannot mask a real one.
@@ -101,14 +145,30 @@ if ($LASTEXITCODE -ne 0) { Fail 'A placeholder host is still in the shipped page
 Step 'Deploying to Fly'
 fly deploy --ha=false --app $App
 if ($LASTEXITCODE -ne 0) {
+  # The session was good a minute ago - this script just checked it - so an 'unauthorized' here is not simply a stale
+  # login. Two things end a deploy in 401 after a clean whoami: the token expiring or failing to re-discharge during
+  # the deploy (flyctl refreshes discharge tokens in the background and gives up quietly when the network drops one),
+  # and Fly's build API being unhappy on its side. Both are usually gone on a second run, which is why that is first.
   Fail @"
-The deploy failed.
+The deploy failed. The build itself may well have worked - look for 'pushing layer' above. If it is there, the image
+was built and uploaded and only the last step failed.
 
-If it says 'unauthorized', your Fly session has expired - this happens every few hours. Run:
+1. Run this script again. Most of these clear on a second run, and the build is cached, so it is quick.
 
-    fly auth login
+2. Still 'unauthorized'? The session died mid-deploy. Run:
 
-and then this script again. Anything else: send me the output above.
+       fly auth login
+
+   and then this script again.
+
+3. Still failing, and the error mentions 'depot builder'? That is Fly's shared build service, not your app. Skip it:
+
+       fly deploy --ha=false --app $App --depot=false
+
+   This builds on a builder machine in your own Fly account instead (Fly creates one the first time, and it costs a
+   little). Use it to get unstuck; go back to this script afterwards.
+
+Anything else: send me the output above.
 "@
 }
 

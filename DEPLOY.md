@@ -120,6 +120,31 @@ Fly builds the image from the `Dockerfile` on its own builders, starts one machi
 it. `--ha=false` matters: without it Fly starts two machines for high availability, and this app must run as one process
 (the README's limitations; a second machine would also want a volume of its own). Then:
 
+**When a deploy ends in `401 Unauthorized`.** Usually it reads `ensure depot builder failed, please try again
+(status 401)`, and it is confusing because the build clearly worked: the image built, every layer says `pushing
+layer`, and only the last step failed. That is not a contradiction. flyctl asks Fly for a builder, gets back a
+*build token* and uses that token to build and push, but the calls that open and close the build
+(`CreateBuild`, `FinishBuild`, `EnsureDepotBuilder`) are signed with your ordinary **session** token. So a dead
+session and a live build token give you exactly that shape - a perfect build and a 401 at the end.
+
+Which means the one-second question is whether the session is alive:
+
+```bash
+fly auth whoami --json     # your email, or an error. Same token the failing calls use.
+```
+
+`--json` matters: without it flyctl offers to log you in interactively, which is fine by hand and hangs a script.
+An error here means `fly auth login` and try again — flyctl also forces a fresh login 30 days after the last one,
+whatever else is true. Your email here means the session is fine and the 401 was Fly's side or a dropped
+connection; run the deploy again, the build is cached and it is quick. If it keeps failing on the *depot builder*
+specifically, that is Fly's shared build service and you can go around it with
+`fly deploy --ha=false --depot=false`, which builds on a builder machine in your own account instead (Fly creates
+one the first time, and it costs a little).
+
+One trap worth knowing: if `FLY_API_TOKEN` or `FLY_ACCESS_TOKEN` is set in your shell, flyctl uses it **instead of**
+the account you log in as, so `fly auth login` appears to work and changes nothing. `tools/deploy/fly-deploy.ps1`
+runs all of the above before it builds anything, and says which case you are in.
+
 ```bash
 fly status                                        # the machine: started, its check passing
 fly logs                                          # "Database /data/orevosh.db is new: creating the schema from the migrations."

@@ -175,16 +175,16 @@ function mountCamera(root, initialMode) {
   // and the frame is nearly the whole screen, it is larger than the caps beside it and nothing changes. 'resize' on the
   // video fires when a track turns; the window's fires when the phone does.
   function fitGuide() {
-    const r = stage.getBoundingClientRect();
-    if (!video.videoWidth || !video.videoHeight || !r.height) return;
-    const painted = video.videoHeight * Math.min(r.width / video.videoWidth, r.height / video.videoHeight);
-    const frameTop = r.top + (r.height - painted) / 2;
-    const frameBottom = r.bottom - (r.height - painted) / 2;
+    const stageRect = stage.getBoundingClientRect();
+    if (!video.videoWidth || !video.videoHeight || !stageRect.height) return;
+    const painted = video.videoHeight * Math.min(stageRect.width / video.videoWidth, stageRect.height / video.videoHeight);
+    const frameTop = stageRect.top + (stageRect.height - painted) / 2;
+    const frameBottom = stageRect.bottom - (stageRect.height - painted) / 2;
     const style = getComputedStyle(guide);
-    const box = guide.getBoundingClientRect();
+    const guideRect = guide.getBoundingClientRect();
     const padTop = parseFloat(style.paddingTop) || 0;
-    const contentTop = box.top + padTop;
-    const contentHeight = Math.max(0, box.height - padTop - (parseFloat(style.paddingBottom) || 0));
+    const contentTop = guideRect.top + padTop;
+    const contentHeight = Math.max(0, guideRect.height - padTop - (parseFloat(style.paddingBottom) || 0));
     const under = (parseFloat(style.rowGap) || 0) + (guide.lastElementChild ? guide.lastElementChild.offsetHeight : 0);   // the gap and the hint, which sit under the box in the same column
     const room = Math.min(
       contentHeight - under - 2 * (frameTop - contentTop),                       // the height at which the box's top meets the frame's

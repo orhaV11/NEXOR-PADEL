@@ -1,9 +1,14 @@
 # OREVOSH
 
-A social app for looks. Pick where the outfit is going (date, office, streetwear…), add a photo or film a
-short clip with the in-app camera, and a stylist scores the look **relative to that intent**, breaks the score
-into fit, color and accessories, lists what you are wearing, what works, **the one tip**, and the one accessory
-that would finish the look. The check is private. Post it and it joins a feed where people
+A social app for looks. Say **where the outfit is going** (everyday, date, office, party, formal, sport) and, if you
+want, **how you want it to read** (streetwear, old money, minimal, classic — or nothing at all, which is a real
+answer), add a photo or film a short clip with the in-app camera, and a stylist scores the look **relative to that
+intent**, breaks the score into fit, color and accessories, lists what you are wearing, what works, **the one tip**
+— which may be *change nothing*, when the look is already right — and the one accessory that would finish the look.
+Where the two questions disagree the occasion wins. The check is private, and it **remembers**: say what happened to
+the tip (it worked, it did not, not my style, I do not own that), post the second photo as **"I tried it"** and both
+verdicts sit on one card, **keep** the pieces the stylist named and your own wardrobe starts naming the tips.
+Post it and it joins a feed where people
 react with fire, comment, save and follow; clips play in the feed, and a story card carries the score to
 Instagram and TikTok.
 Tag the brands you wear with `@brand`, add `#tags`, and brands feature the community looks they love, open
@@ -79,7 +84,15 @@ push. Installing, and anything you ask a pilot user to install, wants an origin 
 Cloudflare tunnel on a domain you own, or ngrok's static domain. A quick tunnel is for looking at the app in a
 browser tab, which is most of what a first phone test is.
 
-On that stable origin: iPhone → Share → "Add to Home Screen"; Android Chrome offers "Install" by itself.
+On that stable origin: **iPhone** → Share → "Add to Home Screen", in **Safari** (an in-app browser — WhatsApp,
+Instagram, Telegram — has no such menu, and neither does Chrome or Firefox on iOS). **Android Chrome** does *not*
+pop its own install bar: the app asks for `beforeinstallprompt` first and calls `preventDefault()` on it, because
+Chrome's mini-infobar pins itself to the bottom of the viewport, exactly over the tab bar and the Check control. So
+install from the app's own **Install** card on Home, or from Chrome's ⋮ menu → *Install app*.
+
+**On an iPhone, the installed app has its own cookie jar.** It does not inherit the Safari session, the guest
+check, the saved language or anything else: sign in once inside the new icon, and a link tapped in WhatsApp still
+opens in Safari as a different visitor. Install after signing up, not before.
 
 ### Maintenance commands
 
@@ -101,10 +114,19 @@ dotnet run -- --pro noa 3             # put an existing account on Pro for 3 mon
 dotnet run -- --pro noa off           # back to Free
 ```
 
-`--doctor` is the one to run after any change to a setting and before any launch: it checks the database, the storage
-folder, ffmpeg, the Anthropic key, the mail settings and their public origin, the push keys, the billing settings, the
-board's time zone and the moderator list, prints `ok` or a short reason for each, and exits 0 when everything a live
-server needs is in place and 1 otherwise. `--doctor --live` adds the calls that cost something or leave the machine:
+`--doctor` is the one to run after any change to a setting and before any launch. It prints **seventeen lines**, one
+per check, each `ok`, a warning or a short reason, and exits 0 when everything a live server needs is in place and 1
+otherwise. In the order it prints them: `origin` (the public origin mail links and Checkout returns are built from),
+`previews` (whether the three shipped pages still carry the placeholder host `looks.example.com`, which is the
+difference between a shared link that unfurls with a picture and one that does not), `anthropic` (the key),
+`anthropic-url` (the base URL and the model), `email`, `billing`, `plans` (the caps against the ceiling), `push` (the
+VAPID keys), `admin` (the moderator list, and the accounts `--admin` promoted), `board` (the time zone), `affiliate`,
+`storage` (the photo folder, actually written to and the file removed again), `database` (the file and what it still
+has to migrate), `ffmpeg`, `disk` (the free space where the data lives), `spend` (what a model call is priced at here
+and the day's ceiling) and `alerts` (whether anything at all would shout). The last two lines are the tally —
+`doctor: 9 ok, 7 warnings, 1 failure`, with whatever numbers your own run comes to — and the verdict, `Ready.`, `Ready, with warnings to read.` or `Not ready: fix
+the failures above and run it again.` **Only a failure changes the exit code**; a warning is the operator's call.
+`--doctor --live` adds the calls that cost something or leave the machine:
 one small Anthropic call with the configured key and model (a fraction of a cent), and, when the provider is `stripe`,
 two reads from Stripe. **It never dials the mail server**: `--doctor` reads the `Email__*` settings and says whether
 they could work, and nothing in this program opens an SMTP connection or logs in. The only thing that tests the sender
@@ -149,9 +171,23 @@ happened at most 7 days after their first ÷ users with at least one OK check; g
 featured looks, clips, push subscriptions, people active in the last 7 days, and, since Round 10, `itemsTagged`
 (item rows a person touched: typed by them, or carrying a brand or a store link; the stylist's bare names are not
 tagging), `itemOuts` (store-link taps that left through `/api/items/{id}/out`) and `boardViews` (answered reads of
-`/api/board`), the last two read from the `Counters` table the routes increment. The route answers only through a
-moderator's session (below), and moderators see the same numbers drawn as a page at `#/admin/metrics` (one hero
-figure, the return rate; tiles; the score distribution as bars), linked from the moderation page.
+`/api/board`), the last two read from the `Counters` table the routes increment. Round 14 appended five more to the
+same block: `privateScores`, `commentOpeners`, `beforeAfterShares`, `beforeAfterSharesPlain` and
+`constraintChallenges`.
+
+Five blocks sit beside it, each with its own DTO and nothing shared with the tiles above:
+
+| Block | What it answers |
+|---|---|
+| `stylist` | **Did the tip land?** Yes / no / unanswered over every OK check by an account, overall, by intent and by language, plus how many photos the stylist called "no outfit" and how many it refused. The only number that says whether the stylist is any good |
+| `spend` | **What the model cost today**, at the owner's configured prices, the day's ceiling, whether the app is resting on it, and fourteen days of it. Always an estimate, never an invoice |
+| `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting |
+| `wardrobe` | **Round 15.** The two numbers `MARKETING.md` watches. `keepRate` is `keepers` (accounts with at least one kept piece) ÷ `checkedUsers` (accounts with at least one OK check — the same number the hero tile reads, so the page cannot say two different things about who has checked), with `items` as the raw row count behind it; `dontOwnRate` is `dontOwn` ÷ `reasons`, the "I do not own that" answer over every typed answer to the tip, and it is watched **falling**, because a tip that draws it is exactly the tip a wardrobe should have prevented. `toStylistOff` counts the accounts that turned the sending off, which is what keeps a flat `dontOwnRate` readable: a wardrobe nobody sends cannot prevent anything. **A rate with nothing to divide by is absent from the JSON, not `0`** |
+| `breakdownAverages` | The mean of each rubric sub-score over the checks that carry one; absent while no check does |
+
+The route answers only through a moderator's session (below), and moderators see the same numbers drawn as a page at
+`#/admin/metrics` (one hero figure, the return rate; tiles; the score distribution as bars; the stylist, money and
+funnel sections), linked from the moderation page.
 
 ### Run the tests
 
@@ -159,7 +195,8 @@ figure, the return rate; tiles; the score distribution as bars), linked from the
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-573 tests: magic-byte detection for photos and clips, the disk store, analyzer mapping and clamping, locale
+892 tests, and the number is meant to be read off the run, not trusted from here: magic-byte detection for photos
+and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules (the date of birth and the phone's own day among them), the CSRF
 header, uploads and 413/415/429/502, the plan caps, the ceiling and the global cap, what the allowances count and
@@ -188,7 +225,16 @@ in Asia/Jerusalem and across a DST change, `?week=` by date and by instant, the 
 edges, the counted reads, the two-week 60-second cache, a check by the week's end, the sponsor and `me` and the sponsor
 link's validation, the closer's idempotence, its two-process race, catch-up and silence for old weeks, the rank tap
 landing on the closed week, the badge and the hall), backups, and the metrics math on a
-seeded dataset.
+seeded dataset. Round 13 added the verdict's own verdict and the honest no-outfit answer, the languages a server may
+actually offer, the spend meter and the day's ceiling, the alerts, the doctor's own lines, and the growth loop (the
+public look and profile pages, the invites, the funnel, the Sunday digest). Round 14 added the occasion/style split
+and the keep verdict (`IntentSplitTests`), the typed reasons and the taste profile (`TasteTests`), "I tried it"
+(`TriedTests`), the wardrobe (`WardrobeTests`), Pro's own comparison allowance (`PlansTests`), and the community
+round (`ScorePrivacyTests`, the openers, the before/after shares, constraint challenges). Round 15 added the
+wardrobe's numbers (`WardrobeMetricsTests`) and the wardrobe reaching a comparison (`WardrobeComparisonTests`).
+Two of them are policy rather than behaviour and are the reason a careless change fails the build:
+`IdorEnumerationTests.Rules` in `SecurityTests` makes every route with an `{id}` or a `{handle}` declare, in writing,
+what stops a stranger enumerating it, and `LanguagesTests` keeps the four locale files at key parity.
 
 There is also a browser test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real client in a
 phone viewport against the real API with only the Anthropic API stubbed, as three people (a person in English,
@@ -215,7 +261,23 @@ python3 scripts/calibrate.py ./sample-photos --intent Casual --intent Date --lan
 It signs up a throwaway account, checks every photo for each intent and language, prints a table, the score
 distribution per group, latency, and a scan of every feedback text for body, face, age or gender words (rule
 1), then deletes the account and writes a JSON report. If most scores land on 7–8 it says so: tighten the
-calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and compare the two reports.
+calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and compare the two reports. It still speaks
+the one-word `--intent`, which `POST /api/checks` still understands and splits into the pair.
+
+The other half of the question is **how much the same photo's score moves between runs**, which matters more since
+Round 14 anchored the scale band by band (the model removed `temperature`, so there is no knob to pin it with):
+
+```bash
+node tools/eval/stylist.js --photo outfit.jpg --occasion date --style minimal --runs 8 \
+  --base http://127.0.0.1:5000 --handle yourhandle --password ...
+```
+
+It sends the same photo `--runs` times and prints the spread — min, max, mean, standard deviation — how often the
+breakdown moved, how often the tip was a *keep*, and the tips side by side to be read; repeat `--photo` for a table
+per photo, and it exits non-zero when a spread is wider than `--max-spread` (2 by default).
+`tools/eval/README.md` explains the numbers and what a pass costs (photos × runs = model calls). **No real-model
+numbers have been taken yet**: the sandbox this was written in has no route to Anthropic, so the harness has only
+ever run against a local stand-in built to move its scores on purpose.
 
 ## Configuration
 
@@ -250,7 +312,8 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Plans:WardrobeMaxItems` | `200` | The most pieces one account may keep. A brake on a script, not a product limit, and the same for free and Pro |
 | `Plans:WardrobeNamesToStylist` | `12` | How many of the wearer's own piece names travel with a check, most recently worn first. `0` keeps the wardrobe but never sends it, and the doctor says so |
 | `Plans:WardrobeNeedsPro` | `true` | Whether the wardrobe REACHING THE STYLIST is Pro's. The wardrobe itself is everyone's on every server — it cannot build itself behind a wall — and this gates only the advice from it (`POST /api/wardrobe/stylist` answers 403 `error.pro_required` to a free account) |
-| `Plans:TasteProfile` | `false` | Whether this server has the taste profile built. The Pro page lists it as a benefit only when this is on: nothing on that page may promise a thing this server cannot do (`PlansTests`) |
+| `Plans:TasteProfile` | `true` | Whether this server has the taste profile built (the memory of what a person liked and turned down, `Services/Taste.cs`). It landed with the loop, so it is on; turning it off takes the benefit off the Pro page and stops the advisory being built. The Pro page lists it as a benefit only when this is on: nothing on that page may promise a thing this server cannot do (`PlansTests`) |
+| `Plans:NoOutfitForgivenPerDay` | `3` | How many "that is not an outfit" answers a day do not count against a person's own allowance. The model call was still made and the global ceiling still counts it — this is about not punishing somebody for a photo the stylist could not read. `0` makes every one count |
 | `Billing:Provider` | `manual` | `manual`: Pro is granted with `--pro`, and the Pro page shows a note instead of a checkout button. `stripe`: Checkout and the webhook are live once the three keys below are set; until they are, the routes answer 400 `error.billing_disabled` |
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
@@ -271,6 +334,12 @@ calibration text in `Services/OutfitAnalyzer.cs`, bump `PromptVersion`, and comp
 | `Board:Sponsor:Name` / `Handle` / `PrizeText` / `Url` | empty | The week's sponsor, on the board only while `Name` is set: the name (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host (`nexor.example`, `www.nexor.example/drop`) is read as `https://`; anything else (`javascript:`, `ftp:`, `mailto:`, `user:pw@host`) is dropped at start with the warning `Board: the sponsor link {Url} is not an http(s) URL; the board shows the sponsor without a link`, and the page checks the link again before it becomes an `href`. Settings, not a form: there is no sponsor self-service |
 | `Affiliate:Disclosure` | `true` | Whether the item sheet shows "This link may earn OREVOSH a commission." under a store link. Published by `/api/config` as `affiliate.disclosure` and read by the sheet: while `true`, the line follows "Leaves OREVOSH" under every store link, listed host or not; `false` leaves "Leaves OREVOSH" on its own. Keep it on wherever a programme is joined; the hosts and their parameters are never published |
 | `Affiliate:Hosts` | `{}` | Host → the query string `GET /api/items/{id}/out` appends when a link goes there, e.g. `"amazon.com": "tag=orevosh-20"` (`Affiliate__Hosts__amazon.com=tag=orevosh-20` as an environment variable); a listed host matches case-insensitively with its subdomains (`www.amazon.com` and `smile.amazon.com`, not `notamazon.com`). Empty by default: nothing is appended and no link earns anything until you list a programme you joined. The parameters are added at the door, never stored, so a change here changes every link at once |
+| `Anthropic:PriceInPerMillion` / `PriceOutPerMillion` | `2.00` / `10.00` | **Round 13 — money.** USD per million tokens, the owner's own contract prices. Every dollar on the numbers page and the daily ceiling is built on these: they are settings, never Anthropic's invoice, and `appsettings.json` says so in a `_prices` note. The doctor prints them |
+| `Limits:SpendPerDayUsd` | `0` | The day's ceiling in **estimated** USD (a UTC day). At the ceiling every route that would ask the model answers 503 and spends nobody's allowance. `0` is off, and `--doctor` warns about that; 5 is a sane pilot number |
+| `Alerts:Webhook` / `Alerts:Email` | empty | **Round 13 — money.** Where a readiness flip, the spend ceiling, a run of model failures, a full disk or a failed backup shouts. `Alerts__Webhook` is an https incoming-webhook URL that takes `{ text }` and is a secret, so it belongs in the environment and never in `appsettings.json`; `Alerts__Email` is one address, sent through the app's own mail. With neither set, every alert is only a log line nobody is watching, and the doctor says so |
+| `Alerts:ModelFailuresIn10Min` / `Alerts:DiskFreeMb` | `5` / `512` | The two thresholds that shout on their own: model failures inside ten minutes, and the free space where the data lives |
+| `Languages:Enabled` | `["en","he"]` | The languages this server actually offers. A language ships when a native reader has read it, not when the file exists: `ar` and `ru` are translated and shipped in the repository but left out of this list, and a check asking for one falls back to English. `/api/config` publishes the list |
+| `Digest:Enabled` / `Digest:Hour` | `true` / `9` | The Sunday mail: the week a person had, sent only to a confirmed address and only to an account something happened to. The hour is local to `Board:TimeZone`. Nothing goes out at all without mail configured and a public origin |
 | `Logging:Requests` | `false` | One log line per request — the method, the path, the status and how long it took — on top of the usual lines. Off by default: a pilot's log is worth reading, and this is a lot of lines. Turn it on (`Logging__Requests=true`) for the first days of a launch and while chasing something, then off again. It never logs a body, a cookie, a header or a query string's values, so nothing a person typed and no session lands in the log; the client address is already there for the rate limiters |
 
 Any key can be overridden with an environment variable, e.g. `Plans__FreeChecksPerDay=5` (a double underscore stands
@@ -336,7 +405,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/users/{handle}/block` 🔒 | — | `200` `{ user, createdAt }`. Writes the block and ends the follow in both directions, silently: no notification, nothing pushed. 404 `error.user_not_found` (a suspended account answers like a missing one, as the profile does), 400 `error.cannot_block_self`, 409 `error.already_blocked`. What it does everywhere else is one predicate over the pair in either direction (`Services/Blocks.cs`): the two accounts' looks leave each other's feeds, Explore, search, the tag pages, the saved list and the profile grids; the other's look, photo, clip and comment list read as missing (a moderator still opens them for the queue); each side's comments leave the other's lists, rows kept; a fire, save, comment, follow, mention or feature that targets the other is refused 403 `error.blocked`; and no notification crosses the pair, old ones included, until an unblock. The blocker's own profile view of the other carries `viewer.blocked` so the menu can say Unblock. **Nothing tells the blocked person**: there is no `blockedBy` field anywhere, `error.blocked` is the same sentence whichever side acted, and a blocked person sees what a quiet account looks like. The public board keeps every look. Logged as `Block: {blockerId} blocked {blockedId}` |
 | `DELETE /api/users/{handle}/block` 🔒 | — | 204, the row gone. 404 `error.not_blocked` when there was none. Unblocking restores nothing: the follows stay ended and the old notifications stay gone |
 | `GET /api/users/me/blocks` 🔒 | — | `{ items: [{ user, createdAt }] }`: the accounts the caller blocked, newest first, whole (a person blocks a handful, not a feed). The client draws it at `#/settings/blocked` |
-| `POST /api/checks` | multipart: `intent`, `occasion?`, `language`, `image`, `video?` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, score, feedback, postId }`. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
+| `POST /api/checks` | multipart: `occasion`, `style?`, `note?`, `language`, `image`, `video?` | `201 { id, intent, occasion, style, language, createdAt, latencyMs, status, score, feedback, postId }`. **Round 14 split the one question in two** ("Round 14 — the stylist" below has the refusals and the one-word rule): `occasion` is where the outfit is going, `style` is optional and empty means none, and the wearer's own free line is now `note`. A client from before the split that still sends `intent` is understood — the one word is split into the pair and its `occasion` field is read as the free line. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
 | `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder, a claimed clip queued for the transcoder) and the cookie is dropped. All or nothing: a file that cannot be copied (a full disk, a file missing from the store) answers 500 `error.server`, the rows stay the guest's and the cookie stays, and the client claims again on its next load. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
 | `GET /api/checks/{id}` | — | The check, for its owner or for the guest whose cookie made it (404 to anyone else, the same as a missing id) |
 | `POST /api/checks/{id}/shared-video` | — | `204`. One tally (`videos_made`, on the numbers page as "Share videos made") after the person saved or shared the check's video. The video itself is drawn and encoded **on the phone** (a 12-second 1080×1920 file: H.264 MP4 where the browser can, else VP9/VP8 WebM, else the story card PNG) and never touches the server. Owner or guest-cookie only, 404 to anyone else like the GET; 30 per hour per account or address (429 `error.too_fast`) |
@@ -396,10 +465,12 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 ```
 FitCheck.sln
 src/FitCheck.Api/
-  Program.cs                      wiring, migrations on start, cookie auth, rate limiter (incl. the "guest" attempts brake and the
-                                  "out" door's minute), CSRF header check (the Stripe webhook exempt), security headers (a route
-                                  may set Referrer-Policy first), static files, /api/config, /healthz, --vapid, --backup,
-                                  --admin, --unadmin, --verify, --unverify, --pro
+  Program.cs                      wiring, migrations on start, cookie auth, the Data Protection key ring persisted beside the
+                                  database, response compression (Brotli then gzip, text types only), rate limiter (incl. the
+                                  "guest" attempts brake and the "out" door's minute), CSRF header check (the Stripe webhook
+                                  exempt), security headers (a route may set Referrer-Policy first), static files, /api/config,
+                                  /healthz, /readyz, --vapid, --backup, --doctor, --stripe-check, --admin, --unadmin, --verify,
+                                  --unverify, --pro
   Data/DatabaseSetup.cs           Migrate(), WAL, the pilot-database upgrade, the backup command
   Data/AdminSync.cs               the Admin:Handles sync at start and the --admin/--unadmin, --verify/--unverify, --pro commands
   Data/Migrations/                the EF Core migrations (dotnet ef migrations add <Name> for the next one)
@@ -439,26 +510,44 @@ src/FitCheck.Api/
   Services/Notifier.cs            activity rows, deduplicated per actor and target
   Services/ChallengeResolver.cs   fixes the winner exactly once when a challenge has ended
   Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches
-  Services/Localizer.cs           server messages (en/he) and Accept-Language matching
+  Services/Localizer.cs           server messages in all four languages (en/he/ar/ru) and Accept-Language matching
   Services/Wardrobe.cs            the pieces a check named, the rows kept from them, and the names that travel to the stylist
-  Endpoints/                      auth, users, checks (+ claim), compare, posts (+ comments), items (tagging, the item search, the
-                                  brands list, the out door), board (the week, the hall, the moderator's exclusion), feed,
-                                  explore (+ search, tags), challenges, notifications, insights, today, billing, push, admin, metrics
+                                  (on a check and, since Round 15, on a comparison)
+  Services/Taste.cs               the typed reasons, the profile they build and the advisory the stylist is sent; the learning switch
+  Services/Funnel.cs              the fourteen-day funnel, the invites and the arrival tallies behind the numbers page
+  Services/SpendMeter.cs          what a day of model calls is estimated to cost, the ceiling and the fourteen-day series
+  Services/Alerter.cs             the one place a readiness flip, the ceiling, a run of failures or a failed backup shouts
+  Services/Doctor.cs              --doctor, --doctor --live and --stripe-check: the seventeen lines, no secret printed
+  Services/Readiness.cs           the machine-side half of the doctor, over HTTP, at /readyz
+  Services/Transcoder.cs          the background ffmpeg pass that turns a WebM clip into H.264 MP4
+  Services/Digest.cs              the Sunday mail: the week a person had, only to a confirmed address
+  Services/Security/              the headers and the CSP every response is served under, the Exif strip on every stored
+                                  photo and clip, the per-account brake, session revocation
+  Endpoints/                      auth, users, checks (+ claim), feedback (the typed reason, "I tried it", the taste card),
+                                  compare, wardrobe, posts (+ comments), items (tagging, the item search, the brands list, the
+                                  out door), board (the week, the hall, the moderator's exclusion), feed, explore (+ search,
+                                  tags), challenges, notifications, insights, today, billing, push, blocks, export, admin,
+                                  metrics, the server-rendered public pages (/look, /u, /digest), health
   wwwroot/index.html, app.css     the shell (with the Open Graph and Twitter tags) and the design system: Ring of Fire, see
                                   DESIGN.md (logical properties for RTL)
   wwwroot/app/core.js             state, i18n, API, router, bottom sheets, gestures, look cards, the claim call, the brand mark
   wwwroot/app/views/*.js          one module per screen: feed, post, explore, challenges, check, camera, compare, pro, insights,
                                   today, activity, profile, auth, settings, admin, dashboard (the numbers), pages, legal,
                                   items (the brand and search pages), board (the board, the hall, the Explore strip, the
-                                  reset card, the profile badge)
-  wwwroot/app/after.js            the "after the tip" picker for the post sheet
+                                  reset card, the profile badge), wardrobe (the pieces you kept), blocked
+  wwwroot/app/after.js            the "after the tip" picker for the post sheet, and the before/after share
+  wwwroot/app/sharecard.js        the story card drawn on a canvas: the look, the before/after pair, the colophon
   wwwroot/app/sharevideo.js       "Share as video": the story card as a 12-second vertical video, encoded on the device
   wwwroot/vendor/                 mp4-muxer and webm-muxer (MIT, local modules, no CDN)
   wwwroot/app/items.js            the tagging editor of the post sheet and of "Edit items": the rows, the brand suggestion, the dot
   wwwroot/app/wardrobe.js         the keep line on the result screen (#wardrobe-keep) and the one cached read of /api/wardrobe
+  wwwroot/app/taste.js            the typed reasons under the tip, "I tried it", and the taste card in settings
+  wwwroot/app/invite.js           ?via, the stored handle, the invite link and the share sheet behind it
   wwwroot/manifest.webmanifest,   the installable app; the service worker caches the shell only, never the API, and lets
   wwwroot/sw.js, wwwroot/icons/   /landing/ navigations through to the network
-  wwwroot/i18n/en.json, he.json   UI strings (the terms and the privacy policy among them); add a locale by adding a file
+  wwwroot/offline.html            what a navigation gets when the network is gone
+  wwwroot/i18n/*.json             UI strings in all four languages — en, he, ar, ru (the terms and the privacy policy among
+                                  them), kept at key parity by a test; add a locale by adding a file
   wwwroot/landing/                the static landing pages (index.html, index.he.html) and their screens
   wwwroot/brand/                  the mark and wordmark SVGs, the concept notes, the two OG cards
 tests/FitCheck.Api.Tests/         xUnit
@@ -466,6 +555,7 @@ tools/e2e/                        optional browser test (Playwright + a stub of 
 tools/brand/                      render-kit.js and its templates: regenerates brand-kit/, the OG cards and the landing screens
 brand-kit/                        logos, covers, story templates, store screenshots (README lists every file)
 mobile/                           the Capacitor wrap for the stores: config and instructions, nothing installed
+tools/eval/stylist.js             how far the same photo's score moves between runs, with the tips side by side
 scripts/calibrate.py              calibration run against the real model: score spread, latency, rule 1 scan
 STORE.md, MARKETING.md            the store listings and the launch plan
 ```
@@ -473,6 +563,23 @@ STORE.md, MARKETING.md            the store listings and the launch plan
 The model is forced to call a tool (`tool_choice: {type: "tool"}`) whose input schema is our feedback shape,
 so the answer is always JSON we can validate. Scores are clamped to 1–10, intent match to 0–100, and anything
 descriptive is dropped when the status is not `ok`.
+
+**Two things in `Program.cs` that are easy to miss and expensive to lose.**
+
+- **Text is compressed on the way out.** Fly's edge does not do it, and the shell is about 710 KB of JavaScript, CSS
+  and JSON — several seconds on a phone's connection before the first screen, and every byte of it squeezes to
+  roughly a fifth. `UseResponseCompression()` sits **before** the static files, so it covers them and every JSON
+  answer below; Brotli first, gzip for a client that cannot take it. Only text types are listed: a photo, a clip and
+  a share video are already compressed formats, and running them through again spends CPU to make them slightly
+  bigger. There is nothing to configure and nothing to turn on.
+- **The Data Protection key ring is persisted beside the database**, in a `keys/` folder next to the `.db` file
+  (`/data/keys` on Fly and on the server), with a fixed application name. This is what encrypts the session cookie.
+  Without it ASP.NET writes the keys to `$HOME/.aspnet` inside the container, which a deploy throws away: **everyone
+  signed in on a phone is silently signed out by the next deploy**, and with mail unconfigured "forgot password"
+  cannot bring them back. It is outside `Storage:Root` on purpose, so a media backup does not copy the keys with the
+  photos — which also means **a backup has to take the folder deliberately** (`DEPLOY.md`, "Backups"). The
+  application name is a literal rather than the default (the content root path), so moving `WORKDIR` cannot quietly
+  rotate every key. Treat the folder as a secret: it is as private as the photos.
 
 ### Rules the code enforces
 
@@ -683,8 +790,9 @@ descriptive is dropped when the status is not `ok`.
 
 - **No in-app cancel for Pro.** Stripe renews until the subscription is cancelled on Stripe's side (or by the owner);
   the app shows the end date and the terms say to write to us. A customer-portal link is the obvious next step.
-- **No block-user, still.** Reports and moderation exist; a person cannot mute or block another. Apple's UGC checklist
-  expects it before a store submission (`STORE.md`).
+- **No mute.** Blocking is built (`POST /api/users/{handle}/block`, `#/settings/blocked`, and the predicate that takes
+  the two accounts out of each other's feeds, lists and notifications), which is what Apple's UGC checklist asks for;
+  the softer thing — quieting someone without cutting them off — is not.
 - **No marketplace.** A tagged piece links out to a store through the out door; nothing is sold, carted or paid for
   in the app, and no catalogue, price or stock is kept.
 - **No product catalogue search and no image search.** Looks are found by the brand, category, name and model
@@ -696,22 +804,32 @@ descriptive is dropped when the status is not `ok`.
   FCM need a sender that does not exist yet, `mobile/README.md`).
 - **Sounds on posts, deliberately not built.** Music on looks would bring licensing, break the muted feed and pull
   the loop away from the check; see `DECISIONS.md`, Round 9.
-- Still out, as before: direct messages, prize fulfilment inside the app, sign-in with Apple or Google, closet
-  memory, a blob store behind `IImageStore`, and real age assurance. The store apps are described in `mobile/`
-  but nothing is installed there. None of it is scaffolded on purpose.
+- **No photo of a kept piece.** The wardrobe is a list of names (Round 14): a name is all the stylist needs to say
+  "the brown ones you wore on the 4th", and photographing a closet is the hour of work that kills these products
+  before the first minute of value. A piece carries the checks it appeared in, and those have the photos.
+- Still out, as before: direct messages, prize fulfilment inside the app, sign-in with Apple or Google, a blob store
+  behind `IImageStore`, and real age assurance. The store apps are described in `mobile/` but nothing is installed
+  there. None of it is scaffolded on purpose. **Closet memory is no longer on this list**: Round 14 built it, as a
+  wardrobe that fills itself one tap at a time from the pieces a check named.
 
 ## Launch files
 
 - **The slogan** is *Check the look.* / *בודקים את הלוק.* (`app.slogan`) with the tagline *A stylist in your pocket,
   and a community that lights it up.* (`app.tagline`); the runners-up are kept in `MARKETING.md`.
 - **Link previews.** `index.html` carries Open Graph and Twitter tags with the card at `/brand/og-1200x630.png`
-  (`og-1200x630-he.png` for Hebrew); the manifest's description is the tagline. The absolute URLs say
-  `https://looks.example.com`: replace that with the production origin before launch (`DEPLOY.md`, go-live).
+  (`og-1200x630-he.png` for Hebrew); the manifest's description is the tagline. **`og:url` is deliberately absent**
+  from all three shipped pages: every crawler falls back to the URL it actually fetched, so the address is right on
+  any host — a tunnel, a staging name, the real domain — with nothing to configure and nothing to get wrong. Only
+  `og:image` and `twitter:image` still need an absolute URL (the spec wants one, and relative resolution is
+  unreliable in exactly the unfurlers this is for), so those two say `https://looks.example.com`: replace that with
+  the production origin before launch (`DEPLOY.md`, go-live), and `--doctor`'s `previews` line warns while any of the
+  three pages still carries the placeholder.
 - **The landing pages** are static, `/landing/` and `/landing/index.he.html`: the stage, the wordmark, the slogan,
   three phones, three feature blocks, the CTA, the home-screen note and the legal links; no app JS, and the service
-  worker lets `/landing/` navigations through to the network instead of answering with the app shell. Their six
-  absolute URLs each (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`) carry the same
-  placeholder origin, and `tools/brand/set-origin.js` rewrites them.
+  worker lets `/landing/` navigations through to the network instead of answering with the app shell. Their five
+  absolute URLs each (canonical, both `hreflang` links, `og:image`, `twitter:image`) carry the same placeholder
+  origin, and `tools/brand/set-origin.js` rewrites them. `node tools/brand/set-origin.js --check` counts what is
+  left: two in `index.html`, five in each landing page.
 - **The brand kit** in `brand-kit/` (logos on dark, light and nothing, monochrome SVG+PNG, the lockup, the social
   avatar, five covers plus the OG cards, three story templates in both languages, twenty store screenshots) is
   rendered by `tools/brand/render-kit.js` from HTML templates with the real brand SVGs and the browser test's
@@ -1291,3 +1409,53 @@ Tests: `CheckRecoveryTests` (the signed-in and guest recoveries, a guest who can
 over, a window nobody can widen, a check that never landed, an error row that is not a verdict, and the read that needs
 no header), `LatestCheckRuleTests` in `SecurityTests` (the one private route with no id, and why its rule is not in
 `IdorEnumerationTests.Rules`), and `IntentSplitTests` for the word.
+## Round 15 — the wardrobe is counted, and it reaches the comparison
+
+*(One builder's section, appended for the lead to fold into the parts above.)*
+
+**The wardrobe had no metric.** Round 14 built a wardrobe that fills itself from the pieces a person keeps, and
+nothing counted it; `MARKETING.md` named the two numbers to watch and told the owner to count `WardrobeItems` by
+owner by hand "until a metric exists". They are on `/api/metrics/pilot` now, in a block of their own.
+
+| Field | What it is |
+|---|---|
+| `wardrobe.items` | Kept pieces across the pilot, all accounts |
+| `wardrobe.keepers` | Accounts with at least one kept piece |
+| `wardrobe.checkedUsers` | Accounts with at least one OK check — **the same number as `usersWithAtLeastOneCheck`**, passed in rather than counted again, so the page cannot say two different things about who has checked |
+| `wardrobe.keepRate` | `keepers ÷ checkedUsers`, four decimals. `MARKETING.md`'s "wardrobe kept": 40% by week 4, and below 15% the keep line is in the wrong place or says the wrong thing |
+| `wardrobe.dontOwn` / `wardrobe.reasons` | Checks answered `dont_own`, and checks answered with any typed reason |
+| `wardrobe.dontOwnRate` | `dontOwn ÷ reasons`. Watched **falling**: a tip that draws "I do not own that" is exactly the tip a wardrobe should have prevented, so its fall is the wardrobe's worth measured |
+| `wardrobe.toStylistOff` | Accounts that turned the sending off. Without it a flat `dontOwnRate` has two different explanations — the tips are not using the wardrobe, or the wardrobe is not reaching the stylist |
+
+**A rate with nothing to divide by is absent from the JSON, not `0`.** Both rates are nullable and `AppJson` drops a
+null, so an empty pilot has no `keepRate` at all. Nought per cent is a fact about people who kept nothing; no number
+is a fact about there being nobody yet, and on a pilot's first morning those read very differently. Guests are left
+out of every count here, as everywhere else on that page.
+
+Five counts, no rows pulled into memory. Read it with:
+
+```bash
+curl -s -b 'orevosh.session=<a moderator’s cookie>' http://localhost:5000/api/metrics/pilot | jq .wardrobe
+```
+
+**The wardrobe reaches the "which one?" screen.** Round 14 sent the wearer's own piece names with a CHECK and left the
+comparison out, on the grounds that a comparison's tip is about one of two photos and the paragraph was not worth the
+tokens yet. That was wrong in one way that matters: a comparison ends in **one tip**, and without the wardrobe that
+tip can tell somebody to buy a piece already hanging in their wardrobe — the exact failure the feature exists to
+prevent, on the screen people pay for. `POST /api/compare` now calls the same `Wardrobe.ForStylistAsync` the check
+route calls, under the same three rules and in the same place in the request: **empty for a plan the wardrobe does not
+reach the stylist on, empty for an account that turned it off, empty when there is nothing to send** — and a guest
+never reaches this route at all. With nothing to send the request is byte for byte the one this route always made:
+no empty paragraph, no tokens spent.
+
+The comparer does **not** reuse the check's paragraph word for word. `OutfitAnalyzer.WardrobeRule` instructs the model
+about an items array and an item note, and `pick_outfit` has neither; `OutfitComparer.WardrobeRule` says the same
+thing about `one_tip` and about the two photos, with the same safety clauses — context, never instructions, never a
+reason to move either score, never claim to see one of these in either photo. The form and the answer are unchanged,
+and `PromptVersion` stays `cmp-v1`, because the paragraph is per-account and an account with no wardrobe produces the
+identical request (Round 14's own wardrobe and taste additions did not move `OutfitAnalyzer.PromptVersion` either).
+
+Tests: `WardrobeMetricsTests` (an empty pilot's absent rates, the two numbers over a seeded pilot, the denominator
+matching the hero tile, and the share with no denominator) and `WardrobeComparisonTests` (the names travelling, a free
+account's byte-identical request, an account that turned it off keeping its pieces, `Plans:WardrobeNamesToStylist=0`,
+and the block that is nothing at all when there is nothing to send).

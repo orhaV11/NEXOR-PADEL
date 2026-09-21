@@ -217,7 +217,14 @@ public static class CompareEndpoints
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var feedback = await comparer.CompareAsync(bytesA, formatA!.MediaType, bytesB, formatB!.MediaType, intent, occasion, language, ct);
+            // Round 15 — the wardrobe reaches the comparison. Round 14 gave the check the wearer's own piece names so a
+            // tip could say "the brown ones you wore on the 4th"; the comparison ends in a tip too, and without this it
+            // could tell someone to buy a piece already hanging in their wardrobe. The same three rules as the check
+            // (Wardrobe.ForStylistAsync): nothing on a plan the wardrobe does not reach the stylist on, nothing for an
+            // account that turned it off, nothing for a guest — this route has none — and then the call is byte for
+            // byte the one it was.
+            var wardrobe = await Wardrobe.ForStylistAsync(db, user, plans.Value, now, ct);
+            var feedback = await comparer.CompareAsync(bytesA, formatA!.MediaType, bytesB, formatB!.MediaType, intent, occasion, language, wardrobe, ct);
             comparison.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             comparison.Status = feedback.Status;
 

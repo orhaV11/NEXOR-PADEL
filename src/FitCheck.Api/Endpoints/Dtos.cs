@@ -513,7 +513,9 @@ public sealed record PilotMetricsDto(
     // Round 13 — money: today's model spend, the ceiling and the 14-day series (SpendMeter fills it).
     SpendMetricsDto? Spend = null,
     // Round 13 — the growth loop: the fourteen days of the funnel and the invites (Services/Funnel.cs fills it).
-    FunnelMetricsDto? Funnel = null);
+    FunnelMetricsDto? Funnel = null,
+    // Round 15 — the wardrobe, counted: MARKETING.md's two numbers (MetricsEndpoints fills it).
+    WardrobeMetricsDto? Wardrobe = null);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
@@ -691,3 +693,32 @@ public sealed record WardrobeStylistRequest(bool? On);
 
 /// <summary>One kept piece in the data export, with the looks it appeared in.</summary>
 public sealed record ExportWardrobeItemDto(string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<Guid> Looks);
+
+// ---- Round 15 — the wardrobe, counted: the two numbers MARKETING.md watches ----
+
+/// <summary>
+/// The wardrobe's block on the numbers page. Round 14 built a wardrobe and counted nothing, and MARKETING.md said to
+/// count <c>WardrobeItems</c> by owner by hand until a metric existed. These are that metric, and they are two ratios
+/// with their own numerators and denominators beside them, because a percentage with nothing under it cannot be read:
+/// <list type="bullet">
+/// <item><b>Kept</b>: <see cref="Keepers"/> accounts with at least one kept piece over <see cref="CheckedUsers"/>
+/// accounts with at least one ok check — MARKETING's "wardrobe kept", 40% by week 4. Below 15% the keep line is in the
+/// wrong place or says the wrong thing. <see cref="Items"/> is the raw row count behind it.</item>
+/// <item><b>"I do not own that"</b>: <see cref="DontOwn"/> checks whose typed reason is <c>dont_own</c> over
+/// <see cref="Reasons"/> checks with any typed reason. This one is watched FALLING: a tip that draws that answer is
+/// exactly the tip a wardrobe should have prevented, so its fall is the wardrobe's worth measured.</item>
+/// </list>
+/// Both rates are null while their denominator is 0 — nobody has checked yet, nobody has answered yet — rather than a
+/// zero that reads as a failure (the same rule as <see cref="UsefulSplitDto.Rate"/>). <see cref="ToStylistOff"/> is how
+/// many accounts turned the wardrobe off for the stylist, which is what keeps a flat <c>dont_own</c> rate readable: a
+/// wardrobe nobody sends cannot prevent anything. Guests are left out of every number here, as everywhere on this page.
+/// </summary>
+public sealed record WardrobeMetricsDto(
+    int Items,
+    int Keepers,
+    int CheckedUsers,
+    double? KeepRate,
+    int DontOwn,
+    int Reasons,
+    double? DontOwnRate,
+    int ToStylistOff);

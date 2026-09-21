@@ -348,10 +348,17 @@ its glyph; everything off under `prefers-reduced-motion`. Nothing else moves.
 
 ## 10. Where each rule lives
 
-`app.css` (all styles, §1–§9 order), `index.html` (fonts, inlined wordmark and mark SVGs, the dock markup), `app/core.js`
-(the score ring markup inside `.score-badge`, the `lit` class on the check control, the flame burst), `app/views/check.js`
-(the loading mark), `app/views/explore.js` and `profile.js` (structure unchanged from the previous system), `icons/` and
-`manifest.webmanifest` (regenerated from `brand/mark.svg`).
+`app.css` (the tokens and every shared surface, §1–§9 order), `index.html` (fonts, inlined wordmark and mark SVGs, the
+dock markup), `app/core.js` (the score ring markup inside `.score-badge`, the `lit` class on the check control, the
+flame burst), `app/views/check.js` (the loading mark), `app/views/explore.js` and `profile.js` (structure unchanged
+from the previous system), `icons/` and `manifest.webmanifest` (regenerated from `brand/mark.svg`).
+
+**A screen's own CSS is not in `app.css`.** Anything only one view draws ships as a string inside that view's module
+and is appended once, on first render, through its own `ensureStyle()` — twenty-four modules do it, from
+`views/dashboard.js` and `views/board.js` to `views/wardrobe.js` and `app/taste.js`. `app.css` holds the tokens and what more than
+one screen wears; a view that puts its own rules there makes every other screen pay for them on first paint, and
+makes two builders share a file they do not share a feature in. The rule for a new surface: tokens from §1, shapes
+from §8, and the rules themselves next to the code that draws them.
 
 ## Round 14 — the two questions, and the keep (appended)
 
@@ -395,3 +402,39 @@ ends on.
 caps above the sentence, and a plain "Rule" tag beside the intent on the byline so a list reads at a glance. The
 brand's form offers the three examples as chips that fill the field in, because a rule somebody edits is better than
 one they pick.
+
+## 12. Round 14 — the loop and the wardrobe, as surfaces (appended)
+
+The three Round 14 screens the sections above never described. All of them draw their own rules through their own
+`ensureStyle()`, and all of them use §1's tokens and §8's shapes and add no new ones.
+
+- **The typed reasons** (`app/taste.js` `reasonRow`, drawn by `views/profile.js` on **`#/checks`**; the result screen
+  still shows Round 13's yes/no `.useful` row and leaves its `#tip-feedback` mount empty — `taste.js`'s own
+  `mountResult` is written but nothing calls it, which is a wiring gap, not a design choice). One `.loop` card —
+  `--surface`, `var(--radius)`, the card shadow — with a 17px display heading and
+  four chips below it in a two-up wrap, each one at least 44px and at least 46% of the row, so the four read as a
+  square of answers rather than a line to scroll. *It worked* / *It didn't* / *Not my style* / *I don't own that*,
+  and a quiet text skip below at the start edge. Once answered, the card collapses to one line of what was said
+  with a text button to change it. The optional note is a row that appears only after a reason is chosen: the
+  person's words are never the first thing asked for.
+- **"I tried it"** (`app/taste.js` `triedBlock`, under the reasons on `#/checks`; the result screen's `#tried-it`
+  mount is empty for the same reason). One 44px button while nothing is linked; a
+  waiting line with a cancel while the second photo is owed; and, once both verdicts exist, the pair — the two
+  scores, the two tips, and what changed — with the preference question under it. The second check went through the
+  ordinary check screen, so nothing here is a second camera.
+- **The taste card** (`app/taste.js`, mounted by `views/settings.js`): what the app has learned in a handful of
+  lines the person would recognise, **the literal paragraph the stylist is sent** below them, then the learning
+  switch and the clear. Nothing on this card is a secret from its subject; that is the whole design.
+- **Your wardrobe** (`views/wardrobe.js`, `#/wardrobe`): a lede saying what it is for, the *Send these to the
+  stylist* switch as a `--surface` card with a 44px native checkbox in `--accent`, then a plain hairline-separated
+  list. Each row is a 34px `--surface-2` disc with the category glyph, the piece's name at 600/16 with
+  `unicode-bidi: plaintext` (the names are the person's own words, in any script), and a meta line of how many looks
+  it has been in; rename and remove sit behind the row's own sheet. There is **no photo per piece and no grid** —
+  the wardrobe is a list of names, because a name is all the stylist needs and photographing a closet is the hour of
+  work that would kill it. A free account on a server where the advice is Pro's sees the whole list and one plain
+  line about what Pro adds, never a dead toggle.
+- **The keep line** (`app/wardrobe.js`, `#wardrobe-keep`, appended by `views/check.js` right under the tip): one
+  question and two controls — *Keep* and a quiet *Not this one* — for a piece this check named. One tap, no form, no
+  category to pick: the category is the stylist's own word for it. The row stays `hidden` until it has something to
+  ask, so a screen with nothing to offer looks exactly as it did. (`#wardrobe-offer`, beside the item list, is a
+  second mount `check.js` reserves and nothing fills.)

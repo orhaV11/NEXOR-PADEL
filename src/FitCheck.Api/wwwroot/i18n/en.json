@@ -1050,5 +1050,12 @@
   "sharecard.saved_ios": "iPhone saves this to Files, not Photos.",
   "video.save_ios": "Download to Files",
   "video.saved_ios": "iPhone saves this to Files, not Photos.",
-  "video.ios_files_hint": "There's no file share sheet here, so this downloads to Files. Open it in Files and share it from there to keep it in Photos."
+  "video.ios_files_hint": "There's no file share sheet here, so this downloads to Files. Open it in Files and share it from there to keep it in Photos.",
+  "wardrobe.dash_title": "The wardrobe",
+  "wardrobe.dash_hint": "Whether the wardrobe is filling itself, and whether it is stopping tips that name something the wearer does not own.",
+  "wardrobe.dash_kept": "Kept at least one piece",
+  "wardrobe.dash_keepers": "People keeping",
+  "wardrobe.dash_items": "Pieces kept",
+  "wardrobe.dash_dont_own": "“I do not own that”",
+  "wardrobe.dash_off": "Sending turned off"
 }

@@ -361,6 +361,15 @@ fly secrets set \
   Plans__CompareNeedsPro=false
 ```
 
+**What Pro actually sells** (Round 14) — all four have pilot defaults, so set none of them unless you mean to:
+
+| Secret | Default | What it decides |
+|---|---|---|
+| `Plans__ProComparesPerDay` | `30` | A Pro account's own rolling-day allowance for "Which one?", counted apart from its checks, so deciding between two outfits never spends a check. Never above `Limits__ChecksPerDay`. A free account keeps one allowance for both. **Thirty is a guess**, the same shape as the check cap; move it once real Pro accounts exist and the `spend` block says what they cost |
+| `Plans__WardrobeNeedsPro` | `true` | Whether the wardrobe **reaching the stylist** is Pro's. The wardrobe itself is everyone's on every server — it cannot fill itself behind a wall — and this gates only the advice from it. `false` gives it to everyone |
+| `Plans__WardrobeNamesToStylist` | `12` | How many of the wearer's own piece names travel with a check and a comparison, most recently worn first. `0` keeps the wardrobe and never sends it, and `--doctor` says so in its `plans` line |
+| `Plans__TasteProfile` | `true` | Whether this server has the taste profile built. On, because it is. Turning it off takes the benefit off the Pro page in the same breath as it stops the advisory being built — nothing on that page may promise something the server cannot do |
+
 **The weekly board.** `Board__TimeZone` and `Board__WeekStartsOn` cut the week and label the archive, and changing
 them later moves every past week's edges — **set them before the first week runs**:
 
@@ -505,17 +514,27 @@ Then, on your phone, at `https://looks.example.com`:
    ```
    `--doctor` on its own reads the configuration and the machine — the database, the storage folder, ffmpeg, whether
    the Anthropic key is set and which model it points at, whether mail is configured and has a public origin, the push
-   keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts and the
-   free disk space, and whether the shipped pages still carry the placeholder host in their link previews — fifteen checks in all — and prints one line per check, `ok` or a short reason, exiting 0 when
-   everything a live server needs is there and 1 otherwise. `--live` adds the checks that leave the machine: one small
+   keys, the billing settings, the plan caps, the board's time zone, the moderator list, the affiliate hosts, the
+   free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model
+   call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen
+   lines** — and prints one per check, `ok`, a warning or a short reason, then the tally
+   (`doctor: 9 ok, 7 warnings, 1 failure`, with your own run's numbers) and the verdict, exiting 0 when
+   everything a live server needs is there and 1 otherwise. Only a failure changes the exit code; a warning is your
+   call to read. `--live` adds the checks that leave the machine: one small
    call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
    when the provider is `stripe` (the price, and the webhook endpoint). It does not try the mail server: nothing here
    logs in to SMTP, so the test of the sender is asking the app for a password reset with your own address. Run
    `--doctor` whenever you like; run `--doctor --live` now, and again after any change to a key. On a first deploy
    expect `WARN push` (no VAPID keys until `DEPLOY.md`'s step 7) and nothing failing; `FAIL anthropic` means the key
    secret never reached the machine (1.5).
-6. **Do a real check.** Photograph an outfit in the app, pick an intent, and read the verdict. This is the moment the
-   Anthropic key, the storage folder and the model all have to be right at once.
+6. **Do a real check.** Photograph an outfit in the app, say where it is going (and a style, or none), and read the
+   verdict. This is the moment the Anthropic key, the storage folder and the model all have to be right at once.
+   Read the tip and answer *Did the tip land?* under it — that row is what the numbers page's `stylist` block is
+   made of, so it is worth being the first person to use it. (On **Your checks**, `#/checks`, the same question is
+   asked as four typed answers instead — *it worked*, *it didn't*, *not my style*, *I don't own that* — and only
+   those teach the taste profile anything, so answer it there too.) If the tip says **change nothing**, that is a
+   real answer and not a bug: the stylist may keep a look it thinks is already right, and it is told to do that
+   rarely.
 7. **Post it** and open `#/board`. On launch day the look sits on the **Stylist's picks** tab (by score, no fires
    needed); the **Looks** tab wants fires that count, and a fire from an account younger than `Board__NewAccountDays`
    (2 days) does not count, then or later: the age is judged at the moment of the fire, so a fire from a second
@@ -526,9 +545,21 @@ Then, on your phone, at `https://looks.example.com`:
    proved exactly that.
 8. **Open the numbers page**, `https://looks.example.com/#/admin/metrics`, signed in as the moderator. It should show
    the checks and the people you made in steps 6 and 7 (one check and one person if you stopped at step 6; guest
-   checks are not counted). Anyone who is not a moderator gets a refusal.
-9. **Install to the home screen** — Share → "Add to Home Screen" on iPhone; Chrome offers "Install" by itself on
-   Android — and check the app opens full screen with its own icon.
+   checks are not counted). Anyone who is not a moderator gets a refusal. Below the tiles: *Did the tip land?* — your
+   own answer from step 6 — then the money block (today's estimated model spend against `Limits__SpendPerDayUsd`)
+   and the funnel.
+9. **Install to the home screen, last**, and read this before you tap.
+   - **iPhone:** in **Safari**, Share → *Add to Home Screen*. An in-app browser (WhatsApp, Instagram, Telegram) has
+     no such menu, and neither does Chrome or Firefox on iOS.
+   - **Android:** Chrome does *not* pop its own install bar — the app takes `beforeinstallprompt` and calls
+     `preventDefault()` on it, because Chrome's mini-infobar sits exactly over the tab bar and the Check control.
+     Install from the app's own **Install** card on Home, or from Chrome's ⋮ menu → *Install app*.
+   - **On an iPhone the new icon is a different browser**, with its own cookies and its own storage. It does not
+     inherit your Safari session: **sign in again inside it** (AutoFill offers the saved password), and note that a
+     link tapped in WhatsApp still opens in Safari, where you are a separate visitor. This is exactly why the
+     install step is here at 9 and not at 2 — installing first would build your whole account inside an icon you
+     may throw away, and on the tunnel path it would be bound to a hostname that is gone tomorrow.
+   - Then check the app opens full screen with its own icon.
 
 If any of those fail, section 6 is the map.
 
@@ -539,8 +570,10 @@ Fly snapshots the volume daily and keeps five days. That is a backup on the same
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
@@ -550,13 +583,21 @@ app is writing) and a copy of the photo folder, and prints `database: …` and `
 is complete, so a weekly run does
 not fill the volume. The copies share the 3 GB volume with the live data, which is why the last line removes them.
 
-The `<stamp>` in lines 2 to 4 is the one the first line printed, so run them one at a time and read its output before
+The `<stamp>` in lines 2 to 6 is the one the first line printed, so run them one at a time and read its output before
 the rest. `/data/backups/manual` is a folder of its own on purpose: the last line empties it, and nothing else on the
 volume keeps copies there.
 
-**The files hold every photo and clip people gave the app.** Keep them as private on your computer as they are on the
-volume. There is no cron on Fly's machine: run the five lines weekly from your own computer, or from a scheduled
-GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
+**Line 3 is the one you will be tempted to skip.** `/data/keys` is the key ring that encrypts every session cookie.
+`--backup` does not take it — it lives outside the photo folder on purpose, so a media copy never carries the keys
+off with the pictures — and a Fly snapshot does (a snapshot is the whole volume), but a copy you take by hand does
+not unless you take it. Restore the database and the photos onto a machine with no `/data/keys` and the app mints a
+fresh ring on first start: nothing in the database is lost, and **every phone in the pilot is signed out at once** —
+with mail not yet configured, "forgot password" cannot bring them back either. `DEPLOY.md`, section 9, has the two
+lines that put it back.
+
+**The files hold every photo and clip people gave the app, and the key ring forges sessions.** Keep them as private
+on your computer as they are on the volume. There is no cron on Fly's machine: run the seven lines weekly from your
+own computer, or from a scheduled GitHub Actions job with a `FLY_API_TOKEN` secret (`fly tokens create deploy`).
 
 Skip to **section 3**.
 
@@ -718,6 +759,21 @@ Every night at 03:30:
 (crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 KEEP_STORAGE=2 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
 ```
 
+**Neither script takes the session keys, so take them once by hand.** `/data/keys` is the key ring that encrypts
+every session cookie. The app keeps it beside the database and outside the photo folder on purpose, which is exactly
+why the backup scripts do not see it. It is tiny and it almost never changes:
+
+```bash
+cd /opt/orevosh
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+Restore the database and the photos onto a machine with no `/data/keys` and the app mints a fresh ring on first
+start: nothing in the database is lost, and **every phone in the pilot is signed out at once**, with "forgot
+password" unable to bring them back while mail is not configured. `DEPLOY.md`, section 9, has the line that puts it
+back. Treat the copy as a secret: a stolen key ring forges sessions.
+
 **A backup on the same disk is not a backup.** Copy `backups/` off the machine at least weekly, and keep it as private
 there as it is here. To another Linux machine, keeping the modes:
 
@@ -780,8 +836,23 @@ Do not open a second community until week-1 people are still checking in week 4.
 
 **The numbers page** is `https://looks.example.com/#/admin/metrics`, signed in as a moderator — the return rate as the
 hero figure, tiles for checks, people, posts, fires, comments, items tagged, store-link taps and board reads, and the
-score distribution as bars. `MARKETING.md` says which of them matter and what a good one looks like. Read it weekly,
-not hourly.
+score distribution as bars. Below them: **Did the tip land?** (yes/no/unanswered over every check somebody answered,
+overall, by intent and by language — the only number that says whether the stylist is any good), the **money** block
+(today's estimated model spend against `Limits__SpendPerDayUsd`, and fourteen days of it), and the **funnel**
+(fourteen days of landing views, guest checks, signups, first posts and arrivals from a shared look, today's
+conversion between the steps, and the invites). `MARKETING.md` says which of them matter and what a good one looks
+like. Read it weekly, not hourly.
+
+**Two of `MARKETING.md`'s numbers are answered by `/api/metrics/pilot` directly** rather than by a tile, under
+`wardrobe`: `keepRate`, the share of people with at least one kept piece, which should be climbing towards 40% by
+week 4 and says the keep line is in the right place; and `dontOwnRate`, the share of typed answers that were "I do
+not own that", which should be **falling**, because that is the tip a wardrobe is there to prevent. Read them with:
+
+```bash
+curl -s -b 'orevosh.session=<your cookie>' https://looks.example.com/api/metrics/pilot | jq .wardrobe
+```
+
+A rate is absent rather than `0` while there is nothing to divide by.
 
 **The log** is `fly logs` or `docker compose logs --since 1h app`. The lines worth grepping:
 
@@ -803,7 +874,7 @@ line per request on top of all of this.
 
 ### 3.6 The backup routine
 
-- **On Fly:** the daily volume snapshots are automatic. Run the five lines of 1.9 weekly and keep the files somewhere
+- **On Fly:** the daily volume snapshots are automatic. Run the seven lines of 1.9 weekly and keep the files somewhere
   private.
 - **On a server:** the cron of 2.7 runs nightly. Copy `backups/` off the machine weekly.
 - **Either way:** restore one into a throwaway before you need to (6.4).
@@ -1002,6 +1073,11 @@ Writes between the swap and the restart are lost. The media folder goes back the
 over `/data/storage`, and hand it over too — `fly ssh console -C "chown -R app:app /data/storage"`. Fly's own volume
 snapshots are the other way back: `fly volumes snapshots list <volume id>`, then
 `fly volumes create data --snapshot-id <id> --region fra`.
+
+**Nobody is signed out by any of this**, because the key ring at `/data/keys` never moved: sessions keep working over
+a database that was just rolled back, which is what you want. The one case that needs the key copy from 1.9 or 2.7 is
+a restore onto a **new** machine or a **new** volume — a Fly snapshot carries the keys, a copy you took by hand does
+not. `DEPLOY.md`, section 9, has both lines, and says to put the ring back **before** the first start if you can.
 
 ### 6.5 Roll back the code
 
@@ -1258,9 +1334,12 @@ git diff --stat
 משתמשים בדומיין מסעיף 0.1 — או, אם עוד אין, ב‑`https://<your-app-name>.fly.dev` מסעיף 1.3, ומריצים שוב אחרי 1.7.
 
 זה מחליף כל מקום שבו מופיע מציין המקום `looks.example.com` באחד-עשר הקבצים שהוא מכיר בשמם, ומדפיס כל אחד מהם עם
-מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`,
-`twitter:image`), `wwwroot/landing/index.html` ו-`landing/index.he.html` (canonical, שני קישורי `hreflang`, `og:url`,
-`og:image`, `twitter:image`), ו-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`). שבעת האחרים הם
+מספר ההחלפות. ארבעה מהם נשלחים לדפדפן או לחנות, וזו הסיבה שזה רץ לפני הבנייה: `src/FitCheck.Api/wwwroot/index.html`
+(`og:image`, `twitter:image`), `wwwroot/landing/index.html` ו-`landing/index.he.html` (canonical, שני קישורי
+`hreflang`, `og:image`, `twitter:image`), ו-`mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+`og:url` נמחק משלושת העמודים בכוונה: כל סורק נופל בחזרה לכתובת שממנה הוא באמת משך את העמוד, ולכן הכתובת נכונה בכל
+מארח — מנהרה, שם זמני או הדומיין האמיתי — בלי להגדיר כלום. `og:image` לא יכול לעשות את זה (התקן דורש כתובת מוחלטת),
+ולכן הוא זה שנשאר. שבעת האחרים הם
 המסמכים שמצטטים את הכתובת, כדי שהפקודות שתעתיקו מהם כבר יהיו שלכם: `mobile/README.md` (כולל ההערה על
 `WKAppBoundDomains`), `STORE.md` (כולל טבלת הכתובות), `MARKETING.md`, `brand-kit/README.md`, `DEPLOY.md`, `README.md`
 ו-`.env.example`. לא נשאר שום קובץ לערוך ביד.
@@ -1379,6 +1458,15 @@ fly secrets set \
   "Plans__ProPriceText=₪19 לחודש" \
   Plans__CompareNeedsPro=false
 ```
+
+**מה ש-Pro באמת מוכר** (סבב 14) — לכולם יש ברירות מחדל של פילוט, אז אל תקבעו אף אחד מהם אלא אם אתם מתכוונים:
+
+| סוד | ברירת מחדל | מה הוא קובע |
+|---|---|---|
+| `Plans__ProComparesPerDay` | `30` | מכסה יומית מתגלגלת משלה להשוואות של חשבון Pro, שנספרת בנפרד מהבדיקות שלו, כך שההחלטה בין שני לוקים לא מוציאה בדיקה. אף פעם לא מעל `Limits__ChecksPerDay`. לחשבון חינמי יש מכסה אחת לשניהם. **שלושים הוא ניחוש**, באותה צורה כמו מכסת הבדיקות; הזיזו אותו כשיהיו חשבונות Pro אמיתיים ובלוק ה-`spend` יגיד כמה הם עולים |
+| `Plans__WardrobeNeedsPro` | `true` | אם **ההגעה של הארון לסטייליסט** היא של Pro. הארון עצמו הוא של כולם בכל שרת — הוא לא יכול להתמלא מאחורי חומה — וזה חוסם רק את העצה שיוצאת ממנו. `false` נותן אותה לכולם |
+| `Plans__WardrobeNamesToStylist` | `12` | כמה משמות הפריטים של הלובש נוסעים עם בדיקה ועם השוואה, הנלבשים לאחרונה קודם. `0` שומר את הארון ולא שולח אותו לעולם, ו-`--doctor` אומר את זה בשורת ה-`plans` שלו |
+| `Plans__TasteProfile` | `true` | אם לשרת הזה יש פרופיל טעם בנוי. דולק, כי יש. כיבוי מוריד את ההטבה מדף Pro באותה נשימה שבה הוא מפסיק לבנות את ההמלצה — שום דבר בדף ההוא לא מבטיח משהו שהשרת לא יודע לעשות |
 
 **לוח השבוע.** `Board__TimeZone` ו-`Board__WeekStartsOn` חותכים את השבוע ומתייגים את הארכיון, ושינוי שלהם אחר כך מזיז
 את הגבולות של כל שבוע שהיה — **קבעו אותם לפני שהשבוע הראשון רץ**:
@@ -1518,15 +1606,22 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    ```
    `--doctor` לבד קורא את ההגדרות ואת המכונה — בסיס הנתונים, תיקיית האחסון, ffmpeg, אם מפתח Anthropic מוגדר, אם הדואר
    מוגדר ויש לו כתובת ציבורית, מפתחות הפוש, הגדרות החיוב, מכסות התוכניות, אזור הזמן של הלוח, רשימת המנהלים, מארחי
-   השותפים והמקום הפנוי בדיסק — ארבע עשרה בדיקות בסך הכול — ומדפיס שורה לכל בדיקה,
-   `ok` או סיבה קצרה, ויוצא ב-0 כשכל מה ששרת חי צריך קיים וב-1 אחרת. `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
+   השותפים, המקום הפנוי בדיסק, אם העמודים שנשלחים לדפדפן עדיין נושאים את מציין המקום בתגיות התצוגה המקדימה, במה
+   מתומחרת כאן קריאה למודל יחד עם תקרת ההוצאה היומית, ואם מוגדר בכלל ערוץ התראות — **שבע עשרה שורות** — ומדפיס שורה
+   לכל בדיקה, `ok`, אזהרה או סיבה קצרה, ואז את הסיכום (`doctor: 9 ok, 7 warnings, 1 failure`, עם המספרים של ההרצה שלכם) ואת הפסיקה, ויוצא ב-0
+   כשכל מה ששרת חי צריך קיים וב-1 אחרת. רק כישלון משנה את קוד היציאה; אזהרה היא שיקול שלכם.
+   `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
    קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.
    את שרת הדואר הוא לא מנסה: שום דבר כאן לא מתחבר ל-SMTP, ולכן הבדיקה של השולח היא לבקש מהאפליקציה איפוס סיסמה
    לכתובת שלכם. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
    בפריסה ראשונה מצפים ל-`WARN push` (אין מפתחות VAPID עד שלב 7 ב-`DEPLOY.md`) ולשום כישלון; `FAIL anthropic` אומר
    שסוד המפתח לא הגיע למכונה (1.5).
-6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
-   האחסון והמודל חייבים להיות נכונים בבת אחת.
+6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, אומרים לאן הוא הולך (וסגנון, או בלי), וקוראים את הפסיקה. זה הרגע
+   שבו מפתח Anthropic, תיקיית האחסון והמודל חייבים להיות נכונים בבת אחת. קראו את הטיפ וענו על *הטיפ קלע?* שמתחתיו
+   — השורה הזאת היא מה שבונה את בלוק ה-`stylist` בדף המספרים, אז שווה להיות האדם הראשון שמשתמש בה. (ב**הבדיקות
+   שלך**, `#/checks`, אותה שאלה נשאלת כארבע תשובות מסומנות — *עבד*, *לא עבד*, *לא הסגנון שלי*, *אין לי את זה* —
+   ורק הן מלמדות את פרופיל הטעם משהו, אז ענו גם שם.) אם הטיפ אומר **לא לשנות כלום**, זו תשובה אמיתית ולא תקלה:
+   הסטייליסט רשאי לשמור לוק שהוא חושב שכבר נכון, ונאמר לו לעשות את זה רק לעיתים רחוקות.
 7. **מפרסמים אותו** ופותחים את `#/board`. ביום ההשקה הלוק יושב בלשונית **הבחירות של הסטייליסט** (לפי ציון, בלי אש);
    לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) לא נספרת — לא עכשיו ולא
    אחר כך: הגיל נמדד ברגע האש, ולכן אש מחשבון שני שיצרתם הרגע מעלה את המונה של הלוק ולעולם לא ממלאת את לשונית
@@ -1535,9 +1630,19 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    לבדיקת העשן — ואז אש יום ההשקה נספרת מיד — והחזירו אחר כך. ההרצה היבשה של המדריך הזה הוכיחה בדיוק את זה.
 8. **פותחים את דף המספרים**, `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל. הוא אמור להראות את הבדיקות
    ואת האנשים שיצרתם בשלבים 6 ו-7 (בדיקה אחת ואדם אחד אם עצרתם בשלב 6; בדיקות אורח לא נספרות). מי שאינו מנהל מקבל
-   סירוב.
-9. **מתקינים למסך הבית** — שיתוף ← "הוסף למסך הבית" באייפון; כרום מציע "התקנה" מעצמו באנדרואיד — ובודקים שהאפליקציה
-   נפתחת במסך מלא עם האייקון שלה.
+   סירוב. מתחת לאריחים: *האם הטיפ קלע?* — התשובה שלכם משלב 6 — ואז בלוק הכסף (ההוצאה המוערכת על המודל היום מול
+   `Limits__SpendPerDayUsd`) והמשפך.
+9. **מתקינים למסך הבית, אחרון**, וקוראים את זה לפני שלוחצים.
+   - **אייפון:** ב**ספארי**, שיתוף ← *הוסף למסך הבית*. לדפדפן בתוך אפליקציה (ווטסאפ, אינסטגרם, טלגרם) אין תפריט
+     כזה, וגם לא לכרום או פיירפוקס ב-iOS.
+   - **אנדרואיד:** כרום *לא* מקפיץ את פס ההתקנה שלו — האפליקציה תופסת את `beforeinstallprompt` וקוראת עליו
+     `preventDefault()`, כי הפס הקטן של כרום יושב בדיוק מעל שורת הלשוניות וכפתור הבדיקה. מתקינים מכרטיס
+     **התקנה** של האפליקציה עצמה במסך הבית, או מתפריט ⋮ של כרום ← *התקנת אפליקציה*.
+   - **באייפון האייקון החדש הוא דפדפן אחר**, עם עוגיות ואחסון משלו. הוא לא יורש את ההתחברות שלכם בספארי:
+     **התחברו שוב מתוכו** (מילוי אוטומטי יציע את הסיסמה השמורה), ושימו לב שקישור שנלחץ בווטסאפ עדיין נפתח בספארי,
+     שם אתם מבקר נפרד. בדיוק בגלל זה שלב ההתקנה כאן ב-9 ולא ב-2 — התקנה קודם הייתה בונה את כל החשבון שלכם בתוך
+     אייקון שאולי תזרקו, ובמסלול המנהרה הוא היה קשור לשם מארח שייעלם מחר.
+   - ואז בודקים שהאפליקציה נפתחת במסך מלא עם האייקון שלה.
 
 אם משהו מזה נכשל, פרק 6 הוא המפה.
 
@@ -1548,8 +1653,10 @@ Fly מצלמת את הנפח כל יום ושומרת חמישה ימים. זה 
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"
 ```
 
@@ -1558,11 +1665,19 @@ fly ssh console -u app -C "rm -rf /data/backups/manual"
 בסיס הנתונים ול-`n` עותקי האחסון החדשים ביותר, אחרי שהעותק החדש הושלם, כדי שהרצה שבועית לא תמלא את הנפח. העותקים
 חולקים את הנפח של 3GB עם המידע החי, ולכן השורה האחרונה מוחקת אותם.
 
-ה-`<stamp>` בשורות 2 עד 4 הוא זה שהשורה הראשונה הדפיסה, אז הריצו שורה-שורה וקראו את הפלט לפני ההמשך.
+ה-`<stamp>` בשורות 2 עד 6 הוא זה שהשורה הראשונה הדפיסה, אז הריצו שורה-שורה וקראו את הפלט לפני ההמשך.
 `/data/backups/manual` היא תיקייה נפרדת בכוונה: השורה האחרונה מרוקנת אותה, ושום דבר אחר על הנפח לא שומר שם עותקים.
 
-**הקבצים מכילים כל תמונה וכל קליפ שאנשים נתנו לאפליקציה.** שמרו עליהם פרטיים אצלכם כמו שהם על הנפח. אין cron על המכונה
-של Fly: הריצו את חמש השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
+**שורה 3 היא זו שיתחשק לכם לדלג עליה.** `/data/keys` היא צרור המפתחות שמצפין כל עוגיית התחברות. `--backup` לא לוקח
+אותה — היא יושבת מחוץ לתיקיית התמונות בכוונה, כדי שעותק של המדיה לא ייקח איתו את המפתחות — וצילום נפח של Fly כן
+לוקח אותה (צילום הוא כל הנפח), אבל עותק שאתם לוקחים ביד לא, אלא אם תיקחו. שחזרו את בסיס הנתונים ואת התמונות למכונה
+בלי `/data/keys`, והאפליקציה תייצר צרור חדש בהפעלה הראשונה: שום דבר בבסיס הנתונים לא אובד, **וכל טלפון בפיילוט
+מתנתק בבת אחת** — ואם הדואר עוד לא מוגדר, גם "שכחתי סיסמה" לא יחזיר אותם. ב-`DEPLOY.md`, פרק 9, יש את שתי השורות
+שמחזירות אותה.
+
+**הקבצים מכילים כל תמונה וכל קליפ שאנשים נתנו לאפליקציה, וצרור המפתחות מזייף התחברויות.** שמרו עליהם פרטיים אצלכם
+כמו שהם על הנפח. אין cron על המכונה
+של Fly: הריצו את שבע השורות פעם בשבוע מהמחשב שלכם, או מתוך משימה מתוזמנת ב-GitHub Actions עם סוד `FLY_API_TOKEN`
 (`fly tokens create deploy`).
 
 דלגו ל**פרק 3**.
@@ -1720,6 +1835,20 @@ ls -l backups/
 (crontab -l 2>/dev/null; echo '30 3 * * * cd /opt/orevosh && KEEP=14 KEEP_STORAGE=2 tools/backup.sh >> /var/log/orevosh-backup.log 2>&1') | crontab -
 ```
 
+**אף אחד משני הסקריפטים לא לוקח את מפתחות ההתחברות, אז קחו אותם פעם אחת ביד.** `/data/keys` הוא צרור המפתחות
+שמצפין כל עוגיית התחברות. האפליקציה שומרת אותו ליד בסיס הנתונים ומחוץ לתיקיית התמונות בכוונה, ובדיוק לכן סקריפטי
+הגיבוי לא רואים אותו. הוא קטנטן וכמעט אף פעם לא משתנה:
+
+```bash
+cd /opt/orevosh
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+שחזרו את בסיס הנתונים ואת התמונות למכונה בלי `/data/keys`, והאפליקציה תייצר צרור חדש בהפעלה הראשונה: שום דבר בבסיס
+הנתונים לא אובד, **וכל טלפון בפיילוט מתנתק בבת אחת**, ו"שכחתי סיסמה" לא יחזיר אותם כל עוד הדואר לא מוגדר.
+ב-`DEPLOY.md`, פרק 9, יש את השורה שמחזירה אותו. התייחסו לעותק כאל סוד: צרור מפתחות גנוב מזייף התחברויות.
+
 **גיבוי על אותו דיסק הוא לא גיבוי.** העתיקו את `backups/` מחוץ למכונה לפחות פעם בשבוע, ושמרו עליו שם פרטי כמו שהוא
 כאן. למכונת לינוקס אחרת, תוך שמירה על ההרשאות:
 
@@ -1780,7 +1909,21 @@ node tools/brand/render-kit.js store web     # או רק מסכי החנויות
 
 **דף המספרים** הוא `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל — שיעור החזרה כמספר הגדול, אריחים
 לבדיקות, אנשים, פוסטים, אשים, תגובות, פריטים שתויגו, הקשות על קישורי חנות וצפיות בלוח, והתפלגות הציונים כעמודות.
-`MARKETING.md` אומר אילו מהם חשובים ואיך נראה מספר טוב. קראו אותו שבועית, לא שעתית.
+מתחתיהם: **האם הטיפ קלע?** (כן/לא/בלי תשובה על כל בדיקה שמישהו ענה עליה, בסך הכול, לפי כוונה ולפי שפה — המספר
+היחיד שאומר אם הסטייליסט טוב), בלוק ה**כסף** (ההוצאה המוערכת על המודל היום מול `Limits__SpendPerDayUsd`, וארבעה
+עשר יום אחורה), וה**משפך** (ארבעה עשר יום של צפיות בדף הנחיתה, בדיקות אורח, הרשמות, פוסטים ראשונים והגעות מלוק
+משותף, ההמרה של היום בין השלבים, וההזמנות). `MARKETING.md` אומר אילו מהם חשובים ואיך נראה מספר טוב. קראו אותו
+שבועית, לא שעתית.
+
+**שניים מהמספרים של `MARKETING.md`** נענים ישירות מ-`/api/metrics/pilot`, תחת `wardrobe`, ולא מאריח: `keepRate`,
+שיעור האנשים עם לפחות פריט אחד שנשמר, שאמור לטפס לכיוון 40% עד שבוע 4 ואומר שקו השמירה נמצא במקום הנכון;
+ו-`dontOwnRate`, שיעור התשובות המסומנות שהיו "אין לי את זה", שאמור **לרדת**, כי זה בדיוק הטיפ שהארון נועד למנוע:
+
+```bash
+curl -s -b 'orevosh.session=<the cookie>' https://looks.example.com/api/metrics/pilot | jq .wardrobe
+```
+
+שיעור בלי מכנה פשוט לא מופיע, במקום להופיע כ-`0`.
 
 **הלוג** הוא `fly logs` או `docker compose logs --since 1h app`. השורות ששווה לחפש:
 
@@ -1802,7 +1945,7 @@ fly logs | grep "Email"              # "Email sent to …: …" לכל אימו�
 
 ### 3.6 שגרת הגיבוי
 
-- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את חמש השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
+- **ב-Fly:** צילומי הנפח היומיים אוטומטיים. הריצו את שבע השורות של 1.9 שבועית ושמרו את הקבצים במקום פרטי.
 - **על שרת:** ה-cron של 2.7 רץ כל לילה. העתיקו את `backups/` מחוץ למכונה שבועית.
 - **בשני המקרים:** שחזרו גיבוי אחד למקום זמני לפני שתצטרכו (6.4).
 
@@ -1991,6 +2134,11 @@ fly machine restart <machine id>
 כתיבות שקרו בין ההחלפה להפעלה מחדש אבדו. תיקיית המדיה חוזרת באותה דרך: `put` לארכיון, פריסה שלו על `/data/storage`,
 ואז מעבירים גם אותה — `fly ssh console -C "chown -R app:app /data/storage"`. צילומי הנפח של Fly הם הדרך השנייה חזרה:
 `fly volumes snapshots list <volume id>`, ואז `fly volumes create data --snapshot-id <id> --region fra`.
+
+**אף אחד לא מתנתק מכל זה**, כי צרור המפתחות ב-`/data/keys` לא זז: ההתחברויות ממשיכות לעבוד מעל בסיס נתונים שזה עתה
+הוחזר אחורה, וזה בדיוק מה שרוצים. המקרה היחיד שדורש את עותק המפתחות מ-1.9 או מ-2.7 הוא שחזור למכונה **חדשה** או
+לנפח **חדש** — צילום נפח של Fly לוקח את המפתחות, עותק שלקחתם ביד לא. ב-`DEPLOY.md`, פרק 9, יש את שתי השורות, ושם
+גם כתוב להחזיר את הצרור **לפני** ההפעלה הראשונה אם אפשר.
 
 ### 6.5 חזרה לגרסה קודמת של הקוד
 

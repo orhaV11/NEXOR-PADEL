@@ -26,9 +26,12 @@ node tools/brand/set-origin.js https://looks.example.com
 
 It looks at eleven files, writes your origin into the ones that still carry the placeholder, and prints each with a
 count. Four of them are shipped to a browser or a store and are the reason this runs before the build:
-`src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), both landing pages
-(`wwwroot/landing/index.html` and `index.he.html`: canonical, both `hreflang` links, `og:url`, `og:image`,
-`twitter:image`) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation`).
+`src/FitCheck.Api/wwwroot/index.html` (`og:image`, `twitter:image` — two), both landing pages
+(`wwwroot/landing/index.html` and `index.he.html`: canonical, both `hreflang` links, `og:image`, `twitter:image` —
+five each) and `mobile/capacitor.config.json` (`server.url`, `allowNavigation` — two). **`og:url` is not on that
+list any more**: it was deleted from all three pages, because every crawler falls back to the URL it actually
+fetched, so the address unfurls right on a tunnel, a staging name or the real domain with nothing to configure.
+`og:image` cannot do the same — the spec wants it absolute — which is why these two remain.
 The other seven are the documents that quote the origin, rewritten so the commands you paste from them are already
 yours: `mobile/README.md`, `STORE.md`, `MARKETING.md`, `brand-kit/README.md`, this file, `README.md` and
 `.env.example`. So run it **before** `fly deploy` or `docker compose build`, commit the result, and read the diff —
@@ -197,8 +200,10 @@ your own, off Fly, the app's backup command works here too:
 ```bash
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --backup /data/backups/manual --keep 7"   # prints database: ... storage: ...
 fly ssh console -u app -C "tar czf /data/backups/manual/storage-<stamp>.tgz -C /data/backups/manual storage-<stamp>"
+fly ssh console -u app -C "tar czf /data/backups/manual/keys-<stamp>.tgz -C /data keys"           # the session keys; see below
 fly sftp get /data/backups/manual/orevosh-<stamp>.db ./orevosh-<stamp>.db
 fly sftp get /data/backups/manual/storage-<stamp>.tgz ./storage-<stamp>.tgz
+fly sftp get /data/backups/manual/keys-<stamp>.tgz ./keys-<stamp>.tgz
 fly ssh console -u app -C "rm -rf /data/backups/manual"   # the copies share the 3 GB volume with the live data
 ```
 
@@ -208,6 +213,15 @@ fill the volume even if the last line is forgotten; without it nothing is pruned
 people gave the app; keep them as private on your computer as they are on the volume (server path, step 9, says how).
 There is no cron on Fly's machine: run this weekly from your computer, or from a scheduled GitHub Actions job with a
 `FLY_API_TOKEN` secret (`fly tokens create deploy`).
+
+**`--backup` does not take `/data/keys`, and that is why the third line is there.** `/data/keys` is the Data
+Protection key ring: the keys that encrypt every session cookie. The app persists them there deliberately — beside
+the database, **outside** `Storage:Root`, so a media backup never carries the keys off with the photos — and a
+Fly volume snapshot holds them because a snapshot is the whole volume. A copy you take by hand does not, unless you
+take it. **What a missing key ring costs:** nothing in the database, and everybody signed out. A restore onto a
+volume with no `/data/keys` mints a fresh one, and every phone in the pilot is signed out at once — with mail
+unconfigured, "forgot password" cannot bring them back either. They are about as secret as the photos are private:
+a stolen key ring forges sessions, so keep the `.tgz` where you keep the rest and no looser.
 
 Putting a copy back is the one place a server is simpler, because the app is running while you swap the file. At a
 quiet moment: `fly sftp shell`, then `put orevosh-<stamp>.db /data/incoming.db`, then
@@ -224,6 +238,21 @@ restart comes up with `unable to open database file` and the site stays down. Ch
 
 Writes between the swap and the restart are lost. The media folder goes back the same way: `put` the archive, `tar
 xzf` it over `/data/storage`, and hand that back too — `fly ssh console -C "chown -R app:app /data/storage"`.
+
+**Swapping the database alone does not sign anyone out**, because `/data/keys` is still sitting on the volume beside
+it — the sessions keep working over a database that has just been rolled back, which is what you want. The one case
+that needs the key ring back is a restore onto a **new** volume (a Fly snapshot carries it; a copy you took by hand
+does not):
+
+```bash
+fly sftp shell                                          # put keys-<stamp>.tgz /data/keys.tgz
+fly ssh console -C "sh -c 'cd /data && rm -rf keys && tar xzf keys.tgz && rm keys.tgz && chown -R app:app keys && chmod 700 keys'"
+fly machine restart <machine id>
+```
+
+Put it back **before** the first start on the new volume if you can: the app mints a fresh key the moment it starts
+without one, and every session issued against that fresh key dies when the old ring replaces it — so people who
+signed in during the gap are signed out a second time.
 
 ### 10. Updating
 
@@ -344,6 +373,12 @@ exceeds; checks and "Which one?" comparisons share the allowance. All of it is s
 | `Plans__GuestAttemptsPerDay` | The brake on attempts at the check route from a visitor, `20` per client address per 24 hours whatever they come to (429 `error.too_fast`). Well above the guest cap on purpose, so a refused photo never locks a shared address out of its look |
 | `Plans__ProPriceText` | What the Pro page shows as the price, e.g. `₪19 / month` or `$5 / month`. Text only; empty hides it |
 | `Plans__CompareNeedsPro` | `false`. Set `true` to keep "Which one?" for Pro accounts |
+| `Plans__NoOutfitForgivenPerDay` | `3`. How many "that is not an outfit" answers a day do not count against a person's own allowance. The model call was still made and the global ceiling still counts it; this is about not punishing somebody for a photo the stylist could not read |
+| `Plans__ProComparesPerDay` | **Round 14**, `30`. A Pro account's OWN rolling-day allowance for "Which one?", counted apart from its checks, so deciding between two outfits never spends a check. Never above `Limits__ChecksPerDay`; a free account keeps one allowance for both. Thirty is a guess with the same shape as the check cap — move it once real Pro accounts exist and the numbers page's `spend` block says what they cost |
+| `Plans__WardrobeMaxItems` | **Round 14**, `200`. The most pieces one account may keep. A brake on a script, not a product limit, and the same for free and Pro |
+| `Plans__WardrobeNamesToStylist` | **Round 14**, `12`. How many of the wearer's own piece names travel with a check and with a comparison, most recently worn first, so a tip can name something they already own. `0` keeps the wardrobe and never sends it, and `--doctor` says so on its `plans` line |
+| `Plans__WardrobeNeedsPro` | **Round 14**, `true`. Whether the wardrobe **reaching the stylist** is Pro's. The list itself is everyone's on every server — it cannot fill itself behind a wall — so this gates only the advice from it |
+| `Plans__TasteProfile` | **Round 14**, `true`. Whether this server has the taste profile built (`Services/Taste.cs`). It is, so it is on. Turning it off takes the benefit off the Pro page in the same breath as it stops the advisory being built. **`.env.example` still shows this commented out as `false` with a note to leave it off — that comment predates the feature landing; the shipped default is `true` and the example line is the one to ignore** |
 | `Billing__Provider` | `manual` (the default) or `stripe` |
 
 **With `manual`, Pro is a command.** The Pro page shows the benefits and a note that Pro is switched on by hand, and
@@ -607,7 +642,7 @@ Fill in:
 | `Push__PublicKey`, `Push__PrivateKey`, `Push__Subject` | Leave the keys empty for now; step 8 fills them. `Subject` is a `mailto:` you can be reached at. |
 | `Admin__Handles__0` | Leave it commented out for now. It names an account that already exists, so it comes in step 7, after you have signed up. |
 | `Email__Host`, `Email__Port`, `Email__User`, `Email__Password`, `Email__From`, `Email__PublicOrigin` | Account recovery by mail. Leave them out until you have an SMTP provider; "Email for account recovery" above has the exact lines for Resend, Postmark and Gmail. `Email__PublicOrigin` is `https://` plus your domain and is required once mail is on: without it the app builds no links on a real host. |
-| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro` | The caps (3, 30, 1), the brake on guest attempts (20) and the Pro page's price text. The defaults are fine for a pilot; "Plans and billing" above. |
+| `Plans__FreeChecksPerDay`, `Plans__ProChecksPerDay`, `Plans__GuestChecksPerDay`, `Plans__GuestChecksPerAddressPerDay`, `Plans__GuestAttemptsPerDay`, `Plans__ProPriceText`, `Plans__CompareNeedsPro`, and the Round 14 four (`Plans__ProComparesPerDay`, `Plans__WardrobeMaxItems`, `Plans__WardrobeNamesToStylist`, `Plans__WardrobeNeedsPro`, `Plans__TasteProfile`) | The caps (3, 30, 1), the per-address guest number (10), the brake on guest attempts (20), the Pro page's price text, and what Pro actually sells. The defaults are fine for a pilot; "Plans and billing" above. |
 | `Billing__Provider`, `Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`, `Billing__PublicOrigin` | Leave the provider at `manual` (Pro by the `--pro` command) until Stripe is set up and tested in test mode; "Plans and billing" above. The three Stripe keys are secrets. |
 | `Board__TimeZone`, `Board__WeekStartsOn`, `Board__MinChecksToCount`, `Board__MaxPerFirerPerAuthor`, `Board__NewAccountDays`, `Board__Size`, `Board__RisingDays`, `Board__CacheSeconds`, `Board__Sponsor__Name` (+ `Handle`, `PrizeText`, `Url`) | The weekly board: the zone and the day the week is cut on (`Asia/Jerusalem`, `Sunday`; set them before the first week runs), the rules that decide which fires count (1 check, 3 per pair, 2 days), the size (10), the rising window (30), the memory cache (60 seconds, two weeks at most) and the week's sponsor, by hand (its `Url` an `http(s)` link, or it is dropped with a warning). The defaults are the pilot's; "The weekly board and store links" above. |
 | `Affiliate__Hosts__<host>` | One line per affiliate programme you have joined, e.g. `Affiliate__Hosts__amazon.com=tag=orevosh-20`: appended when a store link leaves for that host. Leave it out until you have joined one; with no line nothing is appended. The commission line under store links shows while `Affiliate__Disclosure` is `true`, the default. |
@@ -674,7 +709,7 @@ The app has ten maintenance commands. None starts the server; all run from `/opt
 | Command | What it does |
 |---|---|
 | `docker compose run --rm --no-deps app dotnet FitCheck.Api.dll --vapid` | Prints a VAPID key pair for push (step 8). Needs no database, so it works before the first start |
-| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts, the free disk space and whether the shipped pages still carry the placeholder host in their link previews, fifteen in all — each `ok`, a warning, or a short reason. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it. Run it after every settings change |
+| `docker compose exec app dotnet FitCheck.Api.dll --doctor` | Reads the configuration and this machine and prints one line per check — the database, the storage folder, ffmpeg, the Anthropic key and its model, the mail settings and their public origin, the push keys, the billing settings, the plan caps, the board's time zone, the moderator list (`Admin__Handles`, and the accounts `--admin` promoted, counted in the database), the affiliate hosts, the free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen lines**, each `ok`, a warning, or a short reason, then the tally (`doctor: 9 ok, 7 warnings, 1 failure`, with your own run's numbers) and the verdict. Exit 0 when everything a live server needs is in place, 1 otherwise, so a deploy script can gate on it; only a failure changes the exit code, a warning is your call. Run it after every settings change |
 | `docker compose exec app dotnet FitCheck.Api.dll --doctor --live` | The same, plus the checks that leave the machine: one small call to Anthropic with the configured key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe when the provider is `stripe`. **The mail server is never dialled** — no command in this app opens an SMTP connection; ask the app for a password reset with your own address to test the sender. This is the one that tells you whether a broken check is you or the provider |
 | `docker compose exec app dotnet FitCheck.Api.dll --stripe-check` | The Stripe half of `--doctor --live` on its own: whether the secret key works, whether the price id exists, is recurring and is not archived, and whether an enabled webhook endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook` with the five events the app reads. Two GETs; it writes nothing, charges nobody and prints no secret ("Plans and billing") |
 | `docker compose exec app dotnet FitCheck.Api.dll --backup /data/backups/nightly` | A consistent copy of the database and the media folder into that folder on the volume (step 9; `tools/backup.sh` wraps it and brings the copies out). `--keep <n>` after the folder also prunes it to the `n` newest database and storage copies once the new one is complete — it prunes whatever it finds there, so give each writer a folder of its own. `scripts/backup.sh` is the cron-able wrapper that leaves the copies on the volume, and `/data/backups/nightly` is the folder it defaults to |
@@ -719,6 +754,34 @@ would otherwise keep the container's world-readable modes). Nothing stays on the
 makes inside the container (`mktemp -d /data/backup-scratch.XXXXXXXX`, a fresh name every run) is removed whether the
 run succeeds or fails halfway.
 
+**Neither script takes the session keys, and one line a week fixes that.** `/data/keys` is the Data Protection key
+ring — the keys that encrypt every session cookie. The app keeps it beside the database and **outside**
+`Storage:Root` on purpose, so a media copy never carries the keys off with the photos, which also means the two
+backup scripts do not see it. It is tiny and it almost never changes, so take it once and again after anything that
+touches the volume:
+
+```bash
+docker compose cp app:/data/keys "backups/keys-$(date -u +%Y%m%d%H%M%S)"
+chmod -R go-rwx backups
+```
+
+**What a missing key ring costs:** nothing in the database, and everybody signed out. Restore the database and the
+photos onto a machine with no `/data/keys` and the app mints a fresh ring on first start; every phone in the pilot is
+signed out at once, and with mail unconfigured "forgot password" cannot bring them back. Putting one back is the same
+idiom `tools/restore.sh` uses — one throwaway container on the same volume, as root, with the copy mounted in:
+
+```bash
+docker compose stop app
+docker compose run --rm --no-deps --user root \
+  -v "$(realpath backups/keys-<stamp>):/restore/keys:ro" --entrypoint sh app -c \
+  'rm -rf /data/keys && cp -r /restore/keys /data/keys && chown -R app:app /data/keys && chmod 700 /data/keys'
+docker compose start app
+```
+
+Do it **before** the first start on a fresh volume if you can: the app mints a key the moment it starts without one,
+and every session issued against that key dies when the old ring replaces it — so anyone who signed in during the gap
+is signed out a second time. Keep the copy as private as the photos: a stolen key ring forges sessions.
+
 **The two backup scripts never share a folder, and that is the point.** `tools/backup.sh` empties the scratch folder
 it made on every exit path; `scripts/backup.sh`, the other half, leaves its copies **on** the volume in
 `/data/backups/nightly` and lets the app prune them. Nothing either one removes is anything the other wrote, so a
@@ -753,7 +816,9 @@ To put a backup back (this replaces what is live, it asks first):
 tools/restore.sh backups/orevosh-20260905033000.db backups/storage-20260905033000
 ```
 
-Leave the second argument out to restore the database only.
+Leave the second argument out to restore the database only. `tools/restore.sh` never touches `/data/keys`, so a
+restore on the machine the backup came from keeps everyone signed in: the key ring is still there beside the database.
+Only a restore onto a **fresh** volume needs the key copy above.
 
 ## 10. Updating
 
@@ -878,9 +943,13 @@ with nothing published except through Caddy; and on every response `Strict-Trans
 (over https, for this host only: no `includeSubDomains`, so nothing else under your domain is forced onto HTTPS by
 this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
 (`no-referrer` on the one route a store link leaves through, `/api/items/{id}/out`, which also answers
-`Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address) and a `Permissions-Policy`
-that keeps camera and microphone to the app itself. Store links themselves are stored only when they are `http(s)`
-with a host and no user info, and are never the `href` a person taps.
+`Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address), a `Permissions-Policy`
+that keeps camera and microphone to the app itself, and a **`Content-Security-Policy`** with `script-src 'self'` (no
+`unsafe-inline`, no nonce) — see item 4 below for the two openings that remain. Store links themselves are stored
+only when they are `http(s)` with a host and no user info, and are never the `href` a person taps. The session
+cookie's encryption keys are persisted on the data volume beside the database, at `/data/keys`, and deliberately
+outside `Storage:Root`: without that they would live in the container and a deploy would sign everyone out. They are
+a secret — "Backups" says how to take a copy and how private to keep it.
 
 Built, and waiting on a setting from you: account recovery works once `Email__*` points at a provider ("Email for
 account recovery"); Stripe Checkout runs once `Billing__*` is set and tested ("Plans and billing"); clip transcoding runs
@@ -898,8 +967,16 @@ Still missing before a public launch, in rough order of importance:
    scale, together with object storage (next).
 3. **Object storage.** Photos and clips sit on the server's disk behind `IImageStore`. An S3-compatible bucket
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
-4. **A Content-Security-Policy header.** Not set yet: the client uses Google Fonts and inline styles, which need
-   nonces or hashes before a strict policy can go in without breaking the app.
+4. **The fonts are still off-origin.** The Content-Security-Policy is set — that item used to say it was not, and it
+   has been since Round 13 (`Services/Security/SecurityHeaders.cs`, asserted by `SecurityTests` on `/`, `/landing/`,
+   an API answer and an error): `default-src 'self'`, **`script-src 'self'` with no `unsafe-inline` and no nonce**,
+   `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `img-src` and `media-src`
+   allowing `blob:` for the share card and the share video. Two deliberate openings remain. `style-src` keeps
+   `'unsafe-inline'` because the design system sets `style` attributes from code and appends one `<style>` per view
+   — a nonce cannot cover an attribute and a hash cannot cover a computed width, and CSS injection is not code
+   execution while every user string reaches the page as text. And `style-src`/`font-src` still name
+   `fonts.googleapis.com` and `fonts.gstatic.com`, which is a third party on every cold start. Self-hosting woff2
+   subsets under `/fonts` (Latin, Hebrew, Arabic) closes that one and lets both hosts leave the policy.
 5. **Brand verification is by hand** (`--verify`, no form and no process behind it), and **one process only**: the
    checks-per-day reservation, the per-address guest count and the rate limiters' windows live in memory, so run one
    `app` container (one machine on Fly). Multiple instances need a shared store.
@@ -937,9 +1014,10 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 
 5. **The production origin in the code, before the build.** `node tools/brand/set-origin.js https://looks.example.com`
    writes your domain into eleven files it knows by name: the Open Graph and Twitter tags in
-   `src/FitCheck.Api/wwwroot/index.html` (`og:url`, `og:image`, `twitter:image`), the absolute URLs at the top of
+   `src/FitCheck.Api/wwwroot/index.html` (`og:image`, `twitter:image`; `og:url` was deleted on purpose, so a shared
+   link unfurls with the address it was actually fetched from), the absolute URLs at the top of
    `wwwroot/landing/index.html` and
-   `index.he.html` (canonical, both `hreflang` links, `og:url`, `og:image`, `twitter:image`),
+   `index.he.html` (canonical, both `hreflang` links, `og:image`, `twitter:image`),
    `mobile/capacitor.config.json` (`server.url`, `allowNavigation`), and then the documents that quote the origin —
    `mobile/README.md` (including its `WKAppBoundDomains` note), `STORE.md` (including the URL table), `MARKETING.md`,
    `brand-kit/README.md`, `DEPLOY.md`, `README.md` and `.env.example`. The first four are static files inside the

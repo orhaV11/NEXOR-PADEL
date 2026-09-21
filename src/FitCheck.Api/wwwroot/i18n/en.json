@@ -1041,5 +1041,8 @@
   "challenge.dash_constraint": "Challenges with a rule",
   "share.before_after_video_hint": "Ten seconds, vertical, silent: the two looks and the one change. Share it to TikTok or Instagram, or save it to your phone.",
   "loading.sending": "Sending your clip…",
-  "error.nothing_counted": "Nothing was counted."
+  "error.nothing_counted": "Nothing was counted.",
+  "intent.Formal": "Formal",
+  "loading.resumed": "Looking for the check you started…",
+  "check.resume_missing": "We couldn't find the check you started. Add the photo again and the stylist will look."
 }

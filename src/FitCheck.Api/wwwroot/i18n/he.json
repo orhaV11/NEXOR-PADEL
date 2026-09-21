@@ -1041,5 +1041,8 @@
   "challenge.dash_constraint": "אתגרים עם כלל",
   "share.before_after_video_hint": "עשר שניות, אנכי, בלי קול: שני הלוקים והשינוי האחד. לשתף לטיקטוק או לאינסטגרם, או לשמור לטלפון.",
   "loading.sending": "שולח את הקליפ…",
-  "error.nothing_counted": "לא ניקו לך כלום."
+  "error.nothing_counted": "לא ניקו לך כלום.",
+  "intent.Formal": "אירוע",
+  "loading.resumed": "מחפשים את הבדיקה שהתחלת…",
+  "check.resume_missing": "לא מצאנו את הבדיקה שהתחלת. אפשר להוסיף את התמונה שוב והסטייליסט יסתכל."
 }

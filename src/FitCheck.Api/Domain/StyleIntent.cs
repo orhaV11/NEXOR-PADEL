@@ -3,7 +3,8 @@ namespace FitCheck.Api.Domain;
 /// <summary>
 /// Round 14 — the category error, corrected. One list used to hold two different questions: Casual, Date, Office, Party
 /// and Sport are OCCASIONS (where the outfit is going) while Streetwear, OldMoney and Minimal are STYLES (how the wearer
-/// wants to read), and the person had to pick one of the eight. Someone who wanted streetwear for a date, or minimal for
+/// wants to read), and the person had to pick one of the eight (nine: Formal joined the list when the occasion it names
+/// did, so a wedding look has a word of its own to be shown by). Someone who wanted streetwear for a date, or minimal for
 /// a party, had no way to say so.
 /// <para>
 /// A check now carries both: <see cref="OutfitOccasion"/> on every check, and <see cref="OutfitStyle"/> as a preference
@@ -21,7 +22,14 @@ public enum StyleIntent
     Minimal,
     Office,
     Party,
-    Sport
+    Sport,
+
+    /// <summary>
+    /// A wedding, a ceremony, a big evening. Round 14 added the OCCASION and had no word for it here, so a wedding look
+    /// went out as Party on every card, board, share card and share video. Appended, never inserted: the value is stored
+    /// by NAME (Checks.Intent is TEXT), and the order of this list is the order the chips read in.
+    /// </summary>
+    Formal
 }
 
 /// <summary>
@@ -70,9 +78,9 @@ public static class StyleIntents
     public static readonly OutfitStyle[] Styles = Enum.GetValues<OutfitStyle>();
 
     /// <summary>
-    /// The pair behind one of the eight old values. Casual, Date, Office, Party and Sport were occasions with no style;
-    /// Streetwear, OldMoney and Minimal were styles worn everyday. This is exactly what the Round14Check migration writes
-    /// onto every stored check.
+    /// The pair behind one word. Casual, Date, Office, Party and Sport were occasions with no style; Streetwear, OldMoney
+    /// and Minimal were styles worn everyday. For the eight old values this is exactly what the Round14Check migration
+    /// writes onto every stored check — Formal is younger than that migration and no row written before it can hold it.
     /// </summary>
     public static (OutfitOccasion Occasion, OutfitStyle? Style) Split(StyleIntent intent) => intent switch
     {
@@ -80,6 +88,7 @@ public static class StyleIntents
         StyleIntent.Date => (OutfitOccasion.Date, null),
         StyleIntent.Office => (OutfitOccasion.Office, null),
         StyleIntent.Party => (OutfitOccasion.Party, null),
+        StyleIntent.Formal => (OutfitOccasion.Formal, null),
         StyleIntent.Sport => (OutfitOccasion.Sport, null),
         StyleIntent.Streetwear => (OutfitOccasion.Everyday, OutfitStyle.Streetwear),
         StyleIntent.OldMoney => (OutfitOccasion.Everyday, OutfitStyle.OldMoney),
@@ -91,7 +100,7 @@ public static class StyleIntents
     /// The one word for a pair, for every surface that has room for one: a look's tag, a board, the share card, the share
     /// video, the feed filter. A style worn everyday keeps its own name (that is what the old list meant); anywhere else
     /// the OCCASION wins, so a streetwear look for a date reads "Date", never "Streetwear".
-    /// Formal has no word of its own in the old list and lands on Party, the nearest evening.
+    /// Formal has a word of its own now: a wedding look says Formal, not Party.
     /// </summary>
     public static StyleIntent Legacy(OutfitOccasion occasion, OutfitStyle? style)
     {
@@ -111,7 +120,7 @@ public static class StyleIntents
             OutfitOccasion.Date => StyleIntent.Date,
             OutfitOccasion.Office => StyleIntent.Office,
             OutfitOccasion.Party => StyleIntent.Party,
-            OutfitOccasion.Formal => StyleIntent.Party,
+            OutfitOccasion.Formal => StyleIntent.Formal,
             OutfitOccasion.Sport => StyleIntent.Sport,
             _ => StyleIntent.Casual
         };

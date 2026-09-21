@@ -161,8 +161,9 @@ public class IntentSplitTests : IClassFixture<IntentSplitTests.SplitApp>
         Assert.Equal(StyleIntent.Date, StyleIntents.Legacy(OutfitOccasion.Date, OutfitStyle.Streetwear));
         Assert.Equal(StyleIntent.Office, StyleIntents.Legacy(OutfitOccasion.Office, OutfitStyle.Minimal));
         Assert.Equal(StyleIntent.Casual, StyleIntents.Legacy(OutfitOccasion.Everyday, OutfitStyle.Classic));
-        // Formal is newer than that list and lands on the nearest word it has.
-        Assert.Equal(StyleIntent.Party, StyleIntents.Legacy(OutfitOccasion.Formal, null));
+        // Formal has its own word now, so a wedding look no longer says PARTY on the card, the board and the share video.
+        Assert.Equal(StyleIntent.Formal, StyleIntents.Legacy(OutfitOccasion.Formal, null));
+        Assert.Equal(StyleIntent.Formal, StyleIntents.Legacy(OutfitOccasion.Formal, OutfitStyle.Minimal));
     }
 
     [Theory]
@@ -200,7 +201,9 @@ public class IntentSplitTests : IClassFixture<IntentSplitTests.SplitApp>
         var root = Path.Combine(Path.GetTempPath(), "fitcheck-tests", "split-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var path = Path.Combine(root, "presplit.db");
-        var intents = Enum.GetValues<StyleIntent>();
+        // Formal is younger than the split: no database written before it can hold that word, so the rows a pre-split
+        // file has are the eight the old list had.
+        var intents = Enum.GetValues<StyleIntent>().Where(i => i != StyleIntent.Formal).ToArray();
         try
         {
             // The schema as Round 13 left it, then rows exactly as that app wrote them: one word, and the wearer's

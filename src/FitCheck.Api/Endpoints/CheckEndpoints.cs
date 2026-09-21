@@ -33,6 +33,13 @@ public static class CheckEndpoints
     // Room for multipart boundaries and the small text fields around the image and the clip.
     private const long MultipartOverheadBytes = 256 * 1024;
 
+    /// <summary>
+    /// The longest wait GET /api/checks/latest will look back over, whatever the caller asks for. Above the ten minutes
+    /// the client's own marker lives, so the clamp never cuts a real recovery short, and far below a day: a check from
+    /// this morning is not an answer to a question asked now.
+    /// </summary>
+    public const int MaxWithinSeconds = 900;
+
     public static IEndpointRouteBuilder MapCheckEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/checks");
@@ -42,6 +49,9 @@ public static class CheckEndpoints
         // No session needed: a visitor gets one check as a guest (GuestChecks); the handler tells the two apart.
         group.MapPost("/", CreateAsync).DisableAntiforgery().RequireRateLimiting(GuestPolicy);
         group.MapPost("/claim", ClaimAsync).RequireAuthorization();
+        // The caller's own newest check, with no id in the address: the one door back to a verdict whose answer never
+        // arrived. A read, so it carries no CSRF header and needs nothing of the page's script policy.
+        group.MapGet("/latest", LatestAsync);
         group.MapGet("/{id:guid}", GetAsync);
         // The share video is rendered and encoded on the phone (app/sharevideo.js); this only counts one that was shared or saved.
         group.MapPost("/{id:guid}/shared-video", SharedVideoAsync).RequireRateLimiting(SharedVideoPolicy);
@@ -511,6 +521,51 @@ public static class CheckEndpoints
         }
 
         return Results.Json(new ClaimResultDto(claimed), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The caller's own newest check, asked for with no id at all: what a phone has to ask after a check it started never
+    /// came back — the app killed during the stylist's minute, the screen locked, the connection cut while the answer was
+    /// on the wire. The rule is <see cref="GetAsync"/>'s, unchanged: the signed-in caller's own row, or, signed out, the
+    /// row this browser's own guest cookie made. Never anybody else's, and the same 404 as a missing id when there is
+    /// none, so this says nothing about whether a check exists.
+    /// <para>
+    /// <paramref name="withinSeconds"/>, when it is given, is how long the CALLER has been waiting, by the caller's own
+    /// clock, and the answer has to be younger than that. Each side measures a duration for itself and neither trusts
+    /// the other's idea of the time, so a phone whose clock is days out cannot be handed an old verdict as this minute's
+    /// — it simply gets the 404 and the honest "it never landed". Clamped to <see cref="MaxWithinSeconds"/>.
+    /// </para>
+    /// </summary>
+    private static async Task<IResult> LatestAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, int? withinSeconds, CancellationToken ct)
+    {
+        var userId = Sessions.UserId(context.User);
+        var guestToken = GuestChecks.Read(context);
+        IQueryable<OutfitCheck>? mine = userId is not null
+            ? db.Checks.Where(c => c.UserId == userId)
+            : guestToken is not null
+                ? db.Checks.Where(c => c.UserId == null && c.GuestToken == guestToken)
+                : null;
+
+        OutfitCheck? check = null;
+        if (mine is not null)
+        {
+            if (withinSeconds is { } seconds)
+            {
+                var floor = DateTime.UtcNow.AddSeconds(-Math.Clamp(seconds, 0, MaxWithinSeconds));
+                mine = mine.Where(c => c.CreatedAt >= floor);
+            }
+
+            check = await mine.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id).FirstOrDefaultAsync(ct);
+        }
+
+        if (check is null)
+        {
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.check_not_found"));
+        }
+
+        var postId = await db.Posts.Where(p => p.CheckId == check.Id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct);
+        return Results.Json(CheckDto.FromEntity(check, localizer, postId), AppJson.Options);
     }
 
     /// <summary>

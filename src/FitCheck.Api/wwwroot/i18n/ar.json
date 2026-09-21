@@ -1041,5 +1041,8 @@
   "challenge.dash_constraint": "تحديات بقاعدة",
   "share.before_after_video_hint": "عشر ثوانٍ، عمودي، بلا صوت: الإطلالتان والتغيير الواحد. شاركه على تيك توك أو إنستغرام، أو احفظه في هاتفك.",
   "loading.sending": "جارٍ إرسال المقطع…",
-  "error.nothing_counted": "لم يُحتسب شيء."
+  "error.nothing_counted": "لم يُحتسب شيء.",
+  "intent.Formal": "مناسبة",
+  "loading.resumed": "نبحث عن الفحص الذي بدأته…",
+  "check.resume_missing": "لم نعثر على الفحص الذي بدأته. أضف الصورة مرة أخرى وسينظر الستايلست."
 }

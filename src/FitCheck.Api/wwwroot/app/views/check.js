@@ -49,13 +49,109 @@ const SPLIT = {
   Casual: ['Everyday', null], Date: ['Date', null], Office: ['Office', null], Party: ['Party', null], Sport: ['Sport', null],
   Streetwear: ['Everyday', 'Streetwear'], OldMoney: ['Everyday', 'OldMoney'], Minimal: ['Everyday', 'Minimal']
 };
-/** The one word a chip contributes, where a surface has room for one. Formal is newer than that list and contributes none. */
-const ONE_WORD = { Everyday: 'Casual', Date: 'Date', Office: 'Office', Party: 'Party', Sport: 'Sport', Formal: null };
+/** The one word a chip contributes, where a surface has room for one. Formal has its own since it stopped borrowing Party's. */
+const ONE_WORD = { Everyday: 'Casual', Date: 'Date', Office: 'Office', Party: 'Party', Sport: 'Sport', Formal: 'Formal' };
 
 // What this check asks for. The occasion and the style live here rather than in state.check: the style is a preference
 // that outlives the check (prefs.style), and the occasion is a chip, not something private. The wearer's free line stays
 // in state.check.occasion, where signing out still clears it with everything else they typed.
 const pick = { occasion: null, style: null, loaded: false };
+
+// ---------- a check that was interrupted ----------
+//
+// The stylist's minute is the longest wait in the app, and a phone can take the screen away in the middle of it: iOS
+// discards a backgrounded tab, a locked phone suspends the page, an app is swiped away, a lift eats the connection while
+// the answer is on the wire. The CHECK survives all of that - the server stores the row and it is the person's - but the
+// answer was on its way to a page that no longer exists, and a guest's lost check was their ONE free look.
+//
+// So the submit leaves a marker here and the next boot asks the server for the caller's own newest check
+// (GET /api/checks/latest, which answers a guest's own row too). The marker holds the wait and the two answers, NEVER
+// the photo: a few bytes about a check, not the look itself. localStorage can be absent or refuse to write - private
+// mode, blocked site data - so every read and write is behind try/catch and the app is exactly itself without it.
+const PENDING_KEY = 'orevosh.check.pending';
+/** Older than this and it is not the check the person is standing there waiting for. */
+const PENDING_MAX_MS = 10 * 60 * 1000;
+
+function writePending() {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify({
+      startedAt: Date.now(),
+      occasion: pick.occasion,
+      style: pick.style || null,
+      // Who was waiting. A marker is only ever recovered by the same person: a phone handed on, or a session that ended
+      // in between, finds a check that is not theirs to ask about and drops the marker instead.
+      me: state.me ? state.me.id : null
+    }));
+  } catch (e) { /* private mode: the recovery is simply not available here */ }
+}
+
+/** Forgets the check in flight: it landed, it was refused, or the person started over. Exported so the shell can drop it too. */
+export function clearInterruptedCheck() {
+  try { localStorage.removeItem(PENDING_KEY); } catch (e) { /* nothing to forget */ }
+}
+
+/** The marker, when there is a fresh one. A stale, damaged or unreadable one is cleared and answers null. */
+function readPending() {
+  let raw = null;
+  try { raw = localStorage.getItem(PENDING_KEY); } catch (e) { return null; }
+  if (!raw) return null;
+  let mark = null;
+  try { mark = JSON.parse(raw); } catch (e) { mark = null; }
+  const startedAt = mark && Number(mark.startedAt);
+  if (!startedAt || !Number.isFinite(startedAt)) { clearInterruptedCheck(); return null; }
+  const waited = Date.now() - startedAt;
+  // A clock that moved between the two reads (a timezone change, a manual correction) is not a wait we can measure.
+  if (waited < 0 || waited > PENDING_MAX_MS) { clearInterruptedCheck(); return null; }
+  return {
+    waited,
+    occasion: OCCASIONS.includes(mark.occasion) ? mark.occasion : null,
+    style: STYLES.includes(mark.style) ? mark.style : null,
+    me: mark.me || null
+  };
+}
+
+/**
+ * The first screen, when a check was left in flight: the wait, resumed. The server is asked for the caller's own newest
+ * check, and told how long this phone has been waiting rather than when it started - two durations, each measured by the
+ * side that measures it, so a phone whose clock is wrong cannot be handed an older verdict as this one.
+ * <p>Three ends: the verdict (the result screen, as if the answer had arrived); nothing (the check never landed, and the
+ * two answers go back on the chips so only the photo has to come again); or no answer at all, which keeps the marker, so
+ * a person who walks back into signal gets the recovery on the next open.</p>
+ */
+async function resumeInterrupted(root, ctx) {
+  const pending = readPending();
+  // Not ours to ask about: the session ended, or this is somebody else's turn with the phone.
+  if (pending && (pending.me || null) !== (state.me ? state.me.id : null)) { clearInterruptedCheck(); redirect('#/check'); return; }
+  if (!pending) { redirect('#/check'); return; }
+
+  setTopBar({ title: t('check.title') });
+  root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
+  root.appendChild(loadingBlock('loading.resumed'));
+  announce(t('loading.resumed'));
+  focusHeading();
+
+  let found = null;
+  let answered = false;
+  const within = Math.ceil(pending.waited / 1000) + 30;   // the wait, plus a little for the seconds this call takes
+  try { found = await api('GET', '/api/checks/latest?withinSeconds=' + within, null, 20000); answered = true; }
+  catch (e) { answered = !!(e && e.status); }             // a 404 is an answer ("nothing landed"); a dead connection is not
+  if (ctx && ctx.stale()) return;
+  if (answered) clearInterruptedCheck();
+
+  if (found) {
+    state.result = found;
+    state.result.guest = !state.me;        // a recovered guest look still offers "sign up to keep it"
+    state.resultAnimated = false;          // they have not seen this verdict yet: the score counts up as it would have
+    state.resultPostId = null;
+    redirect('#/result');
+    return;
+  }
+
+  const ck = state.check;
+  if (pending.occasion) { pick.occasion = pending.occasion; pick.style = pending.style; pick.loaded = true; }
+  ck.error = answered ? t('check.resume_missing') : t('error.network');
+  redirect('#/check');
+}
 
 /** The saved style preference: a name, or null for "no style", which is what an account that never set one has. */
 function preferredStyle() {
@@ -204,7 +300,7 @@ register('check', async (root) => {
 /**
  * Where it is going: nothing can be checked until one of these is pressed, and from then on exactly one always is. Each
  * chip also carries the one word it contributes (data-intent), for the surfaces and the browser tests that still speak
- * one word; Formal is newer than that list and carries none.
+ * one word.
  */
 function occasionChips() {
   const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });
@@ -295,13 +391,13 @@ function checksLeftLine() {
  * the longer one, so the line says "sending" until the bytes are gone and only then "looking". One static sentence for
  * both made a slow upload look like a hung stylist.
  */
-function loadingBlock() {
+function loadingBlock(line) {
   const mark = logoMark(96);
   const sending = !!(state.check && state.check.clip && state.check.sending);
   return el('div', { class: 'loading', role: 'status' }, [
     el('div', {}, [
       mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
-      el('p', { id: 'loading-line', text: t(sending ? 'loading.sending' : 'loading.line'), tabindex: '-1' })
+      el('p', { id: 'loading-line', text: t(line || (sending ? 'loading.sending' : 'loading.line')), tabindex: '-1' })
     ])
   ]);
 }
@@ -565,6 +661,9 @@ async function submitCheck() {
     form.append('language', getLocale());
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
+    // From here the check belongs to the server whatever happens to this page. The marker is what the next boot has to
+    // find it by; it goes the moment the answer is in hand, either way.
+    writePending();
     // While a clip is on its way the screen says so, and swaps to "the stylist is looking" once it can only be the
     // model we are waiting for. There is no upload-progress event on fetch, so the swap is timed off the clip's size at
     // a deliberately pessimistic 1 Mbps: early is fine (the next line is the true one anyway), late would be the lie.
@@ -587,6 +686,7 @@ async function submitCheck() {
     }
     // Which still this result came from: the post sheet places its dots on the preview only while it is this one (the
     // result may later be an older check opened from "Your checks", or the photo may have been replaced since).
+    clearInterruptedCheck();
     ck.judged = { resultId: state.result.id, previewUrl: ck.previewUrl };
     // A guest's check: the server named it by the guest cookie; it becomes the account's once the person signs up (the result screen claims it).
     state.result.guest = !wasSignedIn;
@@ -601,6 +701,10 @@ async function submitCheck() {
     // "did that just cost me my only look?" is the first thing a person wonders. Only for a connection that died: a 429
     // or a 413 carries its own sentence and this would contradict it.
     const lostConnection = e && !e.status;
+    // The server answered (429, 413, 502, a refusal): there is nothing on its way, so the marker goes. A connection that
+    // died is the other case - the check may have landed after this page stopped listening - and the marker stays, for
+    // the next open to ask about within its ten minutes.
+    if (!lostConnection) clearInterruptedCheck();
     ck.error = e && e.status === 401 && wasSignedIn ? null
       : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
     navigate('#/check');
@@ -610,6 +714,7 @@ async function submitCheck() {
 /** Back to a fresh check. "Try another photo" keeps the challenge; "Check another" drops it. */
 function checkAnother(keepChallenge) {
   const ck = state.check;
+  clearInterruptedCheck();
   state.result = null; state.resultPostId = null; state.resultAnimated = false;
   clearMedia(ck);
   ck.error = null;
@@ -619,9 +724,11 @@ function checkAnother(keepChallenge) {
 
 // ---------- result ----------
 
-register('result', async (root) => {
+register('result', async (root, params, ctx) => {
   const result = state.result;
-  if (!result) { redirect('#/check'); return; }
+  // Nothing in hand: either this address was opened cold (back to the check screen), or a check was left in flight and
+  // the answer is still on the server, waiting to be asked for.
+  if (!result) { await resumeInterrupted(root, ctx); return; }
   setTopBar({ title: t('result.title') });
   const feedback = result.feedback || {};
   const status = feedback.status || result.status;
@@ -1024,4 +1131,15 @@ async function shareResult(result) {
     }
     await copyText(text, t('result.copied'));
   } finally { state.sharing = false; }
+}
+
+// ---------- the first screen after an interruption ----------
+//
+// main.js imports every view before boot() runs, so this is the last chance to say what the first render should be. A
+// fresh marker means a check was left in flight and its answer is still on the server: the app opens on the result
+// address, where resumeInterrupted() asks for it, instead of drawing the feed as though nothing had been asked. Only
+// over the addresses an interrupted person actually lands on - the installed app's start_url, a reopened home screen,
+// the check screen a restored tab comes back to - never over a link somebody tapped to get somewhere specific.
+if (/^(#\/?|#\/check\/?)?$/.test(location.hash) && readPending()) {
+  location.replace(location.pathname + location.search + '#/result');
 }

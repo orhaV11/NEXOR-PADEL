@@ -9,10 +9,15 @@
   <title>OREVOSH</title>
   <!--
     The offline page (Round 13). The service worker (sw.js) answers a navigation with this file when the network is gone
-    and it has no shell to show: a /landing/ page, or the app itself before its shell was ever cached. No app JS, no
-    fonts, nothing fetched: the brand, one line, retry. The three lines read the person's saved language and take their
-    words from the locale file the service worker has in its cache (offline.title, offline.body, offline.retry), so the
-    page speaks Hebrew to someone who used the app in Hebrew; English stands until then, or when nothing is cached.
+    and it has no shell to show: a /landing/ page, the app itself before its shell was ever cached, or a 5xx from the
+    edge with nothing behind it. No app JS, no fonts, nothing fetched: the brand, one line, retry. The three lines read
+    the person's saved language and take their words from the locale file the service worker has in its cache
+    (offline.title, offline.body, offline.retry), so the page speaks Hebrew to someone who used the app in Hebrew;
+    English stands until then, or when nothing is cached.
+
+    The button and those three lines live in offline.js beside this file, precached with it: the policy is
+    script-src 'self' (SecurityHeaders.cs), so an onclick= or a <script> block here is refused by the browser — which
+    is exactly what used to happen. Nothing inline, ever, anywhere in wwwroot.
   -->
   <style>
     :root { --bg: #0b0b0f; --surface: #15151c; --line: #2b2b36; --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e; --accent: #b39dff; --accent-ink: #150f2e; --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); --radius: 18px; --pill: 999px; }
@@ -34,29 +39,11 @@
     <div class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" focusable="false"><defs><linearGradient id="ov-ring" gradientUnits="userSpaceOnUse" x1="106" y1="142" x2="406" y2="442" gradientTransform="rotate(-135 256 292)"><stop offset="0" stop-color="#b39dff"/><stop offset="1" stop-color="#ff8fb1"/></linearGradient><linearGradient id="ov-fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="-190"><stop offset="0" stop-color="#ff6a2b"/><stop offset="0.55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffa83a"/></linearGradient><mask id="ov-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round" transform="translate(351.02 186.47) rotate(42)"/></mask></defs><g mask="url(#ov-cut)"><circle cx="256" cy="292" r="142" fill="none" stroke="url(#ov-ring)" stroke-width="68" transform="rotate(135 256 292)"/></g><g transform="translate(351.02 186.47) rotate(42)"><path d="M0 72 C52 72 72 28 66 -14 C60 -58 42 -82 32 -106 C22 -132 4 -154 -14 -184 C-16 -156 -26 -128 -36 -102 C-48 -104 -60 -112 -64 -124 C-74 -98 -72 -52 -64 -14 C-58 30 -40 72 0 72 Z" fill="url(#ov-fire)"/></g></svg></div>
     <h1 id="title">You're offline</h1>
     <p id="body">OREVOSH needs a connection for this page. Check your network and try again.</p>
-    <button type="button" id="retry" onclick="location.reload()">Try again</button>
+    <!-- A form, so the retry is a same-origin GET of this address even with no script at all (form-action 'self');
+         offline.js takes the click first and reloads, which keeps the #route the person was on. -->
+    <form action="" method="get"><button type="submit" id="retry">Try again</button></form>
     <span class="name">OREVOSH</span>
   </main>
-  <script>
-    (function () {
-      var rtl = { he: 1, ar: 1 };
-      var code = 'en';
-      var live = ['en', 'he'];   // the languages the app last saw as live (core.js writes prefs.languages at boot); English and Hebrew until then
-      try {
-        var prefs = JSON.parse(localStorage.getItem('orevosh.prefs') || 'null') || {};
-        if (Array.isArray(prefs.languages) && prefs.languages.length) live = prefs.languages;
-        code = prefs.language || (navigator.language || 'en').split('-')[0];
-      } catch (e) { code = 'en'; }
-      if (!/^(en|he|ar|ru)$/.test(code) || live.indexOf(code) < 0 || code === 'en') return;
-      fetch('/i18n/' + code + '.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
-        if (!m || !m['offline.title']) return;
-        document.documentElement.lang = code;
-        document.documentElement.dir = rtl[code] ? 'rtl' : 'ltr';
-        document.getElementById('title').textContent = m['offline.title'];
-        document.getElementById('body').textContent = m['offline.body'];
-        document.getElementById('retry').textContent = m['offline.retry'];
-      }).catch(function () { /* English stands */ });
-    })();
-  </script>
+  <script src="/offline.js" defer></script>
 </body>
 </html>

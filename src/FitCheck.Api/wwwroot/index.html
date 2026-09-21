@@ -38,8 +38,11 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&family=Cairo:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- media="print" keeps the first paint off this cross-origin stylesheet (the one resource the service worker cannot
+       cache); fonts.js flips it to "all" the moment the document is parsed. See fonts.js. -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&family=Cairo:wght@400;500;700;800&display=swap" rel="stylesheet" media="print" data-font-css>
   <link rel="stylesheet" href="app.css">
+  <script src="fonts.js" defer></script>
 </head>
 <body>
   <!--

@@ -1271,8 +1271,11 @@ video need that width.
 `StyleIntents.Legacy` folded it onto `Party`: a wedding look said PARTY on its card, its board, its share card and its
 share video. `StyleIntent.Formal` is that word — appended to the enum (`Checks.Intent` is TEXT, so nothing renumbers),
 with `intent.Formal` in the four locale files and `public.intent.Formal` in the four server dictionaries for the shared
-look page. Boards, search, interests, challenges and comparisons read the enum and learned it for nothing; a database
-written before the split cannot hold the word, so no migration changes. The client's own `INTENTS` list in `app/core.js`
+look page. Boards, search, challenges and comparisons read the enum and learned it for nothing; a database
+written before the split cannot hold the word, so no migration changes. One number moved with it: the interests ceiling
+(`UserEndpoints.MaxInterests`) was the literal 8 and is now however many words there are, because "pick every style" has
+to stay possible and the list is deduplicated anyway — `error.interests_invalid` carries the number (`{0}`) in all four
+server dictionaries instead of spelling it. The client's own `INTENTS` list in `app/core.js`
 still names the eight, so Formal has no *chip* yet in the feed filter, the interests list, a new challenge or the
 compare screen (and a Formal winner's board badge falls back to the raw word): one entry in that list closes it.
 

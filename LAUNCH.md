@@ -518,8 +518,12 @@ Then, on your phone, at `https://looks.example.com`:
    `--doctor` whenever you like; run `--doctor --live` now, and again after any change to a key. On a first deploy
    expect `WARN push` (no VAPID keys until `DEPLOY.md`'s step 7) and nothing failing; `FAIL anthropic` means the key
    secret never reached the machine (1.5).
-6. **Do a real check.** Photograph an outfit in the app, pick an intent, and read the verdict. This is the moment the
-   Anthropic key, the storage folder and the model all have to be right at once.
+6. **Do a real check.** Photograph an outfit in the app, say where it is going (and a style, or none), and read the
+   verdict. This is the moment the Anthropic key, the storage folder and the model all have to be right at once.
+   Read the tip, and answer the row under it — *it worked*, *it didn't*, *not my style*, *I don't own that*. That
+   row is what the numbers page's `stylist` block is made of, so it is worth being the first person to use it. If
+   the tip says **change nothing**, that is a real answer, not a bug: the stylist may keep a look it thinks is
+   already right, and it is told to do it rarely.
 7. **Post it** and open `#/board`. On launch day the look sits on the **Stylist's picks** tab (by score, no fires
    needed); the **Looks** tab wants fires that count, and a fire from an account younger than `Board__NewAccountDays`
    (2 days) does not count, then or later: the age is judged at the moment of the fire, so a fire from a second
@@ -530,9 +534,21 @@ Then, on your phone, at `https://looks.example.com`:
    proved exactly that.
 8. **Open the numbers page**, `https://looks.example.com/#/admin/metrics`, signed in as the moderator. It should show
    the checks and the people you made in steps 6 and 7 (one check and one person if you stopped at step 6; guest
-   checks are not counted). Anyone who is not a moderator gets a refusal.
-9. **Install to the home screen** — Share → "Add to Home Screen" on iPhone; Chrome offers "Install" by itself on
-   Android — and check the app opens full screen with its own icon.
+   checks are not counted). Anyone who is not a moderator gets a refusal. Below the tiles: *Did the tip land?* — your
+   own answer from step 6 — then the money block (today's estimated model spend against `Limits__SpendPerDayUsd`)
+   and the funnel.
+9. **Install to the home screen, last**, and read this before you tap.
+   - **iPhone:** in **Safari**, Share → *Add to Home Screen*. An in-app browser (WhatsApp, Instagram, Telegram) has
+     no such menu, and neither does Chrome or Firefox on iOS.
+   - **Android:** Chrome does *not* pop its own install bar — the app takes `beforeinstallprompt` and calls
+     `preventDefault()` on it, because Chrome's mini-infobar sits exactly over the tab bar and the Check control.
+     Install from the app's own **Install** card on Home, or from Chrome's ⋮ menu → *Install app*.
+   - **On an iPhone the new icon is a different browser**, with its own cookies and its own storage. It does not
+     inherit your Safari session: **sign in again inside it** (AutoFill offers the saved password), and note that a
+     link tapped in WhatsApp still opens in Safari, where you are a separate visitor. This is exactly why the
+     install step is here at 9 and not at 2 — installing first would build your whole account inside an icon you
+     may throw away, and on the tunnel path it would be bound to a hostname that is gone tomorrow.
+   - Then check the app opens full screen with its own icon.
 
 If any of those fail, section 6 is the map.
 
@@ -809,8 +825,23 @@ Do not open a second community until week-1 people are still checking in week 4.
 
 **The numbers page** is `https://looks.example.com/#/admin/metrics`, signed in as a moderator — the return rate as the
 hero figure, tiles for checks, people, posts, fires, comments, items tagged, store-link taps and board reads, and the
-score distribution as bars. `MARKETING.md` says which of them matter and what a good one looks like. Read it weekly,
-not hourly.
+score distribution as bars. Below them: **Did the tip land?** (yes/no/unanswered over every check somebody answered,
+overall, by intent and by language — the only number that says whether the stylist is any good), the **money** block
+(today's estimated model spend against `Limits__SpendPerDayUsd`, and fourteen days of it), and the **funnel**
+(fourteen days of landing views, guest checks, signups, first posts and arrivals from a shared look, today's
+conversion between the steps, and the invites). `MARKETING.md` says which of them matter and what a good one looks
+like. Read it weekly, not hourly.
+
+**Two of `MARKETING.md`'s numbers are answered by `/api/metrics/pilot` directly** rather than by a tile, under
+`wardrobe`: `keepRate`, the share of people with at least one kept piece, which should be climbing towards 40% by
+week 4 and says the keep line is in the right place; and `dontOwnRate`, the share of typed answers that were "I do
+not own that", which should be **falling**, because that is the tip a wardrobe is there to prevent. Read them with:
+
+```bash
+curl -s -b 'orevosh.session=<your cookie>' https://looks.example.com/api/metrics/pilot | jq .wardrobe
+```
+
+A rate is absent rather than `0` while there is nothing to divide by.
 
 **The log** is `fly logs` or `docker compose logs --since 1h app`. The lines worth grepping:
 
@@ -1565,8 +1596,11 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    לכתובת שלכם. את `--doctor` אפשר להריץ מתי שרוצים; את `--doctor --live` הריצו עכשיו, ושוב אחרי כל שינוי במפתח.
    בפריסה ראשונה מצפים ל-`WARN push` (אין מפתחות VAPID עד שלב 7 ב-`DEPLOY.md`) ולשום כישלון; `FAIL anthropic` אומר
    שסוד המפתח לא הגיע למכונה (1.5).
-6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, בוחרים כוונה, וקוראים את הפסיקה. זה הרגע שבו מפתח Anthropic, תיקיית
-   האחסון והמודל חייבים להיות נכונים בבת אחת.
+6. **עושים בדיקה אמיתית.** מצלמים לוק באפליקציה, אומרים לאן הוא הולך (וסגנון, או בלי), וקוראים את הפסיקה. זה הרגע
+   שבו מפתח Anthropic, תיקיית האחסון והמודל חייבים להיות נכונים בבת אחת. קראו את הטיפ, וענו על השורה שמתחתיו —
+   *עבד*, *לא עבד*, *לא הסגנון שלי*, *אין לי את זה*. השורה הזאת היא מה שבונה את בלוק ה-`stylist` בדף המספרים, אז
+   שווה להיות האדם הראשון שמשתמש בה. אם הטיפ אומר **לא לשנות כלום**, זו תשובה אמיתית ולא תקלה: הסטייליסט רשאי
+   לשמור לוק שהוא חושב שכבר נכון, ונאמר לו לעשות את זה רק לעיתים רחוקות.
 7. **מפרסמים אותו** ופותחים את `#/board`. ביום ההשקה הלוק יושב בלשונית **הבחירות של הסטייליסט** (לפי ציון, בלי אש);
    לשונית **לוקים** רוצה אש שנספרת, ואש מחשבון צעיר מ-`Board__NewAccountDays` (יומיים) לא נספרת — לא עכשיו ולא
    אחר כך: הגיל נמדד ברגע האש, ולכן אש מחשבון שני שיצרתם הרגע מעלה את המונה של הלוק ולעולם לא ממלאת את לשונית
@@ -1575,9 +1609,19 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    לבדיקת העשן — ואז אש יום ההשקה נספרת מיד — והחזירו אחר כך. ההרצה היבשה של המדריך הזה הוכיחה בדיוק את זה.
 8. **פותחים את דף המספרים**, `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל. הוא אמור להראות את הבדיקות
    ואת האנשים שיצרתם בשלבים 6 ו-7 (בדיקה אחת ואדם אחד אם עצרתם בשלב 6; בדיקות אורח לא נספרות). מי שאינו מנהל מקבל
-   סירוב.
-9. **מתקינים למסך הבית** — שיתוף ← "הוסף למסך הבית" באייפון; כרום מציע "התקנה" מעצמו באנדרואיד — ובודקים שהאפליקציה
-   נפתחת במסך מלא עם האייקון שלה.
+   סירוב. מתחת לאריחים: *האם הטיפ קלע?* — התשובה שלכם משלב 6 — ואז בלוק הכסף (ההוצאה המוערכת על המודל היום מול
+   `Limits__SpendPerDayUsd`) והמשפך.
+9. **מתקינים למסך הבית, אחרון**, וקוראים את זה לפני שלוחצים.
+   - **אייפון:** ב**ספארי**, שיתוף ← *הוסף למסך הבית*. לדפדפן בתוך אפליקציה (ווטסאפ, אינסטגרם, טלגרם) אין תפריט
+     כזה, וגם לא לכרום או פיירפוקס ב-iOS.
+   - **אנדרואיד:** כרום *לא* מקפיץ את פס ההתקנה שלו — האפליקציה תופסת את `beforeinstallprompt` וקוראת עליו
+     `preventDefault()`, כי הפס הקטן של כרום יושב בדיוק מעל שורת הלשוניות וכפתור הבדיקה. מתקינים מכרטיס
+     **התקנה** של האפליקציה עצמה במסך הבית, או מתפריט ⋮ של כרום ← *התקנת אפליקציה*.
+   - **באייפון האייקון החדש הוא דפדפן אחר**, עם עוגיות ואחסון משלו. הוא לא יורש את ההתחברות שלכם בספארי:
+     **התחברו שוב מתוכו** (מילוי אוטומטי יציע את הסיסמה השמורה), ושימו לב שקישור שנלחץ בווטסאפ עדיין נפתח בספארי,
+     שם אתם מבקר נפרד. בדיוק בגלל זה שלב ההתקנה כאן ב-9 ולא ב-2 — התקנה קודם הייתה בונה את כל החשבון שלכם בתוך
+     אייקון שאולי תזרקו, ובמסלול המנהרה הוא היה קשור לשם מארח שייעלם מחר.
+   - ואז בודקים שהאפליקציה נפתחת במסך מלא עם האייקון שלה.
 
 אם משהו מזה נכשל, פרק 6 הוא המפה.
 
@@ -1844,7 +1888,21 @@ node tools/brand/render-kit.js store web     # או רק מסכי החנויות
 
 **דף המספרים** הוא `https://looks.example.com/#/admin/metrics`, מחוברים כמנהל — שיעור החזרה כמספר הגדול, אריחים
 לבדיקות, אנשים, פוסטים, אשים, תגובות, פריטים שתויגו, הקשות על קישורי חנות וצפיות בלוח, והתפלגות הציונים כעמודות.
-`MARKETING.md` אומר אילו מהם חשובים ואיך נראה מספר טוב. קראו אותו שבועית, לא שעתית.
+מתחתיהם: **האם הטיפ קלע?** (כן/לא/בלי תשובה על כל בדיקה שמישהו ענה עליה, בסך הכול, לפי כוונה ולפי שפה — המספר
+היחיד שאומר אם הסטייליסט טוב), בלוק ה**כסף** (ההוצאה המוערכת על המודל היום מול `Limits__SpendPerDayUsd`, וארבעה
+עשר יום אחורה), וה**משפך** (ארבעה עשר יום של צפיות בדף הנחיתה, בדיקות אורח, הרשמות, פוסטים ראשונים והגעות מלוק
+משותף, ההמרה של היום בין השלבים, וההזמנות). `MARKETING.md` אומר אילו מהם חשובים ואיך נראה מספר טוב. קראו אותו
+שבועית, לא שעתית.
+
+**שניים מהמספרים של `MARKETING.md`** נענים ישירות מ-`/api/metrics/pilot`, תחת `wardrobe`, ולא מאריח: `keepRate`,
+שיעור האנשים עם לפחות פריט אחד שנשמר, שאמור לטפס לכיוון 40% עד שבוע 4 ואומר שקו השמירה נמצא במקום הנכון;
+ו-`dontOwnRate`, שיעור התשובות המסומנות שהיו "אין לי את זה", שאמור **לרדת**, כי זה בדיוק הטיפ שהארון נועד למנוע:
+
+```bash
+curl -s -b 'orevosh.session=<the cookie>' https://looks.example.com/api/metrics/pilot | jq .wardrobe
+```
+
+שיעור בלי מכנה פשוט לא מופיע, במקום להופיע כ-`0`.
 
 **הלוג** הוא `fly logs` או `docker compose logs --since 1h app`. השורות ששווה לחפש:
 

@@ -1754,26 +1754,40 @@ reads its own pieces, sees plainly what Pro adds, and `POST /api/wardrobe/stylis
 is the one door that answers `error.pro_required`. The switch exists at all because those names are the person's own
 strings leaving the server: a Pro account that would rather they stayed home turns it off and keeps the list.
 
-**The taste profile is claimed by a setting, not by hope.** Another builder is landing it in the same round. Listing it
-on the Pro page from a branch that does not have it would be exactly the invented promise this round exists to stop, so
-`Plans:TasteProfile` is off out of the box, the benefit is drawn only behind it, and turning it on is an operator
-saying in configuration that this server has the feature. `PlansTests` asserts the default and the guard.
+**The taste profile is claimed by a setting, not by hope.** It was another builder's, landing in the same round, so it
+was written behind a setting that was **off** out of the box: listing it on the Pro page from a branch that did not
+have it would have been exactly the invented promise this round exists to stop. That branch landed
+(`Services/Taste.cs`), so `Plans:TasteProfile` now defaults to **`true`** — the server can do it, so it may say so.
+What was load-bearing was never the default: the page draws `pro.benefit_taste` **only** behind `plans.tasteProfile`,
+so an operator who turns the feature off stops promising it in the same breath, and `PlansTests` asserts both the
+default and the guard. *(Corrected in Round 15: this paragraph still said "off out of the box" after the default had
+been flipped, and `README.md`'s settings table had copied the wrong number.)*
 
 **The measure of the wardrobe is somebody else's number.** "I do not own that" is one of the loop's four typed reasons,
 and a tip that draws it is exactly the tip a wardrobe should have prevented. So the wardrobe's worth is not how many
-pieces are kept but how far that reason falls, and `MARKETING.md` watches both.
+pieces are kept but how far that reason falls, and `MARKETING.md` watches both. *(Round 15: both are now on
+`/api/metrics/pilot` under `wardrobe`, so neither is counted by hand any more.)*
 
 ### What could not be built this round
 - **A piece has no photo.** The wardrobe is a list of names, because a name is all the stylist needs and a photo of a
   garment is a second upload, a second store and a second thing to delete. If "which black boots" ever becomes a real
-  question, the row has an id to hang one on.
+  question, the row has an id to hang one on. *(Still true, deliberately, and now said out loud in `README.md` under
+  "Not in this version" rather than only here.)*
 - **Two rows cannot be merged.** Renaming a piece onto another of your own answers 409 rather than merging their looks,
-  because a merge silently loses one side's history and nobody asked for it.
-- **The wardrobe is not on the comparison route.** A comparison is two outfits judged against each other, and the tip it
-  gives is about one of the two photos; sending the wardrobe there is the same paragraph in a second prompt and was not
-  worth the tokens until the check route proves the tips get better.
+  because a merge silently loses one side's history and nobody asked for it. *(Still true.)*
+- ~~**The wardrobe is not on the comparison route.**~~ **Done in Round 15.** The reasoning was that a comparison's tip
+  is about one of two photos and the paragraph was not worth the tokens until the check route proved the tips get
+  better. What that missed is that the failure mode does not wait for proof: a comparison ends in *one tip*, and
+  without the wardrobe that tip can tell somebody to buy a piece already hanging in their wardrobe — the exact thing
+  the feature exists to prevent, on the screen people pay for. It is `Wardrobe.ForStylistAsync` and one string, under
+  the same three rules as a check, and an account with nothing to send sends a request that is byte for byte the one
+  this route always made. See the Round 15 section.
 - **`Plans:ProComparesPerDay` is a number an operator sets, not a measured one.** Thirty is a guess with the same
   shape as the check cap. It should move once real Pro accounts exist and the spend meter says what they cost.
+  *(Still a guess in Round 15, and still the honest word for it. The two numbers to read before moving it are on the
+  numbers page already: `spend.today` against `Limits:SpendPerDayUsd`, and how often a Pro account actually reaches
+  the cap — which nothing counts yet. Until somebody is paying, there is nothing to measure and no reason to move
+  it.)*
 ## Round 14 — the community round (post the look, keep the grade; the openers; before and after; the rule)
 
 **A person may want to share the look and keep the grade.** Posting forced the number into public along with the
@@ -1824,3 +1838,97 @@ else depends on it.
 - A before/after share of somebody else's look is not a thing: the pair is the author's two looks, and only the author
   moves the tally.
 - Nothing checks a look against a challenge's rule, and no route pretends to.
+
+## Round 15 — the wardrobe's two numbers, the wardrobe on the comparison, and the documents an owner is about to follow
+
+**A feature nobody counts is a feature nobody can kill.** Round 14 built a wardrobe that fills itself and shipped no
+way to tell whether anyone fills it. `MARKETING.md` had already named the two numbers and told the owner to count
+`WardrobeItems` by owner by hand "until a metric exists", which is the kind of sentence that survives a launch and
+then a year. Both are on `/api/metrics/pilot` now, in a block of their own (`wardrobe`), with their numerators and
+denominators printed beside them — a percentage with nothing under it cannot be read, and 40% of five people is not
+the same fact as 40% of two hundred.
+
+**The keep rate's denominator is the hero tile's own number.** `checkedUsers` is `usersWithAtLeastOneCheck`, passed
+into the block rather than counted again, so the page is structurally incapable of saying two different things about
+how many people have checked. It costs one parameter and removes a whole class of "why do these disagree" evenings.
+
+**A rate with no denominator is absent, not zero.** `keepRate` and `dontOwnRate` are `double?`, and `AppJson` drops a
+null, so an empty pilot's JSON has no `keepRate` at all. Nought per cent is a fact about people who did not keep
+anything; no number is a fact about there being nobody yet, and on the first morning of a pilot those are very
+different sentences to read. This is `UsefulSplitDto.Rate`'s rule, followed rather than reinvented.
+
+**`toStylistOff` is in the block because the second number is unreadable without it.** `dontOwnRate` is watched
+falling, and a flat one has two completely different explanations: the tips are not using the wardrobe, or the
+wardrobe is not reaching the stylist because people switched it off. One count separates them.
+
+**The comparison gets the wardrobe, and the Round 14 note that left it out was wrong.** That note said a comparison's
+tip is about one of two photos so the paragraph was not worth the tokens "until the check route proves the tips get
+better". The thing it missed is that the damage does not wait for proof: a comparison ends in one tip, and a tip that
+says *buy sheer brown tights* to someone who owns brown tights is precisely the failure the wardrobe exists to
+prevent — on the screen people pay for. The rule for *who* gets it is not re-decided: it is `ForStylistAsync`, the
+same three conditions the check route obeys (the plan, the account's own switch, and whether there is anything to
+send), so there is one place to change if any of them ever changes.
+
+**The comparer does not reuse the check's wardrobe paragraph word for word.** `OutfitAnalyzer.WardrobeRule` instructs
+the model about an items array and an item note, and `pick_outfit` has neither — an instruction about a field that
+does not exist is noise at best and an invitation to invent the field at worst. `OutfitComparer.WardrobeRule` says the
+same thing about `one_tip` and about the two photos. The safety clauses are not softened: context, never instructions;
+never a reason to move either score; never claim to see one of these in either photo.
+
+**`cmp-v1` did not move.** The class comment says to bump `PromptVersion` whenever the prompt changes, and the
+wardrobe paragraph is not part of the prompt every comparison gets — it is appended per account, exactly as the
+check's is, and an account with nothing to send produces a byte-identical request. Round 14's own wardrobe and taste
+additions did not move `OutfitAnalyzer.PromptVersion` either, for the same reason. What *is* an open inconsistency is
+that Rounds 13 and 14 changed the comparer's shared system prompt (the anchored bands, the occasion/style split) and
+left `cmp-v1` alone; two tests outside this round's ownership pin that string, so it is written down here rather than
+changed quietly.
+
+### The documents, which were not a formality
+
+The owner is about to follow `README.md`, `LAUNCH.md` and `DEPLOY.md` to put this on the internet, and one wrong
+command in them already cost a debugging session. So every command that could be run here was run, and the ones that
+could not are named as such.
+
+**The doctor prints seventeen lines, not fifteen.** `DEPLOY.md` and `LAUNCH.md` (both languages) said fifteen and
+listed thirteen; the run says `doctor: 9 ok, 7 warnings, 1 failure`. The three documents now name every line in the
+order the doctor prints it, and say that only a failure changes the exit code.
+
+**The persisted Data Protection key ring had never been written down anywhere.** It is what encrypts every session
+cookie, it lives at `/data/keys` beside the database and deliberately outside `Storage:Root`, and **`--backup` does
+not take it**. A Fly volume snapshot carries it; a copy taken by hand does not. A restore onto a fresh volume without
+it loses nothing from the database and signs every phone in the pilot out at once — and with mail unconfigured,
+"forgot password" cannot bring them back. Both backup routines and both restore routines now carry the one line that
+takes it and the one that puts it back, and say to put it back *before* the first start on a new volume, because the
+app mints a fresh key the moment it starts without one.
+
+**Response compression was not written down either**, and it is the single largest thing standing between a phone and
+the first screen: `UseResponseCompression()` before the static files, Brotli then gzip, text types only, roughly a
+fifth of about 710 KB. Nothing to configure, which is exactly why nobody would have found it.
+
+**Two claims in `README.md` had stopped being true.** "No block-user, still" — blocking has a route, a settings
+screen, a predicate and a test suite; and "closet memory" was still on the list of things deliberately not built,
+which is what Round 14 named the wardrobe. `Plans:TasteProfile`'s default was written as `false` in the settings table
+and is `true` in the code. The test count said 573 and the suite runs 892.
+
+**`og:url` was deleted from the three shipped pages and three documents still listed it.** It is deliberate: every
+crawler falls back to the URL it actually fetched, so a shared link unfurls correctly on a tunnel, a staging name or
+the real domain with nothing to configure. `og:image` cannot do that, so it stays absolute and `set-origin` still
+rewrites it — two occurrences in `index.html`, five in each landing page, which is what `--check` prints.
+
+**What could not be verified here.** There is no Docker daemon reachable, no Fly account and no network to Anthropic
+in this sandbox, so every `fly …`, `docker compose …`, `--doctor --live` and `--stripe-check` line is unchanged from
+what was already there and was read rather than run. What was run: `--doctor`, `--vapid`, `--backup` with and without
+`--keep`, `--admin`, `--pro` on and off, `--verify` against a handle nobody has, `node tools/brand/set-origin.js
+--check`, and the `tar` round trip the key-ring lines depend on.
+
+### Objections to keep out of the code
+
+- The wardrobe block never names a piece, a person or an account: it is five counts and two ratios, like every other
+  number on that page, and guests are left out of both sides as they are everywhere else on it.
+- A comparison with an empty wardrobe sends the request it always sent. No empty paragraph, no placeholder, no tokens
+  spent on a feature the account does not have.
+- The wardrobe still has no photo per piece, and the comparison did not grow one either.
+- A runbook never keeps a command nobody has run. Where one cannot be run here, the document says which.
+
+The Arabic and Russian lines added for the numbers page's wardrobe block are plain copy by the builder and need the
+same native review as the rest.

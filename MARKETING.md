@@ -132,8 +132,8 @@ All from `/api/metrics/pilot` (moderator session) unless said otherwise; write t
 | Store pull | store-link taps (`itemOuts`) ÷ pieces with a link | 0.5 a week | a tagged piece is worth a tap; the number a brand will ask for |
 | Board pull | board reads (`boardViews`) ÷ people active in 7 days | 2 a week | the week has a rhythm; below 1 the board is decoration |
 | Rule-1 incidents | reports with reason `person` + calibration scan hits | 0 | the promise holds |
-| Wardrobe kept | people with at least one kept piece ÷ people with at least one OK check (count `WardrobeItems` by owner until a metric exists) | 40% by week 4 | the keep line is one tap and people take it; below 15% the line is in the wrong place or the wrong words |
-| "I do not own that" | checks whose typed reason is `dont_own` ÷ checks with a typed reason (the loop's Round 14 column) | falling | the wardrobe's worth, measured: a tip that draws that answer is exactly the tip the wardrobe should have prevented |
+| Wardrobe kept | people with at least one kept piece ÷ people with at least one OK check — `wardrobe.keepRate` on `/api/metrics/pilot`, with `keepers`, `checkedUsers` and `items` beside it | 40% by week 4 | the keep line is one tap and people take it; below 15% the line is in the wrong place or the wrong words |
+| "I do not own that" | checks whose typed reason is `dont_own` ÷ checks with a typed reason — `wardrobe.dontOwnRate`, with `dontOwn` and `reasons` beside it | falling | the wardrobe's worth, measured: a tip that draws that answer is exactly the tip the wardrobe should have prevented. Read it with `wardrobe.toStylistOff`: a wardrobe nobody sends cannot prevent anything |
 
 ## What not to do
 

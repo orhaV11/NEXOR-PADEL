@@ -84,7 +84,15 @@ push. Installing, and anything you ask a pilot user to install, wants an origin 
 Cloudflare tunnel on a domain you own, or ngrok's static domain. A quick tunnel is for looking at the app in a
 browser tab, which is most of what a first phone test is.
 
-On that stable origin: iPhone → Share → "Add to Home Screen"; Android Chrome offers "Install" by itself.
+On that stable origin: **iPhone** → Share → "Add to Home Screen", in **Safari** (an in-app browser — WhatsApp,
+Instagram, Telegram — has no such menu, and neither does Chrome or Firefox on iOS). **Android Chrome** does *not*
+pop its own install bar: the app asks for `beforeinstallprompt` first and calls `preventDefault()` on it, because
+Chrome's mini-infobar pins itself to the bottom of the viewport, exactly over the tab bar and the Check control. So
+install from the app's own **Install** card on Home, or from Chrome's ⋮ menu → *Install app*.
+
+**On an iPhone, the installed app has its own cookie jar.** It does not inherit the Safari session, the guest
+check, the saved language or anything else: sign in once inside the new icon, and a link tapped in WhatsApp still
+opens in Safari as a different visitor. Install after signing up, not before.
 
 ### Maintenance commands
 

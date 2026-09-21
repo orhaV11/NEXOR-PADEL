@@ -109,4 +109,41 @@ public class LanguagesTests
             Assert.Contains(files["en"], key => key.StartsWith(prefix, StringComparison.Ordinal));
         }
     }
+
+    /// <summary>
+    /// The client picks a plural form by n == 1 and nothing else, which is the whole of English and enough for Hebrew.
+    /// Russian counts in three: one (1, 21, 31), a paucal (2-4) and a genitive plural (0, 5-20) - so "2 образов" reads
+    /// as wrong to a Russian speaker as "2 checkses" does to an English one. The translation already answers this by
+    /// writing the noun first and the number after a colon ("Образов: {n}"), which is fixed whatever the number is.
+    /// This pins that shape: a count may sit directly before a word only behind a preposition that fixes the case
+    /// itself. Give the client real plural categories and this test is the thing to delete.
+    /// </summary>
+    [Fact]
+    public void The_russian_counts_are_written_so_that_two_forms_are_enough()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "i18n"));
+        var en = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "en.json"))).RootElement;
+        var ru = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "ru.json"))).RootElement;
+
+        // A preposition governs the case of what follows it, so a number standing next to one counts nothing there:
+        // "В {n} образах" and "{n} из {cap}" read the same for every number. Anything else is a noun being counted.
+        var prepositions = new[] { "из", "в", "на", "за", "до", "от", "с", "по" };
+        var counted = new System.Text.RegularExpressions.Regex(@"(?<before>\S+ )?\{(?:n|calls|count)\} (?<after>[\u0400-\u04FF]+)");
+
+        var bases = en.EnumerateObject().Select(p => p.Name).Where(name => name.EndsWith("_one", StringComparison.Ordinal))
+            .Select(name => name[..^4]).Where(name => en.TryGetProperty(name, out _)).ToList();
+        Assert.NotEmpty(bases);
+
+        foreach (var name in bases)
+        {
+            var text = ru.GetProperty(name).GetString()!;
+            foreach (System.Text.RegularExpressions.Match match in counted.Matches(text))
+            {
+                var before = match.Groups["before"].Value.Trim().ToLowerInvariant();
+                var after = match.Groups["after"].Value.ToLowerInvariant();
+                Assert.True(prepositions.Contains(before) || prepositions.Contains(after),
+                    $"ru.json \"{name}\" counts into a bare noun (\"{match.Value}\"), which only reads right for some numbers: {text}");
+            }
+        }
+    }
 }

@@ -17,7 +17,9 @@
 
     The button and those three lines live in offline.js beside this file, precached with it: the policy is
     script-src 'self' (SecurityHeaders.cs), so an onclick= or a <script> block here is refused by the browser — which
-    is exactly what used to happen. Nothing inline, ever, anywhere in wwwroot.
+    is exactly what used to happen. Nothing inline, ever, anywhere in wwwroot. The src is absolute on purpose: this
+    page is served for whatever address the person asked for — /landing/, /look/<id> — and a relative one would be
+    looked for next to that.
   -->
   <style>
     :root { --bg: #0b0b0f; --surface: #15151c; --line: #2b2b36; --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e; --accent: #b39dff; --accent-ink: #150f2e; --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%); --radius: 18px; --pill: 999px; }

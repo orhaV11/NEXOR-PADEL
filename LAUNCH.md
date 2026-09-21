@@ -518,7 +518,7 @@ Then, on your phone, at `https://looks.example.com`:
    free disk space, whether the shipped pages still carry the placeholder host in their link previews, what a model
    call is priced at here with the day's spend ceiling, and whether any alert channel is set at all — **seventeen
    lines** — and prints one per check, `ok`, a warning or a short reason, then the tally
-   (`doctor: 9 ok, 7 warnings, 1 failure`) and the verdict, exiting 0 when
+   (`doctor: 9 ok, 7 warnings, 1 failure`, with your own run's numbers) and the verdict, exiting 0 when
    everything a live server needs is there and 1 otherwise. Only a failure changes the exit code; a warning is your
    call to read. `--live` adds the checks that leave the machine: one small
    call to Anthropic with your key and model (a few hundred tokens, a fraction of a cent), and two reads from Stripe
@@ -1608,7 +1608,7 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
    מוגדר ויש לו כתובת ציבורית, מפתחות הפוש, הגדרות החיוב, מכסות התוכניות, אזור הזמן של הלוח, רשימת המנהלים, מארחי
    השותפים, המקום הפנוי בדיסק, אם העמודים שנשלחים לדפדפן עדיין נושאים את מציין המקום בתגיות התצוגה המקדימה, במה
    מתומחרת כאן קריאה למודל יחד עם תקרת ההוצאה היומית, ואם מוגדר בכלל ערוץ התראות — **שבע עשרה שורות** — ומדפיס שורה
-   לכל בדיקה, `ok`, אזהרה או סיבה קצרה, ואז את הסיכום (`doctor: 9 ok, 7 warnings, 1 failure`) ואת הפסיקה, ויוצא ב-0
+   לכל בדיקה, `ok`, אזהרה או סיבה קצרה, ואז את הסיכום (`doctor: 9 ok, 7 warnings, 1 failure`, עם המספרים של ההרצה שלכם) ואת הפסיקה, ויוצא ב-0
    כשכל מה ששרת חי צריך קיים וב-1 אחרת. רק כישלון משנה את קוד היציאה; אזהרה היא שיקול שלכם.
    `--live` מוסיף את הבדיקות שיוצאות מהמכונה: קריאה
    קטנה אחת ל-Anthropic עם המפתח והמודל שלכם (כמה מאות טוקנים, שבריר סנט), וקריאה אחת ל-Stripe כשהספק הוא `stripe`.

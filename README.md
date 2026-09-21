@@ -124,7 +124,7 @@ VAPID keys), `admin` (the moderator list, and the accounts `--admin` promoted), 
 `storage` (the photo folder, actually written to and the file removed again), `database` (the file and what it still
 has to migrate), `ffmpeg`, `disk` (the free space where the data lives), `spend` (what a model call is priced at here
 and the day's ceiling) and `alerts` (whether anything at all would shout). The last two lines are the tally —
-`doctor: 9 ok, 7 warnings, 1 failure` — and the verdict, `Ready.`, `Ready, with warnings to read.` or `Not ready: fix
+`doctor: 9 ok, 7 warnings, 1 failure`, with whatever numbers your own run comes to — and the verdict, `Ready.`, `Ready, with warnings to read.` or `Not ready: fix
 the failures above and run it again.` **Only a failure changes the exit code**; a warning is the operator's call.
 `--doctor --live` adds the calls that cost something or leave the machine:
 one small Anthropic call with the configured key and model (a fraction of a cent), and, when the provider is `stripe`,

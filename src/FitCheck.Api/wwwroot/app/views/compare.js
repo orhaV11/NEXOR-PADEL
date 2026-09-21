@@ -27,7 +27,14 @@ const outfitName = (side) => t('compare.outfit_' + side);
 register('compare', async (root, params, ctx) => {
   setTopBar({ back: params.id ? '#/compare' : '#/check', title: t('compare.title') });
   root.appendChild(el('h1', { class: 'sr-only', text: t('compare.title') }));
-  if (!state.me) { root.appendChild(signInPrompt()); return; }
+  // The shared sign-in notice is the default on ten screens and could only speak in generalities; here it was also
+  // telling a guest that checks need an account, on a server whose first check is free. Say what this screen actually
+  // gates, and point a guest at the thing they CAN do.
+  if (!state.me) {
+    const guests = !!(state.config.plans && state.config.plans.guestChecksPerDay > 0);
+    root.appendChild(signInPrompt(null, t(guests ? 'compare.needs_account_free' : 'compare.needs_account')));
+    return;
+  }
   if (cmp.submitting) { root.appendChild(loadingBlock()); return; }   // in flight; the verdict takes over when it lands
 
   if (params.id) {

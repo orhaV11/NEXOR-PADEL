@@ -194,7 +194,10 @@ public static partial class PublicPageEndpoints
         }
 
         body.Append("<div class=\"actions\">");
-        body.Append("<a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("\">")
+        // "#/check", not the app root: the root has no hash and core.js resolves that to the feed, so the one button on
+        // this page aimed at somebody who has already decided to try landed them in a look list instead. The via query
+        // stays BEFORE the hash, the shape the ghost button beside it already uses, so invite.js still reads it.
+        body.Append("<a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/check\">")
             .Append(Esc(localizer.Get(language, "public.check_yours"))).Append("</a>");
         body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/post/").Append(look.PostId).Append("\">")
             .Append(Esc(localizer.Get(language, "public.open_app"))).Append("</a>");
@@ -301,7 +304,8 @@ public static partial class PublicPageEndpoints
             body.Append("</ul>");
         }
 
-        body.Append("<div class=\"actions\"><a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("\">")
+        // Same on a shared profile: the button says "check yours" and must go where a check is made.
+        body.Append("<div class=\"actions\"><a class=\"btn\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/check\">")
             .Append(Esc(localizer.Get(language, "public.check_yours"))).Append("</a>");
         body.Append("<a class=\"btn ghost\" href=\"").Append(Esc(origin)).Append('/').Append(Esc(via)).Append("#/u/")
             .Append(Esc(Uri.EscapeDataString(user.Handle))).Append("\">")
@@ -501,7 +505,7 @@ public static partial class PublicPageEndpoints
         var text = localizer.Get(language, "public.not_found_body");
         var body = "<main class=\"note\">" + Wordmark("")
             + "<h1>" + Esc(title) + "</h1><p>" + Esc(text) + "</p>"
-            + "<div class=\"actions\"><a class=\"btn\" href=\"/\">" + Esc(localizer.Get(language, "public.check_yours")) + "</a></div></main>";
+            + "<div class=\"actions\"><a class=\"btn\" href=\"/#/check\">" + Esc(localizer.Get(language, "public.check_yours")) + "</a></div></main>";
         context.Response.StatusCode = StatusCodes.Status404NotFound;
         return Page(context, new PageHead(language, title, text, null, null, null, Index: false, OgType: "website"), body);
     }

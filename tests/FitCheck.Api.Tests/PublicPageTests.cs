@@ -304,7 +304,10 @@ public class PublicPageTests : IClassFixture<TestApp>
 
         var html = await Anonymous().GetStringAsync($"/look/{postId}?via=hannah");
 
-        Assert.Contains("href=\"http://localhost/?via=hannah\"", html);                     // "Check yours"
+        // The class is part of the assertion on purpose: without it the wordmark's own href satisfies the same
+        // substring, and this line silently stopped covering the button it names. "#/check", because the app root
+        // resolves to the feed and this button is for somebody who has already decided to try.
+        Assert.Contains("<a class=\"btn\" href=\"http://localhost/?via=hannah#/check\">", html);      // "Check yours"
         Assert.Contains($"href=\"http://localhost/?via=hannah#/post/{postId}\"", html);     // "Open in OREVOSH"
         Assert.Contains("class=\"wordmark\" href=\"http://localhost/?via=hannah\"", html);  // and the way back at the top
         // Not on the look's own address: the canonical and the unfurl are the same for everyone who is sent the link.
@@ -320,7 +323,7 @@ public class PublicPageTests : IClassFixture<TestApp>
 
         var html = await Anonymous().GetStringAsync($"/u/{handle}?via=hannah");
 
-        Assert.Contains("href=\"http://localhost/?via=hannah\"", html);
+        Assert.Contains("<a class=\"btn\" href=\"http://localhost/?via=hannah#/check\">", html);
         Assert.Contains($"href=\"http://localhost/?via=hannah#/u/{handle}\"", html);
         Assert.Equal($"http://localhost/u/{handle}", Meta(html, "property", "og:url"));
     }
@@ -340,6 +343,7 @@ public class PublicPageTests : IClassFixture<TestApp>
         var html = await Anonymous().GetStringAsync($"/look/{postId}?via={Uri.EscapeDataString(via)}");
 
         Assert.Contains("href=\"http://localhost/\"", html);
+        Assert.Contains("<a class=\"btn\" href=\"http://localhost/#/check\">", html);
         Assert.DoesNotContain("?via=", html);
     }
 

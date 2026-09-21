@@ -211,8 +211,14 @@ Everything in this section runs on **your own computer**, from the repository fo
 ```bash
 curl -L https://fly.io/install.sh | sh                        # macOS and Linux
 brew install flyctl                                           # or, on a Mac with Homebrew
-pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"    # Windows PowerShell
+iwr https://fly.io/install.ps1 -useb | iex                   # Windows PowerShell, in the window itself
 ```
+
+The Windows line is run IN the PowerShell window, not handed to `pwsh`: `pwsh` is PowerShell 7, a separate install, and
+a machine that only has the PowerShell that ships with Windows answers `The term 'pwsh' is not recognized`. If the
+script itself is refused (`running scripts is disabled on this system`), `Set-ExecutionPolicy -Scope Process
+RemoteSigned` lifts that for this one window. Close the window and open a new one afterwards, or `fly` is still not on
+the PATH; `fly version` is the proof.
 
 Then:
 
@@ -1310,8 +1316,13 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
 ```bash
 curl -L https://fly.io/install.sh | sh                        # macOS ולינוקס
 brew install flyctl                                           # או, על מק עם Homebrew
-pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"    # Windows PowerShell
+iwr https://fly.io/install.ps1 -useb | iex                   # Windows PowerShell, in the window itself
 ```
+
+את שורת ה‑Windows מריצים **בתוך** חלון ה‑PowerShell, לא דרך `pwsh`: ‏`pwsh` הוא PowerShell 7, התקנה נפרדת, ומחשב שיש עליו
+רק את ה‑PowerShell שמגיע עם Windows יענה `The term 'pwsh' is not recognized`. אם הסקריפט עצמו נדחה
+(`running scripts is disabled on this system`), ‏`Set-ExecutionPolicy -Scope Process RemoteSigned` מתיר אותו לחלון הזה בלבד.
+אחרי ההתקנה סוגרים את החלון ופותחים חדש, אחרת `fly` עדיין לא על ה‑PATH; ‏`fly version` היא ההוכחה.
 
 ואז:
 

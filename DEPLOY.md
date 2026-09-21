@@ -70,7 +70,7 @@ repository on your computer. Neither Docker nor the .NET SDK is needed on your c
 ```bash
 curl -L https://fly.io/install.sh | sh                        # macOS and Linux
 brew install flyctl                                           # or, on a Mac with Homebrew
-pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"    # Windows PowerShell
+iwr https://fly.io/install.ps1 -useb | iex                   # Windows PowerShell, in the window itself
 fly auth signup                                               # or fly auth login if you have an account
 ```
 

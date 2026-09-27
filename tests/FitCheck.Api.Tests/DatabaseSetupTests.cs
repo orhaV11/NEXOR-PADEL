@@ -602,7 +602,7 @@ public class SecurityHeadersTests : IClassFixture<TestApp>
         Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
         Assert.Equal("DENY", Assert.Single(response.Headers.GetValues("X-Frame-Options")));
         Assert.Equal("strict-origin-when-cross-origin", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
-        Assert.Equal("camera=(self), microphone=(self), geolocation=()", Assert.Single(response.Headers.GetValues("Permissions-Policy")));
+        Assert.Equal("camera=(self), microphone=(self), geolocation=(self)", Assert.Single(response.Headers.GetValues("Permissions-Policy")));
     }
 
     [Fact]

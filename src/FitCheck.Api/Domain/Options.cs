@@ -646,6 +646,39 @@ public sealed class LanguagesOptions
 // ---- Round 13 — money: the alerts the owner hears before a user does ----
 
 /// <summary>
+/// Round 18 — the forecast behind "what should I wear tomorrow". Open-Meteo, because it needs no account and no key
+/// to start: the server asks it for a day's high, low, chance of rain and sky, for a place rounded to about a
+/// kilometre, and never stores where the person was. Its keyless service is for NON-COMMERCIAL use; an app that takes
+/// payments is meant to be on a paid plan, which comes with a key (<see cref="ApiKey"/>, Weather__ApiKey) and its own
+/// host. The doctor says so while the key is empty and Stripe is on.
+/// </summary>
+public sealed class WeatherOptions
+{
+    public const string Section = "Weather";
+
+    /// <summary>False turns the forecast off everywhere: no fetch, no consent line on the screen, the outfit composed without it.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>The keyless host. Overridden by <see cref="ApiKey"/>, which moves every call to the customer host.</summary>
+    public string BaseUrl { get; set; } = "https://api.open-meteo.com";
+
+    /// <summary>The paid host, used whenever <see cref="ApiKey"/> is set.</summary>
+    public string CustomerBaseUrl { get; set; } = "https://customer-api.open-meteo.com";
+
+    /// <summary>Open-Meteo API key from a paid plan. Environment variable Weather__ApiKey; never in appsettings.</summary>
+    public string ApiKey { get; set; } = "";
+
+    /// <summary>A forecast that takes longer than this is not worth the person's wait: the outfit is composed without it.</summary>
+    public int TimeoutSeconds { get; set; } = 5;
+
+    /// <summary>How long one place's forecast is kept in memory. A day's forecast does not change by the minute.</summary>
+    public int CacheMinutes { get; set; } = 30;
+
+    /// <summary>Which host the calls go to: the customer host with a key, the keyless one without.</summary>
+    public string Host() => string.IsNullOrWhiteSpace(ApiKey) ? BaseUrl.Trim().TrimEnd('/') : CustomerBaseUrl.Trim().TrimEnd('/');
+}
+
+/// <summary>
 /// Where the app shouts when something is wrong, and how loud it may be (<see cref="Services.Alerter"/>). Both channels
 /// are optional and independent: <see cref="Webhook"/> is an https URL that takes Slack/Discord-shaped JSON
 /// (<c>{ "text": "..." }</c>), <see cref="Email"/> is one address that goes out through the app's own mail sender and so

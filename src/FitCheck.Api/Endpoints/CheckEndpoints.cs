@@ -53,6 +53,10 @@ public static class CheckEndpoints
         // arrived. A read, so it carries no CSRF header and needs nothing of the page's script policy.
         group.MapGet("/latest", LatestAsync);
         group.MapGet("/{id:guid}", GetAsync);
+        // Round 18: the photo of a private check, to the person who may read the check. Until this, a check that was
+        // never posted had no photo route at all; Tomorrow shows the person their own pieces as photos of them wearing
+        // them, and those checks are mostly unposted.
+        group.MapGet("/{id:guid}/image", GetImageAsync);
         // The share video is rendered and encoded on the phone (app/sharevideo.js); this only counts one that was shared or saved.
         group.MapPost("/{id:guid}/shared-video", SharedVideoAsync).RequireRateLimiting(SharedVideoPolicy);
 
@@ -616,6 +620,39 @@ public static class CheckEndpoints
 
         var postId = await db.Posts.Where(p => p.CheckId == id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct);
         return Results.Json(CheckDto.FromEntity(check!, localizer, postId), AppJson.Options);
+    }
+
+    /// <summary>
+    /// Round 18 — the one door to a private check's photo. The same rule as <see cref="GetAsync"/>, because the photo is
+    /// part of the check: its owner, or the guest whose cookie made it; anyone else, and an id that is not a check, gets
+    /// the same 404, so ids do not leak existence. A check with no file (an error row, a photo already swept) is 404 too.
+    /// Streamed the way a comparison's photos are (<see cref="CompareEndpoints"/>): never by path, never cacheable by a
+    /// shared cache. README "Photos are never served by path" still holds — this is a route over an id and a rule, and
+    /// SecurityTests lists it as private beside the rest.
+    /// </summary>
+    private static async Task<IResult> GetImageAsync(
+        Guid id, HttpContext context, AppDbContext db, IImageStore images, Localizer localizer, CancellationToken ct)
+    {
+        var userId = Sessions.UserId(context.User);
+        var guestToken = GuestChecks.Read(context);
+        var check = await db.Checks.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
+        var mine = check is not null
+            && ((userId is not null && check.UserId == userId)
+                || (check.UserId is null && guestToken is not null && check.GuestToken == guestToken));
+        var stream = mine && check!.ImagePath.Length > 0 ? images.OpenRead(check.ImagePath) : null;
+        if (stream is null)
+        {
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(Localizer.Resolve(null, context.Request), "error.check_not_found"));
+        }
+
+        var mediaType = Path.GetExtension(check!.ImagePath) switch
+        {
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "image/jpeg"
+        };
+        context.Response.Headers.CacheControl = "private, max-age=3600";
+        return Results.Stream(stream, mediaType);
     }
 
     /// <summary>

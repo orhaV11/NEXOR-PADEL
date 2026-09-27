@@ -57,6 +57,7 @@ builder.Services.Configure<PlanOptions>(builder.Configuration.GetSection(PlanOpt
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.Section));
 builder.Services.Configure<BoardOptions>(builder.Configuration.GetSection(BoardOptions.Section));
 builder.Services.Configure<AffiliateOptions>(builder.Configuration.GetSection(AffiliateOptions.Section));
+builder.Services.Configure<WeatherOptions>(builder.Configuration.GetSection(WeatherOptions.Section));
 
 // A check upload is a still plus, optionally, a clip; the form limit covers both and the per-request limit in
 // CheckEndpoints tightens it to what that request actually declares.
@@ -337,6 +338,13 @@ builder.Services.AddHttpClient(StripeClient.HttpClientName, client =>
     // The secret key travels as a bearer token; trace-level logging must not print it.
     .RedactLoggedHeaders(["Authorization"]);
 builder.Services.AddSingleton<StripeClient>();
+
+// Round 18 — the forecast for the Tomorrow screen: one named client for Open-Meteo, one singleton with the cache. The
+// browser never talks to Open-Meteo itself (connect-src stays 'self'); the server asks, for a place rounded to a
+// kilometre, and stores the answer in memory only.
+builder.Services.AddHttpClient(Weather.HttpClientName, (provider, client) =>
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(provider.GetRequiredService<IOptions<WeatherOptions>>().Value.TimeoutSeconds, 1, 30)));
+builder.Services.AddSingleton<Weather>();
 
 // The keys that encrypt the session cookie, kept beside the database. Without this they go to $HOME/.aspnet inside the
 // container, which a deploy throws away: everyone signed in on a phone is silently signed out by the next `fly deploy`,

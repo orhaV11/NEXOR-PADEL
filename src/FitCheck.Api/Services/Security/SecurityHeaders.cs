@@ -41,7 +41,11 @@ public static class SecurityHeaders
         "base-uri 'self'; " +
         "form-action 'self'";
 
-    public const string PermissionsPolicy = "camera=(self), microphone=(self), geolocation=()";
+    /// <summary>
+    /// Round 18: geolocation opens to this origin for the weather line on the Tomorrow screen. The browser still asks the
+    /// person, only when they tap "use my location", and the answer is rounded before it leaves the phone (views/tomorrow.js).
+    /// </summary>
+    public const string PermissionsPolicy = "camera=(self), microphone=(self), geolocation=(self)";
     public const string ReferrerPolicy = "strict-origin-when-cross-origin";
     public const string StrictTransportSecurity = "max-age=31536000";
 

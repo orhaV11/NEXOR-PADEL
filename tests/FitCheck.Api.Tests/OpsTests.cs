@@ -53,7 +53,9 @@ public class DoctorTests : IDisposable
         ["Push:PrivateKey"] = "PrivateKeyNobodyMaySee",
         ["Push:Subject"] = "mailto:hello@orevosh.example",
         ["Admin:Handles:0"] = "orhav",
-        ["Affiliate:Hosts:amazon.com"] = "tag=orevosh-20"
+        ["Affiliate:Hosts:amazon.com"] = "tag=orevosh-20",
+        // Round 18: a server that takes payments is on Open-Meteo's paid plan, so its keyless terms are not leaned on.
+        ["Weather:ApiKey"] = "om-not-a-real-key"
     };
 
     private static IConfiguration Config(Dictionary<string, string> settings) =>
@@ -82,7 +84,7 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Warn, report["database"]!.Status);
         Assert.Contains("does not exist yet", report["database"]!.Detail);
 
-        foreach (var name in new[] { "origin", "anthropic", "anthropic-url", "email", "billing", "plans", "push", "admin", "board", "affiliate", "storage", "ffmpeg", "disk" })
+        foreach (var name in new[] { "origin", "anthropic", "anthropic-url", "email", "billing", "plans", "push", "admin", "board", "affiliate", "storage", "ffmpeg", "disk", "weather" })
         {
             Assert.Equal(DoctorStatus.Ok, report[name]?.Status);
         }

@@ -174,6 +174,8 @@ public static class Doctor
         // Round 13 — money
         var alerts = Bind<AlertOptions>(configuration, AlertOptions.Section, lines, "alerts");
         var legal = Bind<LegalOptions>(configuration, LegalOptions.Section, lines, "contact");
+        // Round 18 — the forecast behind Tomorrow.
+        var weather = Bind<WeatherOptions>(configuration, WeatherOptions.Section, lines, "weather");
 
         var publicOrigin = Origin(configuration);
         PublicOrigin(lines, configuration, publicOrigin);
@@ -195,6 +197,7 @@ public static class Doctor
         // Round 13 — money: what a model call is priced at here, the day's ceiling, and whether anything would shout.
         Spend(lines, anthropic, limits);
         Alerts(lines, alerts, email);
+        WeatherLine(lines, weather, billing);
 
         if (live)
         {
@@ -1442,6 +1445,45 @@ public static class Doctor
             ? new(DoctorStatus.Warn, "spend", $"{prices}. " + string.Join("; ", notes) + ". These are settings, not Anthropic's invoice: set them to your contract's prices.")
             : new(DoctorStatus.Ok, "spend",
                 $"{prices}; the day stops at {Money(ceiling)} (Limits__SpendPerDayUsd). An estimate, not an invoice: set the prices to your contract's."));
+    }
+
+    /// <summary>
+    /// Round 18 — the forecast behind "what should I wear tomorrow". Open-Meteo's keyless service is for non-commercial
+    /// use; a server that takes payments (Billing__Provider=stripe) without Weather__ApiKey is on somebody else's
+    /// goodwill, which is a WARN and not a failure: the outfit is composed without the weather when the forecast does
+    /// not answer, and nothing else depends on it. The key itself is never printed.
+    /// </summary>
+    private static void WeatherLine(List<DoctorLine> lines, WeatherOptions weather, BillingOptions billing)
+    {
+        if (!weather.Enabled)
+        {
+            lines.Add(new(DoctorStatus.Ok, "weather", "off (Weather__Enabled=false): Tomorrow composes without a forecast and never asks for a location."));
+            return;
+        }
+
+        var host = weather.Host();
+        if (!Uri.TryCreate(host, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttps)
+        {
+            lines.Add(new(DoctorStatus.Fail, "weather", $"the forecast host is \"{host}\", not an https URL: no forecast can be fetched. Set Weather__BaseUrl (or Weather__CustomerBaseUrl with a key)."));
+            return;
+        }
+
+        var keyed = !string.IsNullOrWhiteSpace(weather.ApiKey);
+        var stripe = string.Equals((billing.Provider ?? "").Trim(), "stripe", StringComparison.OrdinalIgnoreCase);
+        var timing = $"{weather.TimeoutSeconds.ToString(CultureInfo.InvariantCulture)}s timeout, cached {weather.CacheMinutes.ToString(CultureInfo.InvariantCulture)} min per place";
+        if (keyed)
+        {
+            lines.Add(new(DoctorStatus.Ok, "weather", $"Open-Meteo with a key at {url.Host}; {timing}."));
+        }
+        else if (stripe)
+        {
+            lines.Add(new(DoctorStatus.Warn, "weather",
+                $"Open-Meteo without a key at {url.Host}: its keyless service is for non-commercial use, and this server takes payments. Take a plan at open-meteo.com and set Weather__ApiKey, or set Weather__Enabled=false. {timing}."));
+        }
+        else
+        {
+            lines.Add(new(DoctorStatus.Ok, "weather", $"Open-Meteo without a key at {url.Host} (non-commercial use; set Weather__ApiKey before taking payments); {timing}."));
+        }
     }
 
     /// <summary>

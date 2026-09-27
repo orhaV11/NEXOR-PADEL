@@ -253,6 +253,10 @@ was written before building; what follows are the calls made while building it.
 - **Photos are served by exactly one route, `GET /api/posts/{id}/image`, and only for a visible post.**
   The file stays under the private storage root; the route streams it with `Cache-Control: private`.
   Deleting the post closes the door again. The Phase 1 "no plausible URL serves a photo" test still holds.
+  *(Amended in Round 9 by the comparison's owner-only photo route, and in Round 18 by `GET /api/checks/{id}/image`:
+  the photo of a private check, to whoever may read the check and a 404 to everyone else, because Tomorrow shows a
+  person their kept pieces as photos of themselves wearing them, and those checks were mostly never posted. "Never
+  by path" still holds: every door is an id and a rule, and SecurityTests enumerates the doors.)*
 - **Reads are public, writes need a session.** The feed, posts, comments, profiles and challenge boards
   work signed out, so a link shared on WhatsApp opens for anyone. Everything that changes state asks to
   sign in, and the client says so with one card instead of failing.

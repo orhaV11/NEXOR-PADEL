@@ -54,6 +54,49 @@ public class CheckEndpointTests : IClassFixture<TestApp>
         }
     }
 
+    /// <summary>
+    /// Round 18 — the one door to a private check's photo: GET /api/checks/{id}/image, under the check's own rule. Tomorrow
+    /// shows a person their kept pieces as photos of them wearing them, and those checks were mostly never posted. The
+    /// owner gets the file with a private cache header; another account, nobody, and a check with no file get the same
+    /// 404 the check itself gives, so an id says nothing about existence.
+    /// </summary>
+    [Fact]
+    public async Task The_owner_can_see_the_photo_of_a_private_check_and_nobody_else_can()
+    {
+        var (owner, ownerId, _) = await _app.NewUserAsync("photo_owner");
+        var (other, _, _) = await _app.NewUserAsync("photo_other");
+        var checkId = await _app.CheckAsync(owner);
+
+        var mine = await owner.GetAsync($"/api/checks/{checkId}/image");
+        Assert.Equal(HttpStatusCode.OK, mine.StatusCode);
+        Assert.Equal("image/jpeg", mine.Content.Headers.ContentType?.MediaType);
+        Assert.True(mine.Headers.CacheControl?.Private, "a private photo must not be kept by a shared cache");
+        Assert.Equal(TimeSpan.FromHours(1), mine.Headers.CacheControl?.MaxAge);
+        var bytes = await mine.Content.ReadAsByteArrayAsync();
+        Assert.True(bytes.Length > 100, "the file came back");
+        Assert.Equal(0xFF, bytes[0]);
+        Assert.Equal(0xD8, bytes[1]);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/checks/{checkId}/image")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _app.NewClient().GetAsync($"/api/checks/{checkId}/image")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync($"/api/checks/{Guid.NewGuid()}/image")).StatusCode);
+
+        // A check whose call failed kept no photo: the row is the owner's, the file is not there, and the route says 404.
+        _app.Vision.Handler = _ => throw new VisionClientException("down");
+        var failed = await owner.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        _app.Vision.Handler = _ => Payloads.Ok();
+        Assert.Equal(HttpStatusCode.BadGateway, failed.StatusCode);
+        Guid failedId;
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            failedId = Assert.Single(db.Checks.Where(c => c.UserId == ownerId && c.Status == CheckStatus.Error)).Id;
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/checks/{failedId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync($"/api/checks/{failedId}/image")).StatusCode);
+    }
+
     [Fact]
     public async Task Owner_can_read_a_check_and_nobody_else_can()
     {

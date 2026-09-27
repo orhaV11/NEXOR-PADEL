@@ -217,7 +217,16 @@ public static class Wardrobe
     /// a renamed piece is free text the person typed, and rule 1 is not negotiable there either. Duplicates are dropped.
     /// Empty when <paramref name="max"/> is 0 or nothing survives, and an empty list puts NOTHING in the prompt.
     /// </summary>
-    public static List<string> PromptNames(IEnumerable<WardrobeItem> items, int max)
+    public static List<string> PromptNames(IEnumerable<WardrobeItem> items, int max) =>
+        PromptItems(items, max).Select(item => CleanName(item.Name)).ToList();
+
+    /// <summary>
+    /// Round 18 — the rows behind <see cref="PromptNames"/>: the same order, the same filters and the same cut, but the
+    /// pieces themselves rather than their names, because Tomorrow needs each one's id (to hand the model a closed list
+    /// and check its answer against it) and its category (to say which kind of piece the closet lacks). The name to
+    /// show or send is still <see cref="CleanName"/> of the row's, never the raw one.
+    /// </summary>
+    public static List<WardrobeItem> PromptItems(IEnumerable<WardrobeItem> items, int max)
     {
         if (max <= 0)
         {
@@ -225,7 +234,7 @@ public static class Wardrobe
         }
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var names = new List<string>();
+        var rows = new List<WardrobeItem>();
         foreach (var item in items.OrderByDescending(i => i.LastSeenAt).ThenByDescending(i => i.CreatedAt))
         {
             if (Array.IndexOf(PromptCategories, item.Category) < 0)
@@ -239,14 +248,14 @@ public static class Wardrobe
                 continue;
             }
 
-            names.Add(name);
-            if (names.Count >= max)
+            rows.Add(item);
+            if (rows.Count >= max)
             {
                 break;
             }
         }
 
-        return names;
+        return rows;
     }
 
     /// <summary>

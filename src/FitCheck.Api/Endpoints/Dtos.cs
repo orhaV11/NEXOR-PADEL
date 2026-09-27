@@ -4,7 +4,8 @@ using FitCheck.Api.Services;
 
 namespace FitCheck.Api.Endpoints;
 
-public sealed record ErrorDto(string Error);
+/// <summary>The error sentence in the reader's language and, Round 20, a machine word for the one refusal the client acts on (plan_limit); null is dropped from the JSON.</summary>
+public sealed record ErrorDto(string Error, string? Code = null);
 
 // ---- auth and users ----
 
@@ -19,7 +20,8 @@ public sealed record ErrorDto(string Error);
 /// suspended or self-referring handle is simply ignored (AuthEndpoints.ResolveInviterAsync).
 /// </remarks>
 public sealed record SignupRequest(string? Handle, string? Password, bool Confirmed16Plus, string? Language, string? AccountType, string? DisplayName, string? BirthDate = null, string? Today = null,
-    string? InvitedBy = null);
+    // Round 20: a guest who met the day ceiling asks for one note when the stylist is back; the entry link the device arrived through.
+    string? InvitedBy = null, bool NotifyStylistBack = false, string? Source = null);
 
 public sealed record LoginRequest(string? Handle, string? Password);
 
@@ -356,7 +358,7 @@ public sealed record VoteStateDto(Guid? VotedPostId, int Votes);
 // ---- notifications ----
 
 /// <summary>ActorName is the actor's current display name, or the handle when there is none or the account is gone. Rank only on board_rank.</summary>
-public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, string? ActorAvatarUrl, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read, int? Rank = null);
+public sealed record NotificationDto(Guid Id, string Type, string ActorHandle, string ActorName, string? ActorAvatarUrl, Guid? PostId, Guid? ChallengeId, DateTime CreatedAt, bool Read, int? Rank = null, Guid? CheckId = null);
 
 public sealed record NotificationsDto(List<NotificationDto> Items, int Unread);
 
@@ -403,11 +405,17 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     // TomorrowNeedsPro whether composing is Pro's; the two per-day numbers as really enforced (clamped like the
     // check caps); the two minimums the screen quotes before any call is made.
     bool Tomorrow = false, bool TomorrowNeedsPro = false, int ProSuggestionsPerDay = 0, int FreeSuggestionsPerDay = 0,
-    int SuggestionMinPieces = 0, int SuggestionMinCategories = 0);
+    int SuggestionMinPieces = 0, int SuggestionMinCategories = 0,
+    // Round 20 — billing: the yearly price (0 = none) per currency, whether Checkout can sell a year, and the trial's
+    // length (0 = off); the morning push: whether it is offered at all and the local hour it goes.
+    decimal ProYearlyPriceAmount = 0, Dictionary<string, decimal>? ProYearlyPrices = null, bool Yearly = false, int ProTrialDays = 0,
+    bool TomorrowMorningPush = false, string TomorrowMorningHour = "");
 
 // ---- comparisons, insights, today ----
 
-public sealed record ComparisonDto(Guid Id, StyleIntent Intent, string? Occasion, string Language, DateTime CreatedAt, int LatencyMs, string Status, ComparisonFeedback? Feedback, string ImageUrlA, string ImageUrlB);
+/// <summary>A comparison. Occasion is the free note (the column's old name); Round 20 appends the two questions it was asked with.</summary>
+public sealed record ComparisonDto(Guid Id, StyleIntent Intent, string? Occasion, string Language, DateTime CreatedAt, int LatencyMs, string Status, ComparisonFeedback? Feedback, string ImageUrlA, string ImageUrlB,
+    OutfitOccasion? OccasionKind = null, OutfitStyle? Style = null);
 
 /// <summary>What your checks say about you. Lines are ready sentences in your language; the numbers are for tiles.</summary>
 /// <summary>
@@ -426,7 +434,8 @@ public sealed record CheckoutDto(string Url);
 /// <summary>POST /api/billing/portal (Round 11): the hosted page where the person changes or cancels the subscription.</summary>
 public sealed record PortalDto(string Url);
 
-public sealed record BillingStateDto(string Plan, DateTime? ProUntil, bool Billing, string ProPriceText);
+/// <summary>Round 20 appends whether a year can be bought and how many trial days this account would get (0 = none).</summary>
+public sealed record BillingStateDto(string Plan, DateTime? ProUntil, bool Billing, string ProPriceText, bool Yearly = false, int TrialDays = 0);
 
 // ---- the data export (Round 11) ----
 
@@ -497,7 +506,18 @@ public sealed record AdminReportDto(string Kind, Guid Id, int Reports, bool Hidd
 
 public sealed record AdminQueueDto(List<AdminReportDto> Items, int HiddenPosts, int HiddenComments, int SuspendedUsers);
 
-public sealed record AdminUserDto(UserRefDto User, bool Suspended, int Posts, int Reports, DateTime CreatedAt);
+public sealed record AdminUserDto(UserRefDto User, bool Suspended, int Posts, int Reports, DateTime CreatedAt,
+    // Round 20 — the Accounts section: the flags a moderator acts on. ProUntil only while the plan is pro.
+    bool Verified = false, string Plan = "free", DateTime? ProUntil = null, bool BoardExcluded = false, bool IsAdmin = false);
+
+/// <summary>POST /api/admin/users/{handle}/pro: how many months (1..AdminEndpoints.MaxProMonths).</summary>
+public sealed record ProGrantRequest(int Months);
+
+/// <summary>POST /api/admin/users/{handle}/board-exclusion: an optional reason, kept in the audit line only.</summary>
+public sealed record BoardExclusionRequest(string? Reason);
+
+/// <summary>GET /api/admin/sponsor: the sponsor of the week as the server reads it from its settings, read-only.</summary>
+public sealed record AdminSponsorDto(bool Configured, string? Name, string? Handle, string? PrizeText, string? Url, bool UrlDropped, bool? HandleExists, bool? HandleVerified);
 
 // ---- metrics ----
 
@@ -553,7 +573,9 @@ public sealed record PilotMetricsDto(
     WardrobeMetricsDto? Wardrobe = null,
     // Round 19 — Tomorrow: whether planned outfits get worn, how often a stored one is reused, how often the model reached
     // outside the wardrobe (MetricsEndpoints fills it).
-    TomorrowMetricsDto? Tomorrow = null);
+    TomorrowMetricsDto? Tomorrow = null,
+    // Round 20: the slow tail of the same latencies AvgLatencyMs averages (nearest rank, same population).
+    int P95LatencyMs = 0);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
@@ -581,7 +603,9 @@ public sealed record UsefulSplitDto(int Yes, int No, int Unanswered, double? Rat
 /// out, as everywhere on this page, until claimed), overall, by intent and by language, plus how many photos the stylist
 /// answered "no outfit" to and how many it refused, as a check on the door rather than on the verdict.
 /// </summary>
-public sealed record StylistMetricsDto(UsefulSplitDto Useful, Dictionary<string, UsefulSplitDto> ByIntent, Dictionary<string, UsefulSplitDto> ByLanguage, int NotOutfit, int Rejected);
+public sealed record StylistMetricsDto(UsefulSplitDto Useful, Dictionary<string, UsefulSplitDto> ByIntent, Dictionary<string, UsefulSplitDto> ByLanguage, int NotOutfit, int Rejected,
+    // Round 20 — the loop, counted: pairs written, pairs per hundred scored checks, the day-after nudges and how many of them turned into a pair.
+    int TriedPairs = 0, double? TriedPer100Ok = null, int TryTipNudges = 0, int NudgedThenTried = 0);
 
 // ---- Round 13 — money: the spend meter, the daily ceiling and the alerts ----
 
@@ -605,7 +629,9 @@ public sealed record SpendMetricsDto(
     decimal PriceOutPerMillion,
     List<SpendDay> Series,
     bool AlertWebhook,
-    bool AlertEmail);
+    bool AlertEmail,
+    // Round 20: the prompt cache mode in force ("off", "5m", "1h"), so the tiles say what the cache columns mean.
+    string PromptCache = "off");
 // ---- Round 13 — the growth loop: the funnel, the invites ----
 
 /// <summary>
@@ -614,7 +640,15 @@ public sealed record SpendMetricsDto(
 /// the arrivals that carried someone's invite. Day is "yyyy-MM-dd", UTC, as the counters are cut.
 /// </summary>
 public sealed record FunnelDayDto(
-    string Day, int Landing, int GuestChecks, int Signups, int FirstPosts, int LookArrivals, int ShareArrivals, int ProfileArrivals, int Invites);
+    string Day, int Landing, int GuestChecks, int Signups, int FirstPosts, int LookArrivals, int ShareArrivals, int ProfileArrivals, int Invites,
+    // Round 20: the Pro page opened from a refused compare or from the wardrobe line, and launches from the home screen.
+    int ProFromCompare = 0, int ProFromWardrobe = 0, int Standalone = 0);
+
+/// <summary>Round 20: fourteen days of one entry link (/go/&lt;source&gt;): arrivals, then what carried the source onward.</summary>
+public sealed record FunnelSourceDto(string Source, int Arrivals, int GuestChecks, int Signups, int FirstPosts);
+
+/// <summary>POST /api/funnel/pro-opened: which surface sent the person to the Pro page ("compare" | "wardrobe").</summary>
+public sealed record ProOpenedRequest(string? From);
 
 /// <summary>Today's step-over-the-step-before, four decimals; null where the step before it never happened.</summary>
 public sealed record FunnelConversionDto(
@@ -630,7 +664,7 @@ public sealed record InviteMetricsDto(int Sent, int Accepted, List<InviterDto> T
 public sealed record InviterDto(string Handle, int Accepted);
 
 /// <summary>The growth block on the numbers page: fourteen days of the funnel, today's conversion, and the invites.</summary>
-public sealed record FunnelMetricsDto(List<FunnelDayDto> Days, FunnelConversionDto Today, InviteMetricsDto Invites);
+public sealed record FunnelMetricsDto(List<FunnelDayDto> Days, FunnelConversionDto Today, InviteMetricsDto Invites, List<FunnelSourceDto>? Sources = null);
 
 /// <summary>POST /api/users/me/digest: the weekly mail's switch in Settings.</summary>
 public sealed record DigestRequest(bool? On);
@@ -641,10 +675,18 @@ public sealed record DigestRequest(bool? On);
 /// </summary>
 public sealed record DigestStateDto(bool On, bool CanSend);
 
+/// <summary>Round 20: the morning push's switch (POST /api/push/morning) and its state: on for this account, offered by this server at all, the local hour.</summary>
+public sealed record MorningPushRequest(bool? On);
+
+public sealed record MorningPushStateDto(bool On, bool Offered, string Hour);
+
 // ---- Round 14 — the loop: typed reasons, "I tried it", the taste profile ----
 
 /// <summary>POST /api/checks/{id}/tried: the earlier check this one is the attempt at. Linked only once both are scored.</summary>
 public sealed record TriedRequest(Guid? BeforeId);
+
+/// <summary>POST /api/checks/{id}/tried/shared: a before/after card or film left the phone, with or without the two numbers.</summary>
+public sealed record SharedPairRequest(bool WithScores);
 
 /// <summary>POST /api/checks/{id}/tried/prefer: "before" or "after", the person's own answer to "which do you prefer?".</summary>
 public sealed record PreferRequest(string? Prefer);
@@ -716,7 +758,22 @@ public sealed record TasteRequest(bool? Learning);
 /// lets the wardrobe reach the stylist at all, so a free account sees its own wardrobe and is told plainly what it is
 /// missing rather than shown a dead toggle.
 /// </summary>
-public sealed record WardrobeDto(List<WardrobeItemDto> Items, int Max, bool ToStylist, bool StylistAvailable);
+/// <summary>Round 20 appends the Pro moment: whether the wardrobe has passed what the stylist sees on this plan, and how many pieces Pro's stylist would see.</summary>
+public sealed record WardrobeDto(List<WardrobeItemDto> Items, int Max, bool ToStylist, bool StylistAvailable, bool ProMoment = false, int ProSees = 0);
+
+/// <summary>POST /api/wardrobe/keep-all: every piece the check named, in one request.</summary>
+public sealed record KeepAllWardrobeRequest(Guid? CheckId);
+
+/// <summary>What keep-all did: rows touched, rows added, rows the cap refused, whether it refused any, the count after, and the wardrobe.</summary>
+public sealed record KeepAllWardrobeDto(int Kept, int Added, int Skipped, bool Full, int Count, int Max, List<WardrobeItemDto> Items);
+
+/// <summary>GET /api/wardrobe/unkept: pieces the stylist named on the person's latest looks that are not in the wardrobe, and how many looks were read.</summary>
+public sealed record UnkeptWardrobeDto(List<UnkeptPieceDto> Pieces, int Checks);
+
+public sealed record UnkeptPieceDto(string Name, string Category, Guid CheckId, DateTime WornAt, Guid? PostId);
+
+/// <summary>POST /api/wardrobe/moment: "shown" or "go", the Pro moment's tally.</summary>
+public sealed record WardrobeMomentRequest(string? Step);
 
 /// <summary>One kept piece: its name, the stylist's category, when it was kept and the looks it appeared in, newest first.</summary>
 public sealed record WardrobeItemDto(Guid Id, string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<WardrobeLookDto> Looks);
@@ -763,7 +820,9 @@ public sealed record WardrobeMetricsDto(
     int DontOwn,
     int Reasons,
     double? DontOwnRate,
-    int ToStylistOff);
+    int ToStylistOff,
+    // Round 20: keep-all taps, the Pro moment shown and taken, and the median wardrobe of a person active this week.
+    int KeepAll = 0, int MomentShown = 0, int MomentGo = 0, double? MomentGoRate = null, double? PiecesPerActiveMedian = null);
 
 // ---- Round 16: the affiliate line ----
 
@@ -835,4 +894,6 @@ public sealed record TomorrowDto(bool Available, bool StylistOn, bool NeedsPro, 
 public sealed record TomorrowRequest(string? Occasion, string? Style, string? When, string? Today, bool? Fresh, double? Lat, double? Lon);
 
 /// <summary>The numbers page's Tomorrow block over the last 30 days: whether planned outfits get worn, how often a stored one is reused, and how often the model reached outside the wardrobe.</summary>
-public sealed record TomorrowMetricsDto(int Suggestions, int Worn, double? WornRate, int Reused, double? ReuseRate, int InventedRefs, int Templated, List<TasteCountDto> Reasons);
+public sealed record TomorrowMetricsDto(int Suggestions, int Worn, double? WornRate, int Reused, double? ReuseRate, int InventedRefs, int Templated, List<TasteCountDto> Reasons,
+    // Round 20: the morning push, counted: sent, opened, and the rate; read with wornRate as pushed → opened → worn.
+    int PushesSent = 0, int PushesOpened = 0, double? OpenRate = null);

@@ -25,7 +25,7 @@ export const state = {
   // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
   check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null, suggestion: null },
   // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
-  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false }, affiliate: { disclosure: true }, languages: ['en', 'he'] },
+  config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false, yearly: false, proTrialDays: 0, proYearlyPrices: {}, tomorrowMorningPush: false }, affiliate: { disclosure: true }, languages: ['en', 'he'] },
   result: null,
   resultAnimated: false,
   resultPostId: null,
@@ -382,7 +382,8 @@ export function skeletonCards(n) {
 
 // ---------- API ----------
 
-export class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
+// Round 20: `code` is the one machine word the server adds to a refusal the client acts on (plan_limit); null otherwise.
+export class ApiError extends Error { constructor(status, message, code) { super(message); this.status = status; this.code = code || null; } }
 
 /**
  * One call. `timeoutMs` is opt-in and off by default: most calls are small and a phone that has wandered out of signal
@@ -390,8 +391,8 @@ export class ApiError extends Error { constructor(status, message) { super(messa
  * — a connection that dies mid-upload leaves fetch waiting forever behind a screen that says the stylist is looking.
  * Any value must clear the honest worst case for that route or it would abort real work: see its caller.
  */
-export async function api(method, path, body, timeoutMs) {
-  const headers = { 'X-Requested-With': 'Orevosh', 'Accept-Language': locale };
+export async function api(method, path, body, timeoutMs, extraHeaders) {
+  const headers = Object.assign({ 'X-Requested-With': 'Orevosh', 'Accept-Language': locale }, extraHeaders || {});
   const isForm = body instanceof FormData;
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   const controller = timeoutMs && typeof AbortController === 'function' ? new AbortController() : null;
@@ -417,7 +418,7 @@ export async function api(method, path, body, timeoutMs) {
       // there, never more than one in flight, signs the person out here on the first refused action.
       else if (response.status === 403) recheckMe();
     }
-    throw new ApiError(response.status, (data && data.error) || t('error.generic'));
+    throw new ApiError(response.status, (data && data.error) || t('error.generic'), data && data.code);
   }
   if ((method === 'POST' && /^\/api\/posts\/?$/.test(path)) || (method === 'DELETE' && /^\/api\/posts\/[^/]+$/.test(path))) feedVersion.n += 1;
   return data;
@@ -473,6 +474,38 @@ export function resetSession() {
   state.result = null; state.resultAnimated = false; state.resultPostId = null; state.returnTo = null;
 }
 export function navigate(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
+/** One value from the query part of the hash (#/route?name=value), or null. The router itself ignores the query. */
+export function hashQuery(name) {
+  const q = location.hash.indexOf('?');
+  if (q < 0) return null;
+  const value = new URLSearchParams(location.hash.slice(q + 1)).get(name);
+  return value === null || value === '' ? null : value;
+}
+
+/**
+ * Round 20 — the wait, told in stages. The stylist's answer is one long call behind a still flame, and a blank wait is
+ * where a guest leaves; so the line under it changes with the time that has passed. A text swap is content, not motion:
+ * it runs under reduced motion too, and the flame's own breathing is already stilled there by the stylesheet. The
+ * caller passes the moment the wait began and the first key (the check and the compare open differently); the helper
+ * stops itself once the node has left the page and hands back a stop() for the caller.
+ */
+export const WAIT_STAGES = [[0, null], [3000, 'loading.stage_pieces'], [8000, 'loading.stage_occasion'], [15000, 'loading.stage_long']];
+export function stagedWaitLine(node, startedAt, firstKey) {
+  let timer = 0;
+  const paint = () => {
+    if (!node || !node.isConnected) return;
+    const elapsed = Date.now() - (startedAt || Date.now());
+    let key = firstKey;
+    let next = null;
+    for (const [at, stageKey] of WAIT_STAGES) {
+      if (elapsed >= at) { if (stageKey) key = stageKey; } else { next = at; break; }
+    }
+    node.textContent = t(key);
+    if (next !== null) timer = setTimeout(paint, Math.max(50, next - elapsed));
+  };
+  paint();
+  return () => { if (timer) clearTimeout(timer); };
+}
 /** Like navigate, but replaces the current history entry: for guards and redirects, so Back does not loop. */
 export function redirect(hash) { if (location.hash === hash) render(true); else location.replace(location.pathname + location.search + hash); }
 /** Shows a message in an alert element and moves focus to it, so screen readers announce it on every platform. */
@@ -1082,15 +1115,18 @@ export const lookInviteUrl = (postId, handle) => publicLookUrl(postId) + '?via='
  */
 export const shareLookUrl = (postId) =>
   (state.me ? lookInviteUrl(postId, state.me.handle) : publicLookUrl(postId) + '?via=' + VIA_SHARE);
+/** The sentence a shared look travels with. Round 14: a look whose grade is private is shared as a look, never as a number the sentence would give away. */
+export function lookShareText(post) {
+  return post.score === null || post.score === undefined
+    ? t('share.post_text_plain', { name: post.user.name, intent: intentLabel(post.intent) })
+    : t('post.share_text', { name: post.user.name, intent: intentLabel(post.intent), score: fmtNumber(post.score) });
+}
 export async function sharePost(post) {
   if (state.sharing) return;
   state.sharing = true;
   try {
     const url = shareLookUrl(post.id);
-    // Round 14: a look whose grade is private is shared as a look, never as a number the sentence would give away.
-    const text = post.score === null || post.score === undefined
-      ? t('share.post_text_plain', { name: post.user.name, intent: intentLabel(post.intent) })
-      : t('post.share_text', { name: post.user.name, intent: intentLabel(post.intent), score: fmtNumber(post.score) });
+    const text = lookShareText(post);
     if (navigator.share) {
       try { await navigator.share({ title: t('app.name'), text, url }); return; }
       catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }
@@ -1498,8 +1534,27 @@ export function postGrid(posts, opts) {
  */
 const canAddToHomeScreen = () => {
   const ua = navigator.userAgent || '';
-  return isIos() && /safari/i.test(ua) && !/crios|fxios|edgios|opios|instagram|fban|fbav|line\//i.test(ua);
+  return isIos() && /safari/i.test(ua) && !/crios|fxios|edgios|opios|instagram|fban|fbav|fb_iab|tiktok|musical_ly|bytedance|line\//i.test(ua);
 };
+
+/** Round 20: the webview of another app (Instagram, TikTok, Facebook), which can neither install the app nor keep it. */
+export const isInAppBrowser = () => /instagram|fban|fbav|fb_iab|tiktok|musical_ly|bytedance/i.test(navigator.userAgent || '');
+
+/**
+ * Round 20: the one-time "open this in Safari or Chrome" note for a person reading inside another app's browser, where
+ * Add to Home Screen does not exist. Once per device (the flag is written when it is built), never in the installed app.
+ */
+export function inAppBrowserHint() {
+  if (!isInAppBrowser() || isStandalone()) return null;
+  if (loadPrefs().inAppHintSeen) return null;
+  savePrefs({ inAppHintSeen: true });
+  const node = el('div', { class: 'install', id: 'inapp-hint', role: 'note' }, [
+    el('div', { class: 'mark', 'aria-hidden': 'true' }, [logoMark(44) || 'O']),
+    el('div', { class: 'text' }, [el('b', { text: t('inapp.title') }), el('span', { text: t('inapp.hint') })]),
+    el('button', { type: 'button', class: 'btn btn-sm btn-secondary', id: 'inapp-hint-ok', text: t('install.ok'), onclick: () => node.remove() })
+  ]);
+  return node;
+}
 
 /**
  * "Read OREVOSH in <your language>?" — offered once, to a browser whose own language is live here and is not English.

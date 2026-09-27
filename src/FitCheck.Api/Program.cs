@@ -418,6 +418,7 @@ var recoveryPerHour = builder.Configuration.GetValue<int?>("Limits:RecoveryPerHo
 // and the address is only the fallback for a route that is limited without being protected.
 var commentsPerHour = builder.Configuration.GetValue<int?>("Limits:CommentsPerHour") ?? limitDefaults.CommentsPerHour;
 var reportsPerHour = builder.Configuration.GetValue<int?>("Limits:ReportsPerHour") ?? limitDefaults.ReportsPerHour;
+var adminActionsPerHour = builder.Configuration.GetValue<int?>("Limits:AdminActionsPerHour") ?? limitDefaults.AdminActionsPerHour;
 // The anonymous check path's abuse brake: Plans:GuestAttemptsPerDay attempts per client address per day, whatever they
 // come to. A fixed window never hands a permit back, so this is not the guest's cap (a refused photo or a model outage
 // would spend it): the look itself, Plans:GuestChecksPerDay per cookie and per address, is counted by the handler from the
@@ -447,6 +448,10 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(PostEndpoints.ReportsPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         AccountOrAddress(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = reportsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+    // Round 20: a moderator's account actions on #/admin — a brake on a stolen cookie or a script, never felt by a hand.
+    options.AddPolicy(AdminEndpoints.ActionsPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountOrAddress(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Max(1, adminActionsPerHour), Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.AddPolicy(CheckEndpoints.GuestPolicy, context => Sessions.UserId(context.User) is not null
         ? RateLimitPartition.GetNoLimiter("signed-in")
         : RateLimitPartition.GetFixedWindowLimiter(
@@ -490,6 +495,8 @@ builder.Services.AddRateLimiter(options =>
 // ---- Round 13: the verdict's own verdict, languages shipped only when real ----
 // Languages:Enabled (default en, he): what the client offers and the stylist is asked for; /api/config publishes the list.
 builder.Services.Configure<LanguagesOptions>(builder.Configuration.GetSection(LanguagesOptions.Section));
+// Round 20 — the entry links (/go/<source>) this server answers and counts.
+builder.Services.Configure<FunnelOptions>(builder.Configuration.GetSection(FunnelOptions.Section));
 // "Did the tip land?" is a tally like the share video's: a few dozen an hour per account (or address, for a guest) is more
 // than a person taps and a brake on a script. Registered as a further RateLimiterOptions configuration, so the block above stays as it is.
 builder.Services.Configure<RateLimiterOptions>(options =>
@@ -515,6 +522,19 @@ builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection(Diges
 builder.Services.AddSingleton<DigestTokens>();
 builder.Services.AddSingleton<Digest>();
 builder.Services.AddHostedService<DigestService>();
+// ---- Round 20 — the wedge: four small clocks ----
+// The day-after "did you try the tip?" nudge (hourly, inside the local day); the one note a guest asked for when the
+// stylist was resting (every five minutes, sent once the ceiling clears); the pre-renewal recap three days before a
+// paying Pro's charge (hourly, once per period; the same pass prunes handled Stripe events); and the morning push that
+// today's outfit is a tap away (every quarter hour, one row per person per day, behind Plans:TomorrowMorningPush).
+builder.Services.AddSingleton<TryTipNudge>();
+builder.Services.AddHostedService<TryTipNudgeService>();
+builder.Services.AddSingleton<StylistBack>();
+builder.Services.AddHostedService<StylistBackService>();
+builder.Services.AddSingleton<RenewalRecap>();
+builder.Services.AddHostedService<RenewalRecapService>();
+builder.Services.AddSingleton<TomorrowMorning>();
+builder.Services.AddHostedService<TomorrowMorningService>();
 
 var app = builder.Build();
 
@@ -678,6 +698,9 @@ app.MapPublicPageEndpoints();
 app.MapWardrobeEndpoints();
 // Round 19 — Tomorrow.
 app.MapTomorrowEndpoints();
+// Round 20 — the wedge: the entry links (/go/<source>) and the Pro page's "opened from" tally.
+app.MapGoEndpoints();
+app.MapFunnelEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe
@@ -709,7 +732,10 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
             // Round 19 — Tomorrow: on at all, Pro's or everyone's, and the two day numbers as really enforced.
             plans.Value.TomorrowEnabled, plans.Value.TomorrowNeedsPro,
             Plans.ProSuggestionCap(plans.Value, limits.Value), Plans.FreeSuggestionCap(plans.Value, limits.Value),
-            Math.Max(0, plans.Value.SuggestionMinPieces), Math.Max(0, plans.Value.SuggestionMinCategories)),
+            Math.Max(0, plans.Value.SuggestionMinPieces), Math.Max(0, plans.Value.SuggestionMinCategories),
+            // Round 20 — billing: the yearly price and whether Checkout can sell a year, the trial's length; the morning push.
+            Math.Max(0m, plans.Value.ProYearlyPriceAmount), plans.Value.YearlyPriceTable(), billing.Value.YearlyEnabled, Math.Clamp(plans.Value.ProTrialDays, 0, 730),
+            plans.Value.TomorrowMorningPush && plans.Value.TomorrowEnabled, TomorrowMorning.HourOf(plans.Value).ToString("HH:mm", CultureInfo.InvariantCulture)),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

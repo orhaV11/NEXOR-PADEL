@@ -201,6 +201,15 @@ public static class NotificationType
     /// opens the queue rather than the look, because the queue is where hiding and suspending live.
     /// </summary>
     public const string Reported = "reported";
+
+    /// <summary>Round 20: "Did you try the tip?", a day after a verdict whose tip was never answered. The person is their own actor; opens their checks.</summary>
+    public const string TryTip = "try_tip";
+
+    /// <summary>Round 20: the one note a guest asked for at the day ceiling, when the stylist is back at work. Self-actor; opens the check screen.</summary>
+    public const string StylistBack = "stylist_back";
+
+    /// <summary>Round 20: the morning ping that today's outfit is a tap away. A rowless push (no activity line: a doorbell is not an event).</summary>
+    public const string TomorrowMorning = "tomorrow_morning";
 }
 
 /// <summary>In-app activity only. No push, no email.</summary>
@@ -215,6 +224,9 @@ public sealed class Notification
 
     /// <summary>The place on the board for a board_rank notification; null for every other kind.</summary>
     public int? Rank { get; set; }
+
+    /// <summary>Round 20: the check a try_tip nudge is about (one nudge per check); null for every other kind.</summary>
+    public Guid? CheckId { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
@@ -401,6 +413,17 @@ public static class CounterName
 
     /// <summary>Before/after shares that carried no numbers at all: the two looks and the change.</summary>
     public const string BeforeAfterSharesPlain = "before_after_shares_plain";
+
+    // ---- Round 20 — the wedge ----
+
+    /// <summary>"Keep all" taps in the keep row that wrote at least one piece.</summary>
+    public const string WardrobeKeepAll = "wardrobe_keep_all";
+
+    /// <summary>Times the Pro moment ("your wardrobe has N pieces; Pro lets the stylist see all of them") was shown.</summary>
+    public const string WardrobeMomentShown = "wardrobe_moment_shown";
+
+    /// <summary>Times its Go Pro button was tapped.</summary>
+    public const string WardrobeMomentGo = "wardrobe_moment_go";
 }
 
 /// <summary>A named tally that survives a restart (an out-click, a board view). Incremented in place, never read for a decision.</summary>
@@ -421,7 +444,14 @@ public sealed class OutfitComparison
     public string? GuestToken { get; set; }
     public DateTime? ClaimedAt { get; set; }
     public StyleIntent Intent { get; set; }
+
+    /// <summary>The free note the person typed (the column is named Occasion from before the two questions existed).</summary>
     public string? Occasion { get; set; }
+
+    /// <summary>Round 20: the two questions, as on a check. Rows from before carry the split of <see cref="Intent"/>.</summary>
+    public OutfitOccasion OccasionKind { get; set; } = OutfitOccasion.Everyday;
+    public OutfitStyle? Style { get; set; }
+
     public string Language { get; set; } = "en";
     public string ImagePathA { get; set; } = "";
     public string ImagePathB { get; set; } = "";

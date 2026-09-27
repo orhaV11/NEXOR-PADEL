@@ -30,6 +30,28 @@ public sealed class AnthropicOptions
 
     /// <summary>USD per million output tokens. SET THIS TO YOUR CONTRACT'S PRICE; see <see cref="PriceInPerMillion"/>.</summary>
     public decimal PriceOutPerMillion { get; set; } = 10.00m;
+
+    /// <summary>
+    /// Round 20 — off | 5m | 1h. On, the shared rubric of a check or a comparison (the tool schema and the system
+    /// prompt, identical for every call in a language) is written to the provider's prompt cache once and read back at a
+    /// tenth of the input price for five minutes or an hour after the last read; a write costs 1.25x (5m) or 2x (1h) of
+    /// the input price. Off by default: a cache nobody reads within its lifetime is a surcharge, so it is for the day the
+    /// spend tiles show more than a few checks a minute. The per-wearer advisory rides after the breakpoint, uncached.
+    /// </summary>
+    public string PromptCache { get; set; } = "off";
+
+    /// <summary>The cache lifetime the setting names ("5m" or "1h"), or null when caching is off or the value is unknown.</summary>
+    public string? CacheTtl()
+    {
+        var mode = (PromptCache ?? "").Trim().ToLowerInvariant();
+        return mode is "5m" or "1h" ? mode : null;
+    }
+
+    /// <summary>Whether the setting is one of the three words; the doctor warns on anything else, which counts as off.</summary>
+    public bool PromptCacheKnown() => (PromptCache ?? "").Trim().ToLowerInvariant() is "off" or "5m" or "1h" or "";
+
+    /// <summary>The effective mode, for the numbers page: "off", "5m" or "1h".</summary>
+    public string CacheMode() => CacheTtl() ?? "off";
 }
 
 public sealed class StorageOptions
@@ -132,6 +154,23 @@ public sealed class PushOptions
     public string Subject { get; set; } = "mailto:hello@orevosh.app";
 
     public bool Enabled => !string.IsNullOrWhiteSpace(PublicKey) && !string.IsNullOrWhiteSpace(PrivateKey);
+
+    // ---- Round 20 — "Did you try the tip?", the day after a verdict whose tip was never answered ----
+
+    /// <summary>Whether the day-after nudge goes out at all. One per check, one per person a day, push-subscribed accounts only.</summary>
+    public bool TryTipNudge { get; set; } = true;
+
+    /// <summary>How long after the verdict the nudge may go (hours).</summary>
+    public int TryTipAfterHours { get; set; } = 24;
+
+    /// <summary>How long after that the check is still worth nudging about (hours); a server that was down for a week does not nudge last week.</summary>
+    public int TryTipWindowHours { get; set; } = 24;
+
+    /// <summary>The local hour (Board:TimeZone) the nudges may start going out.</summary>
+    public int TryTipDayStart { get; set; } = 9;
+
+    /// <summary>The local hour they stop; a check due in the night waits for the morning's run.</summary>
+    public int TryTipDayEnd { get; set; } = 21;
 }
 
 /// <summary>
@@ -173,6 +212,12 @@ public sealed class LimitsOptions
 
     /// <summary>Reports one account may file per hour, looks and comments together. Keeps one person from burying the queue.</summary>
     public int ReportsPerHour { get; set; } = 20;
+
+    /// <summary>
+    /// Round 20: account actions a moderator may take per hour on #/admin (verify, Pro, the board). A brake on a stolen
+    /// moderator cookie or a script, not a product limit: nobody taps a hundred account actions an hour by hand.
+    /// </summary>
+    public int AdminActionsPerHour { get; set; } = 120;
 
     /// <summary>
     /// Round 13 — money: the day's ceiling in estimated US dollars (UTC day). 0 is off, which is the default and what
@@ -367,6 +412,46 @@ public sealed class PlanOptions
         return table;
     }
 
+    // ---------- Round 20 — billing: a yearly anchor and a trial without a card ----------
+
+    /// <summary>
+    /// The yearly Pro price in <see cref="ProPriceCurrency"/>, 0 for none. Offered only when Billing:StripeYearlyPriceId
+    /// is set too; the Pro page computes "save N%" from this and the monthly number, never from a setting of its own.
+    /// </summary>
+    public decimal ProYearlyPriceAmount { get; set; }
+
+    /// <summary>The yearly price per currency this server sells in (ISO code → amount), the same rule as <see cref="ProPrices"/>.</summary>
+    public Dictionary<string, decimal> ProYearlyPrices { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Every currency with a yearly price, built exactly like <see cref="PriceTable"/>.</summary>
+    public Dictionary<string, decimal> YearlyPriceTable()
+    {
+        var table = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var fallback = (ProPriceCurrency ?? "").Trim().ToUpperInvariant();
+        if (ProYearlyPriceAmount > 0 && fallback.Length == 3)
+        {
+            table[fallback] = ProYearlyPriceAmount;
+        }
+
+        foreach (var (currency, amount) in ProYearlyPrices)
+        {
+            var code = (currency ?? "").Trim().ToUpperInvariant();
+            if (code.Length == 3 && amount > 0)
+            {
+                table[code] = amount;
+            }
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// Days of Pro before the first charge, with no card asked for (Stripe Checkout's trial). 0 is off. Offered once per
+    /// account, to one that never went through Checkout here; a trial that ends with no card simply ends. A trial is
+    /// Checkout's, so it means nothing while Billing:Provider is manual.
+    /// </summary>
+    public int ProTrialDays { get; set; }
+
     /// <summary>
     /// Round 13: how many "no outfit in this photo" answers a person (an account, or a guest cookie) gets back in the
     /// rolling day. Such an answer spent a model call and gave the person nothing, so the first ones are not counted
@@ -437,6 +522,12 @@ public sealed class PlanOptions
     public bool WardrobeNeedsPro { get; set; } = true;
 
     /// <summary>
+    /// Round 20: how many of the person's latest scored checks the wardrobe screen looks back through for pieces the
+    /// stylist named that were never kept ("Keep from an older look"). 0 hides the section.
+    /// </summary>
+    public int WardrobeUnkeptChecks { get; set; } = 20;
+
+    /// <summary>
     /// Round 14: whether this server has the taste profile (the memory of what the person liked and turned down) built.
     /// It landed with the loop (Services/Taste.cs), so this is on: the Pro page may list it because the server can do it.
     /// Turn it off to take the benefit off that page and stop the advisory being built. The setting is the switch, not
@@ -493,6 +584,18 @@ public sealed class PlanOptions
 
     /// <summary>Below this many kinds of piece (a top and a bottom, say) no call is made either: two tops are not an outfit.</summary>
     public int SuggestionMinCategories { get; set; } = 2;
+
+    // ---------- Round 20 — the morning loop, behind a switch ----------
+
+    /// <summary>
+    /// Whether the morning push goes out at all. Off by default: the founder flips it once the worn rate on the numbers
+    /// page says planned outfits get worn. On, one push a day to accounts with a push subscription, a wardrobe of two
+    /// kinds and something left to spend, saying today's outfit is a tap away; nothing is composed until the tap.
+    /// </summary>
+    public bool TomorrowMorningPush { get; set; }
+
+    /// <summary>"HH:mm", local to Board:TimeZone, the same clock for everybody (the app keeps no per-person place). Unparsable falls back to 07:30 and the doctor warns.</summary>
+    public string TomorrowMorningHour { get; set; } = "07:30";
 }
 
 /// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>
@@ -509,11 +612,20 @@ public sealed class BillingOptions
     /// <summary>The recurring price for Pro (price_...).</summary>
     public string StripePriceId { get; set; } = "";
 
+    /// <summary>Round 20: the yearly recurring price (price_...), optional. Yearly is offered only while this and a yearly amount are both set.</summary>
+    public string StripeYearlyPriceId { get; set; } = "";
+
+    /// <summary>Round 20: where Stripe is (the doctor warns on any host but api.stripe.com); the browser test points it at a stub.</summary>
+    public string StripeBaseUrl { get; set; } = Services.StripeClient.BaseUrl;
+
     /// <summary>Signs the webhook events (whsec_...). Environment only.</summary>
     public string StripeWebhookSecret { get; set; } = "";
 
     /// <summary>Checkout returns to this origin (+ /#/pro?checkout=success|cancel). Empty means the request's origin.</summary>
     public string PublicOrigin { get; set; } = "";
+
+    /// <summary>Round 20: whether Checkout can sell a year at all (Stripe live and a yearly price id set).</summary>
+    public bool YearlyEnabled => StripeEnabled && !string.IsNullOrWhiteSpace(StripeYearlyPriceId);
 
     public bool StripeEnabled => Provider.Equals("stripe", StringComparison.OrdinalIgnoreCase)
         && !string.IsNullOrWhiteSpace(StripeSecretKey) && !string.IsNullOrWhiteSpace(StripePriceId) && !string.IsNullOrWhiteSpace(StripeWebhookSecret);
@@ -678,6 +790,59 @@ public sealed class LanguagesOptions
 
     /// <summary>The language the stylist is asked for: the one given when it is enabled, English otherwise.</summary>
     public string Effective(string? locale) => IsEnabled(locale) ? locale! : Services.Localizer.DefaultLocale;
+}
+
+/// <summary>
+/// Round 20 — the entry links this server answers: <c>/go/&lt;source&gt;</c> counts an arrival per source and opens the
+/// check, and the source rides on the link (never in a cookie) to the guest check and the signup, so the numbers page
+/// can say which surface sent whom. Anything not on the list lands on the landing page uncounted. A few long names are
+/// spellings of a short one (tiktok → tt), so a bio can carry the word a person expects.
+/// </summary>
+public sealed class FunnelOptions
+{
+    public const string Section = "Funnel";
+
+    public static readonly string[] Defaults = ["tt", "ig", "wa", "campus", "yt", "fb", "x", "qr", "story", "dm"];
+
+    private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal)
+    {
+        ["tiktok"] = "tt", ["instagram"] = "ig", ["whatsapp"] = "wa", ["youtube"] = "yt", ["facebook"] = "fb", ["twitter"] = "x"
+    };
+
+    public List<string> Sources { get; set; } = [.. Defaults];
+
+    /// <summary>The allowlist as the app uses it: trimmed, lower-cased, [a-z0-9]{1,16}, each once, in order; an empty setting is the default list.</summary>
+    public IReadOnlyList<string> List
+    {
+        get
+        {
+            var list = new List<string>();
+            foreach (var entry in Sources ?? [])
+            {
+                var code = (entry ?? "").Trim().ToLowerInvariant();
+                if (System.Text.RegularExpressions.Regex.IsMatch(code, "^[a-z0-9]{1,16}$") && !list.Contains(code))
+                {
+                    list.Add(code);
+                }
+            }
+
+            return list.Count == 0 ? Defaults : list;
+        }
+    }
+
+    /// <summary>The allowlisted source a word names (an alias resolved), or null.</summary>
+    public string? Normalize(string? source)
+    {
+        var code = (source ?? "").Trim().ToLowerInvariant();
+        if (Aliases.TryGetValue(code, out var alias))
+        {
+            code = alias;
+        }
+
+        return List.Contains(code) ? code : null;
+    }
+
+    public bool IsSource(string? source) => Normalize(source) is not null;
 }
 
 // ---- Round 13 — money: the alerts the owner hears before a user does ----

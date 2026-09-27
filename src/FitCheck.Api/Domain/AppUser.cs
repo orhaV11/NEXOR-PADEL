@@ -71,7 +71,7 @@ public sealed class AppUser
     /// <summary>Date of birth from signup (UTC date). Sixteen and over only; earlier accounts have null and their checkbox.</summary>
     public DateTime? BirthDate { get; set; }
 
-    /// <summary>A brand the owner confirmed by hand (--verify). Shown as a check next to the brand mark.</summary>
+    /// <summary>A brand confirmed by hand: the --verify command or a moderator on #/admin. Shown as a check next to the brand mark.</summary>
     public bool Verified { get; set; }
 
     /// <summary>Set by an admin. A suspended account cannot sign in and its looks are hidden until it is lifted.</summary>
@@ -83,6 +83,18 @@ public sealed class AppUser
 
     /// <summary>Round 13: who invited this account (an invite link carrying a handle), for the referral bonus and the numbers page.</summary>
     public Guid? InvitedByUserId { get; set; }
+
+    /// <summary>Round 20: the entry link (/go/&lt;source&gt;) the device arrived through before this signup, an allowlisted word or null.</summary>
+    public string? Source { get; set; }
+
+    /// <summary>Round 20: the ProUntil the last pre-renewal recap mail was written for; a renewal moves ProUntil, which makes it once per period.</summary>
+    public DateTime? RenewalRecapUntil { get; set; }
+
+    /// <summary>Round 20: the person's own switch for the morning push (Settings); the server flag decides whether it is offered at all.</summary>
+    public bool TomorrowPushOn { get; set; } = true;
+
+    /// <summary>Round 20: a moderator keeps this account's looks off every board while set; the audit line in the log is the record of who and why.</summary>
+    public DateTime? BoardExcludedAt { get; set; }
 
     /// <summary>
     /// A moderator. Persisted, never derived from the handle at request time: the cookie carries a handle, and a handle is

@@ -46,6 +46,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     // Round 19 — Tomorrow: planned outfits and their pieces.
     public DbSet<OutfitSuggestion> Suggestions => Set<OutfitSuggestion>();
+
+    // Round 20 — the wedge: handled Stripe events (replays ignored by id) and the morning push receipts.
+    public DbSet<StripeEvent> StripeEvents => Set<StripeEvent>();
+    public DbSet<TomorrowPush> TomorrowPushes => Set<TomorrowPush>();
     public DbSet<SuggestionPiece> SuggestionPieces => Set<SuggestionPiece>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -65,6 +69,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.AvatarPath).HasMaxLength(260);
             user.Property(u => u.Interests).HasMaxLength(200);
             user.Property(u => u.Email).HasMaxLength(200);
+            user.Property(u => u.Source).HasMaxLength(16);
             user.Property(u => u.Plan).HasMaxLength(16).IsRequired();
             user.Property(u => u.BillingCustomerId).HasMaxLength(100);
             user.HasIndex(u => u.BillingCustomerId);
@@ -202,6 +207,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             comparison.HasKey(c => c.Id);
             comparison.Property(c => c.Intent).HasConversion<string>().HasMaxLength(32);
             comparison.Property(c => c.Occasion).HasMaxLength(120);
+            // Round 20: the two questions; rows from before carry the split of Intent, backfilled by the migration.
+            comparison.Property(c => c.OccasionKind).HasConversion<string>().HasMaxLength(32).HasDefaultValue(OutfitOccasion.Everyday);
+            comparison.Property(c => c.Style).HasConversion<string>().HasMaxLength(32);
             comparison.Property(c => c.Language).HasMaxLength(16).IsRequired();
             comparison.Property(c => c.ImagePathA).HasMaxLength(260).IsRequired();
             comparison.Property(c => c.ImagePathB).HasMaxLength(260).IsRequired();
@@ -363,6 +371,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             check.Property(c => c.Occasion).HasColumnName("OccasionKind").HasConversion<string>().HasMaxLength(32);
             check.Property(c => c.Style).HasConversion<string>().HasMaxLength(32);
+            check.Property(c => c.Source).HasMaxLength(16);
             check.Property(c => c.Note).HasColumnName("Occasion").HasMaxLength(120);
         });
 
@@ -419,6 +428,23 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         });
 
         // ---------- Round 19 — Tomorrow ----------
+
+        // Round 20 — the wedge.
+        modelBuilder.Entity<StripeEvent>(stripeEvent =>
+        {
+            stripeEvent.HasKey(e => e.Id);
+            stripeEvent.Property(e => e.Id).HasMaxLength(64);
+            stripeEvent.Property(e => e.Type).HasMaxLength(64).IsRequired();
+            stripeEvent.HasIndex(e => e.ReceivedAt);
+        });
+
+        modelBuilder.Entity<TomorrowPush>(push =>
+        {
+            push.HasKey(p => p.Id);
+            push.HasIndex(p => new { p.UserId, p.Day }).IsUnique();
+            push.HasIndex(p => p.SentAt);
+            push.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<OutfitSuggestion>(suggestion =>
         {

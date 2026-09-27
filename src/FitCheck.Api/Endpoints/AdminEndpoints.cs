@@ -22,6 +22,12 @@ namespace FitCheck.Api.Endpoints;
 /// </summary>
 public static class AdminEndpoints
 {
+    /// <summary>Round 20: the rate-limit policy on the account actions (verify, Pro, the board), Limits:AdminActionsPerHour.</summary>
+    public const string ActionsPolicy = "admin-actions";
+
+    /// <summary>Round 20: the most months one Pro grant may run.</summary>
+    public const int MaxProMonths = 120;
+
     public const int MaxQueue = 100;
     public const int MaxReasons = 5;
     public const int MaxUserMatches = 20;

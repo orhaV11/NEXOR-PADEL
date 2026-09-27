@@ -15,6 +15,9 @@ public sealed class OutfitCheck
 
     public DateTime? ClaimedAt { get; set; }
 
+    /// <summary>Round 20: the entry link (/go/&lt;source&gt;) the device arrived through, when the check carried one; an allowlisted word or null.</summary>
+    public string? Source { get; set; }
+
     /// <summary>
     /// Round 14: the ONE-WORD value for this check, <see cref="StyleIntents.Legacy"/> of the pair below. Kept because a
     /// look, a board, a challenge, the feed filter and the interests list all speak it, and because every surface with

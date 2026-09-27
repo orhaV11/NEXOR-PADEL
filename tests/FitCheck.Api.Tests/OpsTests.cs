@@ -89,6 +89,9 @@ public class DoctorTests : IDisposable
             Assert.Equal(DoctorStatus.Ok, report[name]?.Status);
         }
 
+        // Round 20: the prompt cache mode is on the anthropic-url line, and the default is off.
+        Assert.Contains("prompt cache off", report["anthropic-url"]!.Detail);
+
         var (exit, text) = await Run(settings);
         Assert.Equal(0, exit);
         Assert.Contains("0 failures", text);
@@ -134,6 +137,28 @@ public class DoctorTests : IDisposable
         var odd = Healthy();
         odd["ANTHROPIC_API_KEY"] = "some-other-shape";
         Assert.Equal(DoctorStatus.Warn, (await Inspect(odd))["anthropic"]!.Status);
+    }
+
+    /// <summary>
+    /// Round 20: Anthropic__PromptCache takes three words. Anything else is read as off by the code (AnthropicOptions.
+    /// CacheTtl), so the doctor says so rather than letting an owner believe a typo turned the cache on.
+    /// </summary>
+    [Fact]
+    public async Task An_unknown_prompt_cache_value_is_a_warning_that_says_caching_is_off()
+    {
+        var odd = Healthy();
+        odd["Anthropic:PromptCache"] = "forever";
+        var report = await Inspect(odd);
+        Assert.Equal(DoctorStatus.Warn, report["anthropic-url"]!.Status);
+        Assert.Contains("\"forever\"", report["anthropic-url"]!.Detail);
+        Assert.Contains("caching is off", report["anthropic-url"]!.Detail);
+        Assert.Equal(0, report.ExitCode);
+
+        var hour = Healthy();
+        hour["Anthropic:PromptCache"] = "1h";
+        var ok = await Inspect(hour);
+        Assert.Equal(DoctorStatus.Ok, ok["anthropic-url"]!.Status);
+        Assert.Contains("prompt cache 1h", ok["anthropic-url"]!.Detail);
     }
 
     [Fact]

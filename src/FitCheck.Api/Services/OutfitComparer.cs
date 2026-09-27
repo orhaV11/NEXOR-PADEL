@@ -191,10 +191,11 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
     {
         var userMessage = BuildUserMessage(intent, occasion);
         var block = BuildWardrobeBlock(wardrobe);
+        // Round 20: one constant tool and one rubric per language, so the shared part may carry the cache breakpoint.
         var request = new VisionRequest(
             BuildSystemPrompt(language),
             block.Length == 0 ? userMessage : userMessage + " " + block,
-            imageA, mediaTypeA, Tool, imageB, mediaTypeB);
+            imageA, mediaTypeA, Tool, imageB, mediaTypeB, SharedRubric: true);
         var input = await vision.AnalyzeAsync(request, ct);
         return MapToolInput(input);
     }

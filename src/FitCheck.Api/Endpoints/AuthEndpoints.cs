@@ -164,7 +164,7 @@ public static partial class AuthEndpoints
 
     private static async Task<IResult> SignupAsync(
         SignupRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, IOptions<AdminOptions> admins,
-        CancellationToken ct)
+        SpendMeter spend, CancellationToken ct)
     {
         var language = Localizer.Resolve(body.Language, context.Request);
 
@@ -259,6 +259,26 @@ public static partial class AuthEndpoints
             catch (Exception) when (!ct.IsCancellationRequested)
             {
                 // The account exists and is signed in; the bonus is a nicety, never a failed signup.
+            }
+        }
+
+        // Round 20: a guest refused with "the stylist is resting" was offered signup with a promise, one note when the
+        // stylist is back. The promise is recorded only while it is real, that is while the ceiling is still closed:
+        // a signup after midnight sets nothing, because the check screen simply works again and there is nothing to
+        // tell. The row is a Counter (StylistBack.AskedName), removed by the pass that keeps the promise; never fatal,
+        // the account exists either way.
+        if (body.NotifyStylistBack)
+        {
+            try
+            {
+                if (await spend.CeilingReachedAsync(db, ct))
+                {
+                    await Counters.IncrementAsync(db, StylistBack.AskedName(user.Id), ct);
+                }
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                // A lost note is not a lost account.
             }
         }
 

@@ -7,7 +7,7 @@
 // prepareImage; there is no camera here, two outfits are rarely on the same person at the same time.
 import {
   register, state, t, api, el, icon, setTopBar, navigate, signInPrompt, announce, focusHeading, pickFile, prepareImage,
-  fmtNumber, intentLabel, INTENTS, MAX_EDGE, getLocale, loadMe, view, $, logoMark, scoreBadge
+  fmtNumber, intentLabel, INTENTS, MAX_EDGE, getLocale, loadMe, view, $, logoMark, scoreBadge, stagedWaitLine
 } from '../core.js';
 
 const SIDES = ['a', 'b'];
@@ -16,7 +16,7 @@ const SIDES = ['a', 'b'];
 const cmp = {
   intent: null, occasion: '',
   photos: { a: null, b: null }, urls: { a: null, b: null }, busy: { a: false, b: false }, token: { a: 0, b: 0 },
-  submitting: false, error: null,
+  submitting: false, error: null, startedAt: 0,
   result: null, announced: false
 };
 
@@ -35,7 +35,7 @@ register('compare', async (root, params, ctx) => {
     root.appendChild(signInPrompt(null, t(guests ? 'compare.needs_account_free' : 'compare.needs_account')));
     return;
   }
-  if (cmp.submitting) { root.appendChild(loadingBlock()); return; }   // in flight; the verdict takes over when it lands
+  if (cmp.submitting) { showLoading(root); return; }   // in flight; the verdict takes over when it lands
 
   if (params.id) {
     let result = cmp.result && cmp.result.id === params.id ? cmp.result : null;
@@ -97,9 +97,19 @@ function loadingBlock() {
   return el('div', { class: 'loading', role: 'status' }, [
     el('div', {}, [
       mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
-      el('p', { text: t('loading.line'), tabindex: '-1' })
+      el('p', { id: 'loading-line', text: t('loading.line'), tabindex: '-1' })
     ])
   ]);
+}
+
+/**
+ * Round 20: the block on the page with its line told in stages from cmp.startedAt (core.js stagedWaitLine), the same
+ * shape as the check's wait with "looking at both looks" as its first line. A text swap is content, not motion, so it
+ * runs under reduced motion too; the one-off announce() at submit is unchanged.
+ */
+function showLoading(root) {
+  root.appendChild(loadingBlock());
+  stagedWaitLine($('loading-line'), cmp.startedAt, 'loading.stage_both');
 }
 
 /** Paints one slot from state: the empty prompt, "preparing", or the photo with a replace pill. The letter stays on top. */
@@ -165,10 +175,11 @@ async function pick(side) {
 async function submit() {
   if (!cmp.intent || !cmp.photos.a || !cmp.photos.b || cmp.submitting || cmp.busy.a || cmp.busy.b) return;
   cmp.submitting = true;
+  cmp.startedAt = Date.now();
   updateSubmit();
   const root = view();
   root.innerHTML = '';
-  root.appendChild(loadingBlock());
+  showLoading(root);
   announce(t('loading.line'));
   focusHeading();
   try {

@@ -389,7 +389,7 @@ public class SpendMeterTests
         {
             Content = new StringContent($$"""
                 { "stop_reason": "tool_use",
-                  "usage": { "input_tokens": 1200, "output_tokens": 340, "cache_read_input_tokens": 90, "cache_creation_input_tokens": 10 },
+                  "usage": { "input_tokens": 1200, "output_tokens": 340, "cache_read_input_tokens": 900000, "cache_creation_input_tokens": 100000 },
                   "content": [ { "type": "tool_use", "name": "{{OutfitAnalyzer.ToolName}}", "input": { "status": "ok", "score": 6 } } ] }
                 """, Encoding.UTF8, "application/json")
         });
@@ -398,8 +398,13 @@ public class SpendMeterTests
         Assert.Equal(1, one.Calls);
         Assert.Equal(1200, one.InputTokens);
         Assert.Equal(340, one.OutputTokens);
-        Assert.Equal(90, one.CacheReadTokens);
-        Assert.Equal(10, one.CacheWriteTokens);
+        Assert.Equal(900_000, one.CacheReadTokens);
+        Assert.Equal(100_000, one.CacheWriteTokens);
+        // Round 20: the cache tokens move the estimate the way Anthropic bills them (the setting is off, so the write
+        // premium is the five-minute one): 1200 in at 2 USD/M and 340 out at 10 USD/M are 0.0058; 900k reads at a
+        // tenth of the input price add 0.18 and 100k writes at 1.25x add 0.25. At the input price both would have
+        // read as 2.00, which is the overstatement the Round 13 meter made on purpose and this round replaces.
+        Assert.Equal(0.4358m, one.EstimatedUsd);
 
         // A 400 whose body still carried usage: the API billed it, so it counts. 400 is not retried.
         handler.Responses.Enqueue(() => new HttpResponseMessage(HttpStatusCode.BadRequest)
@@ -442,4 +447,42 @@ public sealed class ScriptedApiHandler : HttpMessageHandler
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
         Task.FromResult(Responses.Dequeue()());
+
+    // ---------- Round 20: the prompt cache on the meter ----------
+
+    /// <summary>
+    /// A million of each at the default prices (2 USD per million input): the input is 2.00, the reads a tenth (0.20),
+    /// the writes 1.25x for the five-minute cache (2.50) or 2x for the hour (4.00). Off prices like 5m, because a write
+    /// the API reports while the setting says off can only have come from a five-minute breakpoint somebody else set.
+    /// </summary>
+    [Theory]
+    [InlineData("off", "4.70")]
+    [InlineData("5m", "4.70")]
+    [InlineData("1h", "6.20")]
+    public void Cache_writes_and_reads_are_priced_as_anthropic_bills_them(string mode, string expected)
+    {
+        using var app = new MoneyApp { Settings = { ["Anthropic:PromptCache"] = mode } };
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), app.Meter.Estimate(1_000_000, 0, 1_000_000, 1_000_000));
+        Assert.Equal(2.00m, app.Meter.Estimate(1_000_000, 0));
+    }
+
+    [Fact]
+    public async Task The_numbers_page_names_the_cache_mode()
+    {
+        using (var on = new MoneyApp { Settings = { ["Anthropic:PromptCache"] = "5m" } })
+        {
+            var (client, _, _) = await on.NewUserAsync("cache_mode_on");
+            await on.PromoteAsync("cache_mode_on");
+            var metrics = await client.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+            Assert.Equal("5m", metrics.GetProperty("spend").GetProperty("promptCache").GetString());
+        }
+
+        using (var off = new MoneyApp())
+        {
+            var (client, _, _) = await off.NewUserAsync("cache_mode_off");
+            await off.PromoteAsync("cache_mode_off");
+            var metrics = await client.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+            Assert.Equal("off", metrics.GetProperty("spend").GetProperty("promptCache").GetString());
+        }
+    }
 }

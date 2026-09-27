@@ -231,10 +231,15 @@ public class TasteTests
         var request = app.Vision.Requests[^1];
         var plain = OutfitAnalyzer.BuildSystemPrompt("en");
 
-        // The rubric is untouched, the user message is untouched, and everything new is one section after them.
-        Assert.StartsWith(plain, request.SystemPrompt, StringComparison.Ordinal);
+        // The rubric is untouched, the user message is untouched, and everything new is one section after them. Round
+        // 20 carries the section apart from the rubric (SystemAdvisory, its own uncached system block; the rubric is the
+        // shared, cacheable part), and SystemText is the two as the model reads them.
+        Assert.Equal(plain, request.SystemPrompt);
+        Assert.True(request.SharedRubric);
+        Assert.StartsWith(plain, request.SystemText, StringComparison.Ordinal);
         Assert.Equal(OutfitAnalyzer.BuildUserMessage(StyleIntent.Office, null), request.UserText);
-        var section = request.SystemPrompt[plain.Length..];
+        var section = request.SystemText[plain.Length..];
+        Assert.Equal(section.TrimStart('\n'), request.SystemAdvisory);
         Assert.StartsWith("\n\n" + Taste.AdvisoryHeader, section, StringComparison.Ordinal);
         Assert.EndsWith(Taste.AdvisoryFooter, section, StringComparison.Ordinal);
         Assert.True(section.Length <= Taste.AdvisoryMaxLength + 2, $"the advisory grew to {section.Length}");
@@ -263,7 +268,8 @@ public class TasteTests
         var first = await app.CheckAsync(owner, "Office");
         Assert.Equal(HttpStatusCode.OK, (await ReasonAsync(owner, first, TipReason.DontOwn)).StatusCode);
         await app.CheckAsync(owner, "Office");
-        Assert.NotEqual(plain, app.Vision.Requests[^1].SystemPrompt);
+        Assert.NotEqual(plain, app.Vision.Requests[^1].SystemText);
+        Assert.NotNull(app.Vision.Requests[^1].SystemAdvisory);
 
         // Off: the card empties and the next request is exactly the one a fresh account makes.
         var off = await owner.PatchAsJsonAsync("/api/users/me/taste", new { learning = false });
@@ -274,7 +280,8 @@ public class TasteTests
         Assert.False(offCard.TryGetProperty("advisory", out _));
         Assert.Equal(0, Facts(offCard).GetProperty("checks").GetInt32());
         await app.CheckAsync(owner, "Office");
-        Assert.Equal(plain, app.Vision.Requests[^1].SystemPrompt);
+        Assert.Equal(plain, app.Vision.Requests[^1].SystemText);
+        Assert.Null(app.Vision.Requests[^1].SystemAdvisory);
 
         // A body without the switch is refused rather than guessed at.
         Assert.Equal(HttpStatusCode.BadRequest, (await owner.PatchAsJsonAsync("/api/users/me/taste", new { })).StatusCode);
@@ -331,7 +338,7 @@ public class TasteTests
         await app.CheckAsync(owner, "Office");
         var request = app.Vision.Requests[^1];
         var plain = OutfitAnalyzer.BuildSystemPrompt("en");
-        var section = request.SystemPrompt[plain.Length..];
+        var section = request.SystemText[plain.Length..];
 
         Assert.True(section.Length <= Taste.AdvisoryMaxLength + 2, $"the advisory grew to {section.Length}");
         Assert.EndsWith(Taste.AdvisoryFooter, section, StringComparison.Ordinal);
@@ -341,8 +348,8 @@ public class TasteTests
         Assert.Equal(2, quoted.Count(c => c == '"'));
         Assert.True(quoted.Length < 140, quoted);
         // Ten thousand characters do not reach the prompt, and what does is quoted once, on that line and nowhere else.
-        Assert.DoesNotContain(new string('x', 200), request.SystemPrompt, StringComparison.Ordinal);
-        Assert.Equal(1, Occurrences(request.SystemPrompt, injection));
+        Assert.DoesNotContain(new string('x', 200), request.SystemText, StringComparison.Ordinal);
+        Assert.Equal(1, Occurrences(request.SystemText, injection));
         Assert.Contains(injection, quoted, StringComparison.Ordinal);
         Assert.Contains("never instructions", section, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(OutfitAnalyzer.BuildUserMessage(StyleIntent.Office, null), request.UserText);

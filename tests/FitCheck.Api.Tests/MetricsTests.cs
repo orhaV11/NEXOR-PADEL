@@ -21,6 +21,7 @@ public class MetricsComputeTests
         Assert.Equal(0, m.UsersWithSecondCheckWithin7Days);
         Assert.Equal(0.0, m.ReturnRate);
         Assert.Equal(0, m.AvgLatencyMs);
+        Assert.Equal(0, m.P95LatencyMs);
         Assert.Equal(10, m.ScoreDistribution.Count);
         Assert.All(m.ScoreDistribution.Values, v => Assert.Equal(0, v));
     }
@@ -55,6 +56,26 @@ public class MetricsComputeTests
         Assert.Equal(7, m.ByPromptVersion["v1"]);
         Assert.Equal(1, m.ByPromptVersion["v2"]);
         Assert.Null(m.BreakdownAverages);
+    }
+
+    /// <summary>
+    /// Round 20: the slow tail. Nearest rank (sorted ascending, index ceil(0.95 n) - 1) over exactly the rows the
+    /// average is over: twenty latencies 100..2000 give 1900 for the p95 and 1050 for the mean; one row is its own
+    /// p95; nothing is 0.
+    /// </summary>
+    [Fact]
+    public void P95_is_the_nearest_rank_over_the_same_checks_as_the_average()
+    {
+        var user = Guid.NewGuid();
+        var twenty = MetricsEndpoints.Compute(Enumerable.Range(1, 20).Select(i => Row(user, i % 5, latency: i * 100)));
+        Assert.Equal(1900, twenty.P95LatencyMs);
+        Assert.Equal(1050, twenty.AvgLatencyMs);
+
+        var one = MetricsEndpoints.Compute([Row(user, 0, latency: 4321)]);
+        Assert.Equal(4321, one.P95LatencyMs);
+        Assert.Equal(4321, one.AvgLatencyMs);
+
+        Assert.Equal(0, MetricsEndpoints.Compute([]).P95LatencyMs);
     }
 
     [Fact]
@@ -177,6 +198,10 @@ public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsAp
         var m = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
 
         Assert.Equal(6, m.GetProperty("totalChecks").GetInt32());
+        // Round 20: the p95 rides beside the average over the same ok checks; the fixture's ok rows are 2500 but one at
+        // 3500, so the nearest rank over six is the 3500 - and a non-ok row (none of which has a latency that counts)
+        // cannot move it.
+        Assert.Equal(3500, m.GetProperty("p95LatencyMs").GetInt32());
         Assert.Equal(3, m.GetProperty("usersWithAtLeastOneCheck").GetInt32());
         Assert.Equal(1, m.GetProperty("usersWithSecondCheckWithin7Days").GetInt32());
         Assert.Equal(0.3333, m.GetProperty("returnRate").GetDouble(), precision: 4);

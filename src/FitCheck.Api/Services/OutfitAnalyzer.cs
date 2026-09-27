@@ -590,6 +590,12 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
     /// none (a guest, the learning switch off, an empty profile). The section is built and capped by <see cref="Taste"/>,
     /// and it says in its own words that it informs WHICH tip is chosen and never the score. Nothing else about the
     /// request changes: the user message, the image and the tool are what they were before Round 14.
+    /// <para>
+    /// Round 20: this is now the test-facing view of what the model reads. The request itself carries the rubric and the
+    /// advisory apart (<see cref="VisionRequest.SystemAdvisory"/>), so a cache breakpoint can close the shared part;
+    /// the client sends the advisory as its own system block right after the rubric, which the model reads as this
+    /// one string.
+    /// </para>
     /// </summary>
     public static string BuildSystemPrompt(string language, string? tasteAdvisory) =>
         Taste.Append(BuildSystemPrompt(language), tasteAdvisory);
@@ -646,10 +652,13 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
     {
         var block = BuildWardrobeBlock(wardrobe);
         var userMessage = BuildUserMessage(occasion, style, note);
+        // Round 20: the rubric and the tool are the same for every check in a language, so the rubric is shared and may
+        // carry the cache breakpoint; the advisory changes per wearer and rides after it as its own block.
         var request = new VisionRequest(
-            BuildSystemPrompt(language, tasteAdvisory),
+            BuildSystemPrompt(language),
             block.Length == 0 ? userMessage : userMessage + " " + block,
-            imageBytes, mediaType, Tool);
+            imageBytes, mediaType, Tool,
+            SystemAdvisory: tasteAdvisory, SharedRubric: true);
         return MapToolInput(await vision.AnalyzeAsync(request, ct));
     }
 }

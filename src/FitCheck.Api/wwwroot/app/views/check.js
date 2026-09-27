@@ -25,7 +25,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText, stagedWaitLine
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
@@ -255,7 +255,7 @@ register('check', async (root) => {
   const ck = state.check;
   setTopBar({ title: t('check.title') });
   root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
-  if (ck.busy) { root.appendChild(loadingBlock()); return; }   // a check is in flight; the result view takes over when it lands
+  if (ck.busy) { showLoading(root); return; }   // a check is in flight; the result view takes over when it lands
   ensureStyle();
 
   // Signed out is not a wall any more: a check as a guest, and the account comes after the verdict. Unless the server
@@ -302,6 +302,16 @@ register('check', async (root) => {
   const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
   if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }
   form.appendChild(error);
+  // Round 20: a guest the resting stylist turned away is offered an account with a promise the server keeps - one note
+  // when the stylist is back (StylistBack.cs), in the app always, on the phone and by mail only where those are set up.
+  // The signup link carries ?back=stylist so the join form says so and sends the flag.
+  if (ck.resting) {
+    ck.resting = false;
+    form.appendChild(el('div', { class: 'notice', id: 'resting-offer' }, [
+      el('p', { class: 'muted', text: t('guest.resting_offer') }),
+      el('a', { class: 'btn-text', id: 'resting-join', href: '#/signup?back=stylist', text: t('guest.resting_join'), onclick: () => { state.returnTo = '#/check'; } })
+    ]));
+  }
   form.appendChild(el('button', { id: 'submit', class: 'btn', type: 'submit', text: t('check.submit') }));
   const left = checksLeftLine();
   if (left) form.appendChild(left);
@@ -438,13 +448,27 @@ function checksLeftLine() {
  */
 function loadingBlock(line) {
   const mark = logoMark(96);
-  const sending = !!(state.check && state.check.clip && state.check.sending);
   return el('div', { class: 'loading', role: 'status' }, [
     el('div', {}, [
       mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
-      el('p', { id: 'loading-line', text: t(line || (sending ? 'loading.sending' : 'loading.line')), tabindex: '-1' })
+      el('p', { id: 'loading-line', text: t(line || 'loading.line'), tabindex: '-1' })
     ])
   ]);
+}
+
+/**
+ * Round 20: the block, on the page, with its line told in stages from ck.startedAt (core.js stagedWaitLine) - "looking",
+ * "reading the pieces", "weighing the occasion", and after fifteen seconds the one line that says what is really
+ * happening. While a clip is still uploading the line is the fixed "sending" one and the stages start at the swap, so
+ * they count only the wait that can be the model's. The <p> stays inside the role="status" region, so a screen reader
+ * hears each stage politely; the one-off announce() at submit is unchanged. A text swap is content, not motion: it runs
+ * under reduced motion too, where the flame's breathing is already stilled by the stylesheet.
+ */
+function showLoading(root) {
+  const ck = state.check;
+  const sending = !!(ck.clip && ck.sending);
+  root.appendChild(loadingBlock(sending ? 'loading.sending' : null));
+  if (!sending) stagedWaitLine($('loading-line'), ck.startedAt, 'loading.stage_look');
 }
 
 /** Paints the photo button from state: empty prompt, "preparing", the photo, or the clip paused on its chosen frame (with the picker under it). */
@@ -691,10 +715,11 @@ async function submitCheck() {
   const ck = state.check;
   if (!pick.occasion || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
   ck.busy = true;
+  ck.startedAt = Date.now();
   updateSubmit();
   const root = view();
   root.innerHTML = '';
-  root.appendChild(loadingBlock());
+  showLoading(root);
   announce(t('loading.line'));
   focusHeading();
   const wasSignedIn = !!state.me;
@@ -720,7 +745,8 @@ async function submitCheck() {
     if (ck.clip) {
       ck.sending = true;
       const line = document.getElementById('loading-line');
-      swap = setTimeout(() => { ck.sending = false; if (line && line.isConnected) line.textContent = t('loading.line'); },
+      // Round 20: the stages count from the swap, the moment only the model can be the wait.
+      swap = setTimeout(() => { ck.sending = false; ck.startedAt = Date.now(); if (line && line.isConnected) stagedWaitLine(line, ck.startedAt, 'loading.stage_look'); },
         Math.min(45000, Math.max(2000, Math.round(ck.clip.size / 125000) * 1000)));
     }
     try {
@@ -754,6 +780,9 @@ async function submitCheck() {
     // died is the other case - the check may have landed after this page stopped listening - and the marker stays, for
     // the next open to ask about within its ten minutes.
     if (!lostConnection) clearInterruptedCheck();
+    // Round 20: a guest met the day's spend ceiling (503 error.stylist_resting). The form shows the sentence as it did,
+    // and under it the offer to be told when the stylist is back. Signed-in accounts keep the sentence alone.
+    if (e && e.status === 503 && !wasSignedIn) ck.resting = true;
     ck.error = e && e.status === 401 && wasSignedIn ? null
       : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
     // Back to the form with the planned outfit still attached, so the retry closes the loop the failed try could not.

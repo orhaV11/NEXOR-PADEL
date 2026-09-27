@@ -937,13 +937,16 @@ public class TomorrowTests
         Assert.Contains("Outfits they said yes to: ", advisory);
         Assert.Contains("Past tips: 1 worked", advisory);
         await ComposeAsync(me, "Sport");
-        Assert.Contains("Outfits they said yes to", LastCompose(app).SystemPrompt);
-        Assert.Contains("Outfits they turned down", LastCompose(app).SystemPrompt);
+        // Round 20: the advisory travels as its own system block (SystemAdvisory), and a planned outfit is never a shared
+        // rubric - its tool carries the wardrobe - so it never asks for a cache breakpoint.
+        Assert.Contains("Outfits they said yes to", LastCompose(app).SystemAdvisory);
+        Assert.Contains("Outfits they turned down", LastCompose(app).SystemAdvisory);
+        Assert.False(LastCompose(app).SharedRubric);
 
         // Learning off: nothing rides along. Clearing: gone.
         Assert.Equal(HttpStatusCode.OK, (await me.PatchAsJsonAsync("/api/users/me/taste", new { learning = false })).StatusCode);
         await ComposeAsync(me, "Formal");
-        Assert.DoesNotContain("WEARER'S TASTE", LastCompose(app).SystemPrompt);
+        Assert.DoesNotContain("WEARER'S TASTE", LastCompose(app).SystemText);
         Assert.Equal(HttpStatusCode.OK, (await me.PatchAsJsonAsync("/api/users/me/taste", new { learning = true })).StatusCode);
         Assert.True((await me.DeleteAsync("/api/users/me/taste")).IsSuccessStatusCode);
         var cleared = await me.GetFromJsonAsync<JsonElement>("/api/users/me/taste");

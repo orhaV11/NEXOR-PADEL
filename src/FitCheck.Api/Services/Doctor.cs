@@ -336,10 +336,20 @@ public static class Doctor
             return;
         }
 
+        // Round 20: the prompt cache mode is on the same line, because it changes what the calls cost and nothing on
+        // the box shows it otherwise; a value that is not one of the three words is a warning that says caching is off.
+        var cache = anthropic.CacheMode();
+        if (!anthropic.PromptCacheKnown())
+        {
+            lines.Add(new(DoctorStatus.Warn, "anthropic-url",
+                $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}: Anthropic__PromptCache is \"{(anthropic.PromptCache ?? "").Trim()}\", not off, 5m or 1h: caching is off."));
+            return;
+        }
+
         lines.Add(anthropic.MaxTokens < MinimumMaxTokens
             ? new(DoctorStatus.Warn, "anthropic-url",
                 $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}: below {MinimumMaxTokens.ToString(CultureInfo.InvariantCulture)} a full verdict does not fit and long answers are cut off, billed and discarded. Raise Anthropic__MaxTokens.")
-            : new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}."));
+            : new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}, prompt cache {cache}."));
     }
 
     /// <summary>Below this a verdict with its breakdown, its accessories read and its tip does not reliably fit.</summary>

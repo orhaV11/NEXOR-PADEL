@@ -142,7 +142,7 @@ public sealed class AnthropicVisionClient(
     {
         model = options.Value.Model,
         max_tokens = options.Value.MaxTokens,
-        system = request.SystemPrompt,
+        system = BuildSystem(request),
         // A 10-second check does not need reasoning tokens, and max_tokens is shared with thinking on current models.
         thinking = new { type = "disabled" },
         tools = new[]
@@ -164,6 +164,31 @@ public sealed class AnthropicVisionClient(
             }
         }
     };
+
+    /// <summary>
+    /// Round 20 — the system prompt as an array of text blocks, always, so there is one wire shape whether caching is on
+    /// or off. Block 0 is the rubric; when the request's rubric is shared across calls in a language and
+    /// <c>Anthropic:PromptCache</c> names a lifetime, it carries the cache breakpoint. The API caches everything up to
+    /// a breakpoint and renders tools before system, so the tool schema is cached with the rubric: that is the whole of
+    /// what a check in a language shares, and the breakpoint sits at the end of it. The wearer's advisory follows as
+    /// block 1, uncached, because it changes per person. A planned outfit never carries a breakpoint: its tool schema
+    /// holds the wearer's wardrobe, so the prefix before the rubric is different for every wearer and a breakpoint
+    /// would only write entries that nobody reads.
+    /// </summary>
+    private List<object> BuildSystem(VisionRequest request)
+    {
+        var ttl = request.SharedRubric ? options.Value.CacheTtl() : null;
+        object? cacheControl = ttl is null ? null
+            : ttl == "1h" ? new { type = "ephemeral", ttl = "1h" }
+            : new { type = "ephemeral" };
+        var blocks = new List<object> { new { type = "text", text = request.SystemPrompt, cache_control = cacheControl } };
+        if (!string.IsNullOrWhiteSpace(request.SystemAdvisory))
+        {
+            blocks.Add(new { type = "text", text = request.SystemAdvisory.Trim() });
+        }
+
+        return blocks;
+    }
 
     /// <summary>
     /// One image: the image block, then the text. Two (a comparison): a label, the first image, a label, the second image,

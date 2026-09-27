@@ -63,6 +63,8 @@ const API_ENV = {
   ConnectionStrings__Default: `Data Source=${DB}`,
   Storage__Root: path.join(DATA, 'storage'),
   Email__Host: 'log',
+  // Round 20: the prompt cache on, so every check and comparison is asserted to carry the breakpoint (and no compose).
+  Anthropic__PromptCache: '5m',
   Plans__FreeChecksPerDay: '5',
   // Round 19: the forecast comes from the stub too (GET /v1/forecast), so Tomorrow dresses for a weather nobody dialled.
   Weather__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
@@ -904,7 +906,13 @@ function checkClientModules() {
   await choosePhoto(noa, '#photo', await makeJpeg(noa, 900, 1200));
   await noa.waitForSelector('#photo img');
   await noa.waitForFunction(() => !document.getElementById('submit').disabled);
+  // Round 20 - the wait, told in stages. The stub holds this one answer for 4.5 s, so the line under the flame is seen
+  // to open with "Looking at the look" and, three seconds in, become "Reading the pieces".
+  await get(`http://127.0.0.1:${STUB_PORT}/__delay/4500`);
   await noa.click('#submit');
+  await noa.waitForFunction(() => (document.getElementById('loading-line') || {}).textContent === 'Looking at the look', null, { timeout: 2500 });
+  await noa.waitForFunction(() => (document.getElementById('loading-line') || {}).textContent === 'Reading the pieces', null, { timeout: 6000 });
+  await shot(noa, '33c-wait-staged-en');
   await noa.waitForSelector('#result .score', { timeout: 30000 });
   const worn = await noa.evaluate(async (id) => {
     const { api } = await import('/app/core.js');
@@ -956,6 +964,11 @@ function checkClientModules() {
   await go(noa, '#/admin/metrics');
   await noa.waitForSelector('#dash-return');
   assert.ok((await count(noa, '#dash-scores li')) >= 1, 'the score distribution has bars');
+  // Round 20: the p95 beside the average (four tiles), the two cache tiles among the money tiles (six), and the prices
+  // hint naming the cache mode this run set.
+  assert.strictEqual(await count(noa, '#dash-tiles .dash-tile'), 4);
+  assert.strictEqual(await count(noa, '#dash-spend-tiles .dash-tile'), 6);
+  assert.match(await text(noa, '#dash-prices'), /Prompt cache: 5 minutes/);
   // Round 12 added "Share videos made"; Round 14 added five: private grades, comments begun from an opener, before/after
   // shares with and without the numbers, and challenges that state a rule.
   assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 20);
@@ -1363,6 +1376,76 @@ function checkClientModules() {
   assert.ok(/OK\s+stripe-webhook/.test(stripeCheck), 'stripe-webhook: ' + stripeCheck);
   assert.ok(/WARN billing .*StripeBaseUrl/.test(stripeCheck), 'the doctor warns that Stripe is somewhere else: ' + stripeCheck);
 
+  // Round 20 - the guest at the ceiling. A second API, --no-build, on the next port, against a fresh database, with a
+  // ceiling so low the second guest check meets it (the stub's 1000/300 usage is 0.005 USD a call) and a push key pair
+  // so the welcome screen can offer the phone. A new visitor: one look answered; the second refused with the resting
+  // sentence AND the offer under it; the join link carries ?back=stylist and the form says what it promises; after the
+  // signup the welcome screen draws the push step (Playwright has no push service, so it is drawn and not tapped); skip
+  // lands on the check screen the offer came from.
+  step = 'resting';
+  const nodeCrypto = require('crypto');
+  const vapid = nodeCrypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  const vapidPublic = vapid.publicKey.export({ format: 'jwk' });
+  const vapidPublicKey = Buffer.concat([Buffer.from([4]), Buffer.from(vapidPublic.x, 'base64url'), Buffer.from(vapidPublic.y, 'base64url')]).toString('base64url');
+  const vapidPrivateKey = vapid.privateKey.export({ format: 'jwk' }).d;
+  const base2 = `http://127.0.0.1:${API_PORT + 1}`;
+  const restingProc = start('dotnet', ['run', '--no-build', '--project', REPO], {
+    ...API_ENV,
+    ASPNETCORE_URLS: base2,
+    ConnectionStrings__Default: `Data Source=${path.join(DATA, 'e2e-resting.db')}`,
+    Storage__Root: path.join(DATA, 'storage-resting'),
+    Limits__SpendPerDayUsd: '0.001',
+    Push__PublicKey: vapidPublicKey,
+    Push__PrivateKey: vapidPrivateKey,
+    Push__Subject: 'mailto:hello@example.test'
+  }, path.join(DATA, 'api-resting.log'));
+  await waitFor(`${base2}/api/config`);
+  const guest = await person(browser, 'guest', 'en-US');
+  expected.push('/api/auth/me -> 401');
+  await guest.goto(base2 + '/#/check');
+  await guest.waitForSelector('#guest-banner');
+  await guest.click('.chip[data-intent=Date]');
+  await choosePhoto(guest, '#photo', bigJpeg);
+  await guest.waitForSelector('#photo img');
+  await guest.waitForFunction(() => !document.getElementById('submit').disabled);
+  await guest.click('#submit');
+  await guest.waitForSelector('#result .score', { timeout: 30000 });
+  // The second look: the day is spent (0.005 over a 0.001 ceiling), so the stylist rests. The gate is before the guest
+  // allowance, so this is the 503 and not the guest's own 429.
+  expected.push('/api/checks -> 503');
+  await guest.evaluate(() => { location.hash = '#/check'; });
+  await guest.waitForSelector('#photo');
+  if (!(await guest.$('#photo img'))) await choosePhoto(guest, '#photo', bigJpeg);
+  await guest.waitForSelector('#photo img');
+  await guest.waitForFunction(() => !document.getElementById('submit').disabled);
+  await guest.click('#submit');
+  await guest.waitForSelector('#resting-offer', { timeout: 30000 });
+  assert.strictEqual(await text(guest, '#check-error'), 'The stylist is resting until tomorrow. Your look is not spent.');
+  assert.match(await text(guest, '#resting-offer p'), /Sign up now and we'll tell you when the stylist is back/);
+  await shot(guest, '40-resting-offer-en');
+  await guest.click('#resting-join');
+  await guest.waitForFunction(() => location.hash === '#/signup?back=stylist');
+  await guest.waitForSelector('#a-stylist-back');
+  assert.strictEqual(await text(guest, '#a-stylist-back'), "We'll tell you when the stylist is back.");
+  await guest.fill('#a-handle', 'resting');
+  await guest.fill('#a-password', 'password123');
+  await guest.fill('#a-dob', '1990-01-01');
+  await guest.click('#a-submit');
+  await guest.waitForFunction(() => location.hash === '#/welcome');
+  await guest.waitForSelector('#w-push');
+  assert.strictEqual(await text(guest, '#w-push h2'), 'Hear when the stylist is back');
+  assert.match(await text(guest, '#w-email-step .hint'), /reaches your inbox too/);
+  await shot(guest, '41-welcome-push-en');
+  await guest.click('#w-skip');
+  await guest.waitForFunction(() => location.hash === '#/check');
+  // The ask is on the account: the row the five-minute pass will turn into the one note once the day opens.
+  const restingLog = fs.readFileSync(path.join(DATA, 'api-resting.log'), 'utf8');
+  assert.ok(/daily spend ceiling is reached/.test(restingLog), 'the closed day was announced once');
+  await guest.context().close();
+  const restingGone = new Promise((resolve) => restingProc.once('exit', resolve));
+  restingProc.kill('SIGTERM');
+  await restingGone;
+
   const stubRequests = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
   assert.ok(stubRequests.length >= 3, 'stub saw the checks (incl. the retried one)');
   for (const r of stubRequests) { assert.strictEqual(r.model, 'claude-sonnet-5'); }
@@ -1372,6 +1455,15 @@ function checkClientModules() {
   for (const r of composes) { assert.strictEqual(r.image_len, 0); assert.strictEqual(r.media_type, ''); assert.ok(!r.user_text.includes('@'), 'no handle in the figures'); }
   for (const r of stubRequests.filter((r) => r.tool !== 'compose_outfit')) { assert.strictEqual(r.media_type, 'image/jpeg'); }
   assert.ok(stubRequests[1].image_len < bigJpeg.length, `downscaled: ${stubRequests[1].image_len} < ${bigJpeg.length}`);
+  // Round 20: with Anthropic__PromptCache=5m every check and comparison carried the five-minute breakpoint on its rubric
+  // block; a planned outfit never does (its tool is per wearer). The system prompt is always at least one block, and
+  // the calls made after Noa's thumbs-up carry her taste advisory as a second, uncached block: the check she made from
+  // "Wearing it? Check it" and the second idea alike.
+  for (const r of stubRequests.filter((r) => r.tool !== 'compose_outfit')) { assert.deepStrictEqual(r.cache_control, { type: 'ephemeral' }, 'breakpoint on ' + r.tool); }
+  for (const r of composes) { assert.strictEqual(r.cache_control, null, 'no breakpoint on a compose'); }
+  for (const r of stubRequests) { assert.ok(r.system_blocks >= 1, 'system blocks'); }
+  assert.ok(stubRequests.some((r) => r.tool === 'submit_outfit_feedback' && r.system_blocks === 2), 'a check carried the taste advisory as its own block');
+  assert.ok(composes.some((r) => r.system_blocks === 2), 'a compose carried the taste advisory as its own block');
 
   const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));

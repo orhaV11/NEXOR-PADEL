@@ -96,7 +96,9 @@ function draw(root, m, ctx, reload) {
   root.appendChild(el('div', { class: 'dash-tiles', id: 'dash-tiles' }, [
     tile(t('dash.checks'), fmtNumber(m.totalChecks || 0)),
     tile(t('dash.users_with_check'), fmtNumber(first)),
-    tile(t('dash.avg_latency'), latency(m.avgLatencyMs))
+    tile(t('dash.avg_latency'), latency(m.avgLatencyMs)),
+    // Round 20: the slow tail over the same checks as the average, so a viral day's long waits are not averaged away.
+    tile(t('dash.p95_latency'), latency(m.p95LatencyMs))
   ]));
 
   root.appendChild(el('section', { class: 'dash-section' }, [
@@ -322,6 +324,9 @@ function spendBars(series) {
     ]);
   }));
 }
+/** The cache mode's word for the prices hint: "off", "5 minutes" or "1 hour". */
+function cacheModeKey(mode) { return mode === '5m' ? 'money.cache_5m' : mode === '1h' ? 'money.cache_1h' : 'money.cache_off'; }
+
 function moneySection(spend) {
   if (!moneyStyled) { moneyStyled = true; document.head.appendChild(el('style', { text: MONEY_CSS })); }
   const today = spend.today || { calls: 0, inputTokens: 0, outputTokens: 0, estimatedUsd: 0 };
@@ -340,9 +345,13 @@ function moneySection(spend) {
       tile(t('money.calls'), fmtNumber(today.calls || 0)),
       tile(t('money.tokens_in'), fmtNumber(today.inputTokens || 0)),
       tile(t('money.tokens_out'), fmtNumber(today.outputTokens || 0)),
+      // Round 20: today's prompt-cache tokens. Zero with the cache off; zero with it on means the shared prefix did not
+      // clear the model's minimum and nothing was written, which these two tiles are the only way to see.
+      tile(t('money.cache_read'), fmtNumber(today.cacheReadTokens || 0)),
+      tile(t('money.cache_write'), fmtNumber(today.cacheWriteTokens || 0)),
       tile(t('money.ceiling'), ceiling > 0 ? usd(ceiling) : t('money.ceiling_off'))
     ]),
-    el('p', { class: 'hint', id: 'dash-prices', text: t('money.prices', { in: usd(spend.priceInPerMillion), out: usd(spend.priceOutPerMillion) }) })
+    el('p', { class: 'hint', id: 'dash-prices', text: t('money.prices', { in: usd(spend.priceInPerMillion), out: usd(spend.priceOutPerMillion) }) + ' ' + t('money.cache_mode', { mode: t(cacheModeKey(spend.promptCache)) }) })
   ]));
   fragment.appendChild(el('section', { class: 'dash-section dash-money' }, [
     el('h2', { text: t('money.series') }),

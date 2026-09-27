@@ -7,6 +7,7 @@ using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitCheck.Api.Tests;
 
@@ -529,5 +530,20 @@ public class PushTests : IClassFixture<PushTests.PushApp>
         Assert.False(PushEndpoints.IsValidSubscription("https://push.example.test/x", browser.P256dh, null));
         Assert.False(PushEndpoints.IsValidSubscription("https://push.example.test/x", publicKey + "AA", browser.Auth));
         Assert.False(PushEndpoints.IsValidSubscription(null, browser.P256dh, browser.Auth));
+    }
+
+    /// <summary>
+    /// Round 20: the one note a guest asked for at the ceiling. A tap lands on the check screen, and the text is the
+    /// recipient's own language's push.stylist_back, the way every push line is localised.
+    /// </summary>
+    [Fact]
+    public void UrlFor_sends_a_stylist_back_tap_to_the_check_screen()
+    {
+        var job = new PushJob(Guid.NewGuid(), FitCheck.Api.Domain.NotificationType.StylistBack, "someone", null, null, Guid.NewGuid(), null);
+        Assert.Equal("/#/check", PushSender.UrlFor(job));
+
+        var localizer = App.Services.GetRequiredService<Localizer>();
+        Assert.Equal("The stylist is back. Your look is waiting.", localizer.Get("en", "push.stylist_back"));
+        Assert.Equal("הסטייליסט חזר. הלוק שלך מחכה.", localizer.Get("he", "push.stylist_back"));
     }
 }

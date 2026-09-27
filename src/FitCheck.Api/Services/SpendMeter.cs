@@ -9,8 +9,8 @@ namespace FitCheck.Api.Services;
 
 /// <summary>
 /// What one model call cost in tokens, as the Messages API's <c>usage</c> block reported it. Cache fields are 0 unless
-/// prompt caching is on (this app does not use it today, so they are 0 in practice and are read anyway, so the numbers
-/// stay honest the day someone turns it on).
+/// prompt caching is on (<c>Anthropic:PromptCache</c>, Round 20); with it on, a check's shared rubric is written once
+/// per language and read back on the calls that follow, and the two counts are what the numbers page's cache tiles show.
 /// </summary>
 public readonly record struct VisionUsage(long InputTokens, long OutputTokens, long CacheReadTokens = 0, long CacheWriteTokens = 0)
 {
@@ -73,9 +73,13 @@ public sealed record SpendDay(string Day, long Calls, long InputTokens, long Out
 /// there are any. A call that never reached the API (no connection, no API key) counts nothing: nobody billed it.</item>
 /// <item><b>The estimate.</b> <c>Anthropic:PriceInPerMillion</c> and <c>Anthropic:PriceOutPerMillion</c>, in USD, give
 /// an ESTIMATE and nothing more: they are settings an owner must match to their own contract, and a call's real price
-/// depends on the model, the tier and the month's invoice. Cache tokens are priced at the input price, which OVERSTATES
-/// cache reads (Anthropic bills them at a fraction of input) — deliberately, because a ceiling that guesses low is a
-/// ceiling that lets a real bill through. The app uses no prompt caching today, so both are 0.</item>
+/// depends on the model, the tier and the month's invoice. Round 20: cache tokens are priced the way Anthropic bills
+/// them, as ratios of the input price — a read at <see cref="CacheReadFactor"/>, a write at
+/// <see cref="CacheWriteFiveMinuteFactor"/> for the five-minute cache or <see cref="CacheWriteHourFactor"/> for the
+/// hour. The write ratio comes from the mode in force WHEN THE PAGE IS READ, not when the call was made, because the
+/// rows hold tokens and not dollars: flip <c>Anthropic:PromptCache</c> between 5m and 1h at midnight UTC, or accept
+/// that the day's writes (one per five minutes per language, a small fraction of the day) are re-priced by a few
+/// cents.</item>
 /// <item><b>The ceiling.</b> <c>Limits:SpendPerDayUsd</c> (0 = off). Once today's estimate reaches it,
 /// <see cref="CeilingReachedAsync"/> is true and every route that would ask the model answers 503
 /// error.stylist_resting before making the call — no allowance spent, no guest's free look spent, no row stored. It
@@ -101,6 +105,19 @@ public sealed class SpendMeter(
     /// <summary>How many days the numbers page's series covers.</summary>
     public const int SeriesDays = 14;
 
+    // ---- Round 20: what a cache token costs, as a ratio of the input price. These hold for every model this app can
+    // run (forced tool_choice limits it to the current families); a model that changes its cache pricing makes the
+    // estimate wrong, and the owner's prices are the escape hatch, not these. ----
+
+    /// <summary>A write to the five-minute cache is billed at 1.25x the input price.</summary>
+    public const decimal CacheWriteFiveMinuteFactor = 1.25m;
+
+    /// <summary>A write to the one-hour cache is billed at 2x the input price.</summary>
+    public const decimal CacheWriteHourFactor = 2.0m;
+
+    /// <summary>A cache read is billed at a tenth of the input price.</summary>
+    public const decimal CacheReadFactor = 0.1m;
+
     private const string DayFormat = "yyyyMMdd";
     private const long Million = 1_000_000;
 
@@ -119,6 +136,12 @@ public sealed class SpendMeter(
 
     /// <summary>The prices in use, as the doctor and the numbers page print them.</summary>
     public (decimal In, decimal Out) Prices => (anthropic.Value.PriceInPerMillion, anthropic.Value.PriceOutPerMillion);
+
+    /// <summary>Round 20: the prompt cache mode in force ("off", "5m" or "1h"), as the numbers page names it.</summary>
+    public string PromptCache => anthropic.Value.CacheMode();
+
+    /// <summary>The write ratio for the mode in force: the hour's premium under "1h", the five-minute premium otherwise.</summary>
+    public decimal CacheWriteFactor => anthropic.Value.CacheTtl() == "1h" ? CacheWriteHourFactor : CacheWriteFiveMinuteFactor;
 
     /// <summary>
     /// Records one model call the API answered. Opens its own scope, so nothing it writes can join, or fail, the
@@ -244,13 +267,17 @@ public sealed class SpendMeter(
     }
 
     /// <summary>
-    /// The estimated dollars for a day's tokens, rounded to the cent it will be shown in. Input, cache writes and cache
-    /// reads are all priced at the input price (see the class comment: an overstatement on cache reads, on purpose).
+    /// The estimated dollars for a day's tokens, rounded to the cent it will be shown in. Input at the input price, a
+    /// cache read at a tenth of it, a cache write at the premium of the mode in force (see the class comment for the
+    /// mid-day caveat), output at the output price.
     /// </summary>
     public decimal Estimate(long input, long output, long cacheRead = 0, long cacheWrite = 0)
     {
         var prices = Prices;
-        var dollars = ((decimal)(input + cacheRead + cacheWrite) * prices.In + (decimal)output * prices.Out) / Million;
+        var dollars = ((decimal)input * prices.In
+            + (decimal)cacheRead * CacheReadFactor * prices.In
+            + (decimal)cacheWrite * CacheWriteFactor * prices.In
+            + (decimal)output * prices.Out) / Million;
         return Math.Round(dollars, 4, MidpointRounding.AwayFromZero);
     }
 

@@ -21,6 +21,7 @@ the machine either.
 import base64
 import json
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qsl
 
@@ -28,6 +29,9 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5099
 API_ORIGIN = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:5088"
 REQUESTS = []
 STRIPE = []
+# Round 20: GET /__delay/<ms> makes the NEXT /v1/messages answer wait that long, once, so the e2e can watch the staged
+# wait copy change under a slow stylist. Zero again after it fires.
+DELAY_MS = 0
 WEBHOOK_EVENTS = [
     "checkout.session.completed", "customer.subscription.created", "customer.subscription.updated",
     "customer.subscription.deleted", "invoice.paid", "charge.refunded", "charge.dispute.created",
@@ -257,6 +261,35 @@ class Handler(BaseHTTPRequestHandler):
         tc = body.get("tool_choice") or {}
         if tc.get("type") != "tool" or tc.get("name") != tool_name:
             problems.append("tool_choice not forced")
+        # Round 20: the system prompt is a string (before) or a list of text blocks (since the wedge). A cache_control
+        # may sit on the first block only, as {"type": "ephemeral"} or with ttl "1h"; a compose (its tool carries the
+        # wearer's wardrobe, so nothing before the rubric is shared) must not carry one at all. A wrong shape is a 400,
+        # so the run fails loudly instead of quietly paying a write premium on every call.
+        system = body.get("system")
+        cache_control = None
+        if isinstance(system, str):
+            system_blocks = [system]
+        elif isinstance(system, list) and system:
+            system_blocks = [b.get("text", "") for b in system if isinstance(b, dict) and b.get("type") == "text"]
+            if len(system_blocks) != len(system):
+                problems.append("a system block is not a text block")
+            for i, block in enumerate(system):
+                cc = block.get("cache_control") if isinstance(block, dict) else None
+                if cc is None:
+                    continue
+                if i != 0:
+                    problems.append("cache_control on system block %d, not the first" % i)
+                elif cc.get("type") != "ephemeral":
+                    problems.append("cache_control type %r" % cc.get("type"))
+                elif "ttl" in cc and cc.get("ttl") != "1h":
+                    problems.append("cache_control ttl %r" % cc.get("ttl"))
+            cache_control = system[0].get("cache_control") if isinstance(system[0], dict) else None
+            if compose and cache_control is not None:
+                problems.append("compose_outfit carries a cache_control: its tool is per wearer, nothing before the rubric is shared")
+        else:
+            system_blocks = []
+            problems.append("system is neither a string nor a list of text blocks")
+        system_text = "\n".join(system_blocks)
         msgs = body.get("messages") or []
         if len(msgs) != 1 or msgs[0].get("role") != "user":
             problems.append("messages malformed")
@@ -302,7 +335,8 @@ class Handler(BaseHTTPRequestHandler):
 
         record = {
             "model": body["model"], "max_tokens": body["max_tokens"], "thinking": body.get("thinking"), "tool": tool_name,
-            "system_head": body["system"][:80], "language_line": [l for l in body["system"].splitlines() if l.startswith("Write every")],
+            "system_head": system_text[:80], "language_line": [l for l in system_text.splitlines() if l.startswith("Write every")],
+            "system_blocks": len(system_blocks), "cache_control": cache_control,
             "user_text": user_text, "media_type": media_type, "image_len": len(image_bytes),
         }
         if compare:
@@ -317,9 +351,16 @@ class Handler(BaseHTTPRequestHandler):
         if len(REQUESTS) == 1:
             return self._fail(529, "Overloaded")
 
+        # Round 20: the one-shot delay, after the record so the request is counted whatever the browser does meanwhile.
+        global DELAY_MS
+        if DELAY_MS > 0:
+            delay, DELAY_MS = DELAY_MS, 0
+            sys.stderr.write("STUB DELAY %d ms\n" % delay)
+            time.sleep(delay / 1000.0)
+
         # The system prompt names the language ("Write every user-facing field ... in Hebrew (he)"); answer in it. A
         # compose names it in the figures instead ("Language to write in: Hebrew").
-        system = body["system"]
+        system = system_text
         if compose:
             line = [l for l in user_text.splitlines() if l.startswith("Language to write in:")]
             language = line[0].split(":", 1)[1].strip() if line else "English"
@@ -377,6 +418,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/stripe":
             return self._json(200, STRIPE)
+        if self.path.startswith("/__delay/"):
+            global DELAY_MS
+            DELAY_MS = int(self.path[len("/__delay/"):].split("?")[0] or "0")
+            return self._json(200, {"delay_ms": DELAY_MS})
         if self.path.startswith("/v1/prices/"):
             # Round 20: --stripe-check reads both prices back. The id says which cadence it is; the amounts are the
             # ones the e2e configures (USD 29 a month, USD 290 a year).

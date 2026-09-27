@@ -100,7 +100,8 @@ public static class MetricsEndpoints
             PriceOutPerMillion: spend.Prices.Out,
             Series: await spend.SeriesAsync(db, ct),
             AlertWebhook: alerter.WebhookSet,
-            AlertEmail: alerter.EmailSet);
+            AlertEmail: alerter.EmailSet,
+            PromptCache: spend.PromptCache);
 
         // ---- Round 13 — the growth loop: the funnel and the invites (Services/Funnel.cs) ----
         // Fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's
@@ -227,6 +228,11 @@ public static class MetricsEndpoints
         var scoreDistribution = Enumerable.Range(1, 10)
             .ToDictionary(score => score.ToString(), score => list.Count(r => r.Score == score));
 
+        // Round 20: the slow tail, by nearest rank, over exactly the checks the average is over, so the two tiles never
+        // describe different populations. All-time like the average, on purpose; a windowed pair is a later move.
+        var latencies = list.Select(r => r.LatencyMs).OrderBy(ms => ms).ToList();
+        var p95 = latencies.Count == 0 ? 0 : latencies[(int)Math.Ceiling(0.95 * latencies.Count) - 1];
+
         return new PilotMetricsDto(
             TotalChecks: list.Count,
             UsersWithAtLeastOneCheck: byUser.Count,
@@ -236,6 +242,7 @@ public static class MetricsEndpoints
             ScoreDistribution: scoreDistribution,
             ByLanguage: list.GroupBy(r => r.Language).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
             ByPromptVersion: list.GroupBy(r => r.PromptVersion).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
-            BreakdownAverages: breakdownAverages);
+            BreakdownAverages: breakdownAverages,
+            P95LatencyMs: p95);
     }
 }

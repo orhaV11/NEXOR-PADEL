@@ -9,6 +9,16 @@ public sealed record VisionTool(string Name, string Description, JsonElement Inp
 /// One vision call: the instructions, one image and the tool the answer must come back through. A comparison ("which
 /// one?") carries a second image: when <see cref="MediaType2"/> is set the client sends both, labelled Outfit A and
 /// Outfit B, in that order. A request without one is sent exactly as it was before the second image existed.
+/// <para>
+/// Round 20 — the wedge. <see cref="SystemPrompt"/> is the rubric, the part of the instructions every call in a
+/// language shares; <see cref="SystemAdvisory"/> is the wearer's taste section, which changes per person and per
+/// check, so the client sends it as a system block of its own AFTER the rubric rather than glued onto it. That is what
+/// lets a cache breakpoint sit at the end of the shared part. <see cref="SharedRubric"/> says whether the tool and the
+/// rubric really are identical across requests in a language: true for a check and a comparison (one constant tool
+/// each), false for a planned outfit (its tool schema carries the wearer's wardrobe as an enum, and tools render before
+/// the system prompt, so nothing in it is shared) and for the monthly recap (a handful of calls a month, no cache worth
+/// writing). Only a shared rubric ever carries the breakpoint; the flag is the guard against a caller that is not.
+/// </para>
 /// </summary>
 public sealed record VisionRequest(
     string SystemPrompt,
@@ -17,8 +27,16 @@ public sealed record VisionRequest(
     string MediaType,
     VisionTool Tool,
     ReadOnlyMemory<byte> ImageBytes2 = default,
-    string? MediaType2 = null)
+    string? MediaType2 = null,
+    string? SystemAdvisory = null,
+    bool SharedRubric = false)
 {
+    /// <summary>
+    /// The instructions as one string, rubric then advisory, the way the model reads them and the way every test that
+    /// looks for the advisory in the prompt read them before the split.
+    /// </summary>
+    public string SystemText => Taste.Append(SystemPrompt, SystemAdvisory);
+
     /// <summary>True for a two-outfit request: a second image with its own media type rides along.</summary>
     public bool HasSecondImage => MediaType2 is not null && !ImageBytes2.IsEmpty;
 

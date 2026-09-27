@@ -37,13 +37,22 @@ public class AnthropicVisionClientTests
         content = new object[] { new { type = "tool_use", id = "toolu_1", name = OutfitAnalyzer.ToolName, input } }
     });
 
-    private static (AnthropicVisionClient Client, ScriptedHandler Handler) Create(string? apiKey = "test-key")
+    private static (AnthropicVisionClient Client, ScriptedHandler Handler) Create(string? apiKey = "test-key", string promptCache = "off")
     {
         Environment.SetEnvironmentVariable(AnthropicVisionClient.ApiKeyVariable, apiKey);
         var handler = new ScriptedHandler();
         var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
-        var options = Options.Create(new AnthropicOptions { Model = "claude-sonnet-5", MaxTokens = 1200, BaseUrl = "https://api.anthropic.test/" });
+        var options = Options.Create(new AnthropicOptions { Model = "claude-sonnet-5", MaxTokens = 1200, BaseUrl = "https://api.anthropic.test/", PromptCache = promptCache });
         return (new AnthropicVisionClient(http, options, NullLogger<AnthropicVisionClient>.Instance), handler);
+    }
+
+    /// <summary>The system blocks of the one request the handler saw.</summary>
+    private static List<JsonElement> SystemBlocks(ScriptedHandler handler)
+    {
+        using var body = JsonDocument.Parse(handler.Bodies[0]);
+        var system = body.RootElement.GetProperty("system");
+        Assert.Equal(JsonValueKind.Array, system.ValueKind);
+        return system.EnumerateArray().Select(b => b.Clone()).ToList();
     }
 
     private static VisionRequest Request() => new(
@@ -73,7 +82,12 @@ public class AnthropicVisionClientTests
         var root = body.RootElement;
         Assert.Equal("claude-sonnet-5", root.GetProperty("model").GetString());
         Assert.Equal(1200, root.GetProperty("max_tokens").GetInt32());
-        Assert.Contains("in Hebrew (he)", root.GetProperty("system").GetString());
+        // Round 20: the system prompt is an array of text blocks whether caching is on or off (one wire shape). With the
+        // setting off (the default) the rubric block carries no cache_control at all.
+        var system = Assert.Single(root.GetProperty("system").EnumerateArray());
+        Assert.Equal("text", system.GetProperty("type").GetString());
+        Assert.Contains("in Hebrew (he)", system.GetProperty("text").GetString());
+        Assert.False(system.TryGetProperty("cache_control", out _));
         Assert.Equal("disabled", root.GetProperty("thinking").GetProperty("type").GetString());
 
         var tool = Assert.Single(root.GetProperty("tools").EnumerateArray());
@@ -232,4 +246,78 @@ public class AnthropicVisionClientTests
         Assert.Equal(6, input.GetProperty("score").GetInt32());
     }
 
+
+    // ---------- Round 20: prompt caching ----------
+
+    /// <summary>
+    /// A check's rubric and tool are the same for every call in a language, so with Anthropic:PromptCache=5m the rubric
+    /// block carries the breakpoint. The API renders tools before system, so the schema is cached with it. The wearer's
+    /// advisory is a second block after the breakpoint with no cache_control: it changes per person, and caching it
+    /// would write an entry per wearer that nobody reads back. The user message is what it always was.
+    /// </summary>
+    [Fact]
+    public async Task A_shared_rubric_carries_a_five_minute_breakpoint_when_the_setting_says_so()
+    {
+        var (client, handler) = Create(promptCache: "5m");
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok", score = 6 })));
+
+        await client.AnalyzeAsync(Request() with { SystemAdvisory = "advisory", SharedRubric = true }, CancellationToken.None);
+
+        var blocks = SystemBlocks(handler);
+        Assert.Equal(2, blocks.Count);
+        Assert.Contains("in Hebrew (he)", blocks[0].GetProperty("text").GetString());
+        var control = blocks[0].GetProperty("cache_control");
+        Assert.Equal("ephemeral", control.GetProperty("type").GetString());
+        Assert.False(control.TryGetProperty("ttl", out _));
+        Assert.Equal("advisory", blocks[1].GetProperty("text").GetString());
+        Assert.False(blocks[1].TryGetProperty("cache_control", out _));
+
+        using var body = JsonDocument.Parse(handler.Bodies[0]);
+        var content = Assert.Single(body.RootElement.GetProperty("messages").EnumerateArray()).GetProperty("content").EnumerateArray().ToList();
+        Assert.Equal(2, content.Count);
+        Assert.Equal("image", content[0].GetProperty("type").GetString());
+        Assert.StartsWith("Occasion: Date:", content[1].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task An_hour_breakpoint_names_its_ttl()
+    {
+        var (client, handler) = Create(promptCache: "1h");
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok" })));
+
+        await client.AnalyzeAsync(Request() with { SharedRubric = true }, CancellationToken.None);
+
+        var block = Assert.Single(SystemBlocks(handler));
+        var control = block.GetProperty("cache_control");
+        Assert.Equal("ephemeral", control.GetProperty("type").GetString());
+        Assert.Equal("1h", control.GetProperty("ttl").GetString());
+    }
+
+    /// <summary>
+    /// A planned outfit's tool carries the wearer's wardrobe as an enum, so nothing before its rubric is shared with any
+    /// other request; the analyzer marks it SharedRubric=false and the client sends no breakpoint anywhere, whatever
+    /// the setting says.
+    /// </summary>
+    [Fact]
+    public async Task A_request_whose_tool_is_not_shared_never_carries_a_breakpoint()
+    {
+        var (client, handler) = Create(promptCache: "5m");
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok" })));
+
+        await client.AnalyzeAsync(Request() with { SystemAdvisory = "advisory", SharedRubric = false }, CancellationToken.None);
+
+        Assert.DoesNotContain("cache_control", handler.Bodies[0], StringComparison.Ordinal);
+        Assert.Equal(2, SystemBlocks(handler).Count);
+    }
+
+    [Fact]
+    public async Task An_unknown_cache_value_is_off()
+    {
+        var (client, handler) = Create(promptCache: "forever");
+        handler.Responses.Enqueue(() => Json(HttpStatusCode.OK, ToolUseResponse(new { status = "ok" })));
+
+        await client.AnalyzeAsync(Request() with { SharedRubric = true }, CancellationToken.None);
+
+        Assert.DoesNotContain("cache_control", handler.Bodies[0], StringComparison.Ordinal);
+    }
 }

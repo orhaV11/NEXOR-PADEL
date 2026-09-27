@@ -4,10 +4,12 @@
 // a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
 // person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe, richText
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe, richText, hashQuery
 } from '../core.js';
 // Round 13 — the growth loop: the handle an invite link carried, spent once, here.
 import { takeInvite } from '../invite.js';
+// Round 20: the welcome screen offers push to the guest who asked to hear when the stylist is back.
+import { pushSupport, enablePush } from '../push.js';
 
 // The few rules the shared stylesheet does not have: the date field, the agreement line, bigger onboarding steps and chips.
 const CSS = `
@@ -62,6 +64,9 @@ function authView(mode) {
     if (state.me) { redirect('#/'); return; }
     ensureStyle();
     setTopBar({ back: true, actions: [langButton()] });
+    // Round 20: #/signup?back=stylist arrives from the check screen's resting offer. The form says what it promises and
+    // sends the flag; the server records the ask only while the stylist really is resting (AuthEndpoints.SignupAsync).
+    const stylistBack = signup && hashQuery('back') === 'stylist';
 
     const handle = el('input', {
       type: 'text', id: 'a-handle', name: 'username', maxlength: '40', autocomplete: 'username',
@@ -88,9 +93,10 @@ function authView(mode) {
         const me = signup
           // today: the phone's own calendar day, so the sixteen rule is measured on it and not on the server's UTC day.
           // invitedBy: the handle an invite link left in this browser (Round 13), sent once and then forgotten.
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite() })
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite(), notifyStylistBack: stylistBack })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
+        if (stylistBack) state.stylistBackAsked = true;   // memory only: the welcome screen reads it once
         renderShell();
         // A check made as a guest on this phone follows the person in (one cheap call; 0 is the usual answer). This is the
         // claim that finds the rows, so the confirmation is announced here; the result screen's later claim finds nothing.
@@ -123,6 +129,7 @@ function authView(mode) {
         el('p', { class: 'hint', text: t('auth.dob_hint') })
       ]) : null,
       error,
+      stylistBack ? el('p', { class: 'hint', id: 'a-stylist-back', text: t('auth.stylist_back_note') }) : null,
       submit,
       // What they are agreeing to: the terms, the privacy policy and the guidelines, each one tap away and back.
       signup ? el('p', { class: 'hint auth-agree', id: 'a-agree' }, richText('auth.agree', {
@@ -175,6 +182,28 @@ register('welcome', async (root, params, ctx) => {
   }) : null;
   const emailError = el('p', { class: 'alert danger', role: 'alert', hidden: true });
 
+  // Round 20: the guest who asked, at the ceiling, to hear when the stylist is back. The in-app line is theirs whatever
+  // they do here; this step is the phone, offered only where this browser can subscribe and the server has keys. One
+  // notification is what the copy promises, and PushSender sends exactly the one the pass writes.
+  const stylistBack = !!state.stylistBackAsked;
+  const pushStep = stylistBack && pushSupport() === 'ready' ? el('section', { class: 'w-step', id: 'w-push' }, [
+    el('h2', { text: t('welcome.push_title') }),
+    el('p', { class: 'hint', text: t('welcome.push_hint') }),
+    el('button', { type: 'button', class: 'btn btn-secondary', id: 'w-push-enable', text: t('push.enable'), onclick: async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const sub = await enablePush();
+        if (ctx.stale()) return;
+        if (sub) { toast(t('push.enabled_toast')); pushStep.hidden = true; } else button.disabled = false;
+      } catch (e) {
+        if (ctx.stale()) return;
+        toast(e.message);
+        button.disabled = false;
+      }
+    } })
+  ]) : null;
+
   // Step 3 fills in once Explore answers; it stays hidden when there are no brands (or the endpoint is not there yet).
   const brands = el('section', { class: 'w-step', hidden: true });
 
@@ -214,10 +243,12 @@ register('welcome', async (root, params, ctx) => {
     el('p', { class: 'hint', text: t('welcome.styles_hint') }),
     chips
   ]));
+  if (pushStep) root.appendChild(pushStep);
   if (emailInput) {
+    // The address is the mail channel for the stylist's note too, so the hint says so in that one state.
     root.appendChild(el('section', { class: 'w-step', id: 'w-email-step' }, [
       el('h2', { text: t('welcome.email_title') }),
-      el('p', { class: 'hint', text: t('welcome.email_hint') }),
+      el('p', { class: 'hint', text: t('welcome.email_hint') + (stylistBack ? ' ' + t('welcome.email_stylist_back') : '') }),
       el('div', { class: 'field' }, [emailInput]),
       emailError
     ]));

@@ -427,6 +427,9 @@ public class OutfitAnalyzerTests
         var request = Assert.Single(fake.Requests);
         Assert.Equal("image/png", request.MediaType);
         Assert.Contains("Hebrew", request.SystemPrompt);
+        // Round 20: a check's rubric and tool are constant per language, so the request is marked shared (cacheable).
+        Assert.True(request.SharedRubric);
+        Assert.Null(request.SystemAdvisory);
         Assert.Contains("Occasion: Party:", request.UserText);
         Assert.Contains("Style asked for: Minimal:", request.UserText);
         Assert.Contains("birthday", request.UserText);

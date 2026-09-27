@@ -252,7 +252,11 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var answer = await vision.AnalyzeAsync(new VisionRequest(Taste.Append(SystemPrompt, advisory), figures, default, "", tool), ct);
+            // Round 20: the advisory goes as its own system block, and the rubric is NOT marked as shared. The tool built
+            // above carries this wearer's wardrobe as the ref enum, and the API renders tools before the system prompt,
+            // so nothing in this request is a prefix another request has: a cache breakpoint here would write an entry
+            // on every call at the write premium and read none of them back.
+            var answer = await vision.AnalyzeAsync(new VisionRequest(SystemPrompt, figures, default, "", tool, SystemAdvisory: advisory), ct);
             row.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             var validated = Validate(answer, byRef, missing, figures, input.Language);
             var photos = await PhotosAsync(user.Id, validated.Pieces, ct);

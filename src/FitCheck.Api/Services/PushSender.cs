@@ -154,6 +154,9 @@ public sealed class PushSender : BackgroundService
                 break;
             case NotificationType.Follow:
                 return $"/#/u/{Uri.EscapeDataString(job.ActorHandle)}";
+            case NotificationType.StylistBack:
+                // Round 20: the one note a guest asked for at the ceiling; the tap lands on the check they came to make.
+                return "/#/check";
             case NotificationType.BoardRank:
                 // Six and a half days back lands mid-week inside the week that closed whether that week ran 167, 168 or 169
                 // hours (a DST week) and whether the closer ran on time or hours late.

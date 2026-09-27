@@ -8,7 +8,8 @@ import {
 } from '../core.js';
 
 // 'reported' only ever reaches a moderator, and its actor is the reported account rather than whoever reported it.
-const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank', 'reported'];
+// 'stylist_back' (Round 20) is the one note a guest asked for at the ceiling; the person is their own actor.
+const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank', 'reported', 'stylist_back'];
 
 let styled = false;
 /**
@@ -63,6 +64,8 @@ function target(n) {
   // A report opens the queue, not the look: hiding it and suspending the account are there, and the queue carries the
   // reason somebody gave. The row still shows the look's thumbnail, so the moderator sees what it is before tapping.
   if (n.type === 'reported') return '#/admin';
+  // The stylist is back: the tap lands on the check the person came to make, as the push does (PushSender.UrlFor).
+  if (n.type === 'stylist_back') return '#/check';
   if (n.postId) return '#/post/' + n.postId;
   if (n.challengeId) return '#/challenge/' + n.challengeId;
   return '#/u/' + encodeURIComponent(n.actorHandle);

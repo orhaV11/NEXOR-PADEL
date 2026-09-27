@@ -456,6 +456,43 @@ public sealed class PlanOptions
     /// </para>
     /// </summary>
     public bool TasteNeedsPro { get; set; }
+
+    // ---------- Round 19 — Tomorrow: an outfit from the wardrobe that built itself ----------
+
+    /// <summary>
+    /// The kill switch. Off: every /api/tomorrow route answers 404, /api/config publishes plans.tomorrow=false, and the
+    /// client hides the screen, its links and the Pro page's Tomorrow lines.
+    /// </summary>
+    public bool TomorrowEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Whether composing an outfit is Pro's. Off by default: the person the feature exists for on launch week has three
+    /// kept pieces and no subscription, and a locked screen showing their own clothes is not a feature. On: POST
+    /// /api/tomorrow answers 403 error.pro_required to a free account, which still sees its pieces and the Pro line.
+    /// Mirrors <see cref="CompareNeedsPro"/>.
+    /// </summary>
+    public bool TomorrowNeedsPro { get; set; }
+
+    /// <summary>
+    /// A Pro account's OWN rolling-day allowance for planned outfits (<see cref="Services.Allowance.Suggestions"/>),
+    /// apart from its checks and comparisons, never above Limits:ChecksPerDay, and inside the same
+    /// <see cref="ProCallsPerMonth"/>. Ten, because a planned outfit is one tap and thirty in an afternoon must be
+    /// impossible: a person plans a few days and asks again a couple of times. 0 turns Tomorrow off for Pro.
+    /// </summary>
+    public int ProSuggestionsPerDay { get; set; } = 10;
+
+    /// <summary>
+    /// How many of a free account's shared day (<see cref="FreeChecksPerDay"/>, checks and comparisons together) may
+    /// be planned outfits. One, so a check a day is left to build the wardrobe the outfits come from. 0 gives free
+    /// none, which is what <see cref="TomorrowNeedsPro"/> does for the button.
+    /// </summary>
+    public int FreeSuggestionsPerDay { get; set; } = 1;
+
+    /// <summary>Below this many pieces the stylist is not asked at all; the screen says what to keep.</summary>
+    public int SuggestionMinPieces { get; set; } = 2;
+
+    /// <summary>Below this many kinds of piece (a top and a bottom, say) no call is made either: two tops are not an outfit.</summary>
+    public int SuggestionMinCategories { get; set; } = 2;
 }
 
 /// <summary>Billing. "manual" means Pro is granted with the --pro command; "stripe" means Checkout and the webhook are live.</summary>
@@ -646,7 +683,7 @@ public sealed class LanguagesOptions
 // ---- Round 13 — money: the alerts the owner hears before a user does ----
 
 /// <summary>
-/// Round 18 — the forecast behind "what should I wear tomorrow". Open-Meteo, because it needs no account and no key
+/// Round 19 — the forecast behind "what should I wear tomorrow". Open-Meteo, because it needs no account and no key
 /// to start: the server asks it for a day's high, low, chance of rain and sky, for a place rounded to about a
 /// kilometre, and never stores where the person was. Its keyless service is for NON-COMMERCIAL use; an app that takes
 /// payments is meant to be on a paid plan, which comes with a key (<see cref="ApiKey"/>, Weather__ApiKey) and its own
@@ -669,10 +706,10 @@ public sealed class WeatherOptions
     public string ApiKey { get; set; } = "";
 
     /// <summary>A forecast that takes longer than this is not worth the person's wait: the outfit is composed without it.</summary>
-    public int TimeoutSeconds { get; set; } = 5;
+    public int TimeoutSeconds { get; set; } = 4;
 
     /// <summary>How long one place's forecast is kept in memory. A day's forecast does not change by the minute.</summary>
-    public int CacheMinutes { get; set; } = 30;
+    public int CacheMinutes { get; set; } = 60;
 
     /// <summary>Which host the calls go to: the customer host with a key, the keyless one without.</summary>
     public string Host() => string.IsNullOrWhiteSpace(ApiKey) ? BaseUrl.Trim().TrimEnd('/') : CustomerBaseUrl.Trim().TrimEnd('/');

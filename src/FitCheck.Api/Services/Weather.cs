@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace FitCheck.Api.Services;
 
 /// <summary>
-/// Round 18 — the day's weather for the Tomorrow screen, from Open-Meteo, fetched by the server so the browser never
+/// Round 19 — the day's weather for the Tomorrow screen, from Open-Meteo, fetched by the server so the browser never
 /// talks to a third party (the CSP's connect-src stays 'self'). One call gives three days (today, tomorrow, the day
 /// after) for one place; the answer is cached by place and kept for Weather:CacheMinutes, so a neighbourhood asking
 /// all morning costs one request.
@@ -32,7 +32,10 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
     /// <summary>A cache beyond this many places is emptied whole rather than grown; the next askers refill it.</summary>
     public const int MaxCachedPlaces = 1000;
 
-    private readonly ConcurrentDictionary<(double Lat, double Lon), (DateTime Until, IReadOnlyDictionary<DateOnly, Forecast> Days)> _cache = new();
+    /// <summary>A forecast that could not be fetched is remembered this long, not <see cref="WeatherOptions.CacheMinutes"/>: a blip must not blank an hour.</summary>
+    public static readonly TimeSpan FailureMemory = TimeSpan.FromMinutes(5);
+
+    private readonly ConcurrentDictionary<(double Lat, double Lon), (DateTime Until, IReadOnlyDictionary<DateOnly, Forecast>? Days)> _cache = new();
 
     public bool Enabled => options.Value.Enabled;
 
@@ -53,22 +56,19 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
         var now = clock.UtcNow;
         if (_cache.TryGetValue(cell, out var cached) && cached.Until > now)
         {
-            return cached.Days.GetValueOrDefault(day);
+            return cached.Days?.GetValueOrDefault(day);
         }
 
         var days = await FetchAsync(lat, lon, ct);
-        if (days is null)
-        {
-            return null;
-        }
-
         if (_cache.Count >= MaxCachedPlaces)
         {
             _cache.Clear();
         }
 
-        _cache[cell] = (now.AddMinutes(Math.Max(1, options.Value.CacheMinutes)), days);
-        return days.GetValueOrDefault(day);
+        // A failure is remembered too, briefly, so a service that is down is not asked again by every tap for the
+        // next five minutes; a success is kept for the configured hour.
+        _cache[cell] = (days is null ? now + FailureMemory : now.AddMinutes(Math.Max(1, options.Value.CacheMinutes)), days);
+        return days?.GetValueOrDefault(day);
     }
 
     /// <summary>Forgets every cached forecast. Tests, and nothing else, need this.</summary>
@@ -90,18 +90,27 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
             + (string.IsNullOrWhiteSpace(settings.ApiKey) ? "" : "&apikey=" + Uri.EscapeDataString(settings.ApiKey.Trim()));
         try
         {
+            // The wait is bounded here, by Weather:TimeoutSeconds, whatever the named client's own timeout is: the
+            // person is standing there, and the outfit is worth more than the forecast.
+            using var bounded = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            bounded.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(settings.TimeoutSeconds, 1, 30)));
             using var client = http.CreateClient(HttpClientName);
-            using var response = await client.GetAsync(url, ct);
+            using var response = await client.GetAsync(url, bounded.Token);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("The forecast answered {Status}; the outfit is composed without the weather.", (int)response.StatusCode);
                 return null;
             }
 
-            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(bounded.Token));
             return Parse(document.RootElement);
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // The person went away: nothing to log, nothing to remember.
+            throw;
+        }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException or IOException)
         {
             // The place is deliberately not in this line: a log is not where somebody's whereabouts belong.
             logger.LogWarning("The forecast could not be fetched ({Reason}); the outfit is composed without the weather.", e.GetType().Name);
@@ -161,37 +170,37 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
     }
 
     /// <summary>
-    /// The WMO weather code as one of nine words the client has a string for and the model is told in English. The
+    /// The WMO weather code as one of seven buckets the client has a word for and the model is told in English. The
     /// table is deliberately coarse: an outfit cares whether it is wet, cold and bright, not about the difference
     /// between moderate and heavy drizzle.
     /// </summary>
     public static string Sky(int code) => code switch
     {
-        0 => "clear",
-        1 or 2 => "partly_cloudy",
-        3 => "cloudy",
+        0 or 1 => "clear",
+        2 or 3 => "cloudy",
         45 or 48 => "fog",
         >= 51 and <= 57 => "drizzle",
         >= 61 and <= 67 => "rain",
         >= 71 and <= 77 => "snow",
-        80 or 81 or 82 => "showers",
+        80 or 81 or 82 => "rain",
         85 or 86 => "snow",
         >= 95 => "storm",
         _ => "cloudy"
     };
 
-    /// <summary>The sky word as the model reads it: plain English, whatever language the person writes in.</summary>
+    /// <summary>Every bucket <see cref="Sky"/> can answer, in one place, so the client's strings and the tests can walk them.</summary>
+    public static readonly string[] Skies = ["clear", "cloudy", "fog", "drizzle", "rain", "snow", "storm"];
+
+    /// <summary>The sky bucket as the model reads it: plain English, whatever language the person writes in.</summary>
     public static string SkyWords(string sky) => sky switch
     {
-        "clear" => "clear sky",
-        "partly_cloudy" => "partly cloudy",
+        "clear" => "clear",
         "cloudy" => "cloudy",
         "fog" => "fog",
         "drizzle" => "drizzle",
         "rain" => "rain",
         "snow" => "snow",
-        "showers" => "showers",
-        "storm" => "thunderstorms",
+        "storm" => "storms",
         _ => "cloudy"
     };
 }

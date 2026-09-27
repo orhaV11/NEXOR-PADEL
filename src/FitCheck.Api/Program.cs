@@ -698,7 +698,11 @@ app.MapGet("/api/config", (IOptions<StorageOptions> storage, IOptions<PushOption
             plans.Value.TasteProfile && plans.Value.TasteNeedsPro,
             plans.Value.PriceTable(), plans.Value.RegionCurrencies(),
             plans.Value.WardrobeNamesToStylist, plans.Value.WardrobeNamesFor(true),
-            plans.Value.FallbackCurrency()),
+            plans.Value.FallbackCurrency(),
+            // Round 19 — Tomorrow: on at all, Pro's or everyone's, and the two day numbers as really enforced.
+            plans.Value.TomorrowEnabled, plans.Value.TomorrowNeedsPro,
+            Plans.ProSuggestionCap(plans.Value, limits.Value), Plans.FreeSuggestionCap(plans.Value, limits.Value),
+            Math.Max(0, plans.Value.SuggestionMinPieces), Math.Max(0, plans.Value.SuggestionMinCategories)),
         // Whether the item sheet says a store link may earn a commission (Affiliate:Disclosure); the hosts stay here.
         new AffiliateConfigDto(affiliate.Value.Disclosure),
         // The site's own address (Email:PublicOrigin, else Billing:PublicOrigin): a shared video's end card names it, and a

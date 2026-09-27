@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
+using Microsoft.Extensions.DependencyInjection;
 using FitCheck.Api.Data;
 
 namespace FitCheck.Api.Tests;
@@ -64,6 +65,46 @@ public class MonthlyAllowanceTests
 
         // And nothing was spent to find out: the third call never reached the stylist.
         Assert.Equal(2, app.Vision.Requests.Count);
+    }
+
+    /// <summary>
+    /// Round 19 — a planned outfit (Tomorrow) is a stylist call too, and the month counts it with the rest. The row is
+    /// written straight into the table here: this test is about the counting, and the route has its own tests.
+    /// </summary>
+    [Fact]
+    public async Task A_planned_outfit_spends_the_month_like_a_check()
+    {
+        using var app = MonthApp(proMonth: 2);
+        var (pro, id, _) = await app.NewUserAsync("month_tomorrow");
+        await AdminSync.SetProAsync(app.ConnectionString, "month_tomorrow", DateTime.UtcNow.AddDays(30));
+
+        Assert.Equal(HttpStatusCode.Created, (await pro.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Suggestions.Add(new OutfitSuggestion
+            {
+                Id = Guid.NewGuid(), UserId = id, Occasion = OutfitOccasion.Office, Intent = StyleIntent.Casual, When = "tomorrow",
+                ForDate = DateOnly.FromDateTime(DateTime.UtcNow), Language = "en", Status = CheckStatus.Ok, Sentence = "Wear these.",
+                PromptVersion = "t1", CreatedAt = DateTime.UtcNow
+            });
+            // And a failed one, which cost nothing and counts for nothing.
+            db.Suggestions.Add(new OutfitSuggestion
+            {
+                Id = Guid.NewGuid(), UserId = id, Occasion = OutfitOccasion.Office, Intent = StyleIntent.Casual, When = "tomorrow",
+                ForDate = DateOnly.FromDateTime(DateTime.UtcNow), Language = "en", Status = CheckStatus.Error, PromptVersion = "t1", CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var refused = await pro.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Contains("2", await ErrorOf(refused), StringComparison.Ordinal);
+        Assert.Single(app.Vision.Requests);
+
+        // The "me" answer reads the same pot.
+        var me = await pro.GetFromJsonAsync<JsonElement>("/api/auth/me");
+        Assert.Equal(2, me.GetProperty("callsThisMonth").GetInt32());
     }
 
     /// <summary>

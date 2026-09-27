@@ -42,7 +42,7 @@ public static class SecurityHeaders
         "form-action 'self'";
 
     /// <summary>
-    /// Round 18: geolocation opens to this origin for the weather line on the Tomorrow screen. The browser still asks the
+    /// Round 19: geolocation opens to this origin for the weather line on the Tomorrow screen. The browser still asks the
     /// person, only when they tap "use my location", and the answer is rounded before it leaves the phone (views/tomorrow.js).
     /// </summary>
     public const string PermissionsPolicy = "camera=(self), microphone=(self), geolocation=(self)";

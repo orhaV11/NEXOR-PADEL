@@ -194,6 +194,33 @@ public class PlansTests
         }
     }
 
+    /// <summary>Round 19 — Tomorrow's numbers on /api/config are the ones the routes enforce, clamped like the check caps.</summary>
+    [Fact]
+    public async Task Config_publishes_the_tomorrow_numbers_as_enforced()
+    {
+        using var app = new TestApp
+        {
+            ChecksPerDay = 5,
+            Settings = { ["Plans:ProSuggestionsPerDay"] = "40", ["Plans:FreeSuggestionsPerDay"] = "9", ["Plans:FreeChecksPerDay"] = "2" }
+        };
+        var config = await (await app.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>();
+        var plans = config.GetProperty("plans");
+        Assert.True(plans.GetProperty("tomorrow").GetBoolean());
+        Assert.False(plans.GetProperty("tomorrowNeedsPro").GetBoolean());
+        Assert.Equal(5, plans.GetProperty("proSuggestionsPerDay").GetInt32());
+        // Free's brake can never be more than free's day.
+        Assert.Equal(2, plans.GetProperty("freeSuggestionsPerDay").GetInt32());
+        Assert.Equal(2, plans.GetProperty("suggestionMinPieces").GetInt32());
+        Assert.Equal(2, plans.GetProperty("suggestionMinCategories").GetInt32());
+
+        using var walled = new TestApp { Settings = { ["Plans:TomorrowNeedsPro"] = "true", ["Plans:TomorrowEnabled"] = "false" } };
+        var off = (await (await walled.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("plans");
+        Assert.False(off.GetProperty("tomorrow").GetBoolean());
+        Assert.True(off.GetProperty("tomorrowNeedsPro").GetBoolean());
+        Assert.Equal(10, off.GetProperty("proSuggestionsPerDay").GetInt32());
+        Assert.Equal(1, off.GetProperty("freeSuggestionsPerDay").GetInt32());
+    }
+
     [Fact]
     public async Task Config_publishes_the_allowances_as_the_server_really_enforces_them()
     {

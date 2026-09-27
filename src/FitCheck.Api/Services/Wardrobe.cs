@@ -221,7 +221,7 @@ public static class Wardrobe
         PromptItems(items, max).Select(item => CleanName(item.Name)).ToList();
 
     /// <summary>
-    /// Round 18 — the rows behind <see cref="PromptNames"/>: the same order, the same filters and the same cut, but the
+    /// Round 19 — the rows behind <see cref="PromptNames"/>: the same order, the same filters and the same cut, but the
     /// pieces themselves rather than their names, because Tomorrow needs each one's id (to hand the model a closed list
     /// and check its answer against it) and its category (to say which kind of piece the closet lacks). The name to
     /// show or send is still <see cref="CleanName"/> of the row's, never the raw one.

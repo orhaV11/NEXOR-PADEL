@@ -44,6 +44,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     // Round 16 - the month written back to the person, one per account per month per language.
     public DbSet<Recap> Recaps => Set<Recap>();
 
+    // Round 19 — Tomorrow: planned outfits and their pieces.
+    public DbSet<OutfitSuggestion> Suggestions => Set<OutfitSuggestion>();
+    public DbSet<SuggestionPiece> SuggestionPieces => Set<SuggestionPiece>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AppUser>(user =>
@@ -412,6 +416,54 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             setting.HasKey(s => s.UserId);
             setting.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ---------- Round 19 — Tomorrow ----------
+
+        modelBuilder.Entity<OutfitSuggestion>(suggestion =>
+        {
+            suggestion.HasKey(s => s.Id);
+            suggestion.Property(s => s.Occasion).HasConversion<string>().HasMaxLength(32);
+            suggestion.Property(s => s.Style).HasConversion<string>().HasMaxLength(32);
+            suggestion.Property(s => s.Intent).HasConversion<string>().HasMaxLength(32);
+            suggestion.Property(s => s.When).HasMaxLength(8).IsRequired();
+            suggestion.Property(s => s.Language).HasMaxLength(8).IsRequired();
+            suggestion.Property(s => s.Status).HasMaxLength(16).IsRequired();
+            suggestion.Property(s => s.Sentence).HasMaxLength(400).IsRequired();
+            suggestion.Property(s => s.Gap).HasMaxLength(16);
+            suggestion.Property(s => s.PromptVersion).HasMaxLength(16).IsRequired();
+            suggestion.Property(s => s.UsefulReason).HasMaxLength(16);
+            // The day's and the month's counts, and the history, are "this account's rows, newest first".
+            suggestion.HasIndex(s => new { s.UserId, s.CreatedAt });
+            // The cache: the newest ok answer to the same question on the same day.
+            suggestion.HasIndex(s => new { s.UserId, s.Occasion, s.ForDate, s.CreatedAt });
+            // The global ceiling counts everybody's rows in the window.
+            suggestion.HasIndex(s => s.CreatedAt);
+            suggestion.HasIndex(s => s.WornCheckId);
+            // No unique key on purpose: the bound is the counted row. (The recap's once-a-month index is the one
+            // exception in this file, and nothing else should copy it.)
+            suggestion.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            suggestion.HasOne<OutfitCheck>().WithMany().HasForeignKey(s => s.WornCheckId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SuggestionPiece>(piece =>
+        {
+            piece.HasKey(p => new { p.SuggestionId, p.Position });
+            piece.Property(p => p.Name).HasMaxLength(Services.Wardrobe.NameMaxLength).IsRequired();
+            piece.Property(p => p.Category).HasMaxLength(16).IsRequired();
+            piece.HasIndex(p => p.ItemId);
+            piece.HasOne<OutfitSuggestion>().WithMany().HasForeignKey(p => p.SuggestionId).OnDelete(DeleteBehavior.Cascade);
+            // A removed piece nulls the link and keeps the row: the history still names what was suggested.
+            piece.HasOne<Services.WardrobeItem>().WithMany().HasForeignKey(p => p.ItemId).OnDelete(DeleteBehavior.SetNull);
+            // A deleted check takes its photo with it; the piece stays, without one.
+            piece.HasOne<OutfitCheck>().WithMany().HasForeignKey(p => p.PhotoCheckId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // The loop closed: a check may point at the planned outfit it is the person wearing.
+        modelBuilder.Entity<OutfitCheck>(check =>
+        {
+            check.HasIndex(c => c.SuggestionId);
+            check.HasOne<OutfitSuggestion>().WithMany().HasForeignKey(c => c.SuggestionId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

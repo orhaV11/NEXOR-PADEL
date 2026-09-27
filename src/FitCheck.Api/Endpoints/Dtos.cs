@@ -398,7 +398,12 @@ public sealed record PlansDto(int FreeChecksPerDay, int ProChecksPerDay, int Gue
     // page names the free number, so the benefit reads as the addition it is rather than a vague "more".
     int WardrobeNames = 0, int WardrobeNamesPro = 0,
     // What a reader from a country this server does not price in is shown (Plans:ProPriceWorldCurrency, else ProPriceCurrency).
-    string FallbackCurrency = "");
+    string FallbackCurrency = "",
+    // Round 19 — Tomorrow (what should I wear). Tomorrow says the feature is on at all (Plans:TomorrowEnabled);
+    // TomorrowNeedsPro whether composing is Pro's; the two per-day numbers as really enforced (clamped like the
+    // check caps); the two minimums the screen quotes before any call is made.
+    bool Tomorrow = false, bool TomorrowNeedsPro = false, int ProSuggestionsPerDay = 0, int FreeSuggestionsPerDay = 0,
+    int SuggestionMinPieces = 0, int SuggestionMinCategories = 0);
 
 // ---- comparisons, insights, today ----
 
@@ -774,3 +779,52 @@ public sealed record CommissionImportRequest(List<CommissionRowDto>? Rows);
 
 public sealed record CommissionImportDto(int Written);
 
+// ---------- Round 19 — Tomorrow: an outfit from the wardrobe that built itself ----------
+
+/// <summary>
+/// One planned outfit. <c>Pieces</c> are wardrobe rows the server picked by id — never a string the model wrote — each
+/// with the check whose photo shows the person wearing it. <c>Reused</c> says a stored answer was handed back without a
+/// call and <c>Counted</c> whether this answer spent one; <c>Stale</c> that the wardrobe changed since it was made.
+/// The four "left" numbers are what the screen draws under the button, computed by the server so they cannot drift
+/// from what the routes enforce.
+/// </summary>
+public sealed record SuggestionDto(Guid Id, string Occasion, string? Style, string When, DateOnly ForDate, DateTime CreatedAt,
+    string Status, int Seq, string Sentence, List<SuggestionPieceDto> Pieces, SuggestionWeatherDto? Weather, string? Gap,
+    bool? Useful, string? UsefulReason, Guid? WornCheckId, bool Reused, bool Stale, bool Counted,
+    int LeftToday, int CapToday, int LeftMonth, int CapMonth);
+
+/// <summary>
+/// One piece of a planned outfit. <c>Name</c> is the wardrobe row's current name while the row exists (a rename reads
+/// right), else the name stored when the outfit was made; <c>ItemId</c> is null once the piece was removed.
+/// <c>PhotoUrl</c> is the owner-only check photo route, or null when no check of this piece still has a photo.
+/// </summary>
+public sealed record SuggestionPieceDto(Guid? ItemId, string Name, string Category, int Position, Guid? PhotoCheckId, string? PhotoUrl,
+    DateTime? PhotoWornAt, int Worn, DateTime? LastWornAt);
+
+/// <summary>The forecast an outfit was composed for: Celsius, a chance of rain and a sky bucket the client has a word for. Never a place.</summary>
+public sealed record SuggestionWeatherDto(double TempMaxC, double TempMinC, int PrecipChance, int Code, string Sky);
+
+/// <summary>A first-class "not enough": how many pieces and kinds the wardrobe has against the two minimums. Nothing was spent.</summary>
+public sealed record TomorrowNeedsDto(int Have, int HaveKinds, int Needs, int NeedsKinds);
+
+/// <summary>A piece in the strip above the button: the person's own closet as photos, before anything is spent.</summary>
+public sealed record StripPieceDto(Guid ItemId, string Name, string Category, Guid? PhotoCheckId, string? PhotoUrl, int Worn);
+
+/// <summary>
+/// What the Tomorrow screen opens on, without a model call: whether this account may compose and why not, what the
+/// wardrobe has against the minimums, the strip, the recent outfits, the day's and the month's numbers, and the chips
+/// to pre-light (the newest outfit's occasion and style, else the newest check's).
+/// </summary>
+public sealed record TomorrowDto(bool Available, bool StylistOn, bool NeedsPro, int Have, int HaveKinds, int Needs, int NeedsKinds, int Offered,
+    List<StripPieceDto> Strip, List<SuggestionDto> Recent, int LeftToday, int CapToday, int LeftMonth, int CapMonth,
+    string? DefaultOccasion, string? DefaultStyle);
+
+/// <summary>
+/// POST /api/tomorrow. <c>Today</c> is the phone's own calendar date (yyyy-MM-dd), honoured within a day of the
+/// server's; <c>Fresh</c> asks for another idea even when a stored one would do; <c>Lat</c>/<c>Lon</c> travel only
+/// here, are rounded again on the server, handed to the forecast and dropped.
+/// </summary>
+public sealed record TomorrowRequest(string? Occasion, string? Style, string? When, string? Today, bool? Fresh, double? Lat, double? Lon);
+
+/// <summary>The numbers page's Tomorrow block over the last 30 days: whether planned outfits get worn, how often a stored one is reused, and how often the model reached outside the wardrobe.</summary>
+public sealed record TomorrowMetricsDto(int Suggestions, int Worn, double? WornRate, int Reused, double? ReuseRate, int InventedRefs, int Templated, List<TasteCountDto> Reasons);

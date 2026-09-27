@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace FitCheck.Api.Tests;
 
 /// <summary>
-/// Round 18 — the forecast behind "what should I wear tomorrow". The server asks Open-Meteo for three days at a place
+/// Round 19 — the forecast behind "what should I wear tomorrow". The server asks Open-Meteo for three days at a place
 /// rounded to a kilometre, keeps the answer in memory for a while, and never lets a slow or broken forecast reach the
 /// person as anything but a missing line. The numbers the model is told are the ones Open-Meteo gave, rounded here.
 /// </summary>
@@ -126,28 +126,35 @@ public class WeatherTests
     }
 
     [Fact]
-    public async Task A_forecast_that_fails_is_no_forecast_and_is_not_remembered()
+    public async Task A_forecast_that_fails_is_no_forecast_and_is_remembered_only_briefly()
     {
-        var (weather, handler, _) = Create();
+        var (weather, handler, clock) = Create();
         handler.Respond = _ => Json(HttpStatusCode.InternalServerError, """{ "error": true, "reason": "down" }""");
         Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
 
+        // Each failure below is a different place, so each is really asked and really fails in its own way.
         handler.Respond = _ => throw new HttpRequestException("connection refused");
-        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Null(await weather.ForAsync(33.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
 
         handler.Respond = _ => throw new TaskCanceledException("timed out");
-        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Null(await weather.ForAsync(34.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
 
         handler.Respond = _ => Json(HttpStatusCode.OK, "not json at all");
-        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Null(await weather.ForAsync(35.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
 
         handler.Respond = _ => Json(HttpStatusCode.OK, """{ "daily": { "time": ["2026-09-27"], "temperature_2m_max": [29.0] } }""");
-        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Null(await weather.ForAsync(36.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Equal(5, handler.Requests.Count);
 
-        // None of that was cached: the first good answer is fetched, not the failure remembered.
+        // Each of those was asked once and the failure remembered briefly, so a service that is down is not hammered by
+        // every tap: within five minutes nothing more is sent, after five minutes the next tap asks again and gets it.
+        var asked = handler.Requests.Count;
         handler.Respond = _ => Json(HttpStatusCode.OK, ThreeDays);
+        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
+        Assert.Equal(asked, handler.Requests.Count);
+        clock.Now = clock.UtcNow + Weather.FailureMemory + TimeSpan.FromSeconds(1);
         Assert.NotNull(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 27), CancellationToken.None));
-        Assert.Equal(6, handler.Requests.Count);
+        Assert.Equal(asked + 1, handler.Requests.Count);
     }
 
     [Fact]
@@ -161,9 +168,9 @@ public class WeatherTests
     }
 
     [Theory]
-    [InlineData(0, "clear", "clear sky")]
-    [InlineData(1, "partly_cloudy", "partly cloudy")]
-    [InlineData(2, "partly_cloudy", "partly cloudy")]
+    [InlineData(0, "clear", "clear")]
+    [InlineData(1, "clear", "clear")]
+    [InlineData(2, "cloudy", "cloudy")]
     [InlineData(3, "cloudy", "cloudy")]
     [InlineData(45, "fog", "fog")]
     [InlineData(48, "fog", "fog")]
@@ -172,17 +179,18 @@ public class WeatherTests
     [InlineData(67, "rain", "rain")]
     [InlineData(73, "snow", "snow")]
     [InlineData(77, "snow", "snow")]
-    [InlineData(80, "showers", "showers")]
-    [InlineData(82, "showers", "showers")]
+    [InlineData(80, "rain", "rain")]
+    [InlineData(82, "rain", "rain")]
     [InlineData(85, "snow", "snow")]
-    [InlineData(95, "storm", "thunderstorms")]
-    [InlineData(99, "storm", "thunderstorms")]
+    [InlineData(95, "storm", "storms")]
+    [InlineData(99, "storm", "storms")]
     [InlineData(-1, "cloudy", "cloudy")]
-    [InlineData(200, "storm", "thunderstorms")]
-    public void Every_wmo_code_is_one_of_nine_words(int code, string sky, string words)
+    [InlineData(200, "storm", "storms")]
+    public void Every_wmo_code_is_one_of_seven_buckets(int code, string sky, string words)
     {
         Assert.Equal(sky, Weather.Sky(code));
         Assert.Equal(words, Weather.SkyWords(sky));
+        Assert.Contains(sky, Weather.Skies);
     }
 
     [Fact]
@@ -211,7 +219,7 @@ public class WeatherTests
         // A missing code reads as cloudy rather than as clear: the safer word when the sky is unknown.
         Assert.Equal(0, later.Code);
         Assert.Equal("clear", later.Sky);
-        Assert.Equal("high 25 C, low 19 C, chance of rain 66%, clear sky", later.Figure());
+        Assert.Equal("high 25 C, low 19 C, chance of rain 66%, clear", later.Figure());
     }
 
     [Fact]

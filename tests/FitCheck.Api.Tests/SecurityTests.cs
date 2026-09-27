@@ -184,7 +184,7 @@ public class IdorEnumerationTests
     private static readonly Dictionary<(string Pattern, string Method), object> Rules = new()
     {
         [("/api/checks/{id:guid}", "GET")] = Rule.Private(f => $"/api/checks/{f.CheckA}", "a check is its owner's, or the guest's whose cookie made it"),
-        // Round 18: the photo of a private check, under the same rule as the check itself. The only /api/checks route that
+        // Round 19: the photo of a private check, under the same rule as the check itself. The only /api/checks route that
         // serves a file, and the assertion at the end of the enumeration says so.
         [("/api/checks/{id:guid}/image", "GET")] = Rule.Private(f => $"/api/checks/{f.CheckA}/image", "the photo of a private check is its owner's, or the guest's whose cookie made it"),
         [("/api/checks/{id:guid}/shared-video", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/shared-video", "counting a share is the owner's or the guest's"),
@@ -336,7 +336,7 @@ public class IdorEnumerationTests
             Assert.True((int)response.StatusCode < 500, $"{method} {pattern} crashed: {(int)response.StatusCode}");
         }
 
-        // Round 18 relaxed this from "nothing serves a check's photo by id" to exactly one route, GET /api/checks/{id}/image,
+        // Round 19 relaxed this from "nothing serves a check's photo by id" to exactly one route, GET /api/checks/{id}/image,
         // private under the check's own rule (the row above). Nothing else under /api/checks may serve a file, and a
         // check's clip is still reachable only through its look's post (README, "Photos are never served by path").
         var files = routes.Where(r => r.Pattern.StartsWith("/api/checks/", StringComparison.Ordinal)
@@ -354,7 +354,7 @@ public class IdorEnumerationTests
         Assert.Equal(HttpStatusCode.NotFound, (await b.GetAsync($"/api/checks/{fixture.GuestCheck}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await app.NewClient().GetAsync($"/api/checks/{fixture.GuestCheck}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await b.PostAsync($"/api/checks/{fixture.GuestCheck}/shared-video", null)).StatusCode);
-        // Round 18: and its photo, from an account and from nobody.
+        // Round 19: and its photo, from an account and from nobody.
         Assert.Equal(HttpStatusCode.NotFound, (await b.GetAsync($"/api/checks/{fixture.GuestCheck}/image")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await app.NewClient().GetAsync($"/api/checks/{fixture.GuestCheck}/image")).StatusCode);
     }

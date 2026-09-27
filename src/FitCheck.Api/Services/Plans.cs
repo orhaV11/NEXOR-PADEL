@@ -64,6 +64,26 @@ public static class Plans
     /// </summary>
     public static bool WardrobeReachesStylist(AppUser? user, PlanOptions plans, DateTime now) =>
         user is not null && (!plans.WardrobeNeedsPro || IsPro(user, now));
+
+    // ---------- Round 19 — Tomorrow ----------
+
+    /// <summary>
+    /// Whether this account may ask for an outfit at all: the feature is on, they are signed in (a guest has no
+    /// wardrobe), and either it is not Pro's or they are Pro. The caps below decide how many.
+    /// </summary>
+    public static bool TomorrowReachesStylist(AppUser? user, PlanOptions plans, DateTime now) =>
+        plans.TomorrowEnabled && user is not null && (!plans.TomorrowNeedsPro || IsPro(user, now));
+
+    /// <summary>A Pro account's own day of planned outfits, never above Limits:ChecksPerDay.</summary>
+    public static int ProSuggestionCap(PlanOptions plans, LimitsOptions limits) => Clamp(plans.ProSuggestionsPerDay, limits);
+
+    /// <summary>How many of a free account's shared day may be planned outfits: the brake, never above the day itself.</summary>
+    public static int FreeSuggestionCap(PlanOptions plans, LimitsOptions limits) =>
+        Math.Max(0, Math.Min(plans.FreeSuggestionsPerDay, Clamp(plans.FreeChecksPerDay, limits)));
+
+    /// <summary>Pro counts its planned outfits on their own; free counts them with everything else it did today.</summary>
+    public static Allowance SuggestionAllowanceFor(AppUser user, DateTime now) =>
+        IsPro(user, now) ? Allowance.Suggestions : Allowance.Together;
 }
 
 /// <summary>
@@ -79,5 +99,8 @@ public enum Allowance
     Checks,
 
     /// <summary>Comparisons only: a Pro account's comparison allowance.</summary>
-    Compares
+    Compares,
+
+    /// <summary>Round 19 — suggestions only: a Pro account's Tomorrow allowance, apart from its checks and its comparisons.</summary>
+    Suggestions
 }

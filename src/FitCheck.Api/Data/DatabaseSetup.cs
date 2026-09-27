@@ -257,6 +257,24 @@ public static class DatabaseSetup
         var linked = new List<string>();
         foreach (var operation in fromScratch.OfType<CreateTableOperation>().Where(o => !existingTables.Contains(o.Name)))
         {
+            // Round 19: a CREATE TABLE from the differ does not always carry every foreign key the table has in the
+            // model. Once two tables point at each other (Checks -> Suggestions -> Checks, the "I wore it" link),
+            // the differ cannot order them so that every referenced table comes first, so it lifts the keys that would
+            // point forward out into AddForeignKey operations of their own — and not only on the two tables in the
+            // cycle: the tables it moved behind them (CheckLinks -> Checks, BoardExclusions -> Posts) lose theirs too.
+            // This code never took those operations, so the file came out of the upgrade with two tables silently
+            // unconstrained. SQLite accepts a REFERENCES to a table created later in the same batch, so the keys go
+            // back inline where the model has them, and DatabaseSetupTests compares the result to a file made by the
+            // migrations alone, constraint for constraint.
+            if (relational.FindTable(operation.Name, operation.Schema) is { } modelTable)
+            {
+                var inline = operation.ForeignKeys.Select(fk => fk.Name).ToHashSet(StringComparer.Ordinal);
+                foreach (var foreignKey in modelTable.ForeignKeyConstraints.Where(fk => !inline.Contains(fk.Name)))
+                {
+                    operation.ForeignKeys.Add(AddForeignKeyOperation.CreateFrom(foreignKey));
+                }
+            }
+
             operations.Add(operation);
             created.Add(operation.Name);
         }

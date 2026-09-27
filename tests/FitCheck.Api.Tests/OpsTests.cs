@@ -54,7 +54,7 @@ public class DoctorTests : IDisposable
         ["Push:Subject"] = "mailto:hello@orevosh.example",
         ["Admin:Handles:0"] = "orhav",
         ["Affiliate:Hosts:amazon.com"] = "tag=orevosh-20",
-        // Round 18: a server that takes payments is on Open-Meteo's paid plan, so its keyless terms are not leaned on.
+        // Round 19: a server that takes payments is on Open-Meteo's paid plan, so its keyless terms are not leaned on.
         ["Weather:ApiKey"] = "om-not-a-real-key"
     };
 
@@ -196,6 +196,92 @@ public class DoctorTests : IDisposable
         var nonsense = Healthy();
         nonsense["Billing:Provider"] = "paypal";
         Assert.Equal(DoctorStatus.Fail, (await Inspect(nonsense))["billing"]!.Status);
+    }
+
+    /// <summary>
+    /// Round 19 — the forecast behind Tomorrow. Off is a warning the owner keeps seeing; on without a key while Stripe
+    /// is on is the licence warning (Open-Meteo's keyless tier is for non-commercial use); on with a key, or on without
+    /// a key on a server that takes no money, is ok. Never a failure: an outfit is composed without a forecast.
+    /// </summary>
+    [Fact]
+    public async Task The_forecast_is_read_with_its_licence_in_mind()
+    {
+        var keyed = await Inspect(Healthy());
+        Assert.Equal(DoctorStatus.Ok, keyed["weather"]!.Status);
+        Assert.Contains("customer-api.open-meteo.com", keyed["weather"]!.Detail);
+        Assert.Contains("with an API key", keyed["weather"]!.Detail);
+        Assert.DoesNotContain("om-not-a-real-key", keyed["weather"]!.Detail);
+        Assert.Contains("geolocation=(self)", keyed["weather"]!.Detail);
+
+        var off = Healthy();
+        off["Weather:Enabled"] = "false";
+        var disabled = await Inspect(off);
+        Assert.Equal(DoctorStatus.Warn, disabled["weather"]!.Status);
+        Assert.Contains("never asks for a location", disabled["weather"]!.Detail);
+        Assert.Equal(0, disabled.ExitCode);
+
+        var keyless = Healthy();
+        keyless["Weather:ApiKey"] = "";
+        var licence = await Inspect(keyless);
+        Assert.Equal(DoctorStatus.Warn, licence["weather"]!.Status);
+        Assert.Contains("non-commercial", licence["weather"]!.Detail);
+        Assert.Contains("Weather__ApiKey", licence["weather"]!.Detail);
+        Assert.Contains("api.open-meteo.com", licence["weather"]!.Detail);
+
+        var hobby = Healthy();
+        hobby["Weather:ApiKey"] = "";
+        hobby["Billing:Provider"] = "manual";
+        var manual = await Inspect(hobby);
+        Assert.Equal(DoctorStatus.Ok, manual["weather"]!.Status);
+        Assert.Contains("non-commercial use", manual["weather"]!.Detail);
+
+        var odd = Healthy();
+        odd["Weather:ApiKey"] = "";
+        odd["Weather:BaseUrl"] = "ftp://weather.example";
+        var host = await Inspect(odd);
+        Assert.Equal(DoctorStatus.Warn, host["weather"]!.Status);
+        Assert.Contains("not an https URL", host["weather"]!.Detail);
+
+        // --live asks for one real forecast; a service that does not answer is a warning, never a failure.
+        var live = await Inspect(Healthy(), live: true, handler: new CannedHandler(HttpStatusCode.OK));
+        Assert.Equal(DoctorStatus.Ok, live["weather-live"]!.Status);
+        Assert.Contains("customer-api.open-meteo.com", live["weather-live"]!.Detail);
+        var down = await Inspect(Healthy(), live: true, handler: new CannedHandler(HttpStatusCode.ServiceUnavailable));
+        Assert.Equal(DoctorStatus.Warn, down["weather-live"]!.Status);
+        Assert.Contains("compose without a forecast", down["weather-live"]!.Detail);
+        Assert.Null((await Inspect(off, live: true, handler: new CannedHandler(HttpStatusCode.OK)))["weather-live"]);
+    }
+
+    /// <summary>Round 19 — Tomorrow's two day numbers on the plans line, as really enforced, and the Pro line's truth.</summary>
+    [Fact]
+    public async Task The_tomorrow_caps_are_read_as_the_app_reads_them()
+    {
+        var healthy = await Inspect(Healthy());
+        Assert.Equal(DoctorStatus.Ok, healthy["plans"]!.Status);
+        Assert.Contains("tomorrow pro 10 / free 1 a day", healthy["plans"]!.Detail);
+
+        var overshoot = Healthy();
+        overshoot["Plans:ProSuggestionsPerDay"] = "500";
+        overshoot["Limits:ChecksPerDay"] = "30";
+        var caps = await Inspect(overshoot);
+        Assert.Equal(DoctorStatus.Warn, caps["plans"]!.Status);
+        Assert.Contains("Plans__ProSuggestionsPerDay (500) is above Limits__ChecksPerDay (30), so Pro really gets 30 planned outfits", caps["plans"]!.Detail);
+
+        var freeOver = Healthy();
+        freeOver["Plans:FreeSuggestionsPerDay"] = "5";
+        freeOver["Plans:FreeChecksPerDay"] = "2";
+        Assert.Contains("Plans__FreeSuggestionsPerDay (5) is above the free day (2), so free really gets 2", (await Inspect(freeOver))["plans"]!.Detail);
+
+        var pointless = Healthy();
+        pointless["Plans:ProSuggestionsPerDay"] = "1";
+        pointless["Plans:WardrobeNamesToStylistPro"] = "12";
+        Assert.Contains("Tomorrow gives Pro no more than free", (await Inspect(pointless))["plans"]!.Detail);
+
+        var off = Healthy();
+        off["Plans:TomorrowEnabled"] = "false";
+        var disabled = await Inspect(off);
+        Assert.Equal(DoctorStatus.Ok, disabled["plans"]!.Status);
+        Assert.Contains("tomorrow off", disabled["plans"]!.Detail);
     }
 
     [Fact]
@@ -650,7 +736,10 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Skip, report["anthropic-live"]!.Status);
         Assert.Equal(DoctorStatus.Skip, report["stripe-live"]!.Status);
         Assert.Equal(DoctorStatus.Skip, report["stripe-webhook"]!.Status);
-        Assert.Empty(handler.Requests);
+        // Round 19: the one thing that may leave the machine is the forecast probe, which spends nothing and needs no
+        // key of ours — Anthropic and Stripe are never dialled.
+        Assert.All(handler.Requests, r => Assert.Equal("customer-api.open-meteo.com", r.Uri.Host));
+        Assert.Equal(DoctorStatus.Ok, report["weather-live"]!.Status);
         // Skipped calls are neither a pass nor a failure; the stub key itself is what fails the run.
         // Round 13 — money: the fourth skip is alerts-live, which has no channel to send its test alert down.
         Assert.Equal(DoctorStatus.Skip, report["alerts-live"]!.Status);

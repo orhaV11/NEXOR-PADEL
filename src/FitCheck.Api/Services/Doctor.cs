@@ -174,7 +174,7 @@ public static class Doctor
         // Round 13 — money
         var alerts = Bind<AlertOptions>(configuration, AlertOptions.Section, lines, "alerts");
         var legal = Bind<LegalOptions>(configuration, LegalOptions.Section, lines, "contact");
-        // Round 18 — the forecast behind Tomorrow.
+        // Round 19 — the forecast behind Tomorrow.
         var weather = Bind<WeatherOptions>(configuration, WeatherOptions.Section, lines, "weather");
 
         var publicOrigin = Origin(configuration);
@@ -205,6 +205,8 @@ public static class Doctor
             await StripeLiveAsync(lines, billing, planPrices, publicOrigin, handler, ct);
             // Round 13 — money: one real alert down every configured channel, so the owner sees it arrive.
             await AlertsLiveAsync(lines, configuration, alerts, email, handler, ct);
+            // Round 19 — one forecast, so the owner sees Open-Meteo answer from this machine.
+            await WeatherLiveAsync(lines, weather, handler, ct);
         }
 
         return new DoctorReport(lines);
@@ -540,10 +542,32 @@ public static class Doctor
             notes.Add($"one account's ceiling ({limits.ChecksPerDay}) is above everybody's ({limits.ChecksPerDayGlobal})");
         }
 
+        // Round 19 — Tomorrow's two day numbers, as really enforced, and whether Pro's is worth anything.
+        var proSuggestions = Plans.ProSuggestionCap(plans, limits);
+        var freeSuggestions = Plans.FreeSuggestionCap(plans, limits);
+        if (plans.TomorrowEnabled)
+        {
+            if (plans.ProSuggestionsPerDay > limits.ChecksPerDay)
+            {
+                notes.Add($"Plans__ProSuggestionsPerDay ({plans.ProSuggestionsPerDay}) is above Limits__ChecksPerDay ({limits.ChecksPerDay}), so Pro really gets {proSuggestions} planned outfits a day");
+            }
+
+            if (plans.FreeSuggestionsPerDay > freeCap)
+            {
+                notes.Add($"Plans__FreeSuggestionsPerDay ({plans.FreeSuggestionsPerDay}) is above the free day ({freeCap}), so free really gets {freeSuggestions}");
+            }
+
+            if (!plans.TomorrowNeedsPro && proSuggestions <= freeSuggestions && plans.WardrobeNamesFor(true) <= plans.WardrobeNamesToStylist)
+            {
+                notes.Add("Tomorrow gives Pro no more than free (the same daily number and the same slice of the wardrobe): the Pro page's Tomorrow line is not true on this server");
+            }
+        }
+
+        var tomorrow = plans.TomorrowEnabled ? $"tomorrow pro {proSuggestions} / free {freeSuggestions} a day" : "tomorrow off";
         lines.Add(notes.Count > 0
             ? new(DoctorStatus.Warn, "plans", string.Join("; ", notes) + ".")
             : new(DoctorStatus.Ok, "plans",
-                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; pro {plans.ProCallsPerMonth} model calls a month; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
+                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; pro {plans.ProCallsPerMonth} model calls a month; {tomorrow}; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
     }
 
     private static void Push(List<DoctorLine> lines, PushOptions push)
@@ -1448,41 +1472,78 @@ public static class Doctor
     }
 
     /// <summary>
-    /// Round 18 — the forecast behind "what should I wear tomorrow". Open-Meteo's keyless service is for non-commercial
+    /// Round 19 — the forecast behind "what should I wear tomorrow". Open-Meteo's keyless service is for non-commercial
     /// use; a server that takes payments (Billing__Provider=stripe) without Weather__ApiKey is on somebody else's
     /// goodwill, which is a WARN and not a failure: the outfit is composed without the weather when the forecast does
-    /// not answer, and nothing else depends on it. The key itself is never printed.
+    /// not answer, and nothing else depends on it. Off is a WARN too, so the owner who turned it off keeps seeing that
+    /// they did. The key itself is never printed.
     /// </summary>
     private static void WeatherLine(List<DoctorLine> lines, WeatherOptions weather, BillingOptions billing)
     {
-        if (!weather.Enabled)
+        var host = weather.Host();
+        if (!weather.Enabled || host.Length == 0)
         {
-            lines.Add(new(DoctorStatus.Ok, "weather", "off (Weather__Enabled=false): Tomorrow composes without a forecast and never asks for a location."));
+            lines.Add(new(DoctorStatus.Warn, "weather", "Weather__Enabled is off: Tomorrow composes without a forecast, and the screen never asks for a location."));
             return;
         }
 
-        var host = weather.Host();
         if (!Uri.TryCreate(host, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttps)
         {
-            lines.Add(new(DoctorStatus.Fail, "weather", $"the forecast host is \"{host}\", not an https URL: no forecast can be fetched. Set Weather__BaseUrl (or Weather__CustomerBaseUrl with a key)."));
+            lines.Add(new(DoctorStatus.Warn, "weather", $"the forecast host is \"{host}\", not an https URL, so no forecast can be fetched and Tomorrow composes without one. Set Weather__BaseUrl (or Weather__CustomerBaseUrl with a key), or Weather__Enabled=false."));
             return;
         }
 
         var keyed = !string.IsNullOrWhiteSpace(weather.ApiKey);
         var stripe = string.Equals((billing.Provider ?? "").Trim(), "stripe", StringComparison.OrdinalIgnoreCase);
-        var timing = $"{weather.TimeoutSeconds.ToString(CultureInfo.InvariantCulture)}s timeout, cached {weather.CacheMinutes.ToString(CultureInfo.InvariantCulture)} min per place";
-        if (keyed)
-        {
-            lines.Add(new(DoctorStatus.Ok, "weather", $"Open-Meteo with a key at {url.Host}; {timing}."));
-        }
-        else if (stripe)
+        var timing = $"{weather.TimeoutSeconds.ToString(CultureInfo.InvariantCulture)}s timeout, {weather.CacheMinutes.ToString(CultureInfo.InvariantCulture)} min cache per place";
+        if (!keyed && stripe)
         {
             lines.Add(new(DoctorStatus.Warn, "weather",
-                $"Open-Meteo without a key at {url.Host}: its keyless service is for non-commercial use, and this server takes payments. Take a plan at open-meteo.com and set Weather__ApiKey, or set Weather__Enabled=false. {timing}."));
+                $"Open-Meteo at {url.Host} without an API key. The keyless tier is for non-commercial use, and this server takes payments: subscribe at open-meteo.com and set Weather__ApiKey (the calls move to the customer host), or set Weather__Enabled=false. {timing}."));
+            return;
         }
-        else
+
+        lines.Add(new(DoctorStatus.Ok, "weather",
+            $"Open-Meteo at {url.Host}{(keyed ? ", with an API key" : " without a key (non-commercial use; set Weather__ApiKey before taking payments)")}; {timing}; Permissions-Policy geolocation=(self), so Tomorrow dresses for the forecast when a person allows their location."));
+    }
+
+    /// <summary>
+    /// --doctor --live: one real forecast for one fixed place (Tel Aviv, a round number, nobody's home), a day ahead,
+    /// so the owner sees the service answer from this machine. Never a failure: the feature degrades to no forecast.
+    /// </summary>
+    private static async Task WeatherLiveAsync(List<DoctorLine> lines, WeatherOptions weather, HttpMessageHandler? handler, CancellationToken ct)
+    {
+        var host = weather.Host();
+        if (!weather.Enabled || !Uri.TryCreate(host, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttps)
         {
-            lines.Add(new(DoctorStatus.Ok, "weather", $"Open-Meteo without a key at {url.Host} (non-commercial use; set Weather__ApiKey before taking payments); {timing}."));
+            return;
+        }
+
+        var query = host + "/v1/forecast?latitude=32.08&longitude=34.78&daily=temperature_2m_max&forecast_days=1&timezone=auto"
+            + (string.IsNullOrWhiteSpace(weather.ApiKey) ? "" : "&apikey=" + Uri.EscapeDataString(weather.ApiKey.Trim()));
+        var watch = Stopwatch.StartNew();
+        try
+        {
+            using var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
+            client.Timeout = LiveTimeout;
+            using var response = await client.GetAsync(query, ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                lines.Add(new(DoctorStatus.Warn, "weather-live", $"{url.Host} answered {(int)response.StatusCode}: Tomorrow will compose without a forecast."));
+                return;
+            }
+
+            using var document = JsonDocument.Parse(body);
+            var high = document.RootElement.TryGetProperty("daily", out var daily) && daily.TryGetProperty("temperature_2m_max", out var maxes)
+                && maxes.ValueKind == JsonValueKind.Array && maxes.GetArrayLength() > 0 && maxes[0].ValueKind == JsonValueKind.Number
+                ? maxes[0].GetDouble().ToString("0.#", CultureInfo.InvariantCulture) + " C"
+                : "no daily high in the answer";
+            lines.Add(new(DoctorStatus.Ok, "weather-live", $"{url.Host} answered in {watch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)} ms; today's high there: {high}."));
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            lines.Add(new(DoctorStatus.Warn, "weather-live", $"no answer from {url.Host}: {e.Message.TrimEnd('.')}. Tomorrow will compose without a forecast."));
         }
     }
 

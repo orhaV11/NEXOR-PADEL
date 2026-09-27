@@ -115,10 +115,14 @@ public class DatabaseSetupTests : IDisposable
         Assert.Contains("IX_Checks_GuestToken", Names(path, "index"));
         Assert.Equal("0", Scalar(path, "SELECT \"notnull\" FROM pragma_table_info('Checks') WHERE name = 'UserId'"));
         Assert.Equal(StructureOf(Fresh("reference.db")), StructureOf(path));
-        // Exactly the two shape changes Round 9 made on existing tables, and nothing else rebuilt.
+        // Exactly the shape changes later rounds made on tables the Round 8 file already had, and nothing else rebuilt:
+        // Round 9's two (Checks.UserId nullable, Posts.BeforePostId) and Round 19's link from a check to the planned
+        // outfit it is the person wearing.
         var upgraded = Assert.Single(log.Lines, line => line.Contains(" upgraded: "));
         Assert.Contains("1 column(s) altered (Checks.UserId nullable)", upgraded);
-        Assert.Contains("1 foreign key(s) added (FK_Posts_Posts_BeforePostId)", upgraded);
+        Assert.Contains("2 foreign key(s) added (", upgraded);
+        Assert.Contains("FK_Posts_Posts_BeforePostId", upgraded);
+        Assert.Contains("FK_Checks_Suggestions_SuggestionId", upgraded);
         Assert.Contains("Users.Suspended", upgraded);
         Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
 

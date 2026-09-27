@@ -53,7 +53,7 @@ public static class CheckEndpoints
         // arrived. A read, so it carries no CSRF header and needs nothing of the page's script policy.
         group.MapGet("/latest", LatestAsync);
         group.MapGet("/{id:guid}", GetAsync);
-        // Round 18: the photo of a private check, to the person who may read the check. Until this, a check that was
+        // Round 19: the photo of a private check, to the person who may read the check. Until this, a check that was
         // never posted had no photo route at all; Tomorrow shows the person their own pieces as photos of them wearing
         // them, and those checks are mostly unposted.
         group.MapGet("/{id:guid}/image", GetImageAsync);
@@ -623,7 +623,7 @@ public static class CheckEndpoints
     }
 
     /// <summary>
-    /// Round 18 — the one door to a private check's photo. The same rule as <see cref="GetAsync"/>, because the photo is
+    /// Round 19 — the one door to a private check's photo. The same rule as <see cref="GetAsync"/>, because the photo is
     /// part of the check: its owner, or the guest whose cookie made it; anyone else, and an id that is not a check, gets
     /// the same 404, so ids do not leak existence. A check with no file (an error row, a photo already swept) is 404 too.
     /// Streamed the way a comparison's photos are (<see cref="CompareEndpoints"/>): never by path, never cacheable by a

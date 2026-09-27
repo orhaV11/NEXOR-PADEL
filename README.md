@@ -591,7 +591,7 @@ descriptive is dropped when the status is not `ok`.
   names so people can find the look in search. The tip, the notes on each item and the accessories read stay
   private. Deleting the post makes the photo private again.
 - **Photos are never served by path.** Check photos and avatars live under `Storage:Root`, outside `wwwroot`.
-  The post image route (visible posts only), the avatar route and, since Round 18, `GET /api/checks/{id}/image` — a
+  The post image route (visible posts only), the avatar route and, since Round 19, `GET /api/checks/{id}/image` — a
   private check's own photo, to the person who may read the check (its owner, or the guest whose cookie made it), and
   a 404 to everyone else — are the only doors. `SecurityTests` lists that route as private and asserts nothing else
   under `/api/checks` serves a file.

@@ -38,6 +38,8 @@ public class AlertTests
 
         /// <summary>The "text" field of every recorded post that has one, in order.</summary>
         public List<string> Texts => Posts
+            // Round 19: --doctor --live also sends the forecast probe, a GET with no body, through the same handler.
+            .Where(p => p.Body.TrimStart().StartsWith('{'))
             .Select(p => JsonDocument.Parse(p.Body).RootElement)
             .Where(root => root.ValueKind == JsonValueKind.Object && root.TryGetProperty("text", out _))
             .Select(root => root.GetProperty("text").GetString() ?? "")

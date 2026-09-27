@@ -55,7 +55,7 @@ public class CheckEndpointTests : IClassFixture<TestApp>
     }
 
     /// <summary>
-    /// Round 18 — the one door to a private check's photo: GET /api/checks/{id}/image, under the check's own rule. Tomorrow
+    /// Round 19 — the one door to a private check's photo: GET /api/checks/{id}/image, under the check's own rule. Tomorrow
     /// shows a person their kept pieces as photos of them wearing them, and those checks were mostly never posted. The
     /// owner gets the file with a private cache header; another account, nobody, and a check with no file get the same
     /// 404 the check itself gives, so an id says nothing about existence.

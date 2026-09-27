@@ -77,4 +77,11 @@ public sealed class OutfitCheck
 
     public int LatencyMs { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Round 19 — Tomorrow's loop closed: the planned outfit this check is the person wearing ("Wearing it? Check it").
+    /// Set only when the suggestion is this account's; the suggestion's <see cref="OutfitSuggestion.WornCheckId"/>
+    /// points back. Null for every other check.
+    /// </summary>
+    public Guid? SuggestionId { get; set; }
 }

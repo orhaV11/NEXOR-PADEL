@@ -22,6 +22,9 @@ public class TestApp : WebApplicationFactory<Program>
     public string DatabasePath => Path.Combine(Root, "test.db");
     public string ConnectionString => $"Data Source={DatabasePath}";
     public FakeVisionClient Vision { get; } = new();
+
+    /// <summary>Round 19: what Open-Meteo answers, recorded. Three days from today by default; a status, a body, a delay or an exception on demand.</summary>
+    public RecordingWeatherHandler WeatherHandler { get; } = new();
     public int ChecksPerDay { get; init; } = 20;
     /// <summary>
     /// Plans:FreeChecksPerDay. The suite's fixtures were written when every account had Limits:ChecksPerDay, so the default
@@ -157,6 +160,8 @@ public class TestApp : WebApplicationFactory<Program>
 
             // Checkout Sessions go to the recorder instead of api.stripe.com; the base address and the redaction stay.
             services.AddHttpClient(StripeClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => StripeHandler);
+            // Round 19: the forecast comes from the recorder instead of Open-Meteo.
+            services.AddHttpClient(Weather.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => WeatherHandler);
         });
     }
 
@@ -457,10 +462,21 @@ public sealed class FakeClock : IClock
     public DateTime UtcNow => Now ?? DateTime.UtcNow;
 }
 
-/// <summary>Scripted stand-in for the Anthropic client. Records every request so tests can inspect the prompts.</summary>
+/// <summary>
+/// Scripted stand-in for the Anthropic client. Records every request so tests can inspect the prompts. The default
+/// handler answers by the TOOL the request carries (Round 19): a check gets a check, a recap a paragraph, a planned
+/// outfit three refs — a fixture that mixes them is not fed the wrong shape.
+/// </summary>
 public sealed class FakeVisionClient : IOutfitVisionClient
 {
-    public Func<VisionRequest, JsonElement> Handler { get; set; } = _ => Payloads.Ok();
+    public static JsonElement ByTool(VisionRequest request) => request.Tool.Name switch
+    {
+        Tomorrow.ToolName => Payloads.Compose(["P1", "P2", "P3"]),
+        Recaps.ToolName => Payloads.Parse("""{ "paragraph": "A fine month: four checks, and the white tee carried two of them." }"""),
+        _ => Payloads.Ok()
+    };
+
+    public Func<VisionRequest, JsonElement> Handler { get; set; } = ByTool;
     public List<VisionRequest> Requests { get; } = [];
 
     public Task<JsonElement> AnalyzeAsync(VisionRequest request, CancellationToken ct)
@@ -481,6 +497,10 @@ public static class Payloads
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();
     }
+
+    /// <summary>Round 19 — a planned outfit as the model answers it: refs, a sentence and the gap (null when the wardrobe lacks nothing).</summary>
+    public static JsonElement Compose(string[] refs, string sentence = "Your white tee with the dark jeans and the running shoes: easy and right for the day.", string? gap = null) =>
+        Parse(JsonSerializer.Serialize(new { pieces = refs.Select(r => new { @ref = r }).ToArray(), sentence, gap }));
 
     public static JsonElement Ok(int score = 7, int intentMatch = 72, string headline = "Clean casual with one weak link") => Parse($$"""
         {
@@ -625,5 +645,71 @@ public sealed class RecordingStripeHandler : HttpMessageHandler
         var answer = cancel ? CancelResponse : IsPortal(request.RequestUri!) ? PortalResponse : Response;
         var status = cancel ? CancelStatusCode ?? StatusCode : StatusCode;
         return new HttpResponseMessage(status) { Content = new StringContent(answer, System.Text.Encoding.UTF8, "application/json") };
+    }
+}
+
+/// <summary>Round 19 — what Open-Meteo answers in tests: recorded, scripted, never the network.</summary>
+public sealed class RecordingWeatherHandler : HttpMessageHandler
+{
+    private readonly List<Uri> _requests = [];
+
+    public IReadOnlyList<Uri> Requests
+    {
+        get
+        {
+            lock (_requests)
+            {
+                return _requests.ToList();
+            }
+        }
+    }
+
+    public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
+
+    /// <summary>The body; null answers <see cref="Daily"/> for today and the two days after.</summary>
+    public string? Response { get; set; }
+
+    /// <summary>Thrown instead of answering, when set (a refused connection, a timeout).</summary>
+    public Exception? Throw { get; set; }
+
+    public int DelayMs { get; set; }
+
+    /// <summary>Three days from <paramref name="first"/> (today, UTC, by default): cloudy 29/21, then clear 24/17 with a 10% chance of rain, then rain 22/16.</summary>
+    public static string Daily(DateOnly? first = null)
+    {
+        var start = first ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var days = string.Join(", ", Enumerable.Range(0, 3).Select(i => "\"" + start.AddDays(i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + "\""));
+        return $$"""
+            {
+              "latitude": 32.08, "longitude": 34.78, "timezone": "Asia/Jerusalem",
+              "daily": {
+                "time": [{{days}}],
+                "weather_code": [3, 0, 61],
+                "temperature_2m_max": [29.1, 24.0, 22.5],
+                "temperature_2m_min": [21.0, 17.0, 16.0],
+                "precipitation_probability_max": [0, 10, 65]
+              }
+            }
+            """;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        lock (_requests)
+        {
+            _requests.Add(request.RequestUri!);
+        }
+
+        if (Throw is { } e)
+        {
+            throw e;
+        }
+
+        if (DelayMs > 0)
+        {
+            await Task.Delay(DelayMs, ct);
+        }
+
+        return new HttpResponseMessage(StatusCode) { Content = new StringContent(Response ?? Daily(), System.Text.Encoding.UTF8, "application/json") };
     }
 }

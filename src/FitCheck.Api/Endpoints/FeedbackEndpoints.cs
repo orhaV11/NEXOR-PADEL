@@ -95,41 +95,55 @@ public static class FeedbackEndpoints
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.useful_not_scored"));
         }
 
-        // Round 14: a typed reason is the row of taps; it decides the yes/no on its own. An unknown word is refused rather
-        // than folded into "no", so a client that invents one is told instead of quietly storing a lie.
-        string? reason = null;
-        if (body?.Reason is { } given && given.Trim().Length > 0)
+        var (refused, useful, reason, note) = ParseUseful(body, language, localizer);
+        if (refused is not null)
         {
-            reason = given.Trim().ToLowerInvariant();
-            if (!TipReason.IsKnown(reason))
-            {
-                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.reason_invalid"));
-            }
-        }
-
-        if (reason is null && body?.Useful is null)
-        {
-            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.useful_invalid"));
-        }
-
-        var useful = reason is not null ? TipReason.Landed(reason) : body!.Useful!.Value;
-
-        var note = OutfitAnalyzer.SanitizeOccasion(body?.Note);
-        if (note.Length > NoteMaxLength)
-        {
-            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.useful_note_too_long"));
+            return refused;
         }
 
         var now = clock.UtcNow;
         check.Useful = useful;
         check.UsefulAt = now;
-        check.UsefulNote = note.Length == 0 ? null : note;
+        check.UsefulNote = note;
         check.UsefulReason = reason;
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Useful: check {CheckId} {Verdict} {Reason}", check.Id, useful ? "yes" : "no", reason ?? "-");
 
         return Results.Json(
             new UsefulDto(check.Id, useful, DateTime.SpecifyKind(now, DateTimeKind.Utc), check.UsefulNote, reason), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The body of a thumbs answer, read the one way for a check and (Round 19) for a planned outfit, so the two cannot
+    /// drift. Round 14: a typed reason is the row of taps; it decides the yes/no on its own. An unknown word is refused
+    /// rather than folded into "no", so a client that invents one is told instead of quietly storing a lie. The note is
+    /// cleaned and bounded; empty is null. A failure is the 400 to answer with.
+    /// </summary>
+    public static (IResult? Failure, bool Useful, string? Reason, string? Note) ParseUseful(UsefulRequest? body, string language, Localizer localizer)
+    {
+        string? reason = null;
+        if (body?.Reason is { } given && given.Trim().Length > 0)
+        {
+            reason = given.Trim().ToLowerInvariant();
+            if (!TipReason.IsKnown(reason))
+            {
+                return (UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.reason_invalid")), false, null, null);
+            }
+        }
+
+        if (reason is null && body?.Useful is null)
+        {
+            return (UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.useful_invalid")), false, null, null);
+        }
+
+        var useful = reason is not null ? TipReason.Landed(reason) : body!.Useful!.Value;
+        var note = OutfitAnalyzer.SanitizeOccasion(body?.Note);
+        if (note.Length > NoteMaxLength)
+        {
+            return (UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.useful_note_too_long")), false, null, null);
+        }
+
+        return (null, useful, reason, note.Length == 0 ? null : note);
     }
 
     // ---- Round 14 — "I tried it" ----

@@ -37,8 +37,11 @@ public sealed class Recaps(AppDbContext db, IOutfitVisionClient vision, IClock c
         carry into next month. No greeting, no sign-off, no lists, no emoji, no headings.
         """;
 
+    /// <summary>The tool's name, so a test double can tell a recap call from a check or a planned outfit (Round 19).</summary>
+    public const string ToolName = "write_recap";
+
     private static readonly VisionTool Tool = new(
-        "write_recap",
+        ToolName,
         "Write the person's month back to them as one short paragraph.",
         JsonDocument.Parse("""
             {

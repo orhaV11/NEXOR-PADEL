@@ -290,6 +290,8 @@ builder.Services.AddScoped<Blocks>();
 builder.Services.AddScoped<Taste>();
 // Round 16 - the month written back to the person (Pro): one text-only model call a month, kept in Recaps.
 builder.Services.AddScoped<Recaps>();
+// Round 19 — Tomorrow: one planned outfit per call, from the wardrobe that built itself.
+builder.Services.AddScoped<Tomorrow>();
 // Mail: SMTP when Email:Host and Email:From are set, otherwise the log. Email:Host=log keeps mail "on" (links are minted
 // and the client offers recovery) while every message goes to the log instead of a server: local runs and the browser test.
 builder.Services.AddSingleton<IEmailSender>(provider =>
@@ -671,6 +673,8 @@ app.MapFeedbackEndpoints();
 app.MapPublicPageEndpoints();
 // Round 14 — the wardrobe that builds itself: /api/wardrobe, kept one tap at a time from the checks that named the pieces.
 app.MapWardrobeEndpoints();
+// Round 19 — Tomorrow.
+app.MapTomorrowEndpoints();
 
 // What the client needs before it does anything: upload limits and the push public key. No secrets, no auth. The key is
 // published only when the sender accepted the pair: a public key nobody can sign for would make every browser subscribe

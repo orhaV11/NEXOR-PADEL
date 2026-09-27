@@ -28,9 +28,10 @@ public class RecapTests
         public RecapApp()
         {
             // Every ordinary check succeeds; a recap answers the recap tool instead.
-            Vision.Handler = request => request.HasImage
-                ? Payloads.Ok()
-                : Payloads.Parse($$"""{ "paragraph": {{JsonSerializer.Serialize(Paragraph)}} }""");
+            // Round 19: by the tool, not by "has a photo" — a planned outfit is text-only too.
+            Vision.Handler = request => request.Tool.Name == Recaps.ToolName
+                ? Payloads.Parse($$"""{ "paragraph": {{JsonSerializer.Serialize(Paragraph)}} }""")
+                : FakeVisionClient.ByTool(request);
         }
     }
 

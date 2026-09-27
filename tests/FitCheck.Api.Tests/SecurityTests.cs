@@ -177,6 +177,8 @@ public class IdorEnumerationTests
         public Guid CommentOnHidden;
         public Guid ComparisonA;
         public Guid GuestCheck;
+        /// <summary>Round 19: one planned outfit of A's, composed from three pieces kept from A's own check.</summary>
+        public Guid SuggestionA;
         public Guid ItemOnHidden;
         public Guid WardrobeItemA;
     }
@@ -194,6 +196,8 @@ public class IdorEnumerationTests
         [("/api/checks/{id:guid}/tried/prefer", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/tried/prefer", "which of the pair you prefer is the pair owner's alone", new { prefer = "after" }),
         [("/api/compare/{id:guid}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}", "a comparison is its owner's alone"),
         [("/api/compare/{id:guid}/image/{side}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}/image/a", "the only route to a comparison's photos, owner only"),
+        // Round 19: a planned outfit is its owner's; the thumbs on it too.
+        [("/api/tomorrow/{id:guid}/useful", "POST")] = Rule.Private(f => $"/api/tomorrow/{f.SuggestionA}/useful", "the thumbs on a planned outfit are its owner's", new { reason = "worked" }),
         [("/api/posts/{id:guid}", "GET")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}", "a hidden look is invisible to everyone but its author and a moderator"),
         [("/api/posts/{id:guid}/image", "GET")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}/image", "the photo of a hidden look is private again"),
         [("/api/posts/{id:guid}/video", "GET")] = Rule.Private(f => $"/api/posts/{f.HiddenPostA}/video", "the clip of a hidden look is private again"),
@@ -273,6 +277,18 @@ public class IdorEnumerationTests
         // Round 14: one piece of A's, kept from A's own check (the only way a piece gets in).
         var kept = await a.PostAsJsonAsync("/api/wardrobe", new { checkId = fixture.CheckA, name = "White tee" });
         fixture.WardrobeItemA = (await Json(kept)).GetProperty("id").GetGuid();
+
+        // Round 19: two more pieces make an outfit, and one planned outfit of A's to point the thumbs route at.
+        foreach (var name in new[] { "Dark jeans", "Running shoes" })
+        {
+            Assert.True((await a.PostAsJsonAsync("/api/wardrobe", new { checkId = fixture.CheckA, name })).IsSuccessStatusCode, "keep " + name);
+        }
+
+        app.Vision.Handler = FakeVisionClient.ByTool;
+        var composed = await a.PostAsJsonAsync("/api/tomorrow", new { occasion = "Office", when = "tomorrow" });
+        Assert.Equal(HttpStatusCode.Created, composed.StatusCode);
+        fixture.SuggestionA = (await Json(composed)).GetProperty("id").GetGuid();
+        app.Vision.Handler = _ => Payloads.Ok();
 
         var guest = app.NewClient();
         var guestCheck = await guest.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));

@@ -212,6 +212,13 @@ public static class Wardrobe
     }
 
     /// <summary>
+    /// Round 19: the switch as a plain read — on when no row was ever made, which is the default. Tomorrow asks this on
+    /// every tap, and twelve taps at once must not race to insert the row (<see cref="SettingAsync"/> makes it).
+    /// </summary>
+    public static async Task<bool> ToStylistAsync(AppDbContext db, Guid userId, CancellationToken ct) =>
+        await db.WardrobeSettings.AsNoTracking().Where(s => s.UserId == userId).Select(s => (bool?)s.ToStylist).FirstOrDefaultAsync(ct) ?? true;
+
+    /// <summary>
     /// The names that travel with a check, most recently worn first: at most <paramref name="max"/>, clothes only
     /// (<see cref="PromptCategories"/>), each one cleaned, and never one that names a body, a face, an age or a gender —
     /// a renamed piece is free text the person typed, and rule 1 is not negotiable there either. Duplicates are dropped.

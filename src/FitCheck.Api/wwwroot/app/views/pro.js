@@ -14,7 +14,11 @@
 // saving is computed here from the two numbers and never typed), and a no-card trial (Plans:ProTrialDays), offered
 // as one guarded benefit line only to an account /api/billing/state says is eligible - a signed-in person who already
 // went through Checkout once sees the plain price.
-import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale, getLocale } from '../core.js';
+// Round 20 — the wedge: #/pro?from=compare|wardrobe says which surface sent the person here, and the page tells the
+// server once (POST /api/funnel/pro-opened, a funnel tally, never awaited); from=compare also asks Checkout to come back
+// as #/pro?checkout=success&return=compare, and once the poll sees the plan flip the page redirects to
+// #/compare?ready=1, where the camera is ready. Every query value is read before the query is stripped.
+import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale, getLocale, hashQuery, redirect } from '../core.js';
 
 const CSS = `
 .pro-hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-block: 6px 4px; }
@@ -53,11 +57,12 @@ function ensureStyle() {
 
 /** "success" | "cancel" | null from #/pro?checkout=..., the query part of the hash (the router ignores it). */
 function checkoutResult() {
-  const q = location.hash.indexOf('?');
-  if (q < 0) return null;
-  const value = new URLSearchParams(location.hash.slice(q + 1)).get('checkout');
+  const value = hashQuery('checkout');
   return value === 'success' || value === 'cancel' ? value : null;
 }
+
+/** The surfaces that send people here and are counted: the compare screen's refusal and the wardrobe's Pro line. */
+const FROM_SURFACES = ['compare', 'wardrobe'];
 
 /** "Manage subscription": the Billing Portal in this tab; 404 (a Pro without a customer behind it) and the rest are toasted. */
 function manageButton(ctx) {
@@ -135,6 +140,11 @@ register('pro', async (root, params, ctx) => {
   const plans = state.config.plans || {};
   const n = plans.proChecksPerDay || 0;
   const result = checkoutResult();
+  // Round 20: where the person came from, and where a paid Checkout should land them. Both read now, before the query goes.
+  const from = FROM_SURFACES.includes(hashQuery('from')) ? hashQuery('from') : null;
+  const returnTo = hashQuery('return') === 'compare' ? 'compare' : null;
+  // The open is counted once, on arrival, by a signed-in account; the answer is nobody's business here and never awaited.
+  if (from && state.me) api('POST', '/api/funnel/pro-opened', { from }).catch(() => {});
 
   // Round 20: the trial is offered to a signed-out visitor (a new account is eligible) and to a signed-in one only when
   // the server says so - one read of the billing state, and a read that fails means no trial line rather than a promise.
@@ -145,8 +155,8 @@ register('pro', async (root, params, ctx) => {
   }
   const trialOffered = !state.me || !!(billingState && billingState.trialDays > 0);
   const trialDays = plans.proTrialDays || 0;
-  // The query has done its job; a reload or a Back later lands on the plain screen instead of thanking twice.
-  if (result) history.replaceState(history.state, '', location.pathname + location.search + '#/pro');
+  // The query has done its job; a reload or a Back later lands on the plain screen instead of thanking (or counting) twice.
+  if (result || from || returnTo) history.replaceState(history.state, '', location.pathname + location.search + '#/pro');
 
   const thanks = el('p', { class: 'alert pro-thanks', role: 'status', id: 'pro-thanks', text: t('pro.thanks'), hidden: result !== 'success' });
   root.appendChild(thanks);
@@ -268,7 +278,9 @@ register('pro', async (root, params, ctx) => {
         // whatever the price is denominated in. The server drops anything it has no price for, so this can only ever
         // pick from what the server itself offers. Round 20: and the interval the toggle stands on; a year the server
         // cannot sell in this currency is refused (400), never quietly sold as a month.
-        const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency) + '&interval=' + encodeURIComponent(interval));
+        // Round 20: a person sent here by a refused compare is landed back on that screen once the plan has flipped.
+        const back = from === 'compare' ? '&return=compare' : '';
+        const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency) + '&interval=' + encodeURIComponent(interval) + back);
         location.href = url;   // Stripe's hosted page; it comes back to #/pro?checkout=...
       } catch (e) {
         if (ctx.stale()) return;
@@ -286,6 +298,9 @@ register('pro', async (root, params, ctx) => {
 
   // Back from a paid Checkout: the webhook that flips the plan can land a moment after the person does, so "me" is
   // read again a few times until it says Pro (or the screen is left). Not awaited: the screen is up already.
+  // Round 20: when Checkout was asked to return to the compare screen, the flip is what sends the person there - a
+  // compare before it would spend the free day. If the webhook has not landed within the six tries, the thanks stays
+  // and the person is on #/pro as before: the honest fallback.
   if (result === 'success' && state.me) {
     let stopped = false;
     onLeave(() => { stopped = true; });
@@ -294,7 +309,11 @@ register('pro', async (root, params, ctx) => {
         await loadMe();
         if (ctx.stale() || stopped) return;
         paint();
-        if (!state.me || state.me.plan === 'pro') return;
+        if (!state.me) return;
+        if (state.me.plan === 'pro') {
+          if (returnTo === 'compare') redirect('#/compare?ready=1');
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     };

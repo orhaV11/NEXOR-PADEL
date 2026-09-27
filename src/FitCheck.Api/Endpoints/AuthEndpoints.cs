@@ -86,8 +86,13 @@ public static partial class AuthEndpoints
         return null;
     }
 
-    public static IResult Error(int status, string message) =>
-        Results.Json(new ErrorDto(message), AppJson.Options, statusCode: status);
+    /// <summary>
+    /// An error body. Round 20: <paramref name="code"/> is the one machine word a refusal may carry beside the sentence
+    /// ("plan_limit" on the free day's refusal, which the compare screen acts on); null is dropped from the JSON, so
+    /// every other body is byte for byte what it was.
+    /// </summary>
+    public static IResult Error(int status, string message, string? code = null) =>
+        Results.Json(new ErrorDto(message, code), AppJson.Options, statusCode: status);
 
     /// <summary>
     /// The signed-in user as the client keeps it. IsAdmin is the row's flag, so every route that answers with "me" (signup,

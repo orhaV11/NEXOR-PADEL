@@ -135,7 +135,8 @@ function stylistRow(data, onChanged) {
   if (!data.stylistAvailable) {
     return el('div', { class: 'notice wr-pro', id: 'wardrobe-pro' }, [
       el('p', { text: t('wardrobe.pro_body') }),
-      el('a', { class: 'btn-text', id: 'wardrobe-pro-link', href: '#/pro', text: t('wardrobe.pro_link') })
+      // Round 20: the Pro page counts where it was opened from (POST /api/funnel/pro-opened), so the funnel can say how many came from here.
+      el('a', { class: 'btn-text', id: 'wardrobe-pro-link', href: '#/pro?from=wardrobe', text: t('wardrobe.pro_link') })
     ]);
   }
 

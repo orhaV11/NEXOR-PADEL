@@ -359,7 +359,10 @@ public static class CheckEndpoints
                 // more people than the Pro page does. Falls back to the daily cap on a server with no monthly bound.
                 : localizer.Get(language, "error.plan_limit", cap,
                     plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCap(plans.Value, limits.Value));
-            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
+            // Round 20: the free day's refusal carries its machine word, so a client can tell it from the month's and
+            // the global one and offer Pro there and nowhere else; the same shape on both routes.
+            var planLimit = user is not null && !Plans.IsPro(user, now);
+            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message, planLimit ? ErrorCodes.PlanLimit : null);
         }
 
         if (verdict == CapacityVerdict.GlobalCapReached)

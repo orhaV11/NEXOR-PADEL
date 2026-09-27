@@ -15,6 +15,13 @@ namespace FitCheck.Api.Endpoints;
 /// counts against the same daily allowance as a check, and needs Pro when Plans:CompareNeedsPro says so. The photos
 /// are stored only once the stylist confirmed two outfits, under the owner's folder (so an account deletion takes them
 /// with the folder), and are served through /api/compare/{id}/image/{a|b} to the owner only.
+/// <para>
+/// Round 20 — the wedge: the form asks the check's two questions (occasion, style, and the free line as note) instead of
+/// the one word; a client from before the split still sends intent with its free line as occasion, and the presence of
+/// intent is what tells the shapes apart, exactly as on the check route. The row stores the pair and the one word both
+/// ways, the free 429 carries the code "plan_limit" so the screen can offer Pro on that refusal and no other, and the
+/// DTO names the pair beside the note (which keeps its old JSON name, occasion).
+/// </para>
 /// </summary>
 public static class CompareEndpoints
 {
@@ -130,12 +137,38 @@ public static class CompareEndpoints
         // Round 13: only a live language (Languages:Enabled) is asked of the stylist; anything else is English, quietly.
         language = Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<IOptions<LanguagesOptions>>(db).Value.Effective(language);
 
-        if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var intent) || !Enum.IsDefined(intent))
+        // Round 20 - the same split as the check route (Round 14). A current client sends "occasion" (a chip, always) and
+        // "style" (a chip, or nothing: no style asked for is a first-class answer), and its free line as "note". A client
+        // from before the split sends "intent" and its free line as "occasion"; the presence of "intent" is what tells the
+        // two apart, so no field means two things at once and nothing old breaks. Either way the row stores the pair and
+        // the one word, and the stylist reads the same words.
+        var legacy = form.ContainsKey("intent");
+        OutfitOccasion occasionKind;
+        OutfitStyle? style;
+        if (legacy)
         {
-            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
+            if (!Enum.TryParse<StyleIntent>(form["intent"], ignoreCase: true, out var legacyIntent) || !Enum.IsDefined(legacyIntent))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.intent_invalid"));
+            }
+
+            (occasionKind, style) = StyleIntents.Split(legacyIntent);
+        }
+        else
+        {
+            if (!StyleIntents.TryParseOccasion(form["occasion"].ToString(), out occasionKind))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.occasion_invalid"));
+            }
+
+            if (!StyleIntents.TryParseStyle(form["style"].ToString(), out style))
+            {
+                return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.style_invalid"));
+            }
         }
 
-        var occasion = OutfitAnalyzer.SanitizeOccasion(form["occasion"].ToString());
+        var intent = StyleIntents.Legacy(occasionKind, style);
+        var occasion = OutfitAnalyzer.SanitizeOccasion(form[legacy ? "occasion" : "note"].ToString());
         if (occasion.Length > CheckEndpoints.OccasionMaxLength)
         {
             return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.occasion_too_long"));
@@ -202,13 +235,16 @@ public static class CompareEndpoints
             }
 
             // A free account hears what Pro would give it (its comparison allowance, which is what it just ran out of);
-            // a Pro account at its own ceiling just hears the number.
-            var message = Plans.IsPro(user, now)
+            // a Pro account at its own ceiling just hears the number. Round 20: the free refusal also carries its machine
+            // word, "plan_limit", so the screen can tell it from the month's and the global one and offer Pro right there
+            // (the sentence names the month; the screen names the day from what /api/config publishes).
+            var pro = Plans.IsPro(user, now);
+            var message = pro
                 ? localizer.Get(language, "error.rate_limited", cap)
                 // The month, for the same reason as the check route.
                 : localizer.Get(language, "error.plan_limit", cap,
                     plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCompareCap(plans.Value, limits.Value));
-            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
+            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message, pro ? null : ErrorCodes.PlanLimit);
         }
 
         if (verdict == CapacityVerdict.GlobalCapReached)
@@ -222,6 +258,8 @@ public static class CompareEndpoints
             Id = Guid.NewGuid(),
             UserId = userId,
             Intent = intent,
+            OccasionKind = occasionKind,
+            Style = style,
             Occasion = occasion.Length == 0 ? null : occasion,
             Language = language,
             PromptVersion = OutfitComparer.PromptVersion,
@@ -241,7 +279,7 @@ public static class CompareEndpoints
             // account that turned it off, nothing for a guest — this route has none — and then the call is byte for
             // byte the one it was.
             var wardrobe = await Wardrobe.ForStylistAsync(db, user, plans.Value, now, ct);
-            var feedback = await comparer.CompareAsync(bytesA, formatA!.MediaType, bytesB, formatB!.MediaType, intent, occasion, language, wardrobe, ct);
+            var feedback = await comparer.CompareAsync(bytesA, formatA!.MediaType, bytesB, formatB!.MediaType, occasionKind, style, occasion, language, wardrobe, ct);
             comparison.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
             comparison.Status = feedback.Status;
 
@@ -320,7 +358,8 @@ public static class CompareEndpoints
 
     /// <summary>
     /// The DTO. A rejected row stores nothing but the status, so the neutral message is added here in the comparison's
-    /// language; the image URLs are empty unless both photos are on disk (only an ok comparison keeps them).
+    /// language; the image URLs are empty unless both photos are on disk (only an ok comparison keeps them). Round 20:
+    /// the two questions ride along (occasionKind, and style when one was asked for); the note keeps its old name.
     /// </summary>
     public static ComparisonDto ToDto(OutfitComparison comparison, Localizer localizer)
     {
@@ -352,7 +391,9 @@ public static class CompareEndpoints
             comparison.Status,
             feedback,
             hasImages ? $"/api/compare/{comparison.Id}/image/a" : "",
-            hasImages ? $"/api/compare/{comparison.Id}/image/b" : "");
+            hasImages ? $"/api/compare/{comparison.Id}/image/b" : "",
+            comparison.OccasionKind,
+            comparison.Style);
     }
 
     /// <summary>Owner only. A wrong owner gets the same 404 as a missing id, so ids do not leak existence.</summary>

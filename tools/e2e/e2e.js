@@ -170,6 +170,11 @@ async function choosePhoto(page, buttonSelector, buffer, name) {
     await page.click('#photo');
     await page.waitForSelector('#media-library');
     buttonSelector = '#media-library';
+  } else if (buttonSelector === '#cmp-slot-a' || buttonSelector === '#cmp-slot-b') {
+    // Round 20: a compare slot opens its own sheet (camera / library); the library row is the picker.
+    await page.click(buttonSelector);
+    await page.waitForSelector('#cmp-media-library');
+    buttonSelector = '#cmp-media-library';
   }
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(buttonSelector)]);
   if (await page.$('.sheet')) await page.waitForFunction(() => !document.querySelector('.sheet'));
@@ -800,17 +805,88 @@ function checkClientModules() {
   }
   assert.strictEqual((await metricsAs(noa)).social.videos, 1);
 
-  // "Which one?": two photos, one verdict (the stub picks B), then the insights over Noa's checks and a search by piece.
+  // "Which one?" (Round 20: the check's two questions, slot A from the library and slot B through the in-app camera,
+  //  a close call from the stub), then the insights over Noa's checks and a search by piece.
   await go(noa, '#/compare');
-  await noa.waitForSelector('#cmp-slot-a');
-  await noa.click('.chip[data-intent=Party]');
+  await noa.waitForSelector('#occasions');
+  await noa.click('.chip[data-occasion=Party]');
+  await noa.click('.chip[data-style=Minimal]');
+  await noa.fill('#cmp-occasion', 'close call on a rooftop');
   await choosePhoto(noa, '#cmp-slot-a', await makeJpeg(noa, 800, 1000), 'a.jpg');
-  await choosePhoto(noa, '#cmp-slot-b', await makeJpeg(noa, 800, 1000), 'b.jpg');
+  await noa.waitForSelector('#cmp-slot-a.has-image img');
+  await noa.click('#cmp-slot-b');
+  await noa.waitForSelector('#cmp-media-camera');
+  await noa.click('#cmp-media-camera');
+  await noa.waitForSelector('.cam[data-phase="live"]', { timeout: 20000 });
+  assert.strictEqual(await hash(noa), '#/camera');
+  assert.strictEqual(await noa.isVisible('.cam-modes'), false, 'no clip mode on a compare slot');
+  await noa.click('.cam-shutter');
+  await noa.waitForSelector('.cam[data-phase="preview"]');
+  await noa.click('#cam-use');
+  await noa.waitForFunction(() => location.hash === '#/compare');
+  await noa.waitForSelector('#cmp-slot-b.has-image img');
+  assert.strictEqual(await noa.getAttribute('.chip[data-occasion=Party]', 'aria-pressed'), 'true', 'the occasion survived the camera');
+  assert.strictEqual(await noa.getAttribute('.chip[data-style=Minimal]', 'aria-pressed'), 'true', 'the style survived the camera');
+  assert.strictEqual(await noa.inputValue('#cmp-occasion'), 'close call on a rooftop', 'the note survived the camera');
   await noa.waitForFunction(() => !document.getElementById('cmp-submit').disabled);
   await noa.click('#cmp-submit');
   await noa.waitForSelector('#cmp-result .cmp-winner', { timeout: 30000 });
   assert.strictEqual(await noa.getAttribute('#cmp-result .cmp-winner', 'data-side'), 'b');
+  assert.match(await text(noa, '#cmp-asked'), /Party.*Minimal/, 'the verdict names both questions');
+  assert.match(await text(noa, '.cmp-verdict'), /^Both work/, 'a 7 and a 7 reads as a close call');
   await shot(noa, '28-compare-en');
+  // The old one-word shape is gone from the wire: the stylist read the Party guide and the Minimal guide.
+  const compareRequest = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'pick_outfit').at(-1);
+  assert.ok(compareRequest && compareRequest.user_text.includes('Party:') && compareRequest.user_text.includes('Minimal: few pieces'), 'the compare carried the two guides: ' + (compareRequest && compareRequest.user_text));
+
+  // The refusal that sells Pro: a fresh free account spends its day (Plans__FreeChecksPerDay is 5: four checks and a
+  // compare), and the next compare is refused with the code the screen acts on - the sentence, the nudge naming the
+  // published number of comparisons a day, and Go Pro saying where it came from. The Pro page counts the open.
+  const lior = await person(browser, 'lior', 'en-US');
+  await signup(lior, 'lior', 'password123');
+  const liorPhoto = await makeJpeg(lior, 800, 1000);
+  for (let i = 0; i < 4; i++) await runCheck(lior, { intent: 'Party', buffer: liorPhoto, score: 7 });
+  const compareAs = async (page) => {
+    await go(page, '#/compare');
+    await page.waitForSelector('#occasions');
+    await page.click('.chip[data-occasion=Party]');
+    await choosePhoto(page, '#cmp-slot-a', liorPhoto, 'a.jpg');
+    await choosePhoto(page, '#cmp-slot-b', liorPhoto, 'b.jpg');
+    await page.waitForFunction(() => !document.getElementById('cmp-submit').disabled);
+    await page.click('#cmp-submit');
+  };
+  await compareAs(lior);
+  await lior.waitForSelector('#cmp-result .cmp-winner', { timeout: 30000 });
+  expected.push('POST /api/compare -> 429');
+  await compareAs(lior);
+  await lior.waitForSelector('#cmp-error:not([hidden])');
+  await lior.waitForSelector('#cmp-pro-nudge:not([hidden])');
+  const proComparesPerDay = (await getJson(`${base}/api/config`)).plans.proComparesPerDay;
+  assert.ok(proComparesPerDay > 0, 'this server gives Pro a number of comparisons a day');
+  assert.ok((await text(lior, '#cmp-pro-nudge')).includes(String(proComparesPerDay)), 'the nudge names the published number');
+  assert.strictEqual(await lior.getAttribute('#cmp-go-pro', 'href'), '#/pro?from=compare');
+  await shot(lior, '28b-compare-nudge-en');
+  await Promise.all([lior.waitForResponse((r) => r.url().endsWith('/api/funnel/pro-opened') && r.status() === 204), lior.click('#cmp-go-pro')]);
+  await lior.waitForSelector('#pro-manual');
+  assert.strictEqual(await hash(lior), '#/pro', 'the query is stripped once it has been read');
+  assert.strictEqual((await metricsAs(noa)).funnel.days.at(-1).proFromCompare, 1);
+  // The wardrobe's Pro line says where it came from too.
+  await go(lior, '#/wardrobe');
+  await lior.waitForSelector('#wardrobe-pro-link');
+  assert.strictEqual(await lior.getAttribute('#wardrobe-pro-link', 'href'), '#/pro?from=wardrobe');
+  await Promise.all([lior.waitForResponse((r) => r.url().endsWith('/api/funnel/pro-opened') && r.status() === 204), lior.click('#wardrobe-pro-link')]);
+  await lior.waitForSelector('#pro-manual');
+  assert.strictEqual((await metricsAs(noa)).funnel.days.at(-1).proFromWardrobe, 1);
+  // Back from a paid Checkout that started on the compare screen (the Stripe round trip itself is the billing leg's and
+  // BillingTests'): #/compare?ready=1 says Pro is on and opens slot A's sheet on the camera row, without a permission
+  // prompt until a tap; the query is gone and Escape leaves the plain screen.
+  await noa.evaluate(() => { location.hash = '#/compare?ready=1'; });
+  await noa.waitForSelector('#cmp-media-camera');
+  assert.strictEqual(await text(noa, '#toast'), 'Pro is on. Two photos, one answer.');
+  assert.strictEqual(await hash(noa), '#/compare');
+  await noa.keyboard.press('Escape');
+  await noa.waitForFunction(() => !document.querySelector('.sheet'));
+  assert.strictEqual(await hash(noa), '#/compare');
   await go(noa, '#/u/noa');
   await noa.waitForSelector('#insights-link');
   // Round 16: the numbers page asks for the month written back (Pro's) on every visit and swallows the refusal, so a
@@ -1233,7 +1309,7 @@ function checkClientModules() {
   await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await noa.waitForFunction(() => !!document.getElementById('top-auth'));
   const after = await metricsAs(brand);
-  assert.strictEqual(after.social.users, 2);
+  assert.strictEqual(after.social.users, 3, 'brand, dan and lior (Round 20) remain');
   assert.strictEqual(after.social.featured, 0);
   assert.strictEqual(after.social.mentions, 0);
   assert.strictEqual(after.social.videos, 0, 'the clip left with the account');

@@ -154,6 +154,16 @@ COMPARE_RU = {
     "one_tip": "В образе A стоит заменить беговые кроссовки на простые белые кожаные кеды и заправить футболку.",
 }
 
+# Round 20: a close call, 7 to 7, chosen when the wearer's note says "close call": the reason opens with "Both work", as the
+# prompt asks, and B still edges it for the occasion. The server marks it close off the scores; this payload has no such field.
+COMPARE_CLOSE_EN = {
+    "status": "ok", "winner": "b", "score_a": 7, "score_b": 7,
+    "headline_a": "Easy, sure of itself",
+    "headline_b": "Same ease, one sharper line",
+    "reason": "Both work. Outfit B edges it for the rooftop because the straight trousers hold their line once the wind picks up, where the wide leg of A starts to billow. The tops are a draw.",
+    "one_tip": "For Outfit A, swap the wide trousers for a straight pair and it is level with B.",
+}
+
 COMPARE_NOT_OUTFIT_EN = {
     "status": "not_outfit", "winner": "a", "score_a": 1, "score_b": 1,
     "headline_a": "", "headline_b": "", "reason": "", "one_tip": "",
@@ -398,6 +408,9 @@ class Handler(BaseHTTPRequestHandler):
             # A tiny image (a few KB) on either side stands in for a "not an outfit" photo.
             if len(image_bytes) < 3000 or len(image_bytes_b) < 3000:
                 payload = COMPARE_NOT_OUTFIT_EN
+            # Round 20: the wearer's note asks for a close call; the note travels quoted in the task text.
+            elif "close call" in user_text.lower():
+                payload = COMPARE_CLOSE_EN
         else:
             payload = answers
             if len(image_bytes) < 3000:

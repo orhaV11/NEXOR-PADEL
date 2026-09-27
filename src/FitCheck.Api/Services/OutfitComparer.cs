@@ -8,8 +8,14 @@ namespace FitCheck.Api.Services;
 /// winner with the reason and a tip. The hard rules are the analyzer's (clothes, never people; not an outfit and
 /// rejected statuses; nothing invented), the calibration is the analyzer's, so an 8 here means what an 8 means on a
 /// check, and Round 14's anchored bands are repeated here word for word for the same reason. The guides are the
-/// analyzer's two (occasion, style): a comparison still arrives as one <see cref="StyleIntent"/> from its own screen, so
-/// it is split on the way in. Bump <see cref="PromptVersion"/> whenever the prompt or the schema changes.
+/// analyzer's two (occasion, style): since Round 20 the "which one?" screen asks the same two questions as the check, and
+/// a client from before the split still sends one <see cref="StyleIntent"/>, which is split on the way in so the words
+/// the stylist reads are the same either way. Bump <see cref="PromptVersion"/> whenever the prompt or the schema changes.
+/// <para>
+/// Round 20 also names the close call: when the two scores land within a point of each other the prompt asks for "both
+/// work" in the first sentence of the reason and for the occasion to decide, and the server marks
+/// <see cref="ComparisonFeedback.Close"/> off the scores it already has, so the schema gains no field and no third score.
+/// </para>
 /// <para>
 /// Round 15 appended the wardrobe. It is not part of the prompt every comparison gets: like the check's, it is one
 /// paragraph added to the user message for an account that has kept pieces, is on a plan the wardrobe reaches the
@@ -19,7 +25,7 @@ namespace FitCheck.Api.Services;
 /// </summary>
 public sealed class OutfitComparer(IOutfitVisionClient vision)
 {
-    public const string PromptVersion = "cmp-v1";
+    public const string PromptVersion = "cmp-v2";
     public const string ToolName = "pick_outfit";
 
     private const string ToolDescription =
@@ -66,6 +72,10 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
         THE PICK:
         The winner is the outfit with the higher score. When the scores are equal, the winner is the one that reads more
         clearly as the stated intent to a stranger. There is always exactly one winner.
+        A close call is a real answer. When your two scores are within one point of each other, both outfits work: say so
+        in the first sentence of reason, in plain words, then say why the winner wins for THIS occasion.
+        The occasion decides a close call, never the style, never a coin flip.
+        Do not widen the gap to sound decisive; a 7 and a 7 is honest.
         headline_a and headline_b: at most 8 words each, specific to that outfit, never generic.
         reason: two or three sentences on what decides it, for this intent. Name the pieces that decide it.
         one_tip: the single change with the highest impact that the wearer can do today with things people commonly own,
@@ -175,21 +185,34 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
         return names.Length == 0 ? "" : WardrobeRule.Replace("{NAMES}", names);
     }
 
-    /// <summary>One comparison with no wardrobe behind it. Hands down to the call below.</summary>
+    /// <summary>One comparison with no wardrobe behind it, asked with one word. Hands down to the pair call below.</summary>
     public Task<ComparisonFeedback> CompareAsync(
         ReadOnlyMemory<byte> imageA, string mediaTypeA, ReadOnlyMemory<byte> imageB, string mediaTypeB,
         StyleIntent intent, string? occasion, string language, CancellationToken ct) =>
         CompareAsync(imageA, mediaTypeA, imageB, mediaTypeB, intent, occasion, language, null, ct);
 
     /// <summary>
-    /// Runs one comparison, with the wearer's own pieces after the user message when there are any to send. Throws
-    /// <see cref="VisionClientException"/> when the model fails; the caller stores an error row.
+    /// The one-word form with the wardrobe: split into the pair, so a client from before Round 20 sends the stylist byte
+    /// for byte the words the split pair sends.
     /// </summary>
-    public async Task<ComparisonFeedback> CompareAsync(
+    public Task<ComparisonFeedback> CompareAsync(
         ReadOnlyMemory<byte> imageA, string mediaTypeA, ReadOnlyMemory<byte> imageB, string mediaTypeB,
         StyleIntent intent, string? occasion, string language, IReadOnlyList<string>? wardrobe, CancellationToken ct)
     {
-        var userMessage = BuildUserMessage(intent, occasion);
+        var (kind, style) = StyleIntents.Split(intent);
+        return CompareAsync(imageA, mediaTypeA, imageB, mediaTypeB, kind, style, occasion, language, wardrobe, ct);
+    }
+
+    /// <summary>
+    /// Runs one comparison for the two questions (Round 20), with the wearer's own pieces after the user message when
+    /// there are any to send. Throws <see cref="VisionClientException"/> when the model fails; the caller stores an
+    /// error row.
+    /// </summary>
+    public async Task<ComparisonFeedback> CompareAsync(
+        ReadOnlyMemory<byte> imageA, string mediaTypeA, ReadOnlyMemory<byte> imageB, string mediaTypeB,
+        OutfitOccasion occasion, OutfitStyle? style, string? note, string language, IReadOnlyList<string>? wardrobe, CancellationToken ct)
+    {
+        var userMessage = BuildUserMessage(occasion, style, note);
         var block = BuildWardrobeBlock(wardrobe);
         // Round 20: one constant tool and one rubric per language, so the shared part may carry the cache breakpoint.
         var request = new VisionRequest(
@@ -204,7 +227,8 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
     /// Turns the tool call's raw input into a verdict we are willing to show. Tolerant of sloppy values (strings for
     /// numbers, "B" or "Outfit B" for the winner), strict about the rules: scores clamped to 1–10, a winner that is
     /// always a or b (the higher score decides when the model's word is unusable, A on a tie), and nothing but the
-    /// message when the status is not ok.
+    /// message when the status is not ok. Round 20: the close call is read off the two scores here (within one point,
+    /// on an ok verdict only), never asked of the model.
     /// </summary>
     public static ComparisonFeedback MapToolInput(JsonElement input)
     {
@@ -234,7 +258,8 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
             Reason = ReadString(input, "reason"),
             OneTip = ReadString(input, "one_tip"),
             // Round 13: a no-outfit reason is read by the person, so rule 1 is checked on it as on a check's (OutfitAnalyzer.SafeNoOutfitMessage).
-            Message = status == CheckStatus.NotOutfit ? OutfitAnalyzer.SafeNoOutfitMessage(ReadString(input, "message")) : NullIfEmpty(ReadString(input, "message"))
+            Message = status == CheckStatus.NotOutfit ? OutfitAnalyzer.SafeNoOutfitMessage(ReadString(input, "message")) : NullIfEmpty(ReadString(input, "message")),
+            Close = status == CheckStatus.Ok && Math.Abs(scoreA - scoreB) <= 1
         };
 
         if (status != CheckStatus.Ok)

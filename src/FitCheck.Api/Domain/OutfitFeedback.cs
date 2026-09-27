@@ -102,6 +102,13 @@ public sealed class ComparisonFeedback
 
     /// <summary>Only when status is not ok.</summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// Round 20: a close call, derived by the server in <c>OutfitComparer.MapToolInput</c> and never a field the model
+    /// fills: an ok verdict whose two scores are within one point of each other. False on every non-ok status, and false
+    /// on every row stored before this round, whose JSON simply lacks it.
+    /// </summary>
+    public bool Close { get; set; }
 }
 
 /// <summary>The two kinds of one tip (Round 14). A keep is rare on purpose: a keep on a mediocre look is the same

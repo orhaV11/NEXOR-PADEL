@@ -170,6 +170,50 @@ public class DatabaseSetupTests : IDisposable
     }
 
     [Fact]
+    public void A_comparison_from_before_the_two_questions_reads_the_pair_its_one_word_stood_for_after_the_upgrade()
+    {
+        // Round 20: a file at the round before, with the one-word comparisons a "which one?" screen wrote then. The
+        // migration adds OccasionKind and Style and backfills them from Intent; the note keeps its column, "Occasion".
+        var path = Path.Combine(_root, "round19.db");
+        var streetwear = Guid.NewGuid();
+        var party = Guid.NewGuid();
+        using (var db = Open(path))
+        {
+            db.GetService<IMigrator>().Migrate("Round19Tomorrow");
+        }
+
+        Assert.DoesNotContain("OccasionKind", Columns(path, "Comparisons"));
+        // Two of the guest's comparisons (no owner row to seed), written the way that schema stores them.
+        foreach (var (id, intent) in new[] { (streetwear, "Streetwear"), (party, "Party") })
+        {
+            Execute(path,
+                "INSERT INTO \"Comparisons\" (\"Id\", \"GuestToken\", \"Intent\", \"Occasion\", \"Language\", \"ImagePathA\", \"ImagePathB\", \"Winner\", \"Status\", \"PromptVersion\", \"LatencyMs\", \"CreatedAt\") " +
+                "VALUES ($id, $token, $intent, 'rooftop', 'en', '', '', 'b', 'ok', 'cmp-v1', 0, $now)",
+                ("$id", id), ("$token", GuestChecks.NewToken()), ("$intent", intent), ("$now", DateTime.UtcNow));
+        }
+
+        using (var db = Open(path))
+        {
+            DatabaseSetup.Apply(db, NullLogger.Instance);
+
+            var wasStreetwear = db.Comparisons.Single(c => c.Id == streetwear);
+            Assert.Equal(OutfitOccasion.Everyday, wasStreetwear.OccasionKind);
+            Assert.Equal(OutfitStyle.Streetwear, wasStreetwear.Style);
+            Assert.Equal("rooftop", wasStreetwear.Occasion);
+            var wasParty = db.Comparisons.Single(c => c.Id == party);
+            Assert.Equal(OutfitOccasion.Party, wasParty.OccasionKind);
+            Assert.Null(wasParty.Style);
+        }
+
+        var columns = Columns(path, "Comparisons");
+        Assert.Contains("OccasionKind", columns);
+        Assert.Contains("Style", columns);
+        Assert.Contains("Occasion", columns);
+        Assert.DoesNotContain("Note", columns);
+        Assert.Equal(StructureOf(Fresh("reference-round19.db")), StructureOf(path));
+    }
+
+    [Fact]
     public void A_database_made_by_the_migrations_is_left_alone_and_switched_to_wal()
     {
         var path = Path.Combine(_root, "migrated.db");

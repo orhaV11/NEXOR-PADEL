@@ -25,7 +25,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText, stagedWaitLine
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
@@ -44,8 +44,8 @@ export const OCCASIONS = ['Everyday', 'Date', 'Office', 'Party', 'Formal', 'Spor
 export const STYLES = ['Streetwear', 'OldMoney', 'Minimal', 'Classic'];
 const occasionLabel = (occasion) => t('occasion.' + occasion);
 const styleLabel = (style) => (style ? t('style.' + style) : t('style.none'));
-/** The pair behind one of the eight words the app used to ask for (a challenge still names one). */
-const SPLIT = {
+/** The pair behind one of the eight words the app used to ask for (a challenge still names one; the compare screen reads it for an older row). */
+export const SPLIT = {
   Casual: ['Everyday', null], Date: ['Date', null], Office: ['Office', null], Party: ['Party', null], Sport: ['Sport', null],
   Streetwear: ['Everyday', 'Streetwear'], OldMoney: ['Everyday', 'OldMoney'], Minimal: ['Everyday', 'Minimal']
 };
@@ -155,17 +155,15 @@ async function resumeInterrupted(root, ctx) {
   redirect('#/check');
 }
 
-/** The saved style preference: a name, or null for "no style", which is what an account that never set one has. */
-function preferredStyle() {
+/** The saved style preference: a name, or null for "no style", which is what an account that never set one has. Shared with the compare screen (Round 20). */
+export function preferredStyle() {
   const saved = loadPrefs().style;
   return STYLES.includes(saved) ? saved : null;
 }
 
 /** The planned outfit's id from #/check?suggestion=..., the query part of the hash (the router ignores it), or null. */
 function suggestionQuery() {
-  const q = location.hash.indexOf('?');
-  if (q < 0) return null;
-  const value = new URLSearchParams(location.hash.slice(q + 1)).get('suggestion');
+  const value = hashQuery('suggestion');
   return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }
 
@@ -222,8 +220,14 @@ function ensureStyle() {
   document.head.appendChild(el('style', { text: CSS }));
 }
 
-/** Set by the check screen before it opens the camera, so "Use it" and the close button return with Back (no duplicate history entry). */
-export const cameraReturn = { fromCheck: false };
+/**
+ * Set by the screen that opens the camera, so "Use it" and the close button return with Back (no duplicate history entry).
+ * Round 20: `handoff` lets another screen borrow the camera - the compare screen sets { to, photoOnly, photo(blob),
+ * file(file) } before navigating to #/camera, the camera hands the capture (or the library fallback's file) to those
+ * callbacks instead of the check's intake, hides the clip mode when photoOnly, and clears the handoff on every way out,
+ * so an abandoned visit can never feed the next check's photo into a compare slot.
+ */
+export const cameraReturn = { fromCheck: false, handoff: null };
 
 // The frame of the current clip that is the still (ms into the clip); null until one is chosen. Module state, like the clip
 // it belongs to in state.check: it survives a trip to the camera and a language switch, and goes with the clip.
@@ -624,7 +628,7 @@ function chooseMedia() {
   // Round 17: offered to everybody, signed in or not. The guest check is the whole funnel - a visitor's one free look
   // is the thing that turns them into an account - and it used to send them to a file picker, because the camera
   // bounced anyone without a session. A person standing in front of a mirror has no file to pick.
-  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; navigate('#/camera'); }));
+  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; cameraReturn.handoff = null; navigate('#/camera'); }));
   list.appendChild(row('media-library', 'image', t('check.from_library'), async () => { const file = await pickFile('file'); if (file) takePhotoFile(file); }));
   list.appendChild(row('media-clip', 'clip', t('camera.clip') + ' · ' + t('check.from_library'), async () => { const file = await pickFile('clip-file'); if (file) takeClipFile(file); }));
 }

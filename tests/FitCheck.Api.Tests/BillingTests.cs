@@ -296,6 +296,29 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     }
 
     [Fact]
+    public async Task Checkout_returns_to_the_compare_screen_when_asked_and_drops_anything_else()
+    {
+        var (client, _, _) = await _stripe.NewUserAsync("bill_return");
+
+        // Round 20: ?return=compare, the one value the allowlist knows, rides on both URLs Stripe is handed.
+        _stripe.StripeHandler.Clear();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout?return=compare", null)).StatusCode);
+        var asked = Assert.Single(_stripe.StripeHandler.Requests);
+        Assert.Equal("http://localhost/#/pro?checkout=success&return=compare", asked["success_url"]);
+        Assert.Equal("http://localhost/#/pro?checkout=cancel&return=compare", asked["cancel_url"]);
+
+        // Anything else is dropped silently: the plain URLs, as with no parameter at all.
+        foreach (var value in new[] { "evil", "Compare", "compare%20", "wardrobe", "" })
+        {
+            _stripe.StripeHandler.Clear();
+            Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout?return=" + value + "&currency=USD", null)).StatusCode);
+            var plain = Assert.Single(_stripe.StripeHandler.Requests);
+            Assert.Equal("http://localhost/#/pro?checkout=success", plain["success_url"]);
+            Assert.Equal("http://localhost/#/pro?checkout=cancel", plain["cancel_url"]);
+        }
+    }
+
+    [Fact]
     public async Task Checkout_is_refused_for_an_account_that_is_already_pro()
     {
         var (client, id, handle) = await _stripe.NewUserAsync("bill_twice");

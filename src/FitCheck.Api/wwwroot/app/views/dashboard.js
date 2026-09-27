@@ -404,7 +404,9 @@ function funnelSection(funnel) {
   const columns = [
     ['landing', 'funnel.landing'], ['guestChecks', 'funnel.guest_checks'], ['signups', 'funnel.signups'],
     ['firstPosts', 'funnel.first_posts'], ['lookArrivals', 'funnel.arrivals'], ['shareArrivals', 'funnel.share_arrivals'],
-    ['invites', 'funnel.invites']
+    ['invites', 'funnel.invites'],
+    // Round 20: the Pro page opened from a refused compare and from the wardrobe line (POST /api/funnel/pro-opened).
+    ['proFromCompare', 'funnel.pro_from_compare'], ['proFromWardrobe', 'funnel.pro_from_wardrobe']
   ];
 
   const fragment = document.createDocumentFragment();

@@ -43,6 +43,20 @@ public static partial class Funnel
     /// <summary>Arrivals carrying someone's invite (<c>?via=&lt;handle&gt;</c>): invites sent, as far as a server can see one.</summary>
     public static string InviteArrivals(DateOnly day) => $"invites:via:{Key(day)}";
 
+    /// <summary>Round 20: the Pro page opened from the compare screen's refusal (POST /api/funnel/pro-opened, from=compare).</summary>
+    public static string ProFromCompare(DateOnly day) => $"funnel:pro:compare:{Key(day)}";
+
+    /// <summary>Round 20: the Pro page opened from the wardrobe's Pro line (POST /api/funnel/pro-opened, from=wardrobe).</summary>
+    public static string ProFromWardrobe(DateOnly day) => $"funnel:pro:wardrobe:{Key(day)}";
+
+    /// <summary>The counter for one value of <c>from</c> on <c>POST /api/funnel/pro-opened</c>, or null for anything that is not a surface this counts.</summary>
+    public static string? ProOpenedCounter(string? from, DateOnly day) => from switch
+    {
+        "compare" => ProFromCompare(day),
+        "wardrobe" => ProFromWardrobe(day),
+        _ => null
+    };
+
     public static string Key(DateOnly day) => day.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 
     // The same shape AuthEndpoints accepts as a handle; anything else in ?via is somebody's noise, not an invite.
@@ -124,6 +138,8 @@ public static partial class Funnel
             names.Add(ShareArrivals(day));
             names.Add(ProfileArrivals(day));
             names.Add(InviteArrivals(day));
+            names.Add(ProFromCompare(day));
+            names.Add(ProFromWardrobe(day));
         }
 
         var tallies = await db.Counters.AsNoTracking().Where(c => names.Contains(c.Name)).ToDictionaryAsync(c => c.Name, c => c.Value, ct);
@@ -157,7 +173,9 @@ public static partial class Funnel
                 LookArrivals: Clamp(Tally(LookArrivals(day))),
                 ShareArrivals: Clamp(Tally(ShareArrivals(day))),
                 ProfileArrivals: Clamp(Tally(ProfileArrivals(day))),
-                Invites: Clamp(Tally(InviteArrivals(day)))));
+                Invites: Clamp(Tally(InviteArrivals(day))),
+                ProFromCompare: Clamp(Tally(ProFromCompare(day))),
+                ProFromWardrobe: Clamp(Tally(ProFromWardrobe(day)))));
         }
 
         var last = rows[^1];

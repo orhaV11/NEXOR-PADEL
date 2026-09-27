@@ -36,6 +36,9 @@ public static class BillingEndpoints
 {
     public const string WebhookPath = "/api/billing/webhook";
 
+    /// <summary>Round 20: the one value <c>POST /api/billing/checkout?return=</c> accepts; the Pro page reads it back off the return URL.</summary>
+    public const string ReturnCompare = "compare";
+
     /// <summary>Where a Billing Portal session posts (the test recorder answers it with <c>PortalResponse</c>).</summary>
     public const string PortalSessionsPath = "v1/billing_portal/sessions";
 
@@ -243,13 +246,17 @@ public static class BillingEndpoints
         }
 
         var origin = Origin(context.Request, billing.Value);
+        // Round 20: ?return=compare asks Checkout to land the person back where they came from - the "which one?" screen,
+        // with the camera ready - once the plan has flipped. An allowlist of one: anything else in ?return is dropped
+        // silently, so the URLs Stripe is handed can only ever be these two shapes.
+        var returnTo = string.Equals(context.Request.Query["return"].ToString(), ReturnCompare, StringComparison.Ordinal) ? "&return=" + ReturnCompare : "";
         var request = new CheckoutSessionRequest(
             user.Id,
             user.BillingCustomerId,
             // Only an address the person confirmed: a typo'd one would follow them onto the receipt.
             user.EmailVerifiedAt is not null ? user.Email : null,
-            $"{origin}/#/pro?checkout=success",
-            $"{origin}/#/pro?checkout=cancel",
+            $"{origin}/#/pro?checkout=success{returnTo}",
+            $"{origin}/#/pro?checkout=cancel{returnTo}",
             currency,
             interval,
             // Decided here, never refused: an account that is not eligible simply pays from the first day.

@@ -4,6 +4,9 @@
 // check.js's receiveCapture: a photo as the still, a clip whose frame is picked on the check screen like a library clip's.
 // When the camera cannot open (refused, or no getUserMedia), the native library picker takes over, through the same intake
 // as the check screen's. Every track stops on leave, when the page hides, and before any navigation.
+// Round 20: another screen may borrow the camera through check.js's cameraReturn.handoff (the compare screen fills a slot
+// with it): the capture and the library fallback go to the handoff's callbacks instead, the mode pills are hidden when
+// the handoff is photo-only, and leaving returns to the handoff's route. The handoff is cleared on every way out.
 import {
   register, state, t, el, icon, iconButton, announce, toast, onLeave, pickFile, loadPrefs, savePrefs, reducedMotion, redirect, frameToJpeg, fmtNumber
 } from '../core.js';
@@ -121,8 +124,10 @@ function shutterRing() {
 
 register('camera', async (root, params) => {
   ensureStyle();
-  const cam = mountCamera(root, params.mode === 'clip' ? 'clip' : 'photo');
-  onLeave(cam.destroy);
+  const handoff = cameraReturn.handoff;
+  const cam = mountCamera(root, params.mode === 'clip' && !(handoff && handoff.photoOnly) ? 'clip' : 'photo');
+  // Leaving by any road but the camera's own buttons (the dock, Back, a language switch) still forgets the handoff.
+  onLeave(() => { cam.destroy(); cameraReturn.handoff = null; });
   await cam.open();
 });
 
@@ -197,7 +202,8 @@ function mountCamera(root, initialMode) {
   video.addEventListener('loadedmetadata', fitGuide);
   video.addEventListener('resize', fitGuide);
   window.addEventListener('resize', fitGuide);
-  if (typeof MediaRecorder === 'undefined') modes.hidden = true;   // photos only where clips cannot be recorded
+  // Photos only where clips cannot be recorded, and where the screen that borrowed the camera wants a still (a compare slot).
+  if (typeof MediaRecorder === 'undefined' || (cameraReturn.handoff && cameraReturn.handoff.photoOnly)) modes.hidden = true;
   setMode(mode);
 
   // ---- the stream ----
@@ -510,8 +516,10 @@ function mountCamera(root, initialMode) {
     if (!capture) return;
     const c = capture; capture = null;
     preview.replaceChildren();
-    if (c.kind === 'photo') receiveCapture({ photo: c.blob }); else receiveCapture({ clip: c.blob, clipMs: c.ms });
-    URL.revokeObjectURL(c.url);   // receiveCapture made its own URL
+    const handoff = cameraReturn.handoff;
+    if (handoff && c.kind === 'photo') handoff.photo(c.blob);
+    else if (c.kind === 'photo') receiveCapture({ photo: c.blob }); else receiveCapture({ clip: c.blob, clipMs: c.ms });
+    URL.revokeObjectURL(c.url);   // the receiver made its own URL
     leave();
   }
 
@@ -521,7 +529,9 @@ function mountCamera(root, initialMode) {
     const file = await pickFile(wantClip ? 'clip-file' : 'file');
     if (!file || destroyed) return;
     button.disabled = true;
-    await (wantClip ? takeClipFile(file) : takePhotoFile(file));   // a problem lands in state.check.error; the check screen shows it
+    const handoff = cameraReturn.handoff;
+    if (handoff) await handoff.file(file);
+    else await (wantClip ? takeClipFile(file) : takePhotoFile(file));   // a problem lands in state.check.error; the check screen shows it
     if (destroyed) return;
     leave();
   }
@@ -530,8 +540,10 @@ function mountCamera(root, initialMode) {
   function leave() {
     destroy();
     const back = cameraReturn.fromCheck;
+    const handoff = cameraReturn.handoff;
     cameraReturn.fromCheck = false;
-    if (back && history.length > 1) history.back(); else redirect('#/check');
+    cameraReturn.handoff = null;
+    if (back && history.length > 1) history.back(); else redirect(handoff ? handoff.to : '#/check');
   }
   const onVisibility = () => {
     if (document.hidden) {

@@ -7,6 +7,13 @@ namespace FitCheck.Api.Endpoints;
 /// <summary>The error sentence in the reader's language and, Round 20, a machine word for the one refusal the client acts on (plan_limit); null is dropped from the JSON.</summary>
 public sealed record ErrorDto(string Error, string? Code = null);
 
+/// <summary>Round 20: the machine words an <see cref="ErrorDto"/> may carry. One so far; the client reads it off <c>code</c>.</summary>
+public static class ErrorCodes
+{
+    /// <summary>A free account at its day's allowance (429): the one refusal the compare screen sells Pro on.</summary>
+    public const string PlanLimit = "plan_limit";
+}
+
 // ---- auth and users ----
 
 /// <summary>

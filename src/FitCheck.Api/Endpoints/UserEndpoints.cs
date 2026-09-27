@@ -43,7 +43,7 @@ public static class UserEndpoints
         return app;
     }
 
-    public static IResult Error(int status, string message) => AuthEndpoints.Error(status, message);
+    public static IResult Error(int status, string message, string? code = null) => AuthEndpoints.Error(status, message, code);
 
     /// <summary>Unix seconds, always increasing: a handle that is freed and taken again never reuses a cached avatar URL.</summary>
     public static int NextAvatarVersion(int current) =>

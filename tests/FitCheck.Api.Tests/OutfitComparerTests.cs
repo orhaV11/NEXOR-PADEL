@@ -165,7 +165,57 @@ public class OutfitComparerTests
         Assert.Equal(["status", "winner", "score_a", "score_b", "headline_a", "headline_b", "reason", "one_tip"], required);
         var winner = OutfitComparer.ToolSchema.GetProperty("properties").GetProperty("winner").GetProperty("enum").EnumerateArray().Select(r => r.GetString()).ToList();
         Assert.Equal(["a", "b"], winner);
-        Assert.Equal("cmp-v1", OutfitComparer.PromptVersion);
+        Assert.Equal("cmp-v2", OutfitComparer.PromptVersion);
+        // Round 20: the close call is the server's word off the two scores, never a field or a third score the model fills.
+        var properties = OutfitComparer.ToolSchema.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToList();
+        Assert.DoesNotContain(properties, name => name.Contains("close", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(2, properties.Count(name => name.StartsWith("score", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Prompt_says_a_close_call_is_both_work_and_the_occasion_decides()
+    {
+        var prompt = OutfitComparer.BuildSystemPrompt("en");
+
+        Assert.Contains("within one point", prompt);
+        Assert.Contains("both outfits work", prompt);
+        Assert.Contains("The occasion decides a close call, never the style, never a coin flip", prompt);
+        Assert.Contains("a 7 and a 7 is honest", prompt);
+        // The rules from before stay where they were.
+        Assert.Contains("When the scores are equal, the winner is the one that reads more", prompt);
+        Assert.Contains("When the occasion and the style disagree, the occasion wins", prompt);
+    }
+
+    [Theory]
+    [InlineData(7, 7, "ok", true)]
+    [InlineData(6, 7, "ok", true)]
+    [InlineData(7, 6, "ok", true)]
+    [InlineData(6, 8, "ok", false)]
+    [InlineData(7, 7, "not_outfit", false)]
+    [InlineData(7, 7, "rejected", false)]
+    public void MapToolInput_marks_close_within_one_point_and_never_off_an_ok(int scoreA, int scoreB, string status, bool close)
+    {
+        Assert.Equal(close, OutfitComparer.MapToolInput(Pick(scoreA: scoreA, scoreB: scoreB, status: status, message: status == "ok" ? null : "a wall")).Close);
+    }
+
+    [Fact]
+    public async Task The_pair_and_its_one_word_send_the_same_request()
+    {
+        var vision = new FakeVisionClient { Handler = _ => Pick() };
+        var comparer = new OutfitComparer(vision);
+
+        await comparer.CompareAsync(TestImages.Jpeg(64), "image/jpeg", TestImages.Png(64), "image/png", OutfitOccasion.Office, null, "first day", "en", null, CancellationToken.None);
+        await comparer.CompareAsync(TestImages.Jpeg(64), "image/jpeg", TestImages.Png(64), "image/png", StyleIntent.Office, "first day", "en", CancellationToken.None);
+        await comparer.CompareAsync(TestImages.Jpeg(64), "image/jpeg", TestImages.Png(64), "image/png", OutfitOccasion.Everyday, OutfitStyle.Minimal, null, "en", null, CancellationToken.None);
+        await comparer.CompareAsync(TestImages.Jpeg(64), "image/jpeg", TestImages.Png(64), "image/png", StyleIntent.Minimal, null, "en", CancellationToken.None);
+
+        Assert.Equal(4, vision.Requests.Count);
+        Assert.Equal(vision.Requests[0].SystemPrompt, vision.Requests[1].SystemPrompt);
+        Assert.Equal(vision.Requests[0].UserText, vision.Requests[1].UserText);
+        Assert.Equal(vision.Requests[2].UserText, vision.Requests[3].UserText);
+        Assert.Contains("Office:", vision.Requests[0].UserText);
+        Assert.Contains(OutfitAnalyzer.StyleGuide[OutfitStyle.Minimal], vision.Requests[2].UserText);
+        Assert.NotEqual(vision.Requests[0].UserText, vision.Requests[2].UserText);
     }
 
     [Fact]

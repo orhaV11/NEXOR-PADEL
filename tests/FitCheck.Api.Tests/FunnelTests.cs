@@ -87,6 +87,13 @@ public class FunnelTests : IClassFixture<TestApp>
         Assert.Equal("arrivals:look:share:20260920", Funnel.ShareArrivals(day));
         Assert.Equal("arrivals:profile:20260920", Funnel.ProfileArrivals(day));
         Assert.Equal("invites:via:20260920", Funnel.InviteArrivals(day));
+        // Round 20: the Pro page opened from a refused compare and from the wardrobe line.
+        Assert.Equal("funnel:pro:compare:20260920", Funnel.ProFromCompare(day));
+        Assert.Equal("funnel:pro:wardrobe:20260920", Funnel.ProFromWardrobe(day));
+        Assert.Equal("funnel:pro:compare:20260920", Funnel.ProOpenedCounter("compare", day));
+        Assert.Equal("funnel:pro:wardrobe:20260920", Funnel.ProOpenedCounter("wardrobe", day));
+        Assert.Null(Funnel.ProOpenedCounter("feed", day));
+        Assert.Null(Funnel.ProOpenedCounter(null, day));
     }
 
     [Fact]
@@ -121,12 +128,45 @@ public class FunnelTests : IClassFixture<TestApp>
         Assert.Equal(1, last.GetProperty("firstPosts").GetInt32());
         Assert.Equal(1, last.GetProperty("lookArrivals").GetInt32());
         Assert.Equal(1, last.GetProperty("shareArrivals").GetInt32());
+        // Round 20: nobody has opened the Pro page from either surface yet.
+        Assert.Equal(0, last.GetProperty("proFromCompare").GetInt32());
+        Assert.Equal(0, last.GetProperty("proFromWardrobe").GetInt32());
+
+        // The walker is refused a compare and opens Pro from there, then from the wardrobe line: one each, today.
+        Assert.Equal(HttpStatusCode.NoContent, (await walker.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await walker.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "wardrobe" })).StatusCode);
+        var again = (await (await mod.GetAsync("/api/metrics/pilot")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("funnel").GetProperty("days").EnumerateArray().Last();
+        Assert.Equal(1, again.GetProperty("proFromCompare").GetInt32());
+        Assert.Equal(1, again.GetProperty("proFromWardrobe").GetInt32());
 
         var today = funnel.GetProperty("today");
         Assert.Equal(1.0, today.GetProperty("landingToGuestCheck").GetDouble());
         Assert.Equal(2.0, today.GetProperty("guestCheckToSignup").GetDouble());
         Assert.Equal(0.5, today.GetProperty("signupToFirstPost").GetDouble());
         Assert.Equal(1.0, today.GetProperty("arrivalFromShare").GetDouble());
+    }
+
+    [Fact]
+    public async Task Pro_opened_is_counted_by_source_signed_in_only_and_refuses_an_unknown_one()
+    {
+        var compareBefore = await CounterAsync(_app, Funnel.ProFromCompare(Today));
+        var wardrobeBefore = await CounterAsync(_app, Funnel.ProFromWardrobe(Today));
+
+        // Signed out: the surfaces that send people here are signed-in ones, so nobody else's tap counts.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _app.NewClient().PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);
+
+        var (client, _, _) = await _app.NewUserAsync("proopened");
+        var feed = await client.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "feed" });
+        Assert.Equal(HttpStatusCode.BadRequest, feed.StatusCode);
+        Assert.Equal("That request didn't look right.", (await feed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/funnel/pro-opened", new { })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "Wardrobe" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "wardrobe" })).StatusCode);
+
+        Assert.Equal(compareBefore + 1, await CounterAsync(_app, Funnel.ProFromCompare(Today)));
+        Assert.Equal(wardrobeBefore + 2, await CounterAsync(_app, Funnel.ProFromWardrobe(Today)));
     }
 
     [Fact]

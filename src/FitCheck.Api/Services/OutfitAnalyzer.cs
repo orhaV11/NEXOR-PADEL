@@ -224,7 +224,8 @@ public sealed class OutfitAnalyzer(IOutfitVisionClient vision)
         """;
 
     private static readonly string[] Categories = ["top", "bottom", "dress", "outerwear", "shoes", "accessory", "other"];
-    private static readonly string[] Verdicts = ["works", "neutral", "weak"];
+    /// <summary>The three words the stylist has for a piece, in the order the prompt names them. Anything else is read as neutral.</summary>
+    public static readonly string[] Verdicts = ["works", "neutral", "weak"];
 
     /// <summary>The accessories verdicts, in the order the prompt names them. Anything else is read as neutral.</summary>
     public static readonly string[] AccessoryVerdicts = ["adds", "neutral", "missing", "clashes"];

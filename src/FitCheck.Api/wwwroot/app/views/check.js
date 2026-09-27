@@ -13,6 +13,16 @@
 // checks are linked) and #wardrobe-offer. Once a pair exists, #share-pair leads the share row (the before/after card and
 // film, app/sharevideo.js openCheckPairShare), ahead of the single look's video, card and text share.
 //
+// Round 21, the look: the result is four moments, each a section inside #result (no id moved out of it). .result-verdict
+// is the judged still edge to edge (figure.result-photo, only while judgedPreview() has it) with the pieces pinned at
+// its foot as name chips (physical bottom-left) and the .hero on its bottom-right corner (physical, as on every card: a
+// photo does not mirror), then the headline, the vibe and #asked-for; .result-read
+// is one glass panel for #breakdown, #accessories and the reads-as bar; .result-pieces holds the same pieces as a row of
+// button.chip.piece (the verdict word beside the name, a tap opens the stylist's note in p.piece-note), what works, the
+// tip as the warmest panel with #tried-action INSIDE #tip so the primary door sits under the words, then #taste-reasons
+// and #wardrobe-keep; .result-doors is Post it (a secondary now), the share row and Check another. #result carries
+// data-occasion, the app.css tint cascade: the tag, the chips and the glow behind the photo take the occasion's pastel.
+//
 // The ids (#photo, #submit, #occasion,
 // #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
 // .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
@@ -28,7 +38,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, scoreStyle, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, scoreStyle, pieceChip, pieceVerdict, namedPieces, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
 } from '../core.js';
 import { pendingSource } from '../invite.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
@@ -205,6 +215,61 @@ const CSS = `
 .tip-kind { color: var(--ok); background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
 .tip.keep::before { background: var(--ok); }
 .mount:empty { display: none; }
+/* Round 21 — the result in four moments (the tokens, the ring and the chips are app.css's; these rules are the result's own).
+   1. The verdict: the judged still edge to edge, its bottom corners rounded so it sits ON the stage as an object; the
+   pieces pinned at its bottom-left with a slight static tilt and the ring on its bottom-right corner, both by physical
+   sides in both directions (a photo does not mirror; the ring is direction: ltr, as on every card); behind and below
+   the photo the occasion's glow, a radial in --tint-glow (from #result[data-occasion]) that the headline sits in. A
+   past check has no still here: the ring sits in flow above the headline, as it always did. */
+#result.stack > * + * { margin-block-start: 28px; }
+.result-verdict { position: relative; }
+.result-verdict::before { content: ""; position: absolute; inset-block: 34% -56px; inset-inline: -16px; z-index: 0; pointer-events: none; opacity: 0.72; background: radial-gradient(64% 52% at 50% 58%, var(--tint-glow), transparent 72%); }
+.result-photo { position: relative; z-index: 1; margin-inline: -16px; margin-block-start: -16px; background: var(--surface-2); border-end-start-radius: 28px; border-end-end-radius: 28px; }
+.result-photo img { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+.result-scrim { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(to top, rgba(20, 16, 30, 0.72) 0%, rgba(20, 16, 30, 0.42) 24%, transparent 56%), linear-gradient(to bottom, rgba(20, 16, 30, 0.5), transparent 22%); }
+.result-photo .pieces { position: absolute; inset-block-end: 18px; left: 16px; right: 184px; z-index: 2; min-block-size: 0; gap: 7px 6px; align-items: flex-end; align-content: flex-end; }
+.result-photo .chip.piece { min-block-size: 36px; padding-inline: 12px; font-size: 13.5px; }
+.result-photo .chip.piece:nth-child(3n+1) { rotate: -2deg; }   /* pinned on the picture: static, nothing to reduce */
+.result-photo .chip.piece:nth-child(3n+2) { rotate: 1.5deg; }
+.result-photo .chip.piece:nth-child(3n) { rotate: -1deg; }
+.result-photo .hero { position: absolute; inset-block-end: -30px; right: 14px; z-index: 2; }
+.result-verdict > .hero + h1 { margin-block-start: 16px; }
+.result-verdict > .result-photo + h1 { margin-block-start: 44px; }   /* clears the ring's overhang */
+.result-verdict > h1, .result-verdict > .vibe, .result-verdict > .asked-for { position: relative; }
+.result-verdict .result-headline { font-size: 38px; }
+[dir="rtl"] .result-verdict .result-headline { font-size: 40px; }
+.result-verdict .vibe { color: var(--ink-2); font-size: 17px; }
+/* 2. The read: one glass panel for the three rings, the accessories and the bar. */
+.result-read { padding: 18px 16px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.result-read > * + * { margin-block-start: 18px; }
+.result-read .acc-verdict { background: var(--glass); }
+.result-read .match-label { color: var(--ink-2); }
+.result-read .tip.acc-add { padding: 12px 14px; border: 0; border-radius: var(--radius-sm); background: var(--accent-tint); box-shadow: none; }   /* the accessories' "add one": a quiet block, so the tip stays the one warm moment */
+.result-read .tip.acc-add::before { display: none; }
+.result-read .tip.acc-add > p { font-size: 18px; line-height: 1.3; }
+/* 3. The pieces, what works, and the one tip as the warmest panel on the screen: lilac→rose→amber tinted glass with the
+   gradient bar inside it, the primary door (app/taste.js #tried-start) right under the words and its hint under that.
+   taste.js's .loop is a card of its own on other screens; inside the panel it is the panel's last lines. */
+.result-pieces > * + * { margin-block-start: 22px; }
+.result-pieces h2, .result-pieces .tip-head { margin-block-end: 12px; }
+.result-pieces .tip-head h2 { margin-block-end: 0; }
+.piece-note { margin-block-start: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-2); unicode-bidi: plaintext; }
+.piece-note b { color: var(--ink); font-weight: 700; }
+.result-pieces .working li { font-size: 16px; color: var(--ink-2); }
+.result-pieces .working li::before { box-shadow: 0 0 10px rgba(255, 143, 177, 0.5); }
+.result-pieces .tip { padding: 18px 18px 16px 22px; border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(135deg, rgba(179, 157, 255, 0.17), rgba(255, 143, 177, 0.15) 55%, rgba(255, 180, 107, 0.17)); box-shadow: var(--shadow-card), 0 20px 50px rgba(255, 143, 177, 0.12); }
+[dir="rtl"] .result-pieces .tip { padding-inline: 22px 18px; }
+.result-pieces .tip::before { inset-block: 16px; inset-inline-start: 10px; inline-size: 4px; box-shadow: 0 0 12px rgba(255, 143, 177, 0.6); }
+.result-pieces .tip.keep::before { background: var(--ok); box-shadow: 0 0 12px rgba(111, 240, 173, 0.5); }
+.result-pieces .tip > p { font-size: 23px; line-height: 1.28; }
+.result-pieces .tip .loop { padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 0; }
+.result-pieces .tip .loop-start { margin-block-start: 16px; }
+.result-pieces .tip .loop > .hint { margin-block-start: 10px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.result-pieces .tip .loop-pending { margin-block-start: 12px; }
+.result-pieces .tip .loop.pair { margin-block-start: 16px; padding-block-start: 14px; border-block-start: 1px solid rgba(255, 255, 255, 0.12); gap: 10px; }
+.result-pieces .loop-reasons { background: var(--glass); border: 1px solid var(--glass-edge); }   /* the tip's question, on the same glass as a notice */
+/* 4. The doors. */
+.result-doors > * + * { margin-block-start: 10px; }
 .nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
 .nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
 .nooutfit-free { margin-block-start: 10px; }
@@ -818,7 +883,8 @@ register('result', async (root, params, ctx) => {
   const status = feedback.status || result.status;
   const asked = askedFor(result);
   const intent = occasionLabel(asked.occasion);
-  const container = el('div', { id: 'result', class: 'stack' });
+  // Round 21: the occasion on #result is the tint cascade (app.css §1): the tag, the chips and the glow behind the photo.
+  const container = el('div', { id: 'result', class: 'stack', 'data-occasion': asked.occasion });
   root.appendChild(container);
 
   if (status === 'rejected') {
@@ -852,54 +918,63 @@ register('result', async (root, params, ctx) => {
   const animate = !state.resultAnimated && !reducedMotion();
   if (!state.resultAnimated) announce(t('a11y.score', { score: fmtNumber(feedback.score) }) + '. ' + feedback.headline);
   state.resultAnimated = true;
+  ensureStyle();
   const scoreNode = el('span', { class: 'score', text: animate ? fmtNumber(0) : fmtNumber(feedback.score) });
   const fill = el('div', { class: 'bar-fill', style: animate ? 'inline-size: 0%;' : 'transition: none; inline-size: ' + feedback.intentMatch + '%;' });
+  // Round 21: the ring is a meter (--score, app.css §5) that draws its arc on; .landed is the count-up's last frame
+  // (animateScore below), or there from the start when nothing counts up (reduced motion, a screen drawn again).
+  const hero = el('div', { class: 'hero' + (animate ? '' : ' landed'), role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(feedback.score) }), style: scoreStyle(feedback.score) }, [
+    scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
+  ]);
+  const judged = judgedPreview(result);
+  const items = namedPieces(feedback.items);
 
-  container.appendChild(el('div', {}, [
-    // Round 21: the ring is a meter (--score, app.css §5) that draws its arc on; .landed is the count-up's last frame
-    // (animateScore below), or there from the start when nothing counts up (reduced motion, a screen drawn again).
-    el('div', { class: 'hero' + (animate ? '' : ' landed'), role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(feedback.score) }), style: scoreStyle(feedback.score) }, [
-      scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
-    ]),
-    el('h1', { class: 'result-headline', text: feedback.headline, style: 'margin-block-start: 16px;' }),
+  // 1. The verdict. The judged still, edge to edge, with the pieces pinned at its foot (up to four, decorative: the row
+  //    under "What you're wearing" is the one that is read) and the ring on its corner; a past check has no still here,
+  //    and the ring sits in flow above the headline as it always did. Then the headline, the vibe and, Round 14, both
+  //    questions in the wearer's own words, so the score is read against what was actually asked.
+  container.appendChild(el('section', { class: 'result-verdict' }, [
+    judged
+      ? el('figure', { class: 'result-photo' }, [
+        el('img', { src: judged, alt: t('a11y.photo_preview'), decoding: 'async' }),
+        el('span', { class: 'result-scrim', 'aria-hidden': 'true' }),
+        items.length ? el('div', { class: 'pieces', 'aria-hidden': 'true' }, items.slice(0, 4).map((item) => pieceChip(item))) : null,
+        hero
+      ])
+      : hero,
+    el('h1', { class: 'result-headline', text: feedback.headline }),
     feedback.vibe ? el('p', { class: 'vibe', text: feedback.vibe }) : null,
-    // Round 14: both questions, in the wearer's own words, so the score is read against what was actually asked.
     el('div', { class: 'asked-for', id: 'asked-for' }, [
       el('span', { class: 'lbl', text: t('occasion.asked') }),
       el('span', { class: 'tag', 'data-occasion': asked.occasion, text: occasionLabel(asked.occasion) }),
       el('span', { class: 'tag' + (asked.style ? '' : ' rose'), 'data-style': asked.style || '', text: styleLabel(asked.style) })
     ])
   ]));
-  // Rubric v2: the three rings, then the accessories read. A check from before v2 has neither and shows neither.
+
+  // 2. The read: rubric v2's three rings, then the accessories (a check from before v2 has neither and shows neither),
+  //    then how far it reads as what was asked.
+  const read = el('section', { class: 'result-read' });
+  container.appendChild(read);
   if (feedback.breakdown) {
-    container.appendChild(el('div', { id: 'breakdown' }, [
+    read.appendChild(el('div', { id: 'breakdown' }, [
       el('h2', { text: t('result.breakdown') }),
       el('div', { style: 'margin-block-start: 12px;' }, [breakdownRow(feedback.breakdown)])
     ]));
   }
-  if (feedback.accessories) container.appendChild(accessoriesSection(feedback.accessories));
-  container.appendChild(el('div', {}, [
+  if (feedback.accessories) read.appendChild(accessoriesSection(feedback.accessories));
+  read.appendChild(el('div', {}, [
     el('div', { class: 'match-label' }, [el('span', { text: t('result.intent_match', { intent }) }), el('span', { text: fmtPercent(feedback.intentMatch / 100) })]),
     el('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(feedback.intentMatch), 'aria-label': t('result.intent_match', { intent }) }, [fill])
   ]));
-  if (feedback.items && feedback.items.length) {
-    container.appendChild(el('div', {}, [
-      el('h2', { text: t('result.items') }),
-      el('ul', { class: 'items', style: 'margin-block-start: 4px;' }, feedback.items.map((item) => el('li', {}, [
-        el('span', { class: 'dot ' + item.verdict, 'aria-hidden': 'true' }),
-        el('div', {}, [
-          el('div', { class: 'item-name' }, [item.name, el('span', { class: 'item-verdict', text: t('verdict.' + item.verdict) })]),
-          item.note ? el('div', { class: 'item-note', text: item.note }) : null
-        ])
-      ]))),
-      // MOUNT: the wardrobe offer, beside the pieces it is about. Empty, and invisible while empty (.mount:empty).
-      el('div', { class: 'mount', id: 'wardrobe-offer' })
-    ]));
-  }
+
+  // 3. The pieces and the tip.
+  const pieces = el('section', { class: 'result-pieces' });
+  container.appendChild(pieces);
+  if (items.length) pieces.appendChild(piecesBlock(items));
   if (feedback.working && feedback.working.length) {
-    container.appendChild(el('div', {}, [
+    pieces.appendChild(el('div', {}, [
       el('h2', { text: t('result.working') }),
-      el('ul', { class: 'working', style: 'margin-block-start: 6px;' }, feedback.working.map((line) => el('li', { text: line })))
+      el('ul', { class: 'working' }, feedback.working.map((line) => el('li', { text: line })))
     ]));
   }
   // The tip, and everything that is ABOUT the tip, under one condition on purpose: asking "did it land?" about a tip
@@ -907,29 +982,29 @@ register('result', async (root, params, ctx) => {
   // so this is the belt to that braces — and if it ever does happen, the notice below says so instead of the screen
   // simply ending early, which is what it used to do.
   if (feedback.oneTip) {
-    ensureStyle();
-    container.appendChild(tipBlock(feedback));
-    // MOUNTS, in the order they are read: the typed answer to the tip, then what happened when it was tried — the
-    // primary "Try the tip, then show me", or the pair. app/taste.js fills both once the screen is whole (below).
-    container.appendChild(el('div', { class: 'mount', id: 'taste-reasons' }));
-    container.appendChild(el('div', { class: 'mount', id: 'tried-action' }));
+    // MOUNTS, in the order they are read: "last time it worked" above the tip, the primary "Try the tip, then show me"
+    // (or the pair) inside the tip's panel, then the typed answer to the tip. app/taste.js fills them once the screen is whole (below).
+    pieces.appendChild(el('div', { class: 'mount', id: 'taste-win' }));
+    pieces.appendChild(tipBlock(feedback));
+    pieces.appendChild(el('div', { class: 'mount', id: 'taste-reasons' }));
   } else if (feedback.status === 'ok') {
-    container.appendChild(el('p', { class: 'notice', id: 'tip-missing', text: t('result.no_tip') }));
+    pieces.appendChild(el('p', { class: 'notice', id: 'tip-missing', text: t('result.no_tip') }));
   }
-
   // Round 14 — the wardrobe that builds itself (app/wardrobe.js): the documented mount point, #wardrobe-keep, one quiet
   // line under the tip — "keep the camel coat in your wardrobe?", one tap, no form. It stays hidden until it has a piece
   // to offer (signed out, or every piece kept already), so a screen that has nothing to ask looks exactly as it did.
-  container.appendChild(wardrobeKeep(result));
+  pieces.appendChild(wardrobeKeep(result));
 
+  // 4. The doors: Post it, the shares, Check another.
+  const doors = el('section', { class: 'result-doors' });
+  container.appendChild(doors);
   const postArea = el('div');
-  container.appendChild(postArea);
+  doors.appendChild(postArea);
   renderPostArea(postArea, result);
   // The 12-second video (app/sharevideo.js): the share card brought to life, made on the phone from the judged still, so only
   // while that still is here; a past check from "Your checks" has no photo and gets no #share-video (a video of a look is
   // never made without the look). #share-video is busy while it renders.
-  const judged = judgedPreview(result);
-  container.appendChild(el('div', { class: 'row share-row' }, [
+  doors.appendChild(el('div', { class: 'row share-row' }, [
     judged ? shareVideoButton(videoLookFromCheck(result, judged)) : null,
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
     el('button', { type: 'button', class: 'btn btn-secondary', id: 'result-share', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
@@ -947,14 +1022,52 @@ register('result', async (root, params, ctx) => {
   // Round 13: on iOS Safari, once per device, the note that the app can live on the home screen, now that the value has landed.
   // Round 20: or, inside another app's browser, the note to open it in Safari or Chrome; whichever renders first marks it seen.
   const installHint = iosInstallHint() || inAppBrowserHint();
-  if (installHint) { installHint.classList.add('result-install'); container.appendChild(installHint); }
-  container.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
+  if (installHint) { installHint.classList.add('result-install'); doors.appendChild(installHint); }
+  doors.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
 
   if (animate) {
     requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });
     animateScore(scoreNode, feedback.score);
   }
 });
+
+/**
+ * Round 21 — "What you're wearing": the stylist's pieces as a row of name chips, the verdict as the dot and the word
+ * (the .item-verdict the browser test reads, in the stylist's order), and one note under the row: a tap on a chip that
+ * has one opens the stylist's line about that piece in p.piece-note (the open chip is aria-expanded, the gradient), a
+ * second tap closes it, another chip's tap swaps it. The first weak piece with a note starts open — it is the piece the
+ * tip is about. A piece with no note is a plain chip. #wardrobe-offer stays the documented mount beside the pieces.
+ */
+function piecesBlock(items) {
+  const note = el('p', { class: 'piece-note', id: 'piece-note', hidden: true });
+  const noteOf = (item) => (typeof item.note === 'string' ? item.note.trim() : '');
+  const row = el('div', { class: 'pieces chips' });
+  const open = (chip, item) => {
+    const was = chip.getAttribute('aria-expanded') === 'true';
+    for (const other of row.querySelectorAll('[aria-expanded]')) other.setAttribute('aria-expanded', 'false');
+    if (was) { note.hidden = true; note.replaceChildren(); return; }
+    chip.setAttribute('aria-expanded', 'true');
+    note.replaceChildren(el('b', { text: item.name + '.' }), ' ' + noteOf(item));
+    note.hidden = false;
+  };
+  const chips = items.map((item) => {
+    const has = !!noteOf(item);
+    const chip = pieceChip(item, has ? 'button' : 'span', has ? { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'piece-note' } : null);
+    chip.appendChild(el('span', { class: 'item-verdict', text: t('verdict.' + pieceVerdict(item)) }));
+    if (has) chip.addEventListener('click', () => open(chip, item));
+    return chip;
+  });
+  for (const chip of chips) row.appendChild(chip);
+  const first = items.findIndex((item) => pieceVerdict(item) === 'weak' && noteOf(item));
+  if (first >= 0) open(chips[first], items[first]);
+  return el('div', {}, [
+    el('h2', { text: t('result.items') }),
+    row,
+    note,
+    // MOUNT: the wardrobe offer, beside the pieces it is about. Empty, and invisible while empty (.mount:empty).
+    el('div', { class: 'mount', id: 'wardrobe-offer' })
+  ]);
+}
 
 /**
  * What this check asked for. The server sends both on every check; a result held over from an older client, or an older
@@ -978,7 +1091,13 @@ function tipBlock(feedback) {
       el('h2', { text: t(keep ? 'tip.keep_title' : 'result.tip') }),
       keep ? el('span', { class: 'tag tip-kind', id: 'tip-keep', text: t('tip.keep_label') }) : null
     ]),
-    el('div', { class: 'tip' + (keep ? ' keep' : ''), id: 'tip', style: 'margin-block-start: 8px;' }, [el('p', { text: feedback.oneTip })]),
+    el('div', { class: 'tip' + (keep ? ' keep' : ''), id: 'tip' }, [
+      el('p', { text: feedback.oneTip }),
+      // MOUNT (Round 21): the door is inside the panel. app/taste.js mountResult fills it with "Try the tip, then show me"
+      // (#tried-start, the one primary on the screen) and its hint, the waiting line once tapped, or the pair (#tried-pair)
+      // once the two checks are linked; a keep-tip has nothing to try and it stays empty.
+      el('div', { class: 'mount', id: 'tried-action' })
+    ]),
     keep ? el('p', { class: 'hint', style: 'margin-block-start: 8px;', text: t('tip.keep_hint') }) : null
   ]);
 }
@@ -1045,7 +1164,7 @@ function renderPostArea(area, result) {
   area.innerHTML = '';
   const postId = state.resultPostId || result.postId;
   if (postId) {
-    area.appendChild(el('a', { class: 'btn', id: 'post-link', href: '#/post/' + encodeURIComponent(postId) }, [icon('check'), t('result.posted') + ' · ' + t('result.view_post')]));
+    area.appendChild(el('a', { class: 'btn btn-secondary', id: 'post-link', href: '#/post/' + encodeURIComponent(postId) }, [icon('check'), t('result.posted') + ' · ' + t('result.view_post')]));
     return;
   }
   if (result.guest) {
@@ -1055,11 +1174,12 @@ function renderPostArea(area, result) {
     }
     // Signed in since: Post it shows disabled while the claim runs, then for real. The claim is one promise on the result,
     // so a view drawn again meanwhile (a tab and Back) repaints its own button when the same claim settles.
-    area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), disabled: true, 'aria-busy': 'true' }));
+    area.appendChild(el('button', { type: 'button', class: 'btn btn-secondary', id: 'post-open', text: t('result.post'), disabled: true, 'aria-busy': 'true' }));
     claimGuestResult(result).then(() => { if (document.contains(area)) renderPostArea(area, result); });
     return;
   }
-  area.appendChild(el('button', { type: 'button', class: 'btn', id: 'post-open', text: t('result.post'), onclick: () => openPostSheet(area, result) }));
+  // Round 21: a secondary door; the screen's one primary is "Try the tip, then show me" inside the tip.
+  area.appendChild(el('button', { type: 'button', class: 'btn btn-secondary', id: 'post-open', text: t('result.post'), onclick: () => openPostSheet(area, result) }));
 }
 
 /**

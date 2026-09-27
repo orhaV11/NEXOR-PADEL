@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
@@ -81,13 +82,15 @@ public sealed class PostReader(AppDbContext db)
             .GroupBy(l => l.PostId)
             .ToDictionary(g => g.Key, g => g.Select(l => new ProductLinkDto(l.Label, l.Url, l.Price)).ToList());
 
-        // Which looks carry a clip: one query over the page's checks, never one per post.
+        // Which looks carry a clip, and what the stylist said of each piece (Round 21: the verdict dot beside a name on
+        // the card): one query over the page's checks, never one per post.
         var checkIds = posts.Select(p => p.CheckId).Distinct().ToList();
-        var withClip = (await db.Checks
-                .Where(c => checkIds.Contains(c.Id) && c.VideoPath != null && c.VideoPath != "")
-                .Select(c => c.Id)
-                .ToListAsync(ct))
-            .ToHashSet();
+        var checks = await db.Checks
+            .Where(c => checkIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.VideoPath, c.Status, c.FeedbackJson })
+            .ToListAsync(ct);
+        var withClip = checks.Where(c => !string.IsNullOrEmpty(c.VideoPath)).Select(c => c.Id).ToHashSet();
+        var verdicts = checks.ToDictionary(c => c.Id, c => VerdictsOf(c.Status, c.FeedbackJson));
 
         // "After the tip": the earlier look's score and photo, one query over the page's before ids. A before look
         // under review is left off (its photo answers 404 to everyone else); one that was deleted left null behind.
@@ -110,12 +113,13 @@ public sealed class PostReader(AppDbContext db)
         // the item search need no second read. One query over the page.
         var items = (await db.PostItems.Where(i => postIds.Contains(i.PostId)).OrderBy(i => i.Position).ToListAsync(ct))
             .GroupBy(i => i.PostId)
-            .ToDictionary(g => g.Key, g => g.Select(ItemDto).ToList());
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         return posts.Select(p =>
         {
             var user = users.GetValueOrDefault(p.UserId) ?? new UserRefDto("?", "?", AccountType.Person.ToString());
-            var pieces = items.GetValueOrDefault(p.Id) ?? [];
+            var said = verdicts.GetValueOrDefault(p.CheckId);
+            var pieces = (items.GetValueOrDefault(p.Id) ?? []).Select(i => ItemDto(i, said)).ToList();
             // Round 14 — post the look, keep the grade: one question, asked once, for the three numbers the verdict is.
             var score = MayReadScore(p, viewerId, viewerIsModerator);
             return new PostDto(
@@ -151,7 +155,47 @@ public sealed class PostReader(AppDbContext db)
         }).ToList();
     }
 
-    /// <summary>One piece as the wire carries it: the raw link for the owner's sheet, its host for "Shop at {host}".</summary>
-    public static PostItemDto ItemDto(PostItem item) =>
-        new(item.Id, item.Name, item.Category, item.Brand, item.Model, item.Url, PostItems.HostOf(item.Url), item.Source, item.X, item.Y, item.Confirmed);
+    /// <summary>
+    /// One piece as the wire carries it: the raw link for the owner's sheet, its host for "Shop at {host}", and the
+    /// stylist's verdict when <paramref name="verdicts"/> (the check's, by stored name) has one for this name.
+    /// </summary>
+    public static PostItemDto ItemDto(PostItem item, IReadOnlyDictionary<string, string>? verdicts = null) =>
+        new(item.Id, item.Name, item.Category, item.Brand, item.Model, item.Url, PostItems.HostOf(item.Url), item.Source, item.X, item.Y, item.Confirmed,
+            verdicts is not null && verdicts.TryGetValue(item.Name, out var verdict) ? verdict : null);
+
+    /// <summary>
+    /// The verdict behind each piece a check named, keyed by the name exactly as <see cref="PostItems"/> stores a row
+    /// (lower-cased, one space between words, cut to the column), which is how a row typed back in any case or spacing
+    /// still finds its own. Only the stylist's three words are kept; the first of two pieces with one name is the row
+    /// the posting kept. Empty for a check that is not ok, or whose stored feedback cannot be read.
+    /// </summary>
+    public static Dictionary<string, string> VerdictsOf(string status, string? feedbackJson)
+    {
+        var verdicts = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (status != CheckStatus.Ok || string.IsNullOrEmpty(feedbackJson))
+        {
+            return verdicts;
+        }
+
+        OutfitFeedback? feedback;
+        try
+        {
+            feedback = JsonSerializer.Deserialize<OutfitFeedback>(feedbackJson, AppJson.Options);
+        }
+        catch (JsonException)
+        {
+            return verdicts;
+        }
+
+        foreach (var item in feedback?.Items ?? [])
+        {
+            var name = PostItems.NormalizeName(item.Name);
+            if (name.Length > 0 && Array.IndexOf(OutfitAnalyzer.Verdicts, item.Verdict) >= 0)
+            {
+                verdicts.TryAdd(name, item.Verdict);
+            }
+        }
+
+        return verdicts;
+    }
 }

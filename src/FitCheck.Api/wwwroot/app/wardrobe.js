@@ -112,9 +112,11 @@ function ensureStyle() {
   if (styled) return;
   styled = true;
   document.head.appendChild(el('style', { text: [
-    '.keep-row { display: grid; grid-template-columns: 34px 1fr; gap: 6px 12px; align-items: center; padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }',
+    // Round 21: the one green surface on the screen, because "keep" is the works colour — a mint wash over glass with a
+    // mint edge, the bag on a mint disc with a soft glow; the KEEP button stays the gradient.
+    '.keep-row { display: grid; grid-template-columns: 34px 1fr; gap: 6px 12px; align-items: center; padding: 14px 16px; background: linear-gradient(var(--ok-tint), var(--ok-tint)), var(--glass); border: 1px solid rgba(111, 240, 173, 0.22); border-radius: var(--radius); box-shadow: var(--shadow-card); }',
     '.keep-row p { grid-column: 2; margin: 0; font-size: 15px; line-height: 1.4; color: var(--ink); unicode-bidi: plaintext; }',
-    '.keep-row .keep-icon { grid-row: 1; inline-size: 34px; block-size: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent); }',
+    '.keep-row .keep-icon { grid-row: 1; inline-size: 34px; block-size: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(111, 240, 173, 0.18); color: var(--ok); box-shadow: 0 0 16px rgba(111, 240, 173, 0.25); }',
     '.keep-row .keep-icon svg { inline-size: 18px; block-size: 18px; }',
     // Round 20: three controls (Keep, Not this one, Keep all N) have to wrap on a narrow phone rather than overflow.
     '.keep-row .keep-answers { grid-column: 2; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; row-gap: 4px; }',

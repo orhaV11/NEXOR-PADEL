@@ -92,7 +92,10 @@ public static class ItemEndpoints
         db.PostItems.AddRange(rows.Where(r => !existing.Contains(r)));
         await db.SaveChangesAsync(ct);
         loggerFactory.CreateLogger(nameof(ItemEndpoints)).LogInformation("Items: {Count} on post {PostId} by {UserId}", rows.Count, id, me.Id);
-        return Results.Json(rows.Select(PostReader.ItemDto).ToList(), AppJson.Options);
+        // Round 21: the answer replaces the look page's list, so it carries the stylist's verdicts as the look itself does.
+        var check = await db.Checks.Where(c => c.Id == post.CheckId).Select(c => new { c.Status, c.FeedbackJson }).SingleOrDefaultAsync(ct);
+        var verdicts = check is null ? null : PostReader.VerdictsOf(check.Status, check.FeedbackJson);
+        return Results.Json(rows.Select(r => PostReader.ItemDto(r, verdicts)).ToList(), AppJson.Options);
     }
 
     private static async Task<IResult> SearchAsync(

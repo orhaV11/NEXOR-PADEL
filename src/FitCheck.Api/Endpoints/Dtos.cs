@@ -224,11 +224,14 @@ public sealed record BeforeDto(Guid PostId, int? Score, string ImageUrl);
 /// <summary>
 /// One piece on a look. Url is the raw store link (the client sends people through /api/items/{id}/out, never to it);
 /// Host is its host for "Shop at {host}". Source: Stylist | User. X and Y are the dot on the photo, 0..1, null when
-/// the item is listed and not placed. Confirmed: a stylist brand suggestion the person accepted.
+/// the item is listed and not placed. Confirmed: a stylist brand suggestion the person accepted. Verdict (Round 21):
+/// the stylist's works | neutral | weak for this piece, read back from the check's stored feedback by name, so a card
+/// can draw the dot beside the name; null (and absent on the wire) for a piece the person added themselves, or one the
+/// check no longer names — the client reads that as neutral.
 /// </summary>
 public sealed record PostItemDto(
     Guid Id, string Name, string Category, string? Brand, string? Model, string? Url, string? Host, ItemSource Source,
-    double? X, double? Y, bool Confirmed);
+    double? X, double? Y, bool Confirmed, string? Verdict = null);
 
 /// <summary>
 /// One item as the post sheet sends it. Id names an existing row to keep (its Source stays); no id means a new item,

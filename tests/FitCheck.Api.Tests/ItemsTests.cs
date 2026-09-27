@@ -103,6 +103,45 @@ public class ItemsTests : IClassFixture<TestApp>
         Assert.Equal(3, grid.GetProperty("items")[0].GetProperty("itemCount").GetInt32());
     }
 
+    /// <summary>
+    /// Round 21: the card draws the stylist's verdict as a dot beside each name, so every look carries it — read back
+    /// from the check's feedback by the name as stored, whatever case or spacing the person typed it in. A piece the
+    /// person added has none, and AppJson drops the null rather than sending an empty word.
+    /// </summary>
+    [Fact]
+    public async Task A_piece_the_stylist_named_carries_its_verdict_and_one_the_person_added_carries_none()
+    {
+        var (owner, _, _) = await _app.NewUserAsync("it_verdict_owner");
+        var checkId = await _app.CheckAsync(owner);
+
+        // The tee by its stored name, the shoes typed back in another case with their brand, the jeans dropped, hoops added.
+        var items = new object[]
+        {
+            new { name = "white tee" },
+            new { name = "  RUNNING   Shoes ", category = "shoes", brand = "Nike", confirmed = true },
+            new { name = "Silver hoops", category = "accessory" }
+        };
+        var response = await owner.PostAsJsonAsync("/api/posts", new { checkId, caption = "verdicts", items });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var post = await Json(response);
+        var postId = post.GetProperty("id").GetGuid();
+        Assert.Equal("works", ItemNamed(post, "white tee").GetProperty("verdict").GetString());
+        Assert.Equal("weak", ItemNamed(post, "running shoes").GetProperty("verdict").GetString());
+        Assert.False(ItemNamed(post, "silver hoops").TryGetProperty("verdict", out _), "the person's own piece has no verdict at all");
+
+        // The same on the look as a stranger reads it, and on the answer to a later tagging (the look page's list).
+        var single = await _app.NewClient().GetFromJsonAsync<JsonElement>($"/api/posts/{postId}");
+        Assert.Equal(["works", "weak", null], Items(single).Select(i => Text(i, "verdict")).ToList());
+        var tagged = await Json(await PatchItemsAsync(owner, postId, new object[]
+        {
+            new { id = ItemNamed(post, "running shoes").GetProperty("id").GetGuid(), name = "running shoes", url = "https://nike.example/air" },
+            new { name = "Dark jeans", category = "bottom" },
+            new { name = "beanie", category = "accessory" }
+        }));
+        Assert.Equal(["weak", "neutral", null], tagged.EnumerateArray().Select(i => Text(i, "verdict")).ToList());
+        Assert.Equal(["Stylist", "User", "User"], tagged.EnumerateArray().Select(i => i.GetProperty("source").GetString()).ToList());
+    }
+
     [Fact]
     public async Task The_owner_tags_the_pieces_and_the_list_sent_is_the_whole_list()
     {

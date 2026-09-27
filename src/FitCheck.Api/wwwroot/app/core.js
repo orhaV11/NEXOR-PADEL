@@ -1372,6 +1372,36 @@ export function scoreStyle(score) {
   return score === null || score === undefined || !Number.isFinite(n) ? null : '--score:' + Math.max(0, Math.min(10, n));
 }
 
+/** The stylist's three words for a piece (Domain.OutfitItem.Verdict); anything else, or none at all, reads as neutral. */
+export const PIECE_VERDICTS = ['works', 'neutral', 'weak'];
+export const pieceVerdict = (item) => (item && PIECE_VERDICTS.includes(item.verdict) ? item.verdict : 'neutral');
+
+/**
+ * Round 21: a piece as a name chip with its verdict dot — <span class="chip piece" data-verdict="works"><span class="dot
+ * works"></span><span class="item-name">Camel coat</span></span> — the same chip on a card's photo (below), on the result's
+ * photo and under it (check.js, which asks for a button and appends the verdict word). The dot is the verdict: works
+ * filled mint, neutral hollow, weak filled fire. app.css §8 draws it.
+ */
+export function pieceChip(item, tag, attrs) {
+  const verdict = pieceVerdict(item);
+  return el(tag || 'span', { class: 'chip piece', 'data-verdict': verdict, ...(attrs || {}) }, [
+    el('span', { class: 'dot ' + verdict, 'aria-hidden': 'true' }),
+    el('span', { class: 'item-name', text: item.name })
+  ]);
+}
+
+/** The pieces a look carries, named: the rows the wire sent that have a name (a payload from before Round 10 has none). */
+export function namedPieces(items) {
+  return (Array.isArray(items) ? items : []).filter((item) => item && typeof item.name === 'string' && item.name.trim());
+}
+
+/** Up to four of a look's pieces as chips for a photo's bottom-left corner; null when the look carries none. */
+function piecesChips(items) {
+  const named = namedPieces(items);
+  if (!named.length) return null;
+  return el('span', { class: 'pieces', 'aria-hidden': 'true' }, named.slice(0, 4).map((item) => pieceChip(item)));
+}
+
 /**
  * The rubric v2 sub-scores (fit, color, accessories) as three small rings in a row, the .score-badge look in flow with
  * the label under each: the result screen and the look page share it. A screen reader hears "Fit 7/10". Null when there
@@ -1450,12 +1480,18 @@ export function postCard(post, opts) {
   // A clip plays where the photo would be (its poster is the judged still); the clip glyph says so at the top-start corner.
   const isClip = !!post.videoUrl;
   const media = isClip ? clipVideo(post) : el('img', { src: post.imageUrl, alt: '', loading: opts.eager ? 'eager' : 'lazy', decoding: 'async' });
+  // Round 21: the pieces as name chips at the photo's bottom-left corner (the ring keeps the bottom-right in both
+  // directions: a photo does not mirror), each with the stylist's verdict as its dot; decorative, like the count they
+  // replace: the link's label names the look and the look page lists them. A payload with names but no verdicts (an
+  // older server) still draws them, every dot neutral.
+  const pieces = piecesChips(post.items);
   const photo = el('a', { class: 'card-photo' + (isClip ? ' is-clip' : ''), href: '#/post/' + post.id, 'aria-label': t(isClip ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
     media,
     isClip ? clipPill() : null,
     scoreBadge(post.score),
-    // Round 10: the tag count at the photo's bottom-left corner (the ring keeps the bottom-right in both directions) when the look carries items; decorative: the link's label already names the look, and the look page lists them
-    post.itemCount > 0 ? el('span', { class: 'item-count', 'aria-hidden': 'true' }, [icon('tag'), el('b', { text: fmtNumber(post.itemCount) })]) : null
+    pieces,
+    // Round 10: the tag count at the photo's bottom-left corner when the look carries items and, since Round 21, nothing names them
+    !pieces && post.itemCount > 0 ? el('span', { class: 'item-count', 'aria-hidden': 'true' }, [icon('tag'), el('b', { text: fmtNumber(post.itemCount) })]) : null
   ]);
   // The sound button is a sibling of the link (a button inside a link is not a thing), in a wrapper that positions it.
   const mediaNode = isClip ? el('div', { class: 'card-media' }, [photo, clipControls(media)]) : photo;

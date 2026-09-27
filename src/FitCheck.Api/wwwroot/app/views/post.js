@@ -211,6 +211,9 @@ register('post', async (root, params, ctx) => {
     for (const old of media.querySelectorAll('.item-dots, .items-toggle, .item-count')) old.remove();
     const placed = items.filter(hasDot);
     if (!placed.length) return;
+    // Round 21: the toggle takes the corner the name chips sit in (core.js postCard), and with the dots and the list under
+    // the card it says what they said; a look with nothing placed keeps its chips.
+    for (const chips of media.querySelectorAll('.pieces')) chips.remove();
     const layer = el('div', { class: 'item-dots', id: 'item-dots', hidden: !dotsShown }, placed.map((item) => {
       const n = items.indexOf(item) + 1;
       return el('button', {

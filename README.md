@@ -797,8 +797,6 @@ descriptive is dropped when the status is not `ok`.
 
 ## Not in this version
 
-- **No in-app cancel for Pro.** Stripe renews until the subscription is cancelled on Stripe's side (or by the owner);
-  the app shows the end date and the terms say to write to us. A customer-portal link is the obvious next step.
 - **No mute.** Blocking is built (`POST /api/users/{handle}/block`, `#/settings/blocked`, and the predicate that takes
   the two accounts out of each other's feeds, lists and notifications), which is what Apple's UGC checklist asks for;
   the softer thing — quieting someone without cutting them off — is not.
@@ -1413,9 +1411,9 @@ look page. Boards, search, challenges and comparisons read the enum and learned 
 written before the split cannot hold the word, so no migration changes. One number moved with it: the interests ceiling
 (`UserEndpoints.MaxInterests`) was the literal 8 and is now however many words there are, because "pick every style" has
 to stay possible and the list is deduplicated anyway — `error.interests_invalid` carries the number (`{0}`) in all four
-server dictionaries instead of spelling it. The client's own `INTENTS` list in `app/core.js`
-still names the eight, so Formal has no *chip* yet in the feed filter, the interests list, a new challenge or the
-compare screen (and a Formal winner's board badge falls back to the raw word): one entry in that list closes it.
+server dictionaries instead of spelling it. The client's own `INTENTS` list in `app/core.js` names all nine, so
+Formal has its chip in the feed filter, the interests list, a new challenge and the compare screen, and a Formal
+winner's board badge reads the word (`intentLabel`) rather than the raw value.
 
 Tests: `CheckRecoveryTests` (the signed-in and guest recoveries, a guest who cannot read another guest's, a wait that is
 over, a window nobody can widen, a check that never landed, an error row that is not a verdict, and the read that needs

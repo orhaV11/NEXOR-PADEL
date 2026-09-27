@@ -169,7 +169,7 @@ public static partial class AuthEndpoints
 
     private static async Task<IResult> SignupAsync(
         SignupRequest body, HttpContext context, AppDbContext db, Localizer localizer, IPasswordHasher<AppUser> hasher, IOptions<AdminOptions> admins,
-        SpendMeter spend, CancellationToken ct)
+        SpendMeter spend, IOptions<FunnelOptions> funnel, CancellationToken ct)
     {
         var language = Localizer.Resolve(body.Language, context.Request);
 
@@ -238,6 +238,9 @@ public static partial class AuthEndpoints
             BirthDate = birthDate!.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             PreferredLanguage = language,
             InvitedByUserId = inviter?.Id,
+            // Round 20 — distribution: the entry link this device arrived through, sent once by the client and forgotten
+            // there; a word off the allowlist is null, like a stale invite, and never a reason to refuse a signup.
+            Source = funnel.Value.Normalize(body.Source),
             CreatedAt = now
         };
         user.PasswordHash = hasher.HashPassword(user, password);

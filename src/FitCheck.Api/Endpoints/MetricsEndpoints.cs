@@ -4,6 +4,8 @@ using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.Extensions.Options;
+
 namespace FitCheck.Api.Endpoints;
 
 /// <summary>
@@ -20,7 +22,7 @@ public static class MetricsEndpoints
         return app;
     }
 
-    private static async Task<IResult> GetPilotAsync(HttpContext context, AppDbContext db, Localizer localizer, SpendMeter spend, Alerter alerter, CancellationToken ct)
+    private static async Task<IResult> GetPilotAsync(HttpContext context, AppDbContext db, Localizer localizer, SpendMeter spend, Alerter alerter, IOptions<FunnelOptions> funnelOptions, CancellationToken ct)
     {
         // The same gate as /api/admin: a signed-in account (401 gone, 403 suspended) that carries the moderator flag.
         var (viewer, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
@@ -107,7 +109,7 @@ public static class MetricsEndpoints
         // Fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's
         // conversion between those steps, and the invites: sent, accepted, and who is inviting. Its own block, its own
         // DTO, nothing read or changed on any tile above it.
-        var funnel = await Funnel.ComputeAsync(db, now, ct);
+        var funnel = await Funnel.ComputeAsync(db, now, funnelOptions.Value.List, ct);
 
         // ---- Round 15 — the wardrobe, counted (Services/Wardrobe.cs) ----
         // Round 14 built a wardrobe and nothing counted it; MARKETING.md named the two numbers and said to count

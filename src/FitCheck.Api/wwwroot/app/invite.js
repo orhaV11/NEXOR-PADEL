@@ -7,9 +7,13 @@
 //      marker, never a person, so it is never kept.
 //   2. The person's own invite link, with a copy button and the phone's share sheet.
 //   3. A look's public address (/look/<id>), for "Copy link" and the share sheet on a posted look.
+//   4. Round 20 — ?src: an entry link (/go/<source>) redirects to /?src=<source>#/check. The source is kept exactly like
+//      the invite (localStorage, try/catch), sent with every guest check while it is kept (a guest may check twice, then
+//      sign up) and handed to the signup once, where it is forgotten, so one arrival attributes at most one account.
+//      Sign-out does not clear it: it is the device's arrival, not the person's. Never a cookie.
 //
 // Loaded at boot because views/post.js imports it, which main.js imports; capture() runs on import, before any view.
-import { state, t, el, sheet, toast, copyText, VIA_SHARE, configuredOrigin, linkOrigin, publicLookUrl, inviteUrl, lookInviteUrl, shareLookUrl } from './core.js';
+import { state, t, el, sheet, toast, copyText, VIA_SHARE, configuredOrigin, linkOrigin, publicLookUrl, inviteUrl, lookInviteUrl, shareLookUrl, lookShareText } from './core.js';
 
 // The link builders moved to core.js so the share button can reach them without an await (see shareLookUrl there).
 // They are re-exported from here because this is where they were, and every caller still says invite.js.
@@ -49,6 +53,42 @@ export function takeInvite() {
 
 /** The invite kept for this browser, without spending it (the welcome line on the signup screen could read it). */
 export const pendingInvite = () => read() || null;
+
+// ---------- Round 20: the entry link's source ----------
+
+const SOURCE_KEY = 'orevosh.source';
+/** The shape a source has (FunnelOptions on the server): a short lower-case word, never a secret. */
+const SOURCE = /^[a-z0-9]{1,16}$/;
+
+function readSource() { try { return localStorage.getItem(SOURCE_KEY) || ''; } catch (e) { return ''; } }
+function writeSource(code) { try { localStorage.setItem(SOURCE_KEY, code); } catch (e) { /* private mode */ } }
+function forgetSource() { try { localStorage.removeItem(SOURCE_KEY); } catch (e) { /* private mode */ } }
+
+/**
+ * Reads ?src off an address and keeps it when it has the shape of a source. Returns what is kept now. Called once on
+ * import beside capture(); the server validates the word against its allowlist, so a lie here bends only its own row.
+ */
+export function captureSource(search) {
+  let src = '';
+  try {
+    src = (new URLSearchParams(search === undefined ? location.search : search).get('src') || '').trim().toLowerCase();
+  } catch (e) {
+    return readSource();
+  }
+  if (!src || !SOURCE.test(src)) return readSource();
+  writeSource(src);
+  return src;
+}
+
+/** The source the guest check sends, without spending it: a guest may check twice before signing up. */
+export const pendingSource = () => readSource() || null;
+
+/** The source the signup sends; asked for once and then forgotten, so one arrival is at most one account. */
+export function takeSource() {
+  const code = readSource();
+  if (code) forgetSource();
+  return code || null;
+}
 
 /** The address as a person reads it on a button: no scheme, no trailing slash. */
 export const pretty = (url) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -112,15 +152,18 @@ export function inviteButton(id) {
 
 /**
  * "Share this look": the public address of a posted look, the share sheet and a copy button. The link carries the
- * sharer's own ?via when they are signed in, so a look that travels is also an invite.
+ * sharer's own ?via when they are signed in, so a look that travels is also an invite. Round 20: both buttons carry the
+ * same sentence the share sheet sends (lookShareText, the Hebrew a challenge to the group) — the copy puts it on the
+ * line above the address, so a paste into a chat reads as a message and not a bare link.
  */
 export function openLookLinkSheet(post) {
   ensureStyle();
   const url = shareLookUrl(post.id);
+  const sentence = lookShareText(post);
   const copy = el('button', { type: 'button', class: 'btn btn-secondary', id: 'link-copy', text: t('link.copy') });
   const share = el('button', { type: 'button', class: 'btn', id: 'link-share', text: t('link.share') });
-  copy.addEventListener('click', () => copyText(url, t('link.copied')));
-  share.addEventListener('click', () => shareUrl(url, t('link.share_text', { name: post.user.name }), t('link.copied')));
+  copy.addEventListener('click', () => copyText(sentence + '\n' + url, t('link.copied')));
+  share.addEventListener('click', () => shareUrl(url, sentence, t('link.copied')));
   sheet({
     title: t('link.title'),
     content: el('div', { class: 'stack' }, [
@@ -132,3 +175,4 @@ export function openLookLinkSheet(post) {
 }
 
 capture();
+captureSource();

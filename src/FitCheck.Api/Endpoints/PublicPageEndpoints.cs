@@ -108,6 +108,7 @@ public static partial class PublicPageEndpoints
 
     /// <summary>
     /// The invite this page was reached with, ready to hang back on a link into the app: <c>"?via=&lt;handle&gt;"</c>,
+    /// (Round 20: GoEndpoints reuses it, so an entry link carries an invite through to the check screen)
     /// or <c>""</c> when the query carries none, carries the share marker rather than a person, or carries something
     /// that is not a handle.
     /// <para>
@@ -123,7 +124,7 @@ public static partial class PublicPageEndpoints
     /// page carrying a via cannot poison a page without one.
     /// </para>
     /// </summary>
-    private static string ViaQuery(HttpRequest request)
+    internal static string ViaQuery(HttpRequest request)
     {
         var via = request.Query["via"].ToString().Trim();
         if (via.Length == 0 || string.Equals(via, ViaShare, StringComparison.OrdinalIgnoreCase) || !HandleRegex().IsMatch(via))

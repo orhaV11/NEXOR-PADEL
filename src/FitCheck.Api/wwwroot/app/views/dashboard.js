@@ -395,6 +395,10 @@ const FUNNEL_CSS = `
 .dash-inviters dt { direction: ltr; unicode-bidi: isolate; }
 `;
 let funnelStyled = false;
+/** The entry-link codes that ship with a name in every locale file (source.<code>); anything else is an owner's own word. */
+const KNOWN_SOURCES = new Set(['tt', 'ig', 'wa', 'campus', 'yt', 'fb', 'x', 'qr', 'story', 'dm']);
+const sourceLabel = (code) => (KNOWN_SOURCES.has(code) ? t('source.' + code) : code);
+const SOURCE_COLUMNS = [['arrivals', 'funnel.source_arrivals'], ['guestChecks', 'funnel.guest_checks'], ['signups', 'funnel.signups'], ['firstPosts', 'funnel.first_posts']];
 
 /** The day as the reader's calendar writes it, short; the ISO string stays on the row for a test to find. */
 function funnelDay(iso) {
@@ -413,9 +417,11 @@ function funnelSection(funnel) {
     ['landing', 'funnel.landing'], ['guestChecks', 'funnel.guest_checks'], ['signups', 'funnel.signups'],
     ['firstPosts', 'funnel.first_posts'], ['lookArrivals', 'funnel.arrivals'], ['shareArrivals', 'funnel.share_arrivals'],
     ['invites', 'funnel.invites'],
-    // Round 20: the Pro page opened from a refused compare and from the wardrobe line (POST /api/funnel/pro-opened).
-    ['proFromCompare', 'funnel.pro_from_compare'], ['proFromWardrobe', 'funnel.pro_from_wardrobe']
+    // Round 20: the Pro page opened from a refused compare and from the wardrobe line (POST /api/funnel/pro-opened),
+    // and the launches from the home screen (X-Orevosh-Launch on the first call of a device's day).
+    ['proFromCompare', 'funnel.pro_from_compare'], ['proFromWardrobe', 'funnel.pro_from_wardrobe'], ['standalone', 'funnel.standalone']
   ];
+  const sources = Array.isArray(funnel.sources) ? funnel.sources : [];
 
   const fragment = document.createDocumentFragment();
   fragment.appendChild(el('section', { class: 'dash-section', id: 'dash-funnel' }, [
@@ -443,6 +449,27 @@ function funnelSection(funnel) {
       ['funnel.post_to_arrival', today.firstPostToArrival],
       ['funnel.arrival_from_share', today.arrivalFromShare]
     ].map(([label, value]) => el('div', { 'data-step': label }, [el('dt', { text: t(label) }), el('dd', { text: rate(value) })])))
+  ]));
+
+  // Round 20 — distribution: the window's totals per entry link (/go/<source>). The eight shipped codes have a name in
+  // every locale file; an owner-configured extra is drawn as its code, never as a t() call that would warn.
+  fragment.appendChild(el('section', { class: 'dash-section', id: 'dash-sources-section' }, [
+    el('h2', { text: t('funnel.sources_title') }),
+    el('p', { class: 'hint', text: t('funnel.sources_hint') }),
+    sources.length
+      ? el('div', { class: 'dash-scroll' }, [
+        el('table', { class: 'dash-table', id: 'dash-sources' }, [
+          el('thead', {}, [el('tr', {}, [
+            el('th', { scope: 'col', text: t('funnel.source') }),
+            ...SOURCE_COLUMNS.map(([, label]) => el('th', { scope: 'col', text: t(label) }))
+          ])]),
+          el('tbody', {}, sources.map((row) => el('tr', { 'data-source': row.source }, [
+            el('th', { scope: 'row', text: sourceLabel(row.source) }),
+            ...SOURCE_COLUMNS.map(([key]) => el('td', { 'data-key': key, text: fmtNumber(row[key] || 0) }))
+          ])))
+        ])
+      ])
+      : el('p', { class: 'empty', id: 'dash-sources-empty', text: t('funnel.none') })
   ]));
 
   fragment.appendChild(el('section', { class: 'dash-section' }, [

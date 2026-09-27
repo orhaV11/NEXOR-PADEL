@@ -37,6 +37,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;               // live data and private photos: network only
+  // Round 20: an entry link (/go/<source>) is a server redirect that counts an arrival; the shell must never answer it,
+  // and there is no offline fallback worth having for a link whose whole job is the hop. The browser handles it.
+  if (url.pathname.startsWith('/go/')) return;
   const isNavigation = event.request.mode === 'navigate';
   if (url.pathname.startsWith('/landing/')) {                 // the static landing pages are their own documents, not the shell:
     if (isNavigation) event.respondWith(serverPage(event.request));

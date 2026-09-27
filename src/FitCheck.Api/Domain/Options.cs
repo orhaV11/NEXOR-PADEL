@@ -809,7 +809,12 @@ public sealed class FunnelOptions
         ["tiktok"] = "tt", ["instagram"] = "ig", ["whatsapp"] = "wa", ["youtube"] = "yt", ["facebook"] = "fb", ["twitter"] = "x"
     };
 
-    public List<string> Sources { get; set; } = [.. Defaults];
+    /// <summary>
+    /// Empty here on purpose: the configuration binder ADDS a setting's entries to a list that already has some, so a
+    /// pre-filled default would make <c>Funnel:Sources</c> an extension of the ten rather than a replacement. <see cref="List"/>
+    /// is the default list while nothing is set.
+    /// </summary>
+    public List<string> Sources { get; set; } = [];
 
     /// <summary>The allowlist as the app uses it: trimmed, lower-cased, [a-z0-9]{1,16}, each once, in order; an empty setting is the default list.</summary>
     public IReadOnlyList<string> List

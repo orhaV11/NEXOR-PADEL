@@ -7,7 +7,7 @@ import {
   register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe, richText, hashQuery
 } from '../core.js';
 // Round 13 — the growth loop: the handle an invite link carried, spent once, here.
-import { takeInvite } from '../invite.js';
+import { takeInvite, takeSource } from '../invite.js';
 // Round 20: the welcome screen offers push to the guest who asked to hear when the stylist is back.
 import { pushSupport, enablePush } from '../push.js';
 
@@ -93,7 +93,8 @@ function authView(mode) {
         const me = signup
           // today: the phone's own calendar day, so the sixteen rule is measured on it and not on the server's UTC day.
           // invitedBy: the handle an invite link left in this browser (Round 13), sent once and then forgotten.
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite(), notifyStylistBack: stylistBack })
+          // source: the entry link the device arrived through (Round 20), likewise sent once and forgotten here.
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite(), notifyStylistBack: stylistBack, source: takeSource() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         state.me = me;
         if (stylistBack) state.stylistBackAsked = true;   // memory only: the welcome screen reads it once

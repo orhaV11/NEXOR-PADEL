@@ -102,8 +102,11 @@ const noContent = new Set();
 const pages = {};
 let step = 'boot';
 
-async function person(browser, name, locale) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale, serviceWorkers: 'block' });
+// Round 20: `extra.userAgent` makes the context another app's webview (the in-app-browser note), and `extra.standalone`
+// makes it the installed app as core.js sees it (navigator.standalone, the home-screen launch header).
+async function person(browser, name, locale, extra = {}) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale, serviceWorkers: 'block', ...(extra.userAgent ? { userAgent: extra.userAgent } : {}) });
+  if (extra.standalone) await context.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true }));
   await context.grantPermissions(['camera', 'microphone'], { origin: base });
   const page = await context.newPage();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${step} ${name}] ` + m.text()); if (m.type() === 'warning') consoleWarnings.push(m.text()); });
@@ -1272,6 +1275,112 @@ function checkClientModules() {
   const portal = await noa.request.post(base + '/api/billing/portal', { headers: { 'X-Requested-With': 'Orevosh' } });
   assert.strictEqual(portal.status(), 404, 'the manual provider has no portal');
 
+  step = 'distribution';
+  // Round 20 - distribution that can be counted. (1) An entry link: a fourth person, Maya, on a Hebrew phone, follows
+  // /go/tt and lands on the check screen with the source kept beside the invite would be; her guest check and her
+  // signup carry it, the numbers page attributes both to TikTok, and the source is spent by the signup. An unknown
+  // link lands on the landing page and moves no row. (2) Inside Instagram's browser the app says "open this in Safari
+  // or Chrome" once and never suggests Add to Home Screen. (3) The installed app says "standalone" on its first call of
+  // the day and only then; the numbers page counts one launch. (4) Copy link carries the share sentence above the
+  // address on a look page (Hebrew reads as a challenge) and on the result screen once the look is posted.
+  const maya = await person(browser, 'maya', 'he-IL');
+  await maya.goto(base + '/go/tt');
+  await maya.waitForFunction(() => location.hash === '#/check');
+  await maya.waitForSelector('#occasions .chip');
+  assert.ok(maya.url().endsWith('/?src=tt#/check'), 'the entry link lands on the check screen with the source: ' + maya.url());
+  assert.ok((await count(maya, '#occasions .chip')) > 0, 'the occasion chips are up');
+  assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), 'tt', 'the source is kept on the device');
+  const ttBefore = (await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt');
+  assert.strictEqual(ttBefore.arrivals, 1, 'one arrival through the TikTok link');
+  const mayaPhoto = await makeJpeg(maya, 800, 1000);
+  await runCheck(maya, { intent: 'Party', buffer: mayaPhoto, score: 7 });
+  assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), 'tt', 'a guest check does not spend the source');
+  await signup(maya, 'maya', 'password123');
+  assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), null, 'the signup spends the source');
+  const tt = (await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt');
+  assert.ok(tt.arrivals >= 1 && tt.guestChecks >= 1 && tt.signups >= 1, 'the walk is attributed to TikTok: ' + JSON.stringify(tt));
+  const sourceRows = (await metricsAs(noa)).funnel.sources;
+  assert.ok(sourceRows.every((s) => s.source === 'tt' || (s.arrivals === 0 && s.guestChecks === 0 && s.signups === 0)), 'no other row moved');
+  // The result screen once the look is posted: the Share button falls back to the clipboard (headless Chromium has no
+  // share sheet) with the sentence and the look's own address, which is Maya's invite link.
+  await maya.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
+  await runCheck(maya, { intent: 'Party', buffer: mayaPhoto, score: 7 });
+  const mayaPost = await postIt(maya, {});
+  await maya.click('#result-share');
+  await maya.waitForFunction(() => navigator.clipboard.readText().then((c) => c.includes('/look/')));
+  const resultClip = (await maya.evaluate(() => navigator.clipboard.readText())).split('\n');
+  assert.strictEqual(resultClip.length, 2, 'sentence, then the address: ' + JSON.stringify(resultClip));
+  assert.ok(resultClip[0].includes('7/10') && resultClip[0].includes('OREVOSH'), 'the result sentence: ' + resultClip[0]);
+  assert.ok(resultClip[1].endsWith('/look/' + mayaPost + '?via=maya'), 'the look address carries her invite: ' + resultClip[1]);
+  await shot(maya, '20-copy-link');
+  // An unknown source: the landing page, uncounted.
+  await maya.goto(base + '/go/nope');
+  await maya.waitForSelector('main, h1');
+  assert.ok(maya.url().endsWith('/landing/'), 'an unknown source lands on the landing page: ' + maya.url());
+  assert.strictEqual((await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt').arrivals, tt.arrivals, 'an unknown link moves no row');
+  await maya.context().close();
+
+  // (2) Instagram's browser: the note once, no Add to Home Screen advice, gone after "Got it" and not back on a reload.
+  const inapp = await person(browser, 'inapp', 'en-US', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 300.0.0.0' });
+  await inapp.goto(base + '/');
+  await inapp.waitForSelector('#inapp-hint');
+  assert.strictEqual(await count(inapp, '#install-hint'), 0, 'no install hint in a webview');
+  assert.strictEqual(await count(inapp, '.install:not(#inapp-hint)'), 0, 'no Add to Home Screen advice in a webview');
+  await shot(inapp, '20-inapp-hint');
+  await inapp.click('#inapp-hint-ok');
+  assert.strictEqual(await count(inapp, '#inapp-hint'), 0, 'Got it takes it away');
+  await inapp.reload();
+  await inapp.waitForSelector(settled);
+  assert.strictEqual(await count(inapp, '#inapp-hint'), 0, 'once per device');
+  await inapp.context().close();
+
+  // (3) The installed app: the launch header on the first /api/config of the day, absent on the reload, one row.
+  const installed = await person(browser, 'installed', 'en-US', { standalone: true });
+  const launches = [];
+  installed.on('request', (r) => { if (r.url().endsWith('/api/config')) launches.push(r.headers()['x-orevosh-launch'] || null); });
+  await installed.goto(base + '/');
+  await installed.waitForSelector(settled);
+  await installed.reload();
+  await installed.waitForSelector(settled);
+  assert.deepStrictEqual(launches, ['standalone', null], 'the header rides the first call of the day only: ' + JSON.stringify(launches));
+  assert.strictEqual((await metricsAs(noa)).funnel.days.at(-1).standalone, 1, 'one home-screen launch today');
+  await installed.context().close();
+
+  // (4) Copy link on a look page: the sentence above the address. Noa in English on her own look, Dan in Hebrew on the
+  // same look, where the line is a challenge to the group and the address carries his invite.
+  await noa.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
+  await go(noa, '#/post/' + post1);
+  await noa.click('#post-link-share');
+  await noa.waitForSelector('#link-copy');
+  await noa.click('#link-copy');
+  await noa.waitForFunction(() => navigator.clipboard.readText().then((c) => c.includes('/look/')));
+  const noaClip = (await noa.evaluate(() => navigator.clipboard.readText())).split('\n');
+  assert.strictEqual(noaClip.length, 2, 'sentence, then the address: ' + JSON.stringify(noaClip));
+  assert.ok(/ look /.test(noaClip[0]) && noaClip[0].endsWith('on OREVOSH'), 'the English sentence: ' + noaClip[0]);
+  assert.ok(noaClip[1].endsWith('/look/' + post1 + '?via=noa'), 'her look address carries her invite: ' + noaClip[1]);
+  await noa.keyboard.press('Escape');
+  await noa.waitForSelector('.sheet', { state: 'detached' });
+  await dan.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
+  await go(dan, '#/post/' + post1);
+  await dan.click('#post-link-share');
+  await dan.waitForSelector('#link-copy');
+  await dan.click('#link-copy');
+  await dan.waitForFunction(() => navigator.clipboard.readText().then((c) => c.includes('/look/')));
+  const danClip = (await dan.evaluate(() => navigator.clipboard.readText())).split('\n');
+  assert.strictEqual(danClip.length, 2, 'sentence, then the address: ' + JSON.stringify(danClip));
+  assert.ok(danClip[0].endsWith('?'), 'the Hebrew line is a challenge: ' + danClip[0]);
+  assert.ok(danClip[1].endsWith('/look/' + post1 + '?via=dan'), 'the address carries his invite: ' + danClip[1]);
+  await dan.keyboard.press('Escape');
+  await dan.waitForSelector('.sheet', { state: 'detached' });
+  // Numbers page: the last funnel column and the sources table, TikTok's row first and non-zero.
+  await go(noa, '#/admin/metrics');
+  await noa.waitForSelector('#dash-sources');
+  assert.strictEqual(await text(noa, '#dash-funnel-table thead th:last-child'), 'Home-screen opens');
+  assert.strictEqual(await text(noa, '#dash-funnel-table tbody tr:last-child td[data-key=standalone]'), '1');
+  assert.strictEqual(await text(noa, '#dash-sources tbody tr:first-child th'), 'TikTok');
+  assert.strictEqual(await text(noa, '#dash-sources tr[data-source=tt] td[data-key=signups]'), '1');
+  await shot(noa, '20-sources-en');
+
   step = '11';
   // 11. Dan reports the clip; the owner makes Noa a moderator with the --admin command (the way it is done on a server,
   //     after the account exists); the queue, hide, show again, suspend Dan, lift it.
@@ -1448,7 +1557,7 @@ function checkClientModules() {
   await noa.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await noa.waitForFunction(() => !!document.getElementById('top-auth'));
   const after = await metricsAs(brand);
-  assert.strictEqual(after.social.users, 3, 'brand, dan and lior (Round 20) remain');
+  assert.strictEqual(after.social.users, 4, 'brand, dan, lior and maya (Round 20) remain');
   assert.strictEqual(after.social.featured, 0);
   assert.strictEqual(after.social.mentions, 0);
   assert.strictEqual(after.social.videos, 0, 'the clip left with the account');

@@ -2,7 +2,7 @@
 // pages as you scroll and refreshes when you pull down. The intent filter lives in state.feed so it survives a
 // trip to a post and back; the tab comes from the route (#/ or #/feed/following).
 import {
-  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, languageOffer, signInPrompt, announce, onLeave, feedVersion
+  register, state, t, api, el, INTENTS, PAGE, intentLabel, postCard, infiniteList, pullToRefresh, installBanner, inAppBrowserHint, languageOffer, signInPrompt, announce, onLeave, feedVersion
 } from '../core.js';
 import { todayStrip } from './today.js';
 import { boardResetCard, emptyCall } from './board.js';
@@ -80,7 +80,8 @@ register('feed', async (root, params, ctx) => {
   // where you keep the app.
   const offer = languageOffer();
   if (offer) root.appendChild(offer);
-  const banner = installBanner();
+  // Round 20: inside another app's browser there is nothing to install, so the slot carries the one-time "open in Safari or Chrome" note instead.
+  const banner = installBanner() || inAppBrowserHint();
   if (banner) root.appendChild(banner);
   // "The board reset" on the first day of the week (views/board.js decides, and remembers a dismissal for the day): above the Today strip.
   if (tab === 'foryou') boardResetCard(ctx, (card) => { const anchor = banner || root.querySelector('.sticky-tabs'); if (anchor && document.contains(anchor)) anchor.after(card); });

@@ -448,6 +448,9 @@ public class SecurityHeaderSetTests
     [InlineData("/landing/index.he.html")]
     [InlineData("/api/config")]
     [InlineData("/api/posts/00000000-0000-0000-0000-000000000000")]
+    // Round 20: an entry link is a redirect, and a redirect starts like any response.
+    [InlineData("/go/tt")]
+    [InlineData("/go/nope")]
     public async Task Every_response_carries_the_policy_and_the_rest_of_the_set(string path)
     {
         using var app = new TestApp();

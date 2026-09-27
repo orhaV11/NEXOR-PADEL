@@ -28,8 +28,9 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
 } from '../core.js';
+import { pendingSource } from '../invite.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck, openCheckPairShare } from '../sharevideo.js';
 import { afterPicker } from '../after.js';
@@ -731,6 +732,10 @@ async function submitCheck() {
     form.append('style', pick.style || '');
     form.append('note', ck.occasion.trim());
     form.append('language', getLocale());
+    // Round 20 — distribution: the entry link this device arrived through (/go/<source>), while it is kept. The server
+    // checks it against its allowlist; the numbers page attributes guest checks to it.
+    const source = pendingSource();
+    if (source) form.append('source', source);
     // Round 19: the planned outfit this photo is the person wearing, when they came from it.
     if (ck.suggestion && ck.suggestion.id) form.append('suggestionId', ck.suggestion.id);
     form.append('image', ck.photo, 'outfit.jpg');
@@ -925,7 +930,7 @@ register('result', async (root, params, ctx) => {
   container.appendChild(el('div', { class: 'row share-row' }, [
     judged ? shareVideoButton(videoLookFromCheck(result, judged)) : null,
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
-    el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
+    el('button', { type: 'button', class: 'btn btn-secondary', id: 'result-share', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));
   // Round 20 — the loop, now that the screen is whole: the typed reasons and "Try the tip, then show me" into their
   // mounts; a tap arms the attempt and takes the retake path into the media sheet (startAttempt); the pair, once it is
@@ -938,7 +943,8 @@ register('result', async (root, params, ctx) => {
     });
   }
   // Round 13: on iOS Safari, once per device, the note that the app can live on the home screen, now that the value has landed.
-  const installHint = iosInstallHint();
+  // Round 20: or, inside another app's browser, the note to open it in Safari or Chrome; whichever renders first marks it seen.
+  const installHint = iosInstallHint() || inAppBrowserHint();
   if (installHint) { installHint.classList.add('result-install'); container.appendChild(installHint); }
   container.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
 
@@ -1171,17 +1177,21 @@ function animateScore(node, target) {
   onLeave(() => { cancelAnimationFrame(frame); node.textContent = fmtNumber(target); });
 }
 
+// Round 20: once the check is posted the sentence travels with the look's public address (the sharer's own invite link),
+// on the sheet and on the clipboard alike; unposted, the sentence alone, exactly as before.
 async function shareResult(result) {
   if (state.sharing) return;
   state.sharing = true;
   try {
     const feedback = result.feedback || {};
     const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: occasionLabel(askedFor(result).occasion), tip: feedback.oneTip || '' });
+    const postId = state.resultPostId || result.postId;
+    const url = postId ? shareLookUrl(postId) : null;
     if (navigator.share) {
-      try { await navigator.share({ text }); return; }
+      try { await navigator.share(url ? { title: t('app.name'), text, url } : { text }); return; }
       catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }
     }
-    await copyText(text, t('result.copied'));
+    await copyText(url ? text + '\n' + url : text, t('result.copied'));
   } finally { state.sharing = false; }
 }
 

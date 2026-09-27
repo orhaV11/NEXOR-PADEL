@@ -427,9 +427,22 @@ export async function api(method, path, body, timeoutMs, extraHeaders) {
 /** Bumped whenever a look is created or deleted, so cached feeds know they are stale. */
 export const feedVersion = { n: 0 };
 
-/** Upload limits and the push key. A failure keeps the defaults: the server still enforces its own limits. */
+/**
+ * Upload limits and the push key. A failure keeps the defaults: the server still enforces its own limits.
+ * Round 20: this is the first request of every launch, so it is also where the installed app says, once a day per
+ * device, that it was opened from the home screen (X-Orevosh-Launch: standalone, counted by the funnel middleware on
+ * this one route). The day guard is the device's own prefs: no cookie, no route, no POST; private mode has no memory,
+ * and cannot install a PWA either.
+ */
 export async function loadConfig() {
-  try { const c = await api('GET', '/api/config'); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
+  let headers;
+  try {
+    if (isStandalone()) {
+      const day = new Date().toISOString().slice(0, 10);
+      if (loadPrefs().standaloneDay !== day) { savePrefs({ standaloneDay: day }); headers = { 'X-Orevosh-Launch': 'standalone' }; }
+    }
+  } catch (e) { /* no header, then */ }
+  try { const c = await api('GET', '/api/config', undefined, undefined, headers); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
 }
 export async function loadMe() {
   const before = state.me;

@@ -18,9 +18,16 @@ namespace FitCheck.Api.Services;
 /// </para>
 /// <para>
 /// <see cref="Count"/> is the middleware: one tally per page view of <c>/landing/…</c> per day, and one per arrival
-/// carrying an invite's <c>?via=&lt;handle&gt;</c>. It sets no cookie, reads no header beyond the path and the query,
-/// stores no address and asks nothing off this machine: a day's number, and nothing that could name a person. It runs
-/// before the static files, since a landing page is a static file and would otherwise never reach a handler.
+/// carrying an invite's <c>?via=&lt;handle&gt;</c>. It sets no cookie, reads nothing beyond the path, the query and
+/// (Round 20) the one launch header on <c>/api/config</c>, stores no address and asks nothing off this machine: a day's
+/// number, and nothing that could name a person. It runs before the static files, since a landing page is a static
+/// file and would otherwise never reach a handler.
+/// </para>
+/// <para>
+/// Round 20 — distribution that can be counted: an arrival through an entry link (<c>/go/{source}</c>, GoEndpoints) is
+/// a row per allowlisted source per day, and the source rides the redirect's query into the guest check and the signup
+/// (OutfitCheck.Source, AppUser.Source), so <see cref="ComputeAsync"/> can attribute those to the link they followed.
+/// A launch from the home screen is one more row, told by the installed app's first call of the day.
 /// </para>
 /// </summary>
 public static partial class Funnel
@@ -57,7 +64,30 @@ public static partial class Funnel
         _ => null
     };
 
+    /// <summary>
+    /// Round 20 — distribution: one arrival through the entry link <c>/go/{source}</c> (GoEndpoints). The source is an
+    /// allowlisted word of <c>[a-z0-9]{1,16}</c> (FunnelOptions.List), so the row name is bounded by construction.
+    /// </summary>
+    public static string SourceArrivals(string source, DateOnly day) => $"funnel:src:{source}:{Key(day)}";
+
+    /// <summary>Round 20: launches from the home screen, one per device-day, told by <see cref="StandaloneHeader"/> on the first call (GET /api/config).</summary>
+    public static string Standalone(DateOnly day) => $"funnel:standalone:{Key(day)}";
+
+    /// <summary>The header the installed app puts on its first request of a day; counted on <c>/api/config</c> only, ignored anywhere else.</summary>
+    public const string StandaloneHeader = "X-Orevosh-Launch";
+
+    /// <summary>The one value of <see cref="StandaloneHeader"/> that counts.</summary>
+    public const string StandaloneValue = "standalone";
+
     public static string Key(DateOnly day) => day.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The fetchers that unfurl a pasted link — WhatsApp, Telegram, Facebook, Slack, Discord, X and the general crawlers.
+    /// An entry link they fetch is a paste, not a person, so GoEndpoints redirects them and counts nothing. Nothing
+    /// about the user agent is ever stored; it is read once, matched, and forgotten.
+    /// </summary>
+    [GeneratedRegex(@"bot|crawl|spider|facebookexternalhit|whatsapp|telegrambot|twitterbot|slackbot|discordbot", RegexOptions.IgnoreCase)]
+    public static partial Regex CrawlerRegex();
 
     // The same shape AuthEndpoints accepts as a handle; anything else in ?via is somebody's noise, not an invite.
     [GeneratedRegex(@"^[\p{L}\p{N}_.]{2,40}$")]
@@ -72,38 +102,56 @@ public static partial class Funnel
     public static async Task Count(HttpContext context, RequestDelegate next)
     {
         var request = context.Request;
-        if (HttpMethods.IsGet(request.Method) && !request.Path.StartsWithSegments("/api"))
+        if (HttpMethods.IsGet(request.Method))
         {
-            var path = request.Path.Value ?? "/";
-            var landing = IsLandingPage(path);
-            var via = request.Query["via"].ToString().Trim();
-            var invite = via.Length > 0
-                && !string.Equals(via, PublicPageEndpoints.ViaShare, StringComparison.OrdinalIgnoreCase)
-                && HandleRegex().IsMatch(via);
-            if (landing || invite)
+            if (request.Path.StartsWithSegments("/api"))
             {
-                var day = DateOnly.FromDateTime(DateTime.UtcNow);
-                var db = context.RequestServices.GetRequiredService<AppDbContext>();
-                try
+                // Round 20: the installed app's first call of the day says so, on this one route and no other, so one
+                // launch is one row however many calls follow it. Any other path carrying the header is ignored.
+                if (request.Path == "/api/config" && string.Equals(request.Headers[StandaloneHeader].ToString(), StandaloneValue, StringComparison.OrdinalIgnoreCase))
                 {
+                    await TallyAsync(context, Standalone(DateOnly.FromDateTime(DateTime.UtcNow)));
+                }
+            }
+            else
+            {
+                var path = request.Path.Value ?? "/";
+                var landing = IsLandingPage(path);
+                var via = request.Query["via"].ToString().Trim();
+                var invite = via.Length > 0
+                    && !string.Equals(via, PublicPageEndpoints.ViaShare, StringComparison.OrdinalIgnoreCase)
+                    && HandleRegex().IsMatch(via);
+                if (landing || invite)
+                {
+                    var day = DateOnly.FromDateTime(DateTime.UtcNow);
                     if (landing)
                     {
-                        await Counters.IncrementAsync(db, Landing(day), context.RequestAborted);
+                        await TallyAsync(context, Landing(day));
                     }
 
                     if (invite)
                     {
-                        await Counters.IncrementAsync(db, InviteArrivals(day), context.RequestAborted);
+                        await TallyAsync(context, InviteArrivals(day));
                     }
-                }
-                catch (Exception) when (!context.RequestAborted.IsCancellationRequested)
-                {
-                    // A tally is never worth a page.
                 }
             }
         }
 
         await next(context);
+    }
+
+    /// <summary>One upsert on a counter row, inside the request's own scope; a tally is never worth a page.</summary>
+    private static async Task TallyAsync(HttpContext context, string name)
+    {
+        try
+        {
+            var db = context.RequestServices.GetRequiredService<AppDbContext>();
+            await Counters.IncrementAsync(db, name, context.RequestAborted);
+        }
+        catch (Exception) when (!context.RequestAborted.IsCancellationRequested)
+        {
+            // A tally is never worth a page.
+        }
     }
 
     /// <summary>The landing page itself, not the screenshots beside it: "/landing", "/landing/" or a ".html" under it.</summary>
@@ -123,7 +171,7 @@ public static partial class Funnel
     /// invite numbers. Read straight off the counters and the rows; nothing is cached, and a moderator is the only one
     /// who ever asks (MetricsEndpoints is the gate).
     /// </summary>
-    public static async Task<FunnelMetricsDto> ComputeAsync(AppDbContext db, DateTime nowUtc, CancellationToken ct)
+    public static async Task<FunnelMetricsDto> ComputeAsync(AppDbContext db, DateTime nowUtc, IReadOnlyList<string> sources, CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(nowUtc);
         var first = today.AddDays(-(Days - 1));
@@ -140,24 +188,39 @@ public static partial class Funnel
             names.Add(InviteArrivals(day));
             names.Add(ProFromCompare(day));
             names.Add(ProFromWardrobe(day));
+            names.Add(Standalone(day));
+            // Round 20: the entry links, one row per allowlisted source per day (a handful times fourteen).
+            foreach (var source in sources)
+            {
+                names.Add(SourceArrivals(source, day));
+            }
         }
 
         var tallies = await db.Counters.AsNoTracking().Where(c => names.Contains(c.Name)).ToDictionaryAsync(c => c.Name, c => c.Value, ct);
         long Tally(string name) => tallies.TryGetValue(name, out var value) ? value : 0;
 
         // A guest check is one that was made without an account: still a guest's, or claimed by the account it followed.
-        var guestChecks = await db.Checks.AsNoTracking()
+        // Round 20: each row carries the entry link it came through (Source), so the same reads feed the per-source table.
+        var guestRows = await db.Checks.AsNoTracking()
             .Where(c => c.CreatedAt >= from && c.Status != CheckStatus.Error && (c.GuestToken != null || c.ClaimedAt != null))
-            .Select(c => c.CreatedAt)
+            .Select(c => new { c.CreatedAt, c.Source })
             .ToListAsync(ct);
-        var signups = await db.Users.AsNoTracking().Where(u => u.CreatedAt >= from).Select(u => u.CreatedAt).ToListAsync(ct);
+        var signupRows = await db.Users.AsNoTracking().Where(u => u.CreatedAt >= from).Select(u => new { u.CreatedAt, u.Source }).ToListAsync(ct);
         // A first post is the day an account posted for the first time ever, so a busy poster counts once.
-        var firstPosts = (await db.Posts.AsNoTracking()
+        var firstPostRows = (await db.Posts.AsNoTracking()
             .GroupBy(p => p.UserId)
-            .Select(g => g.Min(p => p.CreatedAt))
+            .Select(g => new { UserId = g.Key, First = g.Min(p => p.CreatedAt) })
             .ToListAsync(ct))
-            .Where(at => at >= from)
+            .Where(r => r.First >= from)
             .ToList();
+        var firstPosterIds = firstPostRows.Select(r => r.UserId).ToList();
+        var posterSources = await db.Users.AsNoTracking()
+            .Where(u => firstPosterIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Source })
+            .ToDictionaryAsync(u => u.Id, u => u.Source, ct);
+        var guestChecks = guestRows.Select(r => r.CreatedAt).ToList();
+        var signups = signupRows.Select(r => r.CreatedAt).ToList();
+        var firstPosts = firstPostRows.Select(r => r.First).ToList();
 
         static int OnDay(IEnumerable<DateTime> times, DateOnly day) => times.Count(t => DateOnly.FromDateTime(t) == day);
 
@@ -175,7 +238,28 @@ public static partial class Funnel
                 ProfileArrivals: Clamp(Tally(ProfileArrivals(day))),
                 Invites: Clamp(Tally(InviteArrivals(day))),
                 ProFromCompare: Clamp(Tally(ProFromCompare(day))),
-                ProFromWardrobe: Clamp(Tally(ProFromWardrobe(day)))));
+                ProFromWardrobe: Clamp(Tally(ProFromWardrobe(day))),
+                Standalone: Clamp(Tally(Standalone(day)))));
+        }
+
+        // Round 20: the window's totals per entry link, in the allowlist's order, zero rows kept so the table is stable and
+        // a link nobody followed reads as a visible zero rather than a missing row. Not per day: a per-source-per-day
+        // table is a hundred cells of mostly zeros on a pilot.
+        var perSource = new List<FunnelSourceDto>();
+        foreach (var source in sources)
+        {
+            long arrivals = 0;
+            for (var day = first; day <= today; day = day.AddDays(1))
+            {
+                arrivals += Tally(SourceArrivals(source, day));
+            }
+
+            perSource.Add(new FunnelSourceDto(
+                Source: source,
+                Arrivals: Clamp(arrivals),
+                GuestChecks: guestRows.Count(r => r.Source == source),
+                Signups: signupRows.Count(r => r.Source == source),
+                FirstPosts: firstPostRows.Count(r => posterSources.TryGetValue(r.UserId, out var src) && src == source)));
         }
 
         var last = rows[^1];
@@ -211,7 +295,7 @@ public static partial class Funnel
             sent += row.Invites;
         }
 
-        return new FunnelMetricsDto(rows, conversion, new InviteMetricsDto(sent, accepted, inviters));
+        return new FunnelMetricsDto(rows, conversion, new InviteMetricsDto(sent, accepted, inviters), perSource);
     }
 
     /// <summary>A step over the one before it, four decimals; null when the step before it never happened.</summary>

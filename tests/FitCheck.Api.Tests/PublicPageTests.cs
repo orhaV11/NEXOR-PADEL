@@ -314,6 +314,8 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.Contains("Disallow: /api/", robots);
         Assert.Contains("Disallow: /app/", robots);
         Assert.Contains("Disallow: /$", robots);
+        // Round 20: an entry link counts an arrival, so a crawler must not follow it.
+        Assert.Contains("Disallow: /go/", robots);
     }
 
     [Fact]

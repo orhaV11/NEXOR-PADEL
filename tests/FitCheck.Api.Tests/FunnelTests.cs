@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -94,6 +95,9 @@ public class FunnelTests : IClassFixture<TestApp>
         Assert.Equal("funnel:pro:wardrobe:20260920", Funnel.ProOpenedCounter("wardrobe", day));
         Assert.Null(Funnel.ProOpenedCounter("feed", day));
         Assert.Null(Funnel.ProOpenedCounter(null, day));
+        // Round 20: an arrival through an entry link, per source, and a launch from the home screen.
+        Assert.Equal("funnel:src:tt:20260920", Funnel.SourceArrivals("tt", day));
+        Assert.Equal("funnel:standalone:20260920", Funnel.Standalone(day));
     }
 
     [Fact]
@@ -128,9 +132,14 @@ public class FunnelTests : IClassFixture<TestApp>
         Assert.Equal(1, last.GetProperty("firstPosts").GetInt32());
         Assert.Equal(1, last.GetProperty("lookArrivals").GetInt32());
         Assert.Equal(1, last.GetProperty("shareArrivals").GetInt32());
-        // Round 20: nobody has opened the Pro page from either surface yet.
+        // Round 20: nobody has opened the Pro page from either surface yet, and no launch from the home screen on any day.
         Assert.Equal(0, last.GetProperty("proFromCompare").GetInt32());
         Assert.Equal(0, last.GetProperty("proFromWardrobe").GetInt32());
+        Assert.All(days, day => Assert.Equal(0, day.GetProperty("standalone").GetInt32()));
+        // Round 20: one row per allowlisted entry link, all zero, since nobody followed one.
+        var sources = funnel.GetProperty("sources").EnumerateArray().ToList();
+        Assert.Equal(new FunnelOptions().List.Count, sources.Count);
+        Assert.All(sources, row => Assert.Equal(0, row.GetProperty("arrivals").GetInt32()));
 
         // The walker is refused a compare and opens Pro from there, then from the wardrobe line: one each, today.
         Assert.Equal(HttpStatusCode.NoContent, (await walker.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);

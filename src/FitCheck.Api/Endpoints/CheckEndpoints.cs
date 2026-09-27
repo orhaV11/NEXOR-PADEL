@@ -78,6 +78,8 @@ public static class CheckEndpoints
         Transcoder transcoder,
         IOptions<LanguagesOptions> languages,
         SpendMeter spend,
+        // Round 20 — distribution: the entry link this device arrived through, as the client kept it (form field "source").
+        IOptions<FunnelOptions> funnel,
         // Round 14 — the loop: the wearer's own taste, as one capped advisory section on the system prompt. Null for a
         // guest, for an account that switched the learning off and for an empty profile, and then the request is the one
         // this route always sent.
@@ -192,6 +194,10 @@ public static class CheckEndpoints
                 return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(language, "error.style_invalid"));
             }
         }
+
+        // Round 20 — distribution: the entry link (/go/<source>) the client kept; anything off the allowlist is null, never
+        // a refusal, since a source is a tally on the moderators' page and nothing the check depends on.
+        var source = funnel.Value.Normalize(form["source"].ToString());
 
         var note = OutfitAnalyzer.SanitizeOccasion(form[legacy ? "occasion" : "note"].ToString());
         if (note.Length > OccasionMaxLength)
@@ -390,6 +396,7 @@ public static class CheckEndpoints
             Note = note.Length == 0 ? null : note,
             Language = language,
             PromptVersion = OutfitAnalyzer.PromptVersion,
+            Source = source,
             CreatedAt = now
         };
 

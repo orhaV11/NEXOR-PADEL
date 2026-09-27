@@ -35,7 +35,9 @@ namespace FitCheck.Api.Data.Migrations
                 table: "Users",
                 type: "INTEGER",
                 nullable: false,
-                defaultValue: false);
+                // On for every account from before this column existed, as it is for a new one (AppUser.TomorrowPushOn);
+                // the server flag decides whether the ping is offered at all, the person's switch only says no.
+                defaultValue: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "CheckId",

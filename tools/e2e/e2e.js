@@ -700,13 +700,85 @@ function checkClientModules() {
   await brand.click('.sheet button:has-text("Feature this look")');
   await brand.waitForSelector('.card .featured');
 
+  step = 'try-the-tip';
+  // Round 20 — the wedge. Noa's posted challenge look is still the result in hand: the primary next action after the
+  // change tip is "Try the tip, then show me", the Round 13 yes/no row is gone, and there is no pair share until there
+  // is a pair. The tap arms the attempt and lands on the check screen with the media sheet open — one tap from the
+  // camera; the second check is an ordinary check (the stub sees nothing of the first); the pair is written afterwards.
+  const noaChecks = await noa.request.get(base + '/api/users/me/checks').then((r) => r.json());
+  const beforeCheck = noaChecks.find((c) => c.postId === post2).id;
+  await go(noa, '#/result');
+  await noa.waitForSelector('#tried-start');
+  assert.strictEqual(await text(noa, '#tried-start'), 'Try the tip, then show me');
+  assert.ok(await noa.$eval('#tried-start', (n) => n.classList.contains('btn') && !n.classList.contains('btn-secondary')), 'the primary treatment');
+  assert.strictEqual(await count(noa, '#taste-reasons .chip[data-reason]'), 4, 'the four typed answers');
+  assert.strictEqual(await count(noa, '#useful-yes'), 0, 'the yes/no row asked the same thing twice; it is gone');
+  assert.strictEqual(await count(noa, '#share-pair'), 0, 'no pair share before there is a pair');
+  await shot(noa, '52-try-the-tip-en');
+  await noa.click('#tried-start');
+  await noa.waitForFunction(() => location.hash === '#/check');
+  await noa.waitForSelector('#media-camera');
+  assert.strictEqual(await count(noa, '#media-library'), 1, 'the media sheet is open on arrival');
+  const armed = await noa.evaluate(() => JSON.parse(sessionStorage.getItem('orevosh.tried') || 'null'));
+  assert.strictEqual(armed && armed.beforeId, beforeCheck, 'the attempt names the first check');
+  await noa.keyboard.press('Escape');
+  await noa.waitForFunction(() => !document.querySelector('.sheet'));
+  await choosePhoto(noa, '#photo', bigJpeg);
+  await noa.waitForSelector('#photo img');
+  await noa.waitForFunction(() => !document.getElementById('submit').disabled);
+  await noa.click('#submit');
+  await noa.waitForSelector('#result .score', { timeout: 30000 });
+  await noa.waitForFunction(() => document.querySelector('#result .score').textContent === '7', null, { timeout: 5000 });
+  // "Is this the look after the change?" — yes: the pair, both sides.
+  await noa.waitForSelector('.sheet:has-text("Is this the look after the change?")');
+  await noa.click('.sheet button:has-text("Yes, that\'s it")');
+  await noa.waitForSelector('#tried-pair .pair-side[data-side=before]');
+  assert.strictEqual(await count(noa, '#tried-pair .pair-side[data-side=after]'), 1);
+  const lastCheckRequest = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'submit_outfit_feedback').at(-1);
+  assert.ok(!lastCheckRequest.user_text.includes(beforeCheck), 'the second check carries no id of the first');
+  assert.ok(!lastCheckRequest.user_text.includes('Swap the running shoes'), 'nor the first tip');
+  // The pair share leads the row; the card is drawn from the private before photo and the judged still; saving is tallied.
+  assert.strictEqual(await noa.$eval('.share-row', (n) => n.firstElementChild && n.firstElementChild.id), 'share-pair', 'the pair share is first');
+  await noa.click('#share-pair');
+  await noa.waitForSelector('#before-after-sheet');
+  await noa.waitForFunction(() => { const imgs = [...document.querySelectorAll('.ba-pair img')]; return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0); }, null, { timeout: 15000 });
+  assert.ok((await noa.$$eval('.ba-pair img', (n) => n.map((i) => i.getAttribute('src')))).some((src) => src === `/api/checks/${beforeCheck}/image`), 'the before is the private check photo');
+  await noa.click('#ba-card');
+  await noa.waitForSelector('#sc-card');
+  await noa.waitForFunction(() => { const i = document.getElementById('sc-card'); return !!i && i.complete && i.naturalWidth > 0; }, null, { timeout: 30000 });
+  const pairCounted = noa.waitForResponse((r) => r.url().endsWith('/tried/shared') && r.request().method() === 'POST');
+  await noa.click('#sc-save');
+  assert.strictEqual((await pairCounted).status(), 204, 'the pair share is tallied once');
+  await shot(noa, '53-pair-share-en');
+  await noa.keyboard.press('Escape');
+  await noa.waitForFunction(() => !document.querySelector('.sheet'));
+  const loop = (await metricsAs(noa)).stylist;
+  assert.strictEqual(loop.triedPairs, 1, 'one pair on the numbers page');
+  assert.strictEqual(typeof loop.triedPer100Ok, 'number', 'pairs per hundred ok checks is a number');
+  // Posting the after: the earlier look is already picked, and the public page shows the pair.
+  await noa.click('#post-open');
+  await noa.waitForSelector('#post-confirm');
+  await noa.waitForSelector('#after-picker:not([hidden])');
+  await noa.waitForFunction((p) => { const o = document.querySelector('#after-picker .after-opt.look[data-post="' + p + '"]'); return !!o && o.getAttribute('aria-checked') === 'true'; }, post2);
+  await noa.click('#post-confirm');
+  await noa.waitForSelector('#post-link');
+  const postAfter = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
+  const pairPage = (await get(`${base}/look/${postAfter}`)).body.toString('utf8');
+  assert.ok(pairPage.includes('class="pair"'), 'the public page shows the pair');
+  assert.ok(pairPage.includes(`/look/${post2}/image`), 'with the earlier look\'s photo');
+  // The nudge is hourly and clock-based (TryTipNudgeTests own it); the list still answers, and the settings copy says what push sends.
+  assert.strictEqual((await noa.request.get(base + '/api/notifications')).status(), 200);
+  await go(noa, '#/settings');
+  await noa.waitForSelector('label[for="s-push"] .hint');
+  assert.strictEqual(await text(noa, 'label[for="s-push"] .hint'), "A ping when your look catches fire, someone follows you, a brand features you, or a day after a tip you haven't tried yet.");
+
   step = '9';
   // 9. Photos: the post image route and the avatar route are the only doors; nothing under storage is reachable by path.
   assert.strictEqual((await get(`${base}/api/posts/${post1}/image`)).status, 200);
   const storage = path.join(DATA, 'storage');
   const files = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) files.push(user + '/' + f);
-  assert.strictEqual(files.length, 4, 'three OK checks (one claimed from a guest) plus one avatar: ' + files.join(','));
+  assert.strictEqual(files.length, 5, 'four OK checks (one claimed from a guest, one the look after the tip) plus one avatar: ' + files.join(','));
   for (const rel of files) {
     for (const url of [`${base}/${rel}`, `${base}/storage/${rel}`, `${base}/wwwroot/${rel}`]) {
       assert.strictEqual((await get(url)).status, 404, `photo reachable at ${url}`);
@@ -802,7 +874,7 @@ function checkClientModules() {
   assert.strictEqual(await count(dan, '.grid a.is-clip'), 1, 'the grid marks the clip');
   const clipFiles = [];
   for (const user of fs.readdirSync(storage)) for (const f of fs.readdirSync(path.join(storage, user))) clipFiles.push(user + '/' + f);
-  assert.strictEqual(clipFiles.length, 6, 'the clip and its still joined the store: ' + clipFiles.join(','));
+  assert.strictEqual(clipFiles.length, 7, 'the clip and its still joined the five photos: ' + clipFiles.join(','));
   assert.ok(clipFiles.some((f) => /\.mp4$/.test(f)) && !clipFiles.some((f) => /\.webm$/.test(f)), 'the MP4 replaced the WebM on disk: ' + clipFiles.join(','));
   for (const rel of clipFiles.filter((f) => /\.(webm|mp4)$/.test(f))) {
     assert.strictEqual((await get(`${base}/${rel}`)).status, 404, `clip reachable at /${rel}`);

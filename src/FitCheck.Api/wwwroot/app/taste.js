@@ -5,21 +5,24 @@
 //   2. "I tried it": one tap remembers this check, the person photographs the look again through the ordinary check flow,
 //      and the two results are shown together — both scores, both tips, and what changed in the combination. The second
 //      check is a real check: the stylist is never told it is an attempt, and the pair is written only once both verdicts
-//      exist (POST /api/checks/{id}/tried with { beforeId }). Then "which do you prefer?".
+//      exist (POST /api/checks/{id}/tried with { beforeId }). Then "which do you prefer?". Round 20 makes it the primary
+//      next action after every change tip on the result screen ("Try the tip, then show me", opts.primary), and once a
+//      pair exists the before/after card and film are one tap away (openCheckPairShare, app/sharevideo.js).
 //   3. The taste card: what OREVOSH has learned, in a handful of lines the person would recognise, with the literal text
 //      the stylist is sent, a switch to stop the learning and a button to clear it.
 //
-// MOUNTING. The result screen is views/check.js, which is not this module's file. It calls mountResult(container, check)
-// once, after the tip, and this module fills whichever of these ids it finds inside the container, or appends its own
-// nodes in that order when it finds none:
+// MOUNTING. The result screen is views/check.js, which is not this module's file. It calls
+// mountResult(container, check, { onStart, onPair, afterUrl }) once, after the tip, and this module fills whichever of
+// these ids it finds inside the container, or appends its own nodes in that order when it finds none:
 //   #taste-win      the one line about the last tip that worked ("last time you … and said it worked")
 //   #taste-reasons  the row of typed reasons
-//   #tried-action   the "I tried it" button, or the pair once the two checks are linked
+//   #tried-action   the "Try the tip, then show me" button (#tried-start), or the pair (#tried-pair) once the two checks are linked
 // Nothing here needs check.js to exist: views/profile.js mounts the same pieces on #/checks, and views/settings.js mounts
 // the card, so the loop is whole without the result screen.
 import {
   el, icon, t, api, state, toast, sheet, confirmSheet, fmtNumber, fmtDate, intentLabel, navigate, requireSignIn
 } from './core.js';
+import { openCheckPairShare } from './sharevideo.js';
 
 /** The four typed answers, in the order the row shows them. Mirrors Domain.TipReason on the server. */
 export const REASONS = ['worked', 'didnt_work', 'not_my_style', 'dont_own'];
@@ -42,6 +45,8 @@ const CSS = `
 .loop-said .btn-text { flex: none; padding-block: 0; }
 .loop-win { margin: 0; color: var(--ink-2); font-style: italic; }
 .loop-start { min-block-size: 44px; }
+.loop-start.btn:not(.btn-secondary) { inline-size: 100%; }
+.pair-share { justify-self: start; min-block-size: 44px; }
 .loop-pending { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .loop-pending .btn-text { flex: none; padding-block: 0; }
 .pair-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -207,13 +212,17 @@ export function reasonRow(check, opts) {
 
 /**
  * The button that starts the second check, the "waiting" state once it has been tapped, and the pair once the two checks
- * are linked. opts: { ids } for the documented result-screen id, { pair } when the pair is already known,
- * { onLinked(pair) }, { onNavigate } instead of going to the check screen.
+ * are linked. opts: { ids } for the documented ids on the button and the pair (#tried-start, #tried-pair), { hostId } for
+ * the host's own (#tried-action, when no slot carries it), { pair } when the pair is already known, { onLinked(pair) },
+ * { primary } for the result screen's treatment (the primary `btn`, "Try the tip, then show me" and its hint; the
+ * secondary "I tried it" is the list's), { onStart(check) } to run the result screen's own way into the camera once the
+ * attempt is armed, { onNavigate } instead of going to the check screen, { afterUrl } the judged still for the pair share.
+ * A keep-tip has nothing to try: the block draws nothing at all for it, on either screen.
  */
 export function triedBlock(check, opts) {
   opts = opts || {};
   ensureStyle();
-  const host = el('div', { id: opts.ids ? 'tried-action' : null });
+  const host = el('div', { id: opts.hostId ? 'tried-action' : null });
   paintTried(host, check, opts);
   return host;
 }
@@ -221,6 +230,7 @@ export function triedBlock(check, opts) {
 function paintTried(host, check, opts) {
   host.replaceChildren();
   if (opts.pair) { host.appendChild(pairBlock(opts.pair, opts)); return; }
+  if (check.feedback && check.feedback.tipKind === 'keep') return;
   const pending = pendingAttempt();
   if (pending && pending.beforeId === check.id) {
     host.appendChild(el('div', { class: 'loop loop-pending' }, [
@@ -229,16 +239,20 @@ function paintTried(host, check, opts) {
     ]));
     return;
   }
-  const start = el('button', { type: 'button', class: 'btn btn-secondary loop-start', id: opts.ids ? 'tried-start' : null }, [
-    icon('camera'), t('tried.start')
+  const primary = !!opts.primary;
+  const start = el('button', { type: 'button', class: (primary ? 'btn' : 'btn btn-secondary') + ' loop-start', id: opts.ids ? 'tried-start' : null }, [
+    icon('camera'), t(primary ? 'tried.try_tip' : 'tried.start')
   ]);
   start.addEventListener('click', () => {
-    if (!requireSignIn()) return;
+    // A guest's result: the tap is the way to an account, and nothing is armed until there is one to come back to.
+    if (!requireSignIn(primary ? '#/result' : undefined, primary)) return;
     setPendingAttempt(check.id);
     paintTried(host, check, opts);
-    if (opts.onNavigate) opts.onNavigate(); else navigate('#/check');
+    if (opts.onStart) opts.onStart(check);
+    else if (opts.onNavigate) opts.onNavigate();
+    else navigate('#/check');
   });
-  host.appendChild(el('div', { class: 'loop' }, [start, el('p', { class: 'hint', text: t('tried.start_hint') })]));
+  host.appendChild(el('div', { class: 'loop' }, [start, el('p', { class: 'hint', text: t(primary ? 'tried.try_tip_hint' : 'tried.start_hint') })]));
 }
 
 /**
@@ -270,6 +284,19 @@ function changeLine(change) {
   if (change.from && change.to) return t('tried.change_swap', { category, from: change.from, to: change.to });
   if (change.to) return t('tried.change_added', { category, to: change.to });
   return t('tried.change_removed', { category, from: change.from });
+}
+
+/**
+ * What changed, as the lines the pair block lists, at most three: the stylist's own piece names on either side, never
+ * the tip. This is what the before/after card and film carry as their "change" line (joined by " · ").
+ */
+export function changeLines(pair) {
+  return (pair && pair.changed ? pair.changed : []).slice(0, 3).map(changeLine);
+}
+
+/** The pair's before/after card and film (app/sharevideo.js): the two private photos, the change, the numbers by choice. */
+function sharePair(pair, opts) {
+  openCheckPairShare(pair, { afterUrl: opts && opts.afterUrl, change: changeLines(pair).join(' · ') });
 }
 
 function pairSide(side, which, pair) {
@@ -322,7 +349,9 @@ export function pairBlock(pair, opts) {
       ]),
       el('p', { class: 'pair-honest', text: t('tried.honest') }),
       el('div', { class: 'taste-line' }, [el('span', { class: 'lbl', text: t('tried.prefer') }), prefer]),
-      pair.preferred ? el('p', { class: 'muted', text: t('tried.preferred_' + pair.preferred) }) : null
+      pair.preferred ? el('p', { class: 'muted', text: t('tried.preferred_' + pair.preferred) }) : null,
+      // Round 20: the pair is the first thing worth sharing, so it is one tap from where the pair is read.
+      el('button', { type: 'button', class: 'btn btn-secondary pair-share', onclick: () => sharePair(pair, opts) }, [icon('card'), t('share.before_after_action')])
     ].filter(Boolean));
   };
   paint();
@@ -442,11 +471,15 @@ function controls(card, paint, opts) {
 
 /**
  * Everything the result screen shows for an ok check, in one call: the "last time it worked" line, the row of typed
- * reasons and the "I tried it" block (or the pair, when this check is already half of one). views/check.js calls this
- * once, after the tip, with the container it drew the result into; the three documented ids (#taste-win, #taste-reasons,
- * #tried-action) are filled when they are there and the nodes are appended in that order when they are not.
+ * reasons and the "Try the tip, then show me" block (or the pair, when this check is already half of one). views/check.js
+ * calls this once, after the tip, with the container it drew the result into; the three documented ids (#taste-win,
+ * #taste-reasons, #tried-action) are filled when they are there and the nodes are appended in that order when they are
+ * not. opts: { onStart(check) } runs once the attempt is armed (the result screen's way into the camera), { onPair(pair) }
+ * fires when the pair is known — read back, or made here through offerLink — so the screen can put the pair share first,
+ * { afterUrl } is the judged still while it is here, { primary: false } keeps the list's secondary button.
  */
-export function mountResult(container, check) {
+export function mountResult(container, check, opts) {
+  opts = opts || {};
   if (!container || !check || check.status !== 'ok') return;
   ensureStyle();
   const place = (id, node) => {
@@ -456,8 +489,13 @@ export function mountResult(container, check) {
   };
 
   place('taste-reasons', reasonRow(check, { ids: !container.querySelector('#taste-reasons') }));
-  const tried = triedBlock(check, { ids: !container.querySelector('#tried-action') });
+  const triedOpts = { ids: true, hostId: !container.querySelector('#tried-action'), primary: opts.primary !== false, onStart: opts.onStart, afterUrl: opts.afterUrl };
+  const tried = triedBlock(check, triedOpts);
   place('tried-action', tried);
+  const showPair = (pair) => {
+    tried.replaceChildren(pairBlock(pair, triedOpts));
+    if (opts.onPair) opts.onPair(pair);
+  };
 
   // The two reads that need the network come after the screen is whole, so nothing waits on them.
   if (!state.me) return;
@@ -470,9 +508,9 @@ export function mountResult(container, check) {
   });
   loadPairs().then(async (pairs) => {
     const mine = pairs.find((pair) => pair.before.id === check.id || pair.after.id === check.id);
-    if (mine) { tried.replaceChildren(pairBlock(mine, { ids: true })); return; }
+    if (mine) { showPair(mine); return; }
     const pair = await offerLink(check);
-    if (pair) tried.replaceChildren(pairBlock(pair, { ids: true }));
+    if (pair) showPair(pair);
   });
 }
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Endpoints;
@@ -53,6 +54,55 @@ public class PublicPageTests : IClassFixture<TestApp>
         var checkId = await _app.CheckAsync(client, language: language);
         var post = await _app.PostAsync(client, checkId);
         return (post.GetProperty("id").GetGuid(), handle);
+    }
+
+    [Fact]
+    public async Task A_look_posted_after_the_tip_shows_the_pair_and_numbers_only_when_both_grades_are_public()
+    {
+        var handle = NextHandle("pairpub");
+        var (author, _, _) = await _app.NewUserAsync(handle);
+        var moderatorHandle = NextHandle("pairmod");
+        var (moderator, _, _) = await _app.NewUserAsync(moderatorHandle);
+        await _app.PromoteAsync(moderatorHandle);
+
+        _app.Vision.Handler = _ => Payloads.Ok(score: 6);
+        var a = (await _app.PostAsync(author, await _app.CheckAsync(author))).GetProperty("id").GetGuid();
+        _app.Vision.Handler = _ => Payloads.Ok(score: 8);
+        var bCheck = await _app.CheckAsync(author);
+        var posted = await author.PostAsJsonAsync("/api/posts", new { checkId = bCheck, beforePostId = a });
+        Assert.Equal(HttpStatusCode.Created, posted.StatusCode);
+        var b = (await posted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var page = await Anonymous().GetAsync($"/look/{b}");
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        var html = await page.Content.ReadAsStringAsync();
+        var image = Meta(html, "property", "og:image");
+        Assert.EndsWith($"/look/{b}/image", image);
+        Assert.Contains("class=\"pair\"", html);
+        Assert.Contains($"/look/{a}/image", html);
+        Assert.Contains(">Before<", html);
+        Assert.Contains(">After<", html);
+        Assert.Contains("<b class=\"pair-n\">6</b>", html);
+        Assert.Contains("<b class=\"pair-n\">8</b>", html);
+        // The earlier look's page carries no pair: it is the before, not the after, and the link is from B alone.
+        Assert.DoesNotContain("class=\"pair\"", await Anonymous().GetStringAsync($"/look/{a}"));
+
+        // One grade kept private: the pair stays, and no number at all on either side of it (the look's own ring is its own choice).
+        Assert.Equal(HttpStatusCode.OK, (await author.PatchAsJsonAsync($"/api/posts/{a}/score-privacy", new { scorePrivate = true })).StatusCode);
+        html = await Anonymous().GetStringAsync($"/look/{b}");
+        Assert.Contains("class=\"pair\"", html);
+        Assert.Contains($"/look/{a}/image", html);
+        Assert.DoesNotContain("<b class=\"pair-n\">", html);
+        Assert.Equal(image, Meta(html, "property", "og:image"));
+
+        // The before hidden by a moderator: no pair section, the page is still the look's, the unfurl unchanged.
+        Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync($"/api/admin/posts/{a}/hide", null)).StatusCode);
+        page = await Anonymous().GetAsync($"/look/{b}");
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        html = await page.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("class=\"pair\"", html);
+        Assert.DoesNotContain($"/look/{a}/image", html);
+        Assert.Equal(image, Meta(html, "property", "og:image"));
     }
 
     /// <summary>The content of a meta tag, by its property or name; null when the page has none.</summary>

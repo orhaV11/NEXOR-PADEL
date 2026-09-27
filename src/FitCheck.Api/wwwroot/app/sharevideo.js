@@ -932,13 +932,57 @@ export function openBeforeAfterShare(post) {
   const pair = beforeAfterFromPost(post);
   // The numbers can be carried when this reader has both of them — on your own look, always. A look whose grade you
   // chose to keep starts on the version with no numbers: the choice was made once already, and this is the same one.
-  const canNumber = pair.numbers;
-  let numbers = canNumber && !post.scorePrivate;
+  return openPairSheet(pair, {
+    canNumber: pair.numbers,
+    numbers: pair.numbers && !post.scorePrivate,
+    privateNote: !!post.scorePrivate,
+    // The tally is the author's own act, and the route answers 404 to anyone else.
+    count: post.isMine ? (withScores) => api('POST', '/api/posts/' + encodeURIComponent(post.id) + '/shared-after', { withScores }).catch(() => {}) : null
+  });
+}
 
-  const count = () => {
-    if (!post.isMine) return;   // the tally is the author's own act, and the route answers 404 to anyone else
-    api('POST', '/api/posts/' + encodeURIComponent(post.id) + '/shared-after', { withScores: numbers }).catch(() => {});
+/**
+ * Round 20 — the same sheet for a pair of CHECKS ("I tried it", app/taste.js), which need not be posted at all: the
+ * before is read through the private photo route (/api/checks/{id}/image, the owner's, fetched with credentials), the
+ * after is the judged still while the phone still holds it (opts.afterUrl) and that route otherwise. Both scores are the
+ * owner's own, so the numbers chip is offered and "with both scores" is the default. The change line is what the pair
+ * block lists (opts.change, the stylist's piece names, never the tip); the public address only once the after is posted.
+ * Counted through POST /api/checks/{afterId}/tried/shared with withScores, on the same two rows a posted pair counts on.
+ */
+export function openCheckPairShare(pair, opts) {
+  opts = opts || {};
+  if (!pair || !pair.before || !pair.after) return null;
+  const me = state.me ? { name: state.me.name, handle: state.me.handle } : null;
+  const made = {
+    before: { imageUrl: '/api/checks/' + encodeURIComponent(pair.before.id) + '/image', score: pair.before.score },
+    after: { imageUrl: opts.afterUrl || ('/api/checks/' + encodeURIComponent(pair.after.id) + '/image'), score: pair.after.score },
+    intent: pair.after.intent,
+    headline: pair.after.headline || '',
+    change: opts.change || '',
+    user: me,
+    postId: pair.after.postId || null,
+    numbers: true,
+    language: getLocale()
   };
+  return openPairSheet(made, {
+    canNumber: true,
+    numbers: true,
+    count: (withScores) => api('POST', '/api/checks/' + encodeURIComponent(pair.after.id) + '/tried/shared', { withScores }).catch(() => {})
+  });
+}
+
+/**
+ * The sheet both of the above build: the pair object sharecard.js documents (before/after with imageUrl and score,
+ * intent, headline, change, user, postId, language), and opts { canNumber } whether the numbers chip is offered at all,
+ * { numbers } which chip starts pressed, { privateNote } the line that says a grade was kept private, { count(withScores) }
+ * what to call once the card or the film is actually shared or saved (nothing is counted for a look, or a pair, that
+ * was only looked at).
+ */
+function openPairSheet(pair, opts) {
+  const canNumber = !!opts.canNumber;
+  let numbers = canNumber && !!opts.numbers;
+
+  const count = () => { if (opts.count) opts.count(numbers); };
   const withPair = () => ({ ...pair, numbers });
 
   const chips = el('div', { class: 'ba-choice', role: 'group', 'aria-label': t('share.numbers_label') });
@@ -957,7 +1001,7 @@ export function openBeforeAfterShare(post) {
       el('img', { src: pair.after.imageUrl, alt: '' })
     ]),
     el('p', { class: 'hint', text: t('share.before_after_hint') }),
-    post.scorePrivate ? el('p', { class: 'hint', id: 'ba-private', text: t('share.before_after_private') }) : null,
+    opts.privateNote ? el('p', { class: 'hint', id: 'ba-private', text: t('share.before_after_private') }) : null,
     el('span', { class: 'label', text: t('share.numbers_label') }),
     chips,
     el('div', { class: 'sv-actions' }, [

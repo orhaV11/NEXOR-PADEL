@@ -638,17 +638,18 @@ export async function renderBeforeAfterCard(pair, opts) {
  * reader may read both numbers — on your own look, always; on a look whose grade you kept private, never, and the
  * server has already sent null for it either way.
  *
- * A pair that is not two posted looks — the private "I tried it" second check, where both photos are blob: URLs the
- * phone still holds — needs no code here: build the same object and hand it to openShareCard(pair, { render:
- * renderBeforeAfterCard }) or openShareVideo(pair, { render: renderBeforeAfterVideo }) (app/sharevideo.js, which also
- * has openBeforeAfterShare(post) for a posted pair):
+ * A pair that is not two posted looks — the private "I tried it" second check — needs no drawing code here: it is the
+ * same object, built by openCheckPairShare(pair, { afterUrl, change }) in app/sharevideo.js (which also has
+ * openBeforeAfterShare(post) for a posted pair) with the before read through /api/checks/{id}/image (loadImage fetches
+ * same-origin with credentials, so the owner's private photo route works) and the after the judged still while the
+ * phone holds it:
  *
  *   { before: { imageUrl, score }, after: { imageUrl, score }, intent, headline, change, user, postId, numbers, language }
  *
- * change is the person's own words about what they changed (never the tip); score may be null on either side, and with
- * numbers false no ring is drawn at all. postId only gives the card its public address, so it is null until the look is
- * posted. The tally route POST /api/posts/{id}/shared-after is a posted look's; a pair of checks has nothing to count
- * against yet, and counting it would need a route of its own on the check.
+ * change is the person's own words about what they changed, or the pair block's "what changed" lines (never the tip);
+ * score may be null on either side, and with numbers false no ring is drawn at all. postId only gives the card its
+ * public address, so it is null until the look is posted. The tally: POST /api/posts/{id}/shared-after for a posted
+ * pair, POST /api/checks/{afterId}/tried/shared (Round 20) for a pair of checks; both land on the same two counters.
  */
 export function beforeAfterFromPost(post) {
   return {

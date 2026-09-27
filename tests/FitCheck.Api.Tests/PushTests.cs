@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
 using FitCheck.Api.Endpoints;
 using FitCheck.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,7 +47,7 @@ public class PushTests : IClassFixture<PushTests.PushApp>
     }
 
     /// <summary>A browser's side of a subscription: the endpoint, the keys it hands the server, and the private half that decrypts.</summary>
-    private sealed class Browser : IDisposable
+    internal sealed class Browser : IDisposable
     {
         public string Endpoint { get; }
         public string P256dh { get; }
@@ -293,6 +294,21 @@ public class PushTests : IClassFixture<PushTests.PushApp>
         Assert.Equal("עוקב חדש: Dana", payload.GetProperty("body").GetString());
         Assert.Equal("/#/u/pushfollower", payload.GetProperty("url").GetString());
         Assert.Equal("follow:pushfollower", payload.GetProperty("tag").GetString());
+    }
+
+    [Fact]
+    public void UrlFor_and_TagFor_send_a_tip_nudge_to_the_persons_own_checks()
+    {
+        var user = Guid.NewGuid();
+        var check = Guid.NewGuid();
+        var job = new PushJob(user, NotificationType.TryTip, "h", null, null, CheckId: check);
+        Assert.Equal($"/#/checks?try={check:D}", PushSender.UrlFor(job));
+        Assert.Equal($"try_tip:{check:N}", PushSender.TagFor(job));
+        // A nudge with no check behind it (there is none; the type is defined by one) still lands on the list.
+        Assert.Equal("/#/checks", PushSender.UrlFor(new PushJob(user, NotificationType.TryTip, "h", null, null)));
+        Assert.Equal("try_tip:h", PushSender.TagFor(new PushJob(user, NotificationType.TryTip, "H", null, null)));
+        // The seven-argument call the board's closer makes keeps compiling, and carries no check.
+        Assert.Null(new PushJob(user, NotificationType.BoardRank, "h", null, null, Guid.NewGuid(), 3).CheckId);
     }
 
     [Fact]

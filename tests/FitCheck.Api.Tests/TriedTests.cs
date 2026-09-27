@@ -159,6 +159,55 @@ public class TriedTests
     }
 
     [Fact]
+    public async Task Sharing_the_pair_is_counted_for_the_owner_and_is_invisible_to_everyone_else()
+    {
+        using var app = new TestApp();
+        var (owner, _, _) = await app.NewUserAsync("tried_share");
+        var (stranger, _, _) = await app.NewUserAsync("tried_share_stranger");
+        app.Vision.Handler = _ => Look(7, "Clean casual", "Swap the running shoes for plain white leather sneakers.", "Running shoes");
+        var before = await app.CheckAsync(owner);
+        var beforePost = (await app.PostAsync(owner, before)).GetProperty("id").GetGuid();
+        var after = await app.CheckAsync(owner);
+        var loose = await app.CheckAsync(owner);
+        var linked = await owner.PostAsJsonAsync($"/api/checks/{after}/tried", new { beforeId = before });
+        Assert.Equal(HttpStatusCode.Created, linked.StatusCode);
+        // The answer to the link names the before's posted look, as the list does: the result screen preselects it when
+        // the after is posted, so the two answers cannot disagree about it.
+        var pair = await linked.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(beforePost, pair.GetProperty("before").GetProperty("postId").GetGuid());
+        Assert.False(pair.GetProperty("after").TryGetProperty("postId", out _));
+
+        async Task<long> Counter(string name)
+        {
+            using var scope = app.Services.CreateScope();
+            return await Counters.ReadAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), name, CancellationToken.None);
+        }
+
+        // With the numbers, and without: the two rows a posted pair already counts on, so the numbers page has one answer.
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsJsonAsync($"/api/checks/{after}/tried/shared", new { withScores = true })).StatusCode);
+        Assert.Equal(1, await Counter(CounterName.BeforeAfterShares));
+        Assert.Equal(0, await Counter(CounterName.BeforeAfterSharesPlain));
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsJsonAsync($"/api/checks/{after}/tried/shared", new { withScores = false })).StatusCode);
+        Assert.Equal(1, await Counter(CounterName.BeforeAfterSharesPlain));
+        // Either side of the pair names it.
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsJsonAsync($"/api/checks/{before}/tried/shared", new { withScores = true })).StatusCode);
+        Assert.Equal(2, await Counter(CounterName.BeforeAfterShares));
+
+        // A stranger, and an own check that is in no pair: the same 404, saying nothing.
+        var foreign = await stranger.PostAsJsonAsync($"/api/checks/{after}/tried/shared", new { withScores = true });
+        Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+        Assert.Equal("We couldn't find this check.", await ErrorOf(foreign));
+        var unpaired = await owner.PostAsJsonAsync($"/api/checks/{loose}/tried/shared", new { withScores = true });
+        Assert.Equal(HttpStatusCode.NotFound, unpaired.StatusCode);
+        Assert.Equal("We couldn't find this check.", await ErrorOf(unpaired));
+        Assert.Equal(2, await Counter(CounterName.BeforeAfterShares));
+
+        // A session without the request header, and no session at all.
+        Assert.Equal(HttpStatusCode.Forbidden, (await app.BareClient().PostAsJsonAsync($"/api/checks/{after}/tried/shared", new { withScores = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await app.NewClient().PostAsJsonAsync($"/api/checks/{after}/tried/shared", new { withScores = true })).StatusCode);
+    }
+
+    [Fact]
     public async Task Which_one_do_you_prefer_is_stored_and_changes_no_score()
     {
         using var app = new TestApp();

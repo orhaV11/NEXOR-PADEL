@@ -29,18 +29,22 @@ function ensureStyle() {
 }
 
 /**
- * afterPicker(result) → { node, value() }. result is the check being posted (its feedback.score previews the strip once a
- * look is picked); node goes into the post sheet under the caption field, value() is read when the caption is sent.
+ * afterPicker(result, { preselect }) → { node, value() }. result is the check being posted (its feedback.score previews
+ * the strip once a look is picked); node goes into the post sheet under the caption field, value() is read when the
+ * caption is sent. Round 20: preselect is a post id to start on once the looks are in — the result screen passes the
+ * pair's before when this check is the "after" of an "I tried it" pair and the before was posted — so the look after the
+ * tip is a follow-up of the right one without a tap; "Not a follow-up" stays one tap away.
  *
  * The post sheet (views/check.js, openPostSheet) wires it like this:
- *   const after = afterPicker(result);                       // before the sheet's content is built
+ *   const after = afterPicker(result, { preselect });        // before the sheet's content is built
  *   ... el('div', { class: 'field' }, [caption ...]), after.node, productsField ...   // at the marker under the caption
  *   api('POST', '/api/posts', { checkId: result.id, caption: caption.value, products, beforePostId: after.value() });
  * value() is a post id (string) or null; the server answers 400 "error.before_invalid" when the id is not a visible look
  * of the caller's own, or is the look of this very check. The node starts hidden and never throws: signed out, on a
  * failed fetch, or with no earlier looks, value() stays null and the sheet looks as it always did.
  */
-export function afterPicker(result) {
+export function afterPicker(result, opts) {
+  opts = opts || {};
   let picked = null;
   const node = el('div', { class: 'field after-picker', id: 'after-picker', hidden: true });
   const value = () => picked;
@@ -82,6 +86,7 @@ export function afterPicker(result) {
       const looks = ((page && page.items) || []).filter((post) => !post.hidden).slice(0, MAX_LOOKS);
       if (!looks.length) return;
       for (const post of looks) row.appendChild(option(post));
+      if (opts.preselect && looks.some((post) => post.id === opts.preselect)) picked = opts.preselect;
       paint();
       node.hidden = false;
     })

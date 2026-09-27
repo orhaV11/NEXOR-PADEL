@@ -18,7 +18,8 @@ namespace FitCheck.Api.Services;
 /// the job if it never is. Null for a push with no row behind it (the test ping).
 /// </summary>
 /// <summary>Rank: the place on the board for a board_rank push, where the line reads it instead of the actor's name.</summary>
-public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null, int? Rank = null);
+/// <summary>CheckId (Round 20): the check a try_tip nudge is about; the tap lands on it and repeats about it collapse.</summary>
+public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null, int? Rank = null, Guid? CheckId = null);
 
 /// <summary>
 /// Sends Web Push messages in the background. <see cref="Notifier"/> drops a <see cref="PushJob"/> on the queue next to
@@ -157,6 +158,9 @@ public sealed class PushSender : BackgroundService
             case NotificationType.StylistBack:
                 // Round 20: the one note a guest asked for at the ceiling; the tap lands on the check they came to make.
                 return "/#/check";
+            case NotificationType.TryTip:
+                // Round 20: "did you try the tip?" lands on that check in the person's own list, where the button to try it is.
+                return job.CheckId is { } checkId ? $"/#/checks?try={checkId:D}" : "/#/checks";
             case NotificationType.BoardRank:
                 // Six and a half days back lands mid-week inside the week that closed whether that week ran 167, 168 or 169
                 // hours (a DST week) and whether the closer ran on time or hours late.
@@ -180,7 +184,7 @@ public sealed class PushSender : BackgroundService
     /// <summary>Repeats about the same thing replace each other on the phone (notification tag) and at the push service (topic).</summary>
     public static string TagFor(PushJob job)
     {
-        var id = job.PostId ?? job.ChallengeId;
+        var id = job.PostId ?? job.ChallengeId ?? job.CheckId;
         return id is null ? $"{job.Type}:{job.ActorHandle.ToLowerInvariant()}" : $"{job.Type}:{id.Value:N}";
     }
 
@@ -316,7 +320,7 @@ public sealed class PushSender : BackgroundService
     /// <summary>The push service's own collapse key: at most 32 base64url characters, so the id is shortened.</summary>
     private static string? TopicFor(PushJob job)
     {
-        var id = job.PostId ?? job.ChallengeId;
+        var id = job.PostId ?? job.ChallengeId ?? job.CheckId;
         return id is null ? null : $"{job.Type}-{id.Value:N}"[..Math.Min(32, job.Type.Length + 33)];
     }
 

@@ -7,8 +7,11 @@
 // carries data-intent with the one word it contributes, for the surfaces and browser tests that still speak one word.
 // The free line (#occasion) is the note now, and travels as "note"; the occasion and the style travel as their own
 // fields. On the result: #asked-for names both, the tip block is #tip (class tip keep when feedback.tipKind is "keep",
-// with its own heading and no swap verb in sight), and three empty mount points wait for other modules to fill them:
-// #tip-feedback, #tried-it and #wardrobe-offer. Each renders nothing while its module is absent.
+// with its own heading and no swap verb in sight), and the mount points other modules fill: #taste-reasons and
+// #tried-action (app/taste.js mountResult, called here after the tip: the typed reasons, then "Try the tip, then show me"
+// as #tried-start — the primary next action after every change tip, Round 20 — or the pair as #tried-pair once the two
+// checks are linked) and #wardrobe-offer. Once a pair exists, #share-pair leads the share row (the before/after card and
+// film, app/sharevideo.js openCheckPairShare), ahead of the single look's video, card and text share.
 //
 // The ids (#photo, #submit, #occasion,
 // #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
@@ -19,8 +22,8 @@
 // sign-in prompt instead, and the submit stays disabled, when the server has guests switched off: config.plans.guestChecksPerDay
 // is 0), the result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and
 // #post-open takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when a
-// Free account has none left. Round 13: after the tip, #useful asks "Did the tip land?" (#useful-yes / #useful-no, 44px,
-// aria-pressed; then #useful-note with #useful-send / #useful-skip; then #useful-thanks), posting to /api/checks/{id}/useful;
+// Free account has none left. Round 13's yes/no row (#useful) is gone from this screen since Round 20: the four typed
+// answers in #taste-reasons decide Useful on the server, and two rows asking the same thing was a wiring gap;
 // the no-outfit result is #nooutfit (h1, the guidance, the stylist's one line as #nooutfit-reason when it survived rule 1,
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
@@ -28,8 +31,10 @@ import {
   register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
-import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
+import { shareVideoButton, videoLookFromCheck, openCheckPairShare } from '../sharevideo.js';
 import { afterPicker } from '../after.js';
+// Round 14 / Round 20 — the loop on the result screen: the typed reasons, "Try the tip, then show me", the pair.
+import { mountResult, changeLines } from '../taste.js';
 // Round 14 — post the look, keep the grade: the choice at the moment of posting (the same switch the look itself carries).
 import { gradeField } from './post.js';
 import { itemsEditor } from '../items.js';
@@ -186,17 +191,8 @@ const CSS = `
 .clip-row .btn-text { padding-block: 0; }
 .share-row { flex-wrap: wrap; }
 .share-row > #share-video { flex-basis: 100%; }   /* "Share as video" spans the row; the card and the text share sit under it */
-/* Round 13: the verdict's own verdict, one quiet row after the tip; the no-outfit state; the install note in the flow. */
-.useful { display: grid; gap: 10px; padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
-.useful h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); margin: 0; }
-.useful-choices { display: flex; gap: 8px; }
-.useful-choices .chip { flex: 1; justify-content: center; min-block-size: 44px; font-size: 15px; }
-.useful-note { display: grid; gap: 8px; }
-.useful-note .row > .btn-text { flex: none; padding-block: 0; }
-.useful-note .row > .btn-sm { min-block-size: 44px; }
-.useful-thanks { margin: 0; color: var(--ink-2); }
-.useful-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.useful-saved .btn-text { flex: none; padding-block: 0; }
+.share-row > #share-pair { flex-basis: 100%; }    /* Round 20: the pair's share leads the row once there is a pair */
+/* Round 13: the no-outfit state; the install note in the flow. */
 /* Round 14: the second chip row and its preference line; what was asked for, on the result; the keep; the mount points. */
 .asked-block { display: grid; gap: 10px; }
 .asked-block .hint { margin: 0; }
@@ -906,12 +902,10 @@ register('result', async (root, params, ctx) => {
   if (feedback.oneTip) {
     ensureStyle();
     container.appendChild(tipBlock(feedback));
-    // Round 13: the verdict's own verdict, right after the tip it is about.
-    container.appendChild(usefulRow(result));
-    // MOUNTS, in the order they are read: the typed answer to the tip, then what happened when it was tried. Both empty
-    // here; the modules that own them fill them in place, and an absent module leaves nothing on the screen.
-    container.appendChild(el('div', { class: 'mount', id: 'tip-feedback' }));
-    container.appendChild(el('div', { class: 'mount', id: 'tried-it' }));
+    // MOUNTS, in the order they are read: the typed answer to the tip, then what happened when it was tried — the
+    // primary "Try the tip, then show me", or the pair. app/taste.js fills both once the screen is whole (below).
+    container.appendChild(el('div', { class: 'mount', id: 'taste-reasons' }));
+    container.appendChild(el('div', { class: 'mount', id: 'tried-action' }));
   } else if (feedback.status === 'ok') {
     container.appendChild(el('p', { class: 'notice', id: 'tip-missing', text: t('result.no_tip') }));
   }
@@ -933,6 +927,16 @@ register('result', async (root, params, ctx) => {
     shareCardButton(lookFromCheck(result, state.check.previewUrl)),
     el('button', { type: 'button', class: 'btn btn-secondary', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
   ]));
+  // Round 20 — the loop, now that the screen is whole: the typed reasons and "Try the tip, then show me" into their
+  // mounts; a tap arms the attempt and takes the retake path into the media sheet (startAttempt); the pair, once it is
+  // known, puts the before/after share first (paintPairShare) and is kept on the result for the post sheet's preselect.
+  if (feedback.oneTip) {
+    mountResult(container, result, {
+      afterUrl: judged,
+      onStart: () => startAttempt(result),
+      onPair: (pair) => { result.pair = pair; paintPairShare(container, pair, result); }
+    });
+  }
   // Round 13: on iOS Safari, once per device, the note that the app can live on the home screen, now that the value has landed.
   const installHint = iosInstallHint();
   if (installHint) { installHint.classList.add('result-install'); container.appendChild(installHint); }
@@ -972,77 +976,35 @@ function tipBlock(feedback) {
 }
 
 /**
- * "Did the tip land?" (Round 13): two 44px choices; a tap stores the verdict at once (POST /api/checks/{id}/useful, so it is
- * kept even if the person leaves), then an optional one-line note with Send and Skip, then thanks. A check that was
- * answered before (opened again from "Your checks") shows what was said with a way to change it. The owner or the guest
- * whose cookie made the check may answer; the server refuses anyone else with the check's 404, and the row says why.
+ * Round 20 — "Try the tip, then show me": the attempt is armed (app/taste.js did that before calling here); this is the
+ * result screen's own way into the second photo. It is the no-outfit screen's retake path: the result goes, the media goes,
+ * the challenge and the occasion/style pick stay (the second look is for the same occasion), and the check screen focuses
+ * the photo button and opens the media sheet on arrival — one tap from the camera. The second check then goes through
+ * POST /api/checks unchanged: nothing of the first travels with it.
  */
-function usefulRow(result) {
-  const section = el('section', { class: 'useful', id: 'useful', 'aria-labelledby': 'useful-title' });
-  const title = el('h2', { id: 'useful-title', text: t('useful.question') });
-  section.appendChild(title);
-  const body = el('div');
-  section.appendChild(body);
-  let busy = false;
+function startAttempt(result) {
+  const ck = state.check;
+  clearInterruptedCheck();
+  if (state.result === result) { state.result = null; state.resultPostId = null; state.resultAnimated = false; }
+  clearMedia(ck);
+  ck.error = null;
+  retakeNext = true;
+  navigate('#/check');
+}
 
-  const save = async (useful, note) => {
-    if (busy) return false;
-    busy = true;
-    try {
-      const saved = await api('POST', '/api/checks/' + encodeURIComponent(result.id) + '/useful', note ? { useful, note } : { useful });
-      result.useful = saved.useful; result.usefulAt = saved.usefulAt; result.usefulNote = saved.note || null;
-      return true;
-    } catch (e) {
-      toast(e && e.message ? e.message : t('error.generic'));
-      return false;
-    } finally { busy = false; }
-  };
-  const thanks = () => {
-    body.replaceChildren(el('p', { class: 'useful-thanks', id: 'useful-thanks', role: 'status', tabindex: '-1', text: t('useful.thanks') }));
-    requestAnimationFrame(() => { const node = $('useful-thanks'); if (node) node.focus({ preventScroll: true }); });
-  };
-  const askNote = (useful) => {
-    const input = el('input', { type: 'text', id: 'useful-note', maxlength: '120', autocomplete: 'off', enterkeyhint: 'send', placeholder: t('useful.note_placeholder'), value: result.usefulNote || '' });
-    const send = el('button', { type: 'submit', class: 'btn btn-sm', id: 'useful-send', text: t('useful.send') });
-    const skip = el('button', { type: 'button', class: 'btn-text', id: 'useful-skip', text: t('useful.skip'), onclick: thanks });
-    const form = el('form', { class: 'useful-note', id: 'useful-note-form', novalidate: true, onsubmit: async (event) => {
-      event.preventDefault();
-      const note = input.value.trim();
-      if (!note) { thanks(); return; }
-      send.disabled = true;
-      if (await save(useful, note)) thanks(); else send.disabled = false;
-    } }, [
-      el('label', { for: 'useful-note', text: t('useful.note_label') }),
-      input,
-      el('div', { class: 'row' }, [send, skip])
-    ]);
-    body.replaceChildren(form);
-    requestAnimationFrame(() => { if (document.contains(input)) input.focus({ preventScroll: true }); });
-  };
-  const choices = () => {
-    const group = el('div', { class: 'useful-choices', role: 'group', 'aria-labelledby': 'useful-title', 'aria-describedby': 'useful-group-hint' });
-    const pick = async (useful, chip) => {
-      for (const c of group.children) c.setAttribute('aria-pressed', String(c === chip));
-      chip.setAttribute('aria-busy', 'true');
-      const ok = await save(useful, null);
-      chip.removeAttribute('aria-busy');
-      if (ok) askNote(useful); else for (const c of group.children) c.setAttribute('aria-pressed', 'false');
-    };
-    const yes = el('button', { type: 'button', class: 'chip', id: 'useful-yes', 'aria-pressed': 'false', text: t('useful.yes') });
-    const no = el('button', { type: 'button', class: 'chip', id: 'useful-no', 'aria-pressed': 'false', text: t('useful.no') });
-    yes.addEventListener('click', () => pick(true, yes));
-    no.addEventListener('click', () => pick(false, no));
-    group.appendChild(yes); group.appendChild(no);
-    body.replaceChildren(group, el('span', { class: 'sr-only', id: 'useful-group-hint', text: t('useful.group') }));
-  };
-  const saved = () => {
-    body.replaceChildren(el('div', { class: 'useful-saved', id: 'useful-saved' }, [
-      el('span', { class: 'muted', text: t(result.useful ? 'useful.saved_yes' : 'useful.saved_no') }),
-      el('button', { type: 'button', class: 'btn-text', id: 'useful-change', text: t('useful.change'), onclick: () => { choices(); const first = $('useful-yes'); if (first) first.focus({ preventScroll: true }); } })
-    ]));
-  };
-  if (typeof result.useful === 'boolean') saved(); else choices();
-  return section;
+/**
+ * Once a pair exists, sharing it is the first share: #share-pair (the primary `btn`) leads the share row, ahead of the
+ * single look's video, card and text share, which stay secondary. The after side's photo is the judged still while it is
+ * here (the pair's after is this result), else the private photo route; the sheet is app/sharevideo.js openCheckPairShare.
+ */
+function paintPairShare(container, pair, result) {
+  const row = container.querySelector('.share-row');
+  if (!row || row.querySelector('#share-pair')) return;
+  const share = el('button', {
+    type: 'button', class: 'btn', id: 'share-pair',
+    onclick: () => openCheckPairShare(pair, { afterUrl: pair.after.id === result.id ? judgedPreview(result) : null, change: changeLines(pair).join(' · ') })
+  }, [icon('card'), t('share.before_after_action')]);
+  row.insertBefore(share, row.firstChild);
 }
 
 /**
@@ -1144,8 +1106,9 @@ function openPostSheet(area, result) {
   const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
   const confirm = el('button', { type: 'button', class: 'btn', id: 'post-confirm', text: t('result.confirm_post') });
   const cancel = el('button', { type: 'button', class: 'btn btn-ghost', text: t('common.cancel'), onclick: () => s.close() });
-  // "After the tip": the caller's last looks to mark this one as a follow-up of (hidden until they are in; none for a first look).
-  const after = afterPicker(result);
+  // "After the tip": the caller's last looks to mark this one as a follow-up of (hidden until they are in; none for a first
+  // look). Round 20: when this result is the after of an "I tried it" pair whose before was posted, that look starts picked.
+  const after = afterPicker(result, { preselect: result.pair && result.pair.after.id === result.id ? result.pair.before.postId || null : null });
   // Round 10, the items: the stylist's pieces as chips (a brand it saw waits for Confirm / Edit / Not a brand), the person's
   // own additions, and the dot on the preview; value() goes with the post as items. The preview is handed over only when
   // it is the still this result was judged on (judgedPreview: a past check from "Your checks" gets the editor without a

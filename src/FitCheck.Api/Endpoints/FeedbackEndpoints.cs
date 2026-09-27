@@ -37,14 +37,20 @@ namespace FitCheck.Api.Endpoints;
 /// <item><c>POST /api/checks/{id}/tried/prefer</c> with <c>{ prefer: "before" | "after" }</c> (session): stores which of
 /// the two the person prefers and answers 200 with the pair. <c>error.prefer_invalid</c> (400) for anything else, the
 /// check's 404 when the pair is not theirs.</item>
+/// <item><c>POST /api/checks/{id}/tried/shared</c> with <c>{ withScores: bool }</c> (session, Round 20): a before/after
+/// card or film of the pair left the phone; answers 204 and adds one to <c>before_after_shares</c> or
+/// <c>before_after_shares_plain</c> — the numbers page's two existing rows, because a pair share is a pair share whether
+/// the look was posted or not. Either side's id works; the check's 404 (<c>error.check_not_found</c>) when the check is
+/// not the caller's or is in no pair, the same silence as <c>/tried/prefer</c>.</item>
 /// <item><c>GET /api/users/me/tried</c> (session): <see cref="TriedListDto"/>, the caller's own pairs, newest first,
 /// at most <see cref="PairsPage"/>.</item>
 /// <item><c>GET /api/users/me/taste</c>, <c>PATCH</c> with <c>{ learning }</c>, <c>DELETE</c> (session): the taste card —
 /// the facts, the literal advisory the stylist is sent, the learning switch and the clear. Nothing in it is a secret from
 /// its subject. See <see cref="Taste"/>.</item>
 /// <item>The numbers page: <see cref="StylistMetricsAsync"/> computes the yes / no / unanswered split over every ok
-/// check by an account, overall, by intent and by language, and <c>MetricsEndpoints</c> puts it on
-/// <c>PilotMetricsDto.stylist</c>.</item>
+/// check by an account, overall, by intent and by language, and (Round 20) the loop's own numbers — pairs written, pairs
+/// per hundred of those same ok checks, the day-after nudges and how many of them turned into a pair — and
+/// <c>MetricsEndpoints</c> puts it on <c>PilotMetricsDto.stylist</c>.</item>
 /// </list>
 /// </summary>
 public static class FeedbackEndpoints
@@ -64,6 +70,7 @@ public static class FeedbackEndpoints
         var tried = app.MapGroup("/api/checks").RequireAuthorization();
         tried.MapPost("/{id:guid}/tried", TriedAsync).RequireRateLimiting(Policy);
         tried.MapPost("/{id:guid}/tried/prefer", PreferAsync).RequireRateLimiting(Policy);
+        tried.MapPost("/{id:guid}/tried/shared", SharedPairAsync).RequireRateLimiting(Policy);
 
         var me = app.MapGroup("/api/users/me").RequireAuthorization();
         me.MapGet("/tried", ListTriedAsync);
@@ -216,7 +223,7 @@ public static class FeedbackEndpoints
         await Counters.IncrementAsync(db, CounterName.TriedPairs, ct);
         logger.LogInformation("Tried: check {AfterId} follows {BeforeId}", id, beforeId);
 
-        return Results.Json(Pair(link, before, after), AppJson.Options, statusCode: StatusCodes.Status201Created);
+        return Results.Json(Pair(link, before, after, await PostsOfAsync(db, [beforeId, id], ct)), AppJson.Options, statusCode: StatusCodes.Status201Created);
     }
 
     /// <summary>"Which do you prefer?", stored as the person's own answer. It changes nothing about either score.</summary>
@@ -249,7 +256,42 @@ public static class FeedbackEndpoints
 
         var before = await db.Checks.AsNoTracking().FirstAsync(c => c.Id == link.BeforeCheckId, ct);
         var after = await db.Checks.AsNoTracking().FirstAsync(c => c.Id == link.AfterCheckId, ct);
-        return Results.Json(Pair(link, before, after), AppJson.Options);
+        return Results.Json(Pair(link, before, after, await PostsOfAsync(db, [link.BeforeCheckId, link.AfterCheckId], ct)), AppJson.Options);
+    }
+
+    /// <summary>
+    /// The posted look of each check, by check id. Every pair answer carries it (Round 20): the result screen reads the
+    /// before's postId off the pair it just made to preselect that look in the post sheet, so the answer to the link must
+    /// say the same as the list would.
+    /// </summary>
+    private static Task<Dictionary<Guid, Guid>> PostsOfAsync(AppDbContext db, Guid[] checkIds, CancellationToken ct) =>
+        db.Posts.AsNoTracking()
+            .Where(p => checkIds.Contains(p.CheckId))
+            .Select(p => new { p.CheckId, p.Id })
+            .ToDictionaryAsync(p => p.CheckId, p => p.Id, ct);
+
+    /// <summary>
+    /// Round 20: the pair's card or film was shared or saved, with the two numbers or without them. Counted on the two
+    /// rows the posted pair already counts on, so the numbers page has one answer to "which version do people use". The
+    /// owner only, from either side of the pair; nothing else is written.
+    /// </summary>
+    private static async Task<IResult> SharedPairAsync(
+        Guid id, SharedPairRequest? body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
+    {
+        var (user, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (user is null)
+        {
+            return failure!;
+        }
+
+        var paired = await db.CheckLinks.AnyAsync(l => l.UserId == user.Id && (l.BeforeCheckId == id || l.AfterCheckId == id), ct);
+        if (!paired)
+        {
+            return UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(user.PreferredLanguage, "error.check_not_found"));
+        }
+
+        await Counters.IncrementAsync(db, body is { WithScores: true } ? CounterName.BeforeAfterShares : CounterName.BeforeAfterSharesPlain, ct);
+        return Results.NoContent();
     }
 
     /// <summary>The caller's own pairs, newest first. Their rows only; there is nothing here of anybody else's.</summary>
@@ -372,7 +414,10 @@ public static class FeedbackEndpoints
     /// <summary>
     /// The stylist's numbers: over every ok check by an account, how many said the tip landed, how many said it missed,
     /// how many never said, overall, by intent (the StyleIntent name) and by language; plus the no-outfit and rejected
-    /// counts over the same accounts' checks, so the numbers page can see the door as well as the verdict.
+    /// counts over the same accounts' checks, so the numbers page can see the door as well as the verdict. Round 20 adds
+    /// the loop's own: pairs written, pairs per hundred of the SAME ok rows (so the two numbers cannot disagree; null
+    /// while there is no ok check to divide by), try_tip nudges written, and pairs whose before check carries a nudge —
+    /// the nudge's own conversion.
     /// </summary>
     public static async Task<StylistMetricsDto> StylistMetricsAsync(AppDbContext db, CancellationToken ct)
     {
@@ -380,13 +425,19 @@ public static class FeedbackEndpoints
             .Where(c => c.UserId != null && c.Status == CheckStatus.Ok)
             .Select(c => new { c.Intent, c.Language, c.Useful })
             .ToListAsync(ct);
+        var pairs = await db.CheckLinks.CountAsync(ct);
 
         return new StylistMetricsDto(
             Split(rows.Select(r => r.Useful)),
             rows.GroupBy(r => r.Intent.ToString()).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => Split(g.Select(r => r.Useful))),
             rows.GroupBy(r => r.Language).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => Split(g.Select(r => r.Useful))),
             await db.Checks.CountAsync(c => c.UserId != null && c.Status == CheckStatus.NotOutfit, ct),
-            await db.Checks.CountAsync(c => c.UserId != null && c.Status == CheckStatus.Rejected, ct));
+            await db.Checks.CountAsync(c => c.UserId != null && c.Status == CheckStatus.Rejected, ct),
+            TriedPairs: pairs,
+            TriedPer100Ok: rows.Count == 0 ? null : Math.Round(pairs * 100.0 / rows.Count, 2),
+            TryTipNudges: await db.Notifications.CountAsync(n => n.Type == NotificationType.TryTip, ct),
+            NudgedThenTried: await db.CheckLinks.CountAsync(
+                l => db.Notifications.Any(n => n.Type == NotificationType.TryTip && n.CheckId == l.BeforeCheckId), ct));
     }
 
     /// <summary>Yes, no, unanswered, and yes over the answered ones (four decimals); null while nobody has answered.</summary>

@@ -186,6 +186,20 @@ public static partial class PublicPageEndpoints
         body.Append("<div class=\"who\"><p class=\"handle\" dir=\"ltr\">@").Append(Esc(look.Handle)).Append("</p>");
         body.Append("<p class=\"intent\">").Append(Esc(intent)).Append("</p></div>");
         body.Append("</div>");
+        if (look.Before is { } before)
+        {
+            // Round 20 — the pair the author linked when posting ("after the tip"): the earlier look and this one, side by
+            // side. The consent is the author's own beforePostId at posting time (their own visible look); no new switch.
+            // The two numbers only when NEITHER author kept a grade private, else no numbers at all, as the app's strip.
+            var numbers = !look.ScorePrivate && !before.ScorePrivate;
+            body.Append("<section class=\"pair\" aria-label=\"").Append(Esc(localizer.Get(language, "public.one_change"))).Append("\">");
+            body.Append("<h2 class=\"lbl\">").Append(Esc(localizer.Get(language, "public.one_change"))).Append("</h2>");
+            body.Append("<div class=\"pair-sides\">");
+            AppendPairSide(body, ImagePath(before.PostId), localizer.Get(language, "public.before"), numbers ? before.Score : null);
+            AppendPairSide(body, ImagePath(look.PostId), localizer.Get(language, "public.after"), numbers ? look.Score : null);
+            body.Append("</div></section>");
+        }
+
         body.Append("<h1>").Append(Esc(title)).Append("</h1>");
         if (look.Tip.Length > 0)
         {
@@ -214,6 +228,18 @@ public static partial class PublicPageEndpoints
             ImageAlt: alt,
             Index: true,
             OgType: "article"), body.ToString());
+    }
+
+    /// <summary>One side of the public pair: the photo, its label, and the number when both grades are public.</summary>
+    private static void AppendPairSide(StringBuilder body, string imagePath, string label, int? score)
+    {
+        body.Append("<figure><img src=\"").Append(imagePath).Append("\" alt=\"\" loading=\"lazy\"><figcaption>").Append(Esc(label));
+        if (score is { } n)
+        {
+            body.Append("<b class=\"pair-n\">").Append(n).Append("</b>");
+        }
+
+        body.Append("</figcaption></figure>");
     }
 
     /// <summary>
@@ -394,7 +420,10 @@ public static partial class PublicPageEndpoints
     /// </summary>
     private sealed record PublicLook(
         Guid PostId, string Handle, string Headline, int Score, StyleIntent Intent, string Language, string Tip, string ImagePath,
-        bool ScorePrivate = false);
+        bool ScorePrivate = false, PublicBefore? Before = null);
+
+    /// <summary>Round 20: the earlier look this one follows (Post.BeforePostId), when it is still public and the same author's.</summary>
+    private sealed record PublicBefore(Guid PostId, int Score, bool ScorePrivate);
 
     /// <summary>
     /// The look behind a public address, or null: the post must exist and not be hidden, its author must not be
@@ -414,6 +443,8 @@ public static partial class PublicPageEndpoints
                 pu.Post.Score,
                 pu.Post.ScorePrivate,
                 pu.Post.Intent,
+                pu.Post.BeforePostId,
+                pu.Post.UserId,
                 c.Language,
                 c.FeedbackJson,
                 c.ImagePath
@@ -422,6 +453,17 @@ public static partial class PublicPageEndpoints
         if (row is null || string.IsNullOrEmpty(row.ImagePath))
         {
             return null;
+        }
+
+        // The before, under the same rules the app's strip applies (PostReader): the same author's, not hidden, with its
+        // photo still there. A before that was hidden or deleted is simply no pair; the page is still the look's.
+        PublicBefore? before = null;
+        if (row.BeforePostId is { } beforeId)
+        {
+            before = await db.Posts.AsNoTracking()
+                .Where(p => p.Id == beforeId && !p.Hidden && p.UserId == row.UserId)
+                .Join(db.Checks.AsNoTracking().Where(c => c.ImagePath != null && c.ImagePath != ""), p => p.CheckId, c => c.Id, (p, c) => new PublicBefore(p.Id, p.Score, p.ScorePrivate))
+                .FirstOrDefaultAsync(ct);
         }
 
         var tip = "";
@@ -434,7 +476,7 @@ public static partial class PublicPageEndpoints
             // A feedback document this server can no longer read is a page without a tip, not a 500.
         }
 
-        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, tip, row.ImagePath, row.ScorePrivate);
+        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, tip, row.ImagePath, row.ScorePrivate, before);
     }
 
     // ---------- the document ----------
@@ -586,6 +628,14 @@ h2.lbl { margin:22px 0 10px; font:700 11px/1 var(--font-body); letter-spacing:.1
 .bio { margin:8px 0 0; color:var(--ink-2); unicode-bidi:plaintext; }
 .tip { margin:12px 0 0; padding:14px 16px; background:var(--surface); border-radius:var(--radius-sm); color:var(--ink-2); unicode-bidi:plaintext; }
 .tip .lbl { display:block; font:700 11px/1 var(--font-body); letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-block-end:6px; }
+/* Round 20: the pair the author linked, two 4:5 photos with their labels; the numbers only when both grades are public. */
+.pair { margin-block-start:18px; }
+.pair h2.lbl { margin:0 0 10px; }
+.pair-sides { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.pair figure { margin:0; }
+.pair img { display:block; inline-size:100%; aspect-ratio:4/5; object-fit:cover; object-position:top center; border-radius:var(--radius-sm); background:var(--surface); }
+.pair figcaption { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-block-start:6px; font-size:13px; color:var(--ink-3); }
+.pair .pair-n { font:800 16px/1 var(--font-display); color:var(--accent); direction:ltr; }
 .actions { display:flex; flex-wrap:wrap; gap:10px; margin-block-start:22px; }
 .btn { display:inline-flex; align-items:center; justify-content:center; min-block-size:44px; padding:0 22px; border-radius:var(--pill);
   background:var(--grad); color:var(--accent-ink); font-family:var(--font-display); font-weight:700; text-decoration:none; }

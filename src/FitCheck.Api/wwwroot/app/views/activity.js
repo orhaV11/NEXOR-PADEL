@@ -9,7 +9,8 @@ import {
 
 // 'reported' only ever reaches a moderator, and its actor is the reported account rather than whoever reported it.
 // 'stylist_back' (Round 20) is the one note a guest asked for at the ceiling; the person is their own actor.
-const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank', 'reported', 'stylist_back'];
+// 'try_tip' (Round 20) is the day-after "did you try the tip?"; the person is their own actor and the row carries checkId.
+const KNOWN_TYPES = ['fire', 'comment', 'follow', 'vote', 'entry', 'ended', 'won', 'mention', 'featured', 'board_rank', 'reported', 'stylist_back', 'try_tip'];
 
 let styled = false;
 /**
@@ -66,6 +67,9 @@ function target(n) {
   if (n.type === 'reported') return '#/admin';
   // The stylist is back: the tap lands on the check the person came to make, as the push does (PushSender.UrlFor).
   if (n.type === 'stylist_back') return '#/check';
+  // Did you try the tip: the tap lands on that check in the person's own list, where the button to try it is (?try= is
+  // read by views/profile.js, which scrolls to the check and focuses the button; nothing is armed without a tap).
+  if (n.type === 'try_tip') return n.checkId ? '#/checks?try=' + encodeURIComponent(n.checkId) : '#/checks';
   if (n.postId) return '#/post/' + n.postId;
   if (n.challengeId) return '#/challenge/' + n.challengeId;
   return '#/u/' + encodeURIComponent(n.actorHandle);
@@ -82,9 +86,10 @@ function row(n) {
       el('div', { text: sentence }),
       el('div', { class: 'when', text: relative(n.createdAt) })
     ]),
-    // A thumbnail of the look. Deleted or hidden looks answer 404: the image just goes away.
-    n.postId ? el('img', {
-      class: 'thumb', src: '/api/posts/' + n.postId + '/image', alt: '', loading: 'lazy', decoding: 'async',
+    // A thumbnail of the look. Deleted or hidden looks answer 404: the image just goes away. A nudge about a check shows
+    // that check's own photo: the route is the owner's only, and this row is the owner's.
+    n.postId || n.checkId ? el('img', {
+      class: 'thumb', src: n.postId ? '/api/posts/' + n.postId + '/image' : '/api/checks/' + n.checkId + '/image', alt: '', loading: 'lazy', decoding: 'async',
       onerror: (event) => { event.currentTarget.hidden = true; }
     }) : null
   ]);

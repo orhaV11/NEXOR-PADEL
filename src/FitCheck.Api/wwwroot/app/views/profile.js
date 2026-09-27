@@ -6,7 +6,7 @@
 // (#profile-blocked) where the follow label was, and the grid is whatever the server answers.
 import {
   register, state, t, api, el, icon, iconButton, sheet, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
-  navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel
+  navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel, hashQuery
 } from '../core.js';
 import { profileBadge, emptyCall } from './board.js';
 import { blockAccount, unblockAccount } from './blocked.js';
@@ -270,7 +270,8 @@ register('saved', async (root, params, ctx) => {
 
 /**
  * Round 14 — the loop, on the private list where a person comes back after trying a tip: under every ok check, the row of
- * typed reasons and "I tried it", and the pair once two checks are linked. The result screen mounts the same pieces from
+ * typed reasons and "I tried it" (the secondary button; the result screen's primary "Try the tip, then show me" is that
+ * screen's treatment), and the pair once two checks are linked. The result screen mounts the same pieces from
  * app/taste.js at its own documented ids; this list is the one that exists whatever that screen does.
  */
 function loopBlock(check, pair) {
@@ -309,6 +310,9 @@ function checkRow(check) {
 
 register('checks', async (root, params, ctx) => {
   setTopBar({ back: '#/me', title: t('checks.title') });
+  // Round 20: #/checks?try=<id> is where the day-after nudge lands (the push and the activity row). The check is brought
+  // into view and its button focused; nothing is armed without a tap.
+  const focusCheck = hashQuery('try');
   root.appendChild(el('h1', { class: 'sr-only', text: t('checks.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
   const skel = el('div', { 'aria-hidden': 'true' }, [0, 1, 2].map(() => el('div', { class: 'check-row' }, [
@@ -341,6 +345,15 @@ register('checks', async (root, params, ctx) => {
   // Each entry is the row as it was, with the loop under it: the flex row keeps its own layout inside the item.
   const list = el('ul', {}, ok.map((check) => el('li', { class: 'check-entry' }, [checkRow(check), loopBlock(check, null)])));
   root.appendChild(list);
+  if (focusCheck) {
+    requestAnimationFrame(() => {
+      const entry = list.querySelector('.check-loop[data-check="' + focusCheck + '"]');
+      if (!entry) return;
+      entry.scrollIntoView({ block: 'center' });
+      const start = entry.querySelector('.loop-start');
+      if (start) start.focus({ preventScroll: true });
+    });
+  }
 
   // The pairs, and the offer to close an attempt the person started before they went to the camera. Both come after the
   // list is on the screen, so the page never waits on them.

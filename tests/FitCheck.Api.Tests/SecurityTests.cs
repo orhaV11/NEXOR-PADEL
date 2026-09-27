@@ -194,6 +194,8 @@ public class IdorEnumerationTests
         // Round 14 — the loop: a pair is one account's own two checks, and so is the preference between them.
         [("/api/checks/{id:guid}/tried", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/tried", "linking a second look to a first is the owner's, over their own two checks", new { beforeId = Guid.Empty }),
         [("/api/checks/{id:guid}/tried/prefer", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/tried/prefer", "which of the pair you prefer is the pair owner's alone", new { prefer = "after" }),
+        // Round 20: counting a pair's share is the pair owner's; a stranger's check, like an unpaired one, reads as missing.
+        [("/api/checks/{id:guid}/tried/shared", "POST")] = Rule.Private(f => $"/api/checks/{f.CheckA}/tried/shared", "counting a before/after share of a pair is the pair owner's alone", new { withScores = true }),
         [("/api/compare/{id:guid}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}", "a comparison is its owner's alone"),
         [("/api/compare/{id:guid}/image/{side}", "GET")] = Rule.Private(f => $"/api/compare/{f.ComparisonA}/image/a", "the only route to a comparison's photos, owner only"),
         // Round 19: a planned outfit is its owner's; the thumbs on it too.

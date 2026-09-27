@@ -23,7 +23,7 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
             return;
         }
 
-        Write(userId, type, actorHandle, postId, challengeId, rank);
+        Write(userId, type, actorHandle, postId, challengeId, rank, null);
     }
 
     /// <summary>Same actor, same post, same type: one notification, not one per tap. None at all across a block.</summary>
@@ -38,8 +38,33 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
             n => n.UserId == userId && n.Type == type && n.ActorHandle == actorHandle && n.PostId == postId && n.ChallengeId == challengeId, ct);
         if (!exists)
         {
-            Write(userId, type, actorHandle, postId, challengeId, null);
+            Write(userId, type, actorHandle, postId, challengeId, null, null);
         }
+    }
+
+    /// <summary>
+    /// Round 20 — "Did you try the tip?", a day after a verdict whose tip was never answered. The person is their own
+    /// actor, as on a board place, so the block check is kept only for symmetry (a self actor is never blocked). One row
+    /// per check, ever: the dedupe is on (user, type, check), and the check id rides on the row and on the push so the
+    /// tap lands on that check on #/checks. <paramref name="at"/> is the scheduler's clock (<see cref="IClock"/>) rather
+    /// than the wall clock, because the nudge's own once-a-day rule reads the same rows back against that clock; every
+    /// other notification keeps the wall clock. Returns false when nothing was written.
+    /// </summary>
+    public async Task<bool> TryTipAsync(Guid userId, string ownHandle, Guid checkId, CancellationToken ct, DateTime? at = null)
+    {
+        if (await blocks.BetweenAsync(userId, ownHandle, ct))
+        {
+            return false;
+        }
+
+        var exists = await db.Notifications.AnyAsync(n => n.UserId == userId && n.Type == NotificationType.TryTip && n.CheckId == checkId, ct);
+        if (exists)
+        {
+            return false;
+        }
+
+        Write(userId, NotificationType.TryTip, ownHandle, null, null, null, checkId, at);
+        return true;
     }
 
     /// <summary>
@@ -67,7 +92,7 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
                 continue;
             }
 
-            Write(moderator, NotificationType.Reported, reportedHandle, postId, null, null);
+            Write(moderator, NotificationType.Reported, reportedHandle, postId, null, null, null);
             told++;
         }
 
@@ -75,7 +100,7 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
     }
 
     /// <summary>The row and the push job that announces it, once the pair has been cleared. The one place either is made.</summary>
-    private void Write(Guid userId, string type, string actorHandle, Guid? postId, Guid? challengeId, int? rank)
+    private void Write(Guid userId, string type, string actorHandle, Guid? postId, Guid? challengeId, int? rank, Guid? checkId, DateTime? at = null)
     {
         var notification = new Notification
         {
@@ -86,10 +111,11 @@ public sealed class Notifier(AppDbContext db, PushSender push, Blocks blocks)
             PostId = postId,
             ChallengeId = challengeId,
             Rank = rank,
-            CreatedAt = DateTime.UtcNow
+            CheckId = checkId,
+            CreatedAt = at ?? DateTime.UtcNow
         };
         db.Notifications.Add(notification);
         // The job carries the row's id: the worker sends only once the row is committed, and never for a request that rolled back.
-        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId, notification.Id, rank));
+        push.Enqueue(new PushJob(userId, type, actorHandle, postId, challengeId, notification.Id, rank, checkId));
     }
 }

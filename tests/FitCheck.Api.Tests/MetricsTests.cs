@@ -289,6 +289,14 @@ public class WardrobeMetricsTests : IClassFixture<WardrobeMetricsTests.WardrobeM
         Assert.Equal(0, wardrobe.GetProperty("momentGo").GetInt32());
         Assert.False(wardrobe.TryGetProperty("momentGoRate", out _));
         Assert.False(wardrobe.TryGetProperty("piecesPerActiveMedian", out _));
+
+        // Round 20: the loop's numbers on the stylist block start at zero, and pairs per hundred ok checks has no number
+        // while there is no ok check to divide by.
+        var stylist = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("stylist");
+        Assert.Equal(0, stylist.GetProperty("triedPairs").GetInt32());
+        Assert.Equal(0, stylist.GetProperty("tryTipNudges").GetInt32());
+        Assert.Equal(0, stylist.GetProperty("nudgedThenTried").GetInt32());
+        Assert.False(stylist.TryGetProperty("triedPer100Ok", out _));
     }
 
     [Fact]
@@ -376,5 +384,53 @@ public class WardrobeMetricsTests : IClassFixture<WardrobeMetricsTests.WardrobeM
 
         // The denominator is the hero tile's own number, so the page cannot say two different things about who checked.
         Assert.Equal(metrics.GetProperty("usersWithAtLeastOneCheck").GetInt32(), wardrobe.GetProperty("checkedUsers").GetInt32());
+    }
+}
+
+// ---- Round 20 — the loop, counted: pairs per hundred ok checks and the nudge's own conversion ----
+
+/// <summary>
+/// The stylist block's loop numbers. What these lock: the denominator of "pairs per 100 ok checks" is the same rows the
+/// useful split reads (ok checks by accounts; a guest's rows wait for the claim), the rate is two decimals, a nudge is
+/// counted once it is a row, and "nudged then tried" is a pair whose BEFORE carries a nudge — the nudge's conversion, not
+/// pairs in general. Own app: these numbers are global.
+/// </summary>
+public class StylistLoopMetricsTests
+{
+    [Fact]
+    public async Task The_stylist_block_counts_pairs_per_100_ok_checks_and_the_nudges_conversion()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        var (moderator, _, _) = await app.NewUserAsync("loop_mod");
+        await app.PromoteAsync("loop_mod");
+        var (person, personId, handle) = await app.NewUserAsync("loop_person");
+
+        // Four ok checks by an account; a guest's fifth stays out of every number on this page until it is claimed.
+        var before = await app.CheckAsync(person);
+        var after = await app.CheckAsync(person);
+        await app.CheckAsync(person);
+        await app.CheckAsync(moderator);
+        Assert.Equal(HttpStatusCode.Created, (await app.NewClient().PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+
+        // One pair, whose before was nudged the day before; one more pair nobody was nudged about would not count as converted.
+        Assert.Equal(HttpStatusCode.Created, (await person.PostAsJsonAsync($"/api/checks/{after}/tried", new { beforeId = before })).StatusCode);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(), UserId = personId, Type = NotificationType.TryTip, ActorHandle = handle, CheckId = before, CreatedAt = DateTime.UtcNow.AddDays(-1)
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var stylist = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("stylist");
+        Assert.Equal(1, stylist.GetProperty("triedPairs").GetInt32());
+        Assert.Equal(25.0, stylist.GetProperty("triedPer100Ok").GetDouble());
+        Assert.Equal(1, stylist.GetProperty("tryTipNudges").GetInt32());
+        Assert.Equal(1, stylist.GetProperty("nudgedThenTried").GetInt32());
+        // The split it sits beside reads the same four rows.
+        Assert.Equal(4, stylist.GetProperty("useful").GetProperty("unanswered").GetInt32());
     }
 }

@@ -23,7 +23,7 @@ export const state = {
   feed: { tab: 'foryou', intent: '' },
   // photo: the still the stylist judges (a JPEG blob). clip/clipUrl: an optional look clip (webm/mp4 blob) whose chosen
   // frame is that still; clipMs its duration. source: 'camera' | 'library' for the metrics of the capture flow.
-  check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null },
+  check: { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: 0, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null, suggestion: null },
   // /api/config: upload limits and the push public key (null when push is off). Loaded at boot; safe defaults until then.
   config: { maxImageBytes: 6 * 1024 * 1024, maxVideoBytes: 40 * 1024 * 1024, maxVideoSeconds: 30, pushPublicKey: null, email: false, transcoding: false, plans: { freeChecksPerDay: 3, proChecksPerDay: 30, guestChecksPerDay: 1, proPriceText: '', compareNeedsPro: false, billing: false }, affiliate: { disclosure: true }, languages: ['en', 'he'] },
   result: null,
@@ -56,6 +56,8 @@ export const ICONS = {
   // Round 10: the item tag (a dot on the photo, "The look" list, the item pages) in the kit's stroke.
   tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="8" cy="8" r="1.6"/></svg>',
   bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 13H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  // Round 19: Tomorrow (what should I wear), on the profile's links and the wardrobe's header.
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h3v3H8z"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
@@ -467,7 +469,7 @@ export function resetSession() {
   const ck = state.check;
   if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
   if (ck.clipUrl) URL.revokeObjectURL(ck.clipUrl);
-  Object.assign(ck, { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: ck.photoToken + 1, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null });
+  Object.assign(ck, { intent: null, occasion: '', photo: null, previewUrl: null, photoBusy: false, photoToken: ck.photoToken + 1, busy: false, challenge: null, error: null, clip: null, clipUrl: null, clipMs: 0, source: null, suggestion: null });
   state.result = null; state.resultAnimated = false; state.resultPostId = null; state.returnTo = null;
 }
 export function navigate(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
@@ -541,7 +543,7 @@ function tabFor(route) {
   if (['explore', 'search', 'tag', 'challenges', 'challenge', 'new-challenge', 'board', 'board-hall', 'items'].includes(name)) return 'explore';
   if (['check', 'result', 'camera', 'compare'].includes(name)) return 'check';
   if (name === 'activity') return 'activity';
-  if (['me', 'saved', 'settings', 'settings-blocked', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights'].includes(name)) return 'me';
+  if (['me', 'saved', 'settings', 'settings-blocked', 'checks', 'login', 'signup', 'welcome', 'admin', 'admin-metrics', 'forgot', 'reset', 'verify', 'pro', 'insights', 'wardrobe', 'tomorrow'].includes(name)) return 'me';
   if (name === 'today') return 'home';
   if (name === 'user') return isMe(route.params.handle) ? 'me' : '';
   return '';
@@ -597,6 +599,8 @@ export function parseRoute(hash) {
     case 'items': return { name: 'items', params: { brand: a || '', category: b || '' } };
     // Round 14: #/wardrobe, the pieces you kept from the checks that named them (views/wardrobe.js).
     case 'wardrobe': return { name: 'wardrobe', params: {} };
+    // Round 19: #/tomorrow, what to wear, composed from those pieces (views/tomorrow.js).
+    case 'tomorrow': return { name: 'tomorrow', params: {} };
     default: return { name: 'feed', params: { tab: 'foryou' } };
   }
 }

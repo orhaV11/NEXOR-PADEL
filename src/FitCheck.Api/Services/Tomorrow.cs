@@ -520,9 +520,9 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
     }
 
     /// <summary>1 for the first answer to this question on this day, n+1 for "another idea".</summary>
-    public Task<int> NextSeqAsync(Guid userId, OutfitOccasion occasion, OutfitStyle? style, string language, DateOnly forDate, CancellationToken ct) =>
-        db.Suggestions.CountAsync(s => s.UserId == userId && s.Status == CheckStatus.Ok && s.Occasion == occasion && s.Style == style
-            && s.Language == language && s.ForDate == forDate, ct).ContinueWith(t => t.Result + 1, ct, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    public async Task<int> NextSeqAsync(Guid userId, OutfitOccasion occasion, OutfitStyle? style, string language, DateOnly forDate, CancellationToken ct) =>
+        1 + await db.Suggestions.CountAsync(s => s.UserId == userId && s.Status == CheckStatus.Ok && s.Occasion == occasion && s.Style == style
+            && s.Language == language && s.ForDate == forDate, ct);
 
     /// <summary>
     /// "P1 + P2 + P3" for each outfit already composed for this occasion and day, in today's refs, so the model is

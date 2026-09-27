@@ -145,7 +145,10 @@ register('pro', async (root, params, ctx) => {
     benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
     plans.tasteNeedsPro ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
     plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint', { free: plans.wardrobeNames || 12 })) : null,
-    plans.compareNeedsPro ? benefit('ring', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null
+    plans.compareNeedsPro ? benefit('ring', t('pro.benefit_insights'), t('pro.benefit_insights_hint')) : null,
+    // Round 19 — Tomorrow: the whole feature where the server sells it to Pro alone, else Pro's own day of it from the whole wardrobe.
+    plans.tomorrow && plans.tomorrowNeedsPro ? benefit('calendar', t('pro.benefit_tomorrow'), t('pro.benefit_tomorrow_hint')) : null,
+    plans.tomorrow && !plans.tomorrowNeedsPro ? benefit('calendar', t('pro.benefit_tomorrow_daily'), t('pro.benefit_tomorrow_daily_hint', { n: plans.proSuggestionsPerDay || 10, free: plans.freeSuggestionsPerDay || 1, pieces: plans.wardrobeNamesPro || 40, seen: plans.wardrobeNames || 12 })) : null
   ]));
   // The cap, once and last, as what it is: a fair-use brake, not the product. Both numbers as the server really
   // enforces them (clamped to Limits:ChecksPerDay before they leave /api/config).

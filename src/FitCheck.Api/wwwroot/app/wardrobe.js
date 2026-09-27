@@ -82,6 +82,21 @@ function ensureStyle() {
  * row then offers the next piece, so a wardrobe fills itself over a few checks instead of over an hour of forms. "Not
  * this one" moves on without storing anything; when the pieces run out the row goes quiet for good.
  */
+/** "Kept — 1 of 2 kinds for your first outfit", or "Plan tomorrow from it" once two kinds are there. Nothing where Tomorrow is off. */
+async function tomorrowPayoff(row) {
+  const plans = (state.config && state.config.plans) || {};
+  if (!plans.tomorrow) return;
+  const data = await loadWardrobe(true);
+  if (!data || !row.isConnected) return;
+  const done = row.querySelector('.keep-done');
+  if (!done) return;
+  const kinds = new Set((data.items || []).map((item) => item.category).filter((c) => c && c !== 'other')).size;
+  const needKinds = plans.suggestionMinCategories || 2;
+  done.appendChild(kinds >= needKinds
+    ? el('a', { class: 'btn-text', id: 'wardrobe-kept-tomorrow', href: '#/tomorrow', text: t('tomorrow.from_wardrobe') })
+    : el('p', { class: 'hint', id: 'wardrobe-kept-progress', text: t('tomorrow.progress', { n: kinds, of: needKinds }) }));
+}
+
 export function wardrobeKeep(result) {
   const row = el('div', { class: 'keep-row', id: 'wardrobe-keep', hidden: true });
   if (!state.me || !result || !result.id) return row;
@@ -100,6 +115,9 @@ export function wardrobeKeep(result) {
         el('a', { class: 'btn-text', id: 'wardrobe-kept-link', href: '#/wardrobe', text: t('wardrobe.open') })
       ])
     );
+    // Round 19 — each keep has a visible payoff: how far the closet is from its first planned outfit, and once it is
+    // there, the door to it. Read from the wardrobe itself, so the number is true rather than counted here.
+    tomorrowPayoff(row);
     // A moment to read it, then the next piece if there is one. Never more than one question on the screen at a time.
     if (queue.length > 0) setTimeout(() => { if (row.isConnected && queue.length > 0) ask(); }, 2200);
   };

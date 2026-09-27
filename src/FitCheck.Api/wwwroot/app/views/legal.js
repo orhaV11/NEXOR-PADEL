@@ -12,7 +12,9 @@ import { register, t, el, hasMessage, setTopBar, intlLocale, state } from '../co
 // "what we store", "what we send to the model provider", "who sees what" and "deleting".
 // Round 18 moved to 4: the plans are a month with a day behind it, cancelling is in Settings and not by mail, the
 // provider is named, the taste summary the stylist is sent is disclosed, and so are store links and the commission.
-const VERSION = '4';
+// Round 19 moved to 5: Tomorrow (what is kept about a planned outfit, and that the names and kinds of kept pieces are
+// sent to compose one) and the forecast (a rounded place, passed once to Open-Meteo, kept by nobody).
+const VERSION = '5';
 const DATED = '2026-09-27';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.

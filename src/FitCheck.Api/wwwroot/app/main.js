@@ -22,6 +22,7 @@ import './views/board.js';
 import './views/items.js';
 import './views/blocked.js';
 import './views/wardrobe.js';
+import './views/tomorrow.js';
 
 boot().catch((e) => {
   console.error(e);

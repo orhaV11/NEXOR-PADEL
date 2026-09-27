@@ -726,6 +726,126 @@ public class TomorrowTests
         Assert.Equal(id, WithDb(app, db => db.Suggestions.Single(s => s.Id == suggestionId).UserId));
     }
 
+    /// <summary>
+    /// "Wearing it? Check it": a check sent from a planned outfit links the two and records the strongest yes there is,
+    /// unless the person already answered. Someone else's outfit, or a made-up id, is quietly nothing.
+    /// </summary>
+    [Fact]
+    public async Task Wearing_it_closes_the_loop()
+    {
+        using var app = new TestApp { Settings = { ["Plans:FreeSuggestionsPerDay"] = "20" } };
+        var (me, id, _) = await app.NewUserAsync("tm_worn");
+        var (other, _, _) = await app.NewUserAsync("tm_worn_other");
+        await ThreeKeepsAsync(app, me);
+        var suggestion = await Json(await ComposeAsync(me));
+        var suggestionId = suggestion.GetProperty("id").GetGuid();
+
+        var form = TestApp.CheckForm(TestImages.Jpeg());
+        form.Add(new StringContent(suggestionId.ToString()), "suggestionId");
+        var worn = await me.PostAsync("/api/checks", form);
+        Assert.Equal(HttpStatusCode.Created, worn.StatusCode);
+        var checkId = (await Json(worn)).GetProperty("id").GetGuid();
+
+        var row = WithDb(app, db => db.Suggestions.Single(s => s.Id == suggestionId));
+        Assert.Equal(checkId, row.WornCheckId);
+        Assert.Equal("worked", row.UsefulReason);
+        Assert.True(row.Useful);
+        Assert.Equal(suggestionId, WithDb(app, db => db.Checks.Single(c => c.Id == checkId).SuggestionId));
+        var read = await Json(await me.GetAsync("/api/tomorrow"));
+        Assert.Equal(checkId, Assert.Single(read.GetProperty("recent").EnumerateArray()).GetProperty("wornCheckId").GetGuid());
+
+        // An answer already given is not overwritten by the check.
+        var another = await Json(await ComposeAsync(me, "Party"));
+        var anotherId = another.GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, (await me.PostAsJsonAsync($"/api/tomorrow/{anotherId}/useful", new { reason = "not_my_style" })).StatusCode);
+        var form2 = TestApp.CheckForm(TestImages.Jpeg());
+        form2.Add(new StringContent(anotherId.ToString()), "suggestionId");
+        Assert.Equal(HttpStatusCode.Created, (await me.PostAsync("/api/checks", form2)).StatusCode);
+        var kept = WithDb(app, db => db.Suggestions.Single(s => s.Id == anotherId));
+        Assert.NotNull(kept.WornCheckId);
+        Assert.Equal("not_my_style", kept.UsefulReason);
+
+        // Someone else's outfit: the check is an ordinary check and the outfit is untouched.
+        var stranger = TestApp.CheckForm(TestImages.Jpeg());
+        stranger.Add(new StringContent(suggestionId.ToString()), "suggestionId");
+        Assert.Equal(HttpStatusCode.Created, (await other.PostAsync("/api/checks", stranger)).StatusCode);
+        Assert.Equal(checkId, WithDb(app, db => db.Suggestions.Single(s => s.Id == suggestionId)).WornCheckId);
+        var nonsense = TestApp.CheckForm(TestImages.Jpeg());
+        nonsense.Add(new StringContent("not-a-guid"), "suggestionId");
+        Assert.Equal(HttpStatusCode.Created, (await me.PostAsync("/api/checks", nonsense)).StatusCode);
+        Assert.Equal(id, row.UserId);
+    }
+
+    /// <summary>
+    /// The thumbs on an outfit teach the same profile a check's thumbs teach: the counts grow, the turned-down outfit's
+    /// sentence and note join the advisory under the same two-reason rule, and the outfits themselves are named as
+    /// combinations of pieces — the ones they said yes to and the ones they turned down. Clearing the profile clears
+    /// them; learning off silences them. The numbers page counts them beside the wardrobe's.
+    /// </summary>
+    [Fact]
+    public async Task Thumbs_on_an_outfit_reach_the_taste_advisory_and_the_numbers_page()
+    {
+        using var app = new TestApp { Settings = { ["Plans:FreeSuggestionsPerDay"] = "20" } };
+        var (me, _, handle) = await app.NewUserAsync("tm_taste");
+        await ThreeKeepsAsync(app, me);
+        var first = await Json(await ComposeAsync(me));
+        var firstId = first.GetProperty("id").GetGuid();
+        var names = Names(first);
+
+        Assert.Equal(HttpStatusCode.OK, (await me.PostAsJsonAsync($"/api/tomorrow/{firstId}/useful", new { reason = "not_my_style", note = "too plain for a Tuesday" })).StatusCode);
+        var card = await me.GetFromJsonAsync<JsonElement>("/api/users/me/taste");
+        var advisory = card.GetProperty("advisory").GetString()!;
+        Assert.Contains("Answered 'not my style' 1 time(s)", advisory);
+        Assert.Contains("Outfits they turned down: ", advisory);
+        foreach (var name in names)
+        {
+            Assert.Contains("\"" + name + "\"", advisory);
+        }
+
+        Assert.Contains("too plain for a Tuesday", advisory);
+        // The sentence they turned down is a tip to steer away from, like a check's tip would be.
+        Assert.Contains("Tips they turned down", advisory);
+        Assert.DoesNotContain("Outfits they said yes to", advisory);
+        var rejected = card.GetProperty("facts").GetProperty("rejected").EnumerateArray().Select(r => r.GetString()).ToList();
+        Assert.Single(rejected);
+
+        // A yes on the next outfit, and it is named as one they said yes to; the advisory rides on the next compose.
+        var second = await Json(await ComposeAsync(me, "Party"));
+        Assert.Equal(HttpStatusCode.OK, (await me.PostAsJsonAsync($"/api/tomorrow/{second.GetProperty("id").GetGuid()}/useful", new { reason = "worked" })).StatusCode);
+        advisory = (await me.GetFromJsonAsync<JsonElement>("/api/users/me/taste")).GetProperty("advisory").GetString()!;
+        Assert.Contains("Outfits they said yes to: ", advisory);
+        Assert.Contains("Past tips: 1 worked", advisory);
+        await ComposeAsync(me, "Sport");
+        Assert.Contains("Outfits they said yes to", LastCompose(app).SystemPrompt);
+        Assert.Contains("Outfits they turned down", LastCompose(app).SystemPrompt);
+
+        // Learning off: nothing rides along. Clearing: gone.
+        Assert.Equal(HttpStatusCode.OK, (await me.PatchAsJsonAsync("/api/users/me/taste", new { learning = false })).StatusCode);
+        await ComposeAsync(me, "Formal");
+        Assert.DoesNotContain("WEARER'S TASTE", LastCompose(app).SystemPrompt);
+        Assert.Equal(HttpStatusCode.OK, (await me.PatchAsJsonAsync("/api/users/me/taste", new { learning = true })).StatusCode);
+        Assert.True((await me.DeleteAsync("/api/users/me/taste")).IsSuccessStatusCode);
+        var cleared = await me.GetFromJsonAsync<JsonElement>("/api/users/me/taste");
+        Assert.True(cleared.GetProperty("empty").GetBoolean());
+
+        // The numbers page: the outfits, the worn rate, the reuse rate, and the reasons beside the wardrobe's.
+        Assert.Equal(AdminChange.Changed, await app.PromoteAsync(handle));
+        await ComposeAsync(me, "Party");   // a stored answer handed back: one reuse
+        var metrics = await me.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        var tomorrow = metrics.GetProperty("tomorrow");
+        Assert.Equal(4, tomorrow.GetProperty("suggestions").GetInt32());
+        Assert.Equal(1, tomorrow.GetProperty("worn").GetInt32());
+        Assert.Equal(0.25, tomorrow.GetProperty("wornRate").GetDouble());
+        Assert.Equal(1, tomorrow.GetProperty("reused").GetInt32());
+        Assert.Equal(0.2, tomorrow.GetProperty("reuseRate").GetDouble());
+        Assert.Equal(0, tomorrow.GetProperty("inventedRefs").GetInt32());
+        var reasons = tomorrow.GetProperty("reasons").EnumerateArray().ToDictionary(r => r.GetProperty("name").GetString()!, r => r.GetProperty("n").GetInt32());
+        Assert.Equal(1, reasons["not_my_style"]);
+        Assert.Equal(1, reasons["worked"]);
+        var wardrobe = metrics.GetProperty("wardrobe");
+        Assert.Equal(2, wardrobe.GetProperty("reasons").GetInt32());
+    }
+
     [Fact]
     public async Task Other_peoples_pieces_never_appear_and_a_removed_piece_keeps_its_name_in_history()
     {

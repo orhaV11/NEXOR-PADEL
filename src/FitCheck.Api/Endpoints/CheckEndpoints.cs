@@ -460,6 +460,27 @@ public static class CheckEndpoints
 
         db.Checks.Add(check);
         await db.SaveChangesAsync(CancellationToken.None);
+        // Round 19 — "Wearing it? Check it": the planned outfit this check is the person wearing. Their own outfit only
+        // (someone else's id, or none, is quietly nothing); the strongest yes there is, so it is recorded as one unless
+        // they already answered. The keep row then re-sees the pieces, and the next Tomorrow leads with what they wear.
+        if (check.Status == CheckStatus.Ok && user is not null && Guid.TryParse(form["suggestionId"].ToString(), out var suggestionId))
+        {
+            var suggestion = await db.Suggestions.FirstOrDefaultAsync(s => s.Id == suggestionId && s.UserId == user.Id && s.Status == CheckStatus.Ok, CancellationToken.None);
+            if (suggestion is not null)
+            {
+                check.SuggestionId = suggestion.Id;
+                suggestion.WornCheckId = check.Id;
+                if (suggestion.UsefulReason is null)
+                {
+                    suggestion.UsefulReason = TipReason.Worked;
+                    suggestion.Useful = true;
+                    suggestion.UsefulAt = now;
+                }
+
+                await db.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+
         // Stored with a status that cost a model call: the address's look is spent. (The 502 above stored an error row and
         // commits nothing.) Round 13: a no-outfit answer within Plans:NoOutfitForgivenPerDay spends nothing either, the
         // address's look included: the person got nothing for it. The answer says so (counted), so the screen can too.

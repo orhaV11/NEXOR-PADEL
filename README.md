@@ -123,7 +123,8 @@ difference between a shared link that unfurls with a picture and one that does n
 VAPID keys), `admin` (the moderator list, and the accounts `--admin` promoted), `board` (the time zone), `affiliate`,
 `storage` (the photo folder, actually written to and the file removed again), `database` (the file and what it still
 has to migrate), `ffmpeg`, `disk` (the free space where the data lives), `spend` (what a model call is priced at here
-and the day's ceiling) and `alerts` (whether anything at all would shout). The last two lines are the tally —
+and the day's ceiling), `alerts` (whether anything at all would shout) and `weather` (the forecast behind Tomorrow, and
+whether its keyless licence is being leaned on by a server that takes payments). The last two lines are the tally —
 `doctor: 9 ok, 7 warnings, 1 failure`, with whatever numbers your own run comes to — and the verdict, `Ready.`, `Ready, with warnings to read.` or `Not ready: fix
 the failures above and run it again.` **Only a failure changes the exit code**; a warning is the operator's call.
 `--doctor --live` adds the calls that cost something or leave the machine:
@@ -1468,3 +1469,65 @@ Tests: `WardrobeMetricsTests` (an empty pilot's absent rates, the two numbers ov
 matching the hero tile, and the share with no denominator) and `WardrobeComparisonTests` (the names travelling, a free
 account's byte-identical request, an account that turned it off keeping its pieces, `Plans:WardrobeNamesToStylist=0`,
 and the block that is nothing at all when there is nothing to send).
+
+## Round 19 — Tomorrow: an outfit from the wardrobe that built itself
+
+"What should I wear?", answered from the pieces a person already kept from their checks, each one shown as the photo of
+them wearing it. Nothing is photographed for it: the wardrobe filled itself one keep at a time (Round 14), and Tomorrow
+is what it was for. The screen is `#/tomorrow`, reached from the profile's links, the wardrobe's header and the keep row
+after a check once two kinds of piece are in.
+
+**What keeps it honest.** The model is handed a closed list of refs (P1..Pn) over the wardrobe rows — the plan's slice
+of them, 12 on Free and 40 on Pro, most recently worn first — and a tool whose enum is exactly those refs (and, for the
+one kind of piece the wardrobe lacks, exactly the kinds they do not own). Everything it answers is checked again in code
+by id: an unknown ref is dropped and counted, one of each kind is kept and at most two accessories, a dress sends the top
+and the bottom home, and a sentence that names a body, a number the figures never gave, or an offered piece it did not
+pick is replaced by a template built from the rows. What reaches the person is the wardrobe row's own name, never a
+string the model wrote. The photo per piece is chosen in code too: the newest photographed check the piece was kept
+from, a different check per piece where the wardrobe allows it, and one photo drawn once when every piece came from the
+same look.
+
+**What keeps it cheap.** A planned outfit is one stylist call and is counted exactly where a check is: a free account's
+one shared day (and `Plans:FreeSuggestionsPerDay`, `1`, of it may be outfits), a Pro account's own third bucket
+(`Plans:ProSuggestionsPerDay`, `10`), the same month for both, and the global ceiling. A stored answer to the same
+question on the same day is handed back for twelve hours instead of a new call — unless the person asked for another
+idea or thumbed the last one down — and a wardrobe that changed since is shown as stale with a Refresh, never composed
+again on its own. Below two pieces of two kinds nothing is asked at all. The brake sits inside the same in-flight
+reservation a check uses, so parallel taps cannot slip under it. A failed call is stored and counts for nothing.
+
+**The weather.** With the person's leave — one tap on the Tomorrow screen, the browser's own prompt — the phone sends its
+place rounded to about a kilometre with the request, the server asks Open-Meteo for the day's high, low, chance of rain
+and sky, and the figures go to the model as words the code chose. No coordinate is ever stored or logged. The forecast is
+optional and the outfit is never delayed for want of it. Open-Meteo's keyless service is for non-commercial use;
+`Weather__ApiKey` moves the calls to its paid host, and `--doctor` says so while Stripe is on and the key is empty.
+
+**The loop.** The thumbs on an outfit use the check's own vocabulary (`worked`, `didnt_work`, `not_my_style`,
+`dont_own`) and are written onto the row's four columns, so the taste profile reads one shape from two tables: the
+counts grow, a turned-down outfit's sentence and note join the advisory under the same two-reason rule, and the outfits
+themselves are named as combinations — "Outfits they said yes to", "Outfits they turned down" — on the next outfit and
+on the next check alike. "I don't have one of these any more" removes the piece from the wardrobe at the source.
+"Wearing it? Check it" carries the outfit into a check, and the stored check links back to it and records the yes.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `GET /api/tomorrow` 🔒 | — | The screen's first paint, never a model call: `available`, `stylistOn`, `needsPro`, `have`/`haveKinds` against `needs`/`needsKinds`, `offered` (how many pieces the model would be shown), `strip` (up to 8 pieces with `photoUrl`), `recent` (the last 5 outfits with `stale`), `leftToday`/`capToday`/`leftMonth`/`capMonth`, `defaultOccasion`/`defaultStyle` |
+| `POST /api/tomorrow` 🔒 | `{ occasion, style?, when: "today"\|"tomorrow", today: "yyyy-MM-dd", fresh?, lat?, lon? }` | `201` a `SuggestionDto` (`pieces[]` each with `itemId`, `name`, `category`, `photoCheckId`, `photoUrl`, `worn`; `sentence`; `weather?`; `gap?`; `seq`; `reused`; `stale`; `counted`; the four left/cap numbers), or `200` with `reused: true` when a stored answer serves, or `200` `{ have, haveKinds, needs, needsKinds }` when the wardrobe is too thin. 400 `error.intent_invalid`; 403 `error.pro_required` where `Plans:TomorrowNeedsPro` is on; 409 `error.tomorrow_stylist_off`; 429 `error.tomorrow_limit`/`error.tomorrow_free_limit`/`error.plan_limit`/`error.month_limit`; 502 `error.tomorrow_failed` (nothing spent); 503 `error.stylist_resting` for a free account at the ceiling |
+| `POST /api/tomorrow/{id}/useful` 🔒 | `{ reason, note? }` | The check's own thumbs body and guards (`FeedbackEndpoints.ParseUseful`); 404 `error.tomorrow_not_found` for anyone but the owner |
+| `GET /api/checks/{id}/image` | — | The photo of a private check, to whoever may read the check (its owner, or the guest whose cookie made it), `Cache-Control: private`; 404 to everyone else and for a check with no file |
+
+Every `/api/tomorrow` route answers 404 while `Plans:TomorrowEnabled` is off, and `/api/config` publishes the plan
+numbers as enforced (`plans.tomorrow`, `plans.tomorrowNeedsPro`, `plans.proSuggestionsPerDay`, `plans.freeSuggestionsPerDay`,
+`plans.suggestionMinPieces`, `plans.suggestionMinCategories`). The numbers page gains a Tomorrow block (outfits, worn
+rate, reuse rate, refs the model returned that were not in its list, sentences the template replaced, the reasons), and
+the wardrobe block's "I do not own that" now counts outfits too. Migration `Round19Tomorrow` adds `Suggestions` and
+`SuggestionPieces` and a nullable `Checks.SuggestionId`; the server strings are in `Localizer.cs` and the screen's in the
+four `i18n` files.
+
+Tests: `TomorrowTests` (a hallucinated garment never reaches the outfit; the tenth tap is refused exactly where the tenth
+check would be; the ref and gap enums are exactly the wardrobe; a body word or an invented number replaces the sentence;
+too few pieces or kinds make no call; the wardrobe switch and the guest; the kill switch and the wall; five taps pay once
+and another idea pays again; a thumbs-down breaks the cache and a new piece marks it stale; a failure spends nothing and
+a refusal counts; free's brake inside its shared day and Pro's own bucket; the month; the in-flight reservation; the
+weather reaching the model only when the server fetched it, rounded and never stored; the photo per piece; the thumbs;
+the loop closing from a check; the advisory and the numbers page), `WeatherTests`, and the doctor, plan, security and
+database tests that grew with it.

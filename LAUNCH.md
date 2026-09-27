@@ -328,6 +328,15 @@ fly secrets set \
   Billing__PublicOrigin=https://looks.example.com
 ```
 
+**The forecast (Round 19).** Tomorrow ("what should I wear") can dress a person for the weather. It works with
+nothing set, keylessly, from Open-Meteo — but their keyless service is for **non-commercial** use, so once Stripe is on,
+either subscribe at open-meteo.com and set the key, or turn the forecast off. `--doctor` warns until one or the other
+is done; nothing else in the app depends on it.
+
+```bash
+fly secrets set Weather__ApiKey=...          # or: fly secrets set Weather__Enabled=false
+```
+
 **Push notifications.** Generate the key pair with the app itself, once and only once — a new pair silently drops
 every existing subscription. This command needs no database, so it can run before the first deploy:
 

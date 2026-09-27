@@ -161,6 +161,14 @@ function preferredStyle() {
   return STYLES.includes(saved) ? saved : null;
 }
 
+/** The planned outfit's id from #/check?suggestion=..., the query part of the hash (the router ignores it), or null. */
+function suggestionQuery() {
+  const q = location.hash.indexOf('?');
+  if (q < 0) return null;
+  const value = new URLSearchParams(location.hash.slice(q + 1)).get('suggestion');
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+}
+
 // The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy. The guest
 // banner is a notice card with the display face; the cap line sits under the submit button with the private note.
 const CSS = `
@@ -269,6 +277,15 @@ register('check', async (root) => {
   // The style preference is read once per session; a challenge that named one of the old eight words preselects the pair.
   if (!pick.loaded) { pick.style = preferredStyle(); pick.loaded = true; }
   if (!pick.occasion && ck.intent && SPLIT[ck.intent]) { [pick.occasion, pick.style] = SPLIT[ck.intent]; }
+  // Round 19 — "Wearing it? Check it": #/check?suggestion=<id> arrives from the Tomorrow screen with the outfit's own
+  // chips, and the id travels with the photo so the server can close the loop. Anything else in the query is ignored.
+  const suggested = suggestionQuery();
+  if (suggested && ck.suggestion && ck.suggestion.id === suggested) {
+    if (OCCASIONS.includes(ck.suggestion.occasion)) pick.occasion = ck.suggestion.occasion;
+    pick.style = STYLES.includes(ck.suggestion.style) ? ck.suggestion.style : null;
+  } else if (!suggested) {
+    ck.suggestion = null;
+  }
   form.appendChild(occasionChips());
   form.appendChild(styleChips());
 
@@ -304,13 +321,15 @@ register('check', async (root) => {
  * chip also carries the one word it contributes (data-intent), for the surfaces and the browser tests that still speak
  * one word.
  */
-function occasionChips() {
+// Round 19: the two chip rows are shared with the Tomorrow screen (views/tomorrow.js), which passes its own
+// { occasion, style } object and a repaint callback; on this screen the defaults make them byte for byte what they were.
+export function occasionChips(picked = pick, onPick = updateSubmit) {
   const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });
   for (const occasion of OCCASIONS) {
     chips.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-occasion': occasion, 'data-intent': ONE_WORD[occasion], text: occasionLabel(occasion),
-      'aria-pressed': String(pick.occasion === occasion),
-      onclick: () => { pick.occasion = occasion; paintOccasions(); updateSubmit(); }
+      'aria-pressed': String(picked.occasion === occasion),
+      onclick: () => { picked.occasion = occasion; paintOccasions(picked); onPick(); }
     }));
   }
 
@@ -318,10 +337,10 @@ function occasionChips() {
 }
 
 /** Lights the chosen occasion, wherever the row currently is on screen. */
-function paintOccasions() {
+function paintOccasions(picked = pick) {
   const row = $('occasions');
   if (!row) return;
-  for (const chip of row.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === pick.occasion));
+  for (const chip of row.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === picked.occasion));
 }
 
 /**
@@ -329,29 +348,30 @@ function paintOccasions() {
  * first chip and a real answer - the stylist is told there is none and judges the look on its own terms. When the pick
  * differs from what is saved, one line offers to make it the new preference.
  */
-function styleChips() {
+export function styleChips(picked = pick, onPick = updateSubmit) {
   const chips = el('div', { class: 'chips', id: 'styles', role: 'group', 'aria-label': t('style.title') });
   const offer = el('p', { class: 'hint style-default', id: 'style-default' });
   const paint = () => {
-    for (const chip of chips.children) chip.setAttribute('aria-pressed', String((chip.dataset.style || null) === pick.style));
+    for (const chip of chips.children) chip.setAttribute('aria-pressed', String((chip.dataset.style || null) === picked.style));
     offer.innerHTML = '';
-    if (pick.style === preferredStyle()) { offer.hidden = true; return; }
+    if (picked.style === preferredStyle()) { offer.hidden = true; return; }
     offer.hidden = false;
     offer.appendChild(el('span', { text: t('style.this_check') }));
     offer.appendChild(el('button', {
       type: 'button', class: 'btn-text', id: 'style-save', text: t('style.make_mine'),
-      onclick: () => { savePrefs({ style: pick.style || '' }); paint(); toast(t('style.saved', { style: styleLabel(pick.style) })); }
+      onclick: () => { savePrefs({ style: picked.style || '' }); paint(); toast(t('style.saved', { style: styleLabel(picked.style) })); }
     }));
   };
   for (const style of [null, ...STYLES]) {
     chips.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-style': style || '', 'data-intent': style, text: styleLabel(style),
       'aria-pressed': 'false', onclick: () => {
-        pick.style = style;
+        picked.style = style;
         // A style with nowhere to go is what the old list called Streetwear, OldMoney or Minimal: a style worn
         // everyday. Asking for one before saying where means that, so Everyday lights up and can still be changed.
-        if (style && !pick.occasion) { pick.occasion = 'Everyday'; paintOccasions(); updateSubmit(); }
+        if (style && !picked.occasion) { picked.occasion = 'Everyday'; paintOccasions(picked); }
         paint();
+        onPick();
       }
     }));
   }
@@ -686,6 +706,8 @@ async function submitCheck() {
     form.append('style', pick.style || '');
     form.append('note', ck.occasion.trim());
     form.append('language', getLocale());
+    // Round 19: the planned outfit this photo is the person wearing, when they came from it.
+    if (ck.suggestion && ck.suggestion.id) form.append('suggestionId', ck.suggestion.id);
     form.append('image', ck.photo, 'outfit.jpg');
     if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
     // From here the check belongs to the server whatever happens to this page. The marker is what the next boot has to

@@ -550,7 +550,10 @@ public sealed record PilotMetricsDto(
     // Round 13 — the growth loop: the fourteen days of the funnel and the invites (Services/Funnel.cs fills it).
     FunnelMetricsDto? Funnel = null,
     // Round 15 — the wardrobe, counted: MARKETING.md's two numbers (MetricsEndpoints fills it).
-    WardrobeMetricsDto? Wardrobe = null);
+    WardrobeMetricsDto? Wardrobe = null,
+    // Round 19 — Tomorrow: whether planned outfits get worn, how often a stored one is reused, how often the model reached
+    // outside the wardrobe (MetricsEndpoints fills it).
+    TomorrowMetricsDto? Tomorrow = null);
 
 /// <summary>
 /// Mean of each rubric v2 sub-score over the ok checks that carry a breakdown (Checks says how many), two decimals.
@@ -686,7 +689,11 @@ public sealed record TasteFactsDto(
     List<TasteCountDto> Categories,
     List<string> Colours,
     List<string> Avoid,
-    List<string> Notes);
+    List<string> Notes,
+    // Round 19 — Tomorrow: the planned outfits they said yes to (or wore and checked) and the ones they turned down, as
+    // their pieces' names joined with " + ". Null reads as empty, so every older caller and the empty profile stand.
+    List<string>? Combos = null,
+    List<string>? Rejected = null);
 
 /// <summary>"Last time you … and said it worked": their own words from their own row, with when they said it.</summary>
 public sealed record TasteWinDto(Guid CheckId, string Tip, DateTime At);

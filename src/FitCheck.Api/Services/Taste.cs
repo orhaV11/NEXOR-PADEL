@@ -142,6 +142,12 @@ namespace FitCheck.Api.Services
         public const int PostWindow = 60;
         public const int ItemWindow = 200;
 
+        /// <summary>Round 19: how many of the account's planned outfits (Tomorrow) are read, newest first.</summary>
+        public const int SuggestionWindow = 40;
+
+        /// <summary>Round 19: how many outfits they said yes to, and how many they turned down, the advisory names.</summary>
+        public const int MaxCombos = 3;
+
         /// <summary>"Last time you … and said it worked": only that recent, and only that close to the top of the list.</summary>
         public const int WinWindowDays = 30;
 
@@ -223,7 +229,8 @@ namespace FitCheck.Api.Services
         public static bool IsEmpty(TasteFactsDto facts) =>
             facts.Checks == 0 && facts.Posted == 0 && facts.Intents.Count == 0 && facts.Reasons.Count == 0
             && facts.Pieces.Count == 0 && facts.Categories.Count == 0 && facts.Colours.Count == 0
-            && facts.Avoid.Count == 0 && facts.Notes.Count == 0;
+            && facts.Avoid.Count == 0 && facts.Notes.Count == 0
+            && (facts.Combos is null || facts.Combos.Count == 0) && (facts.Rejected is null || facts.Rejected.Count == 0);
 
         /// <summary>
         /// The facts, from this account's own rows only and only those after <paramref name="clearedAt"/>. Every query is
@@ -255,10 +262,34 @@ namespace FitCheck.Api.Services
                     .Select(i => new { i.Name, i.Category })
                     .ToListAsync(ct);
 
+            // Round 19 — the planned outfits (Tomorrow) this account answered, read through the same door and under the
+            // same rule: only this account's rows, only after the clear, and the four columns a check has.
+            var suggestions = await db.Suggestions.AsNoTracking()
+                .Where(s => s.UserId == userId && s.Status == CheckStatus.Ok && s.CreatedAt > since)
+                .OrderByDescending(s => s.CreatedAt)
+                .Take(SuggestionWindow)
+                .Select(s => new { s.Id, s.UsefulReason, s.UsefulNote, s.UsefulAt, s.Sentence, s.WornCheckId })
+                .ToListAsync(ct);
+            var suggestionIds = suggestions.Select(s => s.Id).ToList();
+            var outfitPieces = suggestionIds.Count == 0
+                ? []
+                : await db.SuggestionPieces.AsNoTracking()
+                    .Where(p => suggestionIds.Contains(p.SuggestionId))
+                    .OrderBy(p => p.Position)
+                    .Select(p => new { p.SuggestionId, p.Name })
+                    .ToListAsync(ct);
+            var namesOf = outfitPieces.ToLookup(p => p.SuggestionId, p => p.Name);
+            string? Combo(Guid id)
+            {
+                var names = namesOf[id].Select(name => Clean(name, PieceMaxLength)).Where(Keep).Select(name => "\"" + name + "\"").ToList();
+                return names.Count == 0 ? null : string.Join(" + ", names);
+            }
+
             var intents = Top(checks.Select(c => c.Intent.ToString()), MaxIntents);
 
+            // Both sources in one tally, so "answered 'not my style' N time(s)" grows with the outfits too.
             var reasons = TipReason.All
-                .Select(reason => new TasteCountDto(reason, checks.Count(c => c.UsefulReason == reason)))
+                .Select(reason => new TasteCountDto(reason, checks.Count(c => c.UsefulReason == reason) + suggestions.Count(s => s.UsefulReason == reason)))
                 .Where(count => count.N > 0)
                 .ToList();
 
@@ -282,6 +313,8 @@ namespace FitCheck.Api.Services
             var avoid = checks
                 .Where(c => c.UsefulReason is TipReason.NotMyStyle or TipReason.DontOwn)
                 .Select(c => Clean(TipOf(c.FeedbackJson), AvoidMaxLength))
+                // Round 19: an outfit's sentence they turned down for the same two reasons, under the same rule.
+                .Concat(suggestions.Where(s => s.UsefulReason is TipReason.NotMyStyle or TipReason.DontOwn).Select(s => Clean(s.Sentence, AvoidMaxLength)))
                 .Where(Keep)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Take(MaxAvoid)
@@ -293,13 +326,35 @@ namespace FitCheck.Api.Services
             // row it was typed in. It is free text either way, so it is folded to one line, cut, quoted and labelled.
             var notes = checks
                 .Where(c => c.UsefulNote is not null && c.UsefulReason is TipReason.NotMyStyle or TipReason.DontOwn)
-                .OrderByDescending(c => c.UsefulAt ?? DateTime.MinValue)
-                .Select(c => Clean(c.UsefulNote, NoteMaxLength))
+                .Select(c => (At: c.UsefulAt ?? DateTime.MinValue, Note: c.UsefulNote))
+                .Concat(suggestions
+                    .Where(s => s.UsefulNote is not null && s.UsefulReason is TipReason.NotMyStyle or TipReason.DontOwn)
+                    .Select(s => (At: s.UsefulAt ?? DateTime.MinValue, Note: s.UsefulNote)))
+                .OrderByDescending(n => n.At)
+                .Select(n => Clean(n.Note, NoteMaxLength))
                 .Where(Keep)
                 .Take(MaxNotes)
                 .ToList();
 
-            return new TasteFactsDto(checks.Count, postIds.Count, intents, reasons, pieceNames, categories, colours, avoid, notes);
+            // Round 19 — the outfits, by their pieces' names: the ones they said yes to (or wore and checked), and the
+            // ones they turned down as not going together or not theirs. What the stylist is told to lean towards and
+            // away from, on the next outfit and on the next check alike.
+            var combos = suggestions
+                .Where(s => s.UsefulReason == TipReason.Worked || s.WornCheckId is not null)
+                .Select(s => Combo(s.Id))
+                .Where(combo => combo is not null)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxCombos)
+                .ToList();
+            var rejected = suggestions
+                .Where(s => s.UsefulReason is TipReason.DidntWork or TipReason.NotMyStyle)
+                .Select(s => Combo(s.Id))
+                .Where(combo => combo is not null)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxCombos)
+                .ToList();
+
+            return new TasteFactsDto(checks.Count, postIds.Count, intents, reasons, pieceNames, categories, colours, avoid, notes, combos!, rejected!);
         }
 
         /// <summary>
@@ -400,6 +455,17 @@ namespace FitCheck.Api.Services
             if (facts.Notes.Count > 0)
             {
                 lines.Add("- Their own words: " + string.Join("; ", facts.Notes.Select(n => "\"" + n + "\"")) + ".");
+            }
+
+            // Round 19 — the planned outfits they answered, as combinations of pieces they own.
+            if (facts.Combos is { Count: > 0 })
+            {
+                lines.Add("- Outfits they said yes to: " + string.Join("; ", facts.Combos) + ".");
+            }
+
+            if (facts.Rejected is { Count: > 0 })
+            {
+                lines.Add("- Outfits they turned down: " + string.Join("; ", facts.Rejected) + ".");
             }
 
             if (lines.Count == 0)

@@ -52,7 +52,12 @@ public class PlansTests
         ["pro.benefit_wardrobe"] = ("plans.wardrobe",
             "the wardrobe reaching the stylist (Wardrobe.ForStylistAsync), which is Pro's where Plans:WardrobeNeedsPro is on"),
         ["pro.benefit_insights"] = ("plans.compareNeedsPro",
-            "GET /api/users/me/insights, refused to a free account exactly where Plans:CompareNeedsPro is on")
+            "GET /api/users/me/insights, refused to a free account exactly where Plans:CompareNeedsPro is on"),
+        // Round 19 — Tomorrow.
+        ["pro.benefit_tomorrow"] = ("plans.tomorrow && plans.tomorrowNeedsPro",
+            "POST /api/tomorrow answers 403 error.pro_required to a free account exactly where Plans:TomorrowNeedsPro is on (Plans.TomorrowReachesStylist), while Plans:TomorrowEnabled is on"),
+        ["pro.benefit_tomorrow_daily"] = ("plans.tomorrow && !plans.tomorrowNeedsPro",
+            "a Pro account composes in its own rolling-day bucket (Plans:ProSuggestionsPerDay, Allowance.Suggestions, Plans.ProSuggestionCap) from WardrobeNamesFor(true) pieces, while free composes Plans:FreeSuggestionsPerDay a day inside its shared day from WardrobeNamesToStylist pieces")
     };
 
     /// <summary>The benefit lines of the page, as (guard, the keys on that line). One benefit per line, by construction.</summary>

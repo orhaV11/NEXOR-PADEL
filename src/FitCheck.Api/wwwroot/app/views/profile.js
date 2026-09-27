@@ -215,6 +215,8 @@ async function profileView(root, handle, tab, ctx) {
     el('a', { href: '#/checks' }, [t('profile.checks'), icon('camera')]),
     // Round 14 — the wardrobe that builds itself: the pieces kept from the checks that named them.
     el('a', { href: '#/wardrobe', id: 'profile-wardrobe' }, [t('wardrobe.title'), icon('bag')]),
+    // Round 19 — Tomorrow: what to wear, from those pieces. Hidden where the server has it switched off.
+    state.config && state.config.plans && state.config.plans.tomorrow ? el('a', { href: '#/tomorrow', id: 'profile-tomorrow' }, [t('tomorrow.title'), icon('calendar')]) : null,
     // Round 13 — the growth loop: the invite link's sheet, the same one Settings opens.
     el('button', { type: 'button', id: 'profile-invite', onclick: openInviteSheet }, [t('invite.title'), icon('share')]),
     el('button', { type: 'button', id: 'profile-logout', text: t('auth.logout'), onclick: () => signOut() })

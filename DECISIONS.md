@@ -2005,3 +2005,90 @@ what was already there and was read rather than run. What was run: `--doctor`, `
 
 The Arabic and Russian lines added for the numbers page's wardrobe block are plain copy by the builder and need the
 same native review as the rest.
+
+## Round 19 — Tomorrow: an outfit from the wardrobe that built itself
+
+Three designs were written apart from one another against one integration map (product, cost and loop), two judges
+scored them on honesty, boundedness, day one, the loop, buildability and the moment worth filming, and one spec was
+synthesised from the winner with the grafts both judges named. What was built follows that spec, with the departures
+listed at the end.
+
+**Why this is Round 19.** Round 18 was already spent in the code on disk (the launch fixes: the guest disclosure, the
+board's launch weekend, the disk probe, the affiliate sentence, the legal rewrite to version 4).
+
+**One counted row per call, and no unique key.** A planned outfit is a stylist call and is counted exactly where a
+check is: `Spend` reads `Suggestions` beside `Checks` and `Comparisons` for the day, the month and the global ceiling,
+and a failed call is a stored row that counts for nothing. The recap's once-a-month unique index was the temptation and
+is named here as the one exception in the schema, so nobody copies it: a suggestion has no natural once-a-period key,
+and a bound that lives in a key is a bound nobody can raise or read on the numbers page.
+
+**Free gets it by default, one a day inside its two.** Both judges named Design 3's Pro-only default as its biggest
+weakness: the person the feature exists for on launch week has three kept pieces and no subscription, and a locked
+screen showing their own clothes is not a feature. So `Plans:TomorrowNeedsPro` is off, and free composes inside the day
+and the month it already has, with `Plans:FreeSuggestionsPerDay` (1) as the brake — counted over the same rolling 24
+hours every other brake uses, not a new seven-day window, because one counting mechanism is one thing to get wrong.
+The brake is folded into the cap handed to the in-flight reservation (`CheckCapacity.TryReserve`), so a double-tap
+cannot slip under it, and Retry-After is computed from the list that actually refused.
+
+**Pro's bucket is its own.** `Allowance.Suggestions`, `Plans:ProSuggestionsPerDay` (10), apart from Pro's checks and
+comparisons: the Round 14 promise that deciding between two outfits never spends a check holds for planning one too.
+Ten, because a planned outfit is one tap and thirty in an afternoon must be impossible. The month is one pot for all
+three kinds of call, which is what `error.month_limit` already tells the person.
+
+**A twelve-hour cache, and "stale" rather than a spend.** A stored answer to the same occasion, style, language and day
+is handed back for twelve hours (a plan for tomorrow is good until tomorrow arrives; twenty-four would hand back last
+night's answer for tonight), unless the person thumbed it down — a thumbs-down is a request for something else, and
+the next tap pays for one, labelled as such. A wardrobe that changed since marks the stored answer stale and offers a
+Refresh; it never composes again on its own. Weather is not part of the question: a degree between two taps is not a
+new question. The cache is read before the money ceiling, so a resting stylist still answers what it already said.
+
+**The forecast is the server's, daily, and never a place on a row.** Open-Meteo's `daily=` arrays, not `current=`: a
+temperature at 23:00 says nothing about noon tomorrow. The phone rounds its place to about a kilometre and sends it only
+with the compose; the server rounds again, fetches, and drops it — the row keeps the forecast figures, never the
+coordinates, and no log line at any level carries them. Consent is the browser's own prompt on one tap on one screen,
+never a modal and never on first open; a second refusal on an iPhone's home-screen app cannot be re-asked from the page,
+so the line then says where to allow it instead of offering a button that would do nothing. `Permissions-Policy` moved
+from `geolocation=()` to `geolocation=(self)` for this: only this origin's own scripts may ask, and `script-src 'self'`
+stays. **Open-Meteo's keyless tier is for non-commercial use**, and this app is about to take payments: `Weather__ApiKey`
+moves the calls to the paid host, and the doctor warns while Stripe is on and the key is empty. The feature degrades to
+"no forecast" on every failure and is never the reason an outfit is refused or delayed past four seconds.
+
+**The photo is the whole look, not a cutout.** A piece's photo is the check it was kept from — the person, in a mirror,
+sometimes in a coat over the tee in question — captioned honestly ("You, 12 Sep, wearing it"). A crop would be a second,
+unbounded model spend and a promise the marketing must not make. When every piece came from one check the photo is drawn
+once, large, with the names beneath, never the same photo three times. This needed the one door that did not exist:
+`GET /api/checks/{id}/image`, a private check's photo to whoever may read the check. "Photos are never served by path"
+still holds — it is an id and a rule, and the security enumeration now asserts exactly this route and no other file
+route under `/api/checks`.
+
+**`VisionRequest.MaxTokens` was left alone.** Design 3 proposed adding a per-request token ceiling to the shared record
+because Recaps declares `MaxTokens = 400` and never passes it, so every text-only call runs under `Anthropic:MaxTokens`.
+The tool schema bounds the answer (two sentences and a handful of refs) and the setting is a ceiling, not a target; a
+change to the record every call goes through was not worth landing inside this diff. Recaps' unwired constant stays as
+it is and is noted here.
+
+**Where the build departed from the spec, and why.**
+- The photo route is under the check's own rule (its owner, or the guest whose cookie made it) with the same 404 for
+  everyone else, not `RequireAuthorization` with a 401 for a stranger: the photo is part of the check, and `GET
+  /api/checks/{id}` already answers that way, so the two doors cannot disagree.
+- Seven sky buckets (clear, cloudy, fog, drizzle, rain, snow, storm), not nine: the client has seven words, and an
+  outfit cares whether it is wet, cold and bright.
+- The forecast cache is keyed on a tenth of a degree (about eleven kilometres) and holds all three days of one answer,
+  so a city asking all morning is one request; a failed fetch is remembered for five minutes, not the full hour.
+- `Weather__Enabled=false` is a warning on the doctor, not an ok: the owner who turned it off keeps seeing that they did.
+- `Wardrobe.ToStylistAsync` reads the switch without making the settings row: twelve taps at once must not race to
+  insert it, and a missing row is the default (on).
+- The pilot-database upgrade (a file made before migrations) lost foreign keys on new tables once Checks and Suggestions
+  pointed at each other: EF's differ lifts forward-pointing keys out of CREATE TABLE into operations that code never
+  took, and not only on the two tables in the cycle. They now go back inline, and `DatabaseSetupTests` compares the
+  result to a migrated file constraint for constraint. Generating the batch in two halves was tried first and was not
+  the fix; the keys were never in the CREATE TABLE at all.
+- A lazily loaded `<img>` that is not in the document never loads. The first cut of the screen attached the photo only
+  once it had loaded, and no photo ever appeared; the browser test caught it, the unit tests could not have.
+
+**Not in this round, on purpose:** a home-feed "morning card" and a peek route (a second read on every feed open, before
+the worn rate says the feature is good); a server-stored place and a Settings row for it (coordinates are personal data,
+and the browser's prefs need no deletion path); a rolling seven-day free window; garment cutouts; a wardrobe merge tool
+("White tee" / "White t-shirt" — the one-per-kind rule and "I don't have one of these any more" contain the damage, and
+the `inventedRefs` and "I do not own that" numbers say whether it is needed); push notifications about tomorrow (they
+would spend on people who did not ask); folding the recap into the month's count.

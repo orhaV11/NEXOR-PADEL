@@ -115,7 +115,12 @@ public static class MetricsEndpoints
         // two numbers on the page cannot disagree about who has checked.
         var wardrobe = await WardrobeMetricsAsync(db, metrics.UsersWithAtLeastOneCheck, ct);
 
-        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money, Funnel = funnel, Wardrobe = wardrobe });
+        // ---- Round 19 — Tomorrow, counted (Services/Tomorrow.cs) ----
+        // Whether planned outfits get worn, how often a stored one is handed back instead of a new call, and how often
+        // the model reached outside the wardrobe or had its sentence replaced. Thirty days, its own block.
+        var tomorrow = await TomorrowMetricsAsync(db, now, ct);
+
+        return Results.Ok(metrics with { Social = social, Stylist = stylist, Spend = money, Funnel = funnel, Wardrobe = wardrobe, Tomorrow = tomorrow });
     }
 
     /// <summary>
@@ -131,8 +136,12 @@ public static class MetricsEndpoints
         var items = await db.WardrobeItems.CountAsync(ct);
         var keepers = await db.WardrobeItems.Select(i => i.UserId).Distinct().CountAsync(ct);
         var toStylistOff = await db.WardrobeSettings.CountAsync(s => !s.ToStylist, ct);
-        var reasons = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason != null, ct);
-        var dontOwn = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason == TipReason.DontOwn, ct);
+        // Round 19: a planned outfit answered with a typed reason counts here too — "I do not own that" on an outfit
+        // composed from the wardrobe is exactly the wardrobe being wrong.
+        var reasons = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason != null, ct)
+            + await db.Suggestions.CountAsync(s => s.UsefulReason != null, ct);
+        var dontOwn = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason == TipReason.DontOwn, ct)
+            + await db.Suggestions.CountAsync(s => s.UsefulReason == TipReason.DontOwn, ct);
 
         return new WardrobeMetricsDto(
             Items: items,
@@ -147,6 +156,33 @@ public static class MetricsEndpoints
 
     /// <summary>A share to four decimals, or null when there is nothing to divide by: no denominator is not zero percent.</summary>
     public static double? Rate(int part, int whole) => whole == 0 ? null : Math.Round((double)part / whole, 4);
+
+    /// <summary>
+    /// Round 19 — Tomorrow over the last thirty days: outfits composed (ok rows), how many were worn (answered yes, or
+    /// checked from), the reuse rate (stored answers handed back over answers made), the refs the model returned that
+    /// were not in its list, the sentences the template replaced, and the typed reasons. Counts, no rows in memory.
+    /// </summary>
+    public static async Task<TomorrowMetricsDto> TomorrowMetricsAsync(AppDbContext db, DateTime now, CancellationToken ct)
+    {
+        var since = now.AddDays(-30);
+        var rows = db.Suggestions.Where(s => s.Status == CheckStatus.Ok && s.CreatedAt >= since);
+        var suggestions = await rows.CountAsync(ct);
+        var worn = await rows.CountAsync(s => s.UsefulReason == TipReason.Worked || s.WornCheckId != null, ct);
+        var reused = await rows.SumAsync(s => s.Reuses, ct);
+        var invented = await rows.SumAsync(s => s.InventedRefs, ct);
+        var templated = await rows.CountAsync(s => s.SentenceTemplated, ct);
+        var reasons = new List<TasteCountDto>();
+        foreach (var reason in TipReason.All)
+        {
+            var n = await rows.CountAsync(s => s.UsefulReason == reason, ct);
+            if (n > 0)
+            {
+                reasons.Add(new TasteCountDto(reason, n));
+            }
+        }
+
+        return new TomorrowMetricsDto(suggestions, worn, Rate(worn, suggestions), reused, Rate(reused, suggestions + reused), invented, templated, reasons);
+    }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>
     public sealed record MetricRow(Guid UserId, DateTime CreatedAt, int Score, int LatencyMs, string Language, string PromptVersion, ScoreBreakdown? Breakdown = null);

@@ -239,6 +239,8 @@ function checkClientModules() {
     Storage__Root: path.join(DATA, 'storage'),
     Email__Host: 'log',
     Plans__FreeChecksPerDay: '5',
+    // Round 19: the forecast comes from the stub too (GET /v1/forecast), so Tomorrow dresses for a weather nobody dialled.
+    Weather__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
     Board__NewAccountDays: '0',
     Board__MinChecksToCount: '1',
     Board__CacheSeconds: '0',
@@ -822,6 +824,62 @@ function checkClientModules() {
   assert.match(await text(noa, '#checks-left'), /^\d+ of 150 checks left this month$/, 'Pro quotes the month, not the day');
   await shot(noa, '31-check-pro-month-en');
 
+  // Round 19 — Tomorrow. The wardrobe builds itself from a check: three keeps, one tap each, and the keep row's payoff
+  // once two kinds are in ("Plan tomorrow from it"). Then the screen: the strip of her own pieces as photos before
+  // anything is spent, the compose, the look card (one photo, since all three came from one check), the thumbs, another
+  // idea, and "Wearing it? Check it" carrying the outfit's chips to the check screen. The forecast comes from the stub.
+  step = 'tomorrow';
+  await runCheck(noa, { intent: 'Office', buffer: await makeJpeg(noa, 900, 1200), score: 7 });
+  for (let i = 0; i < 3; i++) {
+    await noa.waitForSelector('#wardrobe-keep-yes', { timeout: 10000 });
+    await noa.click('#wardrobe-keep-yes');
+    await noa.waitForSelector('#wardrobe-kept-link');
+  }
+  await noa.waitForSelector('#wardrobe-kept-tomorrow', { timeout: 10000 });
+  await noa.context().grantPermissions(['geolocation'], { origin: base });
+  await noa.context().setGeolocation({ latitude: 32.0853, longitude: 34.7818 });
+  await go(noa, '#/wardrobe');
+  await noa.waitForSelector('#wardrobe-tomorrow');
+  await noa.click('#wardrobe-tomorrow');
+  await noa.waitForSelector('#tm-compose');
+  assert.strictEqual(await count(noa, '#strip .tm-tile'), 3, 'her three pieces, as photos, before anything is spent');
+  await noa.waitForSelector('#strip .tm-tile img', { timeout: 10000 });   // the photo, through the new owner-only route
+  assert.ok(await noa.$('#occasions .chip[aria-pressed="true"]'), 'an occasion is pre-lit');
+  await noa.click('#weather-use');
+  await noa.waitForSelector('#weather-ready');
+  // The day defaults to today before 15:00 and tomorrow after; the test pins tomorrow so the forecast it reads is fixed.
+  await noa.click('#when .chip[data-when="tomorrow"]');
+  await noa.waitForSelector('#when .chip[data-when="tomorrow"][aria-pressed="true"]');
+  await shot(noa, '32-tomorrow-before-en');
+  await noa.click('#tm-compose');
+  await noa.waitForSelector('#tm-card', { timeout: 30000 });
+  assert.ok(await noa.$('#tm-one-look'), 'three pieces from one check collapse to one photo of her, not three');
+  assert.strictEqual(await count(noa, '#tm-one-look li'), 3, 'the three names under it');
+  assert.ok((await text(noa, '#tm-sentence')).length > 10, 'the stylist\'s sentence');
+  assert.ok(await noa.$('#weather-pill'), 'the forecast it was written for');
+  assert.match(await text(noa, '#weather-pill'), /24° \/ 17°/, 'tomorrow\'s high and low from the stub');
+  await shot(noa, '33-tomorrow-look-en');
+  await noa.click('#tm-yes');
+  await noa.waitForSelector('#tm-thumbs .hint');
+  assert.strictEqual(await noa.getAttribute('#tm-yes', 'aria-pressed'), 'true', 'the yes stays lit');
+  await noa.click('#tm-another');
+  await noa.waitForSelector('#tm-idea', { timeout: 30000 });
+  assert.strictEqual(await text(noa, '#tm-idea'), 'Idea 2', 'another idea is idea 2');
+  await noa.waitForSelector('#tm-recent button');
+  assert.ok((await noa.getAttribute('#tm-check-it', 'href')).includes('#/check?suggestion='), 'the check link carries the outfit');
+  await noa.click('#tm-check-it');
+  await noa.waitForSelector('#photo');
+  assert.ok(await noa.$('#occasions .chip[aria-pressed="true"]'), 'the outfit\'s occasion is pre-lit on the check screen');
+  await go(noa, '#/u/noa');
+  await noa.waitForSelector('#profile-tomorrow');
+
+  // Dan has kept nothing: the honest card, in Hebrew, and no button that would spend.
+  await go(dan, '#/tomorrow');
+  await dan.waitForSelector('#tm-needs-go');
+  assert.ok(!(await dan.$('#tm-compose')), 'no compose button without two kinds of piece');
+  await shot(dan, '33b-tomorrow-empty-he');
+  step = 'today';
+
   // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
   await go(noa, '#/feed');
   await noa.reload();
@@ -1147,7 +1205,12 @@ function checkClientModules() {
 
   const stubRequests = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
   assert.ok(stubRequests.length >= 3, 'stub saw the checks (incl. the retried one)');
-  for (const r of stubRequests) { assert.strictEqual(r.media_type, 'image/jpeg'); assert.strictEqual(r.model, 'claude-sonnet-5'); }
+  for (const r of stubRequests) { assert.strictEqual(r.model, 'claude-sonnet-5'); }
+  // Round 19: a planned outfit is text only — no photograph ever travels with it; every other call carried the JPEG.
+  const composes = stubRequests.filter((r) => r.tool === 'compose_outfit');
+  assert.ok(composes.length >= 2, 'the stub saw the compose and the second idea');
+  for (const r of composes) { assert.strictEqual(r.image_len, 0); assert.strictEqual(r.media_type, ''); assert.ok(!r.user_text.includes('@'), 'no handle in the figures'); }
+  for (const r of stubRequests.filter((r) => r.tool !== 'compose_outfit')) { assert.strictEqual(r.media_type, 'image/jpeg'); }
   assert.ok(stubRequests[1].image_len < bigJpeg.length, `downscaled: ${stubRequests[1].image_len} < ${bigJpeg.length}`);
 
   const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));

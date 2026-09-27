@@ -34,8 +34,23 @@ function ensureStyle() {
     '.wr-looks li:last-child { border-block-end: 0; }',
     '.wr-looks a, .wr-looks span { display: flex; align-items: center; gap: 10px; min-block-size: 44px; font-size: 15px; color: var(--ink-2); text-decoration: none; }',
     '.wr-looks a { color: var(--accent); font-weight: 600; }',
+    // Round 19: the photo of the look, posted or not, now that a private check has a photo route of its own.
+    '.wr-looks .wr-thumb { flex: none; inline-size: 56px; block-size: 56px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-3); }',
+    '.wr-looks .wr-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
+    '.wr-tomorrow { display: flex; align-items: center; justify-content: center; gap: 8px; }',
     '.wr-pro { text-align: start; }'
   ].join('\n') }));
+}
+
+/** The photo of one look, or the camera mark when the file is gone: never a broken image. */
+function lookThumb(look) {
+  const frame = el('span', { class: 'wr-thumb', 'aria-hidden': 'true' }, [icon('camera')]);
+  if (!look.checkId) return frame;
+  // In the page from the start: a lazily loaded image that is not in the document never loads at all.
+  const img = el('img', { src: '/api/checks/' + encodeURIComponent(look.checkId) + '/image', alt: '', loading: 'lazy', decoding: 'async' });
+  img.addEventListener('error', () => frame.replaceChildren(icon('camera')));
+  frame.replaceChildren(img);
+  return frame;
 }
 
 /** "shoes", "outerwear"… in the reader's language; an unknown word falls back to the plain one from the server. */
@@ -67,8 +82,8 @@ function openItemSheet(item, onChanged) {
     el('span', { class: 'wr-count', text: t('wardrobe.looks', { n: looks.length }) }),
     el('ul', { class: 'wr-looks' }, looks.slice(0, 10).map((look) => el('li', {}, [
       look.postId
-        ? el('a', { href: '#/post/' + encodeURIComponent(look.postId), onclick: () => closeSheet() }, [icon('image'), fmtDate(look.wornAt)])
-        : el('span', {}, [icon('camera'), fmtDate(look.wornAt)])
+        ? el('a', { href: '#/post/' + encodeURIComponent(look.postId), onclick: () => closeSheet() }, [lookThumb(look), fmtDate(look.wornAt)])
+        : el('span', {}, [lookThumb(look), fmtDate(look.wornAt)])
     ]))),
     el('button', { type: 'button', class: 'btn btn-secondary', id: 'wardrobe-rename', text: t('wardrobe.rename'), onclick: () => openRenameSheet(item, onChanged) }),
     el('button', { type: 'button', class: 'btn btn-danger', id: 'wardrobe-delete', text: t('wardrobe.delete'), onclick: async () => {
@@ -151,6 +166,8 @@ function stylistRow(data, onChanged) {
 register('wardrobe', async (root, params, ctx) => {
   ensureStyle();
   setTopBar({ back: '#/me', title: t('wardrobe.title') });
+  // Round 19: the heading a screen reader lands on (the top bar carries the visible title), as the check screen has.
+  root.appendChild(el('h1', { class: 'sr-only', text: t('wardrobe.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
 
   const body = el('div', { class: 'stack', id: 'wardrobe' });
@@ -168,6 +185,17 @@ register('wardrobe', async (root, params, ctx) => {
       body.appendChild(emptyState(t('wardrobe.empty_title'), t('wardrobe.empty_body')));
       body.appendChild(el('a', { class: 'btn', href: '#/check', text: t('wardrobe.empty_go') }));
       return;
+    }
+
+    // Round 19 — Tomorrow: the person looking at their pieces is one tap from using them. Two kinds of piece make an
+    // outfit; below that the line says how far the closet is from its first one.
+    const plans = (state.config && state.config.plans) || {};
+    if (plans.tomorrow) {
+      const kinds = new Set(items.map((item) => item.category).filter((c) => c && c !== 'other')).size;
+      const needKinds = plans.suggestionMinCategories || 2;
+      body.appendChild(kinds >= needKinds
+        ? el('a', { class: 'btn wr-tomorrow', id: 'wardrobe-tomorrow', href: '#/tomorrow' }, [icon('calendar'), t('tomorrow.open')])
+        : el('p', { class: 'hint', id: 'wardrobe-tomorrow-progress', text: t('tomorrow.progress', { n: kinds, of: needKinds }) }));
     }
 
     body.appendChild(el('span', { class: 'wr-count', id: 'wardrobe-count', text: t('wardrobe.count', { n: items.length, max: data.max }) }));

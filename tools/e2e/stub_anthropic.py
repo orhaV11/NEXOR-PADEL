@@ -4,9 +4,14 @@ Validates the request shape OREVOSH sends (headers, forced tool call, base64 ima
 with a tool_use block in the requested language (English, Hebrew, Arabic or Russian). The very first request answers 529 so the client's
 single retry is exercised too. Anything malformed gets a 400 with the reason, so mistakes are loud.
 
-Two tools are understood: submit_outfit_feedback (a check: one image block, then the text) and pick_outfit
+Three tools are understood: submit_outfit_feedback (a check: one image block, then the text), pick_outfit
 (a "which one?" comparison: the label "Outfit A:", the first image, the label "Outfit B:", the second image,
-then the text). A comparison is answered with B winning, 6 to 8, in the requested language.
+then the text) and, since Round 19, compose_outfit (Tomorrow: text only, no image; the schema's ref enum is the
+wardrobe, and the answer is its first three refs with a sentence in the requested language). A comparison is
+answered with B winning, 6 to 8, in the requested language.
+
+GET /v1/forecast answers as Open-Meteo would (three days of daily figures), so an end-to-end run can point
+Weather__BaseUrl here and never leave the machine.
 """
 import base64
 import json
@@ -193,11 +198,19 @@ class Handler(BaseHTTPRequestHandler):
         tools = body.get("tools") or []
         tool_name = tools[0].get("name") if len(tools) == 1 else None
         compare = tool_name == "pick_outfit"
-        if len(tools) != 1 or "input_schema" not in tools[0] or tool_name not in ("submit_outfit_feedback", "pick_outfit"):
+        compose = tool_name == "compose_outfit"
+        refs = []
+        if len(tools) != 1 or "input_schema" not in tools[0] or tool_name not in ("submit_outfit_feedback", "pick_outfit", "compose_outfit"):
             problems.append("tools malformed")
         else:
             required = (tools[0].get("input_schema") or {}).get("required") or []
-            if compare:
+            if compose:
+                # Round 19: the enum of ref IS the wardrobe; an answer outside it would be dropped by the server.
+                props = (tools[0].get("input_schema") or {}).get("properties") or {}
+                refs = ((((props.get("pieces") or {}).get("items") or {}).get("properties") or {}).get("ref") or {}).get("enum") or []
+                if "pieces" not in required or "sentence" not in required or not refs:
+                    problems.append("compose_outfit schema lacks pieces/sentence or the ref enum")
+            elif compare:
                 for field in ("status", "winner", "score_a", "score_b", "headline_a", "headline_b", "reason", "one_tip"):
                     if field not in required:
                         problems.append("pick_outfit schema lacks " + field)
@@ -221,7 +234,17 @@ class Handler(BaseHTTPRequestHandler):
         image_bytes_b = b""
         media_type_b = ""
         user_text = ""
-        if compare:
+        if compose:
+            # Tomorrow: text only, no photograph at all.
+            if len(content) != 1 or content[0].get("type") != "text":
+                problems.append("compose content must be one text block, got %d" % len(content))
+            else:
+                user_text = content[0].get("text", "")
+                if "Pieces (refer to them ONLY by their ref)" not in user_text:
+                    problems.append("compose text lacks the pieces list")
+                if "@" in user_text:
+                    problems.append("compose text carries a handle or an address")
+        elif compare:
             # A comparison: "Outfit A:", image A, "Outfit B:", image B, the task text.
             if len(content) != 5:
                 problems.append("comparison content must be 5 blocks, got %d" % len(content))
@@ -262,8 +285,33 @@ class Handler(BaseHTTPRequestHandler):
         if len(REQUESTS) == 1:
             return self._fail(529, "Overloaded")
 
-        # The system prompt names the language ("Write every user-facing field ... in Hebrew (he)"); answer in it.
+        # The system prompt names the language ("Write every user-facing field ... in Hebrew (he)"); answer in it. A
+        # compose names it in the figures instead ("Language to write in: Hebrew").
         system = body["system"]
+        if compose:
+            line = [l for l in user_text.splitlines() if l.startswith("Language to write in:")]
+            language = line[0].split(":", 1)[1].strip() if line else "English"
+            sentence = {
+                "Hebrew": "החולצה עם הג'ינס והנעליים: פשוט, נקי ומתאים ליום.",
+                "Arabic": "القميص مع الجينز والحذاء: بسيط ونظيف ومناسب لليوم.",
+                "Russian": "Футболка с джинсами и кроссовками: просто, чисто и по случаю.",
+            }.get(language, "The tee with the jeans and the shoes: easy, clean and right for the day.")
+            payload = {"pieces": [{"ref": r} for r in refs[:3]], "sentence": sentence}
+            if "gap" in ((tools[0].get("input_schema") or {}).get("properties") or {}):
+                payload["gap"] = None
+            response = {
+                "id": "msg_stub", "type": "message", "role": "assistant", "model": body["model"],
+                "stop_reason": "tool_use", "stop_sequence": None,
+                "content": [{"type": "tool_use", "id": "toolu_stub", "name": tool_name, "input": payload}],
+                "usage": {"input_tokens": 700, "output_tokens": 120},
+            }
+            out = json.dumps(response, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+            return
         if "in Hebrew (he)" in system:
             answers, compare_answers = HE, COMPARE_HE
         elif "in Arabic (ar)" in system:
@@ -295,6 +343,24 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(out)
 
     def do_GET(self):
+        if self.path.startswith("/v1/forecast"):
+            # Round 19: Open-Meteo's daily block for today and the two days after; tomorrow is clear, 24/17, a 10% chance of rain.
+            import datetime
+            start = datetime.datetime.utcnow().date()
+            days = [(start + datetime.timedelta(days=i)).isoformat() for i in range(3)]
+            forecast = {
+                "latitude": 32.08, "longitude": 34.78, "timezone": "Asia/Jerusalem",
+                "daily": {"time": days, "weather_code": [3, 0, 61], "temperature_2m_max": [29.1, 24.0, 22.5],
+                          "temperature_2m_min": [21.0, 17.0, 16.0], "precipitation_probability_max": [0, 10, 65]},
+            }
+            sys.stderr.write("STUB FORECAST %s\n" % self.path)
+            out = json.dumps(forecast).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+            return
         out = json.dumps(REQUESTS, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

@@ -247,13 +247,32 @@ public class LegalVersionFourTests
         Assert.Contains("id: 'billing-manage', text: t('billing.manage')", settings, StringComparison.Ordinal);
     }
 
-    /// <summary>A rewritten document is a new version with a new date, or the "version and date at the bottom" promise in the terms is broken.</summary>
+    /// <summary>
+    /// A rewritten document is a new version with a new date, or the "version and date at the bottom" promise in the terms
+    /// is broken. Round 19 moved it to 5 the same day: Tomorrow and the forecast are in the privacy policy.
+    /// </summary>
     [Fact]
-    public void The_documents_carry_version_four()
+    public void The_documents_carry_version_five()
     {
         var legal = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "src", "FitCheck.Api", "wwwroot", "app", "views", "legal.js")));
-        Assert.Contains("const VERSION = '4';", legal, StringComparison.Ordinal);
+        Assert.Contains("const VERSION = '5';", legal, StringComparison.Ordinal);
         Assert.Contains("const DATED = '2026-09-27';", legal, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Round 19: the policy says what a planned outfit keeps (never where the person was) and that a rounded place is
+    /// passed once to Open-Meteo and kept by nobody — in every language, by the service's name.
+    /// </summary>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("he")]
+    [InlineData("ar")]
+    [InlineData("ru")]
+    public void The_policy_names_the_forecast_service_and_what_a_planned_outfit_keeps(string code)
+    {
+        var strings = Strings(code);
+        Assert.Contains("Open-Meteo", strings["legal.privacy_2"], StringComparison.Ordinal);
+        Assert.True(strings["legal.privacy_1"].Length > 200, "the what-we-store list carries the planned outfit's line");
     }
 }

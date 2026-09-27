@@ -965,11 +965,29 @@ body.sheet-open { overflow: hidden; }
   .activity li { padding-inline: 0; }
   .action .lbl { display: inline; }   /* FIRE and COMMENTS: room for them here, none on a phone (§ .action) */
 }
+/* ---------- §9 motion: entrances only, on opacity and transform, nothing waits on them ---------- */
+/* a screen's first page rises in: core.js infiniteList puts .enter on its list for the first page only (a page appended on
+   scroll simply appears, a remembered list comes back where it was), the first six cards 80ms apart; a notice rises with
+   its screen. The result's four moments (check.js), the Tomorrow card (tomorrow.js) and the Today strip (today.js) play
+   the same keyframe from their own blocks. Under reduced motion every duration and delay collapses (below), so each
+   paints its final frame at once. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
+.enter .card, .notice { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.enter > .card:nth-child(2) { animation-delay: 80ms; }
+.enter > .card:nth-child(3) { animation-delay: 160ms; }
+.enter > .card:nth-child(4) { animation-delay: 240ms; }
+.enter > .card:nth-child(5) { animation-delay: 320ms; }
+.enter > .card:nth-child(6) { animation-delay: 400ms; }
+/* a look answers a press by settling a hair: a transform on the picture alone, no layout, the ring and the chips stay put */
+.card-photo img { transition: transform 120ms ease; }
+.card-photo:active img { transform: scale(0.99); }
+
 /* ---------- §9 reduced motion: everything off (durations collapse, so animationend still fires and "lit" still clears) ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   body::after { display: none; }   /* the aurora's breath is decoration; the still aurora stays */
   .btn:active, .chip:active, .action:active, .segment:active, .pill:active, .vote:active { translate: none; }   /* the press dip is feedback, not content; it goes too */
+  .card-photo:active img { transform: none; }   /* and the picture's settle with it */
   .hero { animation: none; }   /* the final arc, at once; nothing waits on it */
 }
 

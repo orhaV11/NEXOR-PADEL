@@ -1955,9 +1955,8 @@ function checkClientModules() {
 
   const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
-  const unexpectedUrls = failedUrls.filter((u) => !u.includes('fonts.googleapis.com') && !u.includes('fonts.gstatic.com')
-    && !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/api\/(today|feed|board)\b/.test(u))
+  const unexpectedUrls = failedUrls.filter((u) => !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/fonts\/|\/api\/(today|feed|board)\b/.test(u))   // a face, like a photo, may still be loading when the page moves on
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));

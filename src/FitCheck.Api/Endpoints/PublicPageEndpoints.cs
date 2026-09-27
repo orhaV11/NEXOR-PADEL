@@ -576,7 +576,7 @@ public static partial class PublicPageEndpoints
             + "<svg viewBox=\"0 0 64 64\" width=\"64\" height=\"64\" aria-hidden=\"true\" focusable=\"false\">"
             + "<defs><linearGradient id=\"ovp\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">"
             + "<stop offset=\"0\" stop-color=\"#b39dff\"/><stop offset=\"1\" stop-color=\"#ff8fb1\"/></linearGradient></defs>"
-            + "<circle cx=\"32\" cy=\"32\" r=\"26\" fill=\"none\" stroke=\"#2b2b36\" stroke-width=\"6\"/>"
+            + "<circle cx=\"32\" cy=\"32\" r=\"26\" fill=\"none\" stroke=\"#3b3150\" stroke-width=\"6\"/>"
             + "<circle cx=\"32\" cy=\"32\" r=\"26\" fill=\"none\" stroke=\"url(#ovp)\" stroke-width=\"6\" stroke-linecap=\"round\""
             + " stroke-dasharray=\"" + arc + " " + rest + "\" transform=\"rotate(-90 32 32)\"/></svg>"
             + "<span class=\"n\">" + clamped.ToString(CultureInfo.InvariantCulture) + "</span></div>";
@@ -647,7 +647,7 @@ h2.lbl { margin:22px 0 10px; font:700 11px/1 var(--font-body); letter-spacing:.1
 .grid a { position:relative; display:block; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface); }
 .grid img { display:block; inline-size:100%; block-size:auto; aspect-ratio:4/5; object-fit:cover; }
 .grid .n { position:absolute; inset-block-end:6px; inset-inline-start:6px; min-inline-size:22px; padding:2px 6px; border-radius:var(--pill);
-  background:rgba(11,11,15,.72); color:var(--ink); font:700 12px/1.4 var(--font-display); text-align:center; direction:ltr; }
+  background:rgba(20,16,30,.72); color:var(--ink); font:700 12px/1.4 var(--font-display); text-align:center; direction:ltr; }
 .note h1 { margin-block-start:8px; }
 .note p { color:var(--ink-2); }
 @media (min-width: 560px) { main { padding-block-start:36px; } h1 { font-size:30px; } }

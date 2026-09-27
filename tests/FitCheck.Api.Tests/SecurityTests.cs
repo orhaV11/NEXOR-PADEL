@@ -485,8 +485,10 @@ public class SecurityHeaderSetTests
         Assert.Contains("default-src 'self'", csp);
         Assert.Contains("script-src 'self';", csp);
         Assert.DoesNotContain("script-src 'self' 'unsafe", csp);
-        Assert.Contains("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", csp);
-        Assert.Contains("font-src 'self' https://fonts.gstatic.com", csp);
+        Assert.Contains("style-src 'self' 'unsafe-inline';", csp);
+        Assert.Contains("font-src 'self';", csp);   // Round 21: the faces are served from here; no font host is allowed any more
+        Assert.DoesNotContain("googleapis", csp);
+        Assert.DoesNotContain("gstatic", csp);
         Assert.Contains("img-src 'self' blob: data:", csp);
         Assert.Contains("media-src 'self' blob:", csp);
         Assert.Contains("connect-src 'self'", csp);

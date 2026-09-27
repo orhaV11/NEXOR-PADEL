@@ -36,13 +36,16 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- media="print" keeps the first paint off this cross-origin stylesheet (the one resource the service worker cannot
-       cache); fonts.js flips it to "all" the moment the document is parsed. See fonts.js. -->
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&family=Cairo:wght@400;500;700;800&display=swap" rel="stylesheet" media="print" data-font-css>
+  <!-- Round 21: the faces come from /fonts on this origin (Google's own subset files, one variable file per script; see
+       fonts/fonts.css) and from nowhere else: no third-party stylesheet on a cold start, no font host, and the service
+       worker keeps them so an installed app draws its own type offline. Preloaded: the display and body faces the first
+       paint draws (Outfit latin, Heebo hebrew, Heebo latin) and no more, since a preload of a face the first paint does not
+       use is a wasted request. crossorigin is required for a font preload to match the stylesheet's own fetch. -->
+  <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/heebo-hebrew.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/heebo-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="app.css">
-  <script src="fonts.js" defer></script>
 </head>
 <body>
   <!--

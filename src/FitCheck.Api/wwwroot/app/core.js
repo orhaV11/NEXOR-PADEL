@@ -918,6 +918,7 @@ export function infiniteList(container, opts) {
     if (reset) {
       seq += 1; next = 0; items = []; seen = new Set(); errorNode = null; loading = false;   // an in-flight page is now stale and will be dropped
       list.innerHTML = ''; more.hidden = true;
+      list.classList.add('enter');   // Round 21: the first page rises in (app.css §9); the pages appended after it simply appear
       if (opts.skeleton !== false) list.appendChild(skeletonCards(2));
     }
     if (next === null || loading) return;
@@ -926,7 +927,7 @@ export function infiniteList(container, opts) {
     try {
       const page = await opts.load(offset);
       if (mine !== seq || (opts.stale && opts.stale())) return;
-      if (reset) list.innerHTML = '';
+      if (reset) list.innerHTML = ''; else list.classList.remove('enter');
       if (errorNode) { errorNode.remove(); errorNode = null; }
       append(page.items);
       next = page.nextOffset === null || page.nextOffset === undefined ? null : page.nextOffset;

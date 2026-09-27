@@ -8,8 +8,8 @@ namespace FitCheck.Api.Services.Security;
 /// The Content-Security-Policy is written for what the client is: same-origin ES modules (<c>script-src 'self'</c>,
 /// no inline script anywhere in wwwroot), a design system that sets <c>style</c> attributes from code and appends one
 /// <c>&lt;style&gt;</c> per view (<c>'unsafe-inline'</c> for styles: a nonce cannot cover attributes and a hash cannot
-/// cover a computed width; CSS injection is not code execution and every user string reaches the page as text), Google
-/// Fonts from index.html and the landing pages (the two font hosts, nothing else off-origin), photos and the share card
+/// cover a computed width; CSS injection is not code execution and every user string reaches the page as text), the
+/// faces from /fonts on this origin (Round 21: nothing off-origin at all, no font host), photos and the share card
 /// through blob: URLs, the share video through a blob: media source, the API over same-origin fetch, the service
 /// worker and the manifest from here. Nothing may frame the app, no plugins, no base-tag tricks, no form leaves.
 /// </para>
@@ -28,8 +28,8 @@ public static class SecurityHeaders
     public const string ContentSecurityPolicy =
         "default-src 'self'; " +
         "script-src 'self'; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src 'self' https://fonts.gstatic.com; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "font-src 'self'; " +
         "img-src 'self' blob: data:; " +
         "media-src 'self' blob:; " +
         "connect-src 'self'; " +

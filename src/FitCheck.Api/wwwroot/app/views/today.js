@@ -26,6 +26,7 @@ function ensureStyle() {
        look posted to the prompt, tilted like a photo left on a table, first in the head */
     '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: linear-gradient(135deg, rgba(255, 180, 107, 0.14), rgba(255, 143, 177, 0.11) 60%, rgba(179, 157, 255, 0.11)), var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card), 0 16px 40px rgba(255, 180, 107, 0.1); }',
     '.install + .today-strip { margin-block-start: 12px; }',
+    '.today-strip { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* it rises in with the screen (app.css §9's keyframe; collapsed under reduced motion) */
     /* the head wraps: the print and the words share the first line, and the tags (the hashtag, "You're in") sit beside
        them when the column is wide enough for 172px of words, else on a line of their own at the end. A grid item:
        without min-inline-size 0 its own min-content would push the tags past the card's edge */

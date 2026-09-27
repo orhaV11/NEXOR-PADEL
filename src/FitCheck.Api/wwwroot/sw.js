@@ -5,12 +5,14 @@
 // Round 13: /offline.html is precached and answers a navigation that has no network and no cached shell to fall back on
 // (a /landing/ page, or the app before its shell was ever cached): the brand, one line, retry. The four locale files stay
 // precached whether or not a language is live (Languages:Enabled): they are small, and enabling one needs no new shell.
-// The phone pass: the offline page's own script (/offline.js) and the font flip (/fonts.js) are precached beside the
-// files they belong to; a 5xx from the edge gets our offline page instead of Cloudflare's; and a cached shell stops
+// The phone pass: the offline page's own script (/offline.js) is precached beside the page it belongs to; a 5xx from the edge gets our offline page instead of Cloudflare's; and a cached shell stops
 // waiting on a network that has gone quiet after SLOW_MS.
-const VERSION = 'orevosh-shell-v7';
+// Round 21 (the look): the faces are self-hosted under /fonts — the stylesheet is precached with the shell and each woff2 the
+// screen needs is kept the first time it is fetched (the same network-first path as the shell), so an installed app draws
+// its own type offline. The shell version moves because app.css and every view changed.
+const VERSION = 'orevosh-shell-v8';
 const OFFLINE = '/offline.html';
-const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/fonts.js', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json', OFFLINE, '/offline.js'];
+const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/fonts/fonts.css', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json', OFFLINE, '/offline.js'];
 // How long a cached shell waits for the network before it answers anyway. Cafe wifi that is associated but passing no
 // traffic does not fail: navigator.onLine stays true, the offline bar stays down and fetch simply hangs — iOS Safari
 // for about a minute — while a complete working app sits in Cache Storage. Above a cold tunnel's first byte, well
@@ -52,7 +54,7 @@ self.addEventListener('fetch', (event) => {
     if (isNavigation) event.respondWith(serverPage(event.request));
     return;
   }
-  const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || SHELL.includes(url.pathname);
+  const isShell = url.pathname.startsWith('/app/') || url.pathname.startsWith('/i18n/') || url.pathname.startsWith('/fonts/') || SHELL.includes(url.pathname);
   if (!isNavigation && !isShell) return;                      // icons and the like: the browser handles them
   const request = isNavigation
     ? new Request('/index.html', { cache: 'no-cache', credentials: 'same-origin' })

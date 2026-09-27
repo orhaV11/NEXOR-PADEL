@@ -57,6 +57,7 @@ function ensureStyle() {
        card's own ground), lit from below in its occasion's tint when the card knows one */
     '.tm-card { padding: 0 0 16px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); display: grid; gap: 12px; }',
     '.tm-card[data-occasion] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 22px 60px var(--tint-glow), 0 2px 18px var(--tint-wash); }',
+    '.tm-card { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* the outfit rises in when it lands (app.css §9's keyframe; collapsed under reduced motion) */
     '.tm-card > * { margin-inline: 16px; }',
     '.tm-kicker { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-block-start: 14px; }',
     '.tm-kicker > span[data-occasion] { color: var(--accent-ink); background: var(--tint); padding: 5px 10px; border-radius: var(--pill); box-shadow: 0 4px 14px var(--tint-glow); }',   /* the occasion as its pastel, solid */

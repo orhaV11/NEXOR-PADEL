@@ -270,6 +270,12 @@ const CSS = `
 .result-pieces .loop-reasons { background: var(--glass); border: 1px solid var(--glass-edge); }   /* the tip's question, on the same glass as a notice */
 /* 4. The doors. */
 .result-doors > * + * { margin-block-start: 10px; }
+/* The four moments rise in one after the other on app.css §9's keyframe (opacity and 8px, nothing waits on them); the
+   ring's own draw-on runs inside the first. Under reduced motion every duration collapses and the screen is whole at once. */
+.result-verdict, .result-read, .result-pieces, .result-doors { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.result-read { animation-delay: 80ms; }
+.result-pieces { animation-delay: 140ms; }
+.result-doors { animation-delay: 200ms; }
 .nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
 .nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
 .nooutfit-free { margin-block-start: 10px; }

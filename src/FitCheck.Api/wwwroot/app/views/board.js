@@ -10,7 +10,7 @@
 // sets them on the way in. The rules live in app.css (§ Round 10 board).
 import {
   register, state, t, api, el, icon, postCard, userRow, emptyState, errorBlock, skeletonCards, setTopBar, onLeave,
-  INTENTS, intentLabel, intlLocale, fmtNumber, fmtCompact, fmtDate, isMe, hasMessage
+  INTENTS, intentLabel, intlLocale, fmtNumber, fmtCompact, fmtDate, isMe, hasMessage, logoMark
 } from '../core.js';
 
 export const BOARDS = ['looks', 'people', 'rising', 'intent', 'picks'];
@@ -19,7 +19,7 @@ export const BOARDS = ['looks', 'people', 'rising', 'intent', 'picks'];
 // board and a fresh profile all draw it (emptyCall below), so a newcomer on an empty app meets the same door everywhere.
 const CSS = `
 .empty-call { display: grid; justify-items: center; padding-inline: 16px; }
-.empty-call > .empty { padding-block-end: 18px; }
+.empty-call > .empty { padding-block-end: 14px; }   /* tighter under the mark (Round 21), so the way on is in the first viewport */
 .empty-call .empty-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; inline-size: 100%; max-inline-size: 320px; }
 .empty-call .empty-actions .btn { inline-size: 100%; }
 /* inside a look grid (a profile's Looks tab) the kit's .grid a tile rule out-specifies .btn: the pill stays a pill there */
@@ -34,15 +34,19 @@ function ensureStyle() {
 }
 
 /**
- * The kit's empty state with the one thing to do next under it: "Check a look" (#/check), then any extra actions
- * (opts.extra). opts.id names the block (and "<id>-check" the button) for the browser test. Copy stays short and in the
- * brand's voice: what lands here, and that the reader's own look can be first.
+ * The kit's empty state under the mark (large and lit; the rule is app.css .empty-mark, Round 21) with the one thing to
+ * do next under it: "Check a look" (#/check), then any extra actions (opts.extra). opts.id names the block (and
+ * "<id>-check" the button) for the browser test. Copy stays short and in the brand's voice: what lands here, and that
+ * the reader's own look can be first.
  */
 export function emptyCall(title, body, opts) {
   ensureStyle();
   const o = opts || {};
+  const empty = emptyState(title, body);
+  const mark = logoMark(136);
+  if (mark) empty.prepend(el('span', { class: 'empty-mark', 'aria-hidden': 'true' }, [mark]));
   return el('div', { class: 'empty-call', id: o.id || null }, [
-    emptyState(title, body),
+    empty,
     el('div', { class: 'empty-actions' }, [
       el('a', { class: 'btn', id: o.id ? o.id + '-check' : null, href: '#/check', text: t('empty.check_cta') }),
       ...(o.extra || [])

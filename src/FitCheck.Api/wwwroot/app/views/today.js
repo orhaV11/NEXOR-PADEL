@@ -21,19 +21,28 @@ function ensureStyle() {
   if (styled) return;
   styled = true;
   document.head.appendChild(el('style', { text: [
-    /* the strip on Home: a card in the feed's rhythm */
-    '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }',
+    /* the strip on Home: a warm card in the feed's rhythm (Round 21): an amber-to-rose-to-lilac wash over glass with a
+       1px light edge and an amber bloom under the card shadow, the kicker in amber on one line, and a little print of a
+       look posted to the prompt, tilted like a photo left on a table, first in the head */
+    '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: linear-gradient(135deg, rgba(255, 180, 107, 0.14), rgba(255, 143, 177, 0.11) 60%, rgba(179, 157, 255, 0.11)), var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card), 0 16px 40px rgba(255, 180, 107, 0.1); }',
     '.install + .today-strip { margin-block-start: 12px; }',
-    '.today-strip .today-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }',
+    /* the head wraps: the print and the words share the first line, and the tags (the hashtag, "You're in") sit beside
+       them when the column is wide enough for 172px of words, else on a line of their own at the end. A grid item:
+       without min-inline-size 0 its own min-content would push the tags past the card's edge */
+    '.today-strip .today-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-inline-size: 0; }',
     '.today-strip .today-head > div { min-inline-size: 0; }',
-    '.today-strip .today-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-block-start: 2px; }',
-    '.today-kicker { display: block; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--accent); }',
+    '.today-strip .today-head > div:not(.today-side) { flex: 1 1 172px; }',
+    '.today-strip .today-side { flex: 0 1 auto; max-inline-size: 100%; margin-inline-start: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }',
+    '.today-print { position: relative; flex: none; display: block; inline-size: 54px; block-size: 68px; border-radius: 12px; overflow: hidden; background: var(--surface-2); rotate: -4deg; margin-inline-end: 4px; box-shadow: 0 8px 18px rgba(8, 4, 20, 0.5); }',
+    '.today-print img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
+    '.today-print::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }',   /* the 1px inner light edge, over the photo */
+    '.today-kicker { display: block; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--amber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
     '[dir="rtl"] .today-kicker { font-size: 12.5px; }',
     '.today-title { display: block; margin-block-start: 6px; font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }',
     '.today-hint { margin-block-start: 4px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }',
     '.today-looks { display: flex; gap: 8px; overflow-x: auto; padding-block: 2px 8px; margin-inline: -2px; padding-inline: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }',
     '.today-looks::-webkit-scrollbar { display: none; }',
-    '.today-looks a { flex: none; position: relative; display: block; inline-size: 72px; block-size: 90px; border-radius: 10px; background: var(--surface-2); text-decoration: none; }',
+    '.today-looks a { flex: none; position: relative; display: block; inline-size: 72px; block-size: 90px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--glass-edge); text-decoration: none; }',
     '.today-looks img { inline-size: 100%; block-size: 100%; object-fit: cover; border-radius: inherit; display: block; }',
     '.today-looks .score-badge { inline-size: 26px; block-size: 26px; border-width: 2px; font-size: 13px; gap: 0; inset-block-end: -6px; inset-inline-end: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }',
     '.today-looks .score-badge small { font-size: 5px; }',
@@ -85,10 +94,23 @@ function postButton(today, id) {
   return el('button', { type: 'button', class: 'btn btn-sm', id, text: t('today.post'), onclick: () => postYours(today) });
 }
 
+/**
+ * A little print of the first look posted to the prompt (the prompt has no picture of its own); null while nobody has
+ * posted. Decorative: the title beside it is the link a reader meets, so this one is hidden from the tree and the tab order.
+ */
+function printOf(today) {
+  const first = (today.posts || [])[0];
+  if (!first || !first.imageUrl) return null;
+  return el('a', { class: 'today-print', href: '#/post/' + first.id, 'aria-hidden': 'true', tabindex: '-1' }, [
+    el('img', { src: first.imageUrl, alt: '', loading: 'lazy', decoding: 'async' })
+  ]);
+}
+
 /** The strip's content for one prompt. */
 function stripContent(today) {
   return [
     el('div', { class: 'today-head' }, [
+      printOf(today),
       el('div', {}, [
         kicker(),
         el('a', { class: 'today-title', id: 'today-title', href: '#/today', text: today.title }),

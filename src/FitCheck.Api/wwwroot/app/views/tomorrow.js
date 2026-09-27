@@ -9,48 +9,86 @@
 // phone's prefs and sends it with the request — no row and no log line ever holds it.
 import {
   register, state, t, el, api, icon, setTopBar, signInPrompt, emptyState, errorBlock, toast, sheet, closeSheet, relative, fmtDate,
-  hasMessage, loadPrefs, savePrefs, navigate, $
+  hasMessage, loadPrefs, savePrefs, navigate, logoMark, $
 } from '../core.js';
 import { occasionChips, styleChips, OCCASIONS, STYLES } from './check.js';
 import { forgetWardrobe } from '../wardrobe.js';
 
+// Round 21, the look. The screen's rules live here (DESIGN §10): the day pills at 44px, the occasion row scrolling under
+// them with no heading of its own, the style row and the forecast behind one folded line (details.tm-more), the closet
+// strip as small prints in the gradient ring, the outfit as a glass card lit in its occasion's tint with the photo
+// large beside the pieces as name chips, the forecast as the one amber pill, and the empty state under the mark.
 let styled = false;
 function ensureStyle() {
   if (styled) return;
   styled = true;
   document.head.appendChild(el('style', { text: [
-    '.tm-lede { margin-block-end: 2px; }',
+    '#tomorrow.stack > * + * { margin-block-start: 14px; }',
+    '#tomorrow > .tm-lede + * { margin-block-start: 0; }',   /* the lede is read, not seen (sr-only): the controls explain themselves */
     '.tm-when { display: flex; gap: 8px; }',
-    '.tm-when .chip { flex: 1; justify-content: center; }',
+    '.tm-when .chip { flex: 1; justify-content: center; min-block-size: 44px; }',
+    /* the occasion row runs to the screen's edges and scrolls, as the feed's filter does; the group carries its name for a reader */
+    '#tomorrow .chips.scroll { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }',
+    /* the fold: the style row, the forecast line and the place behind one 44px line; the chevron turns when it opens.
+       Element-qualified on purpose: .tm-tile.tm-more is the strip's "+N more" tile */
+    'details.tm-more > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding-inline: 4px; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }',
+    'details.tm-more > summary::-webkit-details-marker { display: none; }',
+    'details.tm-more > summary .hint { margin: 0; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }',
+    /* the chevron is a glyph: physical right + bottom edges, so it points down and up in both directions */
+    'details.tm-more > summary::after { content: ""; flex: none; margin-inline-start: auto; margin-inline-end: 8px; margin-block-start: -4px; inline-size: 8px; block-size: 8px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg); transition: transform 160ms ease, margin 160ms ease; }',
+    'details.tm-more[open] > summary::after { transform: rotate(-135deg); margin-block-start: 4px; }',
+    'details.tm-more > :not(summary) { margin-block-start: 6px; }',
+    'details.tm-more > .tm-weather { margin-block-start: 16px; padding-block-end: 6px; }',
     '.tm-weather { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; font-size: 14px; color: var(--ink-2); }',
-    '.tm-weather .tm-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--pill); background: var(--surface-2); color: var(--ink); font-weight: 600; }',
     '.tm-strip-title { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }',
-    '.tm-strip { display: flex; gap: 10px; overflow-x: auto; padding-block: 4px; scrollbar-width: none; }',
+    '.tm-strip { display: flex; gap: 12px; overflow-x: auto; padding-block: 4px 12px; scrollbar-width: none; }',
     '.tm-strip::-webkit-scrollbar { display: none; }',
-    '.tm-tile { flex: none; inline-size: 88px; text-align: center; text-decoration: none; color: inherit; }',
+    '.tm-tile { flex: none; inline-size: 80px; display: flex; flex-direction: column; align-items: center; text-align: center; text-decoration: none; color: inherit; }',
     '.tm-tile .tm-photo, .tm-row .tm-photo, .tm-big .tm-photo { inline-size: 88px; block-size: 88px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-3); }',
     '.tm-tile .tm-photo img, .tm-row .tm-photo img, .tm-big .tm-photo img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
-    '.tm-tile .tm-name { margin-block-start: 6px; font-size: 12px; line-height: 1.3; color: var(--ink-2); unicode-bidi: plaintext; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }',
+    /* a print in the gradient ring: 68px in an 80px tile, the ring 2px (the .featured padding-box trick), the photo's own corners inside it */
+    '.tm-tile .tm-photo { inline-size: 68px; block-size: 68px; border-radius: 18px; border: 2px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; box-shadow: 0 8px 20px rgba(8, 4, 20, 0.45); }',
+    '.tm-tile .tm-photo img { border-radius: 14px; }',
+    '.tm-tile .tm-name { margin-block-start: 8px; font-size: 12px; line-height: 1.3; font-weight: 500; color: var(--ink-2); unicode-bidi: plaintext; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }',
     '.tm-tile.tm-more .tm-photo { color: var(--accent); font-weight: 700; font-size: 15px; }',
     '.tm-action { text-align: center; }',
     '.tm-action .hint { margin-block-start: 8px; }',
-    '.tm-card { padding: 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); display: grid; gap: 12px; }',
-    '.tm-kicker { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 10px; }',
+    /* the outfit: a glass card, no padding of its own (each child carries the 16px gutter, the photo and the chips sit on the
+       card's own ground), lit from below in its occasion's tint when the card knows one */
+    '.tm-card { padding: 0 0 16px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); display: grid; gap: 12px; }',
+    '.tm-card[data-occasion] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 22px 60px var(--tint-glow), 0 2px 18px var(--tint-wash); }',
+    '.tm-card > * { margin-inline: 16px; }',
+    '.tm-kicker { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-block-start: 14px; }',
+    '.tm-kicker > span[data-occasion] { color: var(--accent-ink); background: var(--tint); padding: 5px 10px; border-radius: var(--pill); box-shadow: 0 4px 14px var(--tint-glow); }',   /* the occasion as its pastel, solid */
     '.tm-row { display: flex; align-items: center; gap: 12px; }',
     '.tm-row .tm-photo { flex: none; inline-size: 96px; block-size: 96px; cursor: pointer; }',
     '.tm-row .tm-body { flex: 1; min-inline-size: 0; }',
     '.tm-row .tm-name { font-weight: 700; font-size: 16px; line-height: 1.3; color: var(--ink); unicode-bidi: plaintext; overflow-wrap: anywhere; }',
     '.tm-row .tm-meta { margin-block-start: 3px; font-size: 13px; color: var(--ink-3); }',
-    '.tm-big { display: grid; gap: 10px; }',
-    '.tm-big .tm-photo { inline-size: 100%; block-size: auto; aspect-ratio: 3 / 4; cursor: pointer; }',
-    '.tm-big ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 10px; font-weight: 600; color: var(--ink); }',
-    '.tm-sentence { font-size: 17px; line-height: 1.5; color: var(--ink); margin: 0; }',
+    /* one look: the photo large (168px, 4:5) in its tint's glow with its own vignette, and beside it the column of pieces as
+       name chips; on a narrow phone the photo gives way first so the chips keep at least 150px */
+    '.tm-big { display: grid; grid-template-columns: minmax(0, 168px) minmax(150px, 1fr); gap: 14px; align-items: start; }',
+    '.tm-big .tm-photo { position: relative; inline-size: 100%; block-size: auto; aspect-ratio: 4 / 5; border-radius: 18px; cursor: pointer; box-shadow: 0 14px 34px var(--tint-glow), 0 8px 24px rgba(8, 4, 20, 0.4); }',
+    '.tm-big .tm-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(to top, rgba(20, 16, 30, 0.45), transparent 40%); }',
+    '.tm-big .tm-side { display: grid; gap: 10px; min-inline-size: 0; align-content: start; }',
+    '.tm-side > .hint { margin: 0; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }',
+    '[dir="rtl"] .tm-side > .hint { font-size: 12.5px; }',
+    '.tm-big .pieces { flex-direction: column; align-items: stretch; gap: 8px; min-block-size: 0; }',
+    '.tm-big .pieces li { list-style: none; display: flex; min-inline-size: 0; }',
+    '.tm-big .chip.piece { inline-size: 100%; min-block-size: 40px; padding-block: 9px; padding-inline: 12px; flex-wrap: wrap; column-gap: 6px; row-gap: 2px; justify-content: flex-start; line-height: 1.25; white-space: normal; background: var(--surface-2); font-size: 14px; border-color: var(--line-soft); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }',
+    '.tm-big .chip.piece .item-name { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }',   /* a name wraps here rather than ellipsising: the column is narrow */
+    '.tm-big .chip.piece .cat { flex: none; color: var(--ink-3); font-weight: 500; }',
+    '.tm-sentence { font-size: 18px; line-height: 1.45; font-weight: 500; color: var(--ink); margin-block: 0; }',
     '[dir="rtl"] .tm-sentence { font-weight: 600; }',
+    /* the forecast: the one amber pill, with a glowing sun; drawn once, on the card it was written for */
+    '.tm-pill { display: inline-flex; align-items: center; gap: 8px; min-block-size: 36px; padding-inline: 12px; border-radius: var(--pill); background: var(--amber-tint); border: 1px solid rgba(255, 180, 107, 0.3); color: var(--ink); font-size: 14px; font-weight: 600; justify-self: start; }',
+    '.tm-pill::before { content: ""; flex: none; inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px rgba(255, 180, 107, 0.85); }',
     '.tm-gap { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--accent-tint); display: grid; gap: 8px; }',
     '.tm-gap p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); }',
     '.tm-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }',
+    '.tm-thumbs .chip { min-block-size: 44px; }',
     '.tm-thumbs .chip[aria-pressed="true"] { pointer-events: none; }',
-    '.tm-links { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; }',
+    '.tm-links { display: flex; flex-wrap: wrap; gap: 0 16px; align-items: baseline; }',
     '.tm-stale { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 14px; color: var(--ink-2); }',
     '.tm-recent { list-style: none; margin: 0; padding: 0; }',
     '.tm-recent li { border-block-end: 1px solid var(--line-soft); }',
@@ -104,6 +142,7 @@ let card = null;      // the outfit on screen
 let busy = false;
 let root = null;
 let ctx = null;
+let moreOpen = null;   // the fold (details.tm-more) as the person left it during this visit; null = untouched, the default applies
 
 function weatherPref() {
   const w = loadPrefs().weather;
@@ -165,18 +204,15 @@ function whenPills() {
   return group;
 }
 
-/** The forecast line: the ask, the consent, the pill it was written for, or the way to forget the place. */
+/**
+ * The forecast line: the ask, the consent, or the way to forget the place. The forecast an outfit was written for is
+ * drawn once, on its card (lookCard), not here as well.
+ */
 function weatherLine() {
   const line = el('div', { class: 'tm-weather', id: 'tm-weather' });
   const prefs = loadPrefs();
   const pref = weatherPref();
   const forget = () => el('button', { type: 'button', class: 'btn-text', id: 'weather-forget', text: t('tomorrow.weather_forget'), onclick: () => { savePrefs({ weather: null }); repaint(); } });
-  if (card && card.weather) {
-    line.appendChild(el('span', { class: 'tm-pill', id: 'weather-pill', text: weatherText(card.weather) }));
-    if (pref) line.appendChild(forget());
-    return line;
-  }
-
   if (pref) {
     line.appendChild(el('span', { id: 'weather-ready', text: t('tomorrow.weather_ready') }));
     line.appendChild(forget());
@@ -212,6 +248,47 @@ function askForPlace() {
     toast(t('tomorrow.weather_denied'));
     repaint();
   }, { timeout: 8000, maximumAge: 1800000 });
+}
+
+/** Whether the screen is at the point of composing (or has composed): the notices and the empty state come before it. */
+function ready() {
+  return !!page && !page.needsPro && page.stylistOn && page.available && page.have >= page.needs && page.haveKinds >= page.needsKinds;
+}
+
+/**
+ * The fold: the style row, the forecast line and the place behind one line that says "More" (and the style picked, so
+ * it is known without opening). It starts open while there is an outfit to compose and the forecast is still a question
+ * (no place kept, not refused twice), so the ask is read once; before there are pieces, and once the question is
+ * answered, it starts folded. A repaint keeps whatever state the person left it in.
+ */
+function moreFold() {
+  const open = moreOpen === null ? (ready() && !weatherPref() && (loadPrefs().weatherDenied || 0) < 2) : moreOpen;
+  return el('details', { class: 'tm-more', id: 'tm-more', open }, [
+    el('summary', {}, [
+      el('span', { text: t('common.more') }),
+      pick.style ? el('span', { class: 'hint', text: styleLabel(pick.style) }) : null
+    ]),
+    styleChips(pick, () => { card = matching(); repaint(); }),
+    weatherLine()
+  ]);
+}
+
+/** The occasion row for this screen: no heading of its own (the group is named for a reader), one row that scrolls. */
+function occasionRow() {
+  const block = occasionChips(pick, () => { card = matching(); repaint(); });
+  const heading = block.querySelector('h2');
+  if (heading) heading.classList.add('sr-only');
+  const row = block.querySelector('#occasions');
+  if (row) row.classList.add('scroll');
+  return block;
+}
+
+/** The kit's empty state under the mark, large and lit (app.css .empty-mark): the one warm picture on a screen with nothing on it yet. */
+function emptyWithMark(title, body) {
+  const empty = emptyState(title, body);
+  const mark = logoMark(136);
+  if (mark) empty.prepend(el('span', { class: 'empty-mark', 'aria-hidden': 'true' }, [mark]));
+  return empty;
 }
 
 /** The strip: the person's own closet as photos, before anything is spent. */
@@ -262,13 +339,13 @@ function actionBlock() {
     return block;
   }
   if (page.have < page.needs || page.haveKinds < page.needsKinds) {
-    block.appendChild(emptyState(t('tomorrow.needs_title'), page.have === 0 ? t('tomorrow.needs_zero') : t('tomorrow.needs', { n: page.have })));
+    block.appendChild(emptyWithMark(t('tomorrow.needs_title'), page.have === 0 ? t('tomorrow.needs_zero') : t('tomorrow.needs', { n: page.have })));
     block.appendChild(el('a', { class: 'btn', id: 'tm-needs-go', href: '#/check', text: t('tomorrow.needs_go') }));
     block.lastChild.id = 'tm-needs-go';
     return block;
   }
   if (!page.available) {
-    block.appendChild(emptyState(t('tomorrow.off_title'), t('tomorrow.off')));
+    block.appendChild(emptyWithMark(t('tomorrow.off_title'), t('tomorrow.off')));
     return block;
   }
   if (busy) {
@@ -358,15 +435,18 @@ function openDontOwnSheet(suggestion) {
   ]) });
 }
 
-/** The look card: the pieces as photos of you, the sentence, the forecast, the gap, the thumbs, the two doors. */
+/**
+ * The look card: the pieces as photos of you, the sentence, the forecast, the gap, the thumbs, the two doors. The card
+ * and the kicker's occasion carry data-occasion, which app.css maps to the occasion's tint (the glow, the pill).
+ */
 function lookCard(suggestion) {
   const kicker = el('div', { class: 'tm-kicker' }, [
     el('span', { text: whenLabel(suggestion.when) }),
-    el('span', { text: occasionLabel(suggestion.occasion) }),
+    el('span', { 'data-occasion': suggestion.occasion || null, text: occasionLabel(suggestion.occasion) }),
     suggestion.style ? el('span', { text: styleLabel(suggestion.style) }) : null,
     suggestion.seq > 1 ? el('span', { id: 'tm-idea', text: t('tomorrow.idea', { n: suggestion.seq }) }) : null
   ]);
-  const cardEl = el('article', { class: 'tm-card', id: 'tm-card', 'data-suggestion': suggestion.id }, [kicker]);
+  const cardEl = el('article', { class: 'tm-card', id: 'tm-card', 'data-suggestion': suggestion.id, 'data-occasion': suggestion.occasion || null }, [kicker]);
   if (suggestion.status === 'rejected') {
     cardEl.appendChild(el('p', { class: 'tm-sentence', text: t('tomorrow.rejected') }));
     return cardEl;
@@ -382,12 +462,20 @@ function lookCard(suggestion) {
   const photoIds = pieces.map((p) => p.photoCheckId).filter(Boolean);
   const oneLook = pieces.length > 1 && photoIds.length === pieces.length && photoIds.every((id) => id === photoIds[0]);
   if (oneLook) {
-    // Every piece came from one check: the photo once, large, with the names beneath — never the same photo three times.
+    // Every piece came from one check: the photo once, large, and beside it the pieces as name chips (the name, then
+    // its kind) - never the same photo three times. Each chip's li keeps data-item, as the wrapped list before it did.
     const first = pieces[0];
     cardEl.appendChild(el('div', { class: 'tm-big', id: 'tm-one-look' }, [
       photoBox(first.photoUrl, t('tomorrow.photo_caption', { date: first.photoWornAt ? fmtDate(first.photoWornAt) : '' }), () => openPhoto(first.photoUrl, first.photoWornAt)),
-      el('span', { class: 'hint', style: 'margin: 0;', text: t('tomorrow.same_photo') }),
-      el('ul', {}, pieces.map((p) => el('li', { dir: 'auto', 'data-item': p.itemId || '', text: p.name + ' · ' + categoryLabel(p.category) })))
+      el('div', { class: 'tm-side' }, [
+        el('span', { class: 'hint', text: t('tomorrow.same_photo') }),
+        el('ul', { class: 'pieces chips' }, pieces.map((p) => el('li', { dir: 'auto', 'data-item': p.itemId || '' }, [
+          el('span', { class: 'chip piece' }, [
+            el('span', { class: 'item-name', text: p.name }),
+            el('span', { class: 'cat', text: '· ' + categoryLabel(p.category) })
+          ])
+        ])))
+      ])
     ]));
   } else {
     for (const piece of pieces) cardEl.appendChild(pieceRow(piece));
@@ -395,9 +483,9 @@ function lookCard(suggestion) {
 
   cardEl.appendChild(el('p', { class: 'tm-sentence', id: 'tm-sentence', dir: 'auto', text: suggestion.sentence }));
   if (suggestion.weather) {
-    cardEl.appendChild(el('span', { class: 'tm-pill', style: 'justify-self: start;', text: weatherText(suggestion.weather) }));
+    cardEl.appendChild(el('span', { class: 'tm-pill', id: 'weather-pill', text: weatherText(suggestion.weather) }));
   } else {
-    cardEl.appendChild(el('span', { class: 'hint', style: 'margin: 0;', id: 'tm-weather-none', text: t('tomorrow.weather_none') }));
+    cardEl.appendChild(el('span', { class: 'hint', id: 'tm-weather-none', text: t('tomorrow.weather_none') }));
   }
   if (suggestion.gap) {
     cardEl.appendChild(el('div', { class: 'tm-gap', id: 'tm-gap' }, [
@@ -488,12 +576,13 @@ async function compose(fresh) {
 function repaint() {
   if (!root || !ctx || ctx.stale()) return;
   const body = $('tomorrow') || root;
+  const fold = $('tm-more');
+  if (fold) moreOpen = fold.open;   // a repaint keeps the fold as the person left it
   body.replaceChildren();
-  body.appendChild(el('p', { class: 'lede tm-lede', text: t('tomorrow.lede') }));
+  body.appendChild(el('p', { class: 'lede tm-lede sr-only', text: t('tomorrow.lede') }));
   body.appendChild(whenPills());
-  body.appendChild(occasionChips(pick, () => { card = matching(); repaint(); }));
-  body.appendChild(styleChips(pick, () => { card = matching(); repaint(); }));
-  body.appendChild(weatherLine());
+  body.appendChild(occasionRow());
+  body.appendChild(moreFold());
   const stripBlock = strip();
   if (stripBlock) body.appendChild(stripBlock);
   body.appendChild(actionBlock());
@@ -510,11 +599,12 @@ register('tomorrow', async (r, params, c) => {
   // The heading a screen reader lands on (the top bar carries the visible title), as the check screen has.
   root.appendChild(el('h1', { class: 'sr-only', text: t('tomorrow.title') }));
   if (!state.me) { root.appendChild(signInPrompt()); return; }
-  if (plans().tomorrow === false) { root.appendChild(emptyState(t('tomorrow.off_title'), t('tomorrow.off'))); return; }
+  if (plans().tomorrow === false) { root.appendChild(emptyWithMark(t('tomorrow.off_title'), t('tomorrow.off'))); return; }
 
+  moreOpen = null;   // a fresh visit starts the fold from its default
   const body = el('div', { class: 'stack', id: 'tomorrow' });
   root.appendChild(body);
-  body.appendChild(el('p', { class: 'lede tm-lede', text: t('tomorrow.lede') }));
+  body.appendChild(el('p', { class: 'lede tm-lede sr-only', text: t('tomorrow.lede') }));
   body.appendChild(el('div', { class: 'tm-skeleton', 'aria-busy': 'true' }, [el('div')]));
 
   if (!pick.loaded) {

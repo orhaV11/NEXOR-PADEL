@@ -133,7 +133,7 @@ register('insights', async (root, params, ctx) => {
   root.appendChild(el('div', { class: 'stack', id: 'insights-body' }, [
     recap,
     tiles(data),
-    el('section', {}, [el('h2', { text: t('insights.lines') }), lineList(lines)]),
+    el('section', {}, [el('h2', { class: 'rule', text: t('insights.lines') }), lineList(lines)]),
     el('p', { class: 'hint insights-foot', text: t('insights.based_on', { n: fmtNumber(data.checks) }) }),
     checkAnother()
   ]));

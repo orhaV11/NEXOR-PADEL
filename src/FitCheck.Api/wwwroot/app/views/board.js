@@ -314,7 +314,7 @@ function hallWeek(week) {
   const looks = winners.filter((w) => w.board === 'looks' && w.rank <= 3).sort((a, b) => a.rank - b.rank);
   const person = winners.find((w) => w.board === 'people' && w.rank === 1);
   return el('section', { class: 'hall-week' }, [
-    el('h2', { text: t('hall.week', { date: weekDate(week.weekStart) }) }),
+    el('h2', { class: 'rule', text: t('hall.week', { date: weekDate(week.weekStart) }) }),
     looks.length ? el('div', { class: 'hall-top' }, looks.map(hallTile)) : null,
     person ? el('div', { class: 'hall-person', 'aria-label': t('hall.winner', { rank: fmtNumber(1), board: boardLabel('people') }) }, [medal(1), userRow(person.user), el('span', { class: 'board-stat', text: fires(person.fires) })]) : null,
     !looks.length && !person ? el('p', { class: 'hint', text: t('board.empty') }) : null
@@ -358,7 +358,7 @@ export function boardStrip(ctx) {
     holder.hidden = !rows.length || !!data.closed;
     if (holder.hidden) { holder.replaceChildren(); return; }
     holder.replaceChildren(el('section', { class: 'x-section board-strip', id: 'board-strip', 'aria-labelledby': 'board-strip-title' }, [
-      el('div', { class: 'section-head' }, [el('h2', { id: 'board-strip-title', text: t('board.strip_title') }), el('a', { href: '#/board', text: t('board.strip_all') })]),
+      el('div', { class: 'section-head' }, [el('h2', { id: 'board-strip-title', class: 'rule', text: t('board.strip_title') }), el('a', { href: '#/board', text: t('board.strip_all') })]),
       el('div', { class: 'board-strip-row' }, rows.map(stripTile))
     ]));
   };

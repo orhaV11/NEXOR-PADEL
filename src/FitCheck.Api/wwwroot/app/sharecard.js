@@ -23,7 +23,7 @@ const NAME = { baseline: 1722 };
 const FOOTER = { rule: 1770, centre: 1838, wordmark: 52 };
 const MAX_BYTES = 1.5 * 1024 * 1024;
 export const COLOR = {
-  bg: '#0b0b0f', surface: '#15151c', surface2: '#1e1e27', ink: '#f4f4f7', ink2: '#b9b9c6', ink3: '#7f7f8e',
+  bg: '#14101e', surface: '#211a2e', surface2: '#2e2541', ink: '#f9f5ff', ink2: '#d1c8e0', ink3: '#a99ebd',   // app.css §1, copied by hand: the canvas never reads a stylesheet
   accent: '#b39dff', rose: '#ff8fb1', tint: 'rgba(179, 157, 255, 0.16)', line: 'rgba(255, 255, 255, 0.1)'
 };
 // The same stacks as app.css, with Cairo behind Heebo so Arabic draws in the face the page already loaded; Cyrillic falls to the system face, as on the page.
@@ -157,17 +157,28 @@ export function text(ctx, value, x, y, opts) {
 export function drawStage(ctx) {
   ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  // app.css: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%) — an ellipse, so the circle is squashed.
-  const rx = 0.9 * CARD_WIDTH; const ry = 0.38 * CARD_HEIGHT;
-  ctx.save();
-  ctx.translate(CARD_WIDTH / 2, -0.08 * CARD_HEIGHT);
-  ctx.scale(1, ry / rx);
-  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-  glow.addColorStop(0, 'rgba(179, 157, 255, 0.16)');
-  glow.addColorStop(0.62, 'rgba(179, 157, 255, 0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(-CARD_WIDTH, -CARD_HEIGHT * 2, CARD_WIDTH * 2, CARD_HEIGHT * 6);
-  ctx.restore();
+  // app.css --glow and --glow-2, the aurora: lilac at the top-start, rose at the top-end, a breath of amber between and
+  // a faint rose glow at the foot. CSS sizes each radial as a share of the width and of the height (an ellipse), so the
+  // circle is squashed to the same shape; the stop is where it fades to nothing.
+  const AURORA = [
+    // [centre x, centre y, radius x, radius y (all shares of the card), colour, alpha, fade stop]
+    [0.18, -0.06, 0.7, 0.34, '179, 157, 255', 0.3, 0.62],
+    [0.84, -0.04, 0.6, 0.3, '255, 143, 177', 0.26, 0.6],
+    [0.52, -0.02, 0.46, 0.22, '255, 180, 107', 0.14, 0.6],
+    [0.5, 1.08, 0.7, 0.26, '255, 143, 177', 0.1, 0.6]
+  ];
+  for (const [fx, fy, sx, sy, rgb, alpha, stop] of AURORA) {
+    const rx = sx * CARD_WIDTH; const ry = sy * CARD_HEIGHT;
+    ctx.save();
+    ctx.translate(fx * CARD_WIDTH, fy * CARD_HEIGHT);
+    ctx.scale(1, ry / rx);
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    glow.addColorStop(0, 'rgba(' + rgb + ', ' + alpha + ')');
+    glow.addColorStop(stop, 'rgba(' + rgb + ', 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-CARD_WIDTH * 2, -CARD_HEIGHT * 4, CARD_WIDTH * 5, CARD_HEIGHT * 8);   // the whole card, whichever way the ellipse is squashed
+    ctx.restore();
+  }
 }
 /** The image cover-fitted to a box, centred (object-fit: cover), on a placeholder fill. */
 export function coverImage(ctx, img, x, y, w, h) {
@@ -196,7 +207,7 @@ function drawRing(ctx, score, dir) {
   disc(ctx, cx, cy, r, theGradient(ctx, cx - r, cy - r, r * 2, r * 2));
   ctx.restore();
   ctx.save();
-  ctx.shadowColor = 'rgba(179, 157, 255, 0.35)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 20;   // the hero's lilac halo
+  ctx.shadowColor = 'rgba(255, 143, 177, 0.4)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 20;   // the hero's rose halo (app.css --shadow-halo)
   disc(ctx, cx, cy, r, theGradient(ctx, cx - r, cy - r, r * 2, r * 2));
   ctx.restore();
   disc(ctx, cx, cy, r - stroke, COLOR.bg);
@@ -549,7 +560,7 @@ function drawChange(ctx, plan, dir) {
   const x = MARGIN;
   const w = CARD_WIDTH - MARGIN * 2;
   roundedRect(ctx, x, y, w, h, 36);
-  ctx.fillStyle = 'rgba(21, 21, 28, 0.94)';
+  ctx.fillStyle = 'rgba(33, 26, 46, 0.94)';   // --surface, nearly solid
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 2; ctx.stroke();
   const barX = rtl ? x + w - 36 - 8 : x + 36;

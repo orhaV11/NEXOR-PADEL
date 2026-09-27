@@ -103,14 +103,14 @@ function draw(root, m, ctx, reload) {
   ]));
 
   root.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('dash.scores') }),
+    el('h2', { class: 'rule', text: t('dash.scores') }),
     el('p', { class: 'hint', text: t('dash.scores_hint') }),
     m.totalChecks ? scoreBars(m.scoreDistribution) : el('p', { class: 'empty', id: 'dash-empty', text: t('dash.empty') })
   ]));
 
   if (averages) {
     root.appendChild(el('section', { class: 'dash-section' }, [
-      el('h2', { text: t('dash.breakdown') }),
+      el('h2', { class: 'rule', text: t('dash.breakdown') }),
       el('p', { class: 'hint', text: t('dash.breakdown_hint', { n: countArg(averages.checks || 0) }) }),
       el('div', { class: 'dash-tiles', id: 'dash-breakdown' }, [
         tile(t('dash.fit'), fmtNumber(averages.avgFit), '/10'),
@@ -135,7 +135,7 @@ function draw(root, m, ctx, reload) {
     ['constraintChallenges', 'challenge.dash_constraint']
   ];
   root.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('dash.social') }),
+    el('h2', { class: 'rule', text: t('dash.social') }),
     el('div', { class: 'dash-tiles', id: 'dash-social' }, socialTiles.map(([key, label]) => tile(t(label), fmtNumber(social[key] || 0))))
   ]));
 
@@ -146,11 +146,11 @@ function draw(root, m, ctx, reload) {
   if (m.spend) root.appendChild(moneySection(m.spend));
 
   root.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('dash.by_language') }),
+    el('h2', { class: 'rule', text: t('dash.by_language') }),
     countList('dash-languages', m.byLanguage, localeName)
   ]));
   root.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('dash.by_prompt') }),
+    el('h2', { class: 'rule', text: t('dash.by_prompt') }),
     countList('dash-prompts', m.byPromptVersion)
   ]));
 
@@ -168,7 +168,7 @@ function draw(root, m, ctx, reload) {
     const moment = tile(t('wardrobe.dash_moment'), rate(w.momentGoRate));
     moment.appendChild(el('span', { class: 'sub', text: t('wardrobe.dash_moment_sub', { shown: fmtNumber(w.momentShown || 0), go: fmtNumber(w.momentGo || 0) }) }));
     root.appendChild(el('section', { class: 'dash-section' }, [
-      el('h2', { text: t('wardrobe.dash_title') }),
+      el('h2', { class: 'rule', text: t('wardrobe.dash_title') }),
       el('p', { class: 'hint', text: t('wardrobe.dash_hint') }),
       el('div', { class: 'dash-tiles', id: 'dash-wardrobe' }, [
         tile(t('wardrobe.dash_kept'), rate(w.keepRate)),
@@ -191,7 +191,7 @@ function draw(root, m, ctx, reload) {
     const tm = m.tomorrow;
     const rate = (value) => (value === null || value === undefined ? '\u2013' : percent(value));
     root.appendChild(el('section', { class: 'dash-section' }, [
-      el('h2', { text: t('tomorrow.dash_title') }),
+      el('h2', { class: 'rule', text: t('tomorrow.dash_title') }),
       el('p', { class: 'hint', text: t('tomorrow.dash_hint') + ' ' + t('tomorrow.dash_loop') }),
       el('div', { class: 'dash-tiles', id: 'dash-tomorrow' }, [
         tile(t('tomorrow.dash_outfits'), fmtNumber(tm.suggestions || 0)),
@@ -267,7 +267,7 @@ function stylistSection(stylist) {
   const answered = (overall.yes || 0) + (overall.no || 0);
   const fragment = document.createDocumentFragment();
   fragment.appendChild(el('section', { class: 'dash-section dash-stylist', id: 'dash-stylist' }, [
-    el('h2', { text: t('useful.dash_title') }),
+    el('h2', { class: 'rule', text: t('useful.dash_title') }),
     el('p', { class: 'hint', text: t('useful.dash_hint') }),
     el('div', { class: 'dash-hero', id: 'dash-useful-rate' }, [
       el('span', { class: 'lbl', text: t('useful.dash_rate') }),
@@ -283,11 +283,11 @@ function stylistSection(stylist) {
     ])
   ]));
   fragment.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('useful.dash_by_intent') }),
+    el('h2', { class: 'rule', text: t('useful.dash_by_intent') }),
     splitList('dash-useful-intents', stylist.byIntent, (intent) => t('intent.' + intent))
   ]));
   fragment.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('useful.dash_by_language') }),
+    el('h2', { class: 'rule', text: t('useful.dash_by_language') }),
     splitList('dash-useful-languages', stylist.byLanguage, localeName)
   ]));
   return fragment;
@@ -344,7 +344,7 @@ function moneySection(spend) {
   const ceiling = Number(spend.ceilingUsd) || 0;
   const fragment = document.createDocumentFragment();
   fragment.appendChild(el('section', { class: 'dash-section dash-money', id: 'dash-money' }, [
-    el('h2', { text: t('money.title') }),
+    el('h2', { class: 'rule', text: t('money.title') }),
     el('p', { class: 'hint', text: t('money.hint') }),
     spend.resting ? el('p', { class: 'resting', id: 'dash-resting', text: t('money.resting') }) : null,
     el('div', { class: 'dash-hero', id: 'dash-spend-today' }, [
@@ -365,11 +365,11 @@ function moneySection(spend) {
     el('p', { class: 'hint', id: 'dash-prices', text: t('money.prices', { in: usd(spend.priceInPerMillion), out: usd(spend.priceOutPerMillion) }) + ' ' + t('money.cache_mode', { mode: t(cacheModeKey(spend.promptCache)) }) })
   ]));
   fragment.appendChild(el('section', { class: 'dash-section dash-money' }, [
-    el('h2', { text: t('money.series') }),
+    el('h2', { class: 'rule', text: t('money.series') }),
     spendBars(spend.series)
   ]));
   fragment.appendChild(el('section', { class: 'dash-section dash-money' }, [
-    el('h2', { text: t('money.alerts') }),
+    el('h2', { class: 'rule', text: t('money.alerts') }),
     spend.alertWebhook || spend.alertEmail
       ? el('ul', { class: 'channels', id: 'dash-alert-channels' }, [
         el('li', { text: t('money.alert_webhook') + ' · ' + t(spend.alertWebhook ? 'money.alert_on' : 'money.alert_off') }),
@@ -428,7 +428,7 @@ function funnelSection(funnel) {
 
   const fragment = document.createDocumentFragment();
   fragment.appendChild(el('section', { class: 'dash-section', id: 'dash-funnel' }, [
-    el('h2', { text: t('funnel.title') }),
+    el('h2', { class: 'rule', text: t('funnel.title') }),
     el('p', { class: 'hint', text: t('funnel.hint') }),
     days.length
       ? el('div', { class: 'dash-scroll' }, [
@@ -444,7 +444,7 @@ function funnelSection(funnel) {
   ]));
 
   fragment.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('funnel.today') }),
+    el('h2', { class: 'rule', text: t('funnel.today') }),
     el('dl', { class: 'dash-list', id: 'dash-funnel-today' }, [
       ['funnel.landing_to_check', today.landingToGuestCheck],
       ['funnel.check_to_signup', today.guestCheckToSignup],
@@ -457,7 +457,7 @@ function funnelSection(funnel) {
   // Round 20 — distribution: the window's totals per entry link (/go/<source>). The eight shipped codes have a name in
   // every locale file; an owner-configured extra is drawn as its code, never as a t() call that would warn.
   fragment.appendChild(el('section', { class: 'dash-section', id: 'dash-sources-section' }, [
-    el('h2', { text: t('funnel.sources_title') }),
+    el('h2', { class: 'rule', text: t('funnel.sources_title') }),
     el('p', { class: 'hint', text: t('funnel.sources_hint') }),
     sources.length
       ? el('div', { class: 'dash-scroll' }, [
@@ -476,12 +476,12 @@ function funnelSection(funnel) {
   ]));
 
   fragment.appendChild(el('section', { class: 'dash-section' }, [
-    el('h2', { text: t('funnel.invites_title') }),
+    el('h2', { class: 'rule', text: t('funnel.invites_title') }),
     el('div', { class: 'dash-tiles', id: 'dash-invites' }, [
       tile(t('funnel.invites_sent'), fmtNumber(invites.sent || 0)),
       tile(t('funnel.invites_accepted'), fmtNumber(invites.accepted || 0))
     ]),
-    el('h2', { text: t('funnel.top_inviters') }),
+    el('h2', { class: 'rule', text: t('funnel.top_inviters') }),
     (invites.top && invites.top.length)
       ? el('dl', { class: 'dash-list dash-inviters', id: 'dash-inviters' }, invites.top.map((row) => el('div', { 'data-handle': row.handle }, [
         el('dt', { text: '@' + row.handle }),

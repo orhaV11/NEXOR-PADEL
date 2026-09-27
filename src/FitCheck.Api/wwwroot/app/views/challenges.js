@@ -320,14 +320,14 @@ register('challenge', async (root, params, ctx) => {
 
     if (!c.isOpen) {
       nodes.push(el('section', { class: 'ch-section', 'aria-labelledby': 'ch-winner-title' }, [
-        el('h2', { id: 'ch-winner-title', text: t('challenges.winner') }),
+        el('h2', { id: 'ch-winner-title', class: 'rule', text: t('challenges.winner') }),
         detail.winner || entries.length ? null : el('p', { class: 'muted', text: t('challenges.no_winner') })
       ]));
       if (detail.winner) nodes.push(winnerCard(detail.winner));
     }
 
     const board = el('section', { class: 'ch-section', 'aria-labelledby': 'ch-board-title' }, [
-      el('h2', { id: 'ch-board-title', text: t('challenges.leaderboard') }),
+      el('h2', { id: 'ch-board-title', class: 'rule', text: t('challenges.leaderboard') }),
       !state.me && c.isOpen && entries.length ? el('p', { class: 'ch-hint', text: t('challenges.vote_signin') }) : null,
       entries.length
         ? el('div', { class: 'lb', id: 'leaderboard' }, entries.map(leaderboardRow))

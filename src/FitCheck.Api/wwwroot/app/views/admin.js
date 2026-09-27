@@ -251,14 +251,14 @@ register('admin', async (root, params, ctx) => {
   // The pilot's numbers, one tap away for the same people who can read them.
   root.appendChild(el('p', {}, [el('a', { class: 'btn-text', id: 'adm-metrics', href: '#/admin/metrics', text: t('dash.open') })]));
   root.appendChild(stats);
-  root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { text: t('admin.queue') }), list]));
+  root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { class: 'rule', text: t('admin.queue') }), list]));
   root.appendChild(el('section', { class: 'adm-section adm-users' }, [
-    el('h2', { text: t('admin.users') }),
+    el('h2', { class: 'rule', text: t('admin.users') }),
     el('form', { class: 'search', role: 'search', onsubmit: (event) => { event.preventDefault(); loadUsers(input.value); } }, [icon('search'), input]),
     hint,
     people
   ]));
-  root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { text: t('admin.sponsor') }), sponsor]));
+  root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { class: 'rule', text: t('admin.sponsor') }), sponsor]));
 
   let query = '';
   async function loadQueue() {

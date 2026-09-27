@@ -199,7 +199,7 @@ function digestSection(ctx) {
 /** "Invite friends": the button that opens the link sheet, and the one line that says what an accepted invite is worth. */
 function inviteSection() {
   return el('section', { class: 's-section s-invite', id: 'invite-section' }, [
-    el('h2', { text: t('invite.title') }),
+    el('h2', { class: 'rule', text: t('invite.title') }),
     el('p', { class: 'hint', text: t('invite.hint') }),
     inviteButton('invite-friends')
   ]);
@@ -400,7 +400,7 @@ register('settings', async (root, params, ctx) => {
   paintAvatar();
 
   root.appendChild(el('section', { class: 's-section' }, [
-    el('h2', { text: t('settings.avatar') }),
+    el('h2', { class: 'rule', text: t('settings.avatar') }),
     el('div', { class: 's-photo' }, [holder, el('div', { class: 's-photo-actions' }, [change, remove])])
   ]));
 

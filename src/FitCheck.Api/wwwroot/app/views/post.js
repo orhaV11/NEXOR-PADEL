@@ -262,7 +262,7 @@ register('post', async (root, params, ctx) => {
     lookSection.hidden = !items.length && !own;
     if (lookSection.hidden) { lookSection.replaceChildren(); mountDots(); return; }
     const head = el('div', { class: 'section-head' }, [
-      el('h2', { id: 'look-items-title', text: t('items.title') }),
+      el('h2', { id: 'look-items-title', class: 'rule', text: t('items.title') }),
       own ? el('button', { type: 'button', class: 'btn-text', id: 'items-edit', text: t('items.edit_items'), onclick: openItemsEditor }) : null
     ]);
     const list = items.length
@@ -326,7 +326,7 @@ register('post', async (root, params, ctx) => {
   // ---- tagged accounts ----
   if (Array.isArray(post.mentions) && post.mentions.length) {
     root.appendChild(el('section', { class: 'post-section', id: 'post-tagged', 'aria-labelledby': 'post-tagged-title' }, [
-      el('h2', { id: 'post-tagged-title', text: t('post.tagged') }),
+      el('h2', { id: 'post-tagged-title', class: 'rule', text: t('post.tagged') }),
       el('div', { class: 'people' }, post.mentions.map((m) => userRow(m, { follow: false })))
     ]));
   }
@@ -342,7 +342,7 @@ register('post', async (root, params, ctx) => {
   let comments = [];
   const list = el('ul', { class: 'comments', id: 'comments' });
   root.appendChild(el('section', { class: 'post-section', 'aria-labelledby': 'comments-title' }, [
-    el('h2', { id: 'comments-title', text: t('comments.title') }),
+    el('h2', { id: 'comments-title', class: 'rule', text: t('comments.title') }),
     list
   ]));
 

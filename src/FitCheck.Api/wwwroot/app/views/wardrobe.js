@@ -212,7 +212,7 @@ function unkeptSection(unkept, onChanged) {
     ]);
   });
   return el('section', { class: 'wr-unkept', id: 'wardrobe-unkept' }, [
-    el('h2', { text: t('wardrobe.unkept_title') }),
+    el('h2', { class: 'rule', text: t('wardrobe.unkept_title') }),
     el('p', { class: 'hint', text: t('wardrobe.unkept_hint', { n: unkept.checks }) }),
     el('ul', { class: 'wr-list' }, rows)
   ]);

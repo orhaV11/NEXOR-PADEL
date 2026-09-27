@@ -9,37 +9,64 @@
 
 /* ---------- §1 tokens ---------- */
 :root {
-  --bg: #0b0b0f;                          /* the stage */
-  --bg-2: #13121a;                        /* top of the page gradient: masthead, sticky feed head, composer */
-  --surface: #15151c;                     /* cards, dock, sheets */
-  --surface-2: #1e1e27;                   /* raised: chips at rest, the brands band, placeholders, pressed rows */
-  --line: #2b2b36;                        /* hairlines */
-  --line-soft: rgba(255, 255, 255, 0.08); /* quieter hairlines: action outlines, index rows */
-  --ink: #f4f4f7;
-  --ink-2: #b9b9c6;
-  --ink-3: #7f7f8e;
+  --bg: #14101e;                          /* the stage: a warm plum-black, one step up from black so daylight never reads it as black */
+  --bg-2: #1b1527;                        /* top of the page gradient: masthead, sticky feed head, composer */
+  --surface: #211a2e;                     /* solid surfaces: the dock, sheets, the ring's inner disc */
+  --surface-2: #2e2541;                   /* raised: chips at rest, action pills, inputs, the brands band, placeholders, pressed rows */
+  --line: #3b3150;                        /* hairlines */
+  --line-soft: rgba(255, 255, 255, 0.09); /* quieter hairlines: action outlines, index rows */
+  --ink: #f9f5ff;                         /* bright display ink with a hair of lilac */
+  --ink-2: #d1c8e0;                       /* body: 11.6:1 on --bg, 9.0:1 on --surface-2 */
+  --ink-3: #a99ebd;                       /* labels, meta: 7.4:1 on --bg, 5.7:1 on --surface-2 */
   --accent: #b39dff;                      /* lilac: links, #tags, @mentions, active marks, ranks 1–3, pressed chips */
   --accent-2: #ff8fb1;                    /* rose: the warm end of the gradient, brand marks */
-  --accent-ink: #150f2e;                  /* ink on the gradient */
+  --accent-ink: #150f2e;                  /* ink on the gradient, and on every occasion pastel */
   --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);   /* the only gradient */
-  --accent-tint: rgba(179, 157, 255, 0.14);
-  --fire: #ff6a2b;                        /* reactions only */
+  --accent-tint: rgba(179, 157, 255, 0.16);
+  --fire: #ff6a2b;                        /* reactions, medals, the flame and the weak dot only */
   --fire-2: #ffa83a;                      /* the flame's tip */
-  --fire-tint: rgba(255, 106, 43, 0.12);
-  --ok: #5ee6a0;
+  --fire-tint: rgba(255, 106, 43, 0.14);
+  --ok: #6ff0ad;                          /* the works dot, the keep row */
+  --ok-tint: rgba(111, 240, 173, 0.13);   /* the keep row's ground, the works chip's wash */
   --danger: #ff5d7a;
-  --radius: 18px;                         /* cards, tickets, the hero figure */
-  --radius-sm: 12px;                      /* photos inside grids, inputs */
+  --amber: #ffb46b;                       /* the aurora's warm breath, the weather pill, the Today kicker: a tint, never body text */
+  --amber-tint: rgba(255, 180, 107, 0.13);
+  --glass: rgba(255, 255, 255, 0.055);    /* a translucent card over the aurora: a flat fill, no backdrop-filter */
+  --glass-edge: rgba(255, 255, 255, 0.1); /* its 1px light edge */
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.09);   /* its top highlight */
+  --scrim: rgba(20, 16, 30, 0.64);        /* a photo's vignette: the stage colour, not black */
+  --ring-track: rgba(255, 255, 255, 0.14);   /* the unfilled rest of a meter */
+  --radius: 22px;                         /* cards, tickets, the hero figure */
+  --radius-sm: 14px;                      /* photos inside grids, inputs */
   --pill: 999px;                          /* chips, segments, buttons, the dock, the score ring */
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --shadow-dock: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --shadow-halo: 0 0 0 6px rgba(179, 157, 255, 0.12), 0 10px 26px rgba(179, 157, 255, 0.35);
-  --shadow-primary: 0 8px 24px rgba(255, 143, 177, 0.25);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 14px 36px rgba(8, 4, 20, 0.55);   /* lit from above, lifted */
+  --shadow-dock: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 44px rgba(8, 4, 20, 0.65);
+  --shadow-halo: 0 0 0 7px rgba(179, 157, 255, 0.14), 0 12px 30px rgba(255, 143, 177, 0.4);   /* the mark's halo, warmed to rose */
+  --shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 28px rgba(255, 143, 177, 0.32);
   --font-display: "Outfit", "Heebo", system-ui, sans-serif;
   --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
   --caps: 700 11px/1 var(--font-body);    /* the label voice */
   --caps-track: 0.08em;
-  --glow: radial-gradient(90% 38% at 50% -8%, rgba(179, 157, 255, 0.16), transparent 62%);   /* the lilac glow at the top of every screen */
+  /* the aurora: lilac at the top-start, rose at the top-end, a breath of amber between, and a faint rose glow at the
+     foot. Still the one fixed body::before layer (below); .sticky-tabs repaints the same pixels by hand (§8). */
+  --glow: radial-gradient(70% 34% at 18% -6%, rgba(179, 157, 255, 0.3), transparent 62%),
+          radial-gradient(60% 30% at 84% -4%, rgba(255, 143, 177, 0.26), transparent 60%),
+          radial-gradient(46% 22% at 52% -2%, rgba(255, 180, 107, 0.14), transparent 60%);
+  --glow-2: radial-gradient(70% 26% at 50% 108%, rgba(255, 143, 177, 0.1), transparent 60%);
+  /* one pastel per occasion, pastel-on-dark, in three forms so no rule needs color-mix(): the solid (a pressed chip's
+     fill, a tag's text, the kicker pill), the glow (a coloured shadow behind a photo or a card) and the wash (a 12%
+     fill under a chip at rest). Tints only: never a gradient, never a frame, never an outline. The cascade trio
+     --tint / --tint-glow / --tint-wash is set per element by the occasion map below; lilac is the fallback when no
+     occasion is known. Every pastel carries --accent-ink at 10.5:1 or better. */
+  --tint-date: #ffb1c8;        --tint-date-glow: rgba(255, 177, 200, 0.42);        --tint-date-wash: rgba(255, 177, 200, 0.12);         /* rose */
+  --tint-office: #a6c6ff;      --tint-office-glow: rgba(166, 198, 255, 0.42);      --tint-office-wash: rgba(166, 198, 255, 0.12);       /* sky */
+  --tint-streetwear: #ffe082;  --tint-streetwear-glow: rgba(255, 224, 130, 0.34);  --tint-streetwear-wash: rgba(255, 224, 130, 0.11);   /* lemon */
+  --tint-casual: #8ef0c0;      --tint-casual-glow: rgba(142, 240, 192, 0.34);      --tint-casual-wash: rgba(142, 240, 192, 0.11);       /* mint: Casual and Everyday */
+  --tint-party: #d4b7ff;       --tint-party-glow: rgba(212, 183, 255, 0.42);       --tint-party-wash: rgba(212, 183, 255, 0.12);        /* lilac */
+  --tint-formal: #f2e8d2;      --tint-formal-glow: rgba(242, 232, 210, 0.3);       --tint-formal-wash: rgba(242, 232, 210, 0.1);        /* ivory */
+  --tint-sport: #7fe4ec;       --tint-sport-glow: rgba(127, 228, 236, 0.34);       --tint-sport-wash: rgba(127, 228, 236, 0.11);        /* aqua */
+  --tint-old-money: #e6cfa6;   --tint-old-money-glow: rgba(230, 207, 166, 0.32);   --tint-old-money-wash: rgba(230, 207, 166, 0.11);    /* sand */
+  --tint: var(--accent); --tint-glow: rgba(179, 157, 255, 0.38); --tint-wash: var(--accent-tint);
   --tabbar: 92px;                         /* 56 dock + 10 lift + 26 mark overhang */
   --top: 56px;
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -60,22 +87,44 @@ html[lang="ru"] {
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 html[lang="ru"] .tab > span[data-i18n] { font-size: 11px; letter-spacing: 0.04em; }   /* Cyrillic capitals run wide: ПРОФИЛЬ and СОБЫТИЯ stay inside their 70px dock columns */
+/* the occasion map: which pastel an element's --tint trio takes. data-occasion sits on a .chip (check.js, tomorrow.js),
+   a .tag (#asked-for), #result, article.card and #tm-card; data-intent on the feed's filter chips and on the check's
+   occasion and style chips (the one word each contributes). The values are the app's own occasion and intent strings
+   (check.js OCCASIONS and ONE_WORD, core.js INTENTS), matched case-sensitively; Everyday shares Casual's mint, and a
+   word not listed here (Minimal, Classic, the feed's "All") keeps the lilac fallback. */
+[data-occasion="Date"], [data-intent="Date"] { --tint: var(--tint-date); --tint-glow: var(--tint-date-glow); --tint-wash: var(--tint-date-wash); }
+[data-occasion="Office"], [data-intent="Office"] { --tint: var(--tint-office); --tint-glow: var(--tint-office-glow); --tint-wash: var(--tint-office-wash); }
+[data-occasion="Streetwear"], [data-intent="Streetwear"] { --tint: var(--tint-streetwear); --tint-glow: var(--tint-streetwear-glow); --tint-wash: var(--tint-streetwear-wash); }
+[data-occasion="Casual"], [data-intent="Casual"], [data-occasion="Everyday"], [data-intent="Everyday"] { --tint: var(--tint-casual); --tint-glow: var(--tint-casual-glow); --tint-wash: var(--tint-casual-wash); }
+[data-occasion="Party"], [data-intent="Party"] { --tint: var(--tint-party); --tint-glow: var(--tint-party-glow); --tint-wash: var(--tint-party-wash); }
+[data-occasion="Formal"], [data-intent="Formal"] { --tint: var(--tint-formal); --tint-glow: var(--tint-formal-glow); --tint-wash: var(--tint-formal-wash); }
+[data-occasion="Sport"], [data-intent="Sport"] { --tint: var(--tint-sport); --tint-glow: var(--tint-sport-glow); --tint-wash: var(--tint-sport-wash); }
+[data-occasion="OldMoney"], [data-intent="OldMoney"] { --tint: var(--tint-old-money); --tint-glow: var(--tint-old-money-glow); --tint-wash: var(--tint-old-money-wash); }
 
 /* ---------- ground ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html {
   -webkit-text-size-adjust: 100%; overscroll-behavior-y: none;
-  background: #0b0b0f;
+  background: var(--bg);
 }
-/* The lilac glow at the top of every screen, once, pinned to the screen. It used to be html's own background image with
+/* The aurora at the top of every screen (and its warm foot), once, pinned to the screen. It used to be html's own background image with
    background-attachment: fixed — which mobile Safari has never implemented: it paints such a background as scroll,
    against the element's own box, so on an iPhone the page's glow slid away with the first scroll (and the sticky feed
    band below painted a second one into itself). position: fixed IS honoured there, so one fixed layer under everything
-   gives every engine the same screen. z-index: -1 keeps it behind the content and above html's flat near-black. */
+   gives every engine the same screen. z-index: -1 keeps it behind the content and above html's flat plum. */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: var(--glow); background-repeat: no-repeat;
+  background-image: var(--glow), var(--glow-2); background-repeat: no-repeat;
 }
+/* The aurora breathes: one more fixed layer with an amber and a rose radial, faded in and out on opacity only (its own
+   compositor layer, nothing repaints) over 9 seconds. Decoration: it gates nothing, and §9 hides it under reduced motion. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(50% 30% at 50% -4%, rgba(255, 180, 107, 0.16), transparent 60%),
+                    radial-gradient(40% 24% at 30% -2%, rgba(255, 143, 177, 0.14), transparent 60%);
+  background-repeat: no-repeat; opacity: 0; animation: aurora 9s ease-in-out infinite alternate;
+}
+@keyframes aurora { from { opacity: 0; } to { opacity: 1; } }
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -101,27 +150,40 @@ h1[tabindex="-1"]:focus, div[tabindex="-1"]:focus, article[tabindex="-1"]:focus,
 .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 ::selection { background: var(--accent); color: var(--accent-ink); }
 
-/* ---------- the label voice: section heads, dock, tags, stat labels, tabs, action labels, meta ---------- */
-h2, .tag, .tab > span[data-i18n], .statline > span, .brand-mark, .featured, .profile-tabs button, .match, .activity .when, .comments .when,
+/* ---------- the label voice: list heads (h2.rule), dock, tags, stat labels, tabs, action labels, meta ---------- */
+h2.rule, .tag, .tab > span[data-i18n], .statline > span, .brand-mark, .featured, .profile-tabs button, .match, .activity .when, .comments .when,
 .field label, .field .label, .brand-card .sub, .x-challenge .x-meta, .challenge-meta, .action .lbl, .x-hero .kicker, .x-front .kicker,
 .x-hero-by > span, .grid figcaption > span:not(.rank), .section-head a, .x-hero-more, .card .challenge-link, .pill, .btn-sm, .vote, .photo-replace {
   font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase;
 }
-[dir="rtl"] h2, [dir="rtl"] .tag, [dir="rtl"] .featured, [dir="rtl"] .profile-tabs button, [dir="rtl"] .match, [dir="rtl"] .field label, [dir="rtl"] .field .label,
+[dir="rtl"] h2.rule, [dir="rtl"] .tag, [dir="rtl"] .featured, [dir="rtl"] .profile-tabs button, [dir="rtl"] .match, [dir="rtl"] .field label, [dir="rtl"] .field .label,
 [dir="rtl"] .brand-card .sub, [dir="rtl"] .challenge-meta, [dir="rtl"] .action .lbl, [dir="rtl"] .x-hero .kicker, [dir="rtl"] .x-front .kicker,
 [dir="rtl"] .x-hero-by > span, [dir="rtl"] .section-head a, [dir="rtl"] .x-hero-more, [dir="rtl"] .card .challenge-link, [dir="rtl"] .pill, [dir="rtl"] .btn-sm,
 [dir="rtl"] .vote, [dir="rtl"] .photo-replace { font-size: 12.5px; }
 
 /* ---------- §2 type ---------- */
-h1 { font-family: var(--font-display); font-weight: 800; font-size: 36px; line-height: 1.02; letter-spacing: -0.01em; color: var(--ink); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 36px; line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
 h1.display { font-size: 44px; line-height: 1; }
 h1 + .lede { margin-block-start: 10px; }
-h2 { color: var(--ink-3); display: flex; align-items: center; gap: 12px; }
-h2::after { content: ""; flex: 1; block-size: 1px; background: var(--line-soft); }
-h3 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; }
+/* a section head is a real heading in ink (it titles a card or a moment: The breakdown, The one tip). h2.rule keeps the
+   caps voice with a hairline for a head over a list of rows (Explore's sections, comments, the dashboard's groups). */
+h2 { font: 700 17px/1.2 var(--font-display); color: var(--ink); }
+h2.rule { color: var(--ink-3); display: flex; align-items: center; gap: 12px; }
+h2.rule::after { content: ""; flex: 1; block-size: 1px; background: var(--line-soft); }
+h3 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; }
 .lede { font-size: 16px; color: var(--ink-2); }
 .muted { color: var(--ink-3); }
 .hint { font-size: 13px; line-height: 1.4; color: var(--ink-3); }
+/* Hebrew display: Heebo 800 at Outfit's optical size, with no tracking (the face has none to give back); the RTL
+   caps sizes for h2.rule come from the label-voice list above */
+[dir="rtl"] h1, [dir="rtl"] h3, [dir="rtl"] .result-headline, [dir="rtl"] .headline, [dir="rtl"] .tip p, [dir="rtl"] .empty b,
+[dir="rtl"] .board-closes, [dir="rtl"] .x-hero-title, [dir="rtl"] .today-title, [dir="rtl"] .segment, [dir="rtl"] .cmp-verdict { font-family: var(--font-body); font-weight: 800; letter-spacing: 0; }
+[dir="rtl"] h2 { font-family: var(--font-body); font-weight: 800; font-size: 18px; }
+[dir="rtl"] h2.rule { font-weight: 700; }
+[dir="rtl"] .result-headline { font-size: 40px; }
+[dir="rtl"] .headline { font-size: 22px; }
+html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] .result-headline, html[lang="ar"] .headline { line-height: 1.12; }   /* Cairo's tall ascenders */
+html[lang="ru"] h1, html[lang="ru"] .result-headline, html[lang="ru"] .headline { letter-spacing: 0; }   /* the system bold takes Cyrillic; no tight tracking on it */
 /* Text people and the stylist wrote follows its own direction inside either UI (English looks in Hebrew and back). */
 .headline, .caption, .comments .text, .challenge-title, .lede, .result-headline, .item-name, .item-note, .tip p, .working li, .vibe, .who .name, .brand-card .name, .top-title, .x-hero-title, .x-title { unicode-bidi: plaintext; }
 
@@ -281,7 +343,7 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
    the screen never changes (the masthead is sticky at 0, the view's top padding is zeroed under it, feed.js makes the
    bar the first child), so the gradient is given the size of the fixed layer, 100vw x 100vh, and pushed up by exactly
    that distance: the same pixels as the layer behind it, on every engine. */
-.sticky-tabs { position: sticky; inset-block-start: calc(var(--top) + var(--safe-t)); z-index: 4; padding-block: 14px 10px; background: var(--bg); background-image: var(--glow); background-repeat: no-repeat; background-size: 100vw 100vh; background-position: 50% calc(-1 * (var(--top) + var(--safe-t))); }
+.sticky-tabs { position: sticky; inset-block-start: calc(var(--top) + var(--safe-t)); z-index: 4; padding-block: 14px 10px; background: var(--bg); background-image: var(--glow), var(--glow-2); background-repeat: no-repeat; background-size: 100vw 100vh; background-position: 50% calc(-1 * (var(--top) + var(--safe-t))); }
 .sticky-tabs .segments { margin-inline: 16px; }
 .sticky-tabs .chips { padding-inline: 16px; margin-block-start: 8px; }
 .field { display: flex; flex-direction: column; gap: 8px; }
@@ -805,6 +867,7 @@ body.sheet-open { overflow: hidden; }
 /* ---------- §9 reduced motion: everything off (durations collapse, so animationend still fires and "lit" still clears) ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  body::after { display: none; }   /* the aurora's breath is decoration; the still aurora stays */
 }
 
 /* ---------- §Round 10 items: the dots, the tag toggle, the count, "The look", the item sheet, the tagging editor, the item pages ---------- */

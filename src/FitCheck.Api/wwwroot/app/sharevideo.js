@@ -40,7 +40,7 @@ const BITRATE = 3200000;   // 12 s at 3.2 Mbps is 4.8 MB at most; a mostly still
 const SAFE = { x: 72, y: 96, right: W - 180 - 24, bottom: H - 320 - 24 };   // 876 and 1576: TikTok's and Instagram's chrome stays out
 const COL = { x: SAFE.x, w: SAFE.right - SAFE.x };   // 804 wide
 const CX = COL.x + COL.w / 2;   // 474: the visible centre
-const OVERLAY = 'rgba(11, 11, 15, 0.58)';
+const OVERLAY = 'rgba(20, 16, 30, 0.58)';   // the stage colour (app.css --bg), never black
 const ROWS = ['fit', 'color', 'accessories'];
 const ROW = { y: 720, pitch: 154, h: 130 };
 // brand/mark.svg: the ring, the flame's path, where the flame breaks the ring (its base sits up-right of the centre).
@@ -150,10 +150,10 @@ function planFilm(look, s, photo, wordmark) {
   const layers = { photo: layer(), stage: layer(), halo: layer() };
   coverImage(layers.photo.getContext('2d'), photo, 0, 0, W, H);
   drawStage(layers.stage.getContext('2d'));
-  // The big ring's lilac halo and lift, drawn once with shadows (expensive) and blended in when the ring has finished drawing.
+  // The big ring's rose halo and lift, drawn once with shadows (expensive) and blended in when the ring has finished drawing.
   const halo = layers.halo.getContext('2d');
   const big = ringBig();
-  for (const shadow of [['rgba(0, 0, 0, 0.45)', 40, 14], ['rgba(179, 157, 255, 0.35)', 70, 20]]) {
+  for (const shadow of [['rgba(0, 0, 0, 0.45)', 40, 14], ['rgba(255, 143, 177, 0.4)', 70, 20]]) {
     halo.save();
     halo.shadowColor = shadow[0]; halo.shadowBlur = shadow[1]; halo.shadowOffsetY = shadow[2];
     halo.beginPath(); halo.arc(big.cx, big.cy, big.r, 0, Math.PI * 2);
@@ -196,7 +196,7 @@ function drawRing(ctx, ring, progress, value, plan, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.beginPath(); ctx.arc(cx, cy, r - stroke / 2, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(11, 11, 15, 0.82)';
+  ctx.fillStyle = 'rgba(20, 16, 30, 0.82)';
   ctx.fill();
   ctx.beginPath();
   ctx.arc(cx, cy, r - stroke / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
@@ -223,7 +223,7 @@ function drawPill(ctx, label, x, y, h, dir, alpha) {
   const w = ctx.measureText(shown).width + 60;
   const px = rtl ? x - w : x;
   roundedRect(ctx, px, y, w, h, h / 2);
-  ctx.fillStyle = 'rgba(11, 11, 15, 0.62)';
+  ctx.fillStyle = 'rgba(20, 16, 30, 0.62)';
   ctx.fill();
   roundedRect(ctx, px, y, w, h, h / 2);
   ctx.fillStyle = COLOR.tint;
@@ -241,7 +241,7 @@ function drawWordmark(ctx, plan, x, y, h, alpha, onPhoto) {
   const w = img ? Math.round(h * (img.naturalWidth || img.width) / (img.naturalHeight || img.height)) : Math.round(h * 4.6);
   if (onPhoto) {
     roundedRect(ctx, x - 22, y - 14, w + 44, h + 28, (h + 28) / 2);
-    ctx.fillStyle = 'rgba(11, 11, 15, 0.55)';
+    ctx.fillStyle = 'rgba(20, 16, 30, 0.55)';
     ctx.fill();
   }
   if (img) ctx.drawImage(img, x, y, w, h);
@@ -290,7 +290,7 @@ function drawTip(ctx, time, plan) {
   ctx.globalAlpha = easeOut(span(time, 6.0, 6.4));
   ctx.translate(0, (1 - rise) * 40);
   roundedRect(ctx, card.x, card.y, card.w, card.h, card.r);
-  ctx.fillStyle = 'rgba(21, 21, 28, 0.94)';
+  ctx.fillStyle = 'rgba(33, 26, 46, 0.94)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 2; ctx.stroke();
   const barX = rtl ? card.x + card.w - 36 - 8 : card.x + 36;
@@ -343,7 +343,7 @@ function drawLookScene(ctx, time, plan) {
   ctx.drawImage(layers.photo, W / 2 - (W / 2) * zoom, H / 2 - (H / 2) * zoom, W * zoom, H * zoom);
   // A scrim at the bottom, always, so the platforms' captions read over anything; then the dim once the score takes the stage.
   const scrim = ctx.createLinearGradient(0, H * 0.55, 0, H);
-  scrim.addColorStop(0, 'rgba(11, 11, 15, 0)'); scrim.addColorStop(1, 'rgba(11, 11, 15, 0.6)');
+  scrim.addColorStop(0, 'rgba(20, 16, 30, 0)'); scrim.addColorStop(1, 'rgba(20, 16, 30, 0.6)');
   ctx.fillStyle = scrim; ctx.fillRect(0, H * 0.55, W, H * 0.45);
   const dim = easeInOut(span(time, 1.2, 1.9));
   if (dim > 0) { ctx.save(); ctx.globalAlpha = dim; ctx.fillStyle = OVERLAY; ctx.fillRect(0, 0, W, H); ctx.restore(); }
@@ -770,7 +770,7 @@ function drawPairFull(ctx, plan, which, time, from, alpha) {
   const zoom = 1 + 0.05 * span(time, from, from + 2.4);
   ctx.drawImage(plan.layers[which], W / 2 - (W / 2) * zoom, H / 2 - (H / 2) * zoom, W * zoom, H * zoom);
   const scrim = ctx.createLinearGradient(0, H * 0.55, 0, H);
-  scrim.addColorStop(0, 'rgba(11, 11, 15, 0)'); scrim.addColorStop(1, 'rgba(11, 11, 15, 0.6)');
+  scrim.addColorStop(0, 'rgba(20, 16, 30, 0)'); scrim.addColorStop(1, 'rgba(20, 16, 30, 0.6)');
   ctx.fillStyle = scrim; ctx.fillRect(0, H * 0.55, W, H * 0.45);
   drawWordmark(ctx, plan, SAFE.x, SAFE.y, 40, easeOut(span(time, from + 0.2, from + 0.6)), true);
   const pillIn = easeOut(span(time, from + 0.1, from + 0.5));
@@ -848,7 +848,7 @@ function drawPairTogether(ctx, plan, time) {
     ctx.globalAlpha = p;
     ctx.translate(0, (1 - p) * 30);
     roundedRect(ctx, COL.x, change.y, COL.w, change.h, 32);
-    ctx.fillStyle = 'rgba(21, 21, 28, 0.94)';
+    ctx.fillStyle = 'rgba(33, 26, 46, 0.94)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 2; ctx.stroke();
     const barX = rtl ? COL.x + COL.w - 32 - 8 : COL.x + 32;

@@ -503,7 +503,7 @@ public static partial class PublicPageEndpoints
         html.Append("<meta charset=\"utf-8\">\n");
         html.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n");
         html.Append("<meta name=\"color-scheme\" content=\"dark\">\n");
-        html.Append("<meta name=\"theme-color\" content=\"#0b0b0f\">\n");
+        html.Append("<meta name=\"theme-color\" content=\"#14101e\">\n");
         html.Append("<title>").Append(Esc(documentTitle)).Append("</title>\n");
         html.Append("<meta name=\"description\" content=\"").Append(Esc(head.Description)).Append("\">\n");
         html.Append("<meta name=\"robots\" content=\"").Append(head.Index ? "index, follow, max-image-preview:large" : "noindex, nofollow").Append("\">\n");
@@ -603,9 +603,9 @@ public static partial class PublicPageEndpoints
     /// anywhere, which is what keeps a cold tap instant and a crawler's fetch cheap.
     /// </summary>
     private const string Css = """
-:root { --bg:#0b0b0f; --bg-2:#13121a; --surface:#15151c; --line:#2b2b36; --ink:#f4f4f7; --ink-2:#b9b9c6; --ink-3:#7f7f8e;
+:root { --bg:#14101e; --bg-2:#1b1527; --surface:#211a2e; --line:#3b3150; --ink:#f9f5ff; --ink-2:#d1c8e0; --ink-3:#a99ebd;
   --accent:#b39dff; --accent-2:#ff8fb1; --accent-ink:#150f2e; --grad:linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%);
-  --radius:18px; --radius-sm:12px; --pill:999px;
+  --radius:22px; --radius-sm:14px; --pill:999px;
   --font-display:"Outfit","Heebo","Cairo",system-ui,sans-serif;
   --font-body:"Heebo","Cairo",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Hebrew","Noto Sans Arabic",sans-serif; }
 * { box-sizing:border-box; }

@@ -50,7 +50,7 @@ function front() {
 }
 
 function section(title, content, action) {
-  const head = action ? el('div', { class: 'section-head' }, [el('h2', { text: title }), action]) : el('h2', { text: title });
+  const head = action ? el('div', { class: 'section-head' }, [el('h2', { class: 'rule', text: title }), action]) : el('h2', { class: 'rule', text: title });
   return el('section', { class: 'x-section' }, [head].concat(content));
 }
 

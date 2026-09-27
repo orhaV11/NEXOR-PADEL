@@ -45,6 +45,7 @@ function ensureStyle() {
     '.tm-big .tm-photo { inline-size: 100%; block-size: auto; aspect-ratio: 3 / 4; cursor: pointer; }',
     '.tm-big ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 10px; font-weight: 600; color: var(--ink); }',
     '.tm-sentence { font-size: 17px; line-height: 1.5; color: var(--ink); margin: 0; }',
+    '[dir="rtl"] .tm-sentence { font-weight: 600; }',
     '.tm-gap { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--accent-tint); display: grid; gap: 8px; }',
     '.tm-gap p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); }',
     '.tm-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }',

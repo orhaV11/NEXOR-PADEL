@@ -26,9 +26,19 @@ namespace FitCheck.Api.Services;
 /// that draws that answer is exactly the tip a wardrobe should have prevented, so the two features measure each other:
 /// the wardrobe's worth is the fall in that reason.
 /// </para>
+/// <para>
+/// <b>Round 20 — filling it faster.</b> One tap a piece is honest but slow: three checks is nine taps. So the keep row
+/// can keep every piece a check named in one request (<see cref="KeepAllAsync"/>, the names still the server's own
+/// <see cref="NamesOn"/>), and the wardrobe screen lists the pieces named on the person's latest looks that were never
+/// kept (<see cref="UnkeptAsync"/>), each keepable through the same single route with the check that named it. The
+/// wardrobe records no refusals, so a piece passed over in the keep row simply appears there again.
+/// </para>
 /// </summary>
 public static class Wardrobe
 {
+    /// <summary>The most pieces the "keep from an older look" list offers at once: a screen, not an archive.</summary>
+    public const int UnkeptMaxPieces = 30;
+
     /// <summary>A piece's name is a name, not a sentence: the same length a tagged item may have (PostItems.NameMaxLength).</summary>
     public const int NameMaxLength = 60;
 
@@ -80,9 +90,15 @@ public static class Wardrobe
     /// list the keep line offers and the list the keep route validates against, so the wardrobe can only ever hold
     /// clothes somebody was photographed wearing. Empty for a check that is not <see cref="CheckStatus.Ok"/>.
     /// </summary>
-    public static List<WardrobeCandidate> NamesOn(OutfitCheck check)
+    public static List<WardrobeCandidate> NamesOn(OutfitCheck check) => NamesOn(check.Status, check.FeedbackJson);
+
+    /// <summary>
+    /// The same list from a check's two columns alone, so a query that projects only the status and the stored feedback
+    /// (Round 20's unkept list reads twenty checks at once) never has to build a whole <see cref="OutfitCheck"/> to ask.
+    /// </summary>
+    public static List<WardrobeCandidate> NamesOn(string status, string? feedbackJson)
     {
-        if (check.Status != CheckStatus.Ok || check.FeedbackJson is null)
+        if (status != CheckStatus.Ok || feedbackJson is null)
         {
             return [];
         }
@@ -90,7 +106,7 @@ public static class Wardrobe
         OutfitFeedback? feedback;
         try
         {
-            feedback = JsonSerializer.Deserialize<OutfitFeedback>(check.FeedbackJson, AppJson.Options);
+            feedback = JsonSerializer.Deserialize<OutfitFeedback>(feedbackJson, AppJson.Options);
         }
         catch (JsonException)
         {
@@ -191,6 +207,141 @@ public static class Wardrobe
 
         await db.SaveChangesAsync(ct);
         return (item, added);
+    }
+
+    /// <summary>
+    /// Round 20 — every piece a check named, in one request. The candidates are the caller's <see cref="NamesOn"/> of
+    /// the check, so nothing here can be free text. A known piece gets this look added to its row (and is never refused
+    /// by the cap, exactly as the single route never refuses one); an unknown piece is added while the account is
+    /// under <paramref name="max"/> and skipped once it is not, in the stylist's order, so what fits is the first of the
+    /// list. One read of the rows the names could already be, one count, one save. Returns the rows touched in the
+    /// stylist's order, how many were new and how many the cap kept out.
+    /// </summary>
+    public static async Task<(List<WardrobeItem> Items, int Added, int Skipped)> KeepAllAsync(
+        AppDbContext db, Guid userId, OutfitCheck check, IReadOnlyList<WardrobeCandidate> candidates, int max, DateTime now, CancellationToken ct)
+    {
+        if (candidates.Count == 0)
+        {
+            return ([], 0, 0);
+        }
+
+        var keys = candidates.Select(c => KeyOf(c.Name)).ToList();
+        var known = await db.WardrobeItems.Where(i => i.UserId == userId && keys.Contains(i.NameKey)).ToListAsync(ct);
+        var byKey = known.ToDictionary(i => i.NameKey, StringComparer.Ordinal);
+        var knownIds = known.Select(i => i.Id).ToList();
+        var seenOn = (await db.WardrobeAppearances.AsNoTracking()
+            .Where(a => a.CheckId == check.Id && knownIds.Contains(a.ItemId))
+            .Select(a => a.ItemId)
+            .ToListAsync(ct)).ToHashSet();
+        var count = await CountAsync(db, userId, ct);
+
+        var items = new List<WardrobeItem>();
+        var added = 0;
+        var skipped = 0;
+        foreach (var candidate in candidates)
+        {
+            var key = KeyOf(candidate.Name);
+            if (byKey.TryGetValue(key, out var item))
+            {
+                if (check.CreatedAt > item.LastSeenAt)
+                {
+                    item.LastSeenAt = check.CreatedAt;
+                }
+
+                if (seenOn.Add(item.Id))
+                {
+                    db.WardrobeAppearances.Add(new WardrobeAppearance { ItemId = item.Id, CheckId = check.Id, WornAt = check.CreatedAt });
+                }
+
+                items.Add(item);
+                continue;
+            }
+
+            if (count >= max)
+            {
+                skipped++;
+                continue;
+            }
+
+            item = new WardrobeItem
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = candidate.Name,
+                NameKey = key,
+                Category = candidate.Category,
+                CreatedAt = now,
+                LastSeenAt = check.CreatedAt
+            };
+            db.WardrobeItems.Add(item);
+            db.WardrobeAppearances.Add(new WardrobeAppearance { ItemId = item.Id, CheckId = check.Id, WornAt = check.CreatedAt });
+            byKey[key] = item;
+            items.Add(item);
+            count++;
+            added++;
+        }
+
+        // One save for the batch; when the cap kept every new piece out and no known row was touched, it writes nothing.
+        await db.SaveChangesAsync(ct);
+        return (items, added, skipped);
+    }
+
+    /// <summary>
+    /// Round 20 — the pieces the stylist named on the account's last <paramref name="checks"/> scored checks that are
+    /// not in its wardrobe: newest look first, each piece once (carrying the newest check that named it, which is the
+    /// check the single keep route will validate it against), at most <paramref name="maxPieces"/>. Three reads: the
+    /// checks' two columns, the account's keys, the posts behind those checks. Empty, and no reads at all, when
+    /// <paramref name="checks"/> is 0 or less. Returns the pieces and how many checks were looked at.
+    /// </summary>
+    public static async Task<(List<UnkeptPiece> Pieces, int Checks)> UnkeptAsync(
+        AppDbContext db, Guid userId, int checks, int maxPieces, CancellationToken ct)
+    {
+        if (checks <= 0 || maxPieces <= 0)
+        {
+            return ([], 0);
+        }
+
+        var recent = await db.Checks.AsNoTracking()
+            .Where(c => c.UserId == userId && c.Status == CheckStatus.Ok)
+            .OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id)
+            .Take(checks)
+            .Select(c => new { c.Id, c.CreatedAt, c.Status, c.FeedbackJson })
+            .ToListAsync(ct);
+        if (recent.Count == 0)
+        {
+            return ([], 0);
+        }
+
+        var kept = (await db.WardrobeItems.AsNoTracking().Where(i => i.UserId == userId).Select(i => i.NameKey).ToListAsync(ct))
+            .ToHashSet(StringComparer.Ordinal);
+        var ids = recent.Select(c => c.Id).ToList();
+        // The account's own visible looks only, as the wardrobe list reads them: a hidden post is a private check again.
+        var posts = await db.Posts.AsNoTracking()
+            .Where(p => p.UserId == userId && !p.Hidden && ids.Contains(p.CheckId))
+            .Select(p => new { p.CheckId, p.Id })
+            .ToListAsync(ct);
+        var postByCheck = posts.ToDictionary(p => p.CheckId, p => p.Id);
+
+        var pieces = new List<UnkeptPiece>();
+        foreach (var check in recent)
+        {
+            foreach (var candidate in NamesOn(check.Status, check.FeedbackJson))
+            {
+                if (!kept.Add(KeyOf(candidate.Name)))
+                {
+                    continue;
+                }
+
+                pieces.Add(new UnkeptPiece(candidate.Name, candidate.Category, check.Id, DateTime.SpecifyKind(check.CreatedAt, DateTimeKind.Utc),
+                    postByCheck.TryGetValue(check.Id, out var postId) ? postId : null));
+                if (pieces.Count >= maxPieces)
+                {
+                    return (pieces, recent.Count);
+                }
+            }
+        }
+
+        return (pieces, recent.Count);
     }
 
     /// <summary>
@@ -303,6 +454,9 @@ public static class Wardrobe
 
 /// <summary>A piece a check named, offered for keeping: the cleaned name and the stylist's category.</summary>
 public sealed record WardrobeCandidate(string Name, string Category);
+
+/// <summary>Round 20 — a piece named on one of the account's latest looks and never kept, with the newest check that named it.</summary>
+public sealed record UnkeptPiece(string Name, string Category, Guid CheckId, DateTime WornAt, Guid? PostId);
 
 /// <summary>
 /// One piece somebody owns, kept from a check that named it. No photo: the wardrobe is a list of names, and a name is

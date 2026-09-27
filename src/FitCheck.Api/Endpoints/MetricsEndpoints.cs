@@ -114,7 +114,9 @@ public static class MetricsEndpoints
         // WardrobeItems by hand until this existed. Its own block, its own DTO, nothing read or changed above it. The
         // keep rate's denominator is the same "accounts with at least one ok check" the hero tile already shows, so the
         // two numbers on the page cannot disagree about who has checked.
-        var wardrobe = await WardrobeMetricsAsync(db, metrics.UsersWithAtLeastOneCheck, ct);
+        // Round 20 adds the keep-all taps, the Pro moment shown and taken, and the median wardrobe of the people active
+        // this week, over the same seven-day set the community tile counts.
+        var wardrobe = await WardrobeMetricsAsync(db, metrics.UsersWithAtLeastOneCheck, active, ct);
 
         // ---- Round 19 — Tomorrow, counted (Services/Tomorrow.cs) ----
         // Whether planned outfits get worn, how often a stored one is handed back instead of a new call, and how often
@@ -131,8 +133,14 @@ public static class MetricsEndpoints
     /// — accounts with at least one ok check, which the caller has already counted. Guests are left out of both sides:
     /// a guest has no wardrobe and no account to be a keeper of, and every other number on this page leaves them out
     /// until they are claimed.
+    /// <para>
+    /// Round 20 — the wedge: keep-all taps that wrote something, the Pro moment shown and its Go Pro tapped (three
+    /// Counter rows the wardrobe routes move), the go rate over the shown, and the median pieces per person in
+    /// <paramref name="active"/> — the seven-day active set, zeros included, because that is what "per active person"
+    /// means; null while nobody is active. One grouped count for the median, no rows in memory.
+    /// </para>
     /// </summary>
-    public static async Task<WardrobeMetricsDto> WardrobeMetricsAsync(AppDbContext db, int checkedUsers, CancellationToken ct)
+    public static async Task<WardrobeMetricsDto> WardrobeMetricsAsync(AppDbContext db, int checkedUsers, IReadOnlySet<Guid> active, CancellationToken ct)
     {
         var items = await db.WardrobeItems.CountAsync(ct);
         var keepers = await db.WardrobeItems.Select(i => i.UserId).Distinct().CountAsync(ct);
@@ -144,6 +152,20 @@ public static class MetricsEndpoints
         var dontOwn = await db.Checks.CountAsync(c => c.UserId != null && c.UsefulReason == TipReason.DontOwn, ct)
             + await db.Suggestions.CountAsync(s => s.UsefulReason == TipReason.DontOwn, ct);
 
+        var keepAll = (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.WardrobeKeepAll, ct));
+        var momentShown = (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.WardrobeMomentShown, ct));
+        var momentGo = (int)Math.Min(int.MaxValue, await Counters.ReadAsync(db, CounterName.WardrobeMomentGo, ct));
+
+        double? median = null;
+        if (active.Count > 0)
+        {
+            var sizes = await db.WardrobeItems.GroupBy(i => i.UserId).Select(g => new { g.Key, N = g.Count() }).ToListAsync(ct);
+            var byUser = sizes.ToDictionary(s => s.Key, s => s.N);
+            var counts = active.Select(id => byUser.TryGetValue(id, out var n) ? n : 0).OrderBy(n => n).ToList();
+            var middle = counts.Count / 2;
+            median = counts.Count % 2 == 1 ? counts[middle] : Math.Round((counts[middle - 1] + counts[middle]) / 2.0, 2);
+        }
+
         return new WardrobeMetricsDto(
             Items: items,
             Keepers: keepers,
@@ -152,7 +174,12 @@ public static class MetricsEndpoints
             DontOwn: dontOwn,
             Reasons: reasons,
             DontOwnRate: Rate(dontOwn, reasons),
-            ToStylistOff: toStylistOff);
+            ToStylistOff: toStylistOff,
+            KeepAll: keepAll,
+            MomentShown: momentShown,
+            MomentGo: momentGo,
+            MomentGoRate: Rate(momentGo, momentShown),
+            PiecesPerActiveMedian: median);
     }
 
     /// <summary>A share to four decimals, or null when there is nothing to divide by: no denominator is not zero percent.</summary>

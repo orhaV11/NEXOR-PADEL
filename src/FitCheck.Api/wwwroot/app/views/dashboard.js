@@ -19,6 +19,7 @@ const CSS = `
 .dash-tile { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 14px; box-shadow: var(--shadow-card); min-inline-size: 0; }
 .dash-tile .val { display: block; margin-block-start: 4px; font: 700 24px/1 var(--font-display); color: var(--ink); direction: ltr; unicode-bidi: isolate; }
 .dash-tile .val small { font: 600 12px/1 var(--font-body); color: var(--ink-3); margin-inline-start: 3px; }
+.dash-tile .sub { display: block; margin-block-start: 6px; font-size: 12px; line-height: 1.3; color: var(--ink-3); }
 .dash-section > * + * { margin-block-start: 10px; }
 .dash-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .dash-bars li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 10px; min-block-size: 22px; }
@@ -159,9 +160,13 @@ function draw(root, m, ctx, reload) {
   // Round 15 — the wardrobe, counted: MARKETING.md's two numbers (/api/metrics/pilot -> wardrobe). Round 14 built a
   // wardrobe that fills itself from the pieces a person keeps, and nothing counted it. The rates are null on a pilot
   // with nothing to divide by, and this page says so with an en dash rather than the 0% percent() would print.
+  // Round 20 — the wedge: keep-all taps, the Pro moment (Go Pro over shown, with both counts under it), and the median
+  // wardrobe of a person active this week, an en dash while nobody is.
   if (m.wardrobe) {
     const w = m.wardrobe;
     const rate = (value) => (value === null || value === undefined ? '\u2013' : percent(value));
+    const moment = tile(t('wardrobe.dash_moment'), rate(w.momentGoRate));
+    moment.appendChild(el('span', { class: 'sub', text: t('wardrobe.dash_moment_sub', { shown: fmtNumber(w.momentShown || 0), go: fmtNumber(w.momentGo || 0) }) }));
     root.appendChild(el('section', { class: 'dash-section' }, [
       el('h2', { text: t('wardrobe.dash_title') }),
       el('p', { class: 'hint', text: t('wardrobe.dash_hint') }),
@@ -170,7 +175,10 @@ function draw(root, m, ctx, reload) {
         tile(t('wardrobe.dash_keepers'), fmtNumber(w.keepers || 0)),
         tile(t('wardrobe.dash_items'), fmtNumber(w.items || 0)),
         tile(t('wardrobe.dash_dont_own'), rate(w.dontOwnRate)),
-        tile(t('wardrobe.dash_off'), fmtNumber(w.toStylistOff || 0))
+        tile(t('wardrobe.dash_off'), fmtNumber(w.toStylistOff || 0)),
+        tile(t('wardrobe.dash_keep_all'), fmtNumber(w.keepAll || 0)),
+        moment,
+        tile(t('wardrobe.dash_median'), w.piecesPerActiveMedian === null || w.piecesPerActiveMedian === undefined ? '\u2013' : fmtNumber(w.piecesPerActiveMedian))
       ])
     ]));
   }

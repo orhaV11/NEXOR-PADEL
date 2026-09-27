@@ -283,6 +283,54 @@ public class WardrobeMetricsTests : IClassFixture<WardrobeMetricsTests.WardrobeM
         // rather than as a zero percent nobody earned.
         Assert.False(wardrobe.TryGetProperty("keepRate", out _));
         Assert.False(wardrobe.TryGetProperty("dontOwnRate", out _));
+        // Round 20: the tallies are zero, the go rate has nothing under it, and a median over nobody active is no number.
+        Assert.Equal(0, wardrobe.GetProperty("keepAll").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("momentShown").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("momentGo").GetInt32());
+        Assert.False(wardrobe.TryGetProperty("momentGoRate", out _));
+        Assert.False(wardrobe.TryGetProperty("piecesPerActiveMedian", out _));
+    }
+
+    [Fact]
+    public async Task The_wedge_numbers_are_on_the_page()
+    {
+        // Its own app: the median is over everyone active this week, so it cannot share a database with the test above
+        // without the two reading each other's people. The free slice is two so one check's three pieces cross it.
+        using var app = new TestApp { Settings = { ["Plans:WardrobeNamesToStylist"] = "2" } };
+        var (all, _, _) = await app.NewUserAsync("wd_all");
+        var (one, _, _) = await app.NewUserAsync("wd_one");
+        var (none, _, _) = await app.NewUserAsync("wd_none");
+        var (moderator, _, _) = await app.NewUserAsync("wd_mod");
+        await app.PromoteAsync("wd_mod");
+
+        // Three people check this week, so three are active: one keeps all three in one tap, one keeps one, one none.
+        var allCheck = await app.CheckAsync(all);
+        Assert.True((await all.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = allCheck })).IsSuccessStatusCode);
+        var oneCheck = await app.CheckAsync(one);
+        Assert.True((await one.PostAsJsonAsync("/api/wardrobe", new { checkId = oneCheck, name = "White tee" })).IsSuccessStatusCode);
+        await app.CheckAsync(none);
+
+        // The free account past the slice sees the moment twice (two tabs, say) and takes it once.
+        foreach (var step in new[] { "shown", "shown", "go" })
+        {
+            Assert.Equal(HttpStatusCode.NoContent, (await all.PostAsJsonAsync("/api/wardrobe/moment", new { step })).StatusCode);
+        }
+
+        var metrics = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        var wardrobe = metrics.GetProperty("wardrobe");
+        Assert.Equal(1, wardrobe.GetProperty("keepAll").GetInt32());
+        Assert.Equal(2, wardrobe.GetProperty("momentShown").GetInt32());
+        Assert.Equal(1, wardrobe.GetProperty("momentGo").GetInt32());
+        Assert.Equal(0.5, wardrobe.GetProperty("momentGoRate").GetDouble(), precision: 4);
+        // Three, one and none: the middle one is 1. The moderator never checked, so it is not active and not counted.
+        Assert.Equal(3, metrics.GetProperty("social").GetProperty("activeUsers7d").GetInt32());
+        Assert.Equal(1.0, wardrobe.GetProperty("piecesPerActiveMedian").GetDouble(), precision: 4);
+
+        // Round 15's number is untouched by any of this: two keepers over three who checked.
+        Assert.Equal(4, wardrobe.GetProperty("items").GetInt32());
+        Assert.Equal(2, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0.6667, wardrobe.GetProperty("keepRate").GetDouble(), precision: 4);
     }
 
     [Fact]

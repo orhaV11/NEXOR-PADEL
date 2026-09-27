@@ -66,6 +66,10 @@ const API_ENV = {
   // Round 20: the prompt cache on, so every check and comparison is asserted to carry the breakpoint (and no compose).
   Anthropic__PromptCache: '5m',
   Plans__FreeChecksPerDay: '5',
+  // Round 20: the stub names three pieces per language on every check, so the free slice is two to make the Pro moment
+  // ("your wardrobe has 3 pieces; Pro lets the stylist see all of them") reachable by one free account in one check.
+  // Nothing else in the run reads the number: noa is Pro by then, and no assertion quotes the "first {free}" text.
+  Plans__WardrobeNamesToStylist: '2',
   // Round 19: the forecast comes from the stub too (GET /v1/forecast), so Tomorrow dresses for a weather nobody dialled.
   Weather__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
   Board__NewAccountDays: '0',
@@ -1006,6 +1010,61 @@ function checkClientModules() {
   await dan.waitForSelector('#tm-needs-go');
   assert.ok(!(await dan.$('#tm-compose')), 'no compose button without two kinds of piece');
   await shot(dan, '33b-tomorrow-empty-he');
+
+  // Round 20 — the wedge: filling the closet faster, on a free Hebrew account. The keep row offers "Keep all 3" beside
+  // Keep / Not this one; three "not this one"s keep nothing, and the wardrobe screen then lists the same pieces under
+  // "Keep from an older look" (the wardrobe records no refusals), where one tap keeps one. A second check offers the two
+  // left as "Keep all 2"; keeping them crosses the free slice (Plans__WardrobeNamesToStylist is 2), so the Pro moment
+  // appears under the kept line with its Go Pro. It is once per tab: the wardrobe screen in the same tab does not say it
+  // again, a fresh tab does, in place of the plain Pro notice, and its button opens the Pro page.
+  step = 'wedge';
+  await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
+  await dan.waitForSelector('#wardrobe-keep-yes', { timeout: 10000 });
+  await dan.waitForSelector('#wardrobe-keep-all');
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 3', 'the third answer names the count');
+  for (let i = 0; i < 3; i++) {
+    await dan.waitForSelector('#wardrobe-keep-skip');
+    await dan.click('#wardrobe-keep-skip');
+  }
+  await dan.waitForSelector('#wardrobe-keep', { state: 'hidden' });
+  await go(dan, '#/wardrobe');
+  await dan.waitForSelector('#wardrobe-unkept');
+  assert.strictEqual(await count(dan, '#wardrobe-unkept .wardrobe-unkept-keep'), 3, 'the three pieces passed over, each with a Keep');
+  assert.ok(!(await dan.$('#wardrobe-moment')), 'no moment on an empty wardrobe');
+  await shot(dan, '33d-wardrobe-unkept-he');
+  await dan.click('#wardrobe-unkept .wardrobe-unkept-keep');
+  await dan.waitForSelector('#wardrobe-count');
+  assert.strictEqual(await text(dan, '#wardrobe-count'), '1 מתוך 200 פריטים');
+  assert.strictEqual(await count(dan, '#wardrobe-unkept .wardrobe-unkept-keep'), 2, 'the kept piece left the list');
+  assert.ok(!(await dan.$('#wardrobe-moment')), 'one piece is under the free slice');
+  await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
+  await dan.waitForSelector('#wardrobe-keep-all', { timeout: 10000 });
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 2', 'only the two not yet kept are offered');
+  await dan.click('#wardrobe-keep-all');
+  await dan.waitForSelector('#wardrobe-kept-link');
+  await dan.waitForSelector('#wardrobe-keep-moment', { timeout: 10000 });
+  assert.ok(await dan.$('#wardrobe-keep-moment-go'), 'the moment carries its Go Pro');
+  assert.ok(!(await dan.$('#wardrobe-keep-all-full')), 'nothing was refused by the cap');
+  await shot(dan, '33e-keep-all-moment-he');
+  await go(dan, '#/wardrobe');
+  await dan.waitForSelector('#wardrobe-count');
+  assert.strictEqual(await text(dan, '#wardrobe-count'), '3 מתוך 200 פריטים');
+  assert.ok(!(await dan.$('#wardrobe-unkept')), 'nothing left to keep from an older look');
+  assert.strictEqual(await dan.$('#wardrobe-moment'), null, 'once per session: the same tab does not say it again');
+  assert.ok(await dan.$('#wardrobe-pro'), 'the plain Pro notice is back when the moment is not drawn');
+  const dan2 = await dan.context().newPage();
+  await go(dan2, '#/wardrobe');
+  await dan2.waitForSelector('#wardrobe-moment');
+  assert.ok(!(await dan2.$('#wardrobe-pro')), 'the moment replaces the plain notice for that paint');
+  assert.match(await text(dan2, '#wardrobe-moment p'), /3/, 'the sentence carries the count');
+  await Promise.all([
+    dan2.waitForResponse((r) => r.url().endsWith('/api/wardrobe/moment') && r.status() === 204 && r.request().postData().includes('go')),
+    dan2.click('#wardrobe-moment-go')
+  ]);
+  // Billing is not on until the Stripe leg, so the Pro page ends in the manual notice, as it does for lior above.
+  await dan2.waitForSelector('#pro-manual');
+  assert.strictEqual(await hash(dan2), '#/pro', 'the source query is read and stripped');
+  await dan2.close();
   step = 'today';
 
   // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
@@ -1048,6 +1107,14 @@ function checkClientModules() {
   // Round 12 added "Share videos made"; Round 14 added five: private grades, comments begun from an opener, before/after
   // shares with and without the numbers, and challenges that state a rule.
   assert.strictEqual(await count(noa, '#dash-social .dash-tile'), 20);
+  // Round 20 — the wedge: three more wardrobe tiles (keep-all taps, the Pro moment with its rate, the median), and the
+  // numbers behind them are the wedge step's own: one keep-all that wrote, the moment shown twice and taken once.
+  assert.strictEqual(await count(noa, '#dash-wardrobe .dash-tile'), 8);
+  const wedge = (await metricsAs(noa)).wardrobe;
+  assert.ok(wedge.keepAll >= 1, 'keep-all taps: ' + wedge.keepAll);
+  assert.ok(wedge.momentShown >= 2, 'moment shown: ' + wedge.momentShown);
+  assert.ok(wedge.momentGo >= 1, 'moment taken: ' + wedge.momentGo);
+  assert.strictEqual(typeof wedge.piecesPerActiveMedian, 'number', 'a median while people are active');
   await shot(noa, '31-numbers-en');
   expected.push('GET /api/metrics/pilot -> 403');
   await go(dan, '#/admin/metrics');

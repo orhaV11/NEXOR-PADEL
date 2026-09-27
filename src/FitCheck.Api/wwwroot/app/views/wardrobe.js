@@ -6,8 +6,13 @@
 // "swap the black tights for the brown ones you wore on the 4th" instead of "buy sheer brown tights". On a server where
 // that is Pro's (plans.wardrobe on /api/config) a free account still sees its whole wardrobe and is told plainly what
 // Pro adds — the list has to build itself before it is worth anything, and a wall would stop it.
+//
+// Round 20 — filling it faster. Two things join the screen: the Pro moment (once per session, when the server says a free
+// wardrobe has passed what its stylist sees: one numbered line and Go Pro, in place of the plain Pro notice for that
+// paint), and "Keep from an older look" — the pieces the stylist named on the person's latest looks that were never kept
+// (GET /api/wardrobe/unkept), each with a Keep that goes through the same POST /api/wardrobe as the keep row does.
 import { register, state, t, el, api, icon, setTopBar, signInPrompt, emptyState, errorBlock, toast, sheet, closeSheet, confirmSheet, fmtDate, relative, hasMessage } from '../core.js';
-import { loadWardrobe, forgetWardrobe } from '../wardrobe.js';
+import { loadWardrobe, forgetWardrobe, momentUnseen, momentNotice } from '../wardrobe.js';
 
 let styled = false;
 function ensureStyle() {
@@ -38,7 +43,16 @@ function ensureStyle() {
     '.wr-looks .wr-thumb { flex: none; inline-size: 56px; block-size: 56px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-3); }',
     '.wr-looks .wr-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
     '.wr-tomorrow { display: flex; align-items: center; justify-content: center; gap: 8px; }',
-    '.wr-pro { text-align: start; }'
+    '.wr-pro { text-align: start; }',
+    // Round 20: the Pro moment and the unkept list. The moment is one sentence and one button on a line; an unkept row
+    // carries the look's photo where the wardrobe row carries a mark, and its Keep on the end.
+    '.wr-moment { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; text-align: start; }',
+    '.wr-moment p { flex: 1; min-inline-size: 14ch; margin: 0; unicode-bidi: plaintext; }',
+    '.wr-unkept h2 { margin-block-end: 2px; }',
+    '.wr-unkept .hint { margin-block-end: 6px; }',
+    '.wr-unkept .wr-thumb { flex: none; inline-size: 44px; block-size: 44px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-3); }',
+    '.wr-unkept .wr-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
+    '.wr-unkept .wr-thumb svg { inline-size: 17px; block-size: 17px; }'
   ].join('\n') }));
 }
 
@@ -164,6 +178,46 @@ function stylistRow(data, onChanged) {
   ]);
 }
 
+/**
+ * Round 20 — "Keep from an older look": the pieces the stylist named on the person's last looks (Plans:WardrobeUnkeptChecks
+ * of them) that never made it into the wardrobe, newest first, each with the photo of the look and a Keep. Keeping goes
+ * through the same POST /api/wardrobe as the keep row, with the check that named the piece, so the server's rule that
+ * a piece comes from a check that named it holds unchanged. Null when there is nothing to offer.
+ */
+function unkeptSection(unkept, onChanged) {
+  const pieces = (unkept && unkept.pieces) || [];
+  if (pieces.length === 0) return null;
+  const rows = pieces.map((piece) => {
+    const keep = el('button', { type: 'button', class: 'btn btn-sm wardrobe-unkept-keep', text: t('wardrobe.keep_yes'), 'aria-label': t('wardrobe.unkept_keep', { piece: piece.name }) });
+    keep.addEventListener('click', async () => {
+      if (keep.disabled) return;
+      keep.disabled = true;
+      try {
+        await api('POST', '/api/wardrobe', { checkId: piece.checkId, name: piece.name });
+        forgetWardrobe();
+        onChanged();
+      } catch (e) {
+        // The server's own sentence, the wardrobe-full one included; the row stays so the person can decide again.
+        toast((e && e.message) || t('error.generic'));
+        keep.disabled = false;
+      }
+    });
+    return el('li', { class: 'wr-item', 'data-check': piece.checkId }, [
+      lookThumb({ checkId: piece.checkId }),
+      el('div', { class: 'wr-body' }, [
+        el('div', { class: 'wr-name', dir: 'auto', text: piece.name }),
+        el('div', { class: 'wr-meta', text: categoryLabel(piece.category) + (piece.wornAt ? ' · ' + relative(piece.wornAt) : '') })
+      ]),
+      keep
+    ]);
+  });
+  return el('section', { class: 'wr-unkept', id: 'wardrobe-unkept' }, [
+    el('h2', { text: t('wardrobe.unkept_title') }),
+    el('p', { class: 'hint', text: t('wardrobe.unkept_hint', { n: unkept.checks }) }),
+    el('ul', { class: 'wr-list' }, rows)
+  ]);
+}
+
 register('wardrobe', async (root, params, ctx) => {
   ensureStyle();
   setTopBar({ back: '#/me', title: t('wardrobe.title') });
@@ -175,15 +229,23 @@ register('wardrobe', async (root, params, ctx) => {
   root.appendChild(body);
 
   const paint = async (force) => {
-    const data = await loadWardrobe(force);
+    // Round 20: the unkept list is read beside the wardrobe, never instead of it — a failure there hides the section.
+    const [data, unkept] = await Promise.all([loadWardrobe(force), api('GET', '/api/wardrobe/unkept').catch(() => null)]);
     if (ctx.stale()) return;
     body.replaceChildren();
     if (!data) { body.appendChild(errorBlock(new Error(t('error.generic')))); return; }
     body.appendChild(el('p', { class: 'lede wr-lede', text: t('wardrobe.lede') }));
-    body.appendChild(stylistRow(data, () => paint(true)));
+    // Round 20 — the Pro moment: the numbered, once-per-session version of the Pro notice, so the screen never says it
+    // twice on one paint. The truth is the server's (proMoment); this tab only remembers having shown it.
+    const moment = data.proMoment && momentUnseen();
+    if (moment) body.appendChild(momentNotice(data, { box: 'wardrobe-moment', go: 'wardrobe-moment-go' }));
+    if (!moment || data.stylistAvailable) body.appendChild(stylistRow(data, () => paint(true)));
     const items = data.items || [];
+    const older = unkeptSection(unkept, () => paint(true));
     if (items.length === 0) {
       body.appendChild(emptyState(t('wardrobe.empty_title'), t('wardrobe.empty_body')));
+      // Keeping from an older look is the better first step than another check, so it comes before the button.
+      if (older) body.appendChild(older);
       body.appendChild(el('a', { class: 'btn', href: '#/check', text: t('wardrobe.empty_go') }));
       return;
     }
@@ -201,6 +263,7 @@ register('wardrobe', async (root, params, ctx) => {
 
     body.appendChild(el('span', { class: 'wr-count', id: 'wardrobe-count', text: t('wardrobe.count', { n: items.length, max: data.max }) }));
     body.appendChild(el('ul', { class: 'wr-list' }, items.map((item) => itemRow(item, () => paint(true)))));
+    if (older) body.appendChild(older);
   };
 
   await paint(true);

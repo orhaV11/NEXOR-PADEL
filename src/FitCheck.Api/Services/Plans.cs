@@ -65,6 +65,17 @@ public static class Plans
     public static bool WardrobeReachesStylist(AppUser? user, PlanOptions plans, DateTime now) =>
         user is not null && (!plans.WardrobeNeedsPro || IsPro(user, now));
 
+    /// <summary>
+    /// Round 20 — the Pro moment: whether "your wardrobe has N pieces; Pro lets the stylist see them" is a true sentence
+    /// for this account right now. It is only while the wardrobe is Pro's on this server (Plans:WardrobeNeedsPro), the
+    /// account is free, the free slice is above zero, and the wardrobe holds strictly MORE than that slice
+    /// (Plans:WardrobeNamesToStylist): at thirteen pieces "the stylist does not see all of them" is a fact about this
+    /// server, at twelve it is not. The same predicates <see cref="Services.Wardrobe.ForStylistAsync"/> decides by, so
+    /// the sentence can never promise more than the server keeps.
+    /// </summary>
+    public static bool WardrobeProMoment(AppUser user, PlanOptions plans, DateTime now, int count) =>
+        plans.WardrobeNeedsPro && !IsPro(user, now) && plans.WardrobeNamesToStylist > 0 && count > plans.WardrobeNamesToStylist;
+
     // ---------- Round 19 — Tomorrow ----------
 
     /// <summary>

@@ -763,9 +763,10 @@ public sealed record TasteRequest(bool? Learning);
 /// GET /api/wardrobe: the account's pieces and what this server lets the wardrobe do. <c>Max</c> is the fair-use brake
 /// (Plans:WardrobeMaxItems). <c>ToStylist</c> is this account's own switch; <c>StylistAvailable</c> is whether its plan
 /// lets the wardrobe reach the stylist at all, so a free account sees its own wardrobe and is told plainly what it is
-/// missing rather than shown a dead toggle.
+/// missing rather than shown a dead toggle. Round 20 appends the Pro moment: <c>ProMoment</c> is whether the wardrobe
+/// has passed what the stylist sees on this plan (Plans.WardrobeProMoment, the server's fact, never the client's), and
+/// <c>ProSees</c> how many pieces Pro's stylist would see, so "all of them" is only said while it is true.
 /// </summary>
-/// <summary>Round 20 appends the Pro moment: whether the wardrobe has passed what the stylist sees on this plan, and how many pieces Pro's stylist would see.</summary>
 public sealed record WardrobeDto(List<WardrobeItemDto> Items, int Max, bool ToStylist, bool StylistAvailable, bool ProMoment = false, int ProSees = 0);
 
 /// <summary>POST /api/wardrobe/keep-all: every piece the check named, in one request.</summary>
@@ -777,6 +778,7 @@ public sealed record KeepAllWardrobeDto(int Kept, int Added, int Skipped, bool F
 /// <summary>GET /api/wardrobe/unkept: pieces the stylist named on the person's latest looks that are not in the wardrobe, and how many looks were read.</summary>
 public sealed record UnkeptWardrobeDto(List<UnkeptPieceDto> Pieces, int Checks);
 
+/// <summary>One unkept piece: its name and category, the newest check that named it (what POST /api/wardrobe validates against), when it was worn, and the post if that look was published.</summary>
 public sealed record UnkeptPieceDto(string Name, string Category, Guid CheckId, DateTime WornAt, Guid? PostId);
 
 /// <summary>POST /api/wardrobe/moment: "shown" or "go", the Pro moment's tally.</summary>

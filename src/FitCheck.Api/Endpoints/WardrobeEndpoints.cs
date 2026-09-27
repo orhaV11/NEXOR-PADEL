@@ -31,6 +31,24 @@ namespace FitCheck.Api.Endpoints;
 /// names travel with its checks. 200 with the wardrobe. 403 error.pro_required for a free account while
 /// Plans:WardrobeNeedsPro is on: the list is everyone's, the advice from it is what Pro sells.</item>
 /// </list>
+/// Round 20 — filling it faster, three more doors:
+/// <list type="bullet">
+/// <item><c>POST /api/wardrobe/keep-all</c> (session): <see cref="KeepAllWardrobeRequest"/> — every piece the check
+/// named, in one request; the names are the server's own <see cref="Wardrobe.NamesOn"/>, never the client's. 200 with
+/// <see cref="KeepAllWardrobeDto"/> (a batch has no single 201 to give; <c>Added</c> says it): a known piece gains
+/// this look and is never refused by the cap, a new one is added while the account is under Plans:WardrobeMaxItems and
+/// skipped once it is not (<c>Full</c>). A check that named nothing keeps nothing and still answers 200. Errors:
+/// error.invalid_request (400, no check id), error.check_not_found (404, another account's or a guest's), and
+/// error.wardrobe_full (409) only when nothing at all could be written.</item>
+/// <item><c>GET /api/wardrobe/unkept</c> (session): <see cref="UnkeptWardrobeDto"/> — the pieces named on the account's
+/// last Plans:WardrobeUnkeptChecks scored checks that are not in its wardrobe, newest look first, each once with the
+/// check that named it, so keeping one goes through <c>POST /api/wardrobe</c> unchanged. Empty when the setting is 0
+/// or nothing is left. The wardrobe records no refusals, so "Not this one" in the keep row brings a piece back here.</item>
+/// <item><c>POST /api/wardrobe/moment</c> (session): <see cref="WardrobeMomentRequest"/> — the Pro moment's tally,
+/// "shown" or "go". 204 either way; the counter moves only while <see cref="Plans.WardrobeProMoment"/> is true for
+/// this account right now, so a script cannot inflate a rate the moment never earned. 400 error.invalid_request for
+/// any other step. The moment itself is <see cref="WardrobeDto"/>.ProMoment, computed here, never on the client.</item>
+/// </list>
 /// What the names are for lives in <see cref="Wardrobe"/>: a tip that can name a piece the wearer already owns is advice,
 /// and one that cannot is shopping.
 /// </summary>
@@ -41,6 +59,9 @@ public static class WardrobeEndpoints
         var group = app.MapGroup("/api/wardrobe").RequireAuthorization();
         group.MapGet("/", ListAsync);
         group.MapPost("/", KeepAsync);
+        group.MapGet("/unkept", UnkeptAsync);
+        group.MapPost("/keep-all", KeepAllAsync);
+        group.MapPost("/moment", MomentAsync);
         group.MapPost("/stylist", StylistAsync);
         group.MapPatch("/{id:guid}", RenameAsync);
         group.MapDelete("/{id:guid}", DeleteAsync);
@@ -100,6 +121,97 @@ public static class WardrobeEndpoints
         loggers.CreateLogger(nameof(WardrobeEndpoints)).LogInformation("Wardrobe: {UserId} kept a piece from check {CheckId} ({Added})", me.Id, check.Id, added ? "new" : "again");
         var dto = (await DtosAsync(db, me.Id, [item], ct)).Single();
         return Results.Json(dto, AppJson.Options, statusCode: added ? StatusCodes.Status201Created : StatusCodes.Status200OK);
+    }
+
+    private static async Task<IResult> KeepAllAsync(
+        KeepAllWardrobeRequest? body, HttpContext context, AppDbContext db, Localizer localizer, IClock clock,
+        IOptions<PlanOptions> plans, ILoggerFactory loggers, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var lang = me.PreferredLanguage;
+        if (body?.CheckId is not { } checkId)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(lang, "error.invalid_request"));
+        }
+
+        // The same door as the single route: a guest's check and another person's answer alike.
+        var check = await db.Checks.AsNoTracking().FirstOrDefaultAsync(c => c.Id == checkId, ct);
+        if (check is null || check.UserId != me.Id)
+        {
+            return Error(StatusCodes.Status404NotFound, localizer.Get(lang, "error.check_not_found"));
+        }
+
+        var max = plans.Value.WardrobeMaxItems;
+        var candidates = Wardrobe.NamesOn(check);
+        var (items, added, skipped) = await Wardrobe.KeepAllAsync(db, me.Id, check, candidates, max, clock.UtcNow, ct);
+        if (items.Count == 0 && skipped > 0)
+        {
+            // Nothing fitted and nothing known was touched: the plain refusal the single route gives, rather than a 200
+            // that says it kept nothing.
+            return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.wardrobe_full", max));
+        }
+
+        if (items.Count > 0)
+        {
+            await Counters.IncrementAsync(db, CounterName.WardrobeKeepAll, ct);
+            loggers.CreateLogger(nameof(WardrobeEndpoints)).LogInformation(
+                "Wardrobe: {UserId} kept all from check {CheckId} ({Added} new, {Skipped} refused by the cap)", me.Id, check.Id, added, skipped);
+        }
+
+        var count = await Wardrobe.CountAsync(db, me.Id, ct);
+        var dto = new KeepAllWardrobeDto(items.Count, added, skipped, skipped > 0, count, max, await DtosAsync(db, me.Id, items, ct));
+        return Results.Json(dto, AppJson.Options);
+    }
+
+    private static async Task<IResult> UnkeptAsync(
+        HttpContext context, AppDbContext db, Localizer localizer, IOptions<PlanOptions> plans, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var (pieces, checks) = await Wardrobe.UnkeptAsync(db, me.Id, plans.Value.WardrobeUnkeptChecks, Wardrobe.UnkeptMaxPieces, ct);
+        var dto = new UnkeptWardrobeDto(pieces.Select(p => new UnkeptPieceDto(p.Name, p.Category, p.CheckId, p.WornAt, p.PostId)).ToList(), checks);
+        return Results.Json(dto, AppJson.Options);
+    }
+
+    private static async Task<IResult> MomentAsync(
+        WardrobeMomentRequest? body, HttpContext context, AppDbContext db, Localizer localizer, IClock clock,
+        IOptions<PlanOptions> plans, CancellationToken ct)
+    {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
+        var name = body?.Step switch
+        {
+            "shown" => CounterName.WardrobeMomentShown,
+            "go" => CounterName.WardrobeMomentGo,
+            _ => null
+        };
+        if (name is null)
+        {
+            return Error(StatusCodes.Status400BadRequest, localizer.Get(me.PreferredLanguage, "error.invalid_request"));
+        }
+
+        // A tally is never worth an error, and it only moves while the moment is true for this account right now: the
+        // rate on the numbers page is shown over tapped for moments the server itself would have drawn.
+        var count = await Wardrobe.CountAsync(db, me.Id, ct);
+        if (Plans.WardrobeProMoment(me, plans.Value, clock.UtcNow, count))
+        {
+            await Counters.IncrementAsync(db, name, ct);
+        }
+
+        return Results.NoContent();
     }
 
     private static async Task<IResult> RenameAsync(
@@ -192,7 +304,9 @@ public static class WardrobeEndpoints
         var rows = await Wardrobe.ListAsync(db, me.Id, ct);
         var items = await DtosAsync(db, me.Id, rows.Select(r => r.Item).ToList(), ct);
         var setting = await db.WardrobeSettings.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == me.Id, ct);
-        return new WardrobeDto(items, plans.WardrobeMaxItems, setting?.ToStylist ?? true, Plans.WardrobeReachesStylist(me, plans, now));
+        // Round 20: the Pro moment's truth travels with the list, so the sentence the client draws is the server's fact.
+        return new WardrobeDto(items, plans.WardrobeMaxItems, setting?.ToStylist ?? true, Plans.WardrobeReachesStylist(me, plans, now),
+            ProMoment: Plans.WardrobeProMoment(me, plans, now, items.Count), ProSees: plans.WardrobeNamesFor(true));
     }
 
     /// <summary>

@@ -242,6 +242,8 @@ public class IdorEnumerationTests
         [("/api/challenges/{id:guid}/vote", "POST")] = new Public("one vote per person, never on your own entry (ChallengeTests)"),
         [("/api/challenges/{id:guid}/vote", "DELETE")] = new Public("your own vote only (ChallengeTests)"),
         // Round 14 — the wardrobe: a person's pieces are their own, and a stranger's id tells nobody one exists.
+        // Round 20's POST /api/wardrobe/keep-all and POST /api/wardrobe/moment take the check id in the BODY, so this
+        // sweep never walks them; keep-all's 404 for another account's check is pinned in WardrobeTests instead.
         [("/api/wardrobe/{id:guid}", "PATCH")] = Rule.Private(f => $"/api/wardrobe/{f.WardrobeItemA}", "a kept piece is its owner's alone", new { name = "not yours" }),
         [("/api/wardrobe/{id:guid}", "DELETE")] = new Public("deleting a piece that is not yours is idempotent and answers 204 for any id, the same as a made-up one: nothing about what anyone else keeps, and the row survives (WardrobeTests)")
     };

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,9 @@ namespace FitCheck.Api.Tests;
 /// the wardrobe is the account's alone, it can be renamed and deleted, deleting the account takes it, the export carries
 /// it, a free account sees its own wardrobe while the Pro-only part is refused with the plan message in all four
 /// languages, and the stylist's request carries the names only when it should.
+/// Round 20 — filling it faster: keep-all keeps every piece a check named in one request and honours the cap piece by
+/// piece, the unkept list is the pieces of the latest looks minus the wardrobe and never another account's, and the Pro
+/// moment is true only for a free account past the free slice while the wardrobe is Pro's, with a tally that moves only then.
 /// </summary>
 public class WardrobeTests
 {
@@ -378,5 +382,289 @@ public class WardrobeTests
         // Nothing to send is no paragraph at all: the call is byte for byte the one it always was.
         Assert.Equal("", OutfitAnalyzer.BuildWardrobeBlock([]));
         Assert.Equal("", OutfitAnalyzer.BuildWardrobeBlock(null));
+    }
+
+    // ---------- Round 20 — filling the closet faster ----------
+
+    /// <summary>A Counter row's value, or 0 when the tally has never moved.</summary>
+    private static long CounterOf(TestApp app, string name)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return db.Counters.Where(c => c.Name == name).Select(c => (long?)c.Value).FirstOrDefault() ?? 0;
+    }
+
+    private static List<string> Names(JsonElement items) => items.EnumerateArray().Select(i => i.GetProperty("name").GetString()!).ToList();
+
+    [Fact]
+    public async Task Keep_all_keeps_every_piece_the_check_named_in_one_request_and_a_second_check_adds_only_looks()
+    {
+        using var app = new TestApp();
+        var (me, _, _) = await app.NewUserAsync("wr_all");
+        var first = await app.CheckAsync(me);
+
+        var kept = await Json(await me.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = first }));
+        Assert.Equal(3, kept.GetProperty("kept").GetInt32());
+        Assert.Equal(3, kept.GetProperty("added").GetInt32());
+        Assert.Equal(0, kept.GetProperty("skipped").GetInt32());
+        Assert.False(kept.GetProperty("full").GetBoolean());
+        Assert.Equal(3, kept.GetProperty("count").GetInt32());
+        Assert.Equal(200, kept.GetProperty("max").GetInt32());
+        // The stylist's own order, items then accessories, the same list the keep row offers one by one.
+        Assert.Equal([Tee, Jeans, Shoes], Names(kept.GetProperty("items")));
+        var ids = kept.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetGuid()).ToList();
+        Assert.Equal(3, (await Json(await me.GetAsync("/api/wardrobe"))).GetProperty("items").GetArrayLength());
+
+        // The same three on a second check: nothing new, every row gains a look, and the rows are the same rows — one
+        // per piece, which is what the unique index promises and what "the one you wore on the 4th" needs.
+        var second = await app.CheckAsync(me);
+        var again = await Json(await me.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = second }));
+        Assert.Equal(3, again.GetProperty("kept").GetInt32());
+        Assert.Equal(0, again.GetProperty("added").GetInt32());
+        Assert.Equal(3, again.GetProperty("count").GetInt32());
+        var rows = again.GetProperty("items").EnumerateArray().ToList();
+        Assert.Equal(ids, rows.Select(r => r.GetProperty("id").GetGuid()).ToList());
+        Assert.All(rows, r => Assert.Equal(2, r.GetProperty("looks").GetArrayLength()));
+        Assert.Equal(3, (await Json(await me.GetAsync("/api/wardrobe"))).GetProperty("items").GetArrayLength());
+
+        // Two taps that wrote something, two on the tally.
+        Assert.Equal(2, CounterOf(app, CounterName.WardrobeKeepAll));
+    }
+
+    [Fact]
+    public async Task Keep_all_stops_at_the_cap_keeps_what_fits_and_refuses_plainly_when_nothing_fits()
+    {
+        using var app = new TestApp { Settings = { ["Plans:WardrobeMaxItems"] = "2" } };
+        var (me, _, _) = await app.NewUserAsync("wr_all_cap");
+        var first = await app.CheckAsync(me);
+
+        // Three named, two fit: the first two in the stylist's order are kept, the third is skipped and the answer says so.
+        var kept = await Json(await me.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = first }));
+        Assert.Equal(2, kept.GetProperty("kept").GetInt32());
+        Assert.Equal(2, kept.GetProperty("added").GetInt32());
+        Assert.Equal(1, kept.GetProperty("skipped").GetInt32());
+        Assert.True(kept.GetProperty("full").GetBoolean());
+        Assert.Equal(2, kept.GetProperty("count").GetInt32());
+        Assert.Equal(2, kept.GetProperty("max").GetInt32());
+        Assert.Equal([Tee, Jeans], Names(kept.GetProperty("items")));
+
+        // A full wardrobe and a check naming three other pieces: nothing can be written, and the refusal is the single
+        // route's own sentence rather than a 200 that kept nothing.
+        var (other, _, _) = await app.NewUserAsync("wr_all_cap_b");
+        var theirs = await app.CheckAsync(other);
+        await KeepAsync(other, theirs, Tee);
+        await KeepAsync(other, theirs, Jeans);
+        app.Vision.Handler = _ => Payloads.Parse("""
+            {
+              "status": "ok", "score": 7, "intent_match": 70, "headline": "Warm and neat", "vibe": "winter city",
+              "items": [
+                { "name": "Camel coat", "category": "outerwear", "verdict": "works", "note": "Sharp." },
+                { "name": "Black tights", "category": "bottom", "verdict": "neutral", "note": "Fine." },
+                { "name": "Loafers", "category": "shoes", "verdict": "works", "note": "Right weight." }
+              ],
+              "working": ["The palette is warm"], "one_tip": "Swap the black tights for brown ones."
+            }
+            """);
+        Guid coats;
+        try
+        {
+            coats = await app.CheckAsync(other);
+        }
+        finally
+        {
+            app.Vision.Handler = FakeVisionClient.ByTool;
+        }
+
+        var refused = await other.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = coats });
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Equal("Your wardrobe is full at 2 pieces. Remove one to keep another.", await ErrorAsync(refused));
+        Assert.Equal([Jeans, Tee], Names((await Json(await other.GetAsync("/api/wardrobe"))).GetProperty("items")).OrderBy(n => n).ToList());
+        Assert.Equal(1, CounterOf(app, CounterName.WardrobeKeepAll));   // only the tap that wrote something
+
+        // Known pieces are never refused by the cap: the first account's second check adds a look to its two rows and
+        // the third piece is skipped again, which is a 200 with kept 2, not a refusal.
+        var second = await app.CheckAsync(me);
+        var again = await Json(await me.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = second }));
+        Assert.Equal(2, again.GetProperty("kept").GetInt32());
+        Assert.Equal(0, again.GetProperty("added").GetInt32());
+        Assert.Equal(1, again.GetProperty("skipped").GetInt32());
+        Assert.True(again.GetProperty("full").GetBoolean());
+        Assert.All(again.GetProperty("items").EnumerateArray(), r => Assert.Equal(2, r.GetProperty("looks").GetArrayLength()));
+    }
+
+    [Fact]
+    public async Task Keep_all_is_the_owners_alone_and_a_check_that_named_nothing_keeps_nothing()
+    {
+        using var app = new TestApp();
+        var (a, _, _) = await app.NewUserAsync("wr_all_a");
+        var (b, _, _) = await app.NewUserAsync("wr_all_b");
+        var bCheck = await app.CheckAsync(b);
+
+        // Another account's check answers exactly as a missing one: nobody learns it exists.
+        var theirs = await a.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = bCheck });
+        Assert.Equal(HttpStatusCode.NotFound, theirs.StatusCode);
+        Assert.Equal("We couldn't find this check.", await ErrorAsync(theirs));
+        var madeUp = await a.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.NotFound, madeUp.StatusCode);
+        Assert.Equal("We couldn't find this check.", await ErrorAsync(madeUp));
+        Assert.Empty((await Json(await b.GetAsync("/api/wardrobe"))).GetProperty("items").EnumerateArray());
+
+        // No check at all is a bad request, not a search.
+        var none = await a.PostAsJsonAsync("/api/wardrobe/keep-all", new { });
+        Assert.Equal(HttpStatusCode.BadRequest, none.StatusCode);
+        Assert.Equal("That request didn't look right.", await ErrorAsync(none));
+
+        // A photo of a desk named no pieces: there is nothing to refuse and nothing to write, and the answer says zero.
+        app.Vision.Handler = _ => Payloads.NotOutfit();
+        Guid desk;
+        try
+        {
+            desk = await app.CheckAsync(a);
+        }
+        finally
+        {
+            app.Vision.Handler = FakeVisionClient.ByTool;
+        }
+
+        var nothing = await Json(await a.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = desk }));
+        Assert.Equal(0, nothing.GetProperty("kept").GetInt32());
+        Assert.Equal(0, nothing.GetProperty("added").GetInt32());
+        Assert.False(nothing.GetProperty("full").GetBoolean());
+        Assert.Empty(nothing.GetProperty("items").EnumerateArray());
+        Assert.Empty((await Json(await a.GetAsync("/api/wardrobe"))).GetProperty("items").EnumerateArray());
+        Assert.Equal(0, CounterOf(app, CounterName.WardrobeKeepAll));
+    }
+
+    [Fact]
+    public async Task The_unkept_list_is_the_pieces_of_the_last_checks_minus_the_wardrobe_newest_first_and_never_another_accounts()
+    {
+        using var app = new TestApp();
+        var (a, aId, _) = await app.NewUserAsync("wr_unkept");
+        var (b, _, _) = await app.NewUserAsync("wr_unkept_b");
+        var older = await app.CheckAsync(a);
+        var newer = await app.CheckAsync(a);
+        await KeepAsync(a, newer, Tee);
+
+        // Two checks named the same three pieces; the tee is kept, so the list is the other two, once each, carrying the
+        // NEWER check (the one the keep route will validate against) and its time.
+        var unkept = await Json(await a.GetAsync("/api/wardrobe/unkept"));
+        Assert.Equal(2, unkept.GetProperty("checks").GetInt32());
+        var pieces = unkept.GetProperty("pieces").EnumerateArray().ToList();
+        Assert.Equal([Jeans, Shoes], pieces.Select(p => p.GetProperty("name").GetString()).ToList());
+        DateTime newerAt;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            newerAt = DateTime.SpecifyKind(db.Checks.Single(c => c.Id == newer).CreatedAt, DateTimeKind.Utc);
+        }
+
+        foreach (var piece in pieces)
+        {
+            Assert.Equal(newer, piece.GetProperty("checkId").GetGuid());
+            Assert.Equal(newerAt, piece.GetProperty("wornAt").GetDateTime().ToUniversalTime());
+            Assert.False(piece.TryGetProperty("postId", out _));   // a private look has no post to open
+        }
+
+        Assert.Equal("bottom", pieces[0].GetProperty("category").GetString());
+        Assert.Equal(older, older);
+
+        // Keeping from the list is the single route with the check the piece carries; the piece then leaves the list.
+        await KeepAsync(a, pieces[0].GetProperty("checkId").GetGuid(), pieces[0].GetProperty("name").GetString()!);
+        var left = (await Json(await a.GetAsync("/api/wardrobe/unkept"))).GetProperty("pieces").EnumerateArray().ToList();
+        Assert.Single(left);
+        Assert.Equal(Shoes, left[0].GetProperty("name").GetString());
+
+        // A published look carries its post, so the row can open it.
+        var post = await app.PostAsync(a, newer);
+        var posted = (await Json(await a.GetAsync("/api/wardrobe/unkept"))).GetProperty("pieces")[0];
+        Assert.Equal(post.GetProperty("id").GetGuid(), posted.GetProperty("postId").GetGuid());
+
+        // Another account sees its own looks only: nothing of A's, and nothing at all while it has not checked.
+        var theirs = await Json(await b.GetAsync("/api/wardrobe/unkept"));
+        Assert.Empty(theirs.GetProperty("pieces").EnumerateArray());
+        Assert.Equal(0, theirs.GetProperty("checks").GetInt32());
+        Assert.Equal(aId, aId);
+
+        // How far back the list looks is the setting. One check back sees only the newest check's pieces; zero hides it.
+        using var one = new TestApp { Settings = { ["Plans:WardrobeUnkeptChecks"] = "1" } };
+        var (c, _, _) = await one.NewUserAsync("wr_unkept_one");
+        one.Vision.Handler = _ => Payloads.Parse("""
+            {
+              "status": "ok", "score": 7, "intent_match": 70, "headline": "Warm", "vibe": "winter",
+              "items": [ { "name": "Camel coat", "category": "outerwear", "verdict": "works", "note": "Sharp." } ],
+              "working": ["Warm"], "one_tip": "Add a scarf."
+            }
+            """);
+        try
+        {
+            await one.CheckAsync(c);
+        }
+        finally
+        {
+            one.Vision.Handler = FakeVisionClient.ByTool;
+        }
+
+        await one.CheckAsync(c);
+        var recent = await Json(await c.GetAsync("/api/wardrobe/unkept"));
+        Assert.Equal(1, recent.GetProperty("checks").GetInt32());
+        Assert.Equal([Tee, Jeans, Shoes], recent.GetProperty("pieces").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ToList());
+
+        using var off = new TestApp { Settings = { ["Plans:WardrobeUnkeptChecks"] = "0" } };
+        var (d, _, _) = await off.NewUserAsync("wr_unkept_off");
+        await off.CheckAsync(d);
+        var hidden = await Json(await d.GetAsync("/api/wardrobe/unkept"));
+        Assert.Empty(hidden.GetProperty("pieces").EnumerateArray());
+        Assert.Equal(0, hidden.GetProperty("checks").GetInt32());
+    }
+
+    [Fact]
+    public async Task The_pro_moment_is_true_for_a_free_account_past_the_free_slice_and_never_for_pro_or_where_the_wardrobe_is_everyones()
+    {
+        using var app = new TestApp { Settings = { ["Plans:WardrobeNamesToStylist"] = "2" } };
+        var (me, id, _) = await app.NewUserAsync("wr_moment");
+        var checkId = await app.CheckAsync(me);
+        await KeepAsync(me, checkId, Tee);
+        await KeepAsync(me, checkId, Jeans);
+
+        // At the free slice the stylist would see every piece a free account could send, so there is nothing to say.
+        var two = await Json(await me.GetAsync("/api/wardrobe"));
+        Assert.False(two.GetProperty("proMoment").GetBoolean());
+        Assert.Equal(40, two.GetProperty("proSees").GetInt32());
+
+        // One past it the sentence is a fact about this server.
+        await KeepAsync(me, checkId, Shoes);
+        var three = await Json(await me.GetAsync("/api/wardrobe"));
+        Assert.True(three.GetProperty("proMoment").GetBoolean());
+        Assert.Equal(40, three.GetProperty("proSees").GetInt32());
+
+        // The tally moves while the moment is true, and only then.
+        Assert.Equal(HttpStatusCode.NoContent, (await me.PostAsJsonAsync("/api/wardrobe/moment", new { step = "shown" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await me.PostAsJsonAsync("/api/wardrobe/moment", new { step = "go" })).StatusCode);
+        Assert.Equal(1, CounterOf(app, CounterName.WardrobeMomentShown));
+        Assert.Equal(1, CounterOf(app, CounterName.WardrobeMomentGo));
+
+        // Pro already sees the wardrobe: no moment, and its posts count nothing.
+        MakePro(app, id);
+        Assert.False((await Json(await me.GetAsync("/api/wardrobe"))).GetProperty("proMoment").GetBoolean());
+        Assert.Equal(HttpStatusCode.NoContent, (await me.PostAsJsonAsync("/api/wardrobe/moment", new { step = "shown" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await me.PostAsJsonAsync("/api/wardrobe/moment", new { step = "go" })).StatusCode);
+        Assert.Equal(1, CounterOf(app, CounterName.WardrobeMomentShown));
+        Assert.Equal(1, CounterOf(app, CounterName.WardrobeMomentGo));
+
+        // A step that is neither word is a bad request, not a silent nothing.
+        var bad = await me.PostAsJsonAsync("/api/wardrobe/moment", new { step = "x" });
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.Equal("That request didn't look right.", await ErrorAsync(bad));
+
+        // Where the wardrobe reaches everyone's stylist there is nothing Pro adds, so there is no moment at any count.
+        using var everyone = new TestApp { Settings = { ["Plans:WardrobeNamesToStylist"] = "2", ["Plans:WardrobeNeedsPro"] = "false" } };
+        var (free, _, _) = await everyone.NewUserAsync("wr_moment_all");
+        var check = await everyone.CheckAsync(free);
+        await KeepAsync(free, check, Tee);
+        await KeepAsync(free, check, Jeans);
+        await KeepAsync(free, check, Shoes);
+        var open = await Json(await free.GetAsync("/api/wardrobe"));
+        Assert.False(open.GetProperty("proMoment").GetBoolean());
+        Assert.True(open.GetProperty("stylistAvailable").GetBoolean());
     }
 }

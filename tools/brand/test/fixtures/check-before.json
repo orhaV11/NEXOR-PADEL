@@ -1,0 +1,28 @@
+{
+  "id": "11111111-1111-4111-8111-111111111111",
+  "intent": "Office",
+  "note": "after work drinks",
+  "language": "en",
+  "createdAt": "2026-09-20T10:00:00Z",
+  "latencyMs": 1830,
+  "status": "ok",
+  "score": 7,
+  "feedback": {
+    "status": "ok",
+    "score": 7,
+    "intentMatch": 72,
+    "headline": "Clean casual with one weak link",
+    "vibe": "relaxed weekend",
+    "items": [
+      { "name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple." },
+      { "name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job." },
+      { "name": "Running shoes", "category": "shoes", "verdict": "weak", "note": "Too sporty for the rest.", "brandSeen": "Nike" }
+    ],
+    "working": ["The palette is tight", "Proportions are balanced"],
+    "oneTip": "Swap the running shoes for plain white leather sneakers.",
+    "tipKind": "change",
+    "breakdown": { "fit": 7, "color": 8, "accessories": 4 },
+    "accessories": { "verdict": "missing", "present": [], "note": "Nothing on, so the look stops at the clothes and never quite finishes.", "addOne": "A thin black leather belt." }
+  },
+  "occasion": "Office"
+}

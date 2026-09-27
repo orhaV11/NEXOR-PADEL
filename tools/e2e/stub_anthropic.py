@@ -58,6 +58,28 @@ EN = {
     },
 }
 
+# Round 20: the look after the tip was taken, answered when the wearer's note says so ("after the tip" reaches the
+# stub as user text). The shoes are the one piece named differently, so the pair's "what changed" has exactly one row
+# and the before/after episode (tools/brand/lib/before-after.js) has a 7 → 8 to draw.
+EN_AFTER = {
+    "status": "ok", "score": 8, "intent_match": 80,
+    "headline": "Same look, the shoes fixed",
+    "vibe": "relaxed weekend",
+    "items": [
+        {"name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple.", "brand_seen": None},
+        {"name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job.", "brand_seen": None},
+        {"name": "White leather sneakers", "category": "shoes", "verdict": "works", "note": "Clean, and they let the rest speak.", "brand_seen": None},
+    ],
+    "working": ["The palette is tight", "The shoes now match the register"],
+    "one_tip": "Keep it. One thin gold chain and it is finished.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 6},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Still nothing on, so the finish is the one thing left.",
+        "add_one": "One thin gold chain.",
+    },
+}
+
 HE = {
     "status": "ok", "score": 6, "intent_match": 58,
     "headline": "קז'ואל נקי עם חוליה חלשה אחת",
@@ -415,6 +437,9 @@ class Handler(BaseHTTPRequestHandler):
             payload = answers
             if len(image_bytes) < 3000:
                 payload = NOT_OUTFIT_EN
+            # Round 20: the look after the tip, in English only (the before/after step is Noa's).
+            elif answers is EN and "after the tip" in user_text:
+                payload = EN_AFTER
         response = {
             "id": "msg_stub", "type": "message", "role": "assistant", "model": body["model"],
             "stop_reason": "tool_use", "stop_sequence": None,

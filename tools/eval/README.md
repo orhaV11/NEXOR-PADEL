@@ -28,6 +28,43 @@ node tools/eval/stylist.js --photo look.jpg --occasion date --style streetwear -
 - `--language` — the language the feedback is written in (`en`, `he`, `ar`, `ru`).
 - `--max-spread` — how far the score may move before the run counts as a failure. Default 2.
 - `--json` — the raw numbers instead of the tables, for pasting into a spreadsheet.
+- `--report <file>` — the same JSON written to a file while the tables still print, so one paid run gives you both.
+
+## From Windows, against orevosh.com
+
+The founder's machine is Windows with the PowerShell that ships with it (5.1; `pwsh` is a separate install and is not
+needed). `tools\eval\calibrate.ps1` is the whole pass in one command, run from anywhere in the repository:
+
+```powershell
+tools\eval\calibrate.ps1 -Photos C:\looks\calibration -Occasion date -Language he
+```
+
+- `-Photos` — a folder; every `.jpg` in it is sent, in name order. `-Occasion`, `-Style`, `-Language`, `-Runs` (8),
+  `-MaxSpread` (2), `-Note` and `-Delay` are the flags above with the same words; `-Base` is `https://orevosh.com`
+  unless you say otherwise.
+- **The account.** `-Handle` or `OREVOSH_EVAL_HANDLE` names it; the password comes from `OREVOSH_EVAL_PASSWORD` or,
+  when that is not set, from a masked prompt (a password typed on the command line is kept in PowerShell's history
+  file, so `-Password` is there but not recommended). That account spends one check per run out of its daily
+  allowance, so an 8-run pass needs a Pro account: `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro
+  <handle> 1"` on the server, and `Limits__SpendPerDayUsd` is the ceiling the app stops itself at either way.
+- **What it costs** is printed before anything is sent — `3 photos x 8 runs = 24 model calls, about 1-2 US cents
+  each` — and the run goes on: a script that stops to ask looks frozen.
+- `-DryRun` prints the exact command with the password masked and exits 0 without signing in. It is what CI runs.
+- **The report.** Every line node prints is echoed as it comes and filed as
+  `tools/eval/reports/<date>-<time>-<occasion>-<style>-<language>.txt` (the tables, the masked command, the base, the
+  count) with the rows as `.json` beside it, UTF-8 without a byte-order mark, so the Hebrew tips survive. The folder is
+  in `.gitignore`: a report carries the handle and the tips, and the verdict line is what gets pasted.
+- **The last line is Hebrew**, green or red, and the exit code is stylist.js's own:
+  - `בתוך 2: הציון של כל תמונה נשאר בטווח המותר.` — every photo stayed inside the allowed spread (exit 0);
+  - `רחב מדי: look-1.jpg spread 3 (מותר: 2).` — one or more photos moved further than allowed (exit 1);
+  - `אין פסק דין: 1 תמונות לא חזרו עם ציון. לא נמדד כלום.` — a photo never came back with a score (exit 1);
+  - `הריצה לא יצאה לפועל: …` — the run could not be made: no node, node older than 18, an empty folder, a sign-in
+    that failed, a server that did not answer (exit 1 before node ran, exit 2 from stylist.js);
+  - then `הדו"ח: <path>` — where the report went.
+
+If the Hebrew shows as boxes, the console window's font has no Hebrew glyphs; the report file has the same lines
+and is the durable record. `node` must be on the PATH (the LTS from nodejs.org); the script checks the version first,
+because a Node older than 18 fails inside stylist.js on `fetch` with a message that names nothing.
 
 The account you sign in as spends one check per run out of its daily allowance, so an 8-run pass needs an account
 allowed at least 8 checks that day (a Pro account, or a server with `Plans__ProChecksPerDay` raised). If it runs out,
@@ -90,7 +127,9 @@ script and complain by itself.
 - It measures **the app's answer**, rubric and all, not the model on its own. That is on purpose: the rubric is the part
   we can fix.
 - Runs happen one after another with no pause unless you pass `--delay`. Nothing about the order is randomised.
-- **No real-model numbers have ever been taken.** The sandbox this was written in has no route to Anthropic, so the
-  harness was exercised against a local stand-in made to move its scores on purpose — enough to prove the tables, the
-  arithmetic and the failure exit work, and not enough to say a single word about how steady the real stylist is. The
-  first real pass is still to be run, by someone with a key.
+- **No real-model numbers have been taken in this repository.** The sandbox this was written in has no route to
+  Anthropic, so the harness was exercised against a local stand-in made to move its scores on purpose — enough to
+  prove the tables, the arithmetic and the failure exit work, and not enough to say a single word about how steady the
+  real stylist is. The first real pass is one command from the founder's machine — the Windows section above,
+  `tools\eval\calibrate.ps1 -Photos <folder> -Occasion date -Language he` against `https://orevosh.com` — and its
+  Hebrew verdict line is what to paste back.

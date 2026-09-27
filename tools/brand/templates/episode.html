@@ -2,8 +2,8 @@
 <!--
   OREVOSH — the episode template. 1080x1920, 30 fps, silent, wordless by construction.
 
-  One page renders all four variants (verdict, versus, board, overlay) in two grounds (the look full
-  bleed, or a flat #00B140 chroma-key field for dropping over the owner's own masked footage). It is
+  One page renders all five variants (verdict, versus, board, overlay, before-after) in two grounds (the
+  look full bleed, or a flat #00B140 chroma-key field for dropping over the owner's own masked footage). It is
   never opened by hand: tools/brand/render-episode.js loads it, calls window.__build(data) with one
   episode JSON, then walks window.seek(t) frame by frame.
 
@@ -55,9 +55,10 @@
 
 /* ============================================================== the clock */
 const FPS = 30;
-const DUR = { verdict: 15.0, overlay: 15.0, versus: 15.0, board: 18.0 };
-/* The frame the owner gets as the thumbnail, per variant: the beat that sells the post. */
-const COVER = { verdict: 8.60, overlay: 8.60, versus: 3.00, board: 11.50 };
+const DUR = { verdict: 15.0, overlay: 15.0, versus: 15.0, board: 18.0, "before-after": 17.0 };
+/* The frame the owner gets as the thumbnail, per variant: the beat that sells the post. For the before/after
+   it is the second score with the delta chip under it. */
+const COVER = { verdict: 8.60, overlay: 8.60, versus: 3.00, board: 11.50, "before-after": 11.60 };
 
 /* ============================================================== easings */
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
@@ -74,14 +75,16 @@ const r3    = x => (Math.round(x * 1000) / 1000);
 /* ============================================================== the words */
 /* Every word an episode can put on screen, in both languages. The Hebrew is the app's own wording
    where the app has one (i18n/he.json: גזרה / צבע / אקססוריז / הטיפ האחד / איזה מהם? / מנצח /
-   בודקים את הלוק.), so an episode and the product say the same thing. Nothing here judges a person. */
+   בודקים את הלוק. / לפני / אחרי / מה השתנה), so an episode and the product say the same thing. Nothing
+   here judges a person. `soon` is the end card's third line: since the app went live it is the bare
+   address, typed by a viewer and never a path, in both languages (CONTENT.md, the address rule). */
 const COPY = {
   en: {
     hook: "Score it before we do.",
     tipLabel: "THE ONE TIP",
     bd: ["FIT", "COLOR", "ACCESSORIES"],
     slogan: "Check the look.",
-    soon: "COMING SOON",
+    soon: "orevosh.com",
     age: "16+",
     ask: "What did you give it?",
     occasion: o => "FOR " + o.toUpperCase(),
@@ -93,14 +96,24 @@ const COPY = {
     tieSub: "You decide.",
     boardTitle: "The week's top looks",
     boardKicker: "THIS WEEK",
-    rank: n => "#" + n
+    rank: n => "#" + n,
+    /* the before/after: the app's tried.before / tried.after / tried.changed / tried.change_* wording */
+    before: "BEFORE",
+    after: "AFTER",
+    baHook: "Same look. One tip.",
+    changed: "WHAT CHANGED",
+    same: "The stylist named the same pieces in both.",
+    changeSwap: c => c.category + ": " + c.from + " → " + c.to,
+    changeAdded: c => c.category + ": added " + c.to,
+    changeRemoved: c => c.category + ": " + c.from + " gone",
+    delta: n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n)
   },
   he: {
     hook: "מה הציון שלכם?",
     tipLabel: "הטיפ האחד",
     bd: ["גזרה", "צבע", "אקססוריז"],
     slogan: "בודקים את הלוק.",
-    soon: "בקרוב",
+    soon: "orevosh.com",
     age: "16+",
     ask: "מה נתתם לו?",
     occasion: o => "אירוע · " + o,
@@ -112,9 +125,25 @@ const COPY = {
     tieSub: "אתם מחליטים.",
     boardTitle: "הלוקים של השבוע",
     boardKicker: "השבוע",
-    rank: n => "#" + n
+    rank: n => "#" + n,
+    before: "לפני",
+    after: "אחרי",
+    baHook: "אותו לוק. טיפ אחד.",
+    changed: "מה השתנה",
+    same: "הסטייליסט ציין את אותם פריטים בשני הלוקים.",
+    changeSwap: c => c.category + ": " + c.from + " ← " + c.to,
+    changeAdded: c => c.category + ": נוסף " + c.to,
+    changeRemoved: c => c.category + ": " + c.from + " ירד",
+    delta: n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n)
   }
 };
+/* One change line in the app's wording; the category is the stylist's word for it (the app has no table of its
+   own for those, so it reads as written: shoes, top, bottom, outerwear, accessory, other). */
+function changeLine(c) {
+  if (c.from && c.to) return C.changeSwap(c);
+  if (c.to) return C.changeAdded(c);
+  return C.changeRemoved(c);
+}
 
 /* ============================================================== the layouts */
 /* Two grounds, two tables. Every number is a pixel in the 1080x1920 frame.
@@ -125,8 +154,8 @@ const COPY = {
 const SAFE_CX = 490, SAFE_W = 800;
 
 /* One end card for every variant, so a viewer who has seen one episode recognises the last three
-   seconds of the next. It is the kit's own: the wordmark, the slogan, "coming soon", 16+, and the
-   line that asks for the comment. No standalone mark above it — the wordmark already carries one. */
+   seconds of the next. It is the kit's own: the wordmark, the slogan, the address (orevosh.com), 16+,
+   and the line that asks for the comment. No standalone mark above it — the wordmark already carries one. */
 const END_PHOTO = () => ({
   wm: 560, wmY: 604, slog: { y: 800, fs: 90 },
   soon: { y: 968, fs: 34 }, age: { y: 1044, fs: 24 }, ask: { y: 1170, fs: 54 }
@@ -185,6 +214,28 @@ const LAYOUT = {
                 xl: 91, xm: 347, xr: 653, label: { y: 1140, fs: 30, sfs: 54 },
                 medal: { d: 118, fs: 60, cy: 520 } },
       end: END_PHOTO()
+    },
+    /* the before/after: the verdict's table twice over, plus the delta chip under the second ring (the versus
+       winner-pill's shape), the second headline pushed under the chip, and the "what changed" block — the three
+       cells as "7 → 8" and up to two lines in the app's wording — under the ring once it has shrunk up to
+       ringTip with the chip at deltaTip beneath it, the way the verdict's ring makes room for the tip card */
+    "before-after": {
+      pill:    { edge: true, y: 126, h: 70, fs: 30, pad: 34 },
+      hook:    { y: 1174, fs: 78, w: 800, lines: 2, lh: 1.06 },
+      count:   { cy: 900, fs: 400 },
+      ring:    { cx: 490, cy: 830, d: 420, sw: 14, fs: 208, dfs: 46 },
+      ringTip: { cx: 490, cy: 648, d: 200 },
+      head:    { y: 1096, fs: 62, w: 800, lines: 2, lh: 1.12 },
+      occ:     { y: 1258, fs: 30 },
+      bd:      { y: 1336, w: 800, fs: 90, lfs: 26, gap: 14 },
+      tip:     { x: 90, y: 800, w: 900, h: 530, fs: 52, lines: 5, lh: 1.34, lfs: 28 },
+      delta:   { y: 1052, h: 84, fs: 40, pad: 44 },
+      deltaTip: { y: 772 },
+      headB:   { y: 1160, fs: 62, w: 800, lines: 2, lh: 1.12 },
+      changed: { kicker: { y: 930, fs: 30 }, row: { y: 990, w: 800, fs: 80, lfs: 26, gap: 14 },
+                 lines: { y: 1170, fs: 34, w: 800, lines: 2, lh: 1.3 } },
+      credit:  { y: 1512, fs: 26 },
+      end: END_PHOTO()
     }
   },
   overlay: {
@@ -223,6 +274,24 @@ const LAYOUT = {
       head:   { y: 0, fs: 0, w: 700, lines: 2, lh: 1.12 },
       credit: { y: 1552, fs: 22 },
       podium: null,
+      end: END_OVERLAY()
+    },
+    "before-after": {
+      pill:    { y: 902, h: 64, fs: 28, pad: 30 },
+      hook:    { y: 1010, fs: 56, w: 700, lines: 2, lh: 1.08, plate: { x: 100, y: 970, w: 780, h: 210 } },
+      count:   { cy: 1220, fs: 300 },
+      ring:    { cx: 490, cy: 1050, d: 310, sw: 12, fs: 154, dfs: 34 },
+      ringTip: { cx: 490, cy: 950, d: 150 },
+      head:    { y: 1252, fs: 44, w: 680, lines: 2, lh: 1.16, plate: { x: 100, y: 1228, w: 780, h: 182 } },
+      occ:     { y: 1368, fs: 24 },
+      bd:      { y: 1462, w: 700, fs: 64, lfs: 22, gap: 10, plate: { x: 100, y: 1430, w: 780, h: 132 } },
+      tip:     { x: 100, y: 1050, w: 780, h: 420, fs: 42, lines: 5, lh: 1.34, lfs: 26 },
+      delta:   { y: 1216, h: 64, fs: 32, pad: 36 },
+      deltaTip: { y: 1040 },
+      headB:   { y: 1300, fs: 44, w: 680, lines: 2, lh: 1.16, plate: { x: 100, y: 1276, w: 780, h: 182 } },
+      changed: { kicker: { y: 1150, fs: 24 }, row: { y: 1190, w: 700, fs: 56, lfs: 22, gap: 8 },
+                 lines: { y: 1310, fs: 26, w: 700, lines: 2, lh: 1.3 }, plate: { x: 100, y: 1120, w: 780, h: 280 } },
+      credit:  { y: 1552, fs: 22 },
       end: END_OVERLAY()
     }
   }
@@ -399,10 +468,11 @@ function endCard(parent, E) {
   g.wm   = add(parent, wordmarkSvg(E.wm, E.wmY));
   g.slog = block(parent, "display", E.slog.y, E.slog.fs, SAFE_W, RTL ? 1.18 : 1.04, "color:var(--ink)");
   g.slog.textContent = C.slogan;
-  /* Hebrew does not take Latin tracking: DESIGN.md §2 gives caps .08em and Hebrew .02em, so the
-     end card's wide-tracked kicker is wide in English and restrained in Hebrew. */
-  g.soon = centred(parent, "caps", E.soon.y, E.soon.fs,
-    "color:var(--accent);letter-spacing:" + (RTL ? ".12em" : ".34em"));
+  /* The address, not a kicker: lower case as it is typed, left to right in both languages (a domain never
+     mirrors), and the caps tracking of DESIGN.md §2 (.08em) rather than the wide kicker tracking, so it
+     reads as something to type rather than a slogan. */
+  g.soon = centred(parent, "body", E.soon.y, E.soon.fs,
+    "color:var(--accent);font-weight:700;letter-spacing:.08em;direction:ltr;unicode-bidi:isolate");
   setText(g.soon, C.soon);
   /* "16+" is a rating, not a sentence: left to right in both languages, or the plus jumps to the
      wrong side of the number and it reads "+16". */
@@ -430,6 +500,116 @@ function creditLine(parent, cfg) {
   return e;
 }
 
+/* ---- the verdict's pieces, shared with the before/after (which is a verdict told twice) ---- */
+
+/* The intent pill: placed once it has a width, at the start edge of the safe column over a photo, centred on
+   the chroma field where it heads a centred stack. `_centre` is called by __build after the faces are in. */
+function intentPill(beat, text) {
+  const pl = LAY.pill;
+  const pill = add(beat, el("div", "pill intent", "height:" + pl.h + "px;padding:0 " + pl.pad + "px;font-size:" +
+    pl.fs + "px;left:0;top:" + pl.y + "px"));
+  pill.textContent = text;
+  pill._centre = () => {
+    const w = pill.getBoundingClientRect().width;
+    pill.style.left = (pl.edge ? (RTL ? 900 - w : 90) : SAFE_CX - w / 2) + "px";
+  };
+  fitsLine("the intent pill", pill, SAFE_W, text);
+  return pill;
+}
+
+/* The hook: one line that invites a reply, up in the first second; on the field it sits on a plate. */
+function hookLine(beat, text) {
+  const hk = LAY.hook;
+  const g = { plate: null };
+  if (hk.plate) g.plate = add(beat, el("div", "plate", "left:" + hk.plate.x + "px;top:" + hk.plate.y +
+    "px;width:" + hk.plate.w + "px;height:" + hk.plate.h + "px"));
+  g.hook = block(beat, "display", hk.y, hk.fs, hk.w, hk.lh, "color:var(--ink)");
+  g.hook.textContent = text;
+  fits("the hook", g.hook, hk.w, hk.fs * hk.lh * hk.lines, text);
+  hug(g.plate, [g.hook], 42, 42);
+  return g;
+}
+
+/* The 3-2-1 count, so the viewer stays for the reveal. */
+function countNumeral(beat) {
+  return centred(beat, "num display outline", 0, LAY.count.fs, "color:var(--ink);line-height:1;top:" +
+    (LAY.count.cy - LAY.count.fs * 0.62) + "px");
+}
+
+/* A headline with its optional occasion line under it, on a plate on the field. */
+function headlineBlock(beat, cfg, headline, occasion, what) {
+  const g = { plate: null, occ: null };
+  if (cfg.plate) g.plate = add(beat, el("div", "plate", "left:" + cfg.plate.x + "px;top:" + cfg.plate.y +
+    "px;width:" + cfg.plate.w + "px;height:" + cfg.plate.h + "px"));
+  g.head = block(beat, "display", cfg.y, cfg.fs, cfg.w, cfg.lh, "color:var(--ink)");
+  g.head.textContent = headline;
+  fits(what || "the headline", g.head, cfg.w, cfg.fs * cfg.lh * cfg.lines, headline);
+  if (occasion) {
+    g.occ = centred(beat, "caps", LAY.occ.y, LAY.occ.fs, "color:var(--accent)");
+    setText(g.occ, C.occasion(occasion));
+    fitsLine("the occasion", g.occ, cfg.w, C.occasion(occasion));
+  }
+  hug(g.plate, [g.head, g.occ], 32, 32);
+  return g;
+}
+
+/* The breakdown: three cells in a row that mirrors itself in Hebrew. A cell's number may be a string such as
+   "7 → 8" (the before/after's "what changed" row); .n is ltr-isolated either way. */
+function breakdownRow(beat, cfg, cells, what) {
+  const g = { plate: null, cells: [] };
+  if (cfg.plate) g.plate = add(beat, el("div", "plate", "left:" + cfg.plate.x + "px;top:" + cfg.plate.y +
+    "px;width:" + cfg.plate.w + "px;height:" + cfg.plate.h + "px"));
+  g.row = add(beat, el("div", "bd", "left:" + (SAFE_CX - cfg.w / 2) + "px;top:" + cfg.y + "px;width:" +
+    cfg.w + "px"));
+  const labels = [];
+  C.bd.forEach((label, i) => {
+    const cell = add(g.row, el("div", null, "flex:1 1 0;min-width:0"));
+    const n = add(cell, el("div", "n", "font-size:" + cfg.fs + "px"));
+    if (typeof cells[i] === "string") {
+      /* a string cell is measured, so its words go in an inline-block whose width is the run of type and
+         not the cell's; a plain number is a text node, as it always was */
+      n.innerHTML = '<span style="display:inline-block;white-space:nowrap"></span>';
+      n._in = n.firstChild;
+      setText(n, cells[i]);
+    } else {
+      n.textContent = cells[i];
+    }
+    const l = add(cell, el("div", "caps", "font-size:" + cfg.lfs + "px;margin-top:" + cfg.gap + "px"));
+    l.innerHTML = '<span style="display:inline-block;white-space:nowrap"></span>';
+    l._in = l.firstChild;
+    setText(l, label);
+    g.cells.push(cell);
+    labels.push([label, l, n]);
+  });
+  /* measured after the row exists: a cell asked for its width mid-loop answers with the row's */
+  labels.forEach(([label, l, n]) => {
+    fitsLine((what || "the breakdown") + " label " + label, l, cfg.w / 3 - 8, label);
+    if (typeof cells[C.bd.indexOf(label)] === "string") fitsLine((what || "the breakdown") + " cell " + label, n, cfg.w / 3 - 8, String(n.textContent));
+  });
+  hug(g.plate, [g.row], 30, 30);
+  return g;
+}
+
+/* The one tip, on its own card with the accent bar: the longest hold on screen. */
+function tipCard(beat, cfg, text) {
+  const cardW = Math.min(cfg.w, 900 - cfg.x);            /* never past the platform's right rail */
+  const g = {};
+  g.card = add(beat, el("div", "card", "left:" + cfg.x + "px;top:" + cfg.y + "px;width:" +
+    cardW + "px;height:" + cfg.h + "px"));
+  add(g.card, el("div", "bar"));
+  const inner = add(g.card, el("div", "inner"));
+  const tlabel = add(inner, el("div", "caps", "font-size:" + cfg.lfs + "px;color:var(--accent);margin-bottom:22px"));
+  tlabel.textContent = C.tipLabel;
+  g.text = add(inner, el("div", "display", "font-size:" + cfg.fs + "px;line-height:" + cfg.lh +
+    ";color:var(--ink);text-align:start"));
+  g.text.textContent = text;
+  /* the real constraint is the card, not a line count: content box minus the label's row */
+  const tipW = cardW - 84 - 48;
+  const tipH = cfg.h - 88 - (cfg.lfs * 1.1 + 22);
+  fits("the one tip", g.text, tipW, Math.min(tipH, cfg.fs * cfg.lh * cfg.lines), text);
+  return g;
+}
+
 function buildVerdict() {
   const beat = add(HOST, el("div", "beat", "display:block"));
   S.beat = beat;
@@ -440,93 +620,106 @@ function buildVerdict() {
   }
 
   /* the intent pill */
-  const pl = LAY.pill;
-  S.pill = add(beat, el("div", "pill intent", "height:" + pl.h + "px;padding:0 " + pl.pad + "px;font-size:" +
-    pl.fs + "px;left:0;top:" + pl.y + "px"));
-  S.pill.textContent = D.intent;
-  /* placed once it has a width: at the start edge of the safe column over a photo, centred on the
-     chroma field where it heads a centred stack */
-  S.pillCentre = () => {
-    const w = S.pill.getBoundingClientRect().width;
-    S.pill.style.left = (pl.edge ? (RTL ? 900 - w : 90) : SAFE_CX - w / 2) + "px";
-  };
-  fitsLine("the intent pill", S.pill, SAFE_W, D.intent);
+  S.pill = intentPill(beat, D.intent);
+  S.pillCentre = S.pill._centre;
 
   /* the hook: one line that invites a reply, up in the first second */
-  const hk = LAY.hook;
-  if (hk.plate) S.hookPlate = add(beat, el("div", "plate", "left:" + hk.plate.x + "px;top:" + hk.plate.y +
-    "px;width:" + hk.plate.w + "px;height:" + hk.plate.h + "px"));
-  S.hook = block(beat, "display", hk.y, hk.fs, hk.w, hk.lh, "color:var(--ink)");
-  S.hook.textContent = D.hook || C.hook;
-  fits("the hook", S.hook, hk.w, hk.fs * hk.lh * hk.lines, S.hook.textContent);
-  hug(S.hookPlate, [S.hook], 42, 42);
+  const hk = hookLine(beat, D.hook || C.hook);
+  S.hook = hk.hook; S.hookPlate = hk.plate;
 
   /* the 3-2-1 count, so the viewer stays for the reveal */
-  S.count = centred(beat, "num display outline", 0, LAY.count.fs, "color:var(--ink);line-height:1;top:" +
-    (LAY.count.cy - LAY.count.fs * 0.62) + "px");
+  S.count = countNumeral(beat);
 
   /* the ring and the score */
   const rg = LAY.ring;
   S.ring = add(beat, makeRing(rg.cx, rg.cy, rg.d, rg.sw, D.score, rg.fs, rg.dfs));
 
   /* the headline and the occasion */
-  const hd = LAY.head;
-  if (hd.plate) S.headPlate = add(beat, el("div", "plate", "left:" + hd.plate.x + "px;top:" + hd.plate.y +
-    "px;width:" + hd.plate.w + "px;height:" + hd.plate.h + "px"));
-  S.head = block(beat, "display", hd.y, hd.fs, hd.w, hd.lh, "color:var(--ink)");
-  S.head.textContent = D.headline;
-  fits("the headline", S.head, hd.w, hd.fs * hd.lh * hd.lines, D.headline);
-  if (D.occasion) {
-    S.occ = centred(beat, "caps", LAY.occ.y, LAY.occ.fs, "color:var(--accent)");
-    setText(S.occ, C.occasion(D.occasion));
-    fitsLine("the occasion", S.occ, hd.w, C.occasion(D.occasion));
-  }
-  hug(S.headPlate, [S.head, S.occ], 32, 32);
+  const hd = headlineBlock(beat, LAY.head, D.headline, D.occasion);
+  S.head = hd.head; S.headPlate = hd.plate; S.occ = hd.occ;
 
   /* the breakdown: three numbers, in a row that mirrors itself in Hebrew */
-  const bdc = LAY.bd;
-  if (bdc.plate) S.bdPlate = add(beat, el("div", "plate", "left:" + bdc.plate.x + "px;top:" + bdc.plate.y +
-    "px;width:" + bdc.plate.w + "px;height:" + bdc.plate.h + "px"));
-  S.bd = add(beat, el("div", "bd", "left:" + (SAFE_CX - bdc.w / 2) + "px;top:" + bdc.y + "px;width:" +
-    bdc.w + "px"));
-  S.bdCells = [];
-  const bdVals = [D.breakdown.fit, D.breakdown.color, D.breakdown.accessories];
-  const bdLabels = [];
-  C.bd.forEach((label, i) => {
-    const cell = add(S.bd, el("div", null, "flex:1 1 0;min-width:0"));
-    const n = add(cell, el("div", "n", "font-size:" + bdc.fs + "px"));
-    n.textContent = bdVals[i];
-    const l = add(cell, el("div", "caps", "font-size:" + bdc.lfs + "px;margin-top:" + bdc.gap + "px"));
-    l.innerHTML = '<span style="display:inline-block;white-space:nowrap"></span>';
-    l._in = l.firstChild;
-    setText(l, label);
-    S.bdCells.push(cell);
-    bdLabels.push([label, l]);
-  });
-  /* measured after the row exists: a cell asked for its width mid-loop answers with the row's */
-  bdLabels.forEach(([label, l]) => fitsLine("the breakdown label " + label, l, bdc.w / 3 - 8, label));
-  hug(S.bdPlate, [S.bd], 30, 30);
+  const bd = breakdownRow(beat, LAY.bd, [D.breakdown.fit, D.breakdown.color, D.breakdown.accessories]);
+  S.bd = bd.row; S.bdPlate = bd.plate; S.bdCells = bd.cells;
 
   /* the one tip, on its own card with the accent bar: the longest hold on screen */
-  const tp = LAY.tip;
-  const cardW = Math.min(tp.w, 900 - tp.x);            /* never past the platform's right rail */
-  S.tipCard = add(beat, el("div", "card", "left:" + tp.x + "px;top:" + tp.y + "px;width:" +
-    cardW + "px;height:" + tp.h + "px"));
-  add(S.tipCard, el("div", "bar"));
-  const inner = add(S.tipCard, el("div", "inner"));
-  const tlabel = add(inner, el("div", "caps", "font-size:" + tp.lfs + "px;color:var(--accent);margin-bottom:22px"));
-  tlabel.textContent = C.tipLabel;
-  S.tipText = add(inner, el("div", "display", "font-size:" + tp.fs + "px;line-height:" + tp.lh +
-    ";color:var(--ink);text-align:start"));
-  S.tipText.textContent = D.tip;
-  /* the real constraint is the card, not a line count: content box minus the label's row */
-  const tipW = cardW - 84 - 48;
-  const tipH = tp.h - 88 - (tp.lfs * 1.1 + 22);
-  fits("the one tip", S.tipText, tipW, Math.min(tipH, tp.fs * tp.lh * tp.lines), D.tip);
+  const tc = tipCard(beat, LAY.tip, D.tip);
+  S.tipCard = tc.card; S.tipText = tc.text;
 
   S.credit = creditLine(beat, LAY.credit);
 
   /* the end card */
+  const ew = endWrapper(beat, MODE === "overlay");
+  S.endCover = ew.cover; S.endGlow = ew.glow;
+  S.end = endCard(ew.wrap, LAY.end);
+}
+
+/* The before/after: a verdict told twice over the same look. The before's score, breakdown and tip, then the
+   after's photograph crossfades over the before's (a cut on the field), its score lands with the delta chip
+   under it, and "what changed" puts the three cells side by side as "7 → 8" with the pieces the stylist named
+   differently, in the app's own words. Every number comes from the app's JSON (lib/before-after.js). */
+function buildBeforeAfter() {
+  const beat = add(HOST, el("div", "beat", "display:block"));
+  S.beat = beat;
+  const A = D.before, B = D.after;
+
+  if (MODE === "photo") {
+    S.photo = add(beat, makePhoto(0, 0, 1080, 1920, 0, A._photoUrl, A._focus, true));
+    S.photoB = add(beat, makePhoto(0, 0, 1080, 1920, 0, B._photoUrl, B._focus, true));
+    S.photoB.style.opacity = "0";
+    S.dim = add(beat, el("div", "dim", "opacity:0"));
+  }
+
+  /* two pills, one per side, so each is centred for its own width */
+  S.pill = intentPill(beat, C.before + " · " + A.intent);
+  S.pillB = intentPill(beat, C.after + " · " + B.intent);
+  S.pillCentre = () => { S.pill._centre(); S.pillB._centre(); };
+
+  const hk = hookLine(beat, D.hook || C.baHook);
+  S.hook = hk.hook; S.hookPlate = hk.plate;
+  S.count = countNumeral(beat);
+
+  const rg = LAY.ring;
+  S.ring = add(beat, makeRing(rg.cx, rg.cy, rg.d, rg.sw, A.score, rg.fs, rg.dfs));
+  const hd = headlineBlock(beat, LAY.head, A.headline, A.occasion, "the before headline");
+  S.head = hd.head; S.headPlate = hd.plate; S.occ = hd.occ;
+  const bd = breakdownRow(beat, LAY.bd, [A.breakdown.fit, A.breakdown.color, A.breakdown.accessories], "the before breakdown");
+  S.bd = bd.row; S.bdPlate = bd.plate; S.bdCells = bd.cells;
+  const tc = tipCard(beat, LAY.tip, D.tip);
+  S.tipCard = tc.card; S.tipText = tc.text;
+
+  /* the after: its ring, the delta chip under it, its headline */
+  S.ringB = add(beat, makeRing(rg.cx, rg.cy, rg.d, rg.sw, B.score, rg.fs, rg.dfs));
+  const dc = LAY.delta;
+  const up = D.delta > 0;
+  S.delta = add(beat, el("div", "pill num", "height:" + dc.h + "px;padding:0 " + dc.pad + "px;font-size:" + dc.fs +
+    "px;left:0;top:" + dc.y + "px;letter-spacing:.04em;box-sizing:border-box;font-family:var(--font-display);font-weight:800;" +
+    (up ? "background:linear-gradient(135deg,#b39dff 0%,#ff8fb1 100%);color:var(--accent-ink)"
+        : "background:var(--plate);border:3px solid var(--ink-3);color:var(--ink-2)")));
+  S.delta.textContent = C.delta(D.delta);
+  S.deltaCentre = () => { S.delta.style.left = (SAFE_CX - S.delta.getBoundingClientRect().width / 2) + "px"; };
+  fitsLine("the delta chip", S.delta, SAFE_W, S.delta.textContent);
+  const hb = headlineBlock(beat, LAY.headB, B.headline, null, "the after headline");
+  S.headB = hb.head; S.headBPlate = hb.plate;
+
+  /* what changed: the kicker, the three cells as before → after, and the pieces in the app's wording */
+  const ch = LAY.changed;
+  if (ch.plate) S.changePlate = add(beat, el("div", "plate", "left:" + ch.plate.x + "px;top:" + ch.plate.y +
+    "px;width:" + ch.plate.w + "px;height:" + ch.plate.h + "px"));
+  S.changeKicker = centred(beat, "caps", ch.kicker.y, ch.kicker.fs, "color:var(--accent)");
+  setText(S.changeKicker, C.changed);
+  const arrow = (a, b) => a + " → " + b;
+  const cr = breakdownRow(beat, ch.row, [arrow(A.breakdown.fit, B.breakdown.fit), arrow(A.breakdown.color, B.breakdown.color),
+    arrow(A.breakdown.accessories, B.breakdown.accessories)], "the what-changed row");
+  S.changeRow = cr.row; S.changeCells = cr.cells;
+  const lines = (D.changeLines && D.changeLines.length ? D.changeLines : (D.changes || []).map(changeLine)).slice(0, ch.lines.lines);
+  S.changeLines = block(beat, "body", ch.lines.y, ch.lines.fs, ch.lines.w, ch.lines.lh, "color:var(--ink-2);font-weight:600;text-align:center");
+  S.changeLines.textContent = lines.length ? lines.join("\n") : C.same;
+  S.changeLines.style.whiteSpace = "pre-line";
+  fits("the what-changed lines", S.changeLines, ch.lines.w, ch.lines.fs * ch.lines.lh * ch.lines.lines, S.changeLines.textContent);
+  hug(S.changePlate, [S.changeKicker, S.changeRow, S.changeLines], 30, 30);
+
+  S.credit = creditLine(beat, LAY.credit);
   const ew = endWrapper(beat, MODE === "overlay");
   S.endCover = ew.cover; S.endGlow = ew.glow;
   S.end = endCard(ew.wrap, LAY.end);
@@ -741,6 +934,7 @@ window.__build = async function (data) {
 
   if (VARIANT === "verdict") buildVerdict();
   else if (VARIANT === "versus") buildVersus();
+  else if (VARIANT === "before-after") buildBeforeAfter();
   else buildBoard();
 
   await document.fonts.ready;
@@ -750,6 +944,7 @@ window.__build = async function (data) {
      fallback's size and a line that overflows would measure as if it did not */
   if (S.pillCentre) S.pillCentre();
   if (S.winCentre) S.winCentre();
+  if (S.deltaCentre) S.deltaCentre();
   hugs.forEach(fn => fn());
   hugs.length = 0;
   pending.forEach(fn => fn());
@@ -790,6 +985,19 @@ const BD = {
   pod:   [13.40, 15.80],
   end:   [15.80, 18.00]
 };
+/* The before/after: the verdict's first seven seconds, the tip on screen at second 8 as CONTENT.md promises,
+   then the swap, the second score with its delta, what changed, and the shared end card. */
+const BA = {
+  hook:   [0.00, 1.00],
+  count:  [1.00, 2.60],
+  scoreA: [2.60, 4.60],
+  bdA:    [4.60, 7.00],
+  tip:    [7.00, 9.40],
+  swap:   [9.40, 9.80],
+  scoreB: [9.80, 11.60],
+  change: [11.60, 14.00],
+  end:    [14.00, 17.00]
+};
 
 /* THE CHROMA RULE: nothing on the green field is ever half-way transparent. A white numeral at 50 %
    over #00B140 is a pale green numeral — the key eats it, or leaves a ghost. So in overlay mode every
@@ -804,6 +1012,24 @@ function fade(e, o) {
 function place(e, dx, dy, k) {
   if (!e) return;
   e.style.transform = "translate(" + r3(dx) + "px," + r3(dy) + "px)" + (k === undefined ? "" : " scale(" + r3(k) + ")");
+}
+
+/* The 3-2-1 count over `span`: in fast, out late, so the numeral stands at full strength for most of its
+   half-second — over a bright photograph a slow fade is a grey smudge for half the beat. Shared by every variant
+   that counts down. */
+function seekCount(t, span) {
+  const cw = (span[1] - span[0]) / 3;
+  let cn = "", co = 0, ck = 1;
+  if (t >= span[0] && t < span[1]) {
+    const i = Math.min(2, Math.floor((t - span[0]) / cw));
+    cn = String(3 - i);
+    const u = (t - span[0] - i * cw) / cw;
+    co = Math.min(eOut(clamp(u / 0.14, 0, 1)), 1 - eIn(clamp((u - 0.86) / 0.14, 0, 1)));
+    ck = lerp(1.5, 0.92, eOut(clamp(u / 0.55, 0, 1)));
+  }
+  setText(S.count, cn);
+  fade(S.count, co);
+  place(S.count, 0, 0, ck);
 }
 
 function seekVerdict(t) {
@@ -836,20 +1062,7 @@ function seekVerdict(t) {
   fade(S.hookPlate, hOut);
 
   /* the count: 3, 2, 1 over the look */
-  const cw = (V.count[1] - V.count[0]) / 3;
-  let cn = "", co = 0, ck = 1;
-  if (t >= V.count[0] && t < V.count[1]) {
-    const i = Math.min(2, Math.floor((t - V.count[0]) / cw));
-    cn = String(3 - i);
-    const u = (t - V.count[0] - i * cw) / cw;
-    /* in fast, out late: the numeral stands at full strength for most of its half-second, or over a
-       bright photograph it is a grey smudge for half the beat */
-    co = Math.min(eOut(clamp(u / 0.14, 0, 1)), 1 - eIn(clamp((u - 0.86) / 0.14, 0, 1)));
-    ck = lerp(1.5, 0.92, eOut(clamp(u / 0.55, 0, 1)));
-  }
-  setText(S.count, cn);
-  fade(S.count, co);
-  place(S.count, 0, 0, ck);
+  seekCount(t, V.count);
 
   /* the ring draws in the brand gradient and the score lands */
   const drawn = eOut4(p(t, V.score[0] + 0.05, V.score[0] + 0.80));
@@ -944,20 +1157,7 @@ function seekVersus(t) {
   place(S.qsub, 0, lerp(30, 0, sIn));
 
   /* the count */
-  const cw = (VS.count[1] - VS.count[0]) / 3;
-  let cn = "", co = 0, ck = 1;
-  if (t >= VS.count[0] && t < VS.count[1]) {
-    const i = Math.min(2, Math.floor((t - VS.count[0]) / cw));
-    cn = String(3 - i);
-    const u = (t - VS.count[0] - i * cw) / cw;
-    /* in fast, out late: the numeral stands at full strength for most of its half-second, or over a
-       bright photograph it is a grey smudge for half the beat */
-    co = Math.min(eOut(clamp(u / 0.14, 0, 1)), 1 - eIn(clamp((u - 0.86) / 0.14, 0, 1)));
-    ck = lerp(1.5, 0.92, eOut(clamp(u / 0.55, 0, 1)));
-  }
-  setText(S.count, cn);
-  fade(S.count, co);
-  place(S.count, 0, 0, ck);
+  seekCount(t, VS.count);
 
   /* both scores land, half a beat apart, then the winner */
   S.sides.forEach((s, i) => {
@@ -1089,16 +1289,149 @@ function endBeat(t, T0, isOv) {
   fade(S.end.plate, mk);
   fade(S.end.wm, wm);   place(S.end.wm, 0, lerp(26, 0, wm));
   fade(S.end.slog, sl); place(S.end.slog, 0, lerp(28, 0, sl));
+  /* the address settles from a slightly wider tracking onto its resting .08em, the same in both languages
+     because it is Latin type in both */
   fade(S.end.soon, so);
-  S.end.soon.style.letterSpacing = r3(RTL ? lerp(0.26, 0.12, so) : lerp(0.60, 0.34, so)) + "em";
+  S.end.soon.style.letterSpacing = r3(lerp(0.22, 0.08, so)) + "em";
   fade(S.end.age, ag * 0.9);
   fade(S.end.ask, as);  place(S.end.ask, 0, lerp(22, 0, as));
+}
+
+/* The before/after. The first seven seconds are the verdict's own beats over the before photograph; the tip is
+   on screen from 7.0 (the CONTENT.md promise is second 8). At the swap the after photograph crossfades over the
+   before (a cut on the field, by the chroma rule) while the pill changes side and the tip card leaves; the second
+   ring draws with the delta chip under it; then "what changed" takes the frame; then the end card. */
+function seekBeforeAfter(t) {
+  const isOv = MODE === "overlay";
+  const swap = p(t, BA.swap[0], BA.swap[1]);
+  if (S.photo) {
+    fade(S.photo, 1);
+    fade(S.photoB, swap);
+    /* the look steps back under the score and the breakdown, more under the tip card and the change block,
+       clears for the swap so the second photograph is seen clean, all the way under the end card */
+    const d0 = 0.34 * p(t, BA.count[0] - 0.20, BA.count[0] + 0.25);
+    const d1 = 0.46 * p(t, BA.tip[0] - 0.3, BA.tip[0] + 0.2) * (1 - p(t, BA.swap[0] - 0.3, BA.swap[0]));
+    const d2 = 0.34 * p(t, BA.scoreB[0] - 0.05, BA.scoreB[0] + 0.30);
+    const d3 = 0.46 * p(t, BA.change[0] - 0.3, BA.change[0] + 0.2);
+    const d4 = p(t, BA.end[0] - 0.45, BA.end[0] - 0.05);
+    fade(S.dim, Math.max(d0, d1, d2, d3, d4));
+  }
+
+  /* the before pill, full strength on frame 0, gone with the tip; the after pill from the swap to the end */
+  const pIn = eOut(p(t, 0, 0.30));
+  const pOut = 1 - p(t, BA.tip[0] - 0.2, BA.tip[0] + 0.1);
+  fade(S.pill, pOut);
+  place(S.pill, 0, lerp(-26, 0, pIn));
+  const pbIn = eOut(p(t, BA.swap[1] - 0.10, BA.swap[1] + 0.25));
+  /* on the field the pill heads the centred stack where the shrunk ring is about to sit, so there it leaves
+     with the change beat; over a photograph it is in the corner and stays to the end card */
+  const pbOut = (1 - p(t, BA.end[0] - 0.45, BA.end[0] - 0.10)) * (isOv ? 1 - eIn(p(t, BA.change[0], BA.change[0] + 0.30)) : 1);
+  fade(S.pillB, pbIn * pbOut);
+  place(S.pillB, 0, lerp(-26, 0, pbIn));
+
+  const hIn = eOut(p(t, 0, 0.36));
+  const hOut = 1 - eIn(p(t, BA.hook[1] - 0.18, BA.hook[1] + 0.06));
+  fade(S.hook, hOut);
+  place(S.hook, 0, lerp(34, 0, hIn) - 26 * (1 - hOut));
+  fade(S.hookPlate, hOut);
+
+  seekCount(t, BA.count);
+
+  /* the first ring: draws, lands, shrinks up for the tip card, leaves at the swap */
+  S.ring.draw(eOut4(p(t, BA.scoreA[0] + 0.05, BA.scoreA[0] + 0.80)));
+  const rIn = p(t, BA.scoreA[0], BA.scoreA[0] + 0.18);
+  const land = p(t, BA.scoreA[0] + 0.72, BA.scoreA[0] + 0.98);
+  fade(S.ring._val, land > 0 ? Math.min(1, land / 0.35) : 0);
+  S.ring._val.style.transform = "scale(" + r3(land <= 0 ? 0 : lerp(1.75, 1, kick(land))) + ")";
+  const move = eInOut(p(t, BA.tip[0] - 0.30, BA.tip[0] + 0.35));
+  const rt = LAY.ringTip;
+  const ringOut = 1 - eIn(p(t, BA.swap[0] - 0.30, BA.swap[0] + 0.05));
+  fade(S.ring, rIn * ringOut);
+  place(S.ring, lerp(0, rt.cx - LAY.ring.cx, move), lerp(0, rt.cy - LAY.ring.cy, move),
+    lerp(1.22, 1, eOut(rIn)) * lerp(1, rt.d / LAY.ring.d, move));
+  if (!isOv) {
+    const g = 1 - p(t, BA.scoreA[0] + 0.72, BA.scoreA[0] + 1.25);
+    S.ring.style.filter = g > 0.01 ? "drop-shadow(0 0 " + r3(90 * g) + "px rgba(179,157,255," + r3(0.5 * g) + "))" : "none";
+  }
+
+  /* the first headline and the occasion, then the first breakdown, both gone before the tip */
+  const hdIn = eOut(p(t, BA.scoreA[0] + 0.95, BA.scoreA[0] + 1.30));
+  const hdOut = 1 - eIn(p(t, BA.tip[0] - 0.32, BA.tip[0] - 0.02));
+  fade(S.head, hdIn * hdOut);
+  place(S.head, 0, lerp(30, 0, hdIn));
+  fade(S.headPlate, hdIn * hdOut);
+  if (S.occ) {
+    const oIn = eOut(p(t, BA.scoreA[0] + 1.15, BA.scoreA[0] + 1.48));
+    fade(S.occ, oIn * hdOut);
+    place(S.occ, 0, lerp(18, 0, oIn));
+  }
+  fade(S.bdPlate, eOut(p(t, BA.bdA[0], BA.bdA[0] + 0.22)) * hdOut);
+  S.bdCells.forEach((cell, i) => {
+    const a = BA.bdA[0] + 0.06 + i * 0.22;
+    const u = p(t, a, a + 0.26);
+    fade(cell, eOut(u) * hdOut);
+    cell.style.transform = "translateY(" + r3(lerp(26, 0, eOut(u))) + "px) scale(" +
+      r3(u <= 0 ? 0.8 : lerp(1.28, 1, kick(u))) + ")";
+  });
+
+  /* the one tip, the longest hold, leaving as the swap begins */
+  const tIn = eOut(p(t, BA.tip[0], BA.tip[0] + 0.34));
+  const tOut = 1 - eIn(p(t, BA.swap[0] - 0.34, BA.swap[0] + 0.02));
+  fade(S.tipCard, tIn * tOut);
+  place(S.tipCard, 0, lerp(46, 0, tIn), lerp(0.97, 1, tIn));
+
+  /* the second ring, the delta chip under it, the second headline */
+  S.ringB.draw(eOut4(p(t, BA.scoreB[0] + 0.05, BA.scoreB[0] + 0.80)));
+  const rbIn = p(t, BA.scoreB[0], BA.scoreB[0] + 0.18);
+  const landB = p(t, BA.scoreB[0] + 0.72, BA.scoreB[0] + 0.98);
+  const endOut = 1 - eIn(p(t, BA.end[0] - 0.40, BA.end[0] - 0.05));
+  fade(S.ringB._val, landB > 0 ? Math.min(1, landB / 0.35) : 0);
+  S.ringB._val.style.transform = "scale(" + r3(landB <= 0 ? 0 : lerp(1.75, 1, kick(landB))) + ")";
+  /* through the change beat the second ring shrinks up to ringTip and the chip rides under it, so the
+     change block gets the frame — the verdict's own move for the tip card */
+  const moveB = eInOut(p(t, BA.change[0], BA.change[0] + 0.55));
+  fade(S.ringB, rbIn * endOut);
+  place(S.ringB, lerp(0, rt.cx - LAY.ring.cx, moveB), lerp(0, rt.cy - LAY.ring.cy, moveB),
+    lerp(1.22, 1, eOut(rbIn)) * lerp(1, rt.d / LAY.ring.d, moveB));
+  if (!isOv) {
+    const g = 1 - p(t, BA.scoreB[0] + 0.72, BA.scoreB[0] + 1.25);
+    S.ringB.style.filter = g > 0.01 ? "drop-shadow(0 0 " + r3(90 * g) + "px rgba(179,157,255," + r3(0.5 * g) + "))" : "none";
+  }
+  const dIn = p(t, BA.scoreB[0] + 1.00, BA.scoreB[0] + 1.35);
+  fade(S.delta, (dIn > 0 ? 1 : 0) * endOut);
+  place(S.delta, 0, lerp(0, LAY.deltaTip.y - LAY.delta.y, moveB), dIn <= 0 ? 0 : lerp(1.6, 1, kick(dIn)));
+  const hbIn = eOut(p(t, BA.scoreB[0] + 0.95, BA.scoreB[0] + 1.30));
+  const hbOut = 1 - eIn(p(t, BA.change[0] + 0.05, BA.change[0] + 0.40));
+  fade(S.headB, hbIn * hbOut);
+  place(S.headB, 0, lerp(30, 0, hbIn));
+  fade(S.headBPlate, hbIn * hbOut);
+
+  /* what changed: the kicker, the three cells one at a time, the lines — once the ring has made room */
+  const kIn = eOut(p(t, BA.change[0] + 0.35, BA.change[0] + 0.65));
+  fade(S.changePlate, kIn * endOut);
+  fade(S.changeKicker, kIn * endOut);
+  place(S.changeKicker, 0, lerp(-18, 0, kIn));
+  S.changeCells.forEach((cell, i) => {
+    const a = BA.change[0] + 0.50 + i * 0.22;
+    const u = p(t, a, a + 0.26);
+    fade(cell, eOut(u) * endOut);
+    cell.style.transform = "translateY(" + r3(lerp(26, 0, eOut(u))) + "px) scale(" +
+      r3(u <= 0 ? 0.8 : lerp(1.28, 1, kick(u))) + ")";
+  });
+  const lIn = eOut(p(t, BA.change[0] + 1.10, BA.change[0] + 1.45));
+  fade(S.changeLines, lIn * endOut);
+  place(S.changeLines, 0, lerp(22, 0, lIn));
+
+  if (S.credit) fade(S.credit, eOut(p(t, 0.5, 0.9)) * (1 - p(t, BA.end[0] - 0.45, BA.end[0] - 0.1)));
+
+  endBeat(t, BA.end[0], isOv);
 }
 
 function seek(t) {
   t = clamp(t, 0, DURATION);
   if (VARIANT === "verdict") seekVerdict(t);
   else if (VARIANT === "versus") seekVersus(t);
+  else if (VARIANT === "before-after") seekBeforeAfter(t);
   else seekBoard(t);
 }
 

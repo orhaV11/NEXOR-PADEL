@@ -13,14 +13,17 @@ The voice is `MARKETING.md`: young, chic, lit. Short lines. No exclamation marks
 Never a word about a body, a face, skin, age or gender — not in a caption, not on screen, not in a reply, not even
 as a compliment.
 
-**The app is not live yet.** Every call to action in here ends in a follow or in *coming soon*. Never a link that
-does not work, and never a claim about the app that is not in `README.md`.
+**The app is live at orevosh.com.** Every call to action ends in the address: on screen `orevosh.com`; wherever a
+link can be tapped — the bio, a story's link sticker, a DM reply — `https://orevosh.com/go/<source>` (`tiktok`,
+`instagram`, `story`, `dm`), so the numbers page can say which surface sent whom. Pinned comments are not tappable
+on TikTok, so they carry the bare address. Never a link that does not work, and never a claim about the app that is
+not in `README.md`.
 
 **Where the files come from**
 
 | folder | what it holds |
 |---|---|
-| `brand-kit/episodes/` | the episode renderer: variants `verdict`, `versus`, `board`, and `overlay` (the chroma-key layer you film against) |
+| `brand-kit/episodes/` | the episode renderer: variants `verdict`, `versus`, `board`, `overlay` (the chroma-key layer you film against) and `before-after` (two of the app's own checks, never retyped) |
 | `brand-kit/social/` | the account material: avatar, bio, profile grid, pinned-post art |
 | `brand-kit/stories/` | 1080×1920 story templates, English and Hebrew |
 | `brand-kit/covers/` | profile headers and the link-preview cards |
@@ -341,7 +344,7 @@ section — which you have to read anyway — into a production line.
 
 ---
 
-## 5. The five repeatable formats
+## 5. The six repeatable formats
 
 Each one gives you: what it is, which renderer variant or brand-kit file makes it, the shot list in two lines, the
 on-screen English copy ready to type, the hook, and the engagement mechanic.
@@ -386,8 +389,8 @@ then key it in.
 6.0s   [n]/10
 7.0s   [headline, four to six words]
 8.0s   ONE TIP: [one sentence, one change]
-11.0s  Follow. One verdict a day.
-12.0s  Face reveal at 50K
+11.0s  Check yours. orevosh.com
+12.0s  Follow. Face reveal at 50K
 ```
 
 **The hook.** At 0.0 s your hand is already in frame and the words *Your look. My number.* are already on screen.
@@ -410,7 +413,7 @@ breakdown, the tip. This is the format that saves you on a day with no light, no
 **Shot list, two lines.**
 1. Pick the photo and the intent, fill the five copy fields (score, headline, three sub-scores, tip), run the
    renderer.
-2. Check the crop keeps the shoes, and the end card carries the follow line and the reveal number.
+2. Check the crop keeps the shoes, and the end card carries the address, the follow line and the reveal number.
 
 **On-screen copy — worked, `look-2-camel.jpg`.**
 
@@ -422,7 +425,8 @@ breakdown, the tip. This is the format that saves you on a day with no light, no
 6.0s   Camel and chocolate, done right
 8.0s   ONE TIP: Swap the black tights for sheer brown and the column runs unbroken.
 11.0s  For coffee and a walk.
-12.0s  Follow. Face reveal at 50K
+12.0s  orevosh.com (the renderer's end card prints it)
+13.0s  Follow. Face reveal at 50K
 ```
 
 **Worked, `look-1-streetwear.jpg`:** STREETWEAR · FIT 8 COLOR 8 ACCESSORIES 7 · 8/10 · *All grey, and it holds* ·
@@ -467,7 +471,7 @@ Day 2 (the answer)
 4.0s   FIT [n]   COLOR [n]   ACCESSORIES [n]
 6.0s   [n]/10
 8.0s   ONE TIP: [one sentence]
-11.0s  Send me your two. DMs open.
+11.0s  Send me your two. DMs open. orevosh.com
 ```
 
 **The hook.** Both looks are on screen at 0.0 s with a huge **A** and **B** over them. No preamble. The question is
@@ -513,10 +517,11 @@ roughly when it comes, which is the cheapest way to hold someone for fifteen sec
 **The mechanic.** *Send yours. Next week is open.* — the board is the engine of the submission supply in 4.2, because
 it gives people a place to land.
 
-**Post it on Sunday**, and be accurate about what it is. Right now it is **your** board, not the app's. The app has
-a weekly flames board — five top tens ranked by the fires a look caught, closing Saturday midnight Israel time into
-a hall of flame — and once the app is live, Sunday's board post can be the app's real one. Until then the video
-says *my week*, and it never implies these scores came out of the app.
+**Post it on Sunday**, and be accurate about what it is. The app has a weekly flames board — five top tens ranked by
+the fires a look caught, closing Saturday midnight Israel time into a hall of flame — and Sunday's board post may be
+the app's real week **when the scores in it came out of the app** (the board page, or the export of the accounts
+that posted them). When they did not — five looks you scored yourself — the video says *my week*, and it never
+implies those scores came out of the app.
 
 ---
 
@@ -553,7 +558,7 @@ so the recording has no address bar and no staging URL in it.
 4.0s   The stylist scores it out of 10.
 6.0s   Fit. Color. Accessories.
 8.0s   ONE TIP: [the tip the app actually gave]
-11.0s  OREVOSH. Coming soon.
+11.0s  OREVOSH. orevosh.com
 12.0s  Follow. Face reveal at 50K
 ```
 
@@ -570,6 +575,53 @@ a closet; the stylist writes in English, Hebrew, Arabic or Russian; looks can be
 weekly flames board that closes Saturday midnight Israel time; fire is the only reaction. What is **not** built, and
 must never be implied: blocking or muting another person, direct messages, buying anything in the app. And if the
 app did not produce a score, never put the app's name next to it.
+
+---
+
+### Format 6 — Before and after (no filming)
+
+**What it is.** The same look twice: the score, the one tip, the new score after the tip was taken, and what
+changed. It is the one format that shows the product doing the thing it is for — a tip that moved a number — and it
+needs no camera, no mask and no wall.
+
+**Made with.** `brand-kit/episodes/`, variant **`before-after`**. It is fed by the app's own JSON and never by retyped
+numbers: the two checks (the export from Settings → *Download your data*, or the two `/api/checks/<id>` answers saved
+from a signed-in tab), the two photos (`/api/checks/<id>/image`), and the pair the app wrote when the second check was
+linked to the first. `node tools/brand/render-episode.js --list-checks <export.json>` prints the scored checks with
+their ids; `brand-kit/episodes/README.md` has the file.
+
+**Shot list, two lines.**
+1. Export the two checks (or save the two answers), drop the two photos next to the JSON, write the two ids.
+2. Run the renderer. It refuses a pair the app would refuse — the same check twice, an after older than its before,
+   a side with no verdict — and it stops on any line that does not fit.
+
+**On-screen copy — worked, `006-before-after-sample.json` (a layout sample: one photograph on both sides).**
+
+```
+0.0s   BEFORE · DATE
+0.0s   Same look. One tip.
+3.4s   8/10
+3.6s   Camel and chocolate, one break
+5.0s   FIT 8   COLOR 9   ACCESSORIES 7
+8.0s   ONE TIP: Swap the black tights for sheer brown and the column runs unbroken.
+9.6s   AFTER · DATE
+10.6s  9/10   +1
+11.0s  Camel and chocolate, done right
+12.4s  WHAT CHANGED   8 → 9   9 → 9   7 → 8
+13.0s  other: Black tights → Sheer brown tights
+14.0s  orevosh.com
+```
+
+**The hook.** *Same look. One tip.* over the before photograph on frame 0, with the score six seconds away, and the
+after photograph is the second question: what did one change do.
+
+**The mechanic.** Pinned comment: **"It went from [a] to [b]. One tip. What would you have changed."** Answer the
+best three with a heart.
+
+**The rule.** Both scores, the tip and the change lines are the app's own, straight from its JSON — the renderer
+takes nothing else for this variant — and the second check was scored on its own, never told it was an attempt at
+the first (`README.md`, "I tried it"). A before-and-after that is not two real checks is exactly the invented one
+section 9 forbids; the sample in the folder uses one photograph twice and is never posted.
 
 ---
 
@@ -593,10 +645,12 @@ check on. The promise works for a year; the reveal works for a day.
 **The wording, and where it goes.**
 
 - **Bio, its own line:** `Face reveal at 50K` — and above it, `Masked stylist. One look, one number, one tip.` and
-  `Send your look in the DMs.` The bio material is in `brand-kit/social/`.
-- **End card of every video, one second:** `Face reveal at 50K`.
-- **Pinned comment on every post:** `Face reveal at 50K. Currently [x].` Update the number weekly, not daily — the
-  jump reads bigger.
+  `Send your look in the DMs.` The bio's link field is `https://orevosh.com/go/tiktok` on TikTok and
+  `https://orevosh.com/go/instagram` on Instagram — the platform's own `/go/` link, never the bare address there,
+  so the numbers page can tell the two apart. The bio material is in `brand-kit/social/`.
+- **End card of every video, one second:** `orevosh.com · Face reveal at 50K`.
+- **Pinned comment on every post:** `Face reveal at 50K. Currently [x]. Check yours at orevosh.com` Update the
+  number weekly, not daily — the jump reads bigger.
 - **Every 10K, one post about it**, and nothing more often than that: the number on the stage, the mask, no verdict.
   Ten seconds. It is a milestone, not a format.
 
@@ -634,6 +688,7 @@ rushed ones, and the format only compounds if it is the same format each time.
 | **Wednesday** | Duet verdict | yes, mask on |
 | **Friday** | "Which one" (variant `versus`) | none, or a short top-and-tail |
 | **floating** | A second duet, or the app check (format 5) | depends |
+| **floating** | Before and after (variant `before-after`, format 6) | none — two of the app's own checks |
 
 **Week 1 has no board**, because there is no week behind it yet. Put a second solo verdict episode in Sunday's slot
 until you have five looks you have scored, which is the end of week 2. The board starts on the third Sunday and then
@@ -716,7 +771,7 @@ In order. Format, file, and the first line on screen.
 
 Post 1 is pinned until post 9 exists, because it is the one that explains the account in five words. Set up the
 profile before post 1: avatar and bio from `brand-kit/social/`, header from `brand-kit/covers/`, the bio's third
-line `Face reveal at 50K`.
+line `Face reveal at 50K`, and the bio's link field `https://orevosh.com/go/tiktok` (`/go/instagram` on Instagram).
 
 Posts 1, 2, 4 and 5 need no filming and no mask, so the account can be four posts deep before you stand in front of
 a camera once. That is deliberate: it gets the account alive while you are still practising.
@@ -738,7 +793,8 @@ a camera once. That is deliberate: it gets the account alive while you are still
 - **Nothing about anyone's body, face, skin, age or gender.** Not as criticism, not as a compliment, not as a joke.
   This is the one that ends accounts, and it is the one the app itself forbids.
 - **No prices and no brands you cannot see** on someone else's look.
-- **No link that does not work.** The app is not live. Every ending is a follow or *coming soon*.
+- **No link that does not work.** The app is live at orevosh.com: every ending carries the address, and the only
+  links are the `/go/<source>` ones from section 0 — nothing else, until it exists.
 - **No exclamation marks, no hype words, no emoji strings.** The voice is short lines and numbers.
 - **Do not move the reveal number.** Not up, not down.
 - **Do not argue in the comments.** The character does not speak. A heart, or nothing.
@@ -854,7 +910,7 @@ a camera once. That is deliberate: it gets the account alive while you are still
 **לוק מתגובה כסרטון הבא.** הלולאה הכי זולה שיש: מישהו מגיב, עונים "תשלח", הוא שולח, והלוק שלו הוא הסרטון של מחר.
 עונים בתגובת וידאו — התגובה שלו הופכת לפריים הפותח, וזה הוק שלא היית צריך לכתוב.
 
-### חמשת הפורמטים
+### ששת הפורמטים
 
 הטקסט על המסך תמיד באנגלית (הנוסחים המלאים בפרק 5). **הטיפ נוחת בשנייה 8 בכל פורמט**, כדי שאפשר יהיה לקרוא את גרף
 הצפייה בדיוק בנקודה הזאת.
@@ -873,12 +929,17 @@ a camera once. That is deliberate: it gets the account alive while you are still
    **באפליקציה המותקנת** (מסך מלא, בלי שורת כתובת). **מה חייב להישאר מחוץ לפריים:** בדיקה של מישהו אחר (בדיקות הן
    פרטיות), כל יוזר או שם או אווטאר שאינם שלך, פנים של אדם אחר, מייל, טלפון, כתובת האתר, התראות, ומסכי הניהול
    והמדדים.
+6. **לפני ואחרי** — וריאנט `before-after`, בלי צילום. אותו לוק פעמיים: הציון, הטיפ האחד, הציון החדש אחרי שהטיפ
+   יושם, ומה השתנה. המספרים מגיעים רק מה־JSON של האפליקציה (הייצוא מההגדרות, או שתי הבדיקות שנשמרו מ־
+   `/api/checks/<id>`) ואף פעם לא מוקלדים מחדש; הבדיקה השנייה נשפטה לגופה. תגובה נעוצה: "עלה מ־[a] ל־[b]. טיפ
+   אחד. מה אתם הייתם משנים." לפני־ואחרי שאינו שתי בדיקות אמיתיות הוא בדיוק המומצא שאסור.
 
 **מה שאומרים על האפליקציה חייב להיות נכון.** קיים היום: הבדיקה פרטית עד שמפרסמים; הבדיקה הראשונה בלי חשבון, לוק אחד
 חינם כאורח; חשבון חינם מקבל כמה בדיקות ביום ו־Pro מעלה את התקרה; הסטייליסט כותב באנגלית, עברית, ערבית ורוסית; אפשר
 למצוא לוק לפי הפריטים שבו; יש לוח להבות שבועי; אש היא התגובה היחידה. **לא קיים ואסור לרמוז:** חסימה או השתקה של
-משתמש, הודעות פרטיות, ורכישה כלשהי בתוך האפליקציה. **האפליקציה עוד לא באוויר**, אז כל סיום הוא עוקב או "בקרוב",
-אף פעם לא לינק.
+משתמש, הודעות פרטיות, ורכישה כלשהי בתוך האפליקציה. **האפליקציה באוויר ב־orevosh.com**: כל סיום נושא את
+הכתובת, ובכל מקום שאפשר להקליק (ביו, סטיקר לינק בסטורי, תשובה ב־DM) הלינק הוא `https://orevosh.com/go/<source>`
+(`tiktok`, `instagram`, `story`, `dm`). אף פעם לא לינק שלא עובד.
 
 ### חשיפת הפנים
 

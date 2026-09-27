@@ -1,0 +1,74 @@
+{
+  "exportedAt": "2026-09-27T08:00:00Z",
+  "account": { "handle": "or", "name": "Or", "accountType": "Person", "language": "en", "createdAt": "2026-09-01T09:00:00Z", "plan": "pro", "proUntil": "2026-10-27T08:00:00Z" },
+  "checks": [
+    {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "createdAt": "2026-09-21T09:00:00Z",
+      "intent": "Casual",
+      "status": "not_outfit",
+      "items": []
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "createdAt": "2026-09-20T18:30:00Z",
+      "intent": "Office",
+      "note": "after work drinks",
+      "score": 8,
+      "headline": "Same look, the shoes fixed",
+      "tip": "Keep it. One thin gold chain and it is finished.",
+      "breakdown": { "fit": 7, "color": 8, "accessories": 6 },
+      "items": [
+        { "name": "White tee", "category": "top" },
+        { "name": "Dark jeans", "category": "bottom" },
+        { "name": "White leather sneakers", "category": "shoes" }
+      ],
+      "status": "ok",
+      "occasion": "Office",
+      "tipKind": "keep"
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "createdAt": "2026-09-20T10:00:00Z",
+      "intent": "Office",
+      "note": "after work drinks",
+      "score": 7,
+      "headline": "Clean casual with one weak link",
+      "tip": "Swap the running shoes for plain white leather sneakers.",
+      "breakdown": { "fit": 7, "color": 8, "accessories": 4 },
+      "items": [
+        { "name": "White tee", "category": "top" },
+        { "name": "Dark jeans", "category": "bottom" },
+        { "name": "Running shoes", "category": "shoes" }
+      ],
+      "status": "ok",
+      "useful": true,
+      "usefulAt": "2026-09-20T12:00:00Z",
+      "usefulReason": "worked",
+      "occasion": "Office",
+      "tipKind": "change"
+    },
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "createdAt": "2026-09-02T10:00:00Z",
+      "intent": "Date",
+      "score": 6,
+      "headline": "Scored before the breakdown existed",
+      "tip": "Cuff the hem once so the sneakers read.",
+      "items": [
+        { "name": "Grey hoodie", "category": "top" }
+      ],
+      "status": "ok",
+      "occasion": "Date",
+      "tipKind": "change"
+    }
+  ],
+  "posts": [],
+  "comments": [],
+  "follows": [],
+  "followers": [],
+  "comparisons": [],
+  "blocks": [],
+  "notifications": [],
+  "wardrobe": []
+}

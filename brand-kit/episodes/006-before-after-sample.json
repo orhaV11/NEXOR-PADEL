@@ -1,0 +1,37 @@
+{
+  "variant": "before-after",
+  "lang": "en",
+  "before": {
+    "photo": "../../tools/brand/templates/photos/look-2-camel.jpg",
+    "id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "createdAt": "2026-09-20T10:00:00Z",
+    "intent": "Date",
+    "score": 8,
+    "headline": "Camel and chocolate, one break",
+    "occasion": "coffee and a walk",
+    "breakdown": { "fit": 8, "color": 9, "accessories": 7 },
+    "items": [
+      { "name": "Camel coat", "category": "outerwear" },
+      { "name": "Chocolate knit", "category": "top" },
+      { "name": "Black tights", "category": "other" },
+      { "name": "Black ankle boots", "category": "shoes" }
+    ]
+  },
+  "after": {
+    "photo": "../../tools/brand/templates/photos/look-2-camel.jpg",
+    "id": "aaaaaaaa-0000-4000-8000-000000000002",
+    "createdAt": "2026-09-20T18:30:00Z",
+    "intent": "Date",
+    "score": 9,
+    "headline": "Camel and chocolate, done right",
+    "occasion": "coffee and a walk",
+    "breakdown": { "fit": 9, "color": 9, "accessories": 8 },
+    "items": [
+      { "name": "Camel coat", "category": "outerwear" },
+      { "name": "Chocolate knit", "category": "top" },
+      { "name": "Sheer brown tights", "category": "other" },
+      { "name": "Chocolate loafers", "category": "shoes" }
+    ]
+  },
+  "tip": "Swap the black tights for sheer brown and the column runs unbroken."
+}

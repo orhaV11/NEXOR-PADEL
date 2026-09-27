@@ -54,11 +54,12 @@ carousel (square or 4:5 stills). The story templates are `story-1-check-the-look
 
 The account that carries these posts is the masked silent judge, and its operating manual is
 [`CONTENT.md`](CONTENT.md): the character and the mask, the gesture vocabulary, Duet and Stitch as the supply of
-other people's looks, the five repeatable formats with their on-screen copy, the face reveal, the first four weeks
+other people's looks, the six repeatable formats with their on-screen copy, the face reveal, the first four weeks
 and the ten first posts, in English and Hebrew. **Where the table below disagrees with `CONTENT.md`, `CONTENT.md`
 wins**: it was written for the account that actually launches, and the table predates it — several of its reels are
-described as filmed when the renderer now makes them, and its captions still say "Link in bio" for an app that is
-not live yet.
+described as filmed when the renderer now makes them, and its captions say "Link in bio": that link is
+`https://orevosh.com/go/tiktok` on TikTok and `https://orevosh.com/go/instagram` on Instagram (`CONTENT.md`, the
+address rule; the numbers page then says which surface sent whom).
 
 | # | format | what | template | caption |
 |---|---|---|---|---|
@@ -82,7 +83,9 @@ Two more once the first week has closed, in the same voice:
 
 Rhythm: one a day for the first ten days, stories on top as they come from users (repost every story card that tags
 the account, with the fire count). Every reel ends on the wordmark on the stage for one second; every caption's last
-line is the CTA (Link in bio / לינק בביו). Hebrew versions of every post go out the same day on the same account.
+line is the CTA (Link in bio / לינק בביו — the bio link is the platform's `/go/` link, `https://orevosh.com/go/tiktok`
+or `/go/instagram`; on screen, the bare `orevosh.com`). Hebrew versions of every post go out the same day on the
+same account.
 From the second week on, Sunday's post is the hall: the top three looks of the week that closed, with their medals.
 
 ## A four-week launch, one narrow community
@@ -90,8 +93,10 @@ From the second week on, Sunday's post is the hall: the top three looks of the w
 Pick one community small enough to see itself in the feed and close enough to reach in person: one campus, one
 fashion or design school, one city's streetwear scene. The plan below says "the campus"; swap the word.
 
-**Week 0 (prep).** Production up (`DEPLOY.md`), the domain in the OG tags and the landing page, a calibration run on
-30 real photos (`scripts/calibrate.py`) so the scores spread and nothing in the feedback breaks rule 1. Ten seed looks
+**Week 0 (prep).** Production up (`DEPLOY.md`); the domain is `orevosh.com`, written into the OG tags and the landing
+pages by `tools/deploy/fly-deploy.ps1` at every deploy; a calibration run on 30 real photos (`scripts/calibrate.py`,
+or `tools\eval\calibrate.ps1` from Windows for the steadiness pass) so the scores spread and nothing in the feedback
+breaks rule 1. Ten seed looks
 posted by the team from real outfits, every one with its pieces tagged (the brand and the model at least; a store link
 only where there is a real one), three brand accounts (small labels the campus wears, contacted with a two-line
 message and the brand story template, verified with `--verify` once you have spoken to them), one challenge opened

@@ -8,7 +8,7 @@ Every episode is **silent** and **wordless**. Nothing is spoken, in any language
 screen. That is the point: the same file works for somebody scrolling in Tel Aviv, in São Paulo and in
 Bangkok without changing a single frame.
 
-There are four kinds:
+There are five kinds:
 
 | variant | how long | what it is |
 |---|---|---|
@@ -16,6 +16,7 @@ There are four kinds:
 | `versus` | 15 s | Two looks side by side. "Which one?" — built to start an argument in the comments |
 | `board` | 18 s | The weekly post. Three looks counting down 3, 2, 1, the winner takes the medal |
 | `overlay` | 15 s | **The green-screen one.** The same beats as `verdict`, but only the graphics, on a flat green field, so you can lay them over a clip you filmed yourself |
+| `before-after` | 17 s | The same look twice: the score, the one tip, the new score, what changed — from the app's own JSON, never retyped |
 
 ---
 
@@ -64,6 +65,9 @@ node tools/brand/render-episode.js 001-camel.json --overlay
 
 # a few single seconds as still pictures, to check something without waiting for a video
 node tools/brand/render-episode.js 001-camel.json --probe 0.5,3.9,9,13.5
+
+# the scored checks in a Settings export, newest first, with their ids (for a before-after episode)
+node tools/brand/render-episode.js --list-checks ~/Downloads/orevosh-or-20260927.json
 ```
 
 You can write just the file name — `001-camel.json` — and it will find it in this folder.
@@ -102,7 +106,7 @@ Field by field:
 
 | field | needed? | what it is |
 |---|---|---|
-| `variant` | yes | `verdict`, `versus`, `board` or `overlay` |
+| `variant` | yes | `verdict`, `versus`, `board`, `overlay` or `before-after` |
 | `lang` | no | `en` (the default) or `he`. Hebrew lays the whole video out right to left, in Heebo |
 | `photo` | yes, except for `overlay` | Where the picture is, **counted from this file**. `../../tools/brand/templates/photos/…` reaches the three supplied looks |
 | `focus` | no | Which part of a photo to keep if it has to be cropped: `{"x": 0.5, "y": 0.35}`, both between 0 and 1. `0.5, 0.5` (the middle) is the default; a smaller `y` keeps more of the top |
@@ -154,6 +158,47 @@ medal goes to the first one you wrote. `headline` is optional here.
 ### `overlay` needs no photo at all
 
 Exactly the fields of a `verdict` minus `photo`, because there is no picture in it — see `005-camel-overlay.json`.
+
+### `before-after` takes two checks from the app
+
+The one variant you do not type numbers into. It shows the same look twice — the score and the one tip, then the
+score after the tip was taken, with a `+1` chip and a *what changed* row — and every number in it is read from the
+app's own JSON, so it can never say something the app did not:
+
+```json
+{
+  "variant": "before-after",
+  "lang": "en",
+  "export": "../../looks/orevosh-or-20260927.json",
+  "before": { "photo": "../../looks/before.jpg", "id": "6f1c…" },
+  "after":  { "photo": "../../looks/after.jpg",  "id": "a94e…" },
+  "pair": "../../looks/pair.json"
+}
+```
+
+| field | needed? | what it is |
+|---|---|---|
+| `export` | one of the two ways | The file **Settings → Download your data** saves (`orevosh-<handle>-<date>.json`). `before.id` and `after.id` are then two ids from it |
+| `before.check`, `after.check` | the other way | A saved answer of `https://orevosh.com/api/checks/<id>` (open it in a signed-in browser tab and save the page); no `export` needed then |
+| `before.photo`, `after.photo` | yes | The two photographs, counted from this file. `https://orevosh.com/api/checks/<id>/image` in the same signed-in tab is the photo of a private check; save it |
+| `pair` | no | The pair the app wrote when the second check was linked to the first: the answer of *Try the tip, then show me*, or one item of `https://orevosh.com/api/users/me/tried`. When given, its ids must be these two |
+| `tip` | no | The tip that was tried. The default is the **before** check's one tip |
+| `changes` | no | The *what changed* lines by hand, `[{"category": "shoes", "from": "…", "to": "…"}]`. The default is computed from the two checks' pieces exactly as the app computes it |
+| `before.headline` etc. | no | Any of `intent`, `score`, `headline`, `occasion`, `breakdown` typed inline wins over the file — to shorten a headline that does not fit, never to move a number |
+| `focus`, `credit`, `hook`, `ask`, `cover_at` | no | As for `verdict` |
+
+The two ids come off `node tools/brand/render-episode.js --list-checks <export.json>`, which prints every scored
+check in the export, newest first, with its date, intent, score, headline and id.
+
+It refuses what the app refuses, with a message that names the file and the id: the same check on both sides, an
+after that is older than its before, a side with no verdict, a pair that is of two other checks, and a check that
+was scored before the breakdown existed (an early one; pick a newer check or type the three numbers). The intent
+pill says the app's own word for the intent in the episode's language (`intent.<Name>` in the app's i18n), so
+`OldMoney` reads OLD MONEY and, in Hebrew, `Formal` reads as the app says it.
+
+`006-before-after-sample.json` is a **layout sample**: the camel look on both sides, with the shipped camel copy
+moved from 8 to 9. It shows the beats and nothing else — one photograph twice is not a before and after, and
+posting it would break the rule in `CONTENT.md` §9. A real one is two real checks.
 
 ---
 
@@ -243,11 +288,12 @@ frame, so CapCut is sampling a colour from the black bars instead of from the gr
 
 | file | what | the video |
 |---|---|---|
-| `001-camel.json` → `001-camel.mp4`, `001-camel-cover.png` | `verdict`, English, the camel coat | 15.00 s · 1.39 MB |
-| `002-streetwear-he.json` → `002-streetwear-he.mp4`, `…-cover.png` | `verdict`, **Hebrew**, right to left, the grey streetwear | 15.00 s · 1.29 MB |
-| `003-streetwear-vs-pink.json` → `003-streetwear-vs-pink.mp4`, `…-cover.png` | `versus`, grey streetwear against the pink suit — a tie | 15.00 s · 1.14 MB |
-| `004-week-board.json` → `004-week-board.mp4`, `…-cover.png` | `board`, all three looks | 18.00 s · 2.46 MB |
-| `005-camel-overlay.json` → `005-camel-overlay.mp4`, `…-cover.png` | `overlay`, the green-screen version of 001 | 15.00 s · 0.23 MB |
+| `001-camel.json` → `001-camel.mp4`, `001-camel-cover.png` | `verdict`, English, the camel coat | 15.00 s · 1.44 MB |
+| `002-streetwear-he.json` → `002-streetwear-he.mp4`, `…-cover.png` | `verdict`, **Hebrew**, right to left, the grey streetwear | 15.00 s · 1.36 MB |
+| `003-streetwear-vs-pink.json` → `003-streetwear-vs-pink.mp4`, `…-cover.png` | `versus`, grey streetwear against the pink suit — a tie | 15.00 s · 1.30 MB |
+| `004-week-board.json` → `004-week-board.mp4`, `…-cover.png` | `board`, all three looks | 18.00 s · 2.92 MB |
+| `005-camel-overlay.json` → `005-camel-overlay.mp4`, `…-cover.png` | `overlay`, the green-screen version of 001 | 15.00 s · 0.21 MB |
+| `006-before-after-sample.json` → `006-before-after-sample.mp4`, `…-cover.png` | `before-after`, **a layout sample**: the camel look on both sides, 8 → 9. Never posted | 17.00 s · 2.07 MB |
 
 Every video is 1080×1920, h264, yuv420p, 30 fps, **no audio track at all**, and well under 8 MB. The
 green in `005` measures rgb(0, 176, 64) at every point of the empty field, at every second of the cut —
@@ -267,9 +313,10 @@ is 2:3, so 864 of its 1024 columns are used: the full height stays — white cap
 sneakers — and only empty concrete comes off the sides. Nothing in these five loses a garment. The
 command prints what each crop kept, every run, so you will see it if a new photograph does.
 
-**The end card** is the wordmark, the slogan, *coming soon*, 16+ and the question — the same end card
-the launch teaser in `brand-kit/teaser/brand` uses, so two OREVOSH videos end the same way. The mark is
-in it: it is the first glyph of the wordmark.
+**The end card** is the wordmark, the slogan, the address — `orevosh.com`, lower case and left to right in both
+languages, the thing a viewer types — 16+ and the question. It was *coming soon* until the app went live; every
+file here was re-rendered once so it carries the address (the two hand-cut teasers in `brand-kit/teaser/` still say
+*coming soon* and are a follow-up). The mark is in it: it is the first glyph of the wordmark.
 
 The three photographs are the owner's, used with permission, and live in
 `tools/brand/templates/photos/`. The scores, headlines, occasions and tips beside them are the stylist
@@ -291,6 +338,15 @@ The renderer is `tools/brand/render-episode.js`; the page it photographs is
 Heebo from the local OFL copies in `tools/brand/templates/fonts`, the colours are the tokens of
 `DESIGN.md` §1, and **nothing touches the network** — the fonts and the photographs are local files, so
 a render works with the cable pulled out.
+
+**The before/after converter** is `tools/brand/lib/before-after.js`, a pure module the renderer requires: it reads
+the app's three JSON shapes (a `CheckDto`, a row of the export, a side of a pair) into one, computes *what changed*
+exactly as `Services/Taste.cs` does (the same category order, the same cleaning and rule-1 word list, case ignored),
+looks the intent's word up in the app's `i18n`, and refuses what `POST /api/checks/{id}/tried` refuses. Its tests
+are `node --test tools/brand/test/*.test.js` (fixtures in the three shapes under `tools/brand/test/fixtures`), and
+the browser test feeds it the three shapes fetched from the real API, so a renamed field breaks there before it
+breaks a video. CI also renders `006-before-after-sample.json --cover-only`, which lays the variant out at full size
+and fails on any overflow.
 
 `episode.html` has **no CSS animation, no transition and no requestAnimationFrame**, and must never get
 one. The exporter takes a screenshot between frames and would catch anything the browser animated on
@@ -344,5 +400,6 @@ rendered); `--crf 18` overrides the encoder quality (the default is 20, and 16 f
 chroma keying is unforgiving of the noise h264 leaves around a hard edge).
 
 Scratch frames go to `EPISODE_SCRATCH` (by default a folder in the system temp directory), never into
-the repository. Playwright comes from `tools/e2e/node_modules`, the browser from `CHROMIUM_PATH`
-(default `/opt/pw-browsers/chromium`), and `ffmpeg`/`ffprobe` from `PATH`.
+the repository. Playwright comes from `tools/e2e/node_modules`, the browser from `CHROMIUM_PATH`, else
+`/opt/pw-browsers/chromium` when that path exists, else Playwright's own Chromium (which is what CI has), and
+`ffmpeg`/`ffprobe` from `PATH`.

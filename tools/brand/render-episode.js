@@ -9,6 +9,10 @@
  *   node tools/brand/render-episode.js --all brand-kit/episodes     every .json in the folder
  *   node tools/brand/render-episode.js 001-camel.json --cover-only  just the thumbnail, for a look
  *   node tools/brand/render-episode.js 001-camel.json --overlay     the green-screen version as well
+ *   node tools/brand/render-episode.js --list-checks looks.json     the scored checks in a Settings export, with ids
+ *
+ * Five variants: verdict, versus, board, overlay, and before-after — the last one fed by the app's own exported
+ * JSON (two checks and, optionally, the pair) through tools/brand/lib/before-after.js, never by retyped numbers.
  *
  * It writes <name>.mp4 and <name>-cover.png next to the JSON, prints the duration and the file size,
  * and EXITS NON-ZERO with a readable message when a photo is missing, a score is out of range, a
@@ -39,8 +43,9 @@
  * same way. A render runs on up to three browser pages (one fewer than the machine has cores;
  * EPISODE_WORKERS=3 forces three), and the count is printed before the first frame is taken.
  *
- * Playwright is the browser test's copy in tools/e2e; the browser is CHROMIUM_PATH or
- * /opt/pw-browsers/chromium; ffmpeg and ffprobe come from PATH, and both are asked for before a
+ * Playwright is the browser test's copy in tools/e2e; the browser is CHROMIUM_PATH, else
+ * /opt/pw-browsers/chromium when that exists, else Playwright's own Chromium (which is what CI has);
+ * ffmpeg and ffprobe come from PATH, and both are asked for before a
  * browser is launched. Nothing touches the network: the faces are the local OFL copies in
  * tools/brand/templates/fonts and the look is a local file. Scratch frames go to EPISODE_SCRATCH
  * (default <tmp>/orevosh-episode), never into the repository.
@@ -54,6 +59,9 @@ const { execFileSync, spawn } = require('child_process');
 
 const REPO = path.resolve(__dirname, '../..');
 const TEMPLATE = path.join(__dirname, 'templates/episode.html');
+const beforeAfter = require('./lib/before-after.js');
+/* The browser test's Chromium on the machines that have it; elsewhere Playwright launches its own. */
+const DEFAULT_CHROMIUM = '/opt/pw-browsers/chromium';
 const W = 1080, H = 1920, FPS = 30;
 const MAX_MB = 8;                                  /* keep every episode under 8 MB */
 const SCRATCH = process.env.EPISODE_SCRATCH || path.join(os.tmpdir(), 'orevosh-episode');
@@ -102,10 +110,11 @@ function checkTools() {
 /* ------------------------------------------------------------------ the arguments */
 function parseArgs(argv) {
   const o = { files: [], all: null, coverOnly: false, overlay: false, probe: null,
-    debugSafe: false, keepFrames: false, crf: null, preview: false };
+    debugSafe: false, keepFrames: false, crf: null, preview: false, listChecks: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--all') { o.all = argv[++i] || 'brand-kit/episodes'; }
+    else if (a === '--list-checks') { o.listChecks = argv[++i] || fail('--list-checks needs the export file: the JSON that Settings → Download your data saves.'); }
     else if (a === '--cover-only') o.coverOnly = true;
     else if (a === '--overlay') o.overlay = true;
     else if (a === '--preview') o.preview = true;
@@ -121,8 +130,11 @@ function parseArgs(argv) {
 }
 function usageText() {
   return 'node tools/brand/render-episode.js <episode.json> [--overlay] [--cover-only]\n' +
-         'node tools/brand/render-episode.js --all brand-kit/episodes\n\n' +
+         'node tools/brand/render-episode.js --all brand-kit/episodes\n' +
+         'node tools/brand/render-episode.js --list-checks <export.json>\n\n' +
          'Options:\n' +
+         '  --list-checks f  print the scored checks in a Settings export (newest first, with ids) and stop;\n' +
+         '                   a before-after episode names two of those ids\n' +
          '  --overlay        also render the chroma-key version, as <name>-overlay.mp4\n' +
          '  --cover-only     write only <name>-cover.png, no video\n' +
          '  --preview        a rough cut in seconds (540x960, 15 fps) as <name>-preview.mp4, to check\n' +
@@ -147,7 +159,7 @@ function resolveJson(arg) {
 
 /* ------------------------------------------------------------------ validation */
 /* Every message names the file, the field and what to do about it: he edits JSON, never code. */
-const VARIANTS = ['verdict', 'versus', 'board', 'overlay'];
+const VARIANTS = ['verdict', 'versus', 'board', 'overlay', 'before-after'];
 
 function need(where, obj, key, what) {
   if (obj[key] === undefined || obj[key] === null || obj[key] === '') {
@@ -214,9 +226,48 @@ function loadEpisode(jsonPath, forceOverlay) {
   const dir = path.dirname(jsonPath);
   const needsPhoto = mode === 'photo';
 
-  const shape = variant === 'versus' ? 'versus' : variant === 'board' ? 'board' : 'verdict';
+  const shape = variant === 'versus' ? 'versus' : variant === 'board' ? 'board' : variant === 'before-after' ? 'before-after' : 'verdict';
 
-  if (shape === 'verdict') {
+  if (shape === 'before-after') {
+    /* The two sides come from the app's JSON: a check file, or an id in the export, or fields typed inline (the
+       inline ones win, so a headline can be shortened without touching what the app wrote). The paths are counted
+       from this file, like a photo's. The converter does the reading and the refusing; its messages already name
+       the file and the id, so they are handed straight to fail(). */
+    const readJson = rel => {
+      const abs = path.resolve(dir, String(rel));
+      if (!fs.existsSync(abs)) {
+        fail(where + ': the file "' + rel + '" does not exist.\nResolved to: ' + abs +
+          '\nPaths in an episode are relative to the episode JSON (this one is in ' + dir + ').');
+      }
+      try { return JSON.parse(fs.readFileSync(abs, 'utf8')); }
+      catch (e) { fail(where + ': ' + rel + ' is not valid JSON: ' + e.message); }
+    };
+    const exportJson = d.export ? readJson(d.export) : null;
+    const pair = d.pair ? readJson(d.pair) : null;
+    const sideHint = 'It looks like {"photo": "...", "id": "<a check id from --list-checks>"} with "export" naming the ' +
+      'Settings download, or {"photo": "...", "check": "before.json"} with a saved /api/checks/<id> answer.';
+    const specs = { before: need(where, d, 'before', sideHint), after: need(where, d, 'after', sideHint) };
+    let data;
+    try {
+      const before = beforeAfter.sideFromSpec(specs.before, { where: where + ' > before', readJson: readJson, exportJson: exportJson });
+      const after = beforeAfter.sideFromSpec(specs.after, { where: where + ' > after', readJson: readJson, exportJson: exportJson });
+      data = beforeAfter.fromApp({ before: before, after: after, pair: pair, lang: d.lang, tip: d.tip, changes: d.changes, where: where });
+    } catch (e) {
+      if (e instanceof beforeAfter.BeforeAfterError) fail(e.message);
+      throw e;
+    }
+    ['before', 'after'].forEach(k => {
+      const w2 = where + ' > ' + k;
+      const s = data[k];
+      if (needsPhoto) s._photoAbs = checkPhoto(w2, dir, need(w2, specs[k], 'photo', 'It is the path to that look, relative to this file (GET /api/checks/<id>/image, saved).'));
+      s._focus = checkFocus(w2, specs[k].focus);
+      d[k] = s;
+    });
+    d.tip = data.tip;
+    d.changes = data.changes;
+    d.changeLines = data.changeLines;
+    d.delta = data.delta;
+  } else if (shape === 'verdict') {
     need(where, d, 'intent', 'It is the short caps word over the look, e.g. "DATE".');
     checkScore(where, need(where, d, 'score', 'It is the score out of 10.'), 'score');
     need(where, d, 'headline', 'It is the stylist\'s one-line verdict.');
@@ -270,6 +321,9 @@ function withUrls(d) {
   if (d.photoA) { c.photoA._photoUrl = d.photoA._photoAbs ? toUrl(d.photoA._photoAbs) : null; c.photoA._focus = d.photoA._focus; }
   if (d.photoB) { c.photoB._photoUrl = d.photoB._photoAbs ? toUrl(d.photoB._photoAbs) : null; c.photoB._focus = d.photoB._focus; }
   if (d.looks) d.looks.forEach((L, i) => { c.looks[i]._photoUrl = L._photoAbs ? toUrl(L._photoAbs) : null; c.looks[i]._focus = L._focus; });
+  ['before', 'after'].forEach(k => {
+    if (d[k] && typeof d[k] === 'object') { c[k]._photoUrl = d[k]._photoAbs ? toUrl(d[k]._photoAbs) : null; c[k]._focus = d[k]._focus; }
+  });
   return c;
 }
 
@@ -592,6 +646,16 @@ async function renderOne(browser, ep, opt) {
 /* ------------------------------------------------------------------ main */
 (async () => {
   const opt = parseArgs(process.argv.slice(2));
+  if (opt.listChecks) {
+    /* the two ids a before-after episode names are read off this list; no browser is needed for it */
+    const file = path.resolve(process.cwd(), opt.listChecks);
+    let exportJson;
+    try { exportJson = JSON.parse(fs.readFileSync(file, 'utf8')); }
+    catch (e) { fail('cannot read the export at "' + opt.listChecks + '": ' + e.message + '\nIt is the JSON that Settings → Download your data saves (orevosh-<handle>-<date>.json).'); }
+    if (!exportJson || !Array.isArray(exportJson.checks)) fail(path.basename(file) + ' has no "checks" list. It is the JSON that Settings → Download your data saves.');
+    console.log('\n  ' + beforeAfter.listChecksText(exportJson).split('\n').join('\n  ') + '\n');
+    return;
+  }
   let files = [];
   if (opt.all) {
     const dir = fs.existsSync(path.resolve(process.cwd(), opt.all))
@@ -621,7 +685,7 @@ async function renderOne(browser, ep, opt) {
 
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium',
+    executablePath: process.env.CHROMIUM_PATH || (fs.existsSync(DEFAULT_CHROMIUM) ? DEFAULT_CHROMIUM : undefined),
     args: ['--force-device-scale-factor=1', '--hide-scrollbars', '--disable-lcd-text',
       '--allow-file-access-from-files']
   });

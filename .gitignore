@@ -33,3 +33,8 @@ __pycache__/
 # Workflow worktrees and local agent state
 .claude/
 keys/
+
+# Calibration reports (tools/eval/calibrate.ps1): they carry the account's handle and the stylist's tips, and the
+# verdict line is what gets pasted. The folder itself stays.
+tools/eval/reports/*
+!tools/eval/reports/.gitkeep

@@ -34,6 +34,8 @@ Usage: node tools/eval/stylist.js --photo <file> [options]
   --max-spread <n>     The most the score may move before this run counts as a failure (default: 2).
   --delay <ms>         Wait between runs (default: 0).
   --json               Print the raw rows as JSON instead of the tables.
+  --report <file>      Also write the --json object to that file, while the tables still print. One paid run,
+                       both the tables to read and the rows to keep (tools/eval/calibrate.ps1 uses it).
   --help               This.
 `.trim();
 
@@ -42,7 +44,7 @@ function parseArgs(argv) {
     photos: [], occasion: 'everyday', style: '', note: '', runs: 8,
     base: 'http://127.0.0.1:5080', handle: process.env.OREVOSH_EVAL_HANDLE || '',
     password: process.env.OREVOSH_EVAL_PASSWORD || '', cookie: process.env.OREVOSH_EVAL_COOKIE || '',
-    language: 'en', maxSpread: 2, delay: 0, json: false
+    language: 'en', maxSpread: 2, delay: 0, json: false, report: ''
   };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -65,6 +67,7 @@ function parseArgs(argv) {
       case '--max-spread': options.maxSpread = Number(value()); break;
       case '--delay': options.delay = Number(value()); break;
       case '--json': options.json = true; break;
+      case '--report': options.report = value(); break;
       case '--help': case '-h': console.log(USAGE); process.exit(0); break;
       default: throw new Error(`unknown option ${arg}`);
     }
@@ -226,11 +229,17 @@ async function main() {
     results.push({ photo, rows, summary: summarise(rows) });
   }
 
+  const document = {
+    base: options.base, occasion: options.occasion, style: options.style || 'none', note: options.note,
+    language: options.language, runs: options.runs, maxSpread: options.maxSpread, photos: results
+  };
+  if (options.report) {
+    // The rows kept beside the tables: the same object --json prints, written UTF-8 so the Hebrew tips survive.
+    fs.mkdirSync(path.dirname(path.resolve(options.report)), { recursive: true });
+    fs.writeFileSync(options.report, JSON.stringify(document, null, 2) + '\n', 'utf8');
+  }
   if (options.json) {
-    console.log(JSON.stringify({
-      base: options.base, occasion: options.occasion, style: options.style || 'none', note: options.note,
-      runs: options.runs, maxSpread: options.maxSpread, photos: results
-    }, null, 2));
+    console.log(JSON.stringify(document, null, 2));
   } else {
     console.log(`OREVOSH stylist eval · ${options.base} · ${options.runs} run(s) per photo · rubric answers only, no model call made from here`);
     for (const result of results) printPhoto(result.photo, result.rows, result.summary, options);

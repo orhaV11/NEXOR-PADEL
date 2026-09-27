@@ -1327,6 +1327,54 @@ function checkClientModules() {
   const portal = await noa.request.post(base + '/api/billing/portal', { headers: { 'X-Requested-With': 'Orevosh' } });
   assert.strictEqual(portal.status(), 404, 'the manual provider has no portal');
 
+  step = 'before-after';
+  // Round 20 — the wedge: the before/after episode is fed by the app's own JSON and never by retyped numbers. Noa's
+  // Office check (score 7, from the tomorrow step, in no pair yet) is the before; a fifth check whose note says
+  // "after the tip" answers 8 with the shoes named differently; the pair is written over the API; then the three
+  // shapes the renderer reads — GET /api/checks/<id>, the pair from GET /api/users/me/tried, and the export the
+  // founder downloads — go through tools/brand/lib/before-after.js exactly as an episode JSON would, on the real
+  // API, and the episode's numbers must be the app's. The photo route is the one the founder saves the look from.
+  await runCheck(noa, { intent: 'Office', occasion: 'after the tip', buffer: bigJpeg, score: 8 });
+  const baChecks = await noa.request.get(base + '/api/users/me/checks').then((r) => r.json());
+  const baAfterId = baChecks[0].id;
+  assert.strictEqual(baChecks[0].score, 8, 'the newest check is the one after the tip');
+  assert.strictEqual(baChecks[0].note, 'after the tip');
+  const baBeforeId = baChecks[1].id;
+  assert.strictEqual(baChecks[1].score, 7, 'the one before it is the Office check');
+  assert.strictEqual(baChecks[1].intent, 'Office');
+  const baPairResponse = await noa.request.post(base + '/api/checks/' + baAfterId + '/tried', { headers: { 'X-Requested-With': 'Orevosh' }, data: { beforeId: baBeforeId } });
+  assert.strictEqual(baPairResponse.status(), 201, 'the pair is written: ' + await baPairResponse.text());
+  const baPair = await baPairResponse.json();
+  assert.strictEqual(baPair.before.score, 7);
+  assert.strictEqual(baPair.after.score, 8);
+  assert.strictEqual(baPair.changed.length, 1, 'exactly one change: ' + JSON.stringify(baPair.changed));
+  assert.strictEqual(baPair.changed[0].category, 'shoes');
+  assert.strictEqual(baPair.preferred, undefined, 'nobody has said which they prefer');
+  const baBefore = await noa.request.get(base + '/api/checks/' + baBeforeId).then((r) => r.json());
+  const baAfter = await noa.request.get(base + '/api/checks/' + baAfterId).then((r) => r.json());
+  const baList = await noa.request.get(base + '/api/users/me/tried').then((r) => r.json());
+  assert.strictEqual(baList.items[0].id, baPair.id, 'the newest pair is this one');
+  const baExport = await noa.request.get(base + '/api/users/me/export').then((r) => r.json());
+  const beforeAfter = require('../brand/lib/before-after.js');
+  const episode = beforeAfter.fromApp({ before: baBefore, after: baAfter, pair: baList.items[0], lang: 'en', where: 'e2e' });
+  assert.strictEqual(episode.before.score, 7);
+  assert.strictEqual(episode.after.score, 8);
+  assert.strictEqual(episode.delta, 1);
+  assert.strictEqual(episode.tip, baBefore.feedback.oneTip, 'the tip is the before check\'s one tip');
+  assert.strictEqual(episode.tip, 'Swap the running shoes for plain white leather sneakers.');
+  assert.deepStrictEqual(episode.before.breakdown, { fit: 7, color: 8, accessories: 4 });
+  assert.deepStrictEqual(episode.after.breakdown, { fit: 7, color: 8, accessories: 6 });
+  assert.strictEqual(episode.changes.length, 1);
+  assert.strictEqual(episode.changes[0].category, 'shoes');
+  assert.strictEqual(episode.before.intent, 'OFFICE', 'the pill says the app\'s own word');
+  const fromExport = beforeAfter.fromExport(baExport, baBeforeId, baAfterId, 'en', 'export');
+  assert.deepStrictEqual([fromExport.before.score, fromExport.after.score, fromExport.delta, fromExport.tip], [7, 8, 1, episode.tip], 'the export gives the same numbers');
+  assert.deepStrictEqual(fromExport.changes, episode.changes);
+  assert.deepStrictEqual(fromExport.after.breakdown, episode.after.breakdown);
+  const baImage = await noa.request.get(base + '/api/checks/' + baAfterId + '/image');
+  assert.strictEqual(baImage.status(), 200, 'the photo the founder saves for the episode');
+  assert.ok((baImage.headers()['content-type'] || '').startsWith('image/jpeg'), 'as a JPEG: ' + baImage.headers()['content-type']);
+
   step = 'distribution';
   // Round 20 - distribution that can be counted. (1) An entry link: a fourth person, Maya, on a Hebrew phone, follows
   // /go/tt and lands on the check screen with the source kept beside the invite would be; her guest check and her

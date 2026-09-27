@@ -278,9 +278,13 @@ node tools/eval/stylist.js --photo outfit.jpg --occasion date --style minimal --
 It sends the same photo `--runs` times and prints the spread — min, max, mean, standard deviation — how often the
 breakdown moved, how often the tip was a *keep*, and the tips side by side to be read; repeat `--photo` for a table
 per photo, and it exits non-zero when a spread is wider than `--max-spread` (2 by default).
-`tools/eval/README.md` explains the numbers and what a pass costs (photos × runs = model calls). **No real-model
-numbers have been taken yet**: the sandbox this was written in has no route to Anthropic, so the harness has only
-ever run against a local stand-in built to move its scores on purpose.
+`tools/eval/README.md` explains the numbers and what a pass costs (photos × runs = model calls). From a Windows
+machine against the live server, `tools\eval\calibrate.ps1 -Photos <folder> -Occasion date -Language he` runs the
+same pass (Windows PowerShell 5.1, no `pwsh` needed), echoes every line, files a dated report under
+`tools/eval/reports/` (ignored by git: it carries the handle and the tips) and ends with one Hebrew verdict line,
+green or red; `-DryRun` prints the command without signing in. **No real-model numbers have been taken in this
+repository**: the sandbox this was written in has no route to Anthropic, so the harness has only ever run against a
+local stand-in built to move its scores on purpose; the wrapper is how the first real pass is run.
 
 ## Configuration
 
@@ -718,9 +722,11 @@ descriptive is dropped when the status is not `ok`.
   provider is switched to `stripe` on a server people pay on. No event ids are stored, so a replayed
   `checkout.session.completed` stacks one period (renewals are read from the event and repeat harmlessly);
   acceptable for a pilot, not for scale.
-- **The pilot upgrade path is a command.** With `Billing:Provider` at `manual` the Pro page says Pro is switched on
-  by hand, and the owner runs `--pro <handle> <months>`; there is no in-app request or cancel, and a person ends
-  Pro by writing to the owner (the terms say so).
+- **The pilot upgrade path is a command *while `Billing:Provider` is `manual`*.** Then the Pro page says Pro is
+  switched on by hand, the owner runs `--pro <handle> <months>`, there is no in-app request or cancel, and a person
+  ends Pro by writing to the owner (the terms say so). With `stripe`, the Pro page and Settings carry "Manage
+  subscription" — Stripe's Billing Portal (`POST /api/billing/portal`) — and that is where a subscription is changed
+  or cancelled.
 - **The legal pages need a lawyer.** `#/terms` and `#/privacy` (version 2, dated 2026-09-12) are written from what
   the code actually does, in each language, and are not legal advice; the governing-law line is a placeholder
   ("the place where the owner is based") and the contact address `hello@orevosh.app` must exist before the pages go
@@ -761,7 +767,9 @@ descriptive is dropped when the status is not `ok`.
 - **Cookies are Secure only over HTTPS.** Plain `http://localhost` works for development; anything users reach
   must be behind HTTPS (the tunnel).
 - **Calibration is unverified until you run it.** The build was tested against a stubbed model; run
-  `scripts/calibrate.py` on real photos before judging scores.
+  `scripts/calibrate.py` on real photos before judging scores, and for the steadiness question (does the same photo
+  get the same score twice) `tools\eval\calibrate.ps1 -Photos <folder> -Occasion date -Language he` from a Windows
+  machine against the live server, which files a dated report under `tools/eval/reports/`.
 - **Photos stay on disk until the look or the account is deleted; clips go with the look.** There is no
   retention job yet, and clips are large: watch the disk (`DEPLOY.md`, "What to watch").
 - **Push needs an installed app on iPhone** (iOS 16.4+, added to the home screen). Android and desktop
@@ -840,7 +848,10 @@ descriptive is dropped when the status is not `ok`.
 - **The brand kit** in `brand-kit/` (logos on dark, light and nothing, monochrome SVG+PNG, the lockup, the social
   avatar, five covers plus the OG cards, three story templates in both languages, twenty store screenshots) is
   rendered by `tools/brand/render-kit.js` from HTML templates with the real brand SVGs and the browser test's
-  screenshots; its README lists every file. Change `COPY` at the top of the script and re-run to regenerate.
+  screenshots; its README lists every file. Change `COPY` at the top of the script and re-run to regenerate. The
+  episodes (`brand-kit/episodes/`, `tools/brand/render-episode.js`) come in five variants; the fifth,
+  `before-after`, is fed by the app's own exported JSON — two checks and their pair — through
+  `tools/brand/lib/before-after.js`, and every end card carries the address `orevosh.com`.
 - **The store listings** (`STORE.md`: names, descriptions, keywords, the 16+ rating, the privacy labels, the URLs,
   the payments rule for the wrapped app, the review notes), **the launch plan** (`MARKETING.md`: positioning, the
   voice, the first ten posts, four weeks in one community, the numbers to watch) and **the store shells**
@@ -1099,8 +1110,9 @@ date, or minimal for a party, had no way to say so. A check now carries both:
 - **The one word** — `intent` on the check row and in every answer, derived from the pair (`StyleIntents.Legacy`): the
   style's own name for a style worn everyday, the OCCASION anywhere else. A streetwear look for a date reads *Date* on
   a card, a board, the share card and the share video, because that is what a stranger needs to know first. `Formal`
-  has no word of its own in that list and lands on `Party`. Looks, boards, challenges, the feed filter, search and the
-  interests list are untouched: they all still speak the one word.
+  has no word of its own in that list and lands on `Party` (Formal got its own word later in this round: see "The
+  check that was interrupted, the camera's microphone, and Formal's own word"). Looks, boards, challenges, the feed
+  filter, search and the interests list are untouched: they all still speak the one word.
 
 | Method & path | Body | Returns |
 |---|---|---|
@@ -1531,3 +1543,18 @@ a refusal counts; free's brake inside its shared day and Pro's own bucket; the m
 weather reaching the model only when the server fetched it, rounded and never stored or logged by the server; the photo per piece; the thumbs;
 the loop closing from a check; the advisory and the numbers page), `WeatherTests`, and the doctor, plan, security and
 database tests that grew with it.
+
+## Round 20 — the wedge: content and documents
+
+The episode renderer gains a fifth variant, `before-after` (17 s): the same look twice — the score, the one tip, the
+new score with a delta chip, and *what changed* — fed only by the app's own JSON (the export from Settings, a saved
+`GET /api/checks/{id}`, the pair from `GET /api/users/me/tried`) through the pure module `tools/brand/lib/before-after.js`,
+which mirrors `Taste.Changes`, reads the intent's word from the app's `i18n`, and refuses what `POST /api/checks/{id}/tried`
+refuses; `--list-checks <export.json>` prints the scored checks with their ids. The end card of every episode now
+carries the address `orevosh.com` instead of *coming soon* (all shipped files re-rendered once; the two hand-cut
+teasers are a follow-up), `CONTENT.md` and `MARKETING.md` point every CTA at the address and the `/go/<source>` links
+(`tiktok`, `instagram`, `story`, `dm`), and `CONTENT.md` gains Format 6. `tools/eval/calibrate.ps1` runs the
+steadiness pass from Windows PowerShell 5.1 against the live server with a Hebrew verdict line and a dated report
+(`stylist.js --report <file>` keeps the rows beside the tables). Tests: `tools/brand/test/before-after.test.js`
+(`node --test`), `ExportTests.Export_check_carries_what_the_renderer_reads`, the CI steps *Calibration wrapper parses*
+and *Render the before/after cover*, and the browser test's `before-after` step against the real API.

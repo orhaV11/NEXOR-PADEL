@@ -181,6 +181,62 @@ public class ExportTests : IClassFixture<TestApp>
         Assert.False(lapsed.GetProperty("account").TryGetProperty("proUntil", out _));
     }
 
+    /// <summary>
+    /// Round 20: the before/after episode renderer (tools/brand/lib/before-after.js) reads an export row for its id, date,
+    /// intent, occasion note, score, headline, tip, breakdown and items, and refuses a row with no verdict. This pins the
+    /// contract its fixtures mirror: an ok row carries all of that, a refused row carries its status and none of the words
+    /// (WhenWritingNull drops them), so a renamed field breaks here before it breaks a video.
+    /// </summary>
+    [Fact]
+    public async Task Export_check_carries_what_the_renderer_reads()
+    {
+        var (client, _, _) = await _app.NewUserAsync("exp_render");
+        _app.Vision.Handler = _ => V2Payloads.Ok(fit: 7, color: 8, accessories: 4);
+        Guid okId;
+        try
+        {
+            var form = TestApp.CheckForm(TestImages.Jpeg(), intent: "Office", occasion: "after work drinks");
+            var created = await client.PostAsync("/api/checks", form);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            okId = (await Json(created)).GetProperty("id").GetGuid();
+            _app.Vision.Handler = _ => Payloads.NotOutfit();
+            await _app.CheckAsync(client);
+        }
+        finally
+        {
+            _app.Vision.Handler = _ => Payloads.Ok();
+        }
+
+        var checks = (await Json(await client.GetAsync("/api/users/me/export"))).GetProperty("checks").EnumerateArray().ToList();
+        Assert.Equal(2, checks.Count);
+
+        // Newest first: the refused one, with its status and no headline, tip or breakdown to draw.
+        var refused = checks[0];
+        Assert.Equal("not_outfit", refused.GetProperty("status").GetString());
+        Assert.False(refused.TryGetProperty("headline", out _));
+        Assert.False(refused.TryGetProperty("tip", out _));
+        Assert.False(refused.TryGetProperty("breakdown", out _));
+        Assert.Empty(refused.GetProperty("items").EnumerateArray());
+
+        var ok = checks[1];
+        Assert.Equal(okId, ok.GetProperty("id").GetGuid());
+        Assert.Equal("ok", ok.GetProperty("status").GetString());
+        Assert.Equal("Office", ok.GetProperty("intent").GetString());
+        Assert.Equal("after work drinks", ok.GetProperty("note").GetString());
+        Assert.InRange(ok.GetProperty("createdAt").GetDateTime(), DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow.AddMinutes(1));
+        Assert.Equal(7, ok.GetProperty("score").GetInt32());
+        Assert.Equal("Clean casual with one weak link", ok.GetProperty("headline").GetString());
+        Assert.Equal("Swap the running shoes for plain white leather sneakers.", ok.GetProperty("tip").GetString());
+        var breakdown = ok.GetProperty("breakdown");
+        Assert.Equal(["fit", "color", "accessories"], Keys(breakdown));
+        Assert.Equal(7, breakdown.GetProperty("fit").GetInt32());
+        Assert.Equal(8, breakdown.GetProperty("color").GetInt32());
+        Assert.Equal(4, breakdown.GetProperty("accessories").GetInt32());
+        var items = ok.GetProperty("items").EnumerateArray().Select(i => (i.GetProperty("name").GetString(), i.GetProperty("category").GetString())).ToList();
+        Assert.Equal([("White tee", "top"), ("Running shoes", "shoes")], items);
+        Assert.Equal("change", ok.GetProperty("tipKind").GetString());
+    }
+
     [Fact]
     public async Task Export_headers_name_the_file_after_the_handle_and_the_day_and_forbid_caching()
     {

@@ -26,12 +26,16 @@ node tools/brand/render-episode.js 001-camel.json --preview            # a 10-se
 node tools/brand/render-episode.js --all brand-kit/episodes            # every episode in that folder (not its subfolders)
 node tools/brand/render-episode.js --all brand-kit/episodes/week-1     # the first week's five posts
 node tools/brand/render-episode.js 001-camel.json --cover-only         # just the thumbnail, seconds
+node tools/brand/render-episode.js --list-checks orevosh-or-20260927.json   # the scored checks in a Settings export, with ids
 ```
 
-`episodes/` is the account's weekly material (`CONTENT.md` is the manual): a 1080x1920 MP4 per JSON file, in four
-variants — `verdict`, `versus`, `board`, and `overlay`, the last one the same beats on a flat chroma green so a
-filmed clip can be keyed in behind it. `teaser/` holds the two launch films, which are cut by hand and not
-regenerated from a JSON.
+`episodes/` is the account's weekly material (`CONTENT.md` is the manual): a 1080x1920 MP4 per JSON file, in five
+variants — `verdict`, `versus`, `board`, `overlay` (the same beats on a flat chroma green so a filmed clip can be
+keyed in behind it), and `before-after`, which takes two of the app's own checks — the export from Settings, or two
+saved `/api/checks/<id>` answers — and never a retyped number. Every end card carries the address, `orevosh.com`.
+`teaser/` holds the two launch films, which are cut by hand and not regenerated from a JSON (they still say *coming*
+*soon*; a follow-up). `node render-kit.js` rewrites this README from its file list, so this paragraph lives in
+`writeReadme` in the script.
 
 The templates ask Google Fonts for Outfit and Heebo and fall back to the OFL copies in `templates/fonts/` when the
 machine is offline, so a run anywhere gives the real faces. This folder is not under `wwwroot` and is not served; the
@@ -175,15 +179,15 @@ social block in `render-kit.js`, same layouts, RTL).
 | `grid-5.png` | 1080×1080 | 42 KB | Grid opener 5 of 9, middle row middle: the wordmark and the slogan |
 | `grid-6.png` | 1080×1080 | 23 KB | Grid opener 6 of 9, middle row end: the end of the wordmark |
 | `grid-7.png` | 1080×1080 | 32 KB | Grid opener 7 of 9, bottom row start: the tagline |
-| `grid-8.png` | 1080×1080 | 52 KB | Grid opener 8 of 9, bottom row middle: the CTA |
+| `grid-8.png` | 1080×1080 | 49 KB | Grid opener 8 of 9, bottom row middle: the CTA |
 | `grid-9.png` | 1080×1080 | 16 KB | Grid opener 9 of 9, bottom row end: the house line on reactions |
-| `grid-preview.png` | 1080×1200 | 146 KB | The nine tiles assembled, with the upload order under them. Not for posting |
+| `grid-preview.png` | 1080×1200 | 145 KB | The nine tiles assembled, with the upload order under them. Not for posting |
 | `post-1-what-it-is-en.png` | 1080×1350 | 375 KB | First post 1 (English): what the app is |
-| `post-2-the-one-tip-en.png` | 1080×1350 | 236 KB | First post 2 (English): the result and the one tip |
-| `post-3-brands-en.png` | 1080×1350 | 386 KB | First post 3 (English): the brands |
-| `post-1-what-it-is-he.png` | 1080×1350 | 327 KB | First post 1 (Hebrew): what the app is |
-| `post-2-the-one-tip-he.png` | 1080×1350 | 213 KB | First post 2 (Hebrew): the result and the one tip |
-| `post-3-brands-he.png` | 1080×1350 | 358 KB | First post 3 (Hebrew): the brands |
+| `post-2-the-one-tip-en.png` | 1080×1350 | 237 KB | First post 2 (English): the result and the one tip |
+| `post-3-brands-en.png` | 1080×1350 | 387 KB | First post 3 (English): the brands |
+| `post-1-what-it-is-he.png` | 1080×1350 | 333 KB | First post 1 (Hebrew): what the app is |
+| `post-2-the-one-tip-he.png` | 1080×1350 | 219 KB | First post 2 (Hebrew): the result and the one tip |
+| `post-3-brands-he.png` | 1080×1350 | 363 KB | First post 3 (Hebrew): the brands |
 | `tiktok-cover-1-en.png` | 1080×1920 | 362 KB | TikTok cover 1 (English): the slogan over the check screen. Everything readable is out of the bottom 320 px and the right 180 px |
 | `tiktok-cover-2-en.png` | 1080×1920 | 227 KB | TikTok cover 2 (English): the verdict. Everything readable is out of the bottom 320 px and the right 180 px |
 | `tiktok-cover-1-he.png` | 1080×1920 | 318 KB | TikTok cover 1 (Hebrew): the slogan over the feed. Everything readable is out of the bottom 320 px and the right 180 px |

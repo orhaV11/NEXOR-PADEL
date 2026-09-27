@@ -336,8 +336,8 @@ const AVATAR_PICK = 'c';
 
 const SOCIAL = {
   en: {
-    postCta: 'Check yours. Coming soon.',
-    grid: { caps: 'Fit · Color · Accessories', cta: 'Coming soon.', line: 'Fire is the only reaction.' },
+    postCta: 'Check yours at orevosh.com.',
+    grid: { caps: 'Fit · Color · Accessories', cta: 'orevosh.com', line: 'Fire is the only reaction.' },
     posts: [
       { id: 'what-it-is', title: 'Check the look.', sub: 'Ten seconds. A score out of 10, the breakdown, and the one tip.', shot: '07-check-ready-en.png', use: 'what the app is' },
       { id: 'the-one-tip', title: '9/10 and the one tip', sub: '“Swap the black tights for sheer brown and the column runs unbroken.”', shot: '08-result-en.png', use: 'the result and the one tip' },
@@ -351,7 +351,7 @@ const SOCIAL = {
     reveal: { kicker: 'Face reveal', sub: 'Followers. Then the mask comes off.', cta: 'Follow to be there.' },
   },
   he: {
-    postCta: 'בקרוב. עוקבים כדי לדעת מתי.',
+    postCta: 'בודקים את שלכם ב־orevosh.com.',
     posts: [
       { id: 'what-it-is', title: 'בודקים את הלוק.', sub: 'עשר שניות. ציון מתוך 10, הפירוט, והטיפ האחד.', shot: '16-home-he.png', use: 'what the app is' },
       // The Hebrew result the browser test captured scored 6/10, so the headline follows the picture (as in stories).
@@ -523,6 +523,23 @@ function writeReadme() {
     '## Regenerate', '',
     '```bash', 'cd tools/brand', 'npm install                      # playwright, and sharp for smaller PNGs (never the ones with a photo in them)', 'npx playwright install chromium  # once; or CHROMIUM_PATH=/path/to/chromium',
     'node render-kit.js               # everything; or: node render-kit.js stories store', '```', '',
+    // The episodes are the other renderer's; this note is here so a re-run of this script keeps it in the README.
+    'The videos are not part of `render-kit.js`. They have their own script, run **from the repository root**:', '',
+    '```bash',
+    'node tools/brand/render-episode.js brand-kit/episodes/001-camel.json   # one episode, about half a minute',
+    'node tools/brand/render-episode.js 001-camel.json --preview            # a 10-second low-res pass to check timing and copy first',
+    'node tools/brand/render-episode.js --all brand-kit/episodes            # every episode in that folder (not its subfolders)',
+    'node tools/brand/render-episode.js --all brand-kit/episodes/week-1     # the first week\'s five posts',
+    'node tools/brand/render-episode.js 001-camel.json --cover-only         # just the thumbnail, seconds',
+    'node tools/brand/render-episode.js --list-checks orevosh-or-20260927.json   # the scored checks in a Settings export, with ids',
+    '```', '',
+    '`episodes/` is the account\'s weekly material (`CONTENT.md` is the manual): a 1080x1920 MP4 per JSON file, in five',
+    'variants — `verdict`, `versus`, `board`, `overlay` (the same beats on a flat chroma green so a filmed clip can be',
+    'keyed in behind it), and `before-after`, which takes two of the app\'s own checks — the export from Settings, or two',
+    'saved `/api/checks/<id>` answers — and never a retyped number. Every end card carries the address, `orevosh.com`.',
+    '`teaser/` holds the two launch films, which are cut by hand and not regenerated from a JSON (they still say *coming*',
+    '*soon*; a follow-up). `node render-kit.js` rewrites this README from its file list, so this paragraph lives in',
+    '`writeReadme` in the script.', '',
     'The templates ask Google Fonts for Outfit and Heebo and fall back to the OFL copies in `templates/fonts/` when the',
     'machine is offline, so a run anywhere gives the real faces. This folder is not under `wwwroot` and is not served; the',
     'two files the app serves are copied out by the script: `/brand/og-1200x630.png` (`og-1200x630-he.png` for the Hebrew',

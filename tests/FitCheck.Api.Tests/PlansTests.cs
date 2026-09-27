@@ -54,10 +54,10 @@ public class PlansTests
         ["pro.benefit_insights"] = ("plans.compareNeedsPro",
             "GET /api/users/me/insights, refused to a free account exactly where Plans:CompareNeedsPro is on"),
         // Round 19 — Tomorrow.
-        ["pro.benefit_tomorrow"] = ("plans.tomorrow && plans.tomorrowNeedsPro",
-            "POST /api/tomorrow answers 403 error.pro_required to a free account exactly where Plans:TomorrowNeedsPro is on (Plans.TomorrowReachesStylist), while Plans:TomorrowEnabled is on"),
-        ["pro.benefit_tomorrow_daily"] = ("plans.tomorrow && !plans.tomorrowNeedsPro",
-            "a Pro account composes in its own rolling-day bucket (Plans:ProSuggestionsPerDay, Allowance.Suggestions, Plans.ProSuggestionCap) from WardrobeNamesFor(true) pieces, while free composes Plans:FreeSuggestionsPerDay a day inside its shared day from WardrobeNamesToStylist pieces")
+        ["pro.benefit_tomorrow"] = ("plans.tomorrow && plans.proSuggestionsPerDay > 0 && (plans.tomorrowNeedsPro || plans.freeSuggestionsPerDay <= 0)",
+            "POST /api/tomorrow answers 403 error.pro_required to a free account exactly where Plans:TomorrowNeedsPro is on (Plans.TomorrowReachesStylist), or refuses free every tap where Plans:FreeSuggestionsPerDay is 0, while Plans:TomorrowEnabled is on and Pro's own cap (Plans.ProSuggestionCap, as /api/config publishes it) is above 0"),
+        ["pro.benefit_tomorrow_daily"] = ("plans.tomorrow && plans.proSuggestionsPerDay > 0 && !plans.tomorrowNeedsPro && plans.freeSuggestionsPerDay > 0",
+            "a Pro account composes in its own rolling-day bucket (Plans:ProSuggestionsPerDay, Allowance.Suggestions, Plans.ProSuggestionCap) from WardrobeNamesFor(true) pieces, while free composes Plans:FreeSuggestionsPerDay a day inside its shared day from WardrobeNamesToStylist pieces - both numbers as /api/config publishes them and both above 0, never a stand-in for a 0")
     };
 
     /// <summary>The benefit lines of the page, as (guard, the keys on that line). One benefit per line, by construction.</summary>

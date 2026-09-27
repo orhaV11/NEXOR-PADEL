@@ -756,7 +756,8 @@ async function submitCheck() {
     if (!lostConnection) clearInterruptedCheck();
     ck.error = e && e.status === 401 && wasSignedIn ? null
       : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
-    navigate('#/check');
+    // Back to the form with the planned outfit still attached, so the retry closes the loop the failed try could not.
+    navigate(ck.suggestion && ck.suggestion.id ? '#/check?suggestion=' + encodeURIComponent(ck.suggestion.id) : '#/check');
   }
 }
 

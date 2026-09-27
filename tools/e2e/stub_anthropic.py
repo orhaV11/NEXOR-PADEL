@@ -346,7 +346,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/v1/forecast"):
             # Round 19: Open-Meteo's daily block for today and the two days after; tomorrow is clear, 24/17, a 10% chance of rain.
             import datetime
-            start = datetime.datetime.utcnow().date()
+            # The machine's own calendar, which is the browser's: the phone sends its local "today" and the server
+            # asks for the day after, so a UTC date here would hand it the wrong entry for three hours a day in Israel.
+            start = datetime.date.today()
             days = [(start + datetime.timedelta(days=i)).isoformat() for i in range(3)]
             forecast = {
                 "latitude": 32.08, "longitude": 34.78, "timezone": "Asia/Jerusalem",

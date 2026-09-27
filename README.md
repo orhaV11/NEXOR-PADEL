@@ -114,22 +114,24 @@ dotnet run -- --pro noa 3             # put an existing account on Pro for 3 mon
 dotnet run -- --pro noa off           # back to Free
 ```
 
-`--doctor` is the one to run after any change to a setting and before any launch. It prints **seventeen lines**, one
+`--doctor` is the one to run after any change to a setting and before any launch. It prints **nineteen lines**, one
 per check, each `ok`, a warning or a short reason, and exits 0 when everything a live server needs is in place and 1
 otherwise. In the order it prints them: `origin` (the public origin mail links and Checkout returns are built from),
 `previews` (whether the three shipped pages still carry the placeholder host `looks.example.com`, which is the
 difference between a shared link that unfurls with a picture and one that does not), `anthropic` (the key),
-`anthropic-url` (the base URL and the model), `email`, `billing`, `plans` (the caps against the ceiling), `push` (the
-VAPID keys), `admin` (the moderator list, and the accounts `--admin` promoted), `board` (the time zone), `affiliate`,
-`storage` (the photo folder, actually written to and the file removed again), `database` (the file and what it still
-has to migrate), `ffmpeg`, `disk` (the free space where the data lives), `spend` (what a model call is priced at here
-and the day's ceiling), `alerts` (whether anything at all would shout) and `weather` (the forecast behind Tomorrow, and
-whether its keyless licence is being leaned on by a server that takes payments). The last two lines are the tally —
+`anthropic-url` (the base URL and the model), `contact` (the address the legal pages name), `email`, `billing`, `plans`
+(the caps against the ceiling), `push` (the VAPID keys), `admin` (the moderator list, and the accounts `--admin`
+promoted), `board` (the time zone), `affiliate`, `storage` (the photo folder, actually written to and the file removed
+again), `database` (the file and what it still has to migrate), `ffmpeg`, `disk` (the free space where the data lives),
+`spend` (what a model call is priced at here and the day's ceiling), `weather` (the forecast behind Tomorrow, and
+whether its keyless licence is being leaned on by a server that takes payments) and `alerts` (whether anything at all
+would shout). The last two lines are the tally —
 `doctor: 9 ok, 7 warnings, 1 failure`, with whatever numbers your own run comes to — and the verdict, `Ready.`, `Ready, with warnings to read.` or `Not ready: fix
 the failures above and run it again.` **Only a failure changes the exit code**; a warning is the operator's call.
 `--doctor --live` adds the calls that cost something or leave the machine:
-one small Anthropic call with the configured key and model (a fraction of a cent), and, when the provider is `stripe`,
-two reads from Stripe. **It never dials the mail server**: `--doctor` reads the `Email__*` settings and says whether
+one small Anthropic call with the configured key and model (a fraction of a cent), when the provider is `stripe` two
+reads from Stripe, one forecast from Open-Meteo (`weather-live`, a warning and never a failure) and, when an alert
+channel is set, one test alert (`alerts-live`). **It never dials the mail server**: `--doctor` reads the `Email__*` settings and says whether
 they could work, and nothing in this program opens an SMTP connection or logs in. The only thing that tests the sender
 is sending: ask for a password reset from the app (or sign up) with your own address and watch the mail arrive, and
 read the log line if it does not. `--stripe-check` is the Stripe half on its own — the key, the price and the webhook
@@ -519,7 +521,7 @@ src/FitCheck.Api/
   Services/Funnel.cs              the fourteen-day funnel, the invites and the arrival tallies behind the numbers page
   Services/SpendMeter.cs          what a day of model calls is estimated to cost, the ceiling and the fourteen-day series
   Services/Alerter.cs             the one place a readiness flip, the ceiling, a run of failures or a failed backup shouts
-  Services/Doctor.cs              --doctor, --doctor --live and --stripe-check: the seventeen lines, no secret printed
+  Services/Doctor.cs              --doctor, --doctor --live and --stripe-check: the nineteen lines, no secret printed
   Services/Readiness.cs           the machine-side half of the doctor, over HTTP, at /readyz
   Services/Transcoder.cs          the background ffmpeg pass that turns a WebM clip into H.264 MP4
   Services/Digest.cs              the Sunday mail: the week a person had, only to a confirmed address
@@ -1511,7 +1513,7 @@ on the next check alike. "I don't have one of these any more" removes the piece 
 | Method & path | Body | Returns |
 |---|---|---|
 | `GET /api/tomorrow` 🔒 | — | The screen's first paint, never a model call: `available`, `stylistOn`, `needsPro`, `have`/`haveKinds` against `needs`/`needsKinds`, `offered` (how many pieces the model would be shown), `strip` (up to 8 pieces with `photoUrl`), `recent` (the last 5 outfits with `stale`), `leftToday`/`capToday`/`leftMonth`/`capMonth`, `defaultOccasion`/`defaultStyle` |
-| `POST /api/tomorrow` 🔒 | `{ occasion, style?, when: "today"\|"tomorrow", today: "yyyy-MM-dd", fresh?, lat?, lon? }` | `201` a `SuggestionDto` (`pieces[]` each with `itemId`, `name`, `category`, `photoCheckId`, `photoUrl`, `worn`; `sentence`; `weather?`; `gap?`; `seq`; `reused`; `stale`; `counted`; the four left/cap numbers), or `200` with `reused: true` when a stored answer serves, or `200` `{ have, haveKinds, needs, needsKinds }` when the wardrobe is too thin. 400 `error.intent_invalid`; 403 `error.pro_required` where `Plans:TomorrowNeedsPro` is on; 409 `error.tomorrow_stylist_off`; 429 `error.tomorrow_limit`/`error.tomorrow_free_limit`/`error.plan_limit`/`error.month_limit`; 502 `error.tomorrow_failed` (nothing spent); 503 `error.stylist_resting` for a free account at the ceiling |
+| `POST /api/tomorrow` 🔒 | `{ occasion, style?, when: "today"\|"tomorrow", today: "yyyy-MM-dd", fresh?, lat?, lon? }` | `201` a `SuggestionDto` (`pieces[]` each with `itemId`, `name`, `category`, `photoCheckId`, `photoUrl`, `worn`; `sentence`; `weather?`; `gap?`; `seq`; `reused`; `stale`; `counted`; the four left/cap numbers), or `200` with `reused: true` when a stored answer serves, or `200` `{ have, haveKinds, needs, needsKinds }` when the wardrobe is too thin. 400 `error.intent_invalid` (unknown `occasion`) or `error.invalid_request` (unknown `style` or `when`); 403 `error.pro_required` where `Plans:TomorrowNeedsPro` is on; 404 `error.tomorrow_not_found` where `Plans:TomorrowEnabled` is off; 409 `error.tomorrow_stylist_off`; 429 `error.tomorrow_limit`/`error.tomorrow_free_limit`/`error.plan_limit`/`error.month_limit`, or `error.rate_limited_global` at everybody's day ceiling; 502 `error.tomorrow_failed` (nothing spent); 503 `error.stylist_resting` for a free account at the ceiling |
 | `POST /api/tomorrow/{id}/useful` 🔒 | `{ reason, note? }` | The check's own thumbs body and guards (`FeedbackEndpoints.ParseUseful`); 404 `error.tomorrow_not_found` for anyone but the owner |
 | `GET /api/checks/{id}/image` | — | The photo of a private check, to whoever may read the check (its owner, or the guest whose cookie made it), `Cache-Control: private`; 404 to everyone else and for a check with no file |
 
@@ -1528,6 +1530,6 @@ check would be; the ref and gap enums are exactly the wardrobe; a body word or a
 too few pieces or kinds make no call; the wardrobe switch and the guest; the kill switch and the wall; five taps pay once
 and another idea pays again; a thumbs-down breaks the cache and a new piece marks it stale; a failure spends nothing and
 a refusal counts; free's brake inside its shared day and Pro's own bucket; the month; the in-flight reservation; the
-weather reaching the model only when the server fetched it, rounded and never stored; the photo per piece; the thumbs;
+weather reaching the model only when the server fetched it, rounded and never stored or logged by the server; the photo per piece; the thumbs;
 the loop closing from a check; the advisory and the numbers page), `WeatherTests`, and the doctor, plan, security and
 database tests that grew with it.

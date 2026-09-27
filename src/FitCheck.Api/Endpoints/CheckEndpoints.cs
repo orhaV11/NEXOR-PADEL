@@ -281,7 +281,9 @@ public static class CheckEndpoints
             // (Spend counts both, as before), while a PRO account's checks are counted on their own (Allowance.Checks)
             // and its comparisons have their own day on the compare route, so deciding between two outfits spends no check.
             cap = Plans.CapFor(user, plans.Value, limits.Value, now);
-            reservationKey = user.Id;
+            // The slot in flight is counted in the same bucket the day is: Pro's checks apart from its comparisons and
+            // planned outfits, free's everything together.
+            reservationKey = CheckCapacity.KeyFor(user.Id, Plans.CheckAllowanceFor(user, now));
             recent = await Spend.RecentForUserAsync(db, user.Id, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CheckAllowanceFor(user, now));
 
             // Round 16 - the month. The day above is a burst limit; this is the one that bounds what an account can

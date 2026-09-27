@@ -47,6 +47,7 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
     private const int NameCheckMinLength = 4;
 
     private static readonly Regex Digits = new(@"\d+", RegexOptions.Compiled);
+    private static readonly Regex RefLabels = new(@"\bP\d+\b", RegexOptions.Compiled);
 
     private const string SystemPrompt = """
         You are a stylist helping somebody decide what to wear, using ONLY the clothes they already own.
@@ -357,7 +358,8 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
             kept.Add(piece);
         }
 
-        if (kept.Any(p => p.Item.Category == "dress"))
+        var hasDress = kept.Any(p => p.Item.Category == "dress");
+        if (hasDress)
         {
             kept.RemoveAll(p => p.Item.Category is "top" or "bottom");
         }
@@ -367,7 +369,10 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
             kept = kept.Take(MaxPieces).ToList();
         }
 
-        if (kept.Count < 2 || kept.Select(p => p.Item.Category).Distinct(StringComparer.Ordinal).Count() < 2)
+        // Two pieces of two kinds, or a dress: a dress is an outfit on its own, so a wardrobe of a dress and a tee (which
+        // the two-kinds gate lets through, and whose top the rule above just sent home) is an answer, not a failed call.
+        var kinds = kept.Select(p => p.Item.Category).Distinct(StringComparer.Ordinal).Count();
+        if (kept.Count == 0 || (!hasDress && (kept.Count < 2 || kinds < 2)))
         {
             throw new VisionClientException("The outfit came back with nothing the person owns.");
         }
@@ -384,26 +389,37 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
         var templated = sentence.Length == 0 || OutfitAnalyzer.MentionsPerson(sentence) || InventsANumber(sentence, figures) || NamesAnUnpickedPiece(sentence, byRef.Values, kept);
         if (templated)
         {
-            sentence = localizer.Get(language, "tomorrow.template", string.Join(", ", kept.Select(p => p.Name)));
+            sentence = kept.Count == 1
+                ? localizer.Get(language, "tomorrow.template_one", kept[0].Name)
+                : localizer.Get(language, "tomorrow.template", string.Join(", ", kept.Select(p => p.Name)));
         }
 
         return new Validated(kept, sentence, templated, gap, invented);
     }
 
-    /// <summary>A digit run in the sentence that never appears in the figures is a number the model made up.</summary>
+    /// <summary>
+    /// A digit run in the sentence that never appears in the figures is a number the model made up. The refs (P1..P40)
+    /// are labels, not figures: without stripping them, "around 10 degrees" would pass on any wardrobe of ten pieces.
+    /// </summary>
     public static bool InventsANumber(string sentence, string figures)
     {
-        var given = Digits.Matches(figures).Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
+        var given = Digits.Matches(RefLabels.Replace(figures, "")).Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
         return Digits.Matches(sentence).Any(m => !given.Contains(m.Value));
     }
 
-    /// <summary>The name of an offered piece the model did not pick, in the sentence: a garment the person is told about that is not in the outfit.</summary>
+    /// <summary>
+    /// The name of an offered piece the model did not pick, in the sentence: a garment the person is told about that is
+    /// not in the outfit. An unpicked name that sits inside a picked one ("Jeans" in "Dark jeans") is the picked piece
+    /// being named, not a stranger.
+    /// </summary>
     public static bool NamesAnUnpickedPiece(string sentence, IEnumerable<PromptPiece> offered, IReadOnlyCollection<PromptPiece> kept)
     {
         var keptRefs = kept.Select(p => p.Ref).ToHashSet(StringComparer.Ordinal);
+        var keptNames = kept.Select(p => p.Name).ToList();
         return offered.Where(p => !keptRefs.Contains(p.Ref))
             .Select(p => p.Name)
             .Where(name => name.Length >= NameCheckMinLength)
+            .Where(name => !keptNames.Any(k => k.Contains(name, StringComparison.OrdinalIgnoreCase)))
             .Any(name => sentence.Contains(name, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -590,7 +606,7 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
         }).ToList();
 
         var weatherDto = row.WeatherUsed && row.WeatherTempMaxC is { } max && row.WeatherTempMinC is { } min
-            ? new SuggestionWeatherDto(max, min, row.WeatherPrecipChance ?? 0, row.WeatherCode ?? 0, Weather.Sky(row.WeatherCode ?? 0))
+            ? new SuggestionWeatherDto(max, min, row.WeatherPrecipChance, row.WeatherCode, row.WeatherCode is { } code ? Weather.Sky(code) : null)
             : null;
         return new SuggestionDto(row.Id, row.Occasion.ToString(), row.Style?.ToString(), row.When, row.ForDate, DateTime.SpecifyKind(row.CreatedAt, DateTimeKind.Utc),
             row.Status, row.Seq, row.Sentence, dtos, weatherDto, row.Gap, row.Useful, row.UsefulReason, row.WornCheckId,

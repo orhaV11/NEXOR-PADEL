@@ -489,6 +489,8 @@ export async function signOut() {
   // This browser's push subscription goes first, so the next person on the phone is not pinged about the last one.
   try { const { unsubscribePush } = await import('./push.js'); await unsubscribePush(); } catch (e) { /* push is optional */ }
   try { await api('POST', '/api/auth/logout'); } catch (e) { /* cookie may already be gone */ }
+  // The place allowed for the forecast goes with the session: the next person on this phone is asked, never assumed.
+  savePrefs({ weather: null, weatherDenied: 0 });
   state.me = null; resetSession(); renderShell();
   toast(t('common.signed_out'));
   location.hash = '#/';

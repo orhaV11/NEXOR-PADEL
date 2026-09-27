@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace FitCheck.Api.Services;
 
 public enum CapacityVerdict
@@ -17,49 +19,75 @@ public sealed class CheckCapacity
     private readonly Dictionary<Guid, int> _perUser = [];
     private int _total;
 
-    public CapacityVerdict TryReserve(Guid userId, int storedForUser, int userCap, int storedGlobal, int globalCap, out IDisposable? reservation)
+    /// <summary>
+    /// The key one bucket's calls in flight are counted under. A free account has one bucket for everything it does today
+    /// (<see cref="Allowance.Together"/>), so its key is the account itself; Pro's checks, comparisons and planned outfits
+    /// are counted apart, so each gets its own key, derived from the account and the bucket, and a check in flight never
+    /// fills a planned outfit's slot or tells a paying person their day is full when it is not.
+    /// </summary>
+    public static Guid KeyFor(Guid userId, Allowance allowance) =>
+        allowance == Allowance.Together ? userId : new Guid(SHA256.HashData([.. userId.ToByteArray(), (byte)allowance]).AsSpan(0, 16));
+
+    public CapacityVerdict TryReserve(Guid userId, int storedForUser, int userCap, int storedGlobal, int globalCap, out IDisposable? reservation) =>
+        Reserve(userId, storedForUser, userCap, storedGlobal, globalCap, out reservation);
+
+    /// <summary>
+    /// A second, narrower reservation for a call whose day is already reserved: only the key's own count, never everybody's
+    /// (the day's reservation holds that slot). The free brake on planned outfits is one: the shared day first, then this.
+    /// </summary>
+    public CapacityVerdict TryReserve(Guid key, int stored, int cap, out IDisposable? reservation) =>
+        Reserve(key, stored, cap, null, null, out reservation);
+
+    private CapacityVerdict Reserve(Guid key, int stored, int cap, int? storedGlobal, int? globalCap, out IDisposable? reservation)
     {
         reservation = null;
+        var counted = storedGlobal is { } global && globalCap is { } ceiling;
         lock (_lock)
         {
-            var inFlightForUser = _perUser.GetValueOrDefault(userId);
-            if (storedForUser + inFlightForUser >= userCap)
+            var inFlight = _perUser.GetValueOrDefault(key);
+            if (stored + inFlight >= cap)
             {
                 return CapacityVerdict.UserCapReached;
             }
 
-            if (storedGlobal + _total >= globalCap)
+            if (counted && storedGlobal!.Value + _total >= globalCap!.Value)
             {
                 return CapacityVerdict.GlobalCapReached;
             }
 
-            _perUser[userId] = inFlightForUser + 1;
-            _total++;
+            _perUser[key] = inFlight + 1;
+            if (counted)
+            {
+                _total++;
+            }
         }
 
-        reservation = new Reservation(this, userId);
+        reservation = new Reservation(this, key, counted);
         return CapacityVerdict.Ok;
     }
 
-    private void Release(Guid userId)
+    private void Release(Guid key, bool counted)
     {
         lock (_lock)
         {
-            var remaining = _perUser.GetValueOrDefault(userId) - 1;
+            var remaining = _perUser.GetValueOrDefault(key) - 1;
             if (remaining <= 0)
             {
-                _perUser.Remove(userId);
+                _perUser.Remove(key);
             }
             else
             {
-                _perUser[userId] = remaining;
+                _perUser[key] = remaining;
             }
 
-            _total = Math.Max(0, _total - 1);
+            if (counted)
+            {
+                _total = Math.Max(0, _total - 1);
+            }
         }
     }
 
-    private sealed class Reservation(CheckCapacity owner, Guid userId) : IDisposable
+    private sealed class Reservation(CheckCapacity owner, Guid key, bool counted) : IDisposable
     {
         private bool _released;
 
@@ -68,7 +96,7 @@ public sealed class CheckCapacity
             if (!_released)
             {
                 _released = true;
-                owner.Release(userId);
+                owner.Release(key, counted);
             }
         }
     }

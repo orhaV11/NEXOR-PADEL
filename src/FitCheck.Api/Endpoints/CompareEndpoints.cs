@@ -193,7 +193,7 @@ public static class CompareEndpoints
         var recent = await Spend.RecentForUserAsync(db, userId, now, ct, plans.Value.NoOutfitForgivenPerDay, Plans.CompareAllowanceFor(user, now));
         var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
 
-        var verdict = capacity.TryReserve(userId, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
+        var verdict = capacity.TryReserve(CheckCapacity.KeyFor(userId, Plans.CompareAllowanceFor(user, now)), recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
         if (verdict == CapacityVerdict.UserCapReached)
         {
             if (Spend.RetryAfterSeconds(recent, cap, now) is { } retryAfter)

@@ -866,10 +866,34 @@ function checkClientModules() {
   await noa.waitForSelector('#tm-idea', { timeout: 30000 });
   assert.strictEqual(await text(noa, '#tm-idea'), 'Idea 2', 'another idea is idea 2');
   await noa.waitForSelector('#tm-recent button');
-  assert.ok((await noa.getAttribute('#tm-check-it', 'href')).includes('#/check?suggestion='), 'the check link carries the outfit');
+  const checkIt = await noa.getAttribute('#tm-check-it', 'href');
+  assert.ok(checkIt.includes('#/check?suggestion='), 'the check link carries the outfit');
+  const suggestionId = checkIt.split('suggestion=')[1];
+  // The check screen's own chips are moved off Office first, so the pre-light below is the outfit's doing and not what
+  // the earlier check left pressed. Then the check is made from the link, and the server is asked whether that closed the
+  // loop: the outfit carries the check it was worn in, and counts as a yes.
+  await go(noa, '#/check');
+  await noa.waitForSelector('#occasions .chip[data-occasion="Party"]');
+  await noa.click('#occasions .chip[data-occasion="Party"]');
+  await noa.waitForSelector('#occasions .chip[data-occasion="Party"][aria-pressed="true"]');
+  await go(noa, '#/tomorrow');
+  await noa.waitForSelector('#tm-check-it');
   await noa.click('#tm-check-it');
   await noa.waitForSelector('#photo');
-  assert.ok(await noa.$('#occasions .chip[aria-pressed="true"]'), 'the outfit\'s occasion is pre-lit on the check screen');
+  assert.strictEqual(await noa.getAttribute('#occasions .chip[aria-pressed="true"]', 'data-occasion'), 'Office', 'the outfit\'s occasion is pre-lit on the check screen, over the one left pressed');
+  await choosePhoto(noa, '#photo', await makeJpeg(noa, 900, 1200));
+  await noa.waitForSelector('#photo img');
+  await noa.waitForFunction(() => !document.getElementById('submit').disabled);
+  await noa.click('#submit');
+  await noa.waitForSelector('#result .score', { timeout: 30000 });
+  const worn = await noa.evaluate(async (id) => {
+    const { api } = await import('/app/core.js');
+    const plan = await api('GET', '/api/tomorrow');
+    const row = (plan.recent || []).find((s) => s.id === id);
+    return row ? { wornCheckId: row.wornCheckId || null, usefulReason: row.usefulReason || null } : null;
+  }, suggestionId);
+  assert.ok(worn && worn.wornCheckId, 'wearing it closed the loop: the outfit carries the check it was worn in');
+  assert.strictEqual(worn.usefulReason, 'worked', 'and counts as a yes');
   await go(noa, '#/u/noa');
   await noa.waitForSelector('#profile-tomorrow');
 

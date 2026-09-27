@@ -4,7 +4,9 @@ using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FitCheck.Api.Tests;
 
@@ -18,7 +20,8 @@ namespace FitCheck.Api.Tests;
 /// </summary>
 public class TomorrowTests
 {
-    private static readonly string Today = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    /// <summary>The phone's "today", read at each call so a run that crosses UTC midnight is not sending yesterday.</summary>
+    private static string Today => DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static async Task<JsonElement> Json(HttpResponseMessage response) => await response.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -592,6 +595,124 @@ public class TomorrowTests
         Assert.Equal(1, answers.Count(r => r.StatusCode == HttpStatusCode.Created));
         Assert.Equal(11, answers.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests));
         Assert.Equal(1, ComposeCalls(app));
+    }
+
+    /// <summary>
+    /// Round 19 review: the slot in flight is counted per bucket. A Pro account's check uploading must not fill its planned
+    /// outfit's slot (its own bucket), and a free account's check in flight counts against its shared day but not against
+    /// the brake on planned outfits, so neither is told the day is full when it is not.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_check_in_flight_does_not_fill_a_planned_outfits_slot(bool pro)
+    {
+        using var app = new TestApp { Settings = { ["Plans:ProSuggestionsPerDay"] = "1", ["Plans:FreeSuggestionsPerDay"] = "1", ["Plans:FreeChecksPerDay"] = "3" } };
+        var (me, _, handle) = await app.NewUserAsync(pro ? "tm_flight_pro" : "tm_flight_free");
+        if (pro)
+        {
+            await AdminSync.SetProAsync(app.ConnectionString, handle, DateTime.UtcNow.AddDays(30));
+        }
+
+        await ThreeKeepsAsync(app, me);
+
+        var gate = new TaskCompletionSource();
+        app.Vision.Handler = request =>
+        {
+            if (request.Tool.Name == OutfitAnalyzer.ToolName)
+            {
+                gate.Task.Wait(TimeSpan.FromSeconds(10));
+            }
+
+            return FakeVisionClient.ByTool(request);
+        };
+        var check = me.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        await Task.Delay(300);
+        var planned = await ComposeAsync(me, fresh: true);
+        gate.SetResult();
+        Assert.Equal(HttpStatusCode.Created, planned.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await check).StatusCode);
+    }
+
+    /// <summary>
+    /// Round 19 review: a dress and a tee is a wardrobe the two-kinds gate lets through, and the dress rule then sends the
+    /// tee home. A dress is an outfit on its own, so that is an answer, not a spent call and a 502 on every tap.
+    /// </summary>
+    [Fact]
+    public async Task A_dress_is_an_outfit_on_its_own()
+    {
+        using var app = new TestApp { Settings = { ["Plans:FreeSuggestionsPerDay"] = "20" } };
+        var (me, id, _) = await app.NewUserAsync("tm_dress");
+        app.Vision.Handler = request => request.Tool.Name == OutfitAnalyzer.ToolName
+            ? CheckNaming(("Black dress", "dress"), ("White tee", "top"))
+            : FakeVisionClient.ByTool(request);
+        var check = await app.CheckAsync(me);
+        await KeepAsync(me, check, "Black dress");
+        await KeepAsync(me, check, "White tee");
+        var refs = Tomorrow.Refs(WithDb(app, db => Wardrobe.ListAsync(db, id, CancellationToken.None).Result));
+        app.Vision.Handler = request => request.Tool.Name == Tomorrow.ToolName
+            ? Payloads.Compose([refs.Single(r => r.Item.Category == "dress").Ref, refs.Single(r => r.Item.Category == "top").Ref], "")
+            : FakeVisionClient.ByTool(request);
+
+        var response = await ComposeAsync(me, "Party");
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var suggestion = await Json(response);
+        Assert.Equal(["Black dress"], Names(suggestion));
+        Assert.Equal("Wear this: Black dress.", suggestion.GetProperty("sentence").GetString());
+        Assert.Equal(1, ComposeCalls(app));
+    }
+
+    /// <summary>
+    /// Round 19 review: the refs (P1..P40) are labels, not figures, so "around 10 degrees" on a wardrobe of ten is a made-up
+    /// number; and an unpicked name inside a picked one ("Jeans" in "Dark jeans") is the picked piece being named.
+    /// </summary>
+    [Fact]
+    public void Ref_labels_are_not_figures_and_a_name_inside_a_picked_name_is_not_a_stranger()
+    {
+        const string figures = "Forecast: unknown.\nPieces (refer to them ONLY by their ref):\nP1 | top | \"White tee\" | worn once, last today\nP10 | shoes | \"Boots\" | worn 3 times, last 2 days ago\n";
+        Assert.True(Tomorrow.InventsANumber("Around 10 degrees tomorrow, so keep the jacket on.", figures));
+        Assert.True(Tomorrow.InventsANumber("A solid 1 out of 10.", figures));
+        Assert.False(Tomorrow.InventsANumber("Worn 3 times already; wear it again.", figures));
+        Assert.False(Tomorrow.InventsANumber("A high of 24 today.", "Forecast: high 24 C, low 17 C\n" + figures));
+
+        static Tomorrow.PromptPiece Piece(string @ref, string name, string category) => new(@ref, new WardrobeItem { Name = name, Category = category }, []);
+        var jeans = Piece("P1", "Jeans", "bottom");
+        var darkJeans = Piece("P2", "Dark jeans", "bottom");
+        var tee = Piece("P3", "White tee", "top");
+        var boots = Piece("P4", "Boots", "shoes");
+        var offered = new[] { jeans, darkJeans, tee, boots };
+        Assert.False(Tomorrow.NamesAnUnpickedPiece("Your dark jeans and white tee.", offered, [darkJeans, tee]));
+        Assert.True(Tomorrow.NamesAnUnpickedPiece("Your dark jeans and white tee, with the boots.", offered, [darkJeans, tee]));
+    }
+
+    /// <summary>
+    /// Round 19 review: the factory's default HttpClient logging printed the forecast URL, place and key included, at
+    /// Information. Through the real pipeline, with a key set: no line anywhere carries the coordinates or the key.
+    /// </summary>
+    [Fact]
+    public async Task No_log_line_carries_the_place_or_the_forecast_key()
+    {
+        const string key = "om-test-key-8f3a";
+        using var app = new TestApp { Settings = { ["Plans:FreeSuggestionsPerDay"] = "20", ["Weather:ApiKey"] = key } };
+        var provider = new RecordingLoggerProvider();
+        using var logged = app.WithWebHostBuilder(builder => builder.ConfigureLogging(logging => logging.AddProvider(provider)));
+        var me = logged.CreateClient();
+        me.DefaultRequestHeaders.Add(Sessions.RequestHeader, Sessions.RequestHeaderValue);
+        var signup = await me.PostAsJsonAsync("/api/auth/signup", new { handle = "tm_quiet", password = "Tr0ub4dor-quiet-42", birthDate = "1990-01-01", language = "en" });
+        Assert.Equal(HttpStatusCode.Created, signup.StatusCode);
+        await ThreeKeepsAsync(app, me);
+
+        var response = await ComposeAsync(me, lat: 32.0853, lon: 34.7818);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var url = Assert.Single(app.WeatherHandler.Requests).ToString();
+        Assert.Contains("apikey=" + key, url);
+        Assert.Contains("latitude=32.09", url);
+
+        var lines = provider.Lines.Select(l => l.Category + ": " + l.Message).ToList();
+        foreach (var secret in new[] { key, "latitude=", "longitude=", "32.09", "34.78", "open-meteo" })
+        {
+            Assert.DoesNotContain(lines, l => l.Contains(secret, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     // ---------- weather ----------

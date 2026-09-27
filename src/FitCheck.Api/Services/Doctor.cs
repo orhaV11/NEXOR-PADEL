@@ -484,27 +484,33 @@ public static class Doctor
     {
         var proCap = Plans.ProCap(plans, limits);
         var freeCap = Math.Max(0, Math.Min(plans.FreeChecksPerDay, limits.ChecksPerDay));
+        var proSuggestions = Plans.ProSuggestionCap(plans, limits);
+        var freeSuggestions = Plans.FreeSuggestionCap(plans, limits);
         var notes = new List<string>();
 
         // Round 16 - the month. Without it a Pro account may make 66 calls a day, which is 1,980 a month: more
         // stylist than any consumer price carries, and far more than anybody real uses. A month that IS set is good
-        // news and belongs in the ok line below, not here.
+        // news and belongs in the ok line below, not here. Round 19: the planned outfits are the third bucket a
+        // subscriber's day is made of, so the worst case names them too.
+        var proDay = proCap + Plans.ProCompareCap(plans, limits) + (plans.TomorrowEnabled ? proSuggestions : 0);
         if (plans.ProCallsPerMonth <= 0)
         {
-            notes.Add($"Plans__ProCallsPerMonth is not set, so Pro is bounded by its day alone: up to {proCap} checks AND {Plans.ProCompareCap(plans, limits)} comparisons every day, which is what one subscriber may cost");
+            notes.Add($"Plans__ProCallsPerMonth is not set, so Pro is bounded by its day alone: up to {proCap} checks AND {Plans.ProCompareCap(plans, limits)} comparisons"
+                + (plans.TomorrowEnabled ? $" AND {proSuggestions} planned outfits" : "") + $" every day ({proDay} model calls), which is what one subscriber may cost");
         }
 
         // A month at or below the day x 30 is the real cap, whatever the day says — and the cap message, the Pro page
-        // and the client all quote the day. The suite's own fixtures walked into this before an owner could.
+        // and the client all quote the day. The suite's own fixtures walked into this before an owner could. Pro's day
+        // is every bucket together: a subscriber who fills all three on day one meets the month there.
         foreach (var (plan, perDay, perMonth) in new[]
                  {
                      ("free", freeCap, plans.FreeCallsPerMonth),
-                     ("pro", proCap, plans.ProCallsPerMonth)
+                     ("pro", proDay, plans.ProCallsPerMonth)
                  })
         {
             if (perMonth > 0 && perDay > 0 && perMonth < perDay)
             {
-                notes.Add($"the {plan} plan allows {perDay} a day but only {perMonth} a MONTH, so a person meets the month on their first day and the daily number they are shown is never true");
+                notes.Add($"the {plan} plan allows {perDay} calls a day but only {perMonth} a MONTH, so a person meets the month on their first day and the daily numbers they are shown are never true");
             }
         }
 
@@ -543,10 +549,13 @@ public static class Doctor
         }
 
         // Round 19 — Tomorrow's two day numbers, as really enforced, and whether Pro's is worth anything.
-        var proSuggestions = Plans.ProSuggestionCap(plans, limits);
-        var freeSuggestions = Plans.FreeSuggestionCap(plans, limits);
         if (plans.TomorrowEnabled)
         {
+            if (proSuggestions <= 0)
+            {
+                notes.Add($"Tomorrow is on but Pro gets 0 planned outfits a day (Plans__ProSuggestionsPerDay {plans.ProSuggestionsPerDay} against Limits__ChecksPerDay {limits.ChecksPerDay}): no subscriber can plan an outfit, and the Pro page hides its Tomorrow line");
+            }
+
             if (plans.ProSuggestionsPerDay > limits.ChecksPerDay)
             {
                 notes.Add($"Plans__ProSuggestionsPerDay ({plans.ProSuggestionsPerDay}) is above Limits__ChecksPerDay ({limits.ChecksPerDay}), so Pro really gets {proSuggestions} planned outfits a day");

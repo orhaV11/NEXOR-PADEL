@@ -330,8 +330,9 @@ fly secrets set \
 
 **The forecast (Round 19).** Tomorrow ("what should I wear") can dress a person for the weather. It works with
 nothing set, keylessly, from Open-Meteo — but their keyless service is for **non-commercial** use, so once Stripe is on,
-either subscribe at open-meteo.com and set the key, or turn the forecast off. `--doctor` warns until one or the other
-is done; nothing else in the app depends on it.
+either subscribe at open-meteo.com and set the key, or turn the forecast off. `--doctor` warns while the forecast is on
+without a key, and shows a different warning while it is off (so you keep seeing which you chose); never a failure, and
+nothing else in the app depends on it.
 
 ```bash
 fly secrets set Weather__ApiKey=...          # or: fly secrets set Weather__Enabled=false

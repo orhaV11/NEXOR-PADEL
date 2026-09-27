@@ -277,6 +277,18 @@ public class DoctorTests : IDisposable
         pointless["Plans:WardrobeNamesToStylistPro"] = "12";
         Assert.Contains("Tomorrow gives Pro no more than free", (await Inspect(pointless))["plans"]!.Detail);
 
+        // A Pro cap of 0 with Tomorrow on: nobody who pays can plan an outfit, and the Pro page hides its line rather than promise ten.
+        var zero = Healthy();
+        zero["Plans:ProSuggestionsPerDay"] = "0";
+        var none = await Inspect(zero);
+        Assert.Equal(DoctorStatus.Warn, none["plans"]!.Status);
+        Assert.Contains("Pro gets 0 planned outfits a day", none["plans"]!.Detail);
+
+        // Without a month, the worst case one subscriber may cost names all three buckets.
+        var noMonth = Healthy();
+        noMonth["Plans:ProCallsPerMonth"] = "0";
+        Assert.Contains("AND 10 planned outfits every day (", (await Inspect(noMonth))["plans"]!.Detail);
+
         var off = Healthy();
         off["Plans:TomorrowEnabled"] = "false";
         var disabled = await Inspect(off);

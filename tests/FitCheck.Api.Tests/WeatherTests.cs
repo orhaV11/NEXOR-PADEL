@@ -216,10 +216,46 @@ public class WeatherTests
         Assert.Equal(24.6, later.MaxC);
         Assert.Equal(19.3, later.MinC);
         Assert.Equal(66, later.RainChance);
-        // A missing code reads as cloudy rather than as clear: the safer word when the sky is unknown.
-        Assert.Equal(0, later.Code);
-        Assert.Equal("clear", later.Sky);
-        Assert.Equal("high 25 C, low 19 C, chance of rain 66%, clear", later.Figure());
+        // A missing code is an unknown sky, not a clear one: the prompt and the pill leave it out.
+        Assert.Null(later.Code);
+        Assert.Null(later.Sky);
+        Assert.Equal("high 25 C, low 19 C, chance of rain 66%", later.Figure());
+    }
+
+    /// <summary>Round 19 review: a missing rain chance is unknown too, never "0%"; the temperatures alone are still a forecast.</summary>
+    [Fact]
+    public void A_rain_chance_the_service_left_out_is_not_written_as_none()
+    {
+        using var doc = JsonDocument.Parse("""
+            {
+              "daily": {
+                "time": ["2026-09-28"],
+                "weather_code": [61],
+                "temperature_2m_max": [14.0],
+                "temperature_2m_min": [8.0],
+                "precipitation_probability_max": [null]
+              }
+            }
+            """);
+        var day = Weather.Parse(doc.RootElement)![new DateOnly(2026, 9, 28)];
+        Assert.Null(day.RainChance);
+        Assert.Equal("rain", day.Sky);
+        Assert.Equal("high 14 C, low 8 C, rain", day.Figure());
+    }
+
+    /// <summary>
+    /// Round 19 review: a base URL without a scheme (or an empty one) made the client throw before any request, and that
+    /// reached the person as a failed outfit. It is no forecast and one warning, and nothing is asked.
+    /// </summary>
+    [Theory]
+    [InlineData("api.open-meteo.com")]
+    [InlineData("")]
+    [InlineData("ftp://weather.example")]
+    public async Task A_base_url_that_is_not_an_absolute_web_address_is_no_forecast_and_no_exception(string baseUrl)
+    {
+        var (weather, handler, _) = Create(new WeatherOptions { BaseUrl = baseUrl });
+        Assert.Null(await weather.ForAsync(32.08, 34.78, new DateOnly(2026, 9, 28), CancellationToken.None));
+        Assert.Empty(handler.Requests);
     }
 
     [Fact]

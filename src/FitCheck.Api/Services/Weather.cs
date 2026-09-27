@@ -81,6 +81,14 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
     {
         var settings = options.Value;
         var culture = CultureInfo.InvariantCulture;
+        // A base URL that is not an absolute http(s) address (a missing scheme, an empty setting) would make the client
+        // throw before any request, and that must not reach the person as a failed outfit: no forecast, one warning.
+        if (!Uri.TryCreate(settings.Host(), UriKind.Absolute, out var host) || (host.Scheme != Uri.UriSchemeHttps && host.Scheme != Uri.UriSchemeHttp))
+        {
+            logger.LogWarning("Weather:BaseUrl is not an absolute http(s) URL; the outfit is composed without the weather.");
+            return null;
+        }
+
         var url = settings.Host() + "/v1/forecast"
             + "?latitude=" + lat.ToString("0.##", culture)
             + "&longitude=" + lon.ToString("0.##", culture)
@@ -110,7 +118,8 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
             // The person went away: nothing to log, nothing to remember.
             throw;
         }
-        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException or IOException)
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException or IOException
+                                  or InvalidOperationException or NotSupportedException or UriFormatException)
         {
             // The place is deliberately not in this line: a log is not where somebody's whereabouts belong.
             logger.LogWarning("The forecast could not be fetched ({Reason}); the outfit is composed without the weather.", e.GetType().Name);
@@ -143,10 +152,12 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
                 && DateOnly.TryParseExact(entry.GetString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
                 && index < maxes.Count && index < mins.Count && maxes[index] is { } max && mins[index] is { } min)
             {
-                var chance = index < rain.Count && rain[index] is { } p ? (int)Math.Clamp(Math.Round(p, MidpointRounding.AwayFromZero), 0, 100) : 0;
-                var code = index < codes.Count && codes[index] is { } c ? (int)c : 0;
+                // A rain chance or a sky the service left out stays unknown: a made-up "0%, clear" would dress the person
+                // for a day nobody forecast. The temperatures alone are still a true forecast.
+                int? chance = index < rain.Count && rain[index] is { } p ? (int)Math.Clamp(Math.Round(p, MidpointRounding.AwayFromZero), 0, 100) : null;
+                int? code = index < codes.Count && codes[index] is { } c ? (int)c : null;
                 // Half away from zero, the way a person rounds a temperature; the default rounds 20.5 to 20.
-                days[day] = new Forecast(day, Math.Round(max, 1, MidpointRounding.AwayFromZero), Math.Round(min, 1, MidpointRounding.AwayFromZero), chance, code, Sky(code));
+                days[day] = new Forecast(day, Math.Round(max, 1, MidpointRounding.AwayFromZero), Math.Round(min, 1, MidpointRounding.AwayFromZero), chance, code, code is { } known ? Sky(known) : null);
             }
 
             index++;
@@ -209,14 +220,27 @@ public sealed class Weather(IHttpClientFactory http, IOptions<WeatherOptions> op
 /// One day's forecast, in the numbers the model is given and the screen draws. Celsius, because the model reasons in
 /// it and the client writes it in the reader's own units.
 /// </summary>
-public sealed record Forecast(DateOnly Day, double MaxC, double MinC, int RainChance, int Code, string Sky)
+public sealed record Forecast(DateOnly Day, double MaxC, double MinC, int? RainChance, int? Code, string? Sky)
 {
-    /// <summary>The line in the prompt, InvariantCulture: "high 24 C, low 17 C, chance of rain 10%, clear sky".</summary>
+    /// <summary>
+    /// The line in the prompt, InvariantCulture: "high 24 C, low 17 C, chance of rain 10%, clear". A rain chance or a
+    /// sky the service did not give is left out rather than written as 0% and clear.
+    /// </summary>
     public string Figure()
     {
         var culture = CultureInfo.InvariantCulture;
-        return "high " + Math.Round(MaxC, MidpointRounding.AwayFromZero).ToString("0", culture)
-            + " C, low " + Math.Round(MinC, MidpointRounding.AwayFromZero).ToString("0", culture)
-            + " C, chance of rain " + RainChance.ToString(culture) + "%, " + Weather.SkyWords(Sky);
+        var text = "high " + Math.Round(MaxC, MidpointRounding.AwayFromZero).ToString("0", culture)
+            + " C, low " + Math.Round(MinC, MidpointRounding.AwayFromZero).ToString("0", culture) + " C";
+        if (RainChance is { } rain)
+        {
+            text += ", chance of rain " + rain.ToString(culture) + "%";
+        }
+
+        if (Sky is { } sky)
+        {
+            text += ", " + Weather.SkyWords(sky);
+        }
+
+        return text;
     }
 }

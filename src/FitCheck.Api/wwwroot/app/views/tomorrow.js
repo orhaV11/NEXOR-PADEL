@@ -71,6 +71,13 @@ function ensureStyle() {
 const categoryLabel = (category) => (hasMessage('wardrobe.category_' + category) ? t('wardrobe.category_' + category) : category);
 const gapLabel = (category) => (hasMessage('tomorrow.gap_' + category) ? t('tomorrow.gap_' + category) : category);
 const skyLabel = (sky) => (hasMessage('tomorrow.sky_' + sky) ? t('tomorrow.sky_' + sky) : sky);
+/** The pill: the two temperatures always, the sky and the rain chance only when the service gave them. */
+function weatherText(w) {
+  const parts = [t('tomorrow.weather_temps', { high: Math.round(w.tempMaxC), low: Math.round(w.tempMinC) })];
+  if (w.sky) parts.push(skyLabel(w.sky));
+  if (typeof w.precipChance === 'number') parts.push(t('tomorrow.weather_rain', { rain: w.precipChance }));
+  return parts.join(' · ');
+}
 const occasionLabel = (occasion) => (hasMessage('occasion.' + occasion) ? t('occasion.' + occasion) : occasion);
 const styleLabel = (style) => (style && hasMessage('style.' + style) ? t('style.' + style) : '');
 const whenLabel = (when) => t(when === 'today' ? 'tomorrow.when_today' : 'tomorrow.when_tomorrow');
@@ -78,11 +85,14 @@ const plans = () => (state.config && state.config.plans) || {};
 const isPro = () => !!state.me && state.me.plan === 'pro';
 
 /** The phone's own calendar date: "tomorrow" is the person's tomorrow, not the server's. */
-function localToday() {
+/** The phone's own calendar day, offset days from today, as yyyy-MM-dd: what "today" and "tomorrow" mean to the person. */
+function localDay(offset = 0) {
   const d = new Date();
+  d.setDate(d.getDate() + offset);
   const pad = (n) => String(n).padStart(2, '0');
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 }
+const localToday = () => localDay(0);
 
 // ---------- state that outlives a render ----------
 
@@ -99,10 +109,15 @@ function weatherPref() {
   return w && typeof w.lat === 'number' && typeof w.lon === 'number' ? w : null;
 }
 
-/** The stored outfit that answers the pressed chips, if any: switching a chip never asks the server. */
+/**
+ * The stored outfit that answers the pressed chips, if any: switching a chip never asks the server. The same day as the
+ * pressed pill (a plan for last Tuesday is not tomorrow's, whatever its label) and not one the person turned down.
+ */
 function matching() {
   if (!page || !pick.occasion) return null;
-  return (page.recent || []).find((s) => s.status === 'ok' && s.occasion === pick.occasion && (s.style || null) === (pick.style || null) && s.when === pick.when) || null;
+  const day = localDay(pick.when === 'tomorrow' ? 1 : 0);
+  return (page.recent || []).find((s) => s.status === 'ok' && s.occasion === pick.occasion && (s.style || null) === (pick.style || null)
+    && s.when === pick.when && s.forDate === day && s.useful !== false) || null;
 }
 
 function mergeRecent(suggestion) {
@@ -118,9 +133,10 @@ function mergeRecent(suggestion) {
  * page from the start: a lazily loaded image that is not in the document never loads at all.
  */
 function photoBox(url, name, onOpen) {
-  const box = el('div', { class: 'tm-photo', role: onOpen ? 'button' : undefined, tabindex: onOpen ? '0' : undefined }, [icon('bag')]);
+  // When the box is a button it carries the name itself, so a screen reader hears what it opens and not "button".
+  const box = el('div', { class: 'tm-photo', role: onOpen ? 'button' : undefined, tabindex: onOpen ? '0' : undefined, 'aria-label': onOpen && name ? name : undefined }, [icon('bag')]);
   if (url) {
-    const img = el('img', { src: url, alt: name || '', loading: 'lazy', decoding: 'async' });
+    const img = el('img', { src: url, alt: onOpen ? '' : (name || ''), loading: 'lazy', decoding: 'async' });
     img.addEventListener('error', () => box.replaceChildren(icon('bag')));
     box.replaceChildren(img);
     if (onOpen) {
@@ -142,7 +158,7 @@ function whenPills() {
   for (const when of ['today', 'tomorrow']) {
     group.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-when': when, text: whenLabel(when), 'aria-pressed': String(pick.when === when),
-      onclick: () => { pick.when = when; savePrefs({ tomorrowWhen: when }); repaint(); }
+      onclick: () => { pick.when = when; savePrefs({ tomorrowWhen: when }); card = matching(); repaint(); }
     }));
   }
   return group;
@@ -155,8 +171,7 @@ function weatherLine() {
   const pref = weatherPref();
   const forget = () => el('button', { type: 'button', class: 'btn-text', id: 'weather-forget', text: t('tomorrow.weather_forget'), onclick: () => { savePrefs({ weather: null }); repaint(); } });
   if (card && card.weather) {
-    const w = card.weather;
-    line.appendChild(el('span', { class: 'tm-pill', id: 'weather-pill', text: t('tomorrow.weather_line', { high: Math.round(w.tempMaxC), low: Math.round(w.tempMinC), sky: skyLabel(w.sky), rain: w.precipChance }) }));
+    line.appendChild(el('span', { class: 'tm-pill', id: 'weather-pill', text: weatherText(card.weather) }));
     if (pref) line.appendChild(forget());
     return line;
   }
@@ -168,7 +183,10 @@ function weatherLine() {
   }
 
   if ((prefs.weatherDenied || 0) >= 2) {
+    // "Allow it in settings, then try again" - with the button that is the trying again, so a person who did allow it
+    // is not locked out for good; a browser still blocking it says so once more.
     line.appendChild(el('span', { id: 'weather-denied', text: t('tomorrow.weather_denied_again') }));
+    line.appendChild(el('button', { type: 'button', class: 'btn-text', id: 'weather-use', text: t('tomorrow.weather_use'), onclick: askForPlace }));
     return line;
   }
 
@@ -366,7 +384,7 @@ function lookCard(suggestion) {
     // Every piece came from one check: the photo once, large, with the names beneath — never the same photo three times.
     const first = pieces[0];
     cardEl.appendChild(el('div', { class: 'tm-big', id: 'tm-one-look' }, [
-      photoBox(first.photoUrl, '', () => openPhoto(first.photoUrl, first.photoWornAt)),
+      photoBox(first.photoUrl, t('tomorrow.photo_caption', { date: first.photoWornAt ? fmtDate(first.photoWornAt) : '' }), () => openPhoto(first.photoUrl, first.photoWornAt)),
       el('span', { class: 'hint', style: 'margin: 0;', text: t('tomorrow.same_photo') }),
       el('ul', {}, pieces.map((p) => el('li', { dir: 'auto', 'data-item': p.itemId || '', text: p.name + ' · ' + categoryLabel(p.category) })))
     ]));
@@ -376,8 +394,7 @@ function lookCard(suggestion) {
 
   cardEl.appendChild(el('p', { class: 'tm-sentence', id: 'tm-sentence', dir: 'auto', text: suggestion.sentence }));
   if (suggestion.weather) {
-    const w = suggestion.weather;
-    cardEl.appendChild(el('span', { class: 'tm-pill', style: 'justify-self: start;', text: t('tomorrow.weather_line', { high: Math.round(w.tempMaxC), low: Math.round(w.tempMinC), sky: skyLabel(w.sky), rain: w.precipChance }) }));
+    cardEl.appendChild(el('span', { class: 'tm-pill', style: 'justify-self: start;', text: weatherText(suggestion.weather) }));
   } else {
     cardEl.appendChild(el('span', { class: 'hint', style: 'margin: 0;', id: 'tm-weather-none', text: t('tomorrow.weather_none') }));
   }

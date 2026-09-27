@@ -809,7 +809,8 @@ public sealed record SuggestionPieceDto(Guid? ItemId, string Name, string Catego
     DateTime? PhotoWornAt, int Worn, DateTime? LastWornAt);
 
 /// <summary>The forecast an outfit was composed for: Celsius, a chance of rain and a sky bucket the client has a word for. Never a place.</summary>
-public sealed record SuggestionWeatherDto(double TempMaxC, double TempMinC, int PrecipChance, int Code, string Sky);
+/// <summary>The forecast an outfit was written for. The rain chance and the sky are absent when the service did not give them.</summary>
+public sealed record SuggestionWeatherDto(double TempMaxC, double TempMinC, int? PrecipChance, int? Code, string? Sky);
 
 /// <summary>A first-class "not enough": how many pieces and kinds the wardrobe has against the two minimums. Nothing was spent.</summary>
 public sealed record TomorrowNeedsDto(int Have, int HaveKinds, int Needs, int NeedsKinds);

@@ -2086,9 +2086,29 @@ it is and is noted here.
 - A lazily loaded `<img>` that is not in the document never loads. The first cut of the screen attached the photo only
   once it had loaded, and no photo ever appeared; the browser test caught it, the unit tests could not have.
 
+**What the review found, and what changed.** Eight readers went over the diff by dimension (money, the model boundary,
+security, data, client, weather, documents, tests) and two skeptics tried to refute each finding; twenty-seven survived,
+twenty distinct. The one that mattered most was invisible to every test: the named weather `HttpClient` kept the
+factory's default request logging, which prints the whole URL at Information — the person's rounded place and the paid
+key — while the code, the documents and the privacy page all promised no log line carries either. The client is
+registered with `RemoveAllLoggers()` now, and a test captures the log through the real pipeline and looks for the
+coordinates and the key. The rest, each with a test: the in-flight reservation was one key per account across Pro's
+three buckets, so a check uploading could refuse a planned outfit "for the day" with a day-long Retry-After (the key is
+now per account and bucket, `CheckCapacity.KeyFor`, and free's brake is a second, narrower reservation after its shared
+day); a dress and a tee was a wardrobe the gate let through and the dress rule then emptied, so every tap spent a call
+and answered 502 (a dress stands alone now); the P1..P40 labels counted as "given" numbers, so "around 10 degrees" passed
+on any wardrobe of ten pieces (the labels are stripped first); "Jeans" inside "Dark jeans" templated every honest
+sentence (a name inside a picked name is the picked piece); a rain chance or sky Open-Meteo left null became "0%, clear"
+(both are nullable end to end now, the pill and the prompt show only what was given); a base URL without a scheme threw
+500 on every located compose (guarded, and the catch widened). On the client: the Today/Tomorrow pill kept the other
+day's card; the cache match ignored the date and a thumbs-down; a failed check submit dropped the planned outfit from the
+retry; two refusals of the location prompt locked the forecast out for good; the one-look photo was a button with no
+name; the Pro page turned a published cap of 0 into "10 a day". And the words: the hint said the place is "never
+stored" while the phone keeps it in its prefs, so the hint, the privacy page and sign-out (which now clears it) agree.
+
 **Not in this round, on purpose:** a home-feed "morning card" and a peek route (a second read on every feed open, before
 the worn rate says the feature is good); a server-stored place and a Settings row for it (coordinates are personal data,
-and the browser's prefs need no deletion path); a rolling seven-day free window; garment cutouts; a wardrobe merge tool
+and the browser's prefs have their deletion path: Forget my location, and sign-out); a rolling seven-day free window; garment cutouts; a wardrobe merge tool
 ("White tee" / "White t-shirt" — the one-per-kind rule and "I don't have one of these any more" contain the damage, and
 the `inventedRefs` and "I do not own that" numbers say whether it is needed); push notifications about tomorrow (they
 would spend on people who did not ask); folding the recap into the month's count.

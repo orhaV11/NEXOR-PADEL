@@ -345,7 +345,10 @@ builder.Services.AddSingleton<StripeClient>();
 // browser never talks to Open-Meteo itself (connect-src stays 'self'); the server asks, for a place rounded to a
 // kilometre, and stores the answer in memory only.
 builder.Services.AddHttpClient(Weather.HttpClientName, (provider, client) =>
-    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(provider.GetRequiredService<IOptions<WeatherOptions>>().Value.TimeoutSeconds, 1, 30)));
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(provider.GetRequiredService<IOptions<WeatherOptions>>().Value.TimeoutSeconds, 1, 30)))
+    // The factory's own request logging prints the whole URL at Information, and this URL carries the person's rounded
+    // place and the paid key. Off, so no log line anywhere carries either; the class logs its failures without them.
+    .RemoveAllLoggers();
 builder.Services.AddSingleton<Weather>();
 
 // The keys that encrypt the session cookie, kept beside the database. Without this they go to $HOME/.aspnet inside the

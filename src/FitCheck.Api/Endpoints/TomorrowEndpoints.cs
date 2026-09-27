@@ -230,48 +230,45 @@ public static class TomorrowEndpoints
             return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.month_limit", monthly));
         }
 
-        // 9. The day, the bucket and the brake, then the reservation. Pro: its own bucket, its own cap. Free: its one
-        // shared day, with the brake folded into the cap handed to the reservation, so in-flight double-taps cannot
-        // slip under either.
+        // 9. The day, the bucket and the brake, then the reservation. Pro: its own bucket under its own key, so a check
+        // in flight never fills a planned outfit's slot. Free: its one shared day first (checks, comparisons and planned
+        // outfits in flight together), then the brake on planned outfits under its own key, each against its own list,
+        // so a refusal names the right number and the right wait, and in-flight double-taps cannot slip under either.
         var suggestionsToday = await Spend.RecentSuggestionsForUserAsync(db, me.Id, now, ct);
-        int cap;
-        int dayCap;
-        List<DateTime> recent;
-        bool brakeBinding;
         var brake = isPro ? Plans.ProSuggestionCap(plans.Value, limits.Value) : Plans.FreeSuggestionCap(plans.Value, limits.Value);
+        var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
+        var suggestionKey = CheckCapacity.KeyFor(me.Id, Allowance.Suggestions);
+        IDisposable? reservation;
+        IDisposable? brakeReservation = null;
+        CapacityVerdict verdict;
         if (isPro)
         {
-            dayCap = cap = brake;
-            recent = suggestionsToday;
-            brakeBinding = true;
+            verdict = capacity.TryReserve(suggestionKey, suggestionsToday.Count, brake, storedGlobal, limits.Value.ChecksPerDayGlobal, out reservation);
+            if (verdict == CapacityVerdict.UserCapReached)
+            {
+                RetryAfter(Spend.RetryAfterSeconds(suggestionsToday, brake, now));
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.tomorrow_limit", brake));
+            }
         }
         else
         {
-            dayCap = Plans.CapFor(me, plans.Value, limits.Value, now);
-            recent = await Spend.RecentForUserAsync(db, me.Id, now, ct, plans.Value.NoOutfitForgivenPerDay, Allowance.Together);
-            var brakeLeft = Math.Max(0, brake - suggestionsToday.Count);
-            cap = Math.Min(dayCap, recent.Count + brakeLeft);
-            brakeBinding = brakeLeft == 0;
-        }
-
-        var storedGlobal = await Spend.StoredGlobalAsync(db, now, ct);
-        var verdict = capacity.TryReserve(me.Id, recent.Count, cap, storedGlobal, limits.Value.ChecksPerDayGlobal, out var reservation);
-        if (verdict == CapacityVerdict.UserCapReached)
-        {
-            // Retry-After from the list that actually refused.
-            var retryAfter = brakeBinding ? Spend.RetryAfterSeconds(suggestionsToday, brake, now) : Spend.RetryAfterSeconds(recent, dayCap, now);
-            if (retryAfter is { } seconds)
+            var dayCap = Plans.CapFor(me, plans.Value, limits.Value, now);
+            var recent = await Spend.RecentForUserAsync(db, me.Id, now, ct, plans.Value.NoOutfitForgivenPerDay, Allowance.Together);
+            verdict = capacity.TryReserve(me.Id, recent.Count, dayCap, storedGlobal, limits.Value.ChecksPerDayGlobal, out reservation);
+            if (verdict == CapacityVerdict.UserCapReached)
             {
-                context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+                RetryAfter(Spend.RetryAfterSeconds(recent, dayCap, now));
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.plan_limit", dayCap,
+                    plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCap(plans.Value, limits.Value)));
             }
 
-            var message = isPro
-                ? localizer.Get(language, "error.tomorrow_limit", cap)
-                : brakeBinding
-                    ? localizer.Get(language, "error.tomorrow_free_limit", Plans.ProSuggestionCap(plans.Value, limits.Value))
-                    : localizer.Get(language, "error.plan_limit", dayCap,
-                        plans.Value.ProCallsPerMonth > 0 ? plans.Value.ProCallsPerMonth : Plans.ProCap(plans.Value, limits.Value));
-            return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, message);
+            if (verdict == CapacityVerdict.Ok && capacity.TryReserve(suggestionKey, suggestionsToday.Count, brake, out brakeReservation) != CapacityVerdict.Ok)
+            {
+                // The day's slot goes back: nothing is being spent.
+                reservation?.Dispose();
+                RetryAfter(Spend.RetryAfterSeconds(suggestionsToday, brake, now));
+                return UserEndpoints.Error(StatusCodes.Status429TooManyRequests, localizer.Get(language, "error.tomorrow_free_limit", Plans.ProSuggestionCap(plans.Value, limits.Value)));
+            }
         }
 
         if (verdict == CapacityVerdict.GlobalCapReached)
@@ -280,6 +277,15 @@ public static class TomorrowEndpoints
         }
 
         using var _ = reservation;
+        using var __ = brakeReservation;
+
+        void RetryAfter(int? seconds)
+        {
+            if (seconds is { } wait)
+            {
+                context.Response.Headers.RetryAfter = wait.ToString(CultureInfo.InvariantCulture);
+            }
+        }
 
         // 10, 11. The call. The taste advisory rides along under the same gate as on a check.
         var seq = await tomorrow.NextSeqAsync(me.Id, occasion, style, language, forDate, ct);

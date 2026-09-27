@@ -370,6 +370,14 @@ public sealed class Board
         var created = userIds.Count == 0
             ? new Dictionary<Guid, DateTime>()
             : await db.Users.Where(u => userIds.Contains(u.Id)).Select(u => new { u.Id, u.CreatedAt }).ToDictionaryAsync(u => u.Id, u => u.CreatedAt, ct);
+
+        // Round 18. The "no fires from an account younger than N days" rule exists to stop a fresh sock-puppet from
+        // lighting up a look. On launch weekend EVERY account is fresh, so the rule cannot tell a puppet from a person
+        // and simply threw away every fire in the app - the board people opened first was guaranteed empty for the
+        // whole window, and the owner would have had to remember to switch the rule off and back on. So the rule
+        // waits: it is not enforced until the app itself is old enough for an "old" account to exist, measured as
+        // the oldest account's signup. After that it works exactly as before, with no setting to remember.
+        var appBorn = userIds.Count == 0 ? (DateTime?)null : await db.Users.MinAsync(u => (DateTime?)u.CreatedAt, ct);
         var firerIds = fires.Select(f => f.FirerId).Distinct().ToList();
         var checks = rules.MinChecksToCount <= 0 || firerIds.Count == 0
             ? new Dictionary<Guid, int>()
@@ -389,7 +397,13 @@ public sealed class Board
                 continue;
             }
 
-            if (!created.TryGetValue(fire.FirerId, out var firerCreated) || firerCreated.AddDays(rules.NewAccountDays) > fire.CreatedAt)
+            if (!created.TryGetValue(fire.FirerId, out var firerCreated))
+            {
+                continue;
+            }
+
+            var ageRuleLive = rules.NewAccountDays > 0 && appBorn is { } born && born.AddDays(rules.NewAccountDays) <= fire.CreatedAt;
+            if (ageRuleLive && firerCreated.AddDays(rules.NewAccountDays) > fire.CreatedAt)
             {
                 continue;
             }

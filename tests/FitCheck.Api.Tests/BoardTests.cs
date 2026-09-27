@@ -195,6 +195,59 @@ public class BoardTests : IClassFixture<TestApp>
         Assert.Equal([(1, 1, post)], BoardFixtures.LookRows(board, "looks"));
     }
 
+    /// <summary>
+    /// Round 18 — the age rule waits for the app to be old enough to apply it.
+    /// <para>
+    /// "No fires from an account younger than two days" exists to stop a fresh sock-puppet from lighting a look up.
+    /// On launch weekend every account is fresh, so the rule could not tell a puppet from a person and threw away
+    /// every fire in the app: the board people opened first was guaranteed empty for the whole window, and the
+    /// owner would have had to remember to switch the rule off and then back on. Now it is not enforced until the
+    /// app itself is old enough for an "old" account to exist, measured from the oldest signup — and after that it
+    /// works exactly as before. Its own app, because the shared one holds accounts signed up "now", years before
+    /// these weeks, which would make the app old from the first line.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task The_age_rule_is_not_enforced_until_the_app_itself_is_old_enough()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        app.Clock.Now = BoardFixtures.Midweek(1);
+
+        // Launch: everybody signed up a day ago, the author included.
+        var born = Local(Sunday(1).AddDays(1), 9);                  // Monday 09:00, the app's first signup
+        var (authorClient, author, _) = await app.NewUserAsync("bd_launch_author");
+        var post = await app.CheckAndPostAsync(authorClient);
+        var (dayOneClient, dayOne, _) = await app.NewUserAsync("bd_launch_dayone");
+        await app.CheckAsync(dayOneClient);                          // one ok check: their fires may count
+        foreach (var id in new[] { author, dayOne })
+        {
+            await BoardFixtures.SetUserCreatedAsync(app, id, born);
+        }
+
+        // Tuesday: a fire from an account that is one day old, in an app that is one day old. It counts — there is
+        // no such thing as an old account yet, and a rule that drops everybody protects nobody.
+        var tuesday = Local(Sunday(1).AddDays(2), 9);
+        await BoardFixtures.FireAsync(app, post, dayOne, tuesday);
+        var launch = await BoardFixtures.BoardAsync(app);
+        Assert.Equal([(1, 1, post)], BoardFixtures.LookRows(launch, "looks"));
+
+        // Friday: the app is four days old, so the rule is live. A fire from an account made on Thursday is dropped,
+        // exactly as it always was; the day-one account, now four days old, still counts (on a second look — one
+        // person fires a given look once).
+        var friday = Local(Sunday(1).AddDays(5), 9);
+        var second = await app.CheckAndPostAsync(authorClient);
+        var (lateClient, latecomer, _) = await app.NewUserAsync("bd_launch_late");
+        await app.CheckAsync(lateClient);
+        await BoardFixtures.SetUserCreatedAsync(app, latecomer, friday.AddDays(-1));
+        await BoardFixtures.FireAsync(app, post, latecomer, friday);
+        await BoardFixtures.FireAsync(app, second, dayOne, friday.AddMinutes(1));
+        var later = await BoardFixtures.BoardAsync(app);
+        // The first look keeps Tuesday's one fire (the latecomer's is dropped); the second has dayOne's. Ties go to
+        // the earlier look.
+        Assert.Equal([(1, 1, post), (2, 1, second)], BoardFixtures.LookRows(later, "looks"));
+    }
+
     [Fact]
     public async Task A_fire_on_ones_own_look_does_not_count()
     {

@@ -4,7 +4,7 @@
 // a new password, signed in), verify (the link from the mail, confirmed). Both auth pages are public; a signed-in
 // person who lands on them is sent home. Ported from the Phase 2 authView onto the kit.
 import {
-  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe
+  register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe, richText
 } from '../core.js';
 // Round 13 — the growth loop: the handle an invite link carried, spent once, here.
 import { takeInvite } from '../invite.js';
@@ -54,16 +54,6 @@ function isoToday() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 /** A message with elements in its {slots}: the text around them stays text, so the translation orders the links. */
-function richText(key, slots) {
-  const nodes = [];
-  for (const part of t(key).split(/(\{\w+\})/)) {
-    const slot = part.length > 2 && part.startsWith('{') && part.endsWith('}') ? part.slice(1, -1) : null;
-    if (slot && slots[slot]) nodes.push(slots[slot]);
-    else if (part) nodes.push(part);
-  }
-  return nodes;
-}
-
 // ---------- sign in / join ----------
 
 function authView(mode) {

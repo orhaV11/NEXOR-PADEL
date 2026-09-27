@@ -25,7 +25,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, loadPrefs, savePrefs, richText
 } from '../core.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
 import { shareVideoButton, videoLookFromCheck } from '../sharevideo.js';
@@ -367,6 +367,13 @@ function guestBanner() {
   return el('div', { class: 'notice guest-banner', id: 'guest-banner' }, [
     el('h3', { text: t('guest.title') }),
     el('p', { class: 'muted', text: t('guest.hint', { n: guestChecks() }) }),
+    // Round 18. A visitor with no account can send a photo of a real person to a company in another country, and
+    // until now nothing on this screen said so - the age line and the disclosure lived only on the signup form, which
+    // a guest never sees. One line, before the button, with the two documents in it.
+    el('p', { class: 'hint guest-disclosure', id: 'guest-disclosure' }, richText('guest.disclosure', {
+      terms: el('a', { href: '#/terms', text: t('auth.agree_terms') }),
+      privacy: el('a', { href: '#/privacy', text: t('auth.agree_privacy') })
+    })),
     el('a', { class: 'btn-text', id: 'guest-join', href: '#/signup', text: t('auth.signup'), onclick: () => { state.returnTo = '#/check'; } })
   ]);
 }

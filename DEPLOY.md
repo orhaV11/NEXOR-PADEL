@@ -598,7 +598,7 @@ anything until you list a host. In `.env` on a server, `fly secrets set` on Fly:
 | `Board__WeekStartsOn` | The week's first day, a day name, `Sunday` (Israel's week; the close is Saturday midnight) |
 | `Board__MinChecksToCount` | A fire counts only from someone with at least this many `ok` checks by the week's end, `1`. `0` turns the rule off |
 | `Board__MaxPerFirerPerAuthor` | The most fires from one person on one author's looks that count in a week, `3` (the first ones by time). `0` means unlimited |
-| `Board__NewAccountDays` | A fire from an account younger than this at the moment of the fire does not count, `2` |
+| `Board__NewAccountDays` | A fire from an account younger than this at the moment of the fire does not count, `2`. **Round 18:** the rule waits until the app itself is that old (measured from the oldest signup) — on launch weekend every account is new, and a rule that drops everybody protects nobody and leaves the board empty. Nothing to set or remember; it switches itself on |
 | `Board__Size` | Places on each board, `10` |
 | `Board__RisingDays` | The rising board lists the fired looks of accounts younger than this at the week's end, `30` |
 | `Board__CacheSeconds` | How long the running week and the one before it are served from memory, `60` seconds, real time, per process (two entries at most; every other week is computed on each read). `0` turns the cache off |

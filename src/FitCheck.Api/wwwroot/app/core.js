@@ -307,6 +307,20 @@ function wordmark() {
  * "@noa.#fit". Nothing can start inside a token — neither character class holds a # or an @ — so skipping a
  * token whose boundary fails cannot hide another.
  */
+/**
+ * A translated string with {slot}s replaced by nodes: "By joining you agree to the {terms}" with a link in the slot.
+ * Round 18: lifted out of auth.js so the guest disclosure on the check screen can carry its two links the same way.
+ */
+export function richText(key, slots) {
+  const nodes = [];
+  for (const part of t(key).split(/(\{\w+\})/)) {
+    const slot = part.length > 2 && part.startsWith('{') && part.endsWith('}') ? part.slice(1, -1) : null;
+    if (slot && slots[slot]) nodes.push(slots[slot]);
+    else if (part) nodes.push(part);
+  }
+  return nodes;
+}
+
 export function richCaption(text, known) {
   const frag = document.createDocumentFragment();
   const re = /#[\p{L}\p{N}_]{2,30}|@[\p{L}\p{N}_.]{2,40}/gu;

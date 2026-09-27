@@ -29,6 +29,9 @@ public sealed class Readiness
     /// <summary>Storage:Root takes a file and gives it back up.</summary>
     public const string StorageCheck = "storage";
 
+    /// <summary>What the storage probe writes: one filesystem block's worth, so a full volume refuses it. Not zero.</summary>
+    private static readonly byte[] ProbeBytes = new byte[4096];
+
     /// <summary>Only while Storage:Transcode is on: the binary was found at start (<see cref="Transcoder.Available"/>).</summary>
     public const string FfmpegCheck = "ffmpeg";
 
@@ -107,9 +110,14 @@ public sealed class Readiness
         var probe = Path.Combine(root, $".readyz-{Guid.NewGuid():N}");
         try
         {
-            File.WriteAllBytes(probe, []);
+            // Round 18. This wrote ZERO bytes, and creating an empty file on a full disk usually succeeds: it costs a
+            // directory entry and no data block. So the one failure this probe exists to catch - the volume filling
+            // up under the photos - was the one it could not see, and /readyz stayed green while every upload failed.
+            // A real write, and a read back, so a file that was created but could not be filled is "not writable" too.
+            File.WriteAllBytes(probe, ProbeBytes);
+            var back = File.ReadAllBytes(probe);
             File.Delete(probe);
-            return Ok;
+            return back.Length == ProbeBytes.Length ? Ok : "not writable";
         }
         catch (Exception)
         {

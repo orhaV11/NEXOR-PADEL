@@ -10,8 +10,10 @@ import { register, t, el, hasMessage, setTopBar, intlLocale, state } from '../co
 
 // Round 14 moved to 3: Pro is described by what it gives rather than by a cap, and the wardrobe is named in
 // "what we store", "what we send to the model provider", "who sees what" and "deleting".
-const VERSION = '3';
-const DATED = '2026-09-20';
+// Round 18 moved to 4: the plans are a month with a day behind it, cancelling is in Settings and not by mail, the
+// provider is named, the taste summary the stylist is sent is disclosed, and so are store links and the commission.
+const VERSION = '4';
+const DATED = '2026-09-27';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
 const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));

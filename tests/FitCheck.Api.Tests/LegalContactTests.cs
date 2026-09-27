@@ -178,3 +178,82 @@ public class SettingsLinksTests
         Assert.DoesNotContain("if (state.me) list.appendChild(row('media-camera'", check, StringComparison.Ordinal);
     }
 }
+
+/// <summary>
+/// Round 18 — the documents describe the app that runs. Version 3 of the terms said Pro was "a number of checks a day"
+/// (the plans are a month with a day behind it since Round 17), that to cancel you "write to us" (Settings has carried
+/// the payment provider's portal since Round 13), and nothing about store links earning a commission (Round 16). The
+/// privacy policy said the model provider gets "the photo and nothing about you", while the stylist is also sent the
+/// names of wardrobe pieces and, when learning is on, a summary of which tips were kept and turned down; and it never
+/// named the provider, which the guest disclosure on the check screen already does.
+/// <para>
+/// Pinned per language, because a translation that still promises the old thing is a promise the owner cannot keep in
+/// that language. The phrases are the ones a reader would look for: the button's own label for cancelling, the
+/// provider's name, the word for commission, and the word for month.
+/// </para>
+/// </summary>
+public class LegalVersionFourTests
+{
+    private static Dictionary<string, string> Strings(string code)
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "src", "FitCheck.Api", "wwwroot", "i18n", code + ".json"));
+        return JsonDocument.Parse(File.ReadAllText(path)).RootElement
+            .EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
+    }
+
+    [Theory]
+    [InlineData("en", "Manage subscription", "write to us", "commission", "month", "nothing about you", "store links")]
+    [InlineData("he", "ניהול המינוי", "כותבים לנו", "עמלה", "חודש", "שום דבר עליכם", "קישורי חנויות")]
+    [InlineData("ar", "إدارة الاشتراك", "رسالة إلينا", "عمولة", "شهر", "لا شيء عنك", "روابط المتاجر")]
+    [InlineData("ru", "подпиской", "напиши нам", "комисси", "месяц", "ничего о тебе", "ссылок на магазины")]
+    public void The_terms_and_the_policy_say_what_the_app_does(
+        string code, string manage, string writeToUs, string commission, string month, string nothingAboutYou, string storeLinks)
+    {
+        var strings = Strings(code);
+
+        // Cancelling is a button in Settings, and the terms name it by the button's own words.
+        var terms = strings["legal.terms_6"];
+        Assert.Contains(manage, terms, StringComparison.Ordinal);
+        Assert.DoesNotContain(writeToUs, terms, StringComparison.Ordinal);
+        // The plans are monthly, and a tap on a store link can earn the owner a commission.
+        Assert.Contains(month, terms, StringComparison.Ordinal);
+        Assert.Contains(commission, terms, StringComparison.Ordinal);
+
+        // The provider is named, and the taste summary the stylist is sent is disclosed.
+        var provider = strings["legal.privacy_2"];
+        Assert.Contains("Anthropic", provider, StringComparison.Ordinal);
+        // The same name the guest disclosure on the check screen gives, so the two never disagree.
+        Assert.Contains("Anthropic", strings["guest.disclosure"], StringComparison.Ordinal);
+
+        // "Nothing about you" was never true once the wardrobe was sent; the short version no longer says it.
+        Assert.DoesNotContain(nothingAboutYou, strings["legal.privacy_intro"], StringComparison.Ordinal);
+
+        // What is kept about a tapped store link is listed with everything else that is kept.
+        Assert.Contains(storeLinks, strings["legal.privacy_1"], StringComparison.Ordinal);
+    }
+
+    /// <summary>The button the terms point at exists under that label in every language, so the sentence stays true.</summary>
+    [Theory]
+    [InlineData("en", "Manage subscription")]
+    [InlineData("he", "ניהול המינוי")]
+    [InlineData("ar", "إدارة الاشتراك")]
+    [InlineData("ru", "Управление подпиской")]
+    public void The_button_the_terms_point_at_is_labelled_that_way(string code, string label)
+    {
+        Assert.Equal(label, Strings(code)["billing.manage"]);
+        var settings = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "src", "FitCheck.Api", "wwwroot", "app", "views", "settings.js")));
+        Assert.Contains("id: 'billing-manage', text: t('billing.manage')", settings, StringComparison.Ordinal);
+    }
+
+    /// <summary>A rewritten document is a new version with a new date, or the "version and date at the bottom" promise in the terms is broken.</summary>
+    [Fact]
+    public void The_documents_carry_version_four()
+    {
+        var legal = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "src", "FitCheck.Api", "wwwroot", "app", "views", "legal.js")));
+        Assert.Contains("const VERSION = '4';", legal, StringComparison.Ordinal);
+        Assert.Contains("const DATED = '2026-09-27';", legal, StringComparison.Ordinal);
+    }
+}

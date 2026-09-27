@@ -376,8 +376,10 @@ rose) after it — the reader should never have to remember what the score was m
 green — the colour the item list already uses for a piece that works. Nothing else about the block moves, and no swap
 or replace verb goes anywhere near it.
 
-Three containers on the result render nothing until another module fills them: `#tip-feedback` and `#tried-it` under
-the tip, `#wardrobe-offer` with the item list. `.mount:empty { display: none }` keeps an unfilled one from leaving a gap.
+Since Round 20 the result draws `#taste-reasons` and `#tried-action` under the tip and `taste.js`'s `mountResult` fills
+them (the typed reasons, then the primary *Try the tip, then show me*, or the pair once the two checks are linked);
+`#tip-feedback` and `#tried-it` are gone, and `#wardrobe-offer` stays beside the item list. `.mount:empty { display:
+none }` keeps an unfilled one from leaving a gap.
 ## 11. Round 14 — the community round
 
 **A look with no number.** Where the score ring sat there is now nothing: no blank ring, no dash, no grey circle. The
@@ -408,17 +410,18 @@ one they pick.
 The three Round 14 screens the sections above never described. All of them draw their own rules through their own
 `ensureStyle()`, and all of them use §1's tokens and §8's shapes and add no new ones.
 
-- **The typed reasons** (`app/taste.js` `reasonRow`, drawn by `views/profile.js` on **`#/checks`**; the result screen
-  still shows Round 13's yes/no `.useful` row and leaves its `#tip-feedback` mount empty — `taste.js`'s own
-  `mountResult` is written but nothing calls it, which is a wiring gap, not a design choice). One `.loop` card —
+- **The typed reasons** (`app/taste.js` `reasonRow`, drawn by `views/profile.js` on **`#/checks`** and, since Round 20, on the result
+  screen in `#taste-reasons` through `mountResult`; the Round 13 yes/no `.useful` row is gone from the result, because
+  the four answers already decide the server's yes). One `.loop` card —
   `--surface`, `var(--radius)`, the card shadow — with a 17px display heading and
   four chips below it in a two-up wrap, each one at least 44px and at least 46% of the row, so the four read as a
   square of answers rather than a line to scroll. *It worked* / *It didn't* / *Not my style* / *I don't own that*,
   and a quiet text skip below at the start edge. Once answered, the card collapses to one line of what was said
   with a text button to change it. The optional note is a row that appears only after a reason is chosen: the
   person's words are never the first thing asked for.
-- **"I tried it"** (`app/taste.js` `triedBlock`, under the reasons on `#/checks`; the result screen's `#tried-it`
-  mount is empty for the same reason). One 44px button while nothing is linked; a
+- **"I tried it"** (`app/taste.js` `triedBlock`, under the reasons on `#/checks` and, since Round 20, in `#tried-action` on the
+  result screen, where `#tried-start` is the primary `btn` — *Try the tip, then show me* — a keep tip draws no block,
+  and once a pair exists `#tried-pair` takes its place and `#share-pair` leads the share row). One 44px button while nothing is linked; a
   waiting line with a cancel while the second photo is owed; and, once both verdicts exist, the pair — the two
   scores, the two tips, and what changed — with the preference question under it. The second check went through the
   ordinary check screen, so nothing here is a second camera.

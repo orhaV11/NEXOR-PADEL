@@ -199,6 +199,39 @@ Before you open a terminal, have these in front of you:
 Optional, and easy to add later: Stripe's four values, and a VAPID key pair for push (the app generates it in
 section 1).
 
+### 0.8 Round 20 — decide these before the first reel
+
+Four decisions the wedge left with the founder, and none of them is a line of code:
+
+1. **The trial.** `Plans__ProTrialDays` is `7` or `0`; nothing in between is worth arguing about. Seven days of Pro
+   with no card is Stripe Checkout's own trial and needs `Billing__Provider=stripe` (section 4); on `manual` it means
+   nothing and `--doctor` says so. Decide it together with the price, because the Pro page's button reads "Start 7 free days" the
+   moment it is on.
+2. **A yearly price, or not.** If yes: a second recurring price on the Stripe product (yearly), its id in
+   `Billing__StripeYearlyPriceId`, the amount in `Plans__ProYearlyPriceAmount` (and `Plans__ProYearlyPrices__<CUR>` per
+   currency); the page computes the saving itself and shows the year only when it is one. Run `--stripe-check` again
+   after adding it. "Not yet" is an answer too: leave both out and the page sells a month.
+3. **The morning push stays off.** `Plans__TomorrowMorningPush` is `false` and stays so until the Tomorrow block on
+   `#/admin/metrics` says planned outfits get worn — a worn rate above about 25% with at least 20 wardrobes of two kinds
+   behind it — and the VAPID keys are set. Flipping it earlier pings people about a habit the numbers have not earned.
+4. **The calibration pass, before any reel carries a number.** `tools\eval\calibrate.ps1 -Photos <folder> -Occasion
+   date -Language he` from a Windows machine against the live server, signed in as a **Pro** account (eight runs a photo
+   do not fit a free day; `--pro <handle> 1` on your own account first). `tools/eval/README.md` has the exact command,
+   what a pass costs (photos × runs, about one or two US cents each) and how to read the Hebrew verdict line; the
+   report lands in `tools/eval/reports/`. No real-model numbers have been taken in this repository, so this pass is the
+   first.
+
+And two things for the first month, from `MARKETING.md`:
+
+- **The bio links** are `https://orevosh.com/go/tiktok` on TikTok and `https://orevosh.com/go/instagram` on Instagram.
+  Every arrival is counted per source on `#/admin/metrics` ("Where people come from"), and an unknown word lands on the landing page
+  uncounted, so a typo costs a view and not a person. On screen and in a pinned comment, the bare `orevosh.com`
+  (`CONTENT.md`).
+- **The founding-member month.** The first thirty or so people who actually use the app get two months of Pro by hand —
+  `--pro <handle> 2` (on Fly, `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 2"`), or *Grant
+  Pro* on `#/admin` — and nobody hears a Pro pitch for four weeks (`MARKETING.md`: the habit first, the price after).
+  With Stripe on, an account that took the gift can still trial later: a gift leaves nothing on Stripe's side.
+
 ---
 
 ## 1. Fly.io, from nothing to a live address
@@ -1315,6 +1348,36 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
 6. הדפים המשפטיים, אחרי שמישהו מוסמך קרא אותם.
 
 לא חובה, וקל להוסיף אחר כך: ארבעת הערכים של Stripe, וזוג מפתחות VAPID לפוש (האפליקציה מייצרת אותו בפרק 1).
+
+### 0.8 סבב 20 — להחליט לפני הריל הראשון
+
+ארבע החלטות שהסבב השאיר למייסד, ואף אחת מהן אינה שורת קוד:
+
+1. **תקופת הניסיון.** `Plans__ProTrialDays` הוא `7` או `0`; שום דבר באמצע לא שווה ויכוח. שבעה ימי Pro בלי כרטיס הם
+   תקופת הניסיון של Stripe Checkout עצמו, והם דורשים `Billing__Provider=stripe` (פרק 4); על `manual` זה לא אומר כלום,
+   ו-`--doctor` אומר את זה. מחליטים יחד עם המחיר, כי כפתור דף ה-Pro נקרא "התחל 7 ימים חינם" ברגע שזה דלוק.
+2. **מחיר שנתי, או לא.** אם כן: מחיר מתחדש שני על המוצר ב-Stripe (שנתי), המזהה שלו ב-`Billing__StripeYearlyPriceId`,
+   הסכום ב-`Plans__ProYearlyPriceAmount` (ו-`Plans__ProYearlyPrices__<CUR>` לכל מטבע); הדף מחשב את החיסכון בעצמו ומציג
+   שנה רק כשהיא חיסכון. אחרי ההוספה מריצים שוב `--stripe-check`. גם "עוד לא" היא תשובה: משאירים את שניהם בחוץ והדף
+   מוכר חודש.
+3. **דחיפת הבוקר נשארת כבויה.** `Plans__TomorrowMorningPush` הוא `false` ונשאר כך עד שבלוק Tomorrow ב-`#/admin/metrics`
+   אומר שלוקים מתוכננים באמת נלבשים — שיעור לבישה מעל 25% בערך, עם לפחות 20 ארונות של שני סוגים מאחוריו — ומפתחות
+   ה-VAPID מוגדרים. להדליק קודם זה לצלצל לאנשים על הרגל שהמספרים עוד לא הרוויחו.
+4. **מעבר הכיול, לפני שריל כלשהו נושא מספר.** `tools\eval\calibrate.ps1 -Photos <תיקייה> -Occasion date -Language he`
+   ממחשב Windows מול השרת החי, מחוברים כחשבון **Pro** (שמונה ריצות לתמונה לא נכנסות ביום של חשבון חינמי; קודם
+   `--pro <handle> 1` על החשבון שלכם). ב-`tools/eval/README.md` הפקודה המדויקת, מה מעבר עולה (תמונות × ריצות, בערך סנט
+   או שניים לכל קריאה) ואיך קוראים את שורת הפסק בעברית; הדו"ח נשמר ב-`tools/eval/reports/`. במאגר הזה עוד לא נלקחו
+   מספרים ממודל אמיתי, אז המעבר הזה הוא הראשון.
+
+ושני דברים לחודש הראשון, מתוך `MARKETING.md`:
+
+- **הקישורים בביו** הם `https://orevosh.com/go/tiktok` ב-TikTok ו-`https://orevosh.com/go/instagram` ב-Instagram. כל
+  הגעה נספרת לפי מקור ב-`#/admin/metrics` ("מאיפה אנשים מגיעים"), ומילה לא מוכרת נוחתת על דף הנחיתה בלי להיספר, אז שגיאת הקלדה
+  עולה צפייה ולא אדם. על המסך ובתגובה הנעוצה — `orevosh.com` בלבד (`CONTENT.md`).
+- **חודש חברי המייסדים.** שלושים בערך האנשים הראשונים שבאמת משתמשים באפליקציה מקבלים חודשיים של Pro ביד —
+  `--pro <handle> 2` (ב-Fly: `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 2"`), או *הענק Pro*
+  ב-`#/admin` — ואף אחד לא שומע הצעת Pro במשך ארבעה שבועות (`MARKETING.md`: קודם ההרגל, אחר כך המחיר). כש-Stripe
+  דלוק, חשבון שקיבל את המתנה עדיין יכול להתחיל תקופת ניסיון אחר כך: מתנה לא משאירה כלום בצד של Stripe.
 
 ---
 

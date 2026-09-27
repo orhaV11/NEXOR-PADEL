@@ -519,9 +519,10 @@ the date and a link to Settings, where "Manage subscription" opens the portal, a
 second, different note saying their account, looks and wardrobe are all still there. Both go **only to an address the
 person confirmed** — an unverified one is as likely to be a typo as a mailbox, and billing mail must not reach a
 stranger — and both need `Email__*` configured. A letter that cannot be sent is logged and swallowed: Stripe still
-gets its 200, or it retries the event and everything beside the letter runs twice. No event ids are kept: a repeated
-`checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends
-what already ended. An account that is Pro already cannot open a second Checkout (409). Card details never reach the
+gets its 200, or it retries the event and everything beside the letter runs twice. Since Round 20 the event ids are
+kept for 30 days (`StripeEvents`): a replayed event answers `{ received: true, replayed: true }` and changes nothing, and
+the id is recorded only after the handler ran, so a handler that failed is retried by Stripe rather than ignored. An
+account that is Pro already cannot open a second Checkout (409). Card details never reach the
 app, and the secret key is redacted from the app's logs.
 
 ### The weather (Round 19)
@@ -578,18 +579,25 @@ docker compose exec app dotnet FitCheck.Api.dll --stripe-check
 fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --stripe-check"
 ```
 
-It prints three lines. `billing` is read from the settings alone: the provider, the three keys and their prefixes.
-`stripe-live` is a `GET /v1/prices/<your price>` with your secret key: the key is accepted, the price exists in the
+It prints five lines, every one of them always printed, skipped or not. `billing` is read from the settings alone: the
+provider, the keys and their prefixes, and since Round 20 the yearly id, the trial and `Billing__StripeBaseUrl`
+("Round 20" below). `stripe-live` is a `GET /v1/prices/<your price>` with your secret key: the key is accepted, the price exists in the
 same mode as the key (a live key cannot see a test price), and it is a **recurring** price that is not archived —
 Checkout opens in subscription mode and refuses a one-time price, which is otherwise discovered by the first person
-to press Go Pro. `stripe-webhook` is a `GET /v1/webhook_endpoints`: one endpoint is registered for
-`Billing__PublicOrigin` + `/api/billing/webhook`, it is enabled, and its events cover the five above (`*` counts). A
+to press Go Pro (with a yearly price beside it, the monthly one also has to recur every month). `stripe-price`
+compares that price's currencies with `Plans__ProPriceAmount` and `Plans__ProPrices` (above). `stripe-yearly` is the
+same read of `Billing__StripeYearlyPriceId` when one is set — it must recur every year and carry every currency of
+`Plans__ProYearlyPriceAmount` and `Plans__ProYearlyPrices`, both checks on that one line — and a skip, `not called:
+Billing__StripeYearlyPriceId is empty (monthly only).`, when not. `stripe-webhook` is a `GET /v1/webhook_endpoints`: one
+endpoint is registered for `Billing__PublicOrigin` + `/api/billing/webhook`, it is enabled, and its events cover the
+seven above (`*` counts). A
 missing event is named, so "registered, but not for `customer.subscription.deleted`" tells you cancellations would
 never end Pro. An endpoint on the app's own route under a different name — the `fly.dev` address beside your domain —
 is a warning naming it, not a failure: the webhook only has to reach the route.
 
-Two GETs, nothing written, nobody charged, and no secret printed, so run it after every change to a Stripe value and
-again when test keys become live ones. `--doctor --live` includes both lines.
+Two GETs — three with a yearly price — all to `Billing__StripeBaseUrl`, which stays unset on a server (the doctor warns
+otherwise); nothing written, nobody charged, and no secret printed, so run it after every change to a Stripe value and
+again when test keys become live ones. `--doctor --live` includes the same lines.
 
 **Cancelling and changing a plan happen on Stripe's page, not here.** `POST /api/billing/portal` opens a Billing
 Portal session for the account's customer and returns to `/#/settings`; the app shows it as "Manage subscription" in
@@ -608,6 +616,58 @@ terms tell people to write to you.
 
 Inside the store apps Apple and Google forbid this checkout (`STORE.md`, "Payments"): the wrapped app must hide the
 purchase or use the stores' billing.
+
+### Round 20 — the wedge: the yearly price, the trial, the prompt cache, the entry links, the morning push
+
+Round 20 added settings in five places. All of them have pilot defaults; set none of them unless you mean to, and read
+the paragraphs under the table before the two that cost money (`Anthropic__PromptCache`) or ping people
+(`Plans__TomorrowMorningPush`).
+
+| Variable | What to put |
+|---|---|
+| `Billing__StripeYearlyPriceId` | Optional, `price_…`: a **second recurring price on the same product, yearly**. Leave it out for monthly only. With it set, run `--stripe-check` again: the yearly price must recur every year and carry every currency of `Plans__ProYearlyPrices`, and the monthly one must now recur every month. Environment only, like the other keys |
+| `Plans__ProYearlyPriceAmount`, `Plans__ProYearlyPrices__<CUR>` | The yearly amount in `Plans__ProPriceCurrency`, and per currency, under the same rule as the monthly table: prices, never conversions, the same numbers Stripe charges. The Pro page shows the year only when a yearly amount exists in the reader's currency AND the id above is set, and computes "save N%" from the two numbers itself; a yearly amount at or above twelve months of the monthly is a doctor warning ("no saving"), an id with no amount ("offers no yearly plan") and an amount with no id ("never shown") are warnings too |
+| `Plans__ProTrialDays` | `0` (off). `7` opens Stripe Checkout's own trial: seven days of Pro before the first charge, no card asked for, once per account, to an account that never went through Checkout here (no customer id; a `--pro` gift does not disqualify). A trial that ends with no card simply ends — that arrives as `customer.subscription.deleted`, which is one more reason the webhook endpoint needs **all seven events**. The trial is Checkout's, so it **needs `Billing__Provider=stripe`**: on `manual` it means nothing and `--doctor` warns |
+| `Billing__StripeBaseUrl` | **Leave it unset.** `https://api.stripe.com/` is the default; it exists so the browser test can point the app at a stub, and `--doctor` warns on any other host, because Checkout, the portal and the doctor's own reads would all go there |
+| `Anthropic__PromptCache` | `off` (default), `5m` or `1h`. The shared rubric of a check or a comparison is written to the provider's cache once and read back at a tenth of the input price for five minutes or an hour after the last read; a write costs 1.25× (`5m`) or 2× (`1h`). Any other word counts as off and the doctor's `anthropic-url` line warns |
+| `Funnel__Sources__0`, `__1`, … | The entry links `/go/<source>` answers. Leave it out for the ten defaults: `tt`, `ig`, `wa`, `campus`, `yt`, `fb`, `x`, `qr`, `story`, `dm` (`tiktok`, `instagram`, `whatsapp`, `youtube`, `facebook` and `twitter` resolve to the short ones). A list here **replaces** the ten: a server that sets `__0=campus` alone answers `/go/campus` and sends `/go/tt` to the landing page uncounted |
+| `Plans__TomorrowMorningPush`, `Plans__TomorrowMorningHour` | `false` and `07:30`. The morning "your outfit for today is one tap away" push, local to `Board__TimeZone`. Off by default and meant to stay off for a while (below) |
+| `Push__TryTipNudge`, `Push__TryTipAfterHours`, `Push__TryTipWindowHours`, `Push__TryTipDayStart`, `Push__TryTipDayEnd` | `true`, `24`, `24`, `9`, `21`. The day-after "Did you try the tip?" push: one per check, one per person a day, only to accounts with a push subscription, between 09:00 and 21:00 in `Board__TimeZone`, for a check whose change tip nobody answered and that is in no pair. `false` turns it off; the hours are the server's, not the person's |
+| `Plans__WardrobeUnkeptChecks` | `20`. How many of a person's latest scored checks "Keep from an older look" on the wardrobe screen looks through for pieces never kept; `0` hides the section |
+| `Limits__AdminActionsPerHour` | `120`. The per-moderator cap on the account actions on `#/admin` (verify, Pro, the board exclusion, suspend). A brake on a stolen moderator cookie or a script, not a product limit; leave it |
+
+**The prompt cache is for the day the spend tiles show more than a few checks a minute.** A cache nobody reads within
+its lifetime is a surcharge, not a saving: every write costs more than the plain call, and only a read within five
+minutes (or an hour) of the last one pays it back. So leave it `off` for a pilot that does a check every few minutes,
+and turn it on — `5m` first — when `#/admin/metrics` → *Model spend* shows checks arriving faster than that. Two things
+to know once it is on. The rubric plus the tool schema must clear the model's minimum cacheable prefix, or the API
+silently writes nothing: no error, no warning, and the two cache tiles ("Cache reads (tokens)", "Cache writes (tokens)")
+simply stay at zero — the tiles are the check, and the comparison's shorter rubric is the one more likely to fall under
+the line. And the day's estimate goes down, so re-read `Limits__SpendPerDayUsd` afterwards; writes are priced by the
+mode in force when the page is read, so flip the mode at midnight UTC or accept a few cents of drift on that day.
+
+**The yearly price and the trial are Stripe-side decisions first.** A second recurring price on the product, then its id
+here, then `--stripe-check` — the `stripe-yearly` line reads it and refuses a price that recurs monthly, a one-time price
+or a currency the page shows and the price lacks — and only then `Plans__ProYearlyPriceAmount`. The trial needs nothing
+in Stripe's dashboard (Checkout opens it from the session), but it needs the endpoint subscribed to all seven events,
+because a trial that ends with no card ends as `customer.subscription.deleted`; `--stripe-check` names a missing one.
+`LAUNCH.md` 0.8 has the founder's two decisions (`7` or `0`; a year or not).
+
+**The entry links.** `/go/tiktok` and `/go/instagram` are the bio links; `/go/qr` is a poster; `/go/story` and
+`/go/dm` are what a pasted link in a story or a message carries (`CONTENT.md`, `MARKETING.md`). Every arrival is a row
+per source per day, the guest check and the signup that follow carry the word, and `#/admin/metrics` → *Where people
+come from* attributes them; a crawler's fetch is redirected and not counted, an unknown word lands on the landing page
+uncounted, and nothing here sets a cookie. A CDN or a WAF in front must let `GET /go/*` through to the app and must not
+cache it (every answer is `Cache-Control: no-store`).
+
+**The morning push stays off until the numbers say so.** The flag is `false` and the founder flips it once the Tomorrow
+block on `#/admin/metrics` shows planned outfits get worn — a `wornRate` above about 25% with at least 20 wardrobes of
+two kinds behind it — and the VAPID keys are set (`--doctor` warns when the flag is on without them, and when it is on
+with `Plans__TomorrowEnabled` off, since a tap would land on a 404). On, one push a day at the hour to each account with
+its own switch on in Settings, a subscription, a wardrobe of two kinds and something left to spend; nothing is composed
+until the tap, so the push itself costs no model call. Its receipts are `TomorrowPushes` rows and the block's "Morning
+pushes" and "Opened" tiles; read them with the worn rate, in that order. The log says `TomorrowMorning: run at … for
+<day>, N sent, M skipped` once a morning while the flag is on and nothing at Information while it is off.
 
 ## The weekly board and store links
 
@@ -628,7 +688,7 @@ anything until you list a host. In `.env` on a server, `fly secrets set` on Fly:
 | `Board__Size` | Places on each board, `10` |
 | `Board__RisingDays` | The rising board lists the fired looks of accounts younger than this at the week's end, `30` |
 | `Board__CacheSeconds` | How long the running week and the one before it are served from memory, `60` seconds, real time, per process (two entries at most; every other week is computed on each read). `0` turns the cache off |
-| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host such as `nexor.example` is read as `https://nexor.example`; anything else is dropped at start with `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link` in the log, and the name shows without a link. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over |
+| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host such as `nexor.example` is read as `https://nexor.example`; anything else is dropped at start with `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link` in the log, and the name shows without a link. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over. **Round 20:** a moderator can read what it came to on `#/admin` (the *Sponsor of the week* card, `GET /api/admin/sponsor`): the name, the prize, the link as the board shows it, a note when the link was dropped for not being `http(s)`, and whether the handle is an account here and a verified brand — the Verify button one section up is the fix. Still set by hand here; the card is read-only |
 | `Affiliate__Hosts__<host>` | One line per programme you joined: `Affiliate__Hosts__amazon.com=tag=orevosh-20` appends `?tag=orevosh-20` (or `&tag=…`, before any `#fragment`) to every store link that leaves for `amazon.com` or a subdomain of it. Nothing is stored on the link: the parameters are added at the door, so joining, changing or leaving a programme is one line for every link at once. Leave every line out until you have joined a programme; with none, every link is redirected as given |
 | `Affiliate__Disclosure` | `true`. Whether the item sheet shows "This link may earn OREVOSH a commission." under a store link, listed host or not: `/api/config` publishes it as `affiliate.disclosure` and the sheet reads it ("Leaves OREVOSH" shows under every store link either way). Keep it on; programme terms and consumer law expect the line |
 
@@ -655,9 +715,24 @@ says, in `docker compose logs app` or `fly logs`:
   link with user info are dropped). The name and the prize still show; fix the line and restart.
 - `Board: <look id> excluded by <moderator id>: <reason>` and `Board: <look id> put back by <moderator id>`: a moderator
   pulled a look off the board through `POST /api/admin/board/exclude` (with `{ postId, reason }`) or put it back with
-  `DELETE /api/admin/board/exclude/<postId>`. There is no screen for it yet; a moderator's session and the CSRF header
-  do it from a terminal: `curl -X POST -b 'orevosh.session=…' -H 'X-Requested-With: Orevosh' -H 'Content-Type:
-  application/json' -d '{"postId":"…","reason":"bought fires"}' https://looks.example.com/api/admin/board/exclude`.
+  `DELETE /api/admin/board/exclude/<postId>`. The per-look exclusion has no screen yet; a moderator's session and the
+  CSRF header do it from a terminal: `curl -X POST -b 'orevosh.session=…' -H 'X-Requested-With: Orevosh' -H
+  'Content-Type: application/json' -d '{"postId":"…","reason":"bought fires"}'
+  https://looks.example.com/api/admin/board/exclude`. **Round 20:** the account exclusion has one — *Exclude from board*
+  / *Put back on the board* in the Accounts section of `#/admin` (`POST` / `DELETE
+  /api/admin/users/<handle>/board-exclusion`). It is one column (`Users.BoardExcludedAt`, added by the `Round20Wedge`
+  migration), so looks the account posts later stay off too; the excluded account's own fires on other people's looks
+  still count; a closed week's `WeeklyWinners` rows are untouched; and an exclusion made just before the five-minute close
+  does change the archived result, exactly as the per-look exclusion does.
+- `Admin: <handle> verified by <moderator>`, `Admin: <handle> verification removed by <moderator>`, `Admin: <handle> on
+  Pro until <yyyy-MM-dd> by <moderator> (<n> months)`, `Admin: <handle> back on Free by <moderator>`, `Admin: <handle>
+  excluded from the board by <moderator>: <reason>`, `Admin: <handle> back on the board by <moderator>`, `Admin: <handle>
+  suspended by <moderator>` and `Admin: <handle> suspension lifted by <moderator>`: **Round 20**, one line per account
+  action taken on `#/admin`, at Information under the log category `FitCheck.Api.Endpoints.AdminEndpoints`, the target
+  and the moderator by handle, never an email or a cookie. A write that changes nothing (verifying a verified account,
+  lifting a suspension that is not there, removing Pro from a free account) writes no line. The board's own per-look
+  lines above are unchanged and still use ids. `docker compose logs app | grep "Admin:"` is the record of who did what to
+  whose account.
 - `Items: 3 on post <look id> by <user id>`: someone saved the pieces on their look.
 
 **What to know before people rely on it.** The board serves the running week and the one before it from memory for
@@ -1062,7 +1137,8 @@ to WAL mode at start (persisted in the file; that is where the `-wal` and `-shm`
 - **The board.** `docker compose logs app | grep "Board:"` after the week closes (Saturday midnight in
   `Board__TimeZone`): `Board: week 2026-09-06 closed, 38 rows` is the normal line, `had no counted fires` a quiet
   week, and the warning `Board: the close failed; it runs again in five minutes` is the one to read. The moderator's
-  exclusions log there too. "The weekly board and store links" lists every line.
+  exclusions log there too, and since Round 20 `grep "Admin:"` lists every account action taken on `#/admin`, by
+  moderator handle. "The weekly board and store links" lists every line.
 - **Updates to the server itself.** `apt-get update && apt-get upgrade -y` monthly, `reboot` when it asks.
 
 ## 12. What the app does for security, and what it does not yet
@@ -1074,7 +1150,7 @@ address, counted from looks given, with a brake on attempts per address), and pe
 recovery mail; recovery links built only from
 `Email__PublicOrigin`, never from a request's `Host`; photos and clips never served by path; uploads checked by their
 bytes, not their declared type; moderation, verification and the plan as flags on the account row, set only at start
-from `Admin:Handles` and by the `--admin`, `--verify` and `--pro` commands (or Stripe's signed webhook for the plan),
+from `Admin:Handles` and by the `--admin`, `--verify` and `--pro` commands, since Round 20 a moderator's account actions on `#/admin` (or Stripe's signed webhook for the plan),
 never by anything a request carries; push
 subscriptions only to public push-service names (a literal address, `localhost` or a single-label name is refused, so
 the app cannot be pointed at its own network) and at most 10 per account; the app container runs as a non-root user
@@ -1116,7 +1192,7 @@ Still missing before a public launch, in rough order of importance:
    execution while every user string reaches the page as text. And `style-src`/`font-src` still name
    `fonts.googleapis.com` and `fonts.gstatic.com`, which is a third party on every cold start. Self-hosting woff2
    subsets under `/fonts` (Latin, Hebrew, Arabic) closes that one and lets both hosts leave the policy.
-5. **Brand verification is by hand** (`--verify`, no form and no process behind it), and **one process only**: the
+5. **Brand verification is by hand** (`--verify`, or since Round 20 a moderator's Verify button on `#/admin`; no form and no process behind it), and **one process only**: the
    checks-per-day reservation, the per-address guest count and the rate limiters' windows live in memory, so run one
    `app` container (one machine on Fly). Multiple instances need a shared store.
 6. **The rate limiters trust `X-Forwarded-For`**, which is right behind Caddy on the private compose network and
@@ -1295,9 +1371,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
   Until you do, a paying person gets nothing from anyone, which is the most common complaint of a first pilot.
 - **Refunds and disputes.** Add `charge.refunded` and `charge.dispute.created` to your webhook endpoint's events
   (Developers → Webhooks → your endpoint → "Update details"). The app now handles both: Pro ends on that customer's
-  account, a warning is logged, and an alert goes out. **`--stripe-check` does not yet require these two** — it checks
-  only the five subscription-lifecycle events — so if you do not add them by hand, a chargeback silently leaves the
-  person Pro. A dispute also has a response deadline and a fee; the alert exists to get you into the dashboard in time.
+  account, a warning is logged, and an alert goes out. **`--stripe-check` has required these two since Round 17** and names any you missed; without them a
+  chargeback silently leaves the person Pro. A dispute also has a response deadline and a fee; the alert exists to get you into the dashboard in time.
 - **`past_due`.** Already handled before this round and unchanged: `customer.subscription.updated` with `past_due`,
   `unpaid` or `paused` leaves the person three days of slack and then Pro lapses. Stripe's own dunning settings
   (Settings → **Subscriptions and emails** → retries) decide how long it tries the card first; the app only reacts.

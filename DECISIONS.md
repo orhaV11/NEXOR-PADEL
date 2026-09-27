@@ -2111,4 +2111,228 @@ the worn rate says the feature is good); a server-stored place and a Settings ro
 and the browser's prefs have their deletion path: Forget my location, and sign-out); a rolling seven-day free window; garment cutouts; a wardrobe merge tool
 ("White tee" / "White t-shirt" — the one-per-kind rule and "I don't have one of these any more" contain the damage, and
 the `inventedRefs` and "I do not own that" numbers say whether it is needed); push notifications about tomorrow (they
-would spend on people who did not ask); folding the recap into the month's count.
+would spend on people who did not ask); folding the recap into the month's count. The morning push arrives in Round 20 as
+a receipt, not a spend, behind two switches.
+
+## Round 20 — the wedge
+
+**Why this round.** The competitor analysis came down to one sentence from the judges: the way to beat the competitor
+is an honest, steady number on the real outfit in fifteen seconds with no account, and then the real before/after as
+the thing people share. Every move below is one of those two halves — the first look faster, more honest and reachable
+from a bio — or the loop that turns a tip into a second photo, a pair, a share and a habit, or the money and the owner
+tooling that carry them. Refused, by name, because none of them makes the first number faster or more honest and none
+of them is a real before/after: garment cutouts (Round 19's reason stands: a second, unbounded model spend and a promise
+the marketing must not make), image generation, a chat with the stylist, a calendar, a native app (Web Push and the
+home-screen install are the pilot's reach; `mobile/` waits, as "Not in this version" says), and a weekly SKU or a
+downsell (Pro is a month or a year, with a trial; a smaller price for less of a cap would sell a brake, and a cap is a
+brake, not a product, since Round 14). Nine briefs were
+written on one skeleton (`b8cbadb`) so no two builders would touch the migration, the DTO fields, the counters or the
+i18n keys at once, and nine builders shipped them in order; the departures from the briefs are listed at the end.
+
+**Billing.** Event ids are recorded AFTER the handler, and the lookup, the handler and the record are serialised by a
+process-wide gate (`BillingEndpoints.WebhookGate`): record-after means a handler that threw answers 500, leaves no row
+and lets Stripe's retry be handled rather than ignored, and the gate is what makes a parallel burst of one id one period
+— record-after alone would have let both through, and the brief's own test demanded one period from a parallel burst. A
+single server with one SQLite file is one process, so a process gate is exactly the serialisation needed; the
+`DbUpdateException` on the insert is still swallowed as belt and braces. A yearly Checkout is stricter about the currency
+than a monthly one: a quoted currency the yearly table lacks is refused (400 `error.billing_interval`), never swapped for
+the fallback the way the monthly leg does, because the page never showed a year in that currency. What a completed
+session grants is read from the session itself: `no_payment_required` with `metadata.trialDays` above 0 is the trial's
+days (capped at 730) plus the slack, `metadata.interval=year` is 368 days, anything else 35; a no-payment session without
+`trialDays` (a full coupon, say) is granted like a paid one. Trial eligibility is the app's, not Stripe's — no
+`BillingCustomerId` — so a deleted-and-recreated account can trial again and a `--pro` grant does not disqualify. The
+renewal recap is transactional: it ignores `DigestOn` and carries no unsubscribe link, like the card and the Pro-ended
+letters; its candidates need a `BillingSubscriptionId` (something will actually renew), a confirmed address and
+`ProUntil` inside the lead; `Run.Skipped` counts failed sends, retried next hour, not ineligible accounts. The doctor
+gathers every billing warning into one line joined by `; `, because five separate `billing` lines would read as five
+failures, and the manual provider with a trial is a warning that says a trial needs Checkout.
+
+**The wait and the viral day.** The system prompt is an array of text blocks on every call, off or on — one wire shape,
+one test — and the breakpoint sits on the rubric block because tools render before system, so the schema is cached with
+it; the taste advisory is its own uncached block after it because it changes per wearer. Tomorrow never carries a
+breakpoint: its tool schema holds the wearer's wardrobe enum, so nothing before the rubric is shared; `SharedRubric` is
+the guard and the stub refuses a compose with `cache_control`. The recap is uncached too (a few calls a month). The price
+factors 0.1, 1.25 and 2 are hard-coded ratios of the owner's input price; they hold for every model this app can run,
+and writes are priced by the mode in force when the page is read. Copy-only for the guest at the ceiling was refused: a
+"we'll tell you" with nothing behind it is the kind of promise `PlansTests.Promises` exists to forbid; the smallest
+honest mechanism is a `Counter` row (the `welcome:{id}` precedent) rather than a column, set only while the ceiling is
+really closed, and a five-minute pass that writes one in-app line always, a push only to a subscribed browser and a mail
+only to a confirmed address — exactly what the offer's sentence says. That pass reads its rows before it asks the meter,
+so a pass with nothing to do never trips the once-a-day announce. Tomorrow's skeleton wait is untouched: it does not
+share the loading block. The p95 is over the same all-time population as the average so the two tiles cannot disagree; a
+24-hour pair is a later move. `VisionRequest.SystemText` exists so the tests read what the model reads regardless of the
+block split.
+
+**Compare.** The note stays in `OutfitComparison.Occasion` (the column `Occasion`) and in `ComparisonDto.occasion`,
+because the pilot file is upgraded by column matching and nothing on the client reads the old field for anything but the
+note; the pair is appended as `occasionKind` and `style`. Close is derived on the server from the two scores (within one
+point, `ok` only) rather than asked of the model, so the schema and the stored rows need nothing new and older rows read
+false. The machine word `plan_limit` is the only `ErrorDto.Code` and travels only on the free day's 429 on the two
+stylist routes, so every other body is byte-identical; `return=compare` is an allowlist of one on the server, ordinal and
+exact. The funnel tally for a Pro-page open is client-driven (a hash route never reaches the middleware), signed-in only,
+and a moderators' number, never a decision. The camera's handoff is cleared on every exit of the compare screen and of
+the camera, so a stale handoff can never feed a check's photo into a compare slot.
+
+**Keep.** Keep-all is a body route with the server's own name list — not a batch of names, not a path parameter — so
+`NamesOn(check)` is the only list, the IDOR sweep is unaffected and the stranger's 404 is pinned in `WardrobeTests`; its
+409 is reserved for a request that could write nothing at all, and a check that named nothing answers 200 and writes
+nothing. The moment's truth is the server's (`WardrobeDto.proMoment`, `Plans.WardrobeProMoment`, strictly more than the
+free slice) and the client owns only once-per-tab; the tally is a POST because a hash route is never seen by the server,
+and it counts only while the moment is true, so a script cannot inflate the rate. Its Go Pro carries `?from=wardrobe`
+(the brief said a plain `#/pro`) because the Pro page already tallies that word and the moment IS the wardrobe line. The
+median is over everyone active in seven days including zeros; the unkept list is a flat deduped list of pieces carrying
+the newest check that named each; the wardrobe records no refusals, so a skipped piece resurfaces; the keep row's
+2.2-second re-ask was kept, because a moment drawn under a single keep goes with the next ask and lives on `#/wardrobe`
+too. The cap race between concurrent keep-all requests is accepted with the same exposure as the single route.
+
+**Tried.** The loop's button moved onto the result screen because the moment of the tip is the moment to act, the
+retake path already exists, and the button had lived only on `#/checks`. The yes/no row goes because the four typed
+answers already set `Useful` on the server, so the Round 13 rate keeps its meaning and two rows asking one question was
+the wiring gap Round 14's own design notes named. The nudge is one per check, one per person a day, and push-only: an
+activity row nobody would be told about is a row nobody asked for, so the subscription is required at query time; it runs
+inside a server-wide local day (`Board:TimeZone`, an accepted limitation for a one-city pilot) and only for a change tip
+nobody answered on an unpaired check; the newest unanswered check carries the day's nudge and the older one waits, and is
+never nudged if it leaves its window. Its rows are stamped with the scheduler's clock so the once-a-day rule reads them
+back against the clock it runs on. The share tally reuses the two `before_after_shares` counters, because a pair share is
+a pair share whether posted or not and the numbers page should give one answer. No new consent switch guards the public
+pair: the author's own `beforePostId` at posting time already requires their own visible look, and hiding or deleting the
+before removes the section.
+
+**Distribution.** The source travels as a query and lives in `localStorage`, never a cookie — the funnel has never set
+one, and a cookie is SameSite-fragile across a cross-site redirect. Allowlist only: a source is a word the owner chose,
+so a lie bends its own row at worst and the row name is bounded by construction. Crawlers are uncounted: a pasted link is
+fetched by the messenger to unfurl it, and that is a paste, not a person; the regex is a list, an unlisted fetcher
+inflates arrivals, and the table shows arrivals next to guest checks so the ratio stays visible. One launch per
+device-day is a header on the first call, counted on `/api/config` only — no route, no POST, no cookie, guarded by the
+device's own prefs; a hand-made curl can add launches, as with every counter (`Counters.cs`: never a number the app
+decides on). An unknown source lands on the landing page uncounted, so a typo in a bio is a landing view, not a 404.
+The per-source table is window totals, not per day. `FunnelOptions.Sources` defaults empty because the configuration
+binder appends to a pre-filled list — a departure from the skeleton's initializer, found by
+`DistributionTests.Funnel_sources_is_a_setting`.
+
+**The morning loop.** Round 19 left "push notifications about tomorrow" out because they would spend on people who did
+not ask. That objection no longer holds as built: the sender never composes (it takes neither `Tomorrow` nor the vision
+client, and the tests assert no model call and no suggestion row across a run), the person owns a switch
+(`AppUser.TomorrowPushOn`, `GET`/`POST /api/push/morning`) and the server owns a flag that is off by default. The row is
+a receipt, not a spend, which is why a once-a-period unique key is right here where Round 19 kept one off the
+suggestions. The gate order mirrors the compose route (plan, wardrobe switch, two kinds, composed today already, left
+today and this month), so a tap never lands on a foreseeable refusal; the money ceiling and the in-flight reservation are
+deliberately not checked (the ceiling resets at UTC midnight and the cache serves while resting). The receipt is saved
+before `Enqueue`: a crash costs one morning, never a double; two processes in one window: the unique key wins and the
+second gives way, pinned by a real race through the `BeforeSave` seam. No activity row: a doorbell is not an event, and a
+daily line would bury the fires. The open marker is a GET that writes one nullable column, the `boardViews` precedent,
+bounded to one per push within 24 hours. "Composed today already" is `ForDate == local day` OR `CreatedAt >= local
+midnight`, not 24 hours back, so yesterday's outfit for yesterday does not silence today's ping. Tomorrow does NOT join
+`insights.line_streak`: the streak is consecutive UTC days with an ok check (a photo, a spend); a planned outfit can be a
+cache hit and is text about the wardrobe, not a look worn; the loop reaches the streak by the honest path — push,
+outfit, "Wearing it? Check it", ok check, `UpdateStreak` — and a streak of its own would be a new column and a new key.
+`Board:TimeZone` is everyone's morning (no per-user zone on the row); the switch is the remedy.
+
+**Owner tooling.** The CLI stays and the browser test proves both doors: the screen is a second door, not a
+replacement. Account exclusion is a column, not N per-look rows, so looks posted later stay off too. Moderators may
+verify and grant on themselves; the log line names them, and the per-moderator cap and the audit line are what bound a
+stolen cookie — the policy that all moderators are equal is the founder's question, written down and not decided in
+code. The Stripe guard refuses both grant and removal, because either would be a plan the webhook contradicts on the
+next event, and the row keeps showing `pro` so the moderator sees the state. No reason column for the account exclusion:
+the audit line is the record, trimmed and cut at 200. No new `GET /users/{handle}`: the search row carries the flags. A
+write that changes nothing writes no audit line, because the line is the record of a change, and still answers 200 with
+the row. The sponsor card reloads with every action (the brief said once on load), which is the cheap way to prove the
+Verify fix "one section up". None of these routes asks the model, so the stub is untouched.
+
+### Objections to keep out of the code
+
+- **"Just say 'we'll tell you when the stylist is back'."** Refused: a sentence with nothing behind it is the promise
+  `PlansTests.Promises` forbids. The row, the pass, the one line, the push to a subscribed browser and the mail to a
+  confirmed address are the sentence.
+- **"Cache Tomorrow's prompt too."** Its tool schema is the wearer's wardrobe, so nothing before the rubric is shared;
+  a breakpoint there would write and never read. The stub refuses a compose with `cache_control` so it stays that way.
+- **"Ask the model whether it is a close call."** A third score or a `closeness` field would move the schema and every
+  stored row for a fact the two scores already state. Derived on the server, within one point, `ok` only.
+- **"Send the comparison's note under a new name."** The pilot file is upgraded by column matching; `Occasion` stays the
+  column and the JSON name, and the pair is appended.
+- **"Rename the card's before/after tally for pairs that were never posted."** One pair share is one pair share; two
+  counters for one question would make the numbers page say two things.
+- **"A consent switch on the public pair."** The author's own `beforePostId` on their own visible look is the consent;
+  hide or delete the before and the section goes.
+- **"Keep the source in a cookie", "count every arrival", "let any word through `/go/`".** A cookie is SameSite-fragile
+  across the hop and the funnel has never set one; a crawler's fetch is a paste, not a person; a word off the allowlist
+  is a landing view, not a row.
+- **"Check the money ceiling before the morning push."** The ceiling resets at UTC midnight and a stored answer serves
+  while the stylist rests; refusing the ping for a ceiling that will be open by morning would silence the people it is
+  for.
+- **"Let Tomorrow count toward the streak."** A planned outfit can be a cache hit and is text about the wardrobe, not a
+  look worn. The streak stays a photo a day.
+- **"A per-person time zone for the nudge and the morning push."** No place is stored on any row (Round 19), and a
+  one-city pilot has one morning; the person's switch is the remedy, and a per-user zone is a column for a later round.
+- **"Let a moderator change a Stripe subscriber's plan by hand."** Refused both ways: the webhook would contradict it on
+  the next event. The plan is changed in Stripe, and the row says why.
+- **"A reason column for the account exclusion."** The audit line is the record. A column would be a second copy that
+  nobody reads and everybody has to export.
+- **"Prices in the numbers page's cache estimate should be settings."** The three factors are ratios of the input price
+  the provider publishes, the same for every model this app can run; a setting would be a second place for one fact.
+
+### Where the build departed from the briefs, and why
+
+- **The skeleton, kept over the compare brief.** The note stays in `OutfitComparison.Occasion` (no rename to `Note`),
+  `ComparisonDto` keeps `occasion` as the note and appends `occasionKind`/`style`, and no second migration was added:
+  `Round20Wedge` already carries the columns, the backfill `CASE` over `Intent`, `Users.Source`, `Checks.Source`,
+  `Users.BoardExcludedAt`, `Users.TomorrowPushOn`, `Notifications.CheckId`, `StripeEvents` and `TomorrowPushes`. One
+  migration for nine moves, so the model snapshot was a merge hotspot for nobody.
+- **`FunnelOptions.Sources` defaults to `[]`**, not `[.. Defaults]` as the skeleton had it: the configuration binder
+  appends a setting's entries to a list that already has items, so `Funnel:Sources:0=campus` produced the ten plus
+  `campus` and `/go/tt` still counted. `List` falls back to the ten while the setting is empty, so an unconfigured server
+  is unchanged. Found by `DistributionTests.Funnel_sources_is_a_setting`.
+- **The migration's `TomorrowPushOn` default was corrected to `true`** after the admin builder's upgrade test over a
+  Round 19 file showed every veteran account coming out with the morning push switched off while a new account starts
+  with it on (`d7291e5`): the server flag decides whether the ping is offered at all, the person's switch only says no.
+- **Billing:** the webhook's lookup-handle-record run is serialised by a process-wide gate (the brief's record-after
+  alone would have let a parallel burst through); the yearly-at-or-above-twelve-months warning from the risks section was
+  added to the `billing` line; the trial line uses the `timer` icon because `core.js` has no `gift`; `LocalizerTests` got
+  a dedicated `Fact` for the seven-hole renewal body rather than rows in the two-argument theory; the stub takes the API
+  origin as its second argument so `/v1/webhook_endpoints` can name the wanted url; the e2e reloads the tab after the
+  webhook before asserting `#pro-current`, as the existing `--pro` flow does.
+- **The wait:** the welcome screen's push step keys off `pushSupport() === 'ready'` (the live helper returns a word,
+  not the object the brief guessed); the guest-503 e2e was kept rather than dropped to unit tests (the second boot costs
+  about fifteen seconds and its two checks are also covered by the `cache_control` assertions); the staged-wait assertion
+  rides on the existing "wearing it" check late in the run, so no extra check was spent; `SpendTests`' cache fixture was
+  scaled to 900000 reads and 100000 writes so the pricing shows in the four-decimal estimate.
+- **Compare:** `DatabaseSetupTests`' case runs on a file migrated to `Round19Tomorrow` rather than the Round 8 pilot
+  file, because that schema has no `Comparisons` table and the pilot column-matching path adds `OccasionKind` with its
+  default and runs no backfill; the e2e's step 13 user count moved from 2 to 3 because the new account `lior` remains
+  after `noa`'s deletion; the close-call paragraph was rewrapped so the asserted phrases are not split across a line.
+- **Keep:** the moment's Go Pro links to `#/pro?from=wardrobe` (the brief said `#/pro`) so the funnel's wardrobe column
+  stays honest; `MetricsTests.The_wedge_numbers_are_on_the_page` uses its own `TestApp` rather than the shared fixture
+  the brief suggested, because the median is over everyone active and the fixture's other test asserts absolute counts;
+  the e2e runs with `Plans__WardrobeNamesToStylist=2` for the whole run so one free account crosses the slice in one
+  check, and waits for the Pro page by `#pro-manual` because billing is off until the Stripe leg.
+- **Tried:** `/tried` and `/tried/prefer` now return `postId` on both sides (the brief assumed it; it was null, the post
+  sheet's preselect depends on it, and the e2e found it); `Notifier.TryTipAsync` has the brief's signature plus an
+  optional trailing `DateTime? at`; the pair's change line is computed by the caller with `taste.js` so `sharevideo.js`
+  does not import `taste.js` (an import cycle); the e2e's before is `post2`, not `post1`, because steps 5 to 7 count Dan's
+  feed at exactly one card; `Round20SkeletonTests.cs` was created by this move with its own seams and later builders
+  appended.
+- **Distribution:** the allowlist is the skeleton's ten, not the brief's eight, and aliases resolve on `/go` as well as
+  on the form and the body; `FunnelDayDto.Standalone` sits after the two Pro columns as the skeleton placed it; the 302's
+  own security headers are pinned in `DistributionTests` with a non-following client, because `SecurityHeaderSetTests`
+  follows the redirect and reads the page after the hop; the fourth e2e person is `maya`, since `lior` already existed,
+  and the standalone context is `installed` because `home` was taken.
+- **The morning loop:** "composed today already" is local-midnight based, not the brief's `CreatedAt >= due − 24h`,
+  which would have silenced today's ping for someone who composed yesterday's outfit yesterday morning — so the main
+  test's next-day run sends three (A, D and E), not the brief's one; `MarkOpenedAsync` is static (no instance state);
+  the four global skip reasons log at Debug, not Information, since the service ticks 96 times a day on every server;
+  a `BeforeSave` seam was added so the row-before-push order and the unique-violation give-way are pinned by a real
+  race; `PlanCaps` takes the push and board options so the `plans` line can say the hour and warn; `Board.LocalToUtc`
+  is shared with Digest; a footnote key `tomorrow.dash_loop` was added to all four locale files; the screenshot is
+  `33f-`, not `34-`.
+- **Owner tooling:** the audit logger's category is the full type name; the sponsor card reloads after every action;
+  the e2e asserts the sponsor's unverified-handle warning and its clearing rather than "no alert", because the Round 9
+  steps unverify `nexor` before step 11; step 11b sits after Dan signs back in (the suspension ended his session); the
+  migration-over-a-Round-19-file test lives in `DatabaseSetupTests`, which owns the helpers, not in
+  `Round20SkeletonTests`; the unconfigured sponsor answer carries `urlDropped: false` because the skeleton's DTO made it
+  a non-nullable bool.
+- **Content:** the what-changed block sits under the shrunk second ring rather than at the verdict's positions, so the
+  second headline has the whole beat and the cover is the big ring with the chip; Format 2's copy gained the address at
+  12.0 s with the follow line at 13.0 s; string cells are measured through an inline-block span; `fromApp` copies
+  `changed` from the pair when both sides are pair sides; the episodes paragraph moved into `render-kit.js`'s
+  `writeReadme` because the social render regenerates that README; `calibrate.ps1` exits 1 (not 2) for its own preflight
+  failures and accepts `-DryRun` without a handle.

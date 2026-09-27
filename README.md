@@ -119,8 +119,18 @@ per check, each `ok`, a warning or a short reason, and exits 0 when everything a
 otherwise. In the order it prints them: `origin` (the public origin mail links and Checkout returns are built from),
 `previews` (whether the three shipped pages still carry the placeholder host `looks.example.com`, which is the
 difference between a shared link that unfurls with a picture and one that does not), `anthropic` (the key),
-`anthropic-url` (the base URL and the model), `contact` (the address the legal pages name), `email`, `billing`, `plans`
-(the caps against the ceiling), `push` (the VAPID keys), `admin` (the moderator list, and the accounts `--admin`
+`anthropic-url` (the base URL, the model, the answer ceiling and, since Round 20, the prompt cache mode: the OK line
+reads `https://api.anthropic.com, model {model}, max_tokens {n}, prompt cache {off|5m|1h}.`, and a WARN under the
+same name says `Anthropic__PromptCache is "{value}", not off, 5m or 1h: caching is off.` for any other word), `contact`
+(the address the legal pages name), `email`, `billing` (the provider and the keys; since Round 20 it FAILS on a yearly
+id without the `price_` prefix and on `Plans__ProTrialDays` outside 0..730, WARNS — one line, joined by `; ` — on
+`Billing__StripeBaseUrl` pointing anywhere but `api.stripe.com`, a yearly id with no yearly amount ("offers no yearly
+plan"), a yearly amount with no id ("never shown"), a yearly amount at or above twelve months of the monthly in the
+same currency ("no saving"), the manual provider with a trial ("a trial needs Checkout") and a test key over https,
+and reads `stripe (sk_live_…), price <id>, yearly <id|none>, trial <n> days|off, webhook secret set.` when all is
+well), `plans` (the caps against the ceiling, ending `morning push 07:30 Asia/Jerusalem` or `morning push off`, and
+warning when `Plans__TomorrowMorningPush` is on without VAPID keys or with `Plans__TomorrowEnabled` off, and when
+`Plans__TomorrowMorningHour` is not `HH:mm`, flag on or off), `push` (the VAPID keys), `admin` (the moderator list, and the accounts `--admin`
 promoted), `board` (the time zone), `affiliate`, `storage` (the photo folder, actually written to and the file removed
 again), `database` (the file and what it still has to migrate), `ffmpeg`, `disk` (the free space where the data lives),
 `spend` (what a model call is priced at here and the day's ceiling), `weather` (the forecast behind Tomorrow, and
@@ -130,22 +140,28 @@ would shout). The last two lines are the tally —
 the failures above and run it again.` **Only a failure changes the exit code**; a warning is the operator's call.
 `--doctor --live` adds the calls that cost something or leave the machine:
 one small Anthropic call with the configured key and model (a fraction of a cent), when the provider is `stripe` two
-reads from Stripe, one forecast from Open-Meteo (`weather-live`, a warning and never a failure) and, when an alert
+reads from Stripe — three with a yearly price set, all against `Billing:StripeBaseUrl` — one forecast from Open-Meteo (`weather-live`, a warning and never a failure) and, when an alert
 channel is set, one test alert (`alerts-live`). **It never dials the mail server**: `--doctor` reads the `Email__*` settings and says whether
 they could work, and nothing in this program opens an SMTP connection or logs in. The only thing that tests the sender
 is sending: ask for a password reset from the app (or sign up) with your own address and watch the mail arrive, and
-read the log line if it does not. `--stripe-check` is the Stripe half on its own — the key, the price and the webhook
-endpoint — and it writes nothing and charges nobody. `/readyz` answers the machine-side half of `--doctor` over HTTP,
+read the log line if it does not. `--stripe-check` is the Stripe half on its own, five lines — `billing`, `stripe-live` (the
+monthly price), `stripe-price` (its table against `Plans:ProPrices`), `stripe-yearly` (the yearly price read and its
+table in one line; a skip, `not called: Billing__StripeYearlyPriceId is empty (monthly only).`, until one is set) and
+`stripe-webhook` — and it writes nothing and charges nobody. `/readyz` answers the machine-side half of `--doctor` over HTTP,
 for a deploy or an uptime checker to wait on.
 
 The account commands exit with code 1 when no account has the handle (sign up first, then run it again) and 2 on a
-usage error; a leading `@` on the handle is fine. `--verify` and `--pro` are the only things that write the verified
-flag and the plan by hand: no request can, and with `Billing:Provider` left at `manual` the `--pro` command is the
-whole upgrade path. On a server the same commands run inside the container, `docker compose exec app dotnet
+usage error; a leading `@` on the handle is fine. `--verify` and `--pro` stay as the terminal fallback for the verified
+flag and the plan; since Round 20 the same actions are buttons on `#/admin` (the Accounts section), with one difference:
+the screen refuses a Pro grant or removal on an account that pays through Stripe (its plan is changed in Stripe), the
+command does not. The flag and the plan are still written by hand only — by the command, or by a moderator on that
+screen, never by a request from the person themselves — and with `Billing:Provider` left at `manual` those two doors
+are the whole upgrade path. On a server the same commands run inside the container, `docker compose exec app dotnet
 FitCheck.Api.dll --admin yourhandle` (`DEPLOY.md`, step 7). Round 10 added no command: the weekly board closes itself
 in the background (`Services/BoardCloser.cs`, the log says when), a moderator pulls a look off it through the API, and
 affiliate programmes are settings (`Affiliate:Hosts`). Round 11 added the three above, for going live and staying
-live. Blocking, the billing portal and the data export add none: they are things a person does in the app.
+live. Blocking, the billing portal and the data export add none: they are things a person does in the app. Round 20
+adds none either: the account actions moved onto `#/admin` as buttons and the commands stay.
 
 One more, and it is not a maintenance command but a one-off before the first build:
 
@@ -169,7 +185,9 @@ curl -s -b 'orevosh.session=<a moderator’s cookie>' http://localhost:5000/api/
 ```
 
 The first block covers signed-in people's checks with `status = "ok"` (`returnRate` = users whose second OK check
-happened at most 7 days after their first ÷ users with at least one OK check; guest checks are left out). The
+happened at most 7 days after their first ÷ users with at least one OK check; guest checks are left out). Since Round
+20 it also carries `p95LatencyMs`: the nearest-rank 95th percentile over the same all-time OK checks by accounts that
+`avgLatencyMs` averages (0 when empty), so the two tiles can never disagree about the population. The
 `social` block counts users, brands, posts, fires, follows, comments, open and ended challenges, votes, mentions,
 featured looks, clips, push subscriptions, people active in the last 7 days, and, since Round 10, `itemsTagged`
 (item rows a person touched: typed by them, or carrying a brand or a store link; the stylist's bare names are not
@@ -178,19 +196,24 @@ tagging), `itemOuts` (store-link taps that left through `/api/items/{id}/out`) a
 same block: `privateScores`, `commentOpeners`, `beforeAfterShares`, `beforeAfterSharesPlain` and
 `constraintChallenges`.
 
-Five blocks sit beside it, each with its own DTO and nothing shared with the tiles above:
+Six blocks sit beside it, each with its own DTO and nothing shared with the tiles above:
 
 | Block | What it answers |
 |---|---|
-| `stylist` | **Did the tip land?** Yes / no / unanswered over every OK check by an account, overall, by intent and by language, plus how many photos the stylist called "no outfit" and how many it refused. The only number that says whether the stylist is any good |
-| `spend` | **What the model cost today**, at the owner's configured prices, the day's ceiling, whether the app is resting on it, and fourteen days of it. Always an estimate, never an invoice |
-| `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting |
-| `wardrobe` | **Round 15.** The two numbers `MARKETING.md` watches. `keepRate` is `keepers` (accounts with at least one kept piece) ÷ `checkedUsers` (accounts with at least one OK check — the same number the hero tile reads, so the page cannot say two different things about who has checked), with `items` as the raw row count behind it; `dontOwnRate` is `dontOwn` ÷ `reasons`, the "I do not own that" answer over every typed answer to the tip, and it is watched **falling**, because a tip that draws it is exactly the tip a wardrobe should have prevented. `toStylistOff` counts the accounts that turned the sending off, which is what keeps a flat `dontOwnRate` readable: a wardrobe nobody sends cannot prevent anything. **A rate with nothing to divide by is absent from the JSON, not `0`** |
+| `stylist` | **Did the tip land?** Yes / no / unanswered over every OK check by an account, overall, by intent and by language, plus how many photos the stylist called "no outfit" and how many it refused. The only number that says whether the stylist is any good. **Round 20** adds `triedPairs` (pairs linked, the `CheckLinks` count), `triedPer100Ok` (pairs × 100 ÷ OK checks by accounts, two decimals, absent while there is no OK check), `tryTipNudges` (notifications of type `try_tip`) and `nudgedThenTried` (pairs whose before check carries one) |
+| `spend` | **What the model cost today**, at the owner's configured prices, the day's ceiling, whether the app is resting on it, and fourteen days of it. Always an estimate, never an invoice. **Round 20:** `promptCache` is the effective mode (`off`, `5m` or `1h`); `today.cacheReadTokens` / `cacheWriteTokens` are drawn as two tiles ("Cache reads (tokens)", "Cache writes (tokens)") with the prices hint ending "Prompt cache: off / 5 minutes / 1 hour."; the estimate prices cache reads at 0.1× and cache writes at 1.25× (off or `5m`) or 2× (`1h`) of the input price, and writes are re-priced by the mode in force when the page is read, so flip the mode at midnight UTC or accept a few cents of drift |
+| `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting. **Round 20:** each `days[]` row gains `proFromCompare` and `proFromWardrobe` (the Pro page opened from a refused compare or from the wardrobe line) and `standalone` (launches from the home screen), and `sources` lists `{ source, arrivals, guestChecks, signups, firstPosts }` per allowlisted source in `Funnel:Sources` order over the fourteen-day window, zero rows included: arrivals off `funnel:src:<source>:<day>`, guest checks off `Checks.Source` (guest or claimed, not `error`), signups off `Users.Source`, first posts off each poster's `Users.Source` |
+| `wardrobe` | **Round 15.** The two numbers `MARKETING.md` watches. `keepRate` is `keepers` (accounts with at least one kept piece) ÷ `checkedUsers` (accounts with at least one OK check — the same number the hero tile reads, so the page cannot say two different things about who has checked), with `items` as the raw row count behind it; `dontOwnRate` is `dontOwn` ÷ `reasons`, the "I do not own that" answer over every typed answer to the tip, and it is watched **falling**, because a tip that draws it is exactly the tip a wardrobe should have prevented. `toStylistOff` counts the accounts that turned the sending off, which is what keeps a flat `dontOwnRate` readable: a wardrobe nobody sends cannot prevent anything. **A rate with nothing to divide by is absent from the JSON, not `0`.** **Round 20** adds `keepAll` (keep-all requests that touched at least one row), `momentShown` and `momentGo` (the Pro moment, counted only while it was true for that account), `momentGoRate` (go ÷ shown, absent while nothing was shown) and `piecesPerActiveMedian` (the median of kept pieces over the seven-day active set — checks, fires, comments, votes — zeros included, even counts averaged to two decimals; absent while nobody is active) |
 | `breakdownAverages` | The mean of each rubric sub-score over the checks that carry one; absent while no check does |
+| `tomorrow` | **Round 19.** Planned outfits, the worn and reuse rates, refs the model returned that were not in its list, sentences the template replaced, the reasons. **Round 20** adds `pushesSent` (morning push receipts with `SentAt` in the last 30 days), `pushesOpened` (of those, with `OpenedAt` set) and `openRate` (opened ÷ sent, four decimals, absent while nothing was sent) |
 
 The route answers only through a moderator's session (below), and moderators see the same numbers drawn as a page at
 `#/admin/metrics` (one hero figure, the return rate; tiles; the score distribution as bars; the stylist, money and
-funnel sections), linked from the moderation page.
+funnel sections), linked from the moderation page. Round 20 adds a "Latency (p95)" tile beside the average, the two
+cache tiles among the money tiles (six), three wardrobe tiles ("Keep-all taps", "Pro moment → Go Pro" with "{shown}
+shown, {go} tapped" under it, "Pieces per active person (median)", an en dash while null; eight in the block), two
+funnel columns and the per-source table ("Where people come from"), and "Morning pushes" and "Opened" in the Tomorrow
+block (seven), whose hint ends "Read the three together: pushed, opened, worn."
 
 ### Run the tests
 
@@ -234,7 +257,17 @@ public look and profile pages, the invites, the funnel, the Sunday digest). Roun
 and the keep verdict (`IntentSplitTests`), the typed reasons and the taste profile (`TasteTests`), "I tried it"
 (`TriedTests`), the wardrobe (`WardrobeTests`), Pro's own comparison allowance (`PlansTests`), and the community
 round (`ScorePrivacyTests`, the openers, the before/after shares, constraint challenges). Round 15 added the
-wardrobe's numbers (`WardrobeMetricsTests`) and the wardrobe reaching a comparison (`WardrobeComparisonTests`).
+wardrobe's numbers (`WardrobeMetricsTests`) and the wardrobe reaching a comparison (`WardrobeComparisonTests`). Round
+20 added the webhook replay, the yearly Checkout and the no-card trial to `BillingTests` (every event factory now stamps
+a fresh `evt_` id, and a test that means a replay passes the same one), `RenewalRecapTests`, `StylistBackTests`,
+`TryTipNudgeTests`, `TomorrowMorningTests`, `DistributionTests` (the `/go` routes, the crawler skip, the invite
+passthrough, the stamped source, the launch header, the attributed walk, `Funnel:Sources` as a setting, the redirect's
+own security headers), the two compare questions and the close call in `CompareTests` and `OutfitComparerTests`,
+keep-all, the unkept list and the Pro moment in `WardrobeTests` with the wedge numbers in `MetricsTests`, the account
+actions, the audit lines and the sponsor reader in `AdminTests` (with `BoardTests` for the excluded account and
+`RateLimitTests` for the per-moderator brake), the prompt-cache breakpoints in `AnthropicVisionClientTests` and
+`SpendMeterTests`, the p95 in `MetricsComputeTests`, `Round20SkeletonTests` for the seams the moves share, and the
+renderer's `tools/brand/test/before-after.test.js` under `node --test`.
 Two of them are policy rather than behaviour and are the reason a careless change fails the build:
 `IdorEnumerationTests.Rules` in `SecurityTests` makes every route with an `{id}` or a `{handle}` declare, in writing,
 what stops a stranger enumerating it, and `LanguagesTests` keeps the four locale files at key parity.
@@ -251,7 +284,21 @@ the look page's items, dots and item sheet, the item pages and the brands list, 
 tabs, the empty hall and the Explore strip. The run starts the API with `Board__NewAccountDays=0`, `Board__MinChecksToCount=1`
 and `Board__CacheSeconds=0` because its accounts are minutes old and its fires must show at once. Not driven: a closed
 week (the closer has no HTTP trigger), so the hall's weeks, the badge and the `board_rank` line are covered by
-`BoardTests` only; the moderator's exclusion is covered by `BoardTests` and `Round10SkeletonTests`.
+`BoardTests` only; the moderator's exclusion is covered by `BoardTests` and `Round10SkeletonTests`. **Round 20 is in the
+script too**: the run sets `Anthropic__PromptCache=5m` (every check and comparison is asserted to carry the breakpoint
+and no compose), `Plans__WardrobeNamesToStylist=2` and a sponsor in the server environment; the wedge step tries the tip
+from the result screen, links the pair, shares it and reads the public pair; the compare step asks the two questions
+with slot A from the library and slot B through the in-app camera and meets the Pro nudge; a stubbed 4.5-second answer
+shows the staged wait; keep-all and the Pro moment run on a free Hebrew account; the morning step lands on
+`#/tomorrow?from=push` and flips the switch in Settings; a fourth person, Maya, on a Hebrew phone, follows `/go/tt` and the
+per-source table attributes her guest check and signup to TikTok, an Instagram webview gets the one-time note instead
+of any install advice, and the installed app's first call of the day counts one launch; step 11b grants Pro and takes it back, verifies and unverifies, keeps off the
+board and puts back from `#/admin`, and watches the sponsor card's warning clear; a second API on the next port with `Limits__SpendPerDayUsd=0.001`
+plays the guest at the ceiling; the last step restarts the API with Stripe on against `tools/e2e/stub_anthropic.py`,
+which answers Stripe's session POSTs, `/v1/prices/{id}` and `/v1/webhook_endpoints`, where a fifth person buys the year on a
+seven-day no-card trial and the signed webhook, posted twice, is ignored the second time by its id; and the before/after episode is rendered from the run's own JSON. Not driven: a real push (service
+workers are blocked, so the senders are covered by their unit tests), the service worker's `/go/` passthrough (a pin in
+`DistributionTests`), and the full Checkout → webhook → `#/compare?ready=1` chain (the landing is exercised directly).
 
 ### Check the calibration before inviting people
 
@@ -296,6 +343,7 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Anthropic:Model` | `claude-sonnet-5` | Must support forced tool use: Sonnet 5, Opus 5, the 4.x family, Haiku 4.5 |
 | `Anthropic:MaxTokens` | `3000` | The ceiling on ONE answer, not a charge — the bill is the tokens the model actually writes, so headroom is free and a ceiling that is too low is not. A typical verdict is 300–700 output tokens; the ceiling is far above that on purpose, because a cut lands the early fields (status, score, headline, vibe) and silently drops the whole verdict after them. An answer that hits it is refused with the reason named, never stored as half a screen |
 | `Anthropic:BaseUrl` | `https://api.anthropic.com` | Override to point at a stub in tests |
+| `Anthropic:PromptCache` | `off` | **Round 20.** `off`, `5m` or `1h`. On, the shared rubric of a check or a comparison (the tool schema and the system prompt, identical for every call in a language) is written to the provider's prompt cache once and read back at a tenth of the input price for five minutes or an hour after the last read; a write costs 1.25× (`5m`) or 2× (`1h`) of the input price. Tomorrow and the recap never carry a breakpoint (their prompts are not shared). Any other value counts as off and the doctor warns. The rubric-plus-schema prefix must clear the model's minimum cacheable length or the API silently writes nothing, so the two cache tiles on the numbers page are the check; turning it on lowers the day's estimate, so re-read `Limits:SpendPerDayUsd` afterwards |
 | `Storage:Root` | `storage` | Private photo folder (checks and avatars). Relative paths resolve against the content root, never `wwwroot` |
 | `Storage:MaxImageBytes` | `6291456` | Upload limit for the still of a check (6 MB). Avatars are capped at 2 MB. The client downscales first |
 | `Storage:MaxVideoBytes` | `41943040` | Upload limit for a look clip (40 MB) |
@@ -304,6 +352,9 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Storage:FfmpegPath` | empty | The ffmpeg binary, with ffprobe next to it. Empty means `ffmpeg` on `PATH` |
 | `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set; a new pair drops every existing subscription (the push service answers 401/403 and the app deletes it) |
 | `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
+| `Push:TryTipNudge` | `true` | **Round 20.** Whether the day-after nudge runs at all: one push per check, one per person a day, to push-subscribed accounts whose change tip nobody answered on a check that is in no pair (`TryTipNudgeService`, hourly) |
+| `Push:TryTipAfterHours` / `TryTipWindowHours` | `24` / `24` | Hours after the verdict before a check may be nudged, and how long after that it still may be; older is never nudged, so a server that was down for a week does not nudge last week |
+| `Push:TryTipDayStart` / `TryTipDayEnd` | `9` / `21` | The local hours in `Board:TimeZone` between which nudges go out (`[start, end)`); a check due in the night waits for the morning's run. The quiet hours are the server's, not the person's |
 | `Email:Host` / `Port` / `User` / `Password` / `From` / `UseStartTls` | empty | SMTP for confirmation and reset links (`Email__Host` etc.; the password is environment only). Mail is on when Host and From are set; `Email__Host=log` writes the links to the log instead of sending |
 | `Legal:ContactEmail` | empty | The address the terms of use and the privacy policy tell a reader to write to — a privacy question, deleting their data, reporting an account belonging to someone under 16. Empty falls back to the address in `Email:From`; with neither, those pages leave the contact section out rather than name nobody, and `--doctor` says so. Public, not a secret |
 | `Email:PublicOrigin` | empty | The https origin the links in mails carry, e.g. `https://looks.example.com`. **Required on any host that is not localhost**: a link is never built from the request's `Host` header (a stranger could choose it), so with mail on and this empty only a laptop run gets links, the start log warns, and a request for one on a real host is logged as an error and answered 502 (`error.email_send_failed`) or, for a forgotten password, silently not sent |
@@ -322,15 +373,24 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Plans:WardrobeNeedsPro` | `true` | Whether the wardrobe REACHING THE STYLIST is Pro's. The wardrobe itself is everyone's on every server — it cannot build itself behind a wall — and this gates only the advice from it (`POST /api/wardrobe/stylist` answers 403 `error.pro_required` to a free account) |
 | `Plans:TasteProfile` | `true` | Whether this server has the taste profile built (the memory of what a person liked and turned down, `Services/Taste.cs`). It landed with the loop, so it is on; turning it off takes the benefit off the Pro page and stops the advisory being built. The Pro page lists it as a benefit only when this is on: nothing on that page may promise a thing this server cannot do (`PlansTests`) |
 | `Plans:NoOutfitForgivenPerDay` | `3` | How many "that is not an outfit" answers a day do not count against a person's own allowance. The model call was still made and the global ceiling still counts it — this is about not punishing somebody for a photo the stylist could not read. `0` makes every one count |
+| `Plans:ProYearlyPriceAmount` | `0` | **Round 20.** The yearly Pro price in `Plans:ProPriceCurrency`; `0` is none. A year is sold only when this (or an entry in the table below) AND `Billing:StripeYearlyPriceId` are both set; the Pro page computes "save N%" from this and the monthly number and draws it only above 0 |
+| `Plans:ProYearlyPrices` | `{}` | The yearly price per currency (ISO code to amount, `Plans__ProYearlyPrices__USD=79.99`), built into a table exactly like `Plans:ProPrices`: prices, never conversions, and each one a currency the yearly Stripe price carries (`--stripe-check` says) |
+| `Plans:ProTrialDays` | `0` | Days of Pro before the first charge, with no card asked for (Stripe Checkout's trial; 1..730 is Stripe's range and the doctor fails outside it). Offered once per account, to one with no `BillingCustomerId`, so a deleted-and-recreated account can trial again and a `--pro` grant does not disqualify; a trial that ends with no card simply ends. A trial is Checkout's and means nothing while `Billing:Provider` is `manual`, which the doctor warns about |
+| `Plans:WardrobeUnkeptChecks` | `20` | **Round 20.** How many of the person's latest OK checks the wardrobe screen looks back through for pieces the stylist named that were never kept ("Keep from an older look"). `0` hides the section. Not published on `/api/config` |
+| `Plans:TomorrowMorningPush` | `false` | **Round 20.** The server flag for the morning push. Off: nothing is sent, `/api/config` publishes `plans.tomorrowMorningPush=false`, Settings draws no switch and the dashboard's two tiles read zero. On: once a day at the hour below, one push to each account with its own switch on, a push subscription, a wardrobe of two kinds and something left to spend — nothing is composed until the tap. The founder flips it once the worn rate says planned outfits get worn |
+| `Plans:TomorrowMorningHour` | `07:30` | `HH:mm`, local to `Board:TimeZone`, the same clock for everybody. Anything not `HH:mm` falls back to 07:30 and the doctor warns. Constants beside it, not settings: the send window is three hours (a push after 10:30 local is skipped for the day), the sender ticks every fifteen minutes with a first pass at start, and a receipt may be opened for 24 hours |
 | `Billing:Provider` | `manual` | `manual`: Pro is granted with `--pro`, and the Pro page shows a note instead of a checkout button. `stripe`: Checkout and the webhook are live once the three keys below are set; until they are, the routes answer 400 `error.billing_disabled` |
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
+| `Billing:StripeYearlyPriceId` | empty | **Round 20.** The yearly recurring price (`price_…`), optional, environment only like the other keys. A year is sold only with this AND a yearly amount; with the id set the doctor also demands that the monthly price recur every month |
+| `Billing:StripeBaseUrl` | `https://api.stripe.com/` | Where Stripe is, read by the named Stripe client and by both doctor reads; blank or not an absolute `http(s)` URL falls back to the default, and a trailing slash is always added so relative paths keep their prefix. It exists so the browser test can point the app at its stub; the doctor warns on any other host, and it stays unset on a server |
 | `Limits:ChecksPerDay` | `30` | The ceiling per account over a rolling 24 hours, whatever the plan says: `Plans:ProChecksPerDay` cannot exceed it. Counted including checks still in flight; failed calls do not count |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users and guests over a rolling 24 hours: checks and comparisons on both routes (`Services/Spend.cs`), calls in flight counted, failed calls left out (429 `error.rate_limited_global`) |
 | `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
 | `Limits:LoginsPerQuarterHourPerIp` | `30` | Login attempts per client address per 15 minutes |
 | `Limits:CommentsPerHour` / `Limits:ReportsPerHour` | `30` / `20` | Per signed-in account, fixed one-hour windows in memory (429 `error.too_fast` with `Retry-After`) |
 | `Limits:ReportsToHide` | `3` | Reports from distinct people after which a post or comment is hidden |
+| `Limits:AdminActionsPerHour` | `120` | **Round 20.** The per-moderator cap on the eight account actions on `#/admin` (verify, unverify, grant and remove Pro, exclude from and put back on the board, suspend, unsuspend): a fixed one-hour window partitioned by account, 429 `error.too_fast` with `Retry-After`. A brake on a stolen moderator cookie or a script, not a product limit; the reads (the queue, the users, the sponsor) are never limited |
 | `Board:WeekStartsOn` | `Sunday` | The first day of the board's week (a `DayOfWeek` name), in `Board:TimeZone` |
 | `Board:TimeZone` | `Asia/Jerusalem` | The IANA zone the week is cut in: it opens at local midnight on `WeekStartsOn` and closes seven days later (Saturday midnight in Israel); `weekStart` and `weekEnd` on the board are those instants in UTC. A zone this machine does not know falls back to UTC with a warning at start (`Board: the time zone … is not known here`) |
 | `Board:MinChecksToCount` | `1` | A fire counts only when the firer has made at least this many `ok` checks by the week's end (a check later in the week makes their earlier fires count). `0` turns the rule off |
@@ -349,6 +409,7 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Languages:Enabled` | `["en","he"]` | The languages this server actually offers. A language ships when a native reader has read it, not when the file exists: `ar` and `ru` are translated and shipped in the repository but left out of this list, and a check asking for one falls back to English. `/api/config` publishes the list |
 | `Digest:Enabled` / `Digest:Hour` | `true` / `9` | The Sunday mail: the week a person had, sent only to a confirmed address and only to an account something happened to. The hour is local to `Board:TimeZone`. Nothing goes out at all without mail configured and a public origin |
 | `Logging:Requests` | `false` | One log line per request — the method, the path, the status and how long it took — on top of the usual lines. Off by default: a pilot's log is worth reading, and this is a lot of lines. Turn it on (`Logging__Requests=true`) for the first days of a launch and while chasing something, then off again. It never logs a body, a cookie, a header or a query string's values, so nothing a person typed and no session lands in the log; the client address is already there for the rate limiters |
+| `Funnel:Sources` | `tt, ig, wa, campus, yt, fb, x, qr, story, dm` | **Round 20.** The entry links this server answers, `/go/<source>`. Entries are trimmed, lower-cased, must match `[a-z0-9]{1,16}` and are kept once each in order; an empty or all-invalid setting is the default list. The setting REPLACES the list (`Funnel__Sources__0=campus` alone answers `/go/campus` and nothing else): the property starts empty so the configuration binder does not append to the ten defaults |
 
 Any key can be overridden with an environment variable, e.g. `Plans__FreeChecksPerDay=5` (a double underscore stands
 for each colon; a key with a dot in it, `Affiliate__Hosts__amazon.com`, keeps the dot). `ANTHROPIC_API_KEY`
@@ -384,7 +445,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address |
+| `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName?, notifyStylistBack?, source? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address. **Round 20** adds two optional body fields, neither ever a reason to refuse: `notifyStylistBack` (bool, default false) — when true AND the spend ceiling is closed at that moment, a `Counter` row `stylist_back:{userId}` is written after the account is created, which `StylistBackService` turns into one note once the stylist is back (the client sends it from `#/signup?back=stylist`, where the check screen's `#resting-offer` points after a guest's 503 `error.stylist_resting`) — and `source`, the entry link's word, normalised against `Funnel:Sources` and stored on `AppUser.Source` (at most 16 characters; anything else is stored as null) |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
 | `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap; on a FREE account comparisons are counted in the same number, and on a PRO account they are not — Round 14 gives Pro a second allowance for comparisons alone (`Plans:ProComparesPerDay`, enforced on `POST /api/compare`), so `checksToday` on Pro is checks only. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. A suspended account gets 403 and is signed out |
@@ -392,9 +453,10 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
 | `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to, and only while that is still the account's address; works signed out, signs nobody in |
 | `POST /api/users/me/email/resend` 🔒 | — | 204, a new confirmation link (5 per hour per address, and per account three per ten minutes or ten a day: 429) |
-| `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey?, email, transcoding, plans: { freeChecksPerDay, proChecksPerDay, guestChecksPerDay, proPriceText, compareNeedsPro, billing }, affiliate: { disclosure }, publicOrigin? }`. `plans.proChecksPerDay` is what a Pro account really gets (`Plans:ProChecksPerDay` clamped to `Limits:ChecksPerDay`); `billing` is true only when Stripe Checkout is live; `affiliate.disclosure` is `Affiliate:Disclosure`, whether the item sheet shows the commission line under a store link (the hosts and their parameters stay on the server); `publicOrigin` is `Email:PublicOrigin`, else `Billing:PublicOrigin`, trimmed, absent when neither is set, and the shared video's end card names its host. No secrets |
+| `GET /api/config` | — | `{ maxImageBytes, maxVideoBytes, maxVideoSeconds, pushPublicKey?, email, transcoding, plans: { freeChecksPerDay, proChecksPerDay, guestChecksPerDay, proPriceText, compareNeedsPro, billing }, affiliate: { disclosure }, publicOrigin? }`. `plans.proChecksPerDay` is what a Pro account really gets (`Plans:ProChecksPerDay` clamped to `Limits:ChecksPerDay`); `billing` is true only when Stripe Checkout is live; `affiliate.disclosure` is `Affiliate:Disclosure`, whether the item sheet shows the commission line under a store link (the hosts and their parameters stay on the server); `publicOrigin` is `Email:PublicOrigin`, else `Billing:PublicOrigin`, trimmed, absent when neither is set, and the shared video's end card names its host. No secrets. **Round 20:** `plans` also carries `proYearlyPriceAmount`, `proYearlyPrices` (the yearly table), `yearly` (true only while Stripe is live and `Billing:StripeYearlyPriceId` is set), `proTrialDays` (`Plans:ProTrialDays` clamped to 0..730), `tomorrowMorningPush` (`Plans:TomorrowMorningPush` and `Plans:TomorrowEnabled` both on) and `tomorrowMorningHour` (`HH:mm`); the yearly saving is not published, the Pro page computes it from the two numbers. A request carrying `X-Orevosh-Launch: standalone` counts one home-screen launch here (`funnel:standalone:yyyyMMdd`) and nowhere else — the header is ignored on every other path; the installed client sends it once per device-day (`prefs.standaloneDay` in `localStorage`), never a cookie |
 | `GET /healthz` | — | `ok` when the database answers, 503 otherwise. For the proxy and uptime checks |
 | `GET /readyz` | — | `{ ok, checks }`: is this machine ready to serve? Public, `Cache-Control: no-store`. `checks` maps a name to `"ok"` or a short reason: `db` (a query answers and the schema is at the current migration), `storage` (`Storage:Root` exists and a file can be written and removed there) and, only while `Storage:Transcode` is on, `ffmpeg` (the binary is found). 200 with `ok` true when every check passes; 503 with `ok` false and the failing checks named. A reason never carries a path, a version or a secret, so the line is safe to leave public. `/healthz` is untouched and stays what the proxy, the Docker health check and `fly.toml` poll |
+| `GET /go/{source}` | — | **Round 20, the entry links.** No session, no CSRF header, not under `/api`. `302` to `/?src=<source>[&via=<handle>]#/check` when `<source>` (trimmed, lower-cased; the aliases `tiktok`, `instagram`, `whatsapp`, `youtube`, `facebook` and `twitter` resolve to `tt`, `ig`, `wa`, `yt`, `fb` and `x`) is on `Funnel:Sources`, one arrival counted on `funnel:src:<source>:yyyyMMdd`; `302` to `/landing/` when it is not, nothing counted; 404 for `/go/` with no word. Every answer carries `Cache-Control: no-store` and the security header set, and no cookie is set. A user agent matching `bot\|crawl\|spider\|facebookexternalhit\|whatsapp\|telegrambot\|twitterbot\|slackbot\|discordbot` is redirected but not counted: a messenger unfurling a pasted link is a paste, not a person. A handle-shaped `?via=` (never `share`) rides onto the redirect, so the next hop is counted as an invite arrival by the funnel middleware. Nothing here refuses, so there is no error key. The service worker passes `/go/` navigations to the network and `robots.txt` disallows `/go/` |
 | `PATCH /api/users/me` 🔒 | `{ language?, displayName?, bio?, website?, accountType?, interests?, email? }` | Updated me. `accountType` is `Person` or `Brand`; `interests` is a list of intents (≤ 8); website must be https; `email` null leaves it, `""` clears it, a value stores it lower-cased (unique, never shown to others) and sends a confirmation link (400 when mail is off on this server, 409 when another account has it) |
 | `POST /api/users/me/avatar` 🔒 | multipart `image` (JPEG/PNG/WebP ≤ 2 MB) | `200` me with a versioned `avatarUrl` |
 | `DELETE /api/users/me/avatar` 🔒 | — | `200` me |
@@ -413,13 +475,18 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/users/{handle}/block` 🔒 | — | `200` `{ user, createdAt }`. Writes the block and ends the follow in both directions, silently: no notification, nothing pushed. 404 `error.user_not_found` (a suspended account answers like a missing one, as the profile does), 400 `error.cannot_block_self`, 409 `error.already_blocked`. What it does everywhere else is one predicate over the pair in either direction (`Services/Blocks.cs`): the two accounts' looks leave each other's feeds, Explore, search, the tag pages, the saved list and the profile grids; the other's look, photo, clip and comment list read as missing (a moderator still opens them for the queue); each side's comments leave the other's lists, rows kept; a fire, save, comment, follow, mention or feature that targets the other is refused 403 `error.blocked`; and no notification crosses the pair, old ones included, until an unblock. The blocker's own profile view of the other carries `viewer.blocked` so the menu can say Unblock. **Nothing tells the blocked person**: there is no `blockedBy` field anywhere, `error.blocked` is the same sentence whichever side acted, and a blocked person sees what a quiet account looks like. The public board keeps every look. Logged as `Block: {blockerId} blocked {blockedId}` |
 | `DELETE /api/users/{handle}/block` 🔒 | — | 204, the row gone. 404 `error.not_blocked` when there was none. Unblocking restores nothing: the follows stay ended and the old notifications stay gone |
 | `GET /api/users/me/blocks` 🔒 | — | `{ items: [{ user, createdAt }] }`: the accounts the caller blocked, newest first, whole (a person blocks a handful, not a feed). The client draws it at `#/settings/blocked` |
-| `POST /api/checks` | multipart: `occasion`, `style?`, `note?`, `language`, `image`, `video?` | `201 { id, intent, occasion, style, language, createdAt, latencyMs, status, score, feedback, postId }`. **Round 14 split the one question in two** ("Round 14 — the stylist" below has the refusals and the one-word rule): `occasion` is where the outfit is going, `style` is optional and empty means none, and the wearer's own free line is now `note`. A client from before the split that still sends `intent` is understood — the one word is split into the pair and its `occasion` field is read as the free line. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure |
+| `POST /api/checks` | multipart: `occasion`, `style?`, `note?`, `language`, `image`, `video?`, `source?` | `201 { id, intent, occasion, style, language, createdAt, latencyMs, status, score, feedback, postId }`. **Round 14 split the one question in two** ("Round 14 — the stylist" below has the refusals and the one-word rule): `occasion` is where the outfit is going, `style` is optional and empty means none, and the wearer's own free line is now `note`. A client from before the split that still sends `intent` is understood — the one word is split into the pair and its `occasion` field is read as the free line. **No session needed:** signed out, the call is a guest's, named by the `orevosh.guest` cookie (minted on the first one, sent back with the answer), allowed `Plans:GuestChecksPerDay` times per cookie and per client address over a rolling day, counted from stored checks (429 `error.guest_limit` with `Retry-After`, only ever for a look actually given: a refused upload, a 502 or a dropped connection spends nothing; 401 `error.sign_in_required` when that setting is 0; beyond `Plans:GuestAttemptsPerDay` attempts from one address in 24 hours, 429 `error.too_fast`); a guest's photo is stored in a shared folder until claimed or swept. Signed in, the account's plan cap applies, with `Retry-After`: at the cap a free account hears `error.plan_limit` (which names the Pro number), a Pro account `error.rate_limited` (with its cap), as on the compare route; at `Limits:ChecksPerDayGlobal` everyone hears `error.rate_limited_global`. `Retry-After` on both routes is when a permit actually frees up: the expiry of the (count − cap + 1)th oldest counted call, not the oldest. `video` is an optional MP4/MOV/WebM clip of the same look (≤ `Storage:MaxVideoBytes`); the stylist judges only `image`, the frame the person picked, and the clip is stored with the check when the status is `ok` (a guest's clip is transcoded only after the claim). 413 too large (still or clip), 415 not JPEG/PNG/WebP (or not MP4/WebM for the clip), 429 over a cap, 502 model failure. **Round 20:** the optional `source` field (the entry link's word, normalised against `Funnel:Sources`) is stored on `OutfitCheck.Source`, anything else as null and never refused; and the free day's 429 `error.plan_limit` for a signed-in free account carries `code: "plan_limit"` in its body — `ErrorDto` is `{ error, code? }`, that is the only `code` any body has, and the guest's `error.guest_limit`, a Pro account's `error.rate_limited`, the month's and the global refusal all carry none |
 | `POST /api/checks/claim` 🔒 | — | `{ claimed }`: every check and comparison carrying the caller's guest cookie becomes the account's (owner set, token cleared, `claimedAt` stamped, the files moved into the account's folder, a claimed clip queued for the transcoder) and the cookie is dropped. All or nothing: a file that cannot be copied (a full disk, a file missing from the store) answers 500 `error.server`, the rows stay the guest's and the cookie stays, and the client claims again on its next load. `{ claimed: 0 }` when there was nothing, so the client calls it blind after signup, after login and at every signed-in boot |
 | `GET /api/checks/{id}` | — | The check, for its owner or for the guest whose cookie made it (404 to anyone else, the same as a missing id) |
 | `POST /api/checks/{id}/shared-video` | — | `204`. One tally (`videos_made`, on the numbers page as "Share videos made") after the person saved or shared the check's video. The video itself is drawn and encoded **on the phone** (a 12-second 1080×1920 file: H.264 MP4 where the browser can, else VP9/VP8 WebM, else the story card PNG) and never touches the server. Owner or guest-cookie only, 404 to anyone else like the GET; 30 per hour per account or address (429 `error.too_fast`) |
-| `POST /api/compare` 🔒 | multipart: `intent`, `occasion?`, `language`, `imageA`, `imageB` | `201 { id, intent, occasion, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v1`, the analyzer's rules and calibration) and one wins, `a` or `b`. Round 14: on a FREE account this counts against the same daily allowance as a check, as before; on a PRO account it counts against `Plans:ProComparesPerDay`, an allowance of its own, so comparing two looks never spends a check (`Limits:ChecksPerDayGlobal` and `Limits:SpendPerDayUsd` still count every stored call, whatever the plan). 400 `compare_two_photos` without both, 403 `pro_required` when `Plans:CompareNeedsPro` is on and the account is not Pro, and otherwise the same 413/415/429/502 as a check (at the cap a free account hears `error.plan_limit`, a Pro account `error.rate_limited`). `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
+| `POST /api/checks/{id}/tried/shared` 🔒 | `{ withScores }` | **Round 20.** 204: the before/after card or film of the pair left the phone, counted on `before_after_shares` (`withScores` true) or `before_after_shares_plain` — the same two rows `POST /api/posts/{id}/shared-after` moves, because a pair share is a pair share whether the look was posted or not. Either side's id works; 404 `error.check_not_found` when the check is not the caller's or is in no pair; 401 without a session, 403 without the header; the `useful` policy (60 an hour). `POST /api/checks/{id}/tried` (201) and `/tried/prefer` (200) now carry `postId` on both sides of the `TriedPairDto`, as `GET /api/users/me/tried` always did (absent while a side is not posted) |
+| `POST /api/compare` 🔒 | multipart: `occasion`, `style?`, `note?`, `language`, `imageA`, `imageB` (legacy: `intent`, with the free line as `occasion`) | `201 { id, intent, occasion, occasionKind, style?, language, createdAt, latencyMs, status, feedback: { status, winner, scoreA, scoreB, headlineA, headlineB, reason, oneTip, close, message? }, imageUrlA, imageUrlB }`: both photos go to the stylist in one call (`PromptVersion` `cmp-v2`, the analyzer's rules and calibration) and one wins, `a` or `b`. **Since Round 20 the form asks the check's two questions:** `occasion` is one of `Everyday, Date, Office, Party, Formal, Sport` (case-insensitive), `style` one of `Streetwear, OldMoney, Minimal, Classic` or empty for none, and `note` is the free line (≤ 120). A client from before the split that still sends `intent` is understood: the one word is split with `StyleIntents.Split` and its `occasion` field is read as the note. On the answer `intent` is the one word (`StyleIntents.Legacy` of the pair), `occasion` is the free NOTE under its old name, `occasionKind` is always present and `style` is omitted when none was asked for; `feedback.close` is derived on the server, true only on an `ok` verdict whose two scores are within one point (false on every row stored before Round 20) — the prompt says a close call is a real answer, that both outfits then work, and that the occasion decides it, never the style, never a coin flip. Round 14: on a FREE account this counts against the same daily allowance as a check; on a PRO account against `Plans:ProComparesPerDay`, an allowance of its own, so comparing two looks never spends a check (`Limits:ChecksPerDayGlobal` and `Limits:SpendPerDayUsd` still count every stored call, whatever the plan). Statuses and keys, in gate order: 401; 403 `error.pro_required` (`Plans:CompareNeedsPro`); 400 `error.invalid_request` (not a form); 413 `error.image_too_large`; 400 `error.intent_invalid` (a bad legacy word) or 400 `error.occasion_invalid` / `error.style_invalid`; 400 `error.occasion_too_long`; 400 `error.compare_two_photos`; 413/415 per still; 503 `error.stylist_resting` (a Pro account passes); 429 `error.month_limit`; 429 `error.plan_limit` with `code: "plan_limit"` for a free account, 429 `error.rate_limited` (no code) for Pro, 429 `error.rate_limited_global`; 502 `error.model_failed`. `not_outfit` says which photo to replace; `rejected` keeps nothing but the status. Private and never postable |
 | `GET /api/compare/{id}` 🔒 | — | The comparison, owner only (404 otherwise) |
 | `GET /api/compare/{id}/image/a` and `/b` 🔒 | — | The two photos, owner only, `Cache-Control: private`. The only route that serves them; 404 for a comparison that kept none |
+| `GET /api/wardrobe` 🔒 | — | As in "Round 14 — Pro worth paying for" below, plus since Round 20 `proMoment` (true while `Plans:WardrobeNeedsPro` is on, the account is free, `Plans:WardrobeNamesToStylist` is above 0 and the wardrobe holds strictly more pieces than it — the server's fact, `Plans.WardrobeProMoment`) and `proSees` (how many pieces Pro's stylist would see: the larger of `WardrobeNamesToStylist` and `WardrobeNamesToStylistPro`, 40 by default), so the client says "all of them" only while the count fits |
+| `POST /api/wardrobe/keep-all` 🔒 | `{ checkId }` | **Round 20.** `200 { kept, added, skipped, full, count, max, items[] }` always on success (a batch has no single 201; `added` says how many were new): every piece the check named goes into the wardrobe in one request — known pieces gain the look and are never refused by the cap, new ones are added in the stylist's order until `Plans:WardrobeMaxItems` and the rest skipped (`full: true`). A check that named nothing (`not_outfit`, `rejected`) answers 200 with `kept: 0` and writes nothing. 400 `error.invalid_request` without a `checkId`; 404 `error.check_not_found` for a missing check, a guest's or another account's; 409 `error.wardrobe_full` only when nothing at all could be written. The server's own list of names is the only list (no names in the body, no path parameter), so the IDOR sweep is untouched and the stranger's 404 is pinned in `WardrobeTests`. Counted once per request that touched a row (`wardrobe_keep_all`) |
+| `GET /api/wardrobe/unkept` 🔒 | — | **Round 20.** `200 { pieces: [{ name, category, checkId, wornAt, postId? }], checks }` always: the pieces named on the account's last `Plans:WardrobeUnkeptChecks` OK checks that are not in its wardrobe, newest look first, each once and carrying the newest check that named it, at most 30 (`Wardrobe.UnkeptMaxPieces`); `checks` is how many checks were looked at; `postId` only where that look is a visible post. Empty with `checks: 0` when the setting is 0 or the account has no OK check. Keeping one uses the existing `POST /api/wardrobe { checkId, name }`; nothing records a refusal, so a piece passed over resurfaces |
+| `POST /api/wardrobe/moment` 🔒 | `{ step: "shown" \| "go" }` | **Round 20.** 204 either way; increments `wardrobe_moment_shown` / `wardrobe_moment_go` only while `Plans.WardrobeProMoment` is true for the caller right now, so a script cannot inflate a rate the moment never earned; 400 `error.invalid_request` for any other step. The client owns only once-per-tab (`sessionStorage`) |
 | `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item verdicts and notes stay private. With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name, normalised, equals a stylist row's name (the stylist's uncut name from the check and the stored name's first forty characters count as the same) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
 | `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
@@ -450,22 +517,32 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/challenges` 🔒 | `{ title, brief, intent, prize, prizeUrl?, endsAt, tag? }` | `201`, brand accounts only. Ends between 1 hour and 60 days from now. `tag` is the entry hashtag (derived from the title when missing, made unique among open challenges) |
 | `GET /api/challenges/{id}` | — | `{ challenge, entriesByVotes, winner }`. Reading an ended challenge fixes its winner if that has not happened yet |
 | `POST` / `DELETE /api/challenges/{id}/vote` 🔒 | `{ postId }` / — | `{ votedPostId, votes }`. One vote per person per challenge, movable while open; not for your own entry, and not by the brand that opened it |
-| `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read, rank? }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured, board_rank`. `board_rank` is written by the board's closer for everyone on the looks board of the week that just closed (one per person, their best place in `rank`, `actorHandle` their own handle, `postId` the look), shown as "You finished #{rank} this week" and pushed with the same line, the tap landing on the week that closed for the push and the activity line alike: `#/board?week=<instant>`, the instant six and a half days before the line was written (UTC, `yyyy-MM-ddTHH:mm:ssZ`; the row carries no week, and the closer writes it after the close, so that instant is mid-week inside the closed week whether the week ran 167, 168 or 169 hours), which `?week=` takes as an instant. Older weeks closed in a catch-up are silent |
+| `GET /api/notifications` 🔒 | — | `{ items: [{ type, actorHandle, actorName, postId, challengeId, createdAt, read, rank?, checkId? }], unread }`. Types: `fire, comment, follow, vote, entry, ended, won, mention, featured, board_rank, try_tip, stylist_back`. `board_rank` is written by the board's closer for everyone on the looks board of the week that just closed (one per person, their best place in `rank`, `actorHandle` their own handle, `postId` the look), shown as "You finished #{rank} this week" and pushed with the same line, the tap landing on the week that closed for the push and the activity line alike: `#/board?week=<instant>`, the instant six and a half days before the line was written (UTC, `yyyy-MM-ddTHH:mm:ssZ`; the row carries no week, and the closer writes it after the close, so that instant is mid-week inside the closed week whether the week ran 167, 168 or 169 hours), which `?week=` takes as an instant. Older weeks closed in a catch-up are silent. **Round 20** adds two types in which the person is their own actor (`postId` and `challengeId` null): `try_tip`, the day-after nudge written by `TryTipNudgeService`, the only type that carries `checkId`, its tap landing on `#/checks?try=<checkId>`; and `stylist_back`, written by `StylistBackService` once a closed day is open again, its tap landing on `#/check`. Both are pushed with the same line (`push.try_tip`, `push.stylist_back`) |
 | `POST /api/notifications/read` 🔒 | — | 204, marks everything read |
 | `GET /api/push/state` 🔒 | — | `{ enabled, subscribed }`: whether the server has VAPID keys, and whether this account has at least one subscription |
 | `POST /api/push/subscriptions` 🔒 | `{ endpoint, p256dh, auth }` (from `PushSubscription.toJSON()`) | `200` state. Upserts this browser's subscription for the account, at most 10 per account (the oldest make room); 400 when push is off, the subscription is malformed, or the endpoint is not a public push-service name (a literal address, `localhost` or a single-label host is refused). A subscription the push service answers 404/410 (gone) or 401/403 (made against other VAPID keys) to is deleted |
 | `DELETE /api/push/subscriptions` 🔒 | `{ endpoint }` | 204 |
 | `POST /api/push/test` 🔒 | — | 202, sends a test notification to the caller's own browsers |
-| `GET /api/billing/state` 🔒 | — | `{ plan, proUntil, billing, proPriceText }`: the effective plan, whether Stripe Checkout is live, and the price text |
-| `POST /api/billing/checkout` 🔒 | — | `{ url }` of a Stripe Checkout Session (subscription, the Pro price, the account id as `client_reference_id` and `metadata.userId`, the confirmed email prefilled, an existing customer reused) that returns to `/#/pro?checkout=success` or `cancel`. 400 `error.billing_disabled` while the provider is `manual` or a key is missing, 409 `error.already_pro` for an account that is Pro (one subscription per account; a stale tab re-reads `me`), 502 `error.billing_failed` when Stripe did not answer with a page |
+| `GET /api/push/morning` 🔒 | — | **Round 20.** `{ on, offered, hour }`: the person's own switch on the morning push (`AppUser.TomorrowPushOn`, on by default), whether this server offers it at all (`Plans:TomorrowMorningPush` and `Plans:TomorrowEnabled` on and VAPID keys set) and the hour as `HH:mm`. 401 signed out |
+| `POST /api/push/morning` 🔒 | `{ on }` | `200` the same state. 400 `error.invalid_request` when `on` is missing, 400 `error.tomorrow_push_off` when the server does not offer it, 401 signed out, 403 without the header |
+| `GET /api/tomorrow?from=push` 🔒 | — | The same answer and statuses as `GET /api/tomorrow` ("Round 19" below); the query stamps this account's newest unopened morning push receipt from the last 24 hours as opened (`TomorrowPushes.OpenedAt`, once per push). Never a model call, and a read with no push behind it counts nothing |
+| `GET /api/billing/state` 🔒 | — | `{ plan, proUntil, billing, proPriceText, yearly, trialDays }`: the effective plan, whether Stripe Checkout is live, the price text, whether a year can be bought (Stripe live and `Billing:StripeYearlyPriceId` set) and how many free days Checkout would open for this account — `Plans:ProTrialDays` clamped to 0..730 while Stripe is live and the account has no `BillingCustomerId`, 0 otherwise, always 0 on the manual provider |
+| `POST /api/billing/checkout` 🔒 | `?currency=&interval=month\|year&return=compare` | `{ url }` of a Stripe Checkout Session (subscription, the Pro price, the account id as `client_reference_id` and `metadata.userId`, the confirmed email prefilled, an existing customer reused) that returns to `/#/pro?checkout=success` or `cancel`. **Round 20:** `interval` (default `month`) buys the yearly price where the page could have offered it — `Billing:StripeYearlyPriceId` set and a yearly amount in the quoted currency; a yearly Checkout never swaps to the fallback currency the way the monthly leg does, because the page never showed a year in that currency. The session carries `metadata[interval]` and, for an eligible account (`Plans:ProTrialDays` above 0, no `BillingCustomerId`), `subscription_data[trial_period_days]`, `payment_method_collection=if_required`, `subscription_data[trial_settings][end_behavior][missing_payment_method]=cancel` and `metadata[trialDays]`. `return=compare` is an allowlist of one (anything else is dropped silently): the two return URLs then carry `&return=compare`, and the Pro page, having arrived as `#/pro?from=compare`, sends the person on to `#/compare?ready=1` once `me` says pro. Gate order: 401; 400 `error.billing_disabled` while the provider is `manual` or a key is missing; 409 `error.already_pro` for an account that is Pro (one subscription per account; a stale tab re-reads `me`); 400 `error.billing_interval` for an interval that is not `month` or `year`, or `year` while no yearly price is set or the quoted currency has none; 502 `error.billing_failed` when Stripe did not answer with a page |
 | `POST /api/billing/portal` 🔒 | — | `{ url }` of a Stripe Billing Portal session for the account's customer (`customer` and `return_url` = the origin plus `/#/settings`, posted form-encoded to `v1/billing_portal/sessions` through the same named client as Checkout); the client sends the person there in the same tab, and that is where a subscription is changed or cancelled. 404 `error.portal_unavailable` ("Manage your plan by writing to us.") while the provider is `manual` or the account has no customer id — a Pro granted by `--pro` has nothing on Stripe's side, and the Pro page and the settings row show that sentence instead of the button. 502 `error.portal_failed` when Stripe answers with no url. Nothing is written here: what the person does on the portal comes back through the webhook |
-| `POST /api/billing/webhook` | Stripe's event, raw | `200 { received: true }`. No session, no CSRF header: the `Stripe-Signature` header (`t=…,v1=…`, HMAC-SHA256 over `t.body` with `Billing:StripeWebhookSecret`, within five minutes of now) is the guard, 400 `error.billing_signature` otherwise. `checkout.session.completed` puts the account on Pro for 35 days on top of any period still running and stores the customer id; `invoice.paid` (except the first, `subscription_create`) moves the end to the invoice's period end plus three days, never below the current end (an invoice naming no period is worth 35 days from now); `customer.subscription.updated` follows the status (`active`/`trialing`: the current period end plus three days, never below the current end; `past_due`/`unpaid`/`paused`: three days from now at most); `customer.subscription.deleted` ends Pro now (the plan field keeps saying a subscription existed); every other event, and an event naming no account, is answered 200 so Stripe stops sending it. No event ids are kept: a repeated `checkout.session.completed` stacks one period, every other repeat names the same period and changes nothing or ends what already ended |
+| `POST /api/billing/webhook` | Stripe's event, raw | `200 { received: true }`. No session, no CSRF header: the `Stripe-Signature` header (`t=…,v1=…`, HMAC-SHA256 over `t.body` with `Billing:StripeWebhookSecret`, within five minutes of now) is the guard, 400 `error.billing_signature` otherwise. `checkout.session.completed` puts the account on Pro for 35 days on top of any period still running and stores the customer id; `invoice.paid` (except the first, `subscription_create`) moves the end to the invoice's period end plus three days, never below the current end (an invoice naming no period is worth 35 days from now); `customer.subscription.updated` follows the status (`active`/`trialing`: the current period end plus three days, never below the current end; `past_due`/`unpaid`/`paused`: three days from now at most); `customer.subscription.deleted` ends Pro now (the plan field keeps saying a subscription existed); every other event, and an event naming no account, is answered 200 so Stripe stops sending it. **Round 20 keeps the event ids.** After the signature and JSON checks the event's `id` (cut to 64 characters) is looked up in `StripeEvents`: a known id answers `200 { received: true, replayed: true }` and does nothing; otherwise the event is handled and then recorded (`Id`, `Type`, `ReceivedAt`) — record-after, so a handler that threw answers 500, leaves no row, and Stripe's retry is handled rather than ignored. An event with no id is handled every time. The lookup, the handler and the record run under one process-wide gate (`BillingEndpoints.WebhookGate`), so a parallel burst of one id is handled once; rows older than 30 days are pruned by `RenewalRecapService`. `checkout.session.completed` now reads what the session sold, always on top of any period still running: 368 days for `metadata.interval=year` (`PaidYear`), the trial's days (capped at 730) plus the three-day slack for a session with `payment_status=no_payment_required` and `metadata.trialDays` above 0 (a no-payment session without `trialDays`, a full coupon say, is granted like a paid one), 35 days for everything else |
+| `POST /api/funnel/pro-opened` 🔒 | `{ from: "compare" \| "wardrobe" }` | **Round 20.** 204 and one increment of the day's counter (`funnel:pro:compare:yyyyMMdd` or `funnel:pro:wardrobe:yyyyMMdd`), which the numbers page reads as `proFromCompare` / `proFromWardrobe`; 400 `error.invalid_request` for any other value or an empty body; 401 signed out. A hash route never reaches the funnel middleware, so the Pro page says so itself, once, on arriving as `#/pro?from=compare` or `from=wardrobe`. A client-driven tally by an account, like the board views: a moderators' number, never a decision. No route parameter, so no IDOR row |
 | `GET /api/admin/queue` 🔒 | — | Moderators (accounts with the `isAdmin` flag) only, 403 otherwise: reported looks and comments with counts, reasons and the author's state, plus counters |
-| `GET /api/admin/users?q=` 🔒 | — | Accounts by handle prefix (empty `q` lists suspended accounts) |
+| `GET /api/admin/users?q=` 🔒 | — | Accounts by handle prefix (empty `q` lists suspended accounts). Since Round 20 each row is an `AdminUserDto` `{ user, suspended, posts, reports, createdAt, verified, plan, proUntil?, boardExcluded, isAdmin }`: `plan` is `free` or `pro` read through the clock (an expired grant reads `free`), `proUntil` only while the plan is `pro`, and every account action below answers with the same row |
 | `POST /api/admin/posts/{id}/hide` / `unhide` 🔒 | — | Hide a look, or show it again (which also clears its reports) |
 | `DELETE /api/admin/posts/{id}` 🔒 | — | 204, removes the look, its check, photo and clip |
 | `POST /api/admin/comments/{id}/hide` / `unhide`, `DELETE /api/admin/comments/{id}` 🔒 | — | The same for comments |
-| `POST /api/admin/users/{handle}/suspend` / `unsuspend` 🔒 | — | A suspended account cannot sign in, reads as missing, and its looks and comments are hidden; a suspended brand's open challenges are closed with no winner (lifting does not reopen them); lifting restores what the crowd had not hidden on its own. A moderator cannot be suspended (400): that is `--unadmin` on the box |
+| `POST /api/admin/users/{handle}/suspend` / `unsuspend` 🔒 | — | A suspended account cannot sign in, reads as missing, and its looks and comments are hidden; a suspended brand's open challenges are closed with no winner (lifting does not reopen them); lifting restores what the crowd had not hidden on its own. A moderator cannot be suspended (400): that is `--unadmin` on the box. Round 20: both share the account actions' per-moderator brake below (429 `error.too_fast` with `Retry-After` over `Limits:AdminActionsPerHour`) and write one audit line, `Admin: {Handle} suspended by {Moderator}` / `Admin: {Handle} suspension lifted by {Moderator}` |
+| `POST /api/admin/users/{handle}/verify` / `unverify` 🔒 | — | **Round 20, the Accounts section on `#/admin`.** `200` the `AdminUserDto`, the verified flag set or cleared; idempotent (a write that changes nothing writes no audit line and still answers 200 with the row), allowed on moderators and on yourself. Every account action is behind the `/api/admin` gate — 401 nobody, 429 `error.too_fast` with `Retry-After` over `Limits:AdminActionsPerHour` (a fixed hour per moderator; the limiter runs before the gate), 403 for a suspended account or `error.admin_only`, then 404 `error.user_not_found` for an unknown handle — and writes one audit line at Information under the category `FitCheck.Api.Endpoints.AdminEndpoints`, naming the target and the moderator by handle, never an email or a cookie: `Admin: {Handle} verified by {Moderator}`, `Admin: {Handle} verification removed by {Moderator}` |
+| `POST /api/admin/users/{handle}/pro` 🔒 | `{ months }` | `200` the row, the account on Pro for `months` × 31 days from now (1 to 120; 400 `error.pro_months` otherwise, nothing written); 400 `error.pro_billing` when the account has a Stripe subscription (`BillingSubscriptionId` set) — its plan is changed in Stripe, and the row keeps saying `pro` so the moderator sees the state. Logs `Admin: {Handle} on Pro until {yyyy-MM-dd} by {Moderator} ({Months} months)` |
+| `DELETE /api/admin/users/{handle}/pro` 🔒 | — | `200` the row, back on Free (200 even when it already was, and then no audit line); 400 `error.pro_billing` under the same guard. Logs `Admin: {Handle} back on Free by {Moderator}` |
+| `POST /api/admin/users/{handle}/board-exclusion` 🔒 | `{ reason? }` | `200` the row, the account off every board computed from now on (`AppUser.BoardExcludedAt`, one column: its looks and the fires on them, looks posted later included; the account's own fires on other people's looks still count; a closed week keeps its rows); 409 `error.board_account_excluded` when it is already off. `reason` is trimmed, cut at 200 and kept in the audit line only, `Admin: {Handle} excluded from the board by {Moderator}: {Reason}`, never in a column |
+| `DELETE /api/admin/users/{handle}/board-exclusion` 🔒 | — | `200` the row, back on the board; 404 `error.board_account_included` when it was not off. Logs `Admin: {Handle} back on the board by {Moderator}` |
+| `GET /api/admin/sponsor` 🔒 | — | `AdminSponsorDto` `{ configured, name?, handle?, prizeText?, url?, urlDropped, handleExists?, handleVerified? }`: what `Board:Sponsor:*` came to, read-only and not rate-limited — the link as the board would show it, whether it was dropped for not being `http(s)`, and whether the handle is an account here and a verified brand (the Verify button one section up on `#/admin` is the fix). `{ configured: false, urlDropped: false }` while no sponsor is set |
 | `GET /api/metrics/pilot` 🔒 | — | See above; moderators only (403 otherwise) |
 
 ## How it is built
@@ -490,7 +567,8 @@ src/FitCheck.Api/
                                   options (Plans, Billing, Email, Limits, Board, Affiliate…)
   Data/AppDbContext.cs            SQLite via EF Core; unique indexes carry the one-per-person rules
   Services/OutfitAnalyzer.cs      ← the stylist: system prompt, intent guide, tool schema, PromptVersion, mapping
-  Services/OutfitComparer.cs      ← "Which one?": two photos in one call, the same rules and calibration, PromptVersion cmp-v1
+  Services/OutfitComparer.cs      ← "Which one?": two photos in one call, the same rules and calibration, PromptVersion cmp-v2
+                                  (Round 20: a close call within one point is a real answer, and the occasion decides it)
   Services/AnthropicVisionClient  Messages API over HttpClient: base64 images + forced tool call, 60s timeout, one retry
   Services/Plans.cs               IsPro (the flag and the end date), CapFor (the plan's cap, never above Limits:ChecksPerDay) and
                                   ProCap (the clamped Pro number /api/config publishes)
@@ -529,13 +607,19 @@ src/FitCheck.Api/
   Services/Readiness.cs           the machine-side half of the doctor, over HTTP, at /readyz
   Services/Transcoder.cs          the background ffmpeg pass that turns a WebM clip into H.264 MP4
   Services/Digest.cs              the Sunday mail: the week a person had, only to a confirmed address
+  Services/RenewalRecap.cs        Round 20: the mail three days before a Stripe renewal, and the prune of old webhook event ids
+  Services/StylistBack.cs         Round 20: the one note to a guest who signed up while the stylist was resting, once it is back
+  Services/TryTipNudge.cs         Round 20: "Did you try the tip?", the day after an unanswered change tip, push only
+  Services/TomorrowMorning.cs     Round 20: the morning push that never composes, one receipt row per person per day
   Services/Security/              the headers and the CSP every response is served under, the Exif strip on every stored
                                   photo and clip, the per-account brake, session revocation
   Endpoints/                      auth, users, checks (+ claim), feedback (the typed reason, "I tried it", the taste card),
-                                  compare, wardrobe, posts (+ comments), items (tagging, the item search, the brands list, the
-                                  out door), board (the week, the hall, the moderator's exclusion), feed, explore (+ search,
-                                  tags), challenges, notifications, insights, today, billing, push, blocks, export, admin,
-                                  metrics, the server-rendered public pages (/look, /u, /digest), health
+                                  compare, wardrobe (+ keep-all, the unkept list, the Pro moment), posts (+ comments), items
+                                  (tagging, the item search, the brands list, the out door), board (the week, the hall, the
+                                  moderator's exclusion), feed, explore (+ search, tags), challenges, notifications, insights,
+                                  today, billing, push (+ the morning switch), blocks, export, admin (+ the account actions and
+                                  the sponsor card), metrics, funnel (the Pro-page tally), the entry links (/go/{source}), the
+                                  server-rendered public pages (/look, /u, /digest), health
   wwwroot/index.html, app.css     the shell (with the Open Graph and Twitter tags) and the design system: Ring of Fire, see
                                   DESIGN.md (logical properties for RTL)
   wwwroot/app/core.js             state, i18n, API, router, bottom sheets, gestures, look cards, the claim call, the brand mark
@@ -622,8 +706,9 @@ descriptive is dropped when the status is not `ok`.
   uploading. In-flight calls count; failed model calls do not.
 - **Pro is a cap on a real cost, not a feature wall.** Pro raises the daily cap; comparisons and insights stay free
   by default (`Plans:CompareNeedsPro`, and the Pro page names them as benefits only when that is on). The check
-  screen says how many checks are left today and offers "Go Pro for more" only to a Free account at its cap. Pro is a flag plus an end date on the account, written by Stripe's webhook
-  or by `--pro`, never by a request; a lapsed period falls back to Free by itself. Stripe stays behind
+  screen says how many checks are left today and offers "Go Pro for more" only to a Free account at its cap. Pro is a flag plus an end date on the account, written by Stripe's webhook,
+  by `--pro` or, since Round 20, by a moderator on `#/admin`, never by a request from the person; a lapsed period falls
+  back to Free by itself. Stripe stays behind
   `Billing:Provider`: with `manual`, the Pro page shows a note and nothing pretends to charge.
 - **Comparisons are private and never postable.** "Which one?" keeps both photos only when the stylist confirmed
   two outfits, serves them to the owner alone, and has no post route.
@@ -657,7 +742,8 @@ descriptive is dropped when the status is not `ok`.
   then age only break ties, so no amount of fire moves a look past a better score.
 - **Moderators pull looks off the board; they cannot put anyone on it.** `POST /api/admin/board/exclude` takes a look
   off every board that is computed from then on, with a reason, and the lift puts it back; both are logged with who
-  did it. A week already closed keeps its archive.
+  did it. Since Round 20 an account can be kept off too (`POST /api/admin/users/{handle}/board-exclusion`, one column,
+  looks posted later included), with the reason in the audit line only. A week already closed keeps its archive.
 - **A week closes once, by the closer, into the hall.** `BoardCloser` runs at start and every five minutes, finds
   every week that is over and has no `WeeklyWinners` rows (back to the week of the earliest fire, so downtime is
   caught up oldest first), and writes every board and rank of a week in one save; the unique index on
@@ -668,8 +754,9 @@ descriptive is dropped when the status is not `ok`.
 - **A follow-up is a strip on the card, not a post type.** `beforePostId` must be one of your own visible looks and
   not this check's own; the card shows "After the tip · 6 → 7" with a link to the earlier look, and the feed stays
   one kind of thing.
-- **Verification is the owner's hand.** `--verify <handle>` on the box sets the flag; no form, no request. The check
-  sits inside the BRAND mark wherever the account appears.
+- **Verification is the owner's hand.** `--verify <handle>` on the box sets the flag, and since Round 20 so does a
+  moderator's Verify button on `#/admin`; there is no form and no request a brand can make for it. The check sits
+  inside the BRAND mark wherever the account appears.
 - **Recovery links never carry a stranger's host.** Links are built from `Email:PublicOrigin` or, with none, only
   for a loopback host; a reset link is refused once the address it went to left the account, an address change
   voids open reset links, and each account gets three confirmation links per ten minutes (ten a day) and three
@@ -714,14 +801,15 @@ descriptive is dropped when the status is not `ok`.
   the hole: a patient script that rotates addresses gets ten checks per address. Set `Plans__GuestChecksPerDay=0` to
   close the door, set `Limits__SpendPerDayUsd`, and watch the model bill either way.
 - **Brand accounts are self-declared; verification is by hand.** Anyone can switch to brand mode in settings, and
-  only a brand the owner ran `--verify` for carries the check. There is no form to ask for it and no process
-  behind it beyond the owner knowing who is behind the account.
-- **Stripe has not run against a live account.** Checkout, the webhook and its four events were built and tested
-  against a recording stand-in and signed test events; the first real subscription, renewal and cancellation are
-  the proof. Run it in test mode (`sk_test_…`, the Stripe CLI forwarding to `/api/billing/webhook`) before the
-  provider is switched to `stripe` on a server people pay on. No event ids are stored, so a replayed
-  `checkout.session.completed` stacks one period (renewals are read from the event and repeat harmlessly);
-  acceptable for a pilot, not for scale.
+  only a brand the owner ran `--verify` for, or a moderator verified on `#/admin`, carries the check. There is no form
+  to ask for it and no process behind it beyond the owner knowing who is behind the account.
+- **Stripe has not run against a live account.** Checkout, the webhook and its seven events were built and tested
+  against a recording stand-in and signed test events; the first real subscription, renewal, trial and cancellation
+  are the proof. Run it in test mode (`sk_test_…`, the Stripe CLI forwarding to `/api/billing/webhook`) before the
+  provider is switched to `stripe` on a server people pay on. Since Round 20 event ids are kept for 30 days and a
+  replay is answered `replayed: true` and ignored; the dedup is per process (one SQLite file, one instance, so a
+  second process on the same database would only be stopped by the primary key on the insert, after doing the work
+  twice).
 - **The pilot upgrade path is a command *while `Billing:Provider` is `manual`*.** Then the Pro page says Pro is
   switched on by hand, the owner runs `--pro <handle> <months>`, there is no in-app request or cancel, and a person
   ends Pro by writing to the owner (the terms say so). With `stripe`, the Pro page and Settings carry "Manage
@@ -741,8 +829,11 @@ descriptive is dropped when the status is not `ok`.
   forgotten password is reset by a link that lives an hour; without `Email__*` settings the app says recovery is off
   and writes the links to its log instead. A reset does not end sessions that are already signed in.
 - **Moderation is a queue, not a team.** Moderators (accounts flagged at start from `Admin:Handles`, or with
-  `--admin`) see reported looks and comments and can hide, delete and suspend. Featured looks are the brand's
-  call with no review step.
+  `--admin`) see reported looks and comments and can hide, delete and suspend, and since Round 20 verify, grant Pro
+  and keep an account off the board from the same screen. All moderators are equal: any of them can grant Pro (money)
+  and verify (trust), on themselves included; the audit line and `Limits:AdminActionsPerHour` bound the damage of a
+  stolen cookie, and the policy itself is the founder's question. Featured looks are the brand's call with no review
+  step.
 - **Clips are transcoded on the box, one at a time.** iPhones record MP4 (H.264), which plays everywhere; Chrome
   records H.264 MP4 only when the device can and WebM otherwise, which older iPhones cannot play. With ffmpeg
   present (`Storage:Transcode`, on by default; the Docker image has it) the app re-encodes every clip to H.264 MP4
@@ -942,7 +1033,7 @@ tests that pinned `v3` now pin `v4`, and `GuestCheckTests` expects the forgiven 
 
 **The meter.** Every model call the API answers adds to `Counter` rows named for its UTC day: `spend:calls:yyyyMMdd`,
 `spend:in:yyyyMMdd`, `spend:out:yyyyMMdd`, and `spend:cache_read:` / `spend:cache_write:` when the API reports cache
-tokens (it does not today — the app uses no prompt caching). `AnthropicVisionClient` reads `usage.input_tokens`,
+tokens (it does once `Anthropic:PromptCache` is `5m` or `1h`, Round 20; off, the default, they stay at zero). `AnthropicVisionClient` reads `usage.input_tokens`,
 `usage.output_tokens`, `usage.cache_read_input_tokens` and `usage.cache_creation_input_tokens` off every answer and
 hands them to `Services/SpendMeter.cs`. A call that FAILED at the API (a 4xx or 5xx whose body still carried usage, or a
 timeout) is counted too, with whatever is known — somebody billed it. A call that never reached the API (no connection,
@@ -951,9 +1042,10 @@ happened must not fail because a tally did.
 
 **The estimate is an estimate.** `Anthropic:PriceInPerMillion` (2.00) and `Anthropic:PriceOutPerMillion` (10.00) are USD
 per million tokens, marked in `appsettings.json` as the owner's to set from their contract; the defaults are the
-published list prices for the default model at the time of writing. Cache tokens are priced at the input price, which
-overstates cache reads on purpose — a ceiling that guesses low is a ceiling that lets a real bill through. Nothing here
-is an invoice, and the page says so.
+published list prices for the default model at the time of writing. Cache tokens were priced at the input price until
+Round 20, which prices a cache read at a tenth of it and a write at 1.25× (`5m`) or 2× (`1h`), the ratios the provider
+bills; the write factor follows the mode in force when the page is read. Nothing here is an invoice, and the page says
+so.
 
 **The ceiling.** `Limits:SpendPerDayUsd` (default `0` = off, which the doctor warns about and `LAUNCH.md` tells the
 owner to set — 5 USD for the pilot). Once today's estimate reaches it, `POST /api/checks` and `POST /api/compare` answer
@@ -1120,8 +1212,9 @@ date, or minimal for a party, had no way to say so. A check now carries both:
 
 `GET /api/checks/{id}`, `GET /api/users/me/checks` and the answer to `POST /api/checks` carry `occasion` and `style`
 (absent when no style was asked for) beside `intent`. **The wearer's free line is now `note`, not `occasion`** — the
-chip took that name. The export's `checks[]` carries `note`, `occasion`, `style` and `tipKind`. `POST /api/compare` is
-unchanged: the "which one?" screen still asks one question, and the comparer splits it on the way in.
+chip took that name. The export's `checks[]` carries `note`, `occasion`, `style` and `tipKind`. `POST /api/compare` kept
+the one word through Round 14; since Round 20 the compare form asks the check's two questions and the one word is only a
+legacy shape (the API table above).
 
 **Storage.** `Checks.OccasionKind` and `Checks.Style` are new text columns (`Round14Check`), backfilled from `Intent`
 row by row. The wearer's line stays in the column it has been in since the first migration — `Occasion`, now mapped to
@@ -1160,9 +1253,9 @@ route to Anthropic, so the harness was only exercised against a local stand-in m
 `data-style=""` for *No style*) — then the preference line `#style-default` when the pick differs from what is saved,
 then the free line (still `#occasion`, now labelled as a note). Every chip also carries `data-intent` with the one word
 it contributes. Asking for a style before saying where lights `Everyday`, because a style with nowhere to go is exactly
-what Streetwear, OldMoney and Minimal used to mean. On the result, `#asked-for` names both, and three empty containers
-wait for the modules other rounds are adding: `#tip-feedback` (under the tip), `#tried-it` (under that) and
-`#wardrobe-offer` (with the item list). Each renders nothing while its module is absent.
+what Streetwear, OldMoney and Minimal used to mean. On the result, `#asked-for` names both. The three empty containers
+this round left for later modules (`#tip-feedback`, `#tried-it`, `#wardrobe-offer`) are gone: since Round 20 the
+result screen draws `#taste-reasons` and `#tried-action` and `taste.js` fills them (Round 14 — the loop, below).
 
 Tests: `IntentSplitTests` (the round trip, an older client, the refusals by name, the two shapes mapping onto each
 other, a database written before the split, the keep from the model's word to the export, the anchors asserted on the
@@ -1252,9 +1345,11 @@ swapped the shoes — and you said it worked.* Only when true, only from their o
 
 Client: `app/taste.js` holds all of it. `views/profile.js` mounts the card, the reason row, "I tried it" and the pair on
 `#/checks`; `views/settings.js` mounts the card with the switch and the clear. The result screen (`views/check.js`)
-calls `mountResult(container, check)` once after the tip and this module fills whichever of `#taste-win`,
-`#taste-reasons` and `#tried-action` it finds inside that container, appending its own nodes in that order when it finds
-none. i18n under `taste.` and `tried.` in all four files.
+calls `mountResult(container, result, { onStart, onPair, afterUrl })` once after the tip, since Round 20, and this
+module fills `#taste-reasons` (the typed answers) and `#tried-action` (`#tried-start`, the primary `btn` "Try the tip,
+then show me" with `tried.try_tip_hint`, or `#tried-pair` once the two checks are linked); the Round 13 yes/no `#useful`
+row no longer exists on the result screen, because the four typed answers already decide `Useful` on the server. Once a
+pair exists, `#share-pair` leads the share row. i18n under `taste.` and `tried.` in all four files.
 
 Tests: `TasteTests` (each reason stored on its own and reaching the profile, an unknown reason refused and the Round 13
 body still working, the profile as the person's own rows with a blocked account's and a hidden look's excluded, an empty
@@ -1270,7 +1365,7 @@ sold nothing. Round 14 makes Pro about what the person GETS, and gives the app a
 **The wardrobe builds itself.** Nobody photographs a closet: an hour of work before the first minute of value is how
 these features die. Instead the stylist already names the pieces it can see on every check, and the result screen shows
 one quiet line under the tip — *"Keep the White tee in your wardrobe?"* — with one tap and no form (`#wardrobe-keep`,
-`wwwroot/app/wardrobe.js`, mounted by `views/check.js` right after the "did the tip land?" row). A keep offers the next
+`wwwroot/app/wardrobe.js`, mounted by `views/check.js` right after the `#taste-reasons` and `#tried-action` mounts). A keep offers the next
 piece a moment later, so a wardrobe fills over a few checks. A piece can only be kept from a check that NAMED it, which
 is what keeps the list a list of clothes somebody was photographed wearing rather than a free-text store.
 
@@ -1543,6 +1638,193 @@ a refusal counts; free's brake inside its shared day and Pro's own bucket; the m
 weather reaching the model only when the server fetched it, rounded and never stored or logged by the server; the photo per piece; the thumbs;
 the loop closing from a check; the advisory and the numbers page), `WeatherTests`, and the doctor, plan, security and
 database tests that grew with it.
+
+## Round 20 — the wedge
+
+The round is one sentence from the judges about beating the competitor: an honest, steady number on the real outfit in
+fifteen seconds with no account, and then the real before/after as the thing people share. Everything below serves one
+of the two halves — the first look faster, more honest and reachable from a link in a bio, and the loop that turns a
+tip into a second photo, a pair, a share and a morning habit — or pays for it, or lets the founder run it without a
+terminal. Nine builders shipped nine moves on one skeleton (`b8cbadb`: the migration `Round20Wedge`, the DTO fields,
+the counters and the i18n keys every move shares), in this order: billing, the wait, compare, keep, tried,
+distribution, the morning loop, owner tooling, and the content builder's, which has its own section below. The API
+table, the Configuration table and the metrics paragraph above carry every route, setting and number; this section says
+what each move is and how it fits.
+
+**Billing: replays ignored by id, a yearly price, a no-card trial, the renewal recap** (`814af1e`). `POST
+/api/billing/webhook` keeps the event ids it has handled (`StripeEvents`, pruned after 30 days) and answers a replay
+`200 { received: true, replayed: true }` without touching the account; the id is recorded after the handler and under a
+process-wide gate, so a handler that threw is retried by Stripe and a parallel burst of one id is handled once. `POST
+/api/billing/checkout?interval=year` sells the yearly price where the page could have offered it (`Billing:StripeYearlyPriceId`
+and a yearly amount in the reader's currency: `Plans:ProYearlyPriceAmount`, `Plans:ProYearlyPrices`; 400
+`error.billing_interval` otherwise), and `checkout.session.completed` grants 368 days for it (`PaidYear`) where a month
+is 35. `Plans:ProTrialDays` opens Stripe's own trial, once per account, to one that never went through Checkout here
+(no `BillingCustomerId`): the session asks for no card, a trial that ends with no card simply ends
+(`customer.subscription.deleted` arrives, which is why the webhook endpoint needs all seven events), and the webhook
+grants the trial's days plus the three-day slack, never a paid month. `GET /api/billing/state` says `yearly` and
+`trialDays`, and `/api/config` publishes `proYearlyPriceAmount`, `proYearlyPrices`, `yearly` and `proTrialDays`. The Pro
+page draws a month/year toggle (`#pro-interval`, `#pro-interval-month`, `#pro-interval-year`, `aria-pressed`) only when
+Stripe is live and a monthly price and a yearly amount both exist in the reader's currency; the year shows "{price} a
+year", "Billed once a year. Cancel any time." and "Save {pct}% against paying monthly" (`#pro-saving`) when the saving
+computed from the two numbers is above zero, and Go posts `&interval=`. The trial line ("{days} days free, no card
+needed", the `timer` icon) is drawn only when `plans.billing`, `plans.proTrialDays > 0` and the account is eligible
+(signed out, or `GET /api/billing/state` says `trialDays > 0`), and the button then reads "Start {days} free days".
+`Services/RenewalRecap.cs` (hosted `RenewalRecapService`, hourly, first pass at start) mails a Pro account three days
+before Stripe charges it — the charge date, the comparisons it decided, the outfits it planned and of them wore, the
+tips that named something it owned, in its language, with a link to `#/settings` — once per period
+(`AppUser.RenewalRecapUntil`), only with a `BillingSubscriptionId`, a confirmed address and mail configured; it is
+transactional, so it ignores `DigestOn` and carries no unsubscribe link. The doctor's `billing` and `stripe-yearly`
+lines and `Billing:StripeBaseUrl` are described with the doctor above.
+
+**The wait and the viral day** (`b53b996`). The line under the flame on a check or a comparison now changes with the
+elapsed time: "Looking at the look" / "Looking at both looks" for the first three seconds, "Reading the pieces" until
+eight, "Weighing the occasion" until fifteen, then "Still with you - a long answer takes a moment"; with a clip the
+stages start after the "sending" swap, and Tomorrow keeps its skeleton. The numbers page gains `p95LatencyMs` beside the
+average, over the same population. `Anthropic:PromptCache` (`off` by default, `5m` or `1h`) puts a cache breakpoint on
+the shared rubric block of a check or a comparison — the system prompt is an array of text blocks on every call, on or
+off, so there is one wire shape; the taste advisory is its own uncached block after it, and Tomorrow and the recap never
+carry one — and `Services/SpendMeter.cs` prices a cache read at a tenth of the input price and a write at 1.25× or 2×;
+the doctor's `anthropic-url` line names the mode and the money tiles show the reads and writes. A guest refused at the
+day's ceiling (503 `error.stylist_resting`) is now offered a signup that promises exactly what the code does
+(`#resting-offer`, `#/signup?back=stylist`, `notifyStylistBack` on the body): while the ceiling is really closed a
+`Counter` row `stylist_back:{userId}` is written, and `StylistBackService` (every five minutes, first pass at start)
+turns it, once the ceiling is open, into one in-app line of type `stylist_back` (pushed to a subscribed browser), one mail
+only to a confirmed address when mail and a public origin are configured, and deletes the row; the welcome screen offers
+the push step to that person when the browser can take one.
+
+**Compare: the two questions, the close call, the Pro nudge** (`d00260c`). `POST /api/compare` asks the check's two
+questions (`occasion`, `style`, the free line as `note`) and keeps the one word as a legacy shape; `ComparisonDto` appends
+`occasionKind` and `style` beside `occasion` (the note, under its old name) and `feedback.close` says a close call,
+derived on the server from the two scores. `OutfitComparer` moved to `cmp-v2`: a close call is a real answer, both
+outfits work within a point, the occasion decides it, never the style, never a coin flip, and the schema is unchanged.
+The free day's 429 on both stylist routes carries `code: "plan_limit"` — the only `code` any error body has — so the
+compare screen can offer Pro there and nowhere else: `#cmp-pro-nudge` with `#cmp-go-pro` (`#/pro?from=compare`), drawn
+only for a non-Pro account on that code while `plans.proComparesPerDay > 0`. The Pro page counts where it was opened
+from (`POST /api/funnel/pro-opened`, `from` `compare` or `wardrobe`, once per arrival, signed in), appends
+`&return=compare` to Checkout when it came from a compare, and lands the paid person on `#/compare?ready=1`, which toasts
+"Pro is on. Two photos, one answer." and opens slot A's media sheet on the camera row. Each slot has its own sheet
+(`#cmp-media-camera`, `#cmp-media-library`, no clip); the camera is borrowed through `check.js`'s
+`cameraReturn.handoff` and cleared on every exit, so a stale handoff can never feed a check's photo into a compare slot.
+`#cmp-asked` names the occasion and the style, and "Both work. {outfit} edges it" replaces the verdict line when
+`feedback.close`. The numbers page gains `proFromCompare` and `proFromWardrobe` as funnel columns.
+
+**Keep: fill the closet faster without photographing it** (`a518457`). The keep row after a check offers "Keep all {n}"
+(`#wardrobe-keep-all`) as a third answer whenever more than one piece is left; `POST /api/wardrobe/keep-all` keeps every
+piece the check named in one request (200 always on success, 409 `error.wardrobe_full` only when nothing at all could be
+written), and the row then reads "{n} pieces are in your wardrobe." with "Your wardrobe is full at {max} pieces, so the
+rest stayed out." (`#wardrobe-keep-all-full`) when the cap kept some out, then "See it" and the payoff. `#/wardrobe`
+gains "Keep from an older look" (`#wardrobe-unkept`, `.wardrobe-unkept-keep`), fed by `GET /api/wardrobe/unkept` over the
+last `Plans:WardrobeUnkeptChecks` (20) OK checks — after the list, or before the "Check a look" button on an empty
+wardrobe, and a failed read hides the section. The Pro moment is the server's fact (`WardrobeDto.proMoment`,
+`Plans.WardrobeProMoment`: `Plans:WardrobeNeedsPro` on, a free account, strictly more pieces than
+`Plans:WardrobeNamesToStylist`): one true line with Go Pro (`#/pro?from=wardrobe`), drawn under the kept line
+(`#wardrobe-keep-moment`, `#wardrobe-keep-moment-go`) and in place of the plain Pro notice on `#/wardrobe`
+(`#wardrobe-moment`, `#wardrobe-moment-go`), once per tab (`sessionStorage` key `orevosh.wardrobe.moment`), and it says
+"all of them" only while the count fits `proSees`. `POST /api/wardrobe/moment` tallies shown and go only while the
+moment is true for the caller. The wardrobe block on the numbers page gains `keepAll`, `momentShown`, `momentGo`,
+`momentGoRate` and `piecesPerActiveMedian`, eight tiles in all.
+
+**Tried: the loop as the primary action, the pair as the first share, the day-after nudge, the public pair**
+(`8769645`). The result screen calls `taste.js` `mountResult(container, result, { onStart, onPair, afterUrl })` after the
+tip and draws `#taste-reasons` and `#tried-action`: `#tried-start` is the primary `btn`, "Try the tip, then show me",
+with "Change the one thing, take a new photo, and see both side by side. The second look is scored on its own." under
+it; a tap arms the attempt and takes the retake path into the media sheet, the second check is an ordinary check, and
+the pair is written afterwards. The Round 13 yes/no `#useful` row is gone from the result screen, because the four
+typed answers already decide `Useful` on the server (`TipReason.Landed`), so the Round 13 rate keeps its meaning. A keep
+tip draws no tried block on either screen. Once a pair exists `#share-pair` (the primary `btn`) leads the share row and
+the pair block carries a secondary `.pair-share` button; the share is tallied by `POST /api/checks/{id}/tried/shared`
+on the two `before_after_shares` rows, and `/tried` and `/tried/prefer` now return `postId` on both sides so the post
+sheet can preselect the before. `GET /look/{id}` renders `<section class="pair">` after the meta when the post has a
+`BeforePostId` that is the same author's, not hidden, with its photo: two figures captioned "Before" and "After" under
+a "One change" heading, the two numbers (`<b class="pair-n">`) only when neither post keeps its score private, and no
+section at all (the page still 200) when the before is hidden or deleted. `Services/TryTipNudge.cs` (hosted
+`TryTipNudgeService`, hourly, first pass at start, log line `TryTip: {N} nudged`) writes, inside `Push:TryTipDayStart`
+to `Push:TryTipDayEnd` local hours, one `try_tip` notification and push per check whose change tip nobody answered and
+that is in no pair, `Push:TryTipAfterHours` after the verdict and for `Push:TryTipWindowHours` after that, to an
+account that is not suspended and has a push subscription at query time, at most one per person a day (the newest
+unanswered check carries it); the row is stamped with the scheduler's clock so the once-a-day rule reads it back against
+the same clock. Its tap lands on `#/checks?try=<checkId>`, which scrolls to that check and focuses its `.loop-start`,
+and the settings push copy names the nudge. The stylist block gains `triedPairs`, `triedPer100Ok`, `tryTipNudges` and
+`nudgedThenTried`.
+
+**Distribution that can be counted** (`0cf2811`). `GET /go/{source}` is the short address for a bio, a group or a
+poster's QR code: one arrival counted per allowlisted source (`Funnel:Sources`, ten by default, `tiktok` and the other
+long names resolving to their short codes), a 302 into the check screen with `?src=` on the query, an unknown word sent
+to the landing page uncounted, crawlers redirected but not counted, and never a cookie. The client keeps the word in
+`localStorage` (`orevosh.source`, `invite.js`), sends it with every guest check while kept and spends it on the signup;
+`POST /api/checks` and `POST /api/auth/signup` store it on `OutfitCheck.Source` and `AppUser.Source`. The installed app
+sends `X-Orevosh-Launch: standalone` once per device-day on its first call, counted on `/api/config` only. The numbers
+page's funnel gains `standalone` per day and the per-source table ("Where people come from": arrivals, guest checks,
+signups, first posts). Copy link on a look page copies the share sentence above the address and the share sheet sends
+the same sentence (the Hebrew reads as a challenge, ending in a question mark); the result screen's Share sends the
+sentence plus the look URL once the look is posted. Inside another app's browser (Instagram, Facebook, TikTok) the app
+draws the one-time `#inapp-hint` — "You're in another app's browser", "Open OREVOSH in Safari or Chrome to keep it on
+your home screen." — instead of any install advice, and a TikTok webview no longer gets Add to Home Screen. `sw.js`
+passes `/go/` navigations to the network and `robots.txt` disallows `/go/`.
+
+**The morning loop behind a switch** (`e1390d8`). `Services/TomorrowMorning.cs` (hosted `TomorrowMorningService`, every
+fifteen minutes, first pass at start) sends, while `Plans:TomorrowMorningPush` is on, one push a day at
+`Plans:TomorrowMorningHour` in `Board:TimeZone` (a three-hour send window) to each account whose own switch
+(`AppUser.TomorrowPushOn`, `GET`/`POST /api/push/morning`) is on, that has a push subscription, a wardrobe of two kinds,
+nothing composed today already and something left to spend, in the compose route's own gate order so a tap never lands
+on a foreseeable refusal; it never composes and never asks the model. The push (`tomorrow_morning`, "Your outfit for
+today is one tap away" in the recipient's language, tag `tomorrow_morning:<handle>` so yesterday's undismissed ping is
+replaced) has no activity row; its receipt is a `TomorrowPushes` row (unique per person and day, saved before the push
+goes, so a crash costs one morning and never a double), and the tap on `#/tomorrow?from=push` stamps it opened once.
+Settings draws the switch (`#morning-section`) only when `/api/config` says `plans.tomorrowMorningPush`, checked only
+when the server offers it and this browser is subscribed, otherwise unchecked and disabled with "Turn on notifications
+above first." The Tomorrow block gains `pushesSent`, `pushesOpened` and `openRate`, and the doctor's `plans` line ends
+with the morning push. The flag is off by default and stays off until the worn rate says planned outfits get worn
+(`DEPLOY.md`).
+
+**Owner tooling without a terminal** (`9a61599`). `#/admin` gains an Accounts section: search a handle and act on the
+row — Verify / Unverify, Grant Pro (a sheet with 1, 3, 6 or 12 months) / Remove Pro, Exclude from board / Put back,
+Suspend / Lift — through six new routes and the two old ones, every one behind the moderator gate, one audit line each
+under `FitCheck.Api.Endpoints.AdminEndpoints`, and one shared per-moderator brake (`Limits:AdminActionsPerHour`, 120).
+The screen refuses a Pro grant or removal on an account that pays through Stripe (400 `error.pro_billing`); the
+command does not. The account exclusion is one column (`AppUser.BoardExcludedAt`) that `Board.ComputeAsync` honours for
+every open week, so looks posted later stay off too. `AdminUserDto` carries `verified`, `plan`, `proUntil`,
+`boardExcluded` and `isAdmin`, and every action answers with the row. `GET /api/admin/sponsor` feeds a read-only
+"Sponsor of the week" card that says what `Board:Sponsor:*` came to, warns when the link was dropped or the handle is
+not a verified brand, and reloads with every action, so a Verify tap on the sponsor's handle is seen to clear the
+warning. The commands stay as the terminal fallback and the browser test proves both doors.
+
+**Background services.** Four hosted services joined `DigestService`, each a worker class beside a `BackgroundService`
+wrapper and each idempotent by a row rather than by its schedule. `TryTipNudgeService` wakes hourly and, inside the
+server's quiet hours, writes the day-after nudges described above; `StylistBackService` wakes every five minutes, reads
+the `stylist_back:` rows before it asks whether the ceiling is open (so a pass with nothing to do never touches the
+meter), and keeps each promise once; `RenewalRecapService` wakes hourly, prunes webhook event ids older than 30 days
+whether or not mail is on, and, with mail and a public origin configured, sends the pre-renewal recap once per period
+(`RenewalRecap: run at …, N recaps sent, M failed, K old Stripe events pruned`; a failed send is tried again next hour);
+`TomorrowMorningService` ticks every fifteen minutes, logs its global reasons for doing nothing at Debug (the flag is off
+on most servers) and its real run at Information (`TomorrowMorning: run at … for {Day}, {Sent} sent, {Skipped} skipped (due …)`).
+None of the four ever asks the model.
+
+**Tests.** `BillingTests` (the replay ignored by id, a parallel burst handled once, the yearly session and its refusal,
+the trial offered once and granted as days), `RenewalRecapTests`, `StylistBackTests`, `TryTipNudgeTests` (the window, one
+a day, the quiet hours, the newest check carrying it), `DistributionTests`, `TomorrowMorningTests` (seven: the right
+accounts and never a compose, the flag, the window and the switches, the row before the push and the second process
+giving way, the open marker, the recipient's language, DST and the hour parsing), the compare questions and the close
+call in `CompareTests` and `OutfitComparerTests`, keep-all, the unkept list and the Pro moment in `WardrobeTests` with
+the wedge numbers in `MetricsTests`, the tried share and the `postId` in `TriedTests`, the account actions, the audit
+lines and the sponsor reader in `AdminTests`, `Round20SkeletonTests`, and `tools/brand/test/before-after.test.js`; the
+browser test's Round 20 steps are listed under "Run the tests" above.
+
+**Known limits.** The webhook dedup is per process: two API processes on one database would both pass the lookup and
+only the primary key would stop the second record, after the work ran twice (one SQLite file, one instance, as
+everywhere else on this page). The Pro moment's once-per-tab memory is `sessionStorage`, so a second tab shows and
+counts it again (the rate stays honest, "go" is counted the same way), and the wardrobe records no refusal, so a piece
+passed over resurfaces in the unkept list. Two parallel keep-all requests can both pass the cap count, the same exposure
+as the single keep route, held off from one tab by the client's busy flag. The nudge's quiet hours and the morning
+push's hour are server-wide (`Board:TimeZone`), not per person; a pilot user abroad may be pinged at an odd hour, and the
+person's switch is the remedy. The morning sender does not check the money ceiling or the in-flight reservation, on
+purpose: at the ceiling a free tap answers 503 unless a stored answer serves. All moderators are equal, so any of them
+can grant Pro and verify, on themselves included; the audit line and the per-moderator cap bound a stolen cookie, the
+policy is the founder's. `tools/eval/calibrate.ps1` was verified under `pwsh` 7 (a dry run, an empty folder, a run
+against a closed port) and not yet under Windows PowerShell 5.1 itself, whose choices (BOM, CRLF, the masked password)
+follow `tools/deploy/fly-deploy.ps1`. The social PNGs in `brand-kit/social` were regenerated with the local fallback
+fonts because the font host was unreachable from the sandbox, so a re-run on a connected machine may shift them by a
+pixel.
 
 ## Round 20 — the wedge: content and documents
 

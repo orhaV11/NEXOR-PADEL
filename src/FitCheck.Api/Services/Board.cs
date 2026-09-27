@@ -71,7 +71,8 @@ public sealed record BoardResult(
 /// <see cref="BoardOptions"/>: a fire counts when the firer has made at least MinChecksToCount ok checks (by the week's
 /// end), when their account was older than NewAccountDays at the time of the fire, when the look is not their own, and
 /// while it is within the first MaxPerFirerPerAuthor fires from that person to that author in the week. A look a moderator
-/// excluded (<see cref="BoardExclusion"/>) or one under review (Hidden) is on no board. One instance for the app: the
+/// excluded (<see cref="BoardExclusion"/>), one whose account a moderator keeps off the board (<see cref="AppUser.BoardExcludedAt"/>)
+/// or one under review (Hidden) is on no board. One instance for the app: the
 /// routes and the closer pass their own <see cref="AppDbContext"/> in.
 /// </summary>
 public sealed class Board
@@ -363,6 +364,10 @@ public sealed class Board
         var start = week.Start;
         var end = week.End;
         var excluded = (await db.BoardExclusions.Select(e => e.PostId).ToListAsync(ct)).ToHashSet();
+        // Round 20: an account a moderator keeps off the board (AppUser.BoardExcludedAt). Its looks and the fires on them
+        // are out the same way; its own fires on other people's looks still count, because the exclusion is about being on
+        // the board, not about voting, and Board:MaxPerFirerPerAuthor already bounds a firer. Weeks already closed are rows.
+        var excludedAuthors = (await db.Users.Where(u => u.BoardExcludedAt != null).Select(u => u.Id).ToListAsync(ct)).ToHashSet();
 
         // The week's fires with their looks. A look under review or off the board is out before anything is counted, and
         // so is a fire on one's own look.
@@ -370,7 +375,7 @@ public sealed class Board
             .Where(f => f.CreatedAt >= start && f.CreatedAt < end)
             .Join(db.Posts.Where(p => !p.Hidden), f => f.PostId, p => p.Id, (f, p) => new FireRow(f.PostId, f.UserId, p.UserId, f.CreatedAt))
             .ToListAsync(ct);
-        fires.RemoveAll(f => excluded.Contains(f.PostId) || f.FirerId == f.AuthorId);
+        fires.RemoveAll(f => excluded.Contains(f.PostId) || excludedAuthors.Contains(f.AuthorId) || f.FirerId == f.AuthorId);
 
         // The looks that were fired plus the looks posted this week (the picks board and the people board's "looks" count).
         var firedIds = fires.Select(f => f.PostId).Distinct().ToList();
@@ -378,7 +383,7 @@ public sealed class Board
             .Where(p => !p.Hidden && (firedIds.Contains(p.Id) || (p.CreatedAt >= start && p.CreatedAt < end)))
             .Select(p => new PostRow(p.Id, p.UserId, p.Intent, p.Score, p.CreatedAt, p.ScorePrivate))
             .ToListAsync(ct);
-        posts.RemoveAll(p => excluded.Contains(p.Id));
+        posts.RemoveAll(p => excluded.Contains(p.Id) || excludedAuthors.Contains(p.UserId));
         var postsById = posts.ToDictionary(p => p.Id);
 
         // The firers' standing (ok checks by the week's end, account age) and the authors' age for the rising board.

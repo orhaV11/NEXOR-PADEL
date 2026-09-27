@@ -31,7 +31,11 @@ through the challenge route; photo privacy by URL; the pilot metrics; the in-app
 device (a photo, then a clip recorded in clip mode, its frame picked with the slider, the still judged, the story
 card drawn, the clip posted, streamed with Range and shown in the feed with its pill); the moderation queue (a
 report with a reason picked from the list, hide, show again, suspend and lift; Noa is promoted with the `--admin`
-command after she signs up, the way a real owner is); the guidelines page; the push switch on a server without
+command after she signs up, the way a real owner is; Round 20 adds the Accounts block on the same page - Grant Pro
+for three months through the months sheet and Remove Pro, Verify brand and its removal, Exclude from board and Put
+back, each checked against Dan's own `/me` and `GET /api/board` - and the read-only Sponsor of the week card fed by
+`Board__Sponsor__*` in the server env, the bare host shown as https and no alert since `nexor` is a verified brand);
+the guidelines page; the push switch on a server without
 VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account; signing out and
 back in. The service worker is blocked in the test contexts so it never masks a live request; the browser is
 launched with `--use-fake-device-for-media-stream` so `getUserMedia` and `MediaRecorder` run for real. The Round 8 steps add:

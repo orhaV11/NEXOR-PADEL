@@ -79,6 +79,12 @@ const API_ENV = {
   Board__NewAccountDays: '0',
   Board__MinChecksToCount: '1',
   Board__CacheSeconds: '0',
+  // Round 20: a sponsor of the week, so the board carries one and the moderator's read-only card on #/admin has something
+  // to say. The link is a bare host on purpose: the card proves the https normalisation the server does at start.
+  Board__Sponsor__Name: 'NEXOR',
+  Board__Sponsor__Handle: 'nexor',
+  Board__Sponsor__PrizeText: 'A jacket from the new drop',
+  Board__Sponsor__Url: 'nexor.example',
   Email__From: 'OREVOSH <noreply@example.test>',
 };
 let apiProc = null;
@@ -1268,6 +1274,9 @@ function checkClientModules() {
   await dan.waitForSelector('.board-row[data-rank], #board-panel .empty');
   assert.ok((await count(dan, '.board-row[data-rank]')) >= 1, 'a look is on this week\'s board');
   assert.strictEqual(await count(dan, '.board-row[data-rank="1"] .rank-medal.top'), 1, 'first place wears the medal');
+  // Round 20: the sponsor from the server's settings is on the page, its name a link to the brand's profile.
+  await dan.waitForSelector('#board-sponsor a[href="#/u/nexor"]');
+  assert.ok((await text(dan, '#board-sponsor')).includes('NEXOR'), 'the sponsor of the week is named');
   await shot(dan, '38-board-he');
   await dan.click('#board-tabs .segment[data-tab=people]');
   await dan.waitForSelector('.board-person, #board-panel .empty');
@@ -1472,6 +1481,68 @@ function checkClientModules() {
   await dan.click('#a-submit');
   await dan.waitForFunction(() => location.hash === '#/' || location.hash === '');
   await dan.waitForSelector(settled);
+
+  step = '11b';
+  // 11b. Round 20 - owner tooling without a terminal. Noa is still on #/admin with 'dan' searched. From the account
+  //      block she grants Dan three months of Pro (the sheet with the months), takes it back, verifies him and removes
+  //      that, keeps him off the board and puts him back; each tap re-renders the row from the server's word and Dan's
+  //      own /me says what it did. Then the read-only sponsor card: the settings the API started with, the bare host
+  //      shown as https, and the one warning it can give - nexor's verification was taken away by --unverify in the
+  //      Round 9 steps, so the card says the handle is not a verified brand yet; Noa verifies it one section up and the
+  //      warning goes.
+  const daysAhead = (iso) => (new Date(iso) - Date.now()) / 86400000;
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Grant Pro")');
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Grant Pro")');
+  await noa.waitForSelector('.sheet #adm-months');
+  await noa.selectOption('.sheet #adm-months', '3');
+  await noa.click('.sheet button:has-text("Grant Pro")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] .tag:has-text("Pro")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Remove Pro")');
+  assert.ok((await text(noa, '#adm-users .adm-account[data-handle="dan"] .sub')).includes('Pro until'), 'the row says until when');
+  let danMe = await me(dan);
+  assert.strictEqual(danMe.plan, 'pro', 'Dan is Pro by the moderator\'s hand');
+  assert.ok(Math.abs(daysAhead(danMe.proUntil) - 93) < 1, 'three months of 31 days: ' + danMe.proUntil);
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Remove Pro")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Grant Pro")');
+  assert.strictEqual((await me(dan)).plan, 'free', 'and back on Free, so the free caps later in the run hold');
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Verify brand")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] .tag:has-text("Verified")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Remove verification")');
+  assert.strictEqual((await me(dan)).verified, true, 'verified from the screen, as --verify does from the box');
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Remove verification")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Verify brand")');
+  assert.strictEqual((await me(dan)).verified, false);
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Exclude from board")');
+  await noa.waitForSelector('.sheet .btn-danger');
+  await noa.click('.sheet .btn-danger');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] .tag:has-text("Off the board")');
+  const boardWhileOff = await (await dan.request.get(base + '/api/board')).json();
+  const onBoard = (b, handle) => ['looks', 'picks', 'people'].some((list) => (b[list] || []).some((row) => ((row.post && row.post.user) || row.user || {}).handle === handle));
+  assert.strictEqual(onBoard(boardWhileOff, 'dan'), false, 'an excluded account is on no board');
+  await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Put back on the board")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Exclude from board")');
+  assert.strictEqual(await count(noa, '#adm-users .adm-account[data-handle="dan"] .tag:has-text("Off the board")'), 0, 'the tag goes with the flag');
+  await noa.waitForSelector('#adm-sponsor .adm-sponsor');
+  const sponsorText = await text(noa, '#adm-sponsor');
+  assert.ok(sponsorText.includes('NEXOR'), 'the sponsor card names the brand');
+  assert.ok(sponsorText.includes('nexor.example'), 'and its site, from the bare host the settings hold');
+  assert.strictEqual(await noa.getAttribute('#adm-sponsor a[target="_blank"]', 'href'), 'https://nexor.example', 'the bare host reads as https');
+  assert.strictEqual(await count(noa, '#adm-sponsor a[href="#/u/nexor"]'), 1, 'the handle exists: it links to the profile');
+  assert.strictEqual(await count(noa, '#adm-sponsor .alert'), 1, 'one warning: the handle is not a verified brand right now');
+  assert.ok((await text(noa, '#adm-sponsor .alert')).includes('not a verified brand yet'), 'and it says which');
+  await shot(noa, '24b-admin-accounts-en');
+  // The fix is one section up: verify the brand, and the card (reloaded with every action) stops warning.
+  await noa.fill('#adm-q', 'nexor');
+  await noa.press('#adm-q', 'Enter');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="nexor"] button:has-text("Verify brand")');
+  assert.strictEqual(await count(noa, '#adm-users .adm-account[data-handle="nexor"] .tag:has-text("Moderator")'), 1, 'nexor is a moderator too, and the row says so');
+  await noa.click('#adm-users .adm-account[data-handle="nexor"] button:has-text("Verify brand")');
+  await noa.waitForSelector('#adm-users .adm-account[data-handle="nexor"] .tag:has-text("Verified")');
+  await noa.waitForFunction(() => document.querySelector('#adm-sponsor .adm-sponsor') && !document.querySelector('#adm-sponsor .alert'));
+  assert.strictEqual((await me(brand)).verified, true, 'the brand reads verified, as after --verify');
+  await shot(noa, '24c-admin-sponsor-en');
 
   step = '12';
   // 12. The guidelines page, the push switch on a server without keys, and the production surface.

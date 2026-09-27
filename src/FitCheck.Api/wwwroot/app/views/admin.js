@@ -1,8 +1,11 @@
 // The moderation queue for handles in Admin:Handles: reported looks and comments, hide/show/delete, account suspension.
 // The server is the gate (403 for everyone else); this screen only opens the door for people the /me call says are
 // moderators. Every action reloads the queue: the list is what the server says is left to look at, nothing is kept here.
+// Round 20 - owner tooling without a terminal: the Accounts section grew the flags a moderator acts on (verified, Pro,
+// off the board, moderator) and their buttons, which do what --verify and --pro do from the box; and a read-only card
+// says what the Board:Sponsor settings came to. The commands stay as the terminal fallback.
 import {
-  register, state, t, hasMessage, api, el, icon, avatar, brandMark, handleText, relative, fmtNumber, fmtCompact, setTopBar, signInPrompt, confirmSheet, toast,
+  register, state, t, hasMessage, api, el, icon, avatar, brandMark, handleText, relative, fmtNumber, fmtCompact, fmtDate, setTopBar, signInPrompt, sheet, confirmSheet, toast,
   postCard, emptyState, errorBlock, skeletonCards, isMe
 } from '../core.js';
 
@@ -27,9 +30,16 @@ const CSS = `
 .adm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .adm-actions .btn { min-block-size: 44px; flex: 1 1 auto; }
 .adm-section > * + * { margin-block-start: 12px; }
-.adm-users .person .btn-sm { min-block-size: 44px; padding-inline: 12px; }
-.adm-users .who .name, .adm-users .who .sub { white-space: normal; }   /* the button is wide: wrap the name and the counts rather than cut them */
-.adm-users .who .tag { margin-inline-start: 8px; min-block-size: 20px; font-size: 10.5px; vertical-align: middle; }
+.adm-users .who .name, .adm-users .who .sub { white-space: normal; }   /* several tags may follow the name: wrap rather than cut */
+.adm-users .who .tag { margin-inline-start: 6px; min-block-size: 20px; font-size: 10.5px; vertical-align: middle; }
+.adm-account { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 4px 14px 14px; }
+.adm-account .person { border-block-end: 0; }
+.adm-account .adm-actions .btn { flex: 1 1 45%; }
+.adm-sponsor { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 14px; display: grid; gap: 10px; }
+.adm-sponsor .name { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.adm-sponsor a { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
+.adm-months { display: flex; flex-direction: column; gap: 8px; margin-block-start: 12px; }
+.adm-months select { min-block-size: 44px; font: 500 16px/1 var(--font-body); padding-inline: 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 `;
 let styled = false;
 function ensureStyle() {
@@ -114,19 +124,108 @@ function queueItem(item, act) {
   return el('div', { class: 'adm-item', 'data-kind': item.kind, 'data-id': item.id }, [body, itemFoot(item, actions)]);
 }
 
-/** An account row: name, handle, looks and reports against them, and the suspend/lift button (never for yourself). */
+/** Verify asks nothing (it is not punitive and the undo is one tap); the server names the moderator in its log line either way. */
+function verifyButton(handle, verified, act) {
+  return verified
+    ? actionButton(t('admin.unverify'), () => act(() => api('POST', userPath(handle) + '/unverify')))
+    : actionButton(t('admin.verify'), () => act(() => api('POST', userPath(handle) + '/verify')));
+}
+
+/**
+ * Grant Pro opens a sheet with the months (1, 3, 6 or 12) - the first admin sheet with a select, so the backdrop's first
+ * tap only drops the keyboard and does not lose the choice; Remove Pro confirms, since the person goes back to Free now.
+ * The server refuses an account that pays through Stripe (its plan is changed there) and act() toasts that refusal as given.
+ */
+function proButton(handle, plan, act) {
+  if (plan === 'pro') {
+    return actionButton(t('admin.remove_pro'), async () => {
+      if (!await confirmSheet(t('admin.remove_pro'), t('admin.confirm_remove_pro', { handle }), t('admin.remove_pro'), true)) return;
+      await act(() => api('DELETE', userPath(handle) + '/pro'));
+    }, true);
+  }
+  return actionButton(t('admin.grant_pro'), () => new Promise((resolve) => {
+    let chosen = false;
+    const select = el('select', { id: 'adm-months', name: 'months' }, [1, 3, 6, 12].map((n) => el('option', { value: String(n), text: t('admin.months_n', { n }) })));
+    select.value = '3';
+    const s = sheet({
+      title: t('admin.grant_pro'), onClose: () => { if (!chosen) resolve(); },
+      content: el('div', { class: 'adm-months' }, [
+        el('label', { for: 'adm-months', class: 'label', text: t('admin.pro_months') }),
+        select,
+        el('button', { type: 'button', class: 'btn', text: t('admin.grant_pro'), onclick: async () => {
+          chosen = true;
+          const months = Number(select.value);
+          s.close();
+          await act(() => api('POST', userPath(handle) + '/pro', { months }));
+          resolve();
+        } })
+      ])
+    });
+  }));
+}
+
+/** Exclude asks first (it takes every look off every board from now); putting back is the undo, so it does not. */
+function boardButton(handle, excluded, act) {
+  if (excluded) return actionButton(t('admin.include_board'), () => act(() => api('DELETE', userPath(handle) + '/board-exclusion')));
+  return actionButton(t('admin.exclude_board'), async () => {
+    if (!await confirmSheet(t('admin.exclude_board'), t('admin.confirm_exclude', { handle }), t('admin.exclude_board'), true)) return;
+    await act(() => api('POST', userPath(handle) + '/board-exclusion', {}));
+  }, true);
+}
+
+/**
+ * An account block: the person row (name, brand mark, the flags as tags), the handle with the looks and reports against
+ * them and the Pro end date, then the action row. Every button answers with the refreshed row from the server, and the
+ * whole list is redrawn from it: nothing here guesses what a tap did.
+ */
 function userRow(row, act) {
   const user = row.user;
-  return el('div', { class: 'person', 'data-handle': user.handle }, [
-    avatar(user),
-    el('div', { class: 'who' }, [
-      el('div', { class: 'name' }, [
-        el('a', { href: '#/u/' + encodeURIComponent(user.handle), style: 'text-decoration:none; color: inherit;' }, [user.name, brandMark(user)]),
-        row.suspended ? el('span', { class: 'tag rose', text: t('admin.suspended') }) : null
-      ]),
-      el('div', { class: 'sub' }, [handleText(user.handle), ' · ' + t('tag.looks', { n: countArg(row.posts) }) + ' · ' + t('admin.reports_n', { n: countArg(row.reports) })])
+  const sub = [t('tag.looks', { n: countArg(row.posts) }), t('admin.reports_n', { n: countArg(row.reports) })];
+  if (row.plan === 'pro' && row.proUntil) sub.push(t('admin.pro_until', { date: fmtDate(row.proUntil) }));
+  return el('div', { class: 'adm-account', 'data-handle': user.handle }, [
+    el('div', { class: 'person' }, [
+      avatar(user),
+      el('div', { class: 'who' }, [
+        el('div', { class: 'name' }, [
+          el('a', { href: '#/u/' + encodeURIComponent(user.handle), style: 'text-decoration:none; color: inherit;' }, [user.name, brandMark(user)]),
+          row.suspended ? el('span', { class: 'tag rose', text: t('admin.suspended') }) : null,
+          row.verified ? el('span', { class: 'tag accent', text: t('admin.verified') }) : null,
+          row.plan === 'pro' ? el('span', { class: 'tag accent', text: t('pro.badge') }) : null,
+          row.boardExcluded ? el('span', { class: 'tag rose', text: t('admin.board_excluded') }) : null,
+          row.isAdmin ? el('span', { class: 'tag', text: t('admin.moderator') }) : null
+        ]),
+        el('div', { class: 'sub' }, [handleText(user.handle), ' · ' + sub.join(' · ')])
+      ])
     ]),
-    isMe(user.handle) ? null : suspendButton(user.handle, row.suspended, act)
+    el('div', { class: 'adm-actions' }, [
+      verifyButton(user.handle, row.verified, act),
+      proButton(user.handle, row.plan, act),
+      boardButton(user.handle, row.boardExcluded, act),
+      isMe(user.handle) ? null : suspendButton(user.handle, row.suspended, act)
+    ])
+  ]);
+}
+
+/** The host of a link, for the sponsor card's link text; the URL itself came validated from the server. */
+function hostOf(url) { try { return new URL(url).host.replace(/^www\./i, ''); } catch (e) { return url; } }
+
+/**
+ * The sponsor of the week as the server read it from its settings: not set, or the name, the prize, the link (or the
+ * word that it was dropped for not being http(s)), and whether the handle is an account here and a verified brand. Read
+ * only; the fix for an unverified handle is the Verify button one section up.
+ */
+function sponsorCard(s) {
+  if (!s || !s.configured) return el('p', { class: 'muted', text: t('admin.sponsor_none') });
+  const handle = s.handle;
+  return el('div', { class: 'adm-sponsor' }, [
+    el('div', { class: 'name' }, [el('bdi', { text: s.name || '' })]),
+    s.prizeText ? el('p', { text: t('admin.sponsor_prize', { text: s.prizeText }) }) : null,
+    s.url ? el('a', { href: s.url, target: '_blank', rel: 'noopener' }, [icon('link'), el('bdi', { dir: 'ltr', text: hostOf(s.url) })]) : null,
+    s.urlDropped ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_link_dropped') }) : null,
+    handle && s.handleExists ? el('a', { href: '#/u/' + encodeURIComponent(handle) }, [handleText(handle)]) : null,
+    handle && s.handleExists === false ? el('p', { class: 'alert danger', role: 'alert', text: t('admin.sponsor_handle_missing', { handle }) }) : null,
+    handle && s.handleExists && !s.handleVerified ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_handle_unverified', { handle }) }) : null,
+    el('p', { class: 'hint', text: t('admin.sponsor_readonly') })
   ]);
 }
 
@@ -147,7 +246,8 @@ register('admin', async (root, params, ctx) => {
     autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'search', maxlength: '40'
   });
   const hint = el('p', { class: 'hint', text: t('admin.users_hint') });
-  const people = el('div', { id: 'adm-users' });
+  const people = el('div', { id: 'adm-users', class: 'stack' });
+  const sponsor = el('div', { id: 'adm-sponsor' });
   // The pilot's numbers, one tap away for the same people who can read them.
   root.appendChild(el('p', {}, [el('a', { class: 'btn-text', id: 'adm-metrics', href: '#/admin/metrics', text: t('dash.open') })]));
   root.appendChild(stats);
@@ -158,6 +258,7 @@ register('admin', async (root, params, ctx) => {
     hint,
     people
   ]));
+  root.appendChild(el('section', { class: 'adm-section' }, [el('h2', { text: t('admin.sponsor') }), sponsor]));
 
   let query = '';
   async function loadQueue() {
@@ -175,6 +276,13 @@ register('admin', async (root, params, ctx) => {
     const items = data.items || [];
     list.replaceChildren(...(items.length ? items.map((item) => queueItem(item, act)) : [emptyState(t('admin.empty'))]));
   }
+  async function loadSponsor() {
+    let data;
+    try { data = await api('GET', '/api/admin/sponsor'); }
+    catch (e) { if (ctx.stale()) return; sponsor.replaceChildren(el('p', { class: 'alert danger', text: e.message })); return; }
+    if (ctx.stale()) return;
+    sponsor.replaceChildren(sponsorCard(data));
+  }
   async function loadUsers(q) {
     query = (q || '').trim().replace(/^@/, '');
     let rows;
@@ -185,13 +293,16 @@ register('admin', async (root, params, ctx) => {
     rows = rows || [];
     people.replaceChildren(...(rows.length ? rows.map((row) => userRow(row, act)) : [el('p', { class: 'muted', text: t('admin.no_users') })]));
   }
-  /** Runs one moderation call, then reloads both lists: what is left to look at is the server's word, never a local guess. */
+  /**
+   * Runs one moderation call, then reloads the lists and the sponsor card: what is left to look at is the server's word,
+   * never a local guess, and a Verify tap on the sponsor's handle is seen to clear the card's warning.
+   */
   async function act(call) {
     try { await call(); } catch (e) { toast(e.message); return; }
     if (ctx.stale()) return;
     toast(t('admin.done'));
-    await Promise.all([loadQueue(), loadUsers(query)]);
+    await Promise.all([loadQueue(), loadUsers(query), loadSponsor()]);
   }
 
-  await Promise.all([loadQueue(), loadUsers('')]);
+  await Promise.all([loadQueue(), loadUsers(''), loadSponsor()]);
 });

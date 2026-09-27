@@ -180,8 +180,10 @@ if (makeAdmin is not null || dropAdmin is not null)
 }
 
 // `--verify <handle>` marks an existing account as a verified brand (the check next to its brand mark, everywhere the
-// account appears), `--unverify <handle>` takes that away. Only these two commands write the flag (AppUser.Verified):
-// the owner confirms by hand who is behind a brand account. Exit code 1 when there is no such account, so a script notices.
+// account appears), `--unverify <handle>` takes that away. The flag (AppUser.Verified) is written by hand only: these two
+// commands, or since Round 20 a moderator's Verify button on #/admin (POST /api/admin/users/{handle}/verify, one audit
+// line each) - the owner confirms who is behind a brand account, from the box or from the phone. Exit code 1 when there
+// is no such account, so a script notices.
 var verifyHandle = ArgumentAfter(args, "--verify");
 var unverifyHandle = ArgumentAfter(args, "--unverify");
 if (verifyHandle is not null || unverifyHandle is not null)
@@ -223,8 +225,10 @@ if (verifyHandle is not null || unverifyHandle is not null)
 
 // `--pro <handle> <months>` puts an existing account on Pro for that many months (31 days each, from now) and
 // `--pro <handle> off` takes it back to free: the same two fields Checkout and its webhook write when Stripe is on
-// (AppUser.Plan, AppUser.ProUntil), from a shell on the box, while the app runs or not. Exit code 1 when there is no
-// such account, so a script notices.
+// (AppUser.Plan, AppUser.ProUntil), from a shell on the box, while the app runs or not. Since Round 20 the Grant Pro
+// button on #/admin does the same through POST /api/admin/users/{handle}/pro, with one guard the command lacks: an
+// account that pays through Stripe is refused there, because the next webhook would rewrite what a hand set. Exit code
+// 1 when there is no such account, so a script notices.
 if (ArgumentAfter(args, "--pro") is { } proHandle)
 {
     var proIndex = Array.IndexOf(args, "--pro");

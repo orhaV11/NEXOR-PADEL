@@ -3,14 +3,28 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
+using FitCheck.Api.Services;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FitCheck.Api.Tests;
 
-/// <summary>An app whose moderator, "mod_one", signs up like anyone else and is then promoted the way --admin does it.</summary>
+/// <summary>
+/// An app whose moderator, "mod_one", signs up like anyone else and is then promoted the way --admin does it. Round 20: a
+/// recorder on its logs, since the account actions' audit lines are the record of who did what.
+/// </summary>
 public sealed class AdminApp : TestApp
 {
     public const string Moderator = "mod_one";
+
+    public RecordingLoggerProvider Logs { get; } = new();
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        base.ConfigureWebHost(builder);
+        builder.ConfigureLogging(logging => logging.AddProvider(Logs));
+    }
 }
 
 /// <summary>
@@ -132,6 +146,14 @@ public class AdminTests : IClassFixture<AdminApp>
             (HttpMethod.Delete, $"/api/admin/comments/{id}"),
             (HttpMethod.Post, "/api/admin/users/gate_plain/suspend"),
             (HttpMethod.Post, "/api/admin/users/gate_plain/unsuspend"),
+            // Round 20 - owner tooling without a terminal.
+            (HttpMethod.Post, "/api/admin/users/gate_plain/verify"),
+            (HttpMethod.Post, "/api/admin/users/gate_plain/unverify"),
+            (HttpMethod.Post, "/api/admin/users/gate_plain/pro"),
+            (HttpMethod.Delete, "/api/admin/users/gate_plain/pro"),
+            (HttpMethod.Post, "/api/admin/users/gate_plain/board-exclusion"),
+            (HttpMethod.Delete, "/api/admin/users/gate_plain/board-exclusion"),
+            (HttpMethod.Get, "/api/admin/sponsor"),
         };
 
         foreach (var (method, path) in routes)
@@ -610,5 +632,265 @@ public class AdminTests : IClassFixture<AdminApp>
         var lifted = await Json(await moderator.PostAsync("/api/admin/users/not_suspended/unsuspend", null));
         Assert.False(lifted.GetProperty("suspended").GetBoolean());
         Assert.Equal(HttpStatusCode.OK, (await plain.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    // ---------- Round 20 - owner tooling without a terminal ----------
+
+    private static async Task<JsonElement> RowAsync(HttpClient moderator, string handle)
+    {
+        var rows = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/users?q=" + handle);
+        return rows.EnumerateArray().Single(r => r.GetProperty("user").GetProperty("handle").GetString()!.Equals(handle, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Verify_and_unverify_flip_the_flag_and_it_reads_everywhere_the_command_did()
+    {
+        var moderator = await ModeratorAsync();
+        var (brand, _, _) = await _app.NewUserAsync("vfy_shop", accountType: "Brand", displayName: "Vfy Shop");
+        var postId = await _app.CheckAndPostAsync(brand);
+        Assert.False((await RowAsync(moderator, "vfy_shop")).GetProperty("verified").GetBoolean());
+
+        var verified = await moderator.PostAsync("/api/admin/users/vfy_shop/verify", null);
+        Assert.Equal(HttpStatusCode.OK, verified.StatusCode);
+        var row = await Json(verified);
+        Assert.True(row.GetProperty("verified").GetBoolean());
+        Assert.True(row.GetProperty("user").GetProperty("verified").GetBoolean());
+        Assert.Equal("Brand", row.GetProperty("user").GetProperty("accountType").GetString());
+        Assert.Equal("free", row.GetProperty("plan").GetString());
+        Assert.False(row.GetProperty("boardExcluded").GetBoolean());
+        Assert.False(row.GetProperty("isAdmin").GetBoolean());
+        // Where the command's flag was read (VerifiedTests): the profile, the post's author, the account's own /me.
+        Assert.True((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/users/vfy_shop")).GetProperty("verified").GetBoolean());
+        Assert.True((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/posts/" + postId)).GetProperty("user").GetProperty("verified").GetBoolean());
+        Assert.True((await brand.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("verified").GetBoolean());
+        // Idempotent: the same row again, no error.
+        var again = await moderator.PostAsync("/api/admin/users/vfy_shop/verify", null);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.True((await Json(again)).GetProperty("verified").GetBoolean());
+
+        var removed = await moderator.PostAsync("/api/admin/users/vfy_shop/unverify", null);
+        Assert.Equal(HttpStatusCode.OK, removed.StatusCode);
+        Assert.False((await Json(removed)).GetProperty("verified").GetBoolean());
+        Assert.False((await _app.NewClient().GetFromJsonAsync<JsonElement>("/api/users/vfy_shop")).GetProperty("verified").GetBoolean());
+        Assert.False((await Json(await moderator.PostAsync("/api/admin/users/vfy_shop/unverify", null))).GetProperty("verified").GetBoolean());
+
+        var missing = await moderator.PostAsync("/api/admin/users/nobody_here/verify", null);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        Assert.Equal("We couldn't find this account.", await ErrorOf(missing));
+
+        // Verification is not punitive: a moderator, and yourself, can carry it.
+        var other = await PromotedAsync("vfy_mod2");
+        var onModerator = await Json(await moderator.PostAsync("/api/admin/users/vfy_mod2/verify", null));
+        Assert.True(onModerator.GetProperty("verified").GetBoolean());
+        Assert.True(onModerator.GetProperty("isAdmin").GetBoolean());
+        var self = await Json(await moderator.PostAsync($"/api/admin/users/{AdminApp.Moderator}/verify", null));
+        Assert.True(self.GetProperty("verified").GetBoolean());
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync($"/api/admin/users/{AdminApp.Moderator}/unverify", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Grant_pro_puts_the_account_on_pro_for_31_days_a_month_from_the_clock_and_remove_takes_it_back()
+    {
+        var now = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
+        _app.Clock.Now = now;
+        try
+        {
+            var moderator = await ModeratorAsync();
+            var (person, personId, _) = await _app.NewUserAsync("pro_gift");
+            Assert.Equal("free", (await RowAsync(moderator, "pro_gift")).GetProperty("plan").GetString());
+
+            var granted = await moderator.PostAsJsonAsync("/api/admin/users/pro_gift/pro", new { months = 3 });
+            Assert.Equal(HttpStatusCode.OK, granted.StatusCode);
+            var row = await Json(granted);
+            Assert.Equal("pro", row.GetProperty("plan").GetString());
+            Assert.Equal(now.AddDays(93), row.GetProperty("proUntil").GetDateTime().ToUniversalTime());
+            var me = await person.GetFromJsonAsync<JsonElement>("/api/auth/me");
+            Assert.Equal("pro", me.GetProperty("plan").GetString());
+            Assert.True(FromDb(db => Plans.IsPro(db.Users.Single(u => u.Id == personId), now)));
+
+            var removed = await moderator.DeleteAsync("/api/admin/users/pro_gift/pro");
+            Assert.Equal(HttpStatusCode.OK, removed.StatusCode);
+            row = await Json(removed);
+            Assert.Equal("free", row.GetProperty("plan").GetString());
+            Assert.False(row.TryGetProperty("proUntil", out _));
+            Assert.Equal("free", (await person.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("plan").GetString());
+
+            // Removing Pro from a free account is not an error, like lifting a suspension that is not there.
+            var again = await moderator.DeleteAsync("/api/admin/users/pro_gift/pro");
+            Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+            Assert.Equal("free", (await Json(again)).GetProperty("plan").GetString());
+
+            // A granted Pro that ran out reads free on the row, as it does everywhere else; the date travels only while it is pro.
+            Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsJsonAsync("/api/admin/users/pro_gift/pro", new { months = 1 })).StatusCode);
+            WithDb(db => db.Users.Single(u => u.Id == personId).ProUntil = now.AddDays(-1));
+            var expired = await RowAsync(moderator, "pro_gift");
+            Assert.Equal("free", expired.GetProperty("plan").GetString());
+            Assert.False(expired.TryGetProperty("proUntil", out _));
+            Assert.Equal(HttpStatusCode.NotFound, (await moderator.PostAsJsonAsync("/api/admin/users/nobody_here/pro", new { months = 1 })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await moderator.DeleteAsync("/api/admin/users/nobody_here/pro")).StatusCode);
+        }
+        finally
+        {
+            _app.Clock.Now = null;
+        }
+    }
+
+    [Fact]
+    public async Task Pro_months_outside_one_to_120_are_refused_and_nothing_is_written()
+    {
+        var moderator = await ModeratorAsync();
+        var (_, personId, _) = await _app.NewUserAsync("pro_bounds");
+        foreach (var body in new object?[] { new { months = 0 }, new { months = 121 }, new { months = -3 }, null })
+        {
+            var refused = body is null
+                ? await moderator.PostAsync("/api/admin/users/pro_bounds/pro", null)
+                : await moderator.PostAsJsonAsync("/api/admin/users/pro_bounds/pro", body);
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            var error = await ErrorOf(refused);
+            Assert.Contains("120", error);
+            Assert.DoesNotContain("!", error);
+        }
+
+        var user = FromDb(db => db.Users.Single(u => u.Id == personId));
+        Assert.Equal("free", user.Plan);
+        Assert.Null(user.ProUntil);
+        Assert.Equal("free", (await RowAsync(moderator, "pro_bounds")).GetProperty("plan").GetString());
+    }
+
+    [Fact]
+    public async Task An_account_that_pays_through_stripe_is_not_changed_by_hand()
+    {
+        var moderator = await ModeratorAsync();
+        var (_, personId, _) = await _app.NewUserAsync("pro_payer");
+        var until = DateTime.UtcNow.AddDays(20);
+        // What a Checkout and its webhook leave behind: the subscription id beside the plan (BillingTests cover that flow).
+        WithDb(db =>
+        {
+            var user = db.Users.Single(u => u.Id == personId);
+            user.BillingSubscriptionId = "sub_hand_off";
+            user.Plan = Plans.Pro;
+            user.ProUntil = until;
+        });
+
+        var granted = await moderator.PostAsJsonAsync("/api/admin/users/pro_payer/pro", new { months = 6 });
+        Assert.Equal(HttpStatusCode.BadRequest, granted.StatusCode);
+        Assert.Equal("This account pays through Stripe. Its plan is changed there, not here.", await ErrorOf(granted));
+        var removed = await moderator.DeleteAsync("/api/admin/users/pro_payer/pro");
+        Assert.Equal(HttpStatusCode.BadRequest, removed.StatusCode);
+        Assert.Equal("This account pays through Stripe. Its plan is changed there, not here.", await ErrorOf(removed));
+
+        var user = FromDb(db => db.Users.Single(u => u.Id == personId));
+        Assert.Equal(Plans.Pro, user.Plan);
+        Assert.Equal(until, user.ProUntil!.Value, TimeSpan.FromSeconds(1));
+        Assert.Equal("sub_hand_off", user.BillingSubscriptionId);
+        Assert.Equal("pro", (await RowAsync(moderator, "pro_payer")).GetProperty("plan").GetString());
+    }
+
+    [Fact]
+    public async Task Every_account_action_writes_one_audit_line_naming_the_moderator()
+    {
+        var moderator = await ModeratorAsync();
+        var (_, _, _) = await _app.NewUserAsync("aud_target");
+        List<string> Lines() => _app.Logs.Lines
+            .Where(l => l.Category.EndsWith("AdminEndpoints", StringComparison.Ordinal) && l.Message.Contains("aud_target", StringComparison.Ordinal))
+            .Select(l => l.Message).ToList();
+        Assert.Empty(Lines());
+
+        var steps = new (string Method, string Path, object? Body, string Says)[]
+        {
+            ("POST", "/api/admin/users/aud_target/verify", null, "verified by"),
+            ("POST", "/api/admin/users/aud_target/pro", new { months = 2 }, "on Pro until"),
+            ("DELETE", "/api/admin/users/aud_target/pro", null, "back on Free by"),
+            ("POST", "/api/admin/users/aud_target/board-exclusion", new { reason = "  a shop, not a person  " }, "excluded from the board by"),
+            ("DELETE", "/api/admin/users/aud_target/board-exclusion", null, "back on the board by"),
+            ("POST", "/api/admin/users/aud_target/suspend", null, "suspended by"),
+            ("POST", "/api/admin/users/aud_target/unsuspend", null, "suspension lifted by"),
+        };
+        var expected = 0;
+        foreach (var (method, path, body, says) in steps)
+        {
+            var request = new HttpRequestMessage(new HttpMethod(method), path) { Content = body is null ? null : JsonContent.Create(body) };
+            var response = await moderator.SendAsync(request);
+            Assert.True(response.StatusCode == HttpStatusCode.OK, $"{method} {path}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+            expected++;
+            var lines = Lines();
+            Assert.Equal(expected, lines.Count);
+            Assert.StartsWith("Admin: aud_target ", lines[^1]);
+            Assert.Contains(says, lines[^1]);
+            Assert.Contains(AdminApp.Moderator, lines[^1], StringComparison.OrdinalIgnoreCase);
+        }
+
+        // The reason travels trimmed; the months and the date are in the Pro line; nothing that identifies a person beyond the handle.
+        var all = Lines();
+        Assert.Contains(all, l => l.EndsWith(": a shop, not a person", StringComparison.Ordinal));
+        Assert.Contains(all, l => l.Contains("(2 months)", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.IsMatch(l, @"until \d{4}-\d{2}-\d{2} by"));
+        Assert.All(all, l => Assert.DoesNotContain("@", l));
+        Assert.All(all, l => Assert.DoesNotContain(Sessions.CookieName, l));
+        // A write that changes nothing writes nothing: verifying twice is one line.
+        Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync("/api/admin/users/aud_target/verify", null)).StatusCode);
+        Assert.Equal(expected, Lines().Count);
+    }
+
+    [Fact]
+    public async Task The_sponsor_reader_says_what_the_settings_hold_and_whether_the_handle_is_a_verified_brand()
+    {
+        using (var app = new TestApp
+        {
+            Settings = new()
+            {
+                ["Board:Sponsor:Name"] = " NEXOR ",
+                ["Board:Sponsor:Handle"] = "@nexor_sp",
+                ["Board:Sponsor:PrizeText"] = "A jacket from the new drop",
+                ["Board:Sponsor:Url"] = "nexor.example/drop"
+            }
+        })
+        {
+            var (moderator, _, _) = await app.NewUserAsync("sp_mod");
+            Assert.Equal(AdminChange.Changed, await app.PromoteAsync("sp_mod"));
+            var (plain, _, _) = await app.NewUserAsync("sp_plain");
+            Assert.Equal(HttpStatusCode.Forbidden, (await plain.GetAsync("/api/admin/sponsor")).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await app.NewClient().GetAsync("/api/admin/sponsor")).StatusCode);
+
+            // Nobody has the handle yet.
+            var sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+            Assert.True(sponsor.GetProperty("configured").GetBoolean());
+            Assert.Equal("NEXOR", sponsor.GetProperty("name").GetString());
+            Assert.Equal("nexor_sp", sponsor.GetProperty("handle").GetString());
+            Assert.Equal("A jacket from the new drop", sponsor.GetProperty("prizeText").GetString());
+            Assert.Equal("https://nexor.example/drop", sponsor.GetProperty("url").GetString());
+            Assert.False(sponsor.GetProperty("urlDropped").GetBoolean());
+            Assert.False(sponsor.GetProperty("handleExists").GetBoolean());
+            Assert.False(sponsor.GetProperty("handleVerified").GetBoolean());
+
+            // The account exists but is not a verified brand; the Verify button one section up is the fix.
+            await app.NewUserAsync("nexor_sp", accountType: "Brand");
+            sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+            Assert.True(sponsor.GetProperty("handleExists").GetBoolean());
+            Assert.False(sponsor.GetProperty("handleVerified").GetBoolean());
+            Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync("/api/admin/users/nexor_sp/verify", null)).StatusCode);
+            sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+            Assert.True(sponsor.GetProperty("handleVerified").GetBoolean());
+        }
+
+        // A link that is not http(s) was dropped at start; the card says so instead of showing it.
+        using (var app = new TestApp { Settings = new() { ["Board:Sponsor:Name"] = "NEXOR", ["Board:Sponsor:Url"] = "javascript:alert(1)" } })
+        {
+            var (moderator, _, _) = await app.NewUserAsync("sp_mod2");
+            Assert.Equal(AdminChange.Changed, await app.PromoteAsync("sp_mod2"));
+            var sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+            Assert.True(sponsor.GetProperty("configured").GetBoolean());
+            Assert.False(sponsor.TryGetProperty("url", out _));
+            Assert.True(sponsor.GetProperty("urlDropped").GetBoolean());
+            Assert.False(sponsor.TryGetProperty("handle", out _));
+            Assert.False(sponsor.TryGetProperty("handleExists", out _));
+            Assert.False(sponsor.TryGetProperty("handleVerified", out _));
+            Assert.False(sponsor.TryGetProperty("prizeText", out _));
+        }
+
+        // No sponsor settings at all: configured false and nothing else to read.
+        var none = await (await ModeratorAsync()).GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+        Assert.False(none.GetProperty("configured").GetBoolean());
+        Assert.Equal(["configured", "urlDropped"], none.EnumerateObject().Select(p => p.Name).Order().ToArray());
     }
 }

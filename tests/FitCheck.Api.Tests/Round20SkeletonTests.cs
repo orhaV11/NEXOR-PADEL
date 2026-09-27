@@ -85,4 +85,74 @@ public class Round20SkeletonTests
         var nudge = new NotificationDto(Guid.NewGuid(), NotificationType.TryTip, "h", "H", null, null, null, DateTime.UtcNow, false, CheckId: check);
         Assert.Contains($"\"checkId\":\"{check}\"", JsonSerializer.Serialize(nudge, AppJson.Options));
     }
+
+    // ---------- [7] owner tooling without a terminal ----------
+
+    [Fact]
+    public void The_account_row_serializes_its_flags_and_drops_a_null_pro_until()
+    {
+        var user = new UserRefDto("shop", "Shop", "Brand", null, true);
+        var until = new DateTime(2027, 1, 2, 12, 0, 0, DateTimeKind.Utc);
+        var pro = JsonSerializer.Serialize(new AdminUserDto(user, false, 3, 0, until.AddDays(-400), Verified: true, Plan: "pro", ProUntil: until), AppJson.Options);
+        Assert.Contains("\"verified\":true", pro);
+        Assert.Contains("\"plan\":\"pro\"", pro);
+        Assert.Contains("\"proUntil\":\"2027-01-02T12:00:00Z\"", pro);
+        Assert.Contains("\"boardExcluded\":false", pro);
+        Assert.Contains("\"isAdmin\":false", pro);
+
+        var free = JsonSerializer.Serialize(new AdminUserDto(user, false, 3, 0, until, BoardExcluded: true, IsAdmin: true), AppJson.Options);
+        Assert.DoesNotContain("proUntil", free);
+        Assert.Contains("\"plan\":\"free\"", free);
+        Assert.Contains("\"boardExcluded\":true", free);
+        Assert.Contains("\"isAdmin\":true", free);
+
+        // The sponsor card: the lookups travel only when there is a handle to look up.
+        var none = JsonSerializer.Serialize(new AdminSponsorDto(false, null, null, null, null, false, null, null), AppJson.Options);
+        Assert.Equal("""{"configured":false,"urlDropped":false}""", none);
+    }
+
+    [Fact]
+    public void The_account_strings_and_the_admin_keys_are_in_all_four_languages()
+    {
+        var localizer = new Localizer();
+        foreach (var locale in Localizer.SupportedLocales)
+        {
+            foreach (var key in new[] { "error.pro_months", "error.pro_billing", "error.board_account_excluded", "error.board_account_included" })
+            {
+                var text = localizer.Get(locale, key, AdminEndpoints.MaxProMonths);
+                Assert.False(string.IsNullOrWhiteSpace(text) || text == key, $"{locale} {key}");
+                Assert.DoesNotContain("!", text);
+            }
+
+            Assert.Contains("120", localizer.Get(locale, "error.pro_months", AdminEndpoints.MaxProMonths));
+        }
+
+        Assert.Equal("Pro is granted for 1 to 120 months.", localizer.Get("en", "error.pro_months", AdminEndpoints.MaxProMonths));
+
+        string[] admin =
+        [
+            "admin.verify", "admin.unverify", "admin.verified", "admin.moderator", "admin.grant_pro", "admin.remove_pro", "admin.pro_until", "admin.pro_months",
+            "admin.months_n", "admin.months_n_one", "admin.confirm_remove_pro", "admin.exclude_board", "admin.include_board", "admin.board_excluded", "admin.confirm_exclude",
+            "admin.sponsor", "admin.sponsor_none", "admin.sponsor_prize", "admin.sponsor_link_dropped", "admin.sponsor_handle_missing", "admin.sponsor_handle_unverified", "admin.sponsor_readonly"
+        ];
+        Assert.Equal(22, admin.Length);
+        var files = new[] { "en", "he", "ar", "ru" }.ToDictionary(c => c, c => JsonDocument.Parse(File.ReadAllText(Path.Combine(I18nRoot, c + ".json"))).RootElement);
+        static string Placeholders(string text) => string.Join(",", System.Text.RegularExpressions.Regex.Matches(text, @"\{[a-z]+\}").Select(m => m.Value).Order());
+        foreach (var (code, table) in files)
+        {
+            foreach (var key in admin)
+            {
+                Assert.True(table.TryGetProperty(key, out var value) && !string.IsNullOrWhiteSpace(value.GetString()), $"{code}.json lacks {key}");
+                Assert.Equal(Placeholders(files["en"].GetProperty(key).GetString()!), Placeholders(value.GetString()!));
+            }
+        }
+
+        var en = files["en"];
+        Assert.Equal("Verify brand", en.GetProperty("admin.verify").GetString());
+        Assert.Equal("Grant Pro", en.GetProperty("admin.grant_pro").GetString());
+        Assert.Equal("Exclude from board", en.GetProperty("admin.exclude_board").GetString());
+        Assert.Equal("Sponsor of the week", en.GetProperty("admin.sponsor").GetString());
+        // The Russian count keeps the noun first, so two forms are enough (LanguagesTests).
+        Assert.StartsWith("Месяцев: {n}", files["ru"].GetProperty("admin.months_n").GetString());
+    }
 }

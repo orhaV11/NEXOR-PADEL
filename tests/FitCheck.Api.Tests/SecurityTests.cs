@@ -229,6 +229,14 @@ public class IdorEnumerationTests
         [("/api/admin/comments/{id:guid}", "DELETE")] = Rule.Private(f => $"/api/admin/comments/{f.CommentOnVisible}", "moderators only", null, HttpStatusCode.Forbidden),
         [("/api/admin/users/{handle}/suspend", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/suspend", "moderators only", null, HttpStatusCode.Forbidden),
         [("/api/admin/users/{handle}/unsuspend", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/unsuspend", "moderators only", null, HttpStatusCode.Forbidden),
+        // Round 20 - owner tooling without a terminal: the account actions, moderators only. The Pro grant carries a
+        // well-formed body so the 403 is proven on a request the handler would otherwise accept.
+        [("/api/admin/users/{handle}/verify", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/verify", "moderators only", null, HttpStatusCode.Forbidden),
+        [("/api/admin/users/{handle}/unverify", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/unverify", "moderators only", null, HttpStatusCode.Forbidden),
+        [("/api/admin/users/{handle}/pro", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/pro", "moderators only", new { months = 1 }, HttpStatusCode.Forbidden),
+        [("/api/admin/users/{handle}/pro", "DELETE")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/pro", "moderators only", null, HttpStatusCode.Forbidden),
+        [("/api/admin/users/{handle}/board-exclusion", "POST")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/board-exclusion", "moderators only", new { reason = "x" }, HttpStatusCode.Forbidden),
+        [("/api/admin/users/{handle}/board-exclusion", "DELETE")] = Rule.Private(f => $"/api/admin/users/{f.HandleA}/board-exclusion", "moderators only", null, HttpStatusCode.Forbidden),
         [("/api/admin/board/exclude/{postId:guid}", "DELETE")] = Rule.Private(f => $"/api/admin/board/exclude/{f.PostA}", "moderators only", null, HttpStatusCode.Forbidden),
         [("/api/users/{handle}", "GET")] = new Public("a profile is public; a suspended or blocked account reads as missing (ProfileTests, BlockTests)"),
         [("/api/users/{handle}/avatar", "GET")] = new Public("an avatar is public; a suspended account's is not served (ProfileTests)"),
@@ -391,8 +399,12 @@ public class IdorEnumerationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync("/api/admin/queue")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync("/api/admin/users?q=idor")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await b.PostAsJsonAsync("/api/admin/board/exclude", new { postId = fixture.PostA })).StatusCode);
+        // Round 20: the sponsor reader and the Pro grant are behind the same door.
+        Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync("/api/admin/sponsor")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await b.PostAsJsonAsync($"/api/admin/users/{fixture.HandleA}/pro", new { months = 1 })).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/metrics/pilot")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/admin/queue")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/admin/sponsor")).StatusCode);
 
         // B's export is B's: nothing of A's in it.
         var export = await b.GetStringAsync("/api/users/me/export");
@@ -419,6 +431,8 @@ public class IdorEnumerationTests
         Assert.Contains(refused.Headers.GetValues("Set-Cookie"), c => c.StartsWith(Sessions.CookieName + "=", StringComparison.Ordinal) && c.Contains("1970", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.Forbidden, (await suspendedModerator.PostAsync($"/api/admin/posts/{fixture.PostA}/hide", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await suspendedModerator.DeleteAsync($"/api/admin/board/exclude/{fixture.PostA}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await suspendedModerator.PostAsync($"/api/admin/users/{fixture.HandleA}/verify", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await suspendedModerator.GetAsync("/api/admin/sponsor")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await suspendedModerator.GetAsync("/api/metrics/pilot")).StatusCode);
     }
 

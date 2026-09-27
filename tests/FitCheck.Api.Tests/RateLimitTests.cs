@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FitCheck.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 
 namespace FitCheck.Api.Tests;
@@ -22,6 +23,16 @@ public class RateLimitTests
             base.ConfigureWebHost(builder);
             builder.UseSetting("Limits:CommentsPerHour", commentsPerHour.ToString());
             builder.UseSetting("Limits:ReportsPerHour", reportsPerHour.ToString());
+        }
+    }
+
+    /// <summary>Round 20: the app with the moderator's account-action cap lowered (Limits:AdminActionsPerHour, default 120).</summary>
+    private sealed class AdminLimitedApp(int adminActionsPerHour) : TestApp
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.UseSetting("Limits:AdminActionsPerHour", adminActionsPerHour.ToString());
         }
     }
 
@@ -137,5 +148,41 @@ public class RateLimitTests
         var (person, _, _) = await app.NewUserAsync("person");
         Assert.Equal(HttpStatusCode.Created, (await CommentAsync(person, postId, "one")).StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, (await CommentAsync(person, postId, "two")).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_account_actions_are_capped_per_moderator_per_hour()
+    {
+        using var app = new AdminLimitedApp(3);
+        var (first, _, _) = await app.NewUserAsync("rl_mod1");
+        Assert.Equal(AdminChange.Changed, await app.PromoteAsync("rl_mod1"));
+        var (second, _, _) = await app.NewUserAsync("rl_mod2");
+        Assert.Equal(AdminChange.Changed, await app.PromoteAsync("rl_mod2"));
+        await app.NewUserAsync("rl_target");
+
+        Assert.Equal(HttpStatusCode.OK, (await first.PostAsync("/api/admin/users/rl_target/verify", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await first.PostAsync("/api/admin/users/rl_target/unverify", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await first.PostAsync("/api/admin/users/rl_target/verify", null)).StatusCode);
+
+        var refused = await first.PostAsync("/api/admin/users/rl_target/unverify", null);
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Equal(TooFast, await ErrorAsync(refused));
+        var retryAfter = refused.Headers.RetryAfter?.Delta;
+        Assert.True(retryAfter is { } delta && delta > TimeSpan.Zero && delta <= TimeSpan.FromHours(1), $"Retry-After: {retryAfter}");
+        // The refused call never reached the handler: the flag stands where the third call left it.
+        var row = (await first.GetFromJsonAsync<JsonElement>("/api/admin/users?q=rl_target")).EnumerateArray().Single();
+        Assert.True(row.GetProperty("verified").GetBoolean());
+
+        // The whole family shares the bucket: a suspend from the same moderator is refused too, and the reads are not.
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await first.PostAsync("/api/admin/users/rl_target/suspend", null)).StatusCode);
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await first.GetAsync("/api/admin/users?q=rl_target")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await first.GetAsync("/api/admin/queue")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await first.GetAsync("/api/admin/sponsor")).StatusCode);
+        }
+
+        // Per account: the second moderator, in the same hour and from the same address, is not slowed.
+        Assert.Equal(HttpStatusCode.OK, (await second.PostAsync("/api/admin/users/rl_target/unverify", null)).StatusCode);
     }
 }

@@ -392,6 +392,67 @@ public class BoardTests : IClassFixture<TestApp>
         Assert.Equal("bd_newface13", board.GetProperty("rising")[0].GetProperty("user").GetProperty("handle").GetString());
     }
 
+    /// <summary>
+    /// Round 20: an account a moderator keeps off the board. Its looks and the fires on them are out of every open board
+    /// while the flag is set; its own fires on other people's looks still count; a closed week's rows stay; and the read
+    /// after each write is a plain GET, so the cache must have been dropped by the write itself.
+    /// </summary>
+    [Fact]
+    public async Task An_excluded_accounts_looks_and_the_fires_on_them_are_on_no_open_board_until_it_is_put_back()
+    {
+        _app.Clock.Now = BoardFixtures.Midweek(15);
+        var (author, authorId, _) = await _app.NewUserAsync("bd_excl_a");
+        var (other, _, _) = await _app.NewUserAsync("bd_excl_b");
+        var authorsLook = await _app.CheckAndPostAsync(author);
+        var othersLook = await _app.CheckAndPostAsync(other);
+        await BoardFixtures.SetPostAsync(_app, authorsLook, createdAt: Local(Sunday(15), 9));
+        await BoardFixtures.SetPostAsync(_app, othersLook, createdAt: Local(Sunday(15), 10));
+        var (_, fan) = await CheckerAsync("bd_excl_fan");
+        var monday = Local(Sunday(15).AddDays(1), 8);
+        await Fire(authorsLook, fan, monday);
+        await Fire(othersLook, fan, monday.AddHours(1));
+        // The author, who has made a check, fires the other look: that fire is theirs to give even once they are off the board.
+        await Fire(othersLook, authorId, monday.AddHours(2));
+        // A place from a week already closed, as the closer would have written it.
+        await BoardFixtures.ArchiveAsync(_app, Sunday(14), "looks", 1, authorId, authorsLook, 5);
+
+        var before = await Board();
+        Assert.Equal([(1, 2, othersLook), (2, 1, authorsLook)], BoardFixtures.LookRows(before, "looks"));
+        Assert.Contains(authorsLook, BoardFixtures.PostIds(before, "picks"));
+        Assert.Contains(BoardFixtures.PeopleRows(before), r => r.Handle == "bd_excl_a");
+
+        var (moderator, _, _) = await _app.NewUserAsync("bd_excl_mod");
+        await _app.PromoteAsync("bd_excl_mod");
+        var excluded = await moderator.PostAsJsonAsync("/api/admin/users/bd_excl_a/board-exclusion", new { reason = "a shop's catalogue" });
+        Assert.Equal(HttpStatusCode.OK, excluded.StatusCode);
+        Assert.True((await BoardFixtures.Json(excluded)).GetProperty("boardExcluded").GetBoolean());
+        await BoardFixtures.WithDbAsync(_app, async db => Assert.NotNull((await db.Users.SingleAsync(u => u.Id == authorId)).BoardExcludedAt));
+
+        var again = await moderator.PostAsJsonAsync("/api/admin/users/bd_excl_a/board-exclusion", new { reason = "twice" });
+        Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+        Assert.Equal("This account is already off the board.", (await BoardFixtures.Json(again)).GetProperty("error").GetString());
+
+        // A plain read, the cache not dropped by hand: the write itself must have dropped it.
+        var during = await BoardFixtures.Json(await _app.NewClient().GetAsync("/api/board"));
+        Assert.Equal([(1, 2, othersLook)], BoardFixtures.LookRows(during, "looks"));
+        Assert.DoesNotContain(authorsLook, BoardFixtures.PostIds(during, "picks"));
+        Assert.Contains(othersLook, BoardFixtures.PostIds(during, "picks"));
+        Assert.Equal(["bd_excl_b"], BoardFixtures.PeopleRows(during).Select(r => r.Handle).ToList());
+        // The closed week keeps its rows.
+        Assert.Single(await BoardFixtures.WinnersAsync(_app, Sunday(14)), w => w.UserId == authorId && w.PostId == authorsLook);
+
+        var included = await moderator.DeleteAsync("/api/admin/users/bd_excl_a/board-exclusion");
+        Assert.Equal(HttpStatusCode.OK, included.StatusCode);
+        Assert.False((await BoardFixtures.Json(included)).GetProperty("boardExcluded").GetBoolean());
+        var lifted = await moderator.DeleteAsync("/api/admin/users/bd_excl_a/board-exclusion");
+        Assert.Equal(HttpStatusCode.NotFound, lifted.StatusCode);
+        Assert.Equal("This account isn't off the board.", (await BoardFixtures.Json(lifted)).GetProperty("error").GetString());
+
+        var after = await BoardFixtures.Json(await _app.NewClient().GetAsync("/api/board"));
+        Assert.Equal([(1, 2, othersLook), (2, 1, authorsLook)], BoardFixtures.LookRows(after, "looks"));
+        Assert.Contains(BoardFixtures.PeopleRows(after), r => r.Handle == "bd_excl_a");
+    }
+
     [Fact]
     public async Task Hidden_and_excluded_looks_are_on_no_board_and_an_exclusion_can_be_lifted()
     {

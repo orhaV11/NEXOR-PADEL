@@ -214,6 +214,38 @@ public class DatabaseSetupTests : IDisposable
     }
 
     [Fact]
+    public void The_round20_migration_adds_BoardExcludedAt_and_keeps_a_round19_file_as_it_was()
+    {
+        // Round 20 [7]: the account-level board exclusion is one nullable column on Users; an account from before reads
+        // as on the board, and the upgraded file has the shape a fresh one gets.
+        var path = Path.Combine(_root, "round19-accounts.db");
+        var userId = Guid.NewGuid();
+        using (var db = Open(path))
+        {
+            db.GetService<IMigrator>().Migrate("Round19Tomorrow");
+        }
+
+        Assert.DoesNotContain("BoardExcludedAt", Columns(path, "Users"));
+        Execute(path,
+            "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", " +
+            "\"PreferredLanguage\", \"StreakCount\", \"Suspended\", \"IsAdmin\", \"CreatedAt\") " +
+            "VALUES ($id, 'veteran19', 'veteran19', 'x', 'Person', 0, 1, 'en', 0, 0, 0, $now)",
+            ("$id", userId), ("$now", DateTime.UtcNow));
+
+        using (var db = Open(path))
+        {
+            DatabaseSetup.Apply(db, NullLogger.Instance);
+            var veteran = db.Users.Single(u => u.Id == userId);
+            Assert.Equal("veteran19", veteran.Handle);
+            Assert.Null(veteran.BoardExcludedAt);
+            Assert.Contains(db.Database.GetAppliedMigrations(), m => m.EndsWith("_Round20Wedge", StringComparison.Ordinal));
+        }
+
+        Assert.Contains("BoardExcludedAt", Columns(path, "Users"));
+        Assert.Equal(StructureOf(Fresh("reference-round20.db")), StructureOf(path));
+    }
+
+    [Fact]
     public void A_database_made_by_the_migrations_is_left_alone_and_switched_to_wal()
     {
         var path = Path.Combine(_root, "migrated.db");

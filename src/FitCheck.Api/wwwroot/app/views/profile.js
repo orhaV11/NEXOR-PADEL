@@ -6,7 +6,7 @@
 // (#profile-blocked) where the follow label was, and the grid is whatever the server answers.
 import {
   register, state, t, api, el, icon, iconButton, sheet, avatar, brandMark, handleText, postGrid, followButton, infiniteList, setTopBar,
-  navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel, hashQuery
+  navigate, signInPrompt, emptyState, errorBlock, signOut, isMe, fmtNumber, fmtCompact, fmtDate, intentLabel, hashQuery, scoreStyle
 } from '../core.js';
 import { profileBadge, emptyCall } from './board.js';
 import { blockAccount, unblockAccount } from './blocked.js';
@@ -290,7 +290,7 @@ function checkRow(check) {
   const headline = check.feedback && check.feedback.headline;
   // A div, not the list item: Round 14 puts the loop under the row inside one <li class="check-entry">.
   return el('div', { class: 'check-row' }, [
-    el('div', { class: 'num', role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(check.score) }) }, [fmtNumber(check.score), el('small', { text: t('result.out_of') })]),
+    el('div', { class: 'num', role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(check.score) }), style: scoreStyle(check.score) }, [fmtNumber(check.score), el('small', { text: t('result.out_of') })]),   // Round 21: the same meter the cards wear
     el('div', { class: 'info' }, [
       el('div', { class: 'chips', style: 'gap: 6px;' }, [
         el('span', { class: 'tag', text: intentLabel(check.intent) }),

@@ -1359,7 +1359,17 @@ export function scoreBadge(score) {
   // Round 14 - post the look, keep the grade: no number, no ring. The photo simply carries nothing where it sat, and
   // every caller can append this unconditionally, the way breakdownRow() already works.
   if (score === null || score === undefined) return null;
-  return el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(score) }), el('small', { text: t('result.out_of') })]);
+  return el('span', { class: 'score-badge', 'aria-hidden': 'true', style: scoreStyle(score) }, [el('b', { text: fmtNumber(score) }), el('small', { text: t('result.out_of') })]);
+}
+
+/**
+ * Round 21: the ring is a meter. app.css §5 paints its arc from --score (36° a point, the gap at the foot), so every
+ * ring gets the number as an inline custom property: clamped to 0..10, and none at all (the ring stays full) when the
+ * value is not a number. The same string goes on the hero (check.js) and the checks list's .num (profile.js).
+ */
+export function scoreStyle(score) {
+  const n = Number(score);
+  return score === null || score === undefined || !Number.isFinite(n) ? null : '--score:' + Math.max(0, Math.min(10, n));
 }
 
 /**
@@ -1370,7 +1380,7 @@ export function scoreBadge(score) {
 export function breakdownRow(breakdown) {
   if (!breakdown) return null;
   const cell = (key, value) => el('li', { 'data-part': key }, [
-    el('span', { class: 'score-badge', 'aria-hidden': 'true' }, [el('b', { text: fmtNumber(value) }), el('small', { text: t('result.out_of') })]),
+    el('span', { class: 'score-badge', 'aria-hidden': 'true', style: scoreStyle(value) }, [el('b', { text: fmtNumber(value) }), el('small', { text: t('result.out_of') })]),
     el('span', { class: 'breakdown-label', text: t('result.' + key) }),
     el('span', { class: 'sr-only', text: ' ' + fmtNumber(value) + t('result.out_of') })
   ]);
@@ -1432,7 +1442,9 @@ export function postCard(post, opts) {
       el('a', { class: 'name', href: '#/u/' + encodeURIComponent(user.handle), style: 'text-decoration:none' }, [user.name, brandMark(user)]),
       el('div', { class: 'sub' }, [handleText(user.handle), ' · ' + relative(post.createdAt)])
     ]),
-    el('span', { class: 'tag', text: intentLabel(post.intent) }),
+    // Round 21: the intent is the look's occasion; the tag and the card (below) carry it as data-occasion, which the
+    // stylesheet's occasion map turns into the tag's pastel and the card's coloured glow (app.css §1, §5).
+    el('span', { class: 'tag', 'data-occasion': post.intent || null, text: intentLabel(post.intent) }),
     el('button', { type: 'button', class: 'icon-btn menu-open', 'aria-label': t('common.more'), onclick: () => openPostMenu(post, { saveButton: saveBtn, onDelete: opts.onDelete, onChange: opts.onChange }) }, [icon('more')])
   ]);
   // A clip plays where the photo would be (its poster is the judged still); the clip glyph says so at the top-start corner.
@@ -1475,7 +1487,7 @@ export function postCard(post, opts) {
     el('button', { type: 'button', class: 'action', 'aria-label': t('post.share'), onclick: () => sharePost(post) }, [icon('share')]),
     opts.votes !== undefined ? el('span', { class: 'tag accent end', text: t('post.votes', { n: fmtNumber(opts.votes) }) }) : null
   ]);
-  return el('article', { class: 'card' + (isClip ? ' has-clip' : ''), 'data-post': post.id }, [head, mediaNode, body, actions]);
+  return el('article', { class: 'card' + (isClip ? ' has-clip' : ''), 'data-post': post.id, 'data-occasion': post.intent || null }, [head, mediaNode, body, actions]);
 }
 
 /** A person or brand row with a follow button. card is UserCardDto ({ user, followers, posts, following }) or a bare UserRefDto. */

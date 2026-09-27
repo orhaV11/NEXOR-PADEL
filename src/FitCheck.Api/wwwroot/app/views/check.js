@@ -28,7 +28,7 @@
 // #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
 // #install-hint is the one-time iOS Safari note under the share row.
 import {
-  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, scoreStyle, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
 } from '../core.js';
 import { pendingSource } from '../invite.js';
 import { shareCardButton, lookFromCheck } from '../sharecard.js';
@@ -856,7 +856,9 @@ register('result', async (root, params, ctx) => {
   const fill = el('div', { class: 'bar-fill', style: animate ? 'inline-size: 0%;' : 'transition: none; inline-size: ' + feedback.intentMatch + '%;' });
 
   container.appendChild(el('div', {}, [
-    el('div', { class: 'hero', role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(feedback.score) }) }, [
+    // Round 21: the ring is a meter (--score, app.css §5) that draws its arc on; .landed is the count-up's last frame
+    // (animateScore below), or there from the start when nothing counts up (reduced motion, a screen drawn again).
+    el('div', { class: 'hero' + (animate ? '' : ' landed'), role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(feedback.score) }), style: scoreStyle(feedback.score) }, [
       scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
     ]),
     el('h1', { class: 'result-headline', text: feedback.headline, style: 'margin-block-start: 16px;' }),
@@ -1166,12 +1168,14 @@ function openPostSheet(area, result) {
 
 function animateScore(node, target) {
   const start = performance.now();
+  const hero = node.closest('.hero');
   let frame = 0;
   const tick = (now) => {
     const progress = Math.min(1, (now - start) / SCORE_COUNT_MS);
     const eased = 1 - Math.pow(1 - progress, 3);
     node.textContent = fmtNumber(Math.round(eased * target));
     if (progress < 1) frame = requestAnimationFrame(tick);
+    else if (hero) hero.classList.add('landed');   // Round 21: the last frame; the ring answers with its small overshoot (app.css .hero.landed)
   };
   frame = requestAnimationFrame(tick);
   onLeave(() => { cancelAnimationFrame(frame); node.textContent = fmtNumber(target); });

@@ -24,7 +24,7 @@ const CSS = `
 .empty-call .empty-actions .btn { inline-size: 100%; }
 /* inside a look grid (a profile's Looks tab) the kit's .grid a tile rule out-specifies .btn: the pill stays a pill there */
 .grid .empty-call .empty-actions a.btn { display: inline-flex; background: var(--grad); color: var(--accent-ink); border-radius: var(--pill); }
-.grid .empty-call .empty-actions a.btn-secondary { background: transparent; color: var(--ink); }
+.grid .empty-call .empty-actions a.btn-secondary { background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(135deg, rgba(179, 157, 255, 0.7), rgba(255, 143, 177, 0.7)) border-box; color: var(--ink); }   /* the kit's secondary outline (app.css §8), restated for the same reason */
 `;
 let styled = false;
 function ensureStyle() {

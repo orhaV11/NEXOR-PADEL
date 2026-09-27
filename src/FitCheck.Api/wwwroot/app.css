@@ -191,11 +191,13 @@ html[lang="ru"] h1, html[lang="ru"] .result-headline, html[lang="ru"] .headline 
 .top {
   position: sticky; inset-block-start: 0; z-index: 5;
   background: var(--bg-2);
-  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  border-block-end: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-2) 78%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);   /* the one blur in the app */
+  border-block-end: 1px solid var(--line-soft);
   padding-block-start: var(--safe-t);
 }
+/* no blur, no glass: an engine without backdrop-filter gets the masthead opaque, so the feed never shows through the wordmark */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .top { background: var(--bg-2); } }
 .top-inner { max-inline-size: var(--col); margin-inline: auto; block-size: var(--top); display: flex; align-items: center; justify-content: space-between; padding-inline: 16px; gap: 10px; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 /* a logo: left-to-right in both languages; the SVG is the wordmark, the text only shows when index.html has no template */
@@ -209,7 +211,7 @@ html[lang="ru"] h1, html[lang="ru"] .result-headline, html[lang="ru"] .headline 
   inline-size: 44px; block-size: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--ink-2);
   display: inline-grid; place-items: center; text-decoration: none; position: relative;
 }
-.icon-btn:active { background: var(--surface-2); }
+.icon-btn:active { background: var(--accent-tint); }
 [dir="rtl"] .icon-btn.back svg { transform: scaleX(-1); }
 .icon-btn svg, .icon svg { inline-size: 24px; block-size: 24px; }
 .icon { display: inline-grid; place-items: center; }
@@ -236,10 +238,15 @@ main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
   position: fixed; inset-inline: 14px; inset-block-end: calc(10px + var(--safe-b)); z-index: 6;
   max-inline-size: calc(var(--col) - 28px); margin-inline: auto;
   background: var(--surface);   /* opaque: nothing ghosts through */
-  border: 1px solid var(--line); border-radius: var(--pill);
+  border: 1px solid var(--glass-edge); border-radius: var(--pill);
   box-shadow: var(--shadow-dock);
 }
-.tabbar-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 80px minmax(0, 1fr) minmax(0, 1fr); block-size: 56px; }   /* fixed columns: a long label overflows its block, it never moves the mark off centre */
+/* a warm sheen across the dock, lilac to rose to amber at a tenth, under the tabs (the inner grid is positioned so it paints above it) */
+.tabbar::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(90deg, rgba(179, 157, 255, 0.12), rgba(255, 143, 177, 0.09) 55%, rgba(255, 180, 107, 0.1));
+}
+.tabbar-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 80px minmax(0, 1fr) minmax(0, 1fr); block-size: 56px; }   /* fixed columns: a long label overflows its block, it never moves the mark off centre */
 /* four text destinations: full-height tap blocks, colour is the state, a gradient dot marks the current one */
 .tab {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -266,7 +273,7 @@ main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
 .tab.check .mark {
   position: absolute; inset-block-start: -24px; inset-inline-start: 50%; margin-inline-start: -30px;
   inline-size: 60px; block-size: 60px; padding: 6px; border-radius: 50%; background: var(--bg);
-  box-shadow: var(--shadow-halo); display: block; direction: ltr;
+  box-shadow: var(--shadow-halo), inset 0 1px 0 rgba(255, 255, 255, 0.08); display: block; direction: ltr;   /* the rose halo, and a light on the disc's top edge */
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 .tab.check:active .mark { transform: scale(0.96); }
@@ -283,15 +290,24 @@ main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
   inline-size: 100%; min-block-size: 52px; border: 1px solid transparent; border-radius: var(--pill);
   background: var(--grad); color: var(--accent-ink); font-weight: 700; font-size: 15px; letter-spacing: 0.01em; padding-inline: 20px; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
-  box-shadow: var(--shadow-primary); transition: transform 120ms ease;
+  box-shadow: var(--shadow-primary);
 }
-.btn:active { transform: scale(0.985); }
+/* the press: anything that is a button dips 2px in 90ms. The translate property, not transform, so it composes with a
+   chip's rotate (the pieces pinned on the result photo). §9 collapses the transition and takes the dip away. */
+.btn, .chip, .action, .segment, .pill, .vote { transition: translate 90ms ease, box-shadow 90ms ease; }
+.btn:active, .chip:active, .action:active, .segment:active, .pill:active, .vote:active { translate: 0 2px; }
+.btn:active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(255, 143, 177, 0.22); }   /* pressed, it sits lower: a shorter shadow */
 /* disabled reads as "not yet", not as a faded block */
-.btn:disabled { opacity: 1; background: var(--surface-2); color: var(--ink-3); border: 1px dashed var(--line); box-shadow: none; transform: none; cursor: not-allowed; }
-.btn-secondary { background: transparent; color: var(--ink); border-color: var(--line); box-shadow: none; }
-.btn-secondary:active { background: var(--surface-2); }
+.btn:disabled { opacity: 1; background: var(--surface-2); color: var(--ink-3); border: 1px dashed var(--line); box-shadow: none; translate: none; cursor: not-allowed; }
+/* the secondary door: a 1px gradient outline (the .featured trick, the gradient at 70%) over the solid surface, lit along its top */
+.btn-secondary {
+  color: var(--ink); border-color: transparent; box-shadow: var(--glass-hi);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(135deg, rgba(179, 157, 255, 0.7), rgba(255, 143, 177, 0.7)) border-box;
+}
+.btn-secondary:active { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; box-shadow: none; }
 .btn-ghost { background: transparent; color: var(--ink-2); border-color: transparent; box-shadow: none; }
 .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); box-shadow: none; }
+.btn-ghost:active, .btn-danger:active, .btn-sm:active { box-shadow: none; }
 /* the small label: the gradient when it invites, outlined with a lilac check once you follow */
 .btn-sm { inline-size: auto; min-block-size: 36px; padding-inline: 14px; gap: 6px; box-shadow: none; }
 .btn-sm .icon svg { inline-size: 14px; block-size: 14px; color: var(--accent); }
@@ -300,7 +316,7 @@ main { max-inline-size: var(--col); margin-inline: auto; min-block-size: 60vh; }
 .btn-text { background: none; border: 0; color: var(--accent); padding: 10px 0; min-block-size: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(179, 157, 255, 0.5); cursor: pointer; }
 .pill {
   appearance: none; -webkit-appearance: none;
-  border: 1px solid var(--line); border-radius: var(--pill); background: transparent; color: var(--ink);
+  border: 1px solid var(--line-soft); border-radius: var(--pill); background: var(--glass); color: var(--ink);
   min-block-size: 36px; padding-block: 0; padding-inline: 14px; text-decoration: none;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
 }
@@ -310,12 +326,20 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 .chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding-block: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }   /* 40px chips in a 44px row */
 .chips.scroll::-webkit-scrollbar { display: none; }
 .chip {
-  border: 1px solid transparent; border-radius: var(--pill); background: var(--surface-2); color: var(--ink-2);
+  border: 1px solid var(--line-soft); border-radius: var(--pill); background: var(--surface-2); color: var(--ink-2);
   padding-block: 0; padding-inline: 14px; font-size: 14px; font-weight: 500; min-block-size: 40px; white-space: nowrap; flex: none;
-  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
-.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.chip[aria-pressed="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; font-weight: 700; box-shadow: 0 6px 18px rgba(255, 143, 177, 0.24); }   /* pressed: the gradient, and it glows */
 .chip:disabled { opacity: 0.35; }
+/* an occasion chip carries its pastel (the map in §1): at rest a 7px swatch on a 12% wash of it; pressed, the pastel is
+   the fill and the ink is dark on it (every pastel carries --accent-ink at 10.5:1 or better). A tint, never an outline.
+   data-occasion: the check's and Tomorrow's occasion rows; data-intent: the feed's and the board's filter, the check's
+   style row (the one word each contributes; "" is the feed's All and the No style chip, which stay plain). */
+.chip[data-occasion], .chip[data-intent]:not([data-intent=""]) { background: linear-gradient(var(--tint-wash), var(--tint-wash)), var(--surface-2); color: var(--ink); }
+.chip[data-occasion]::before, .chip[data-intent]:not([data-intent=""])::before { content: ""; flex: none; inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--tint); box-shadow: 0 0 8px var(--tint-glow); }
+.chip[data-occasion][aria-pressed="true"], .chip[data-intent]:not([data-intent=""])[aria-pressed="true"] { background: var(--tint); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px var(--tint-wash); }
+.chip[data-occasion][aria-pressed="true"]::before, .chip[data-intent]:not([data-intent=""])[aria-pressed="true"]::before { background: var(--accent-ink); opacity: 0.55; box-shadow: none; }
 /* the feed switch: two coins named after the halves of the mark (the flame = For you, the ring = Your circle). The
    current one is lit: a gradient pill with the word on it and the flame in fire; the other waits cool beside it, no
    underline and no sliding thumb. Switching re-renders, and the newly lit coin fades its fill in and pops its glyph. */
@@ -324,7 +348,7 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
   flex: none; position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-block-size: 44px;
   border: 0; border-radius: var(--pill); background: transparent; padding-block: 0; padding-inline: 16px;
   font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1; color: var(--ink-2); cursor: pointer;
-  transition: color 200ms ease;
+  transition: color 200ms ease, translate 90ms ease, box-shadow 90ms ease;
 }
 .segment::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--grad); opacity: 0; transition: opacity 220ms ease; }
 .segment .glyph { display: grid; place-items: center; inline-size: 22px; block-size: 22px; margin-inline-start: -4px; }
@@ -332,7 +356,7 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 .segment:not([aria-pressed="true"]) .glyph { color: var(--ink-3); }                            /* a cool coin: gray flame, gray ring */
 .segment:not([aria-pressed="true"]):hover { color: var(--ink); }
 .segment:not([aria-pressed="true"]):active { color: var(--ink); }
-.segment[aria-pressed="true"] { color: var(--accent-ink); box-shadow: 0 8px 22px rgba(255, 143, 177, 0.22); }   /* lit: the gradient, and it glows */
+.segment[aria-pressed="true"] { color: var(--accent-ink); box-shadow: 0 8px 24px rgba(255, 143, 177, 0.28); }   /* lit: the gradient, and it glows */
 .segment[aria-pressed="true"]::before { opacity: 1; }
 .segment[aria-pressed="true"] .glyph svg { fill: var(--fire); }                                  /* the flame catches fire on the lit coin */
 .segment[aria-pressed="true"] .glyph svg circle { fill: none; stroke: currentColor; }            /* the ring stays a ring, in ink */
@@ -351,6 +375,7 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 input[type="text"], input[type="password"], input[type="url"], input[type="search"], input[type="datetime-local"], textarea, select:not(.pill) {
   inline-size: 100%; min-block-size: 50px; border: 0; border-radius: var(--radius-sm); background: var(--surface-2);
   padding-block: 10px; padding-inline: 14px; font-size: 16px; color: var(--ink); outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px var(--line-soft);   /* a raised field: a top light and a hairline; the focus ring below replaces both */
 }
 input[type="text"], input[type="password"], input[type="url"], input[type="search"], input[type="datetime-local"], textarea { -webkit-appearance: none; appearance: none; }
 textarea { min-block-size: 96px; resize: vertical; }
@@ -359,18 +384,25 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 ::placeholder { color: var(--ink-3); opacity: 1; }
 .checkline { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; cursor: pointer; }
 .checkline input[type="checkbox"] { inline-size: 22px; block-size: 22px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
-.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: transparent; border: 1px solid var(--line); border-radius: var(--radius-sm); padding-block: 12px; padding-inline: 14px; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--glass); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding-block: 12px; padding-inline: 14px; }
 .switch input { inline-size: 44px; block-size: 26px; appearance: none; -webkit-appearance: none; background: var(--line); border-radius: var(--pill); position: relative; flex: none; margin: 0; cursor: pointer; }
 .switch input::after { content: ""; position: absolute; inset-block-start: 3px; inset-inline-start: 3px; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--ink); transition: transform 160ms ease; }
 .switch input:checked { background: var(--grad); }
 .switch input:checked::after { transform: translateX(18px); }
 [dir="rtl"] .switch input:checked::after { transform: translateX(-18px); }
-.alert { border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-tint); padding-block: 10px; padding-inline: 14px; font-size: 14px; }
+.alert { border: 1px solid rgba(179, 157, 255, 0.5); border-radius: var(--radius-sm); background: var(--accent-tint); padding-block: 10px; padding-inline: 14px; font-size: 14px; }
 .alert.danger { border-color: var(--danger); color: var(--danger); background: rgba(255, 93, 122, 0.08); }
-.notice { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-card); }
+/* a panel that is not a look card wears the same glass: the notice, the install banner, the reset-day card, a leaderboard row, the prize (each at its own rule) */
+.notice, .useful { background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-card); }
 .notice h3 { margin-block-end: 6px; }
-.empty { color: var(--ink-3); font-size: 15px; text-align: center; padding-block: 40px; padding-inline: 20px; }
-.empty b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; color: var(--ink-2); margin-block-end: 6px; }
+/* empty states: charm. The mark, large, in a soft rose-lilac glow (board.js emptyCall and tomorrow.js emptyState prepend
+   span.empty-mark, a clone of #mark-template through logoMark(136), before .empty b), one warm sentence, the way on under it */
+.empty { color: var(--ink-2); font-size: 16px; line-height: 1.5; text-align: center; padding-block: 24px 20px; padding-inline: 20px; }
+.empty b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.15; color: var(--ink); margin-block-end: 8px; }
+.empty-mark { position: relative; display: block; inline-size: 136px; block-size: 136px; margin-inline: auto; margin-block-end: 20px; direction: ltr; }
+.empty-mark::before { content: ""; position: absolute; inset: -56px; border-radius: 50%; pointer-events: none; background: radial-gradient(50% 50% at 50% 50%, rgba(255, 143, 177, 0.3), rgba(179, 157, 255, 0.18) 45%, transparent 72%); }
+.empty-mark svg { position: relative; display: block; inline-size: 100%; block-size: 100%; overflow: visible; filter: drop-shadow(0 12px 28px rgba(255, 143, 177, 0.35)); }
+.empty-mark .flame { opacity: 1; }   /* the flame stays lit: dimmed, it read as mud on the plum */
 /* search: a pill input with the icon at the start */
 .search { position: relative; }
 .search input { min-block-size: 48px; border-radius: var(--pill); padding-inline-start: 44px; }
@@ -384,7 +416,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
   flex: none; display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 14px; color: var(--accent-ink); text-decoration: none; background: var(--surface-2);
 }
 .avatar img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-.avatar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--line); pointer-events: none; }   /* people: a 2px line ring */
+.avatar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--line-soft); pointer-events: none; }   /* people: a 2px light ring */
 /* brands: a gradient ring (the ring cut out of a gradient disc) */
 .card-head:has(.brand-mark) > .avatar::after, .person:has(.brand-mark) > .avatar::after, .profile-head:has(.brand-mark) > .avatar::after, .brand-card .avatar::after, .challenge-meta .avatar::after {
   box-shadow: none; padding: 2px; background: var(--grad);
@@ -415,48 +447,67 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .brand-card .btn-sm { margin-block-start: 4px; inline-size: 100%; }
 
 /* ---------- §5 the look card ---------- */
+/* the photo IS the card: glass with a 1px light edge and no padding, the picture edge to edge between the head and the body */
 .card {
-  background: var(--surface); border-radius: var(--radius);
-  margin: 0 14px 20px; padding: 10px 10px 6px; box-shadow: var(--shadow-card);
+  background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius);
+  margin: 0 14px 20px; padding: 0; box-shadow: var(--shadow-card);
 }
+/* a card that knows its occasion (core.js postCard sets data-occasion from the intent) sits in that pastel's glow instead
+   of the plain lift: rose for a Date look, lemon for Streetwear. The glow is a shadow; the card has no frame. */
+.card[data-occasion] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 22px 60px var(--tint-glow), 0 2px 18px var(--tint-wash); }
 .view.flush > div > .card:first-child, .view.flush > div > div > .card:first-child { margin-block-start: 4px; }
-.card-head { display: flex; align-items: center; gap: 10px; padding-inline: 4px; padding-block: 4px 12px; }
-.card-head .avatar { inline-size: 36px; block-size: 36px; font-size: 13px; }
+.card-head { display: flex; align-items: center; gap: 10px; padding-inline: 14px; padding-block: 12px 10px; }
+.card-head .avatar { inline-size: 38px; block-size: 38px; font-size: 13px; }
 .card-head .tag { flex: none; }
 .card-head .icon-btn { margin-inline-end: -4px; }
-/* the intent as a label pill; .tag.accent is the gradient label (votes, posted, the hashtag); .tag.rose the rose outline (winner) */
+/* the intent as a label pill; with an occasion it is that pastel on its wash (the card head, #asked-for); .tag.accent is
+   the gradient label (votes, posted, the hashtag); .tag.rose the rose outline (winner, No style) */
 .tag { display: inline-flex; align-items: center; min-block-size: 24px; padding-inline: 9px; border-radius: var(--pill); color: var(--accent); background: var(--accent-tint); white-space: nowrap; text-decoration: none; }
+.tag[data-occasion] { color: var(--tint); background: var(--tint-wash); }
 .tag.accent { color: var(--accent-ink); background: var(--grad); }
-.tag.rose { color: var(--accent-2); background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 143, 177, 0.6); }
-/* the photo: rounded, no frame, the ring straddling its bottom-end corner */
-.card-photo { position: relative; display: block; overflow: visible; background: var(--surface-2); border-radius: 14px; }
+.tag.rose { color: var(--accent-2); background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 143, 177, 0.7); }
+/* the photo: edge to edge, no frame, the ring straddling its bottom-end corner */
+.card-photo { position: relative; display: block; overflow: visible; background: var(--surface-2); border-radius: 0; }
 .card-photo img { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
 /* a clip fills the same box; its poster is the judged still, so the card reads the same before the clip has loaded */
 .card-photo video { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; background: var(--surface-2); }
+/* the vignette: a scrim in the stage colour up from the photo's foot (so a dark selfie keeps a tonal foot and the pieces
+   can sit on it) and a faint one down from the top; over the picture, under the ring and the pills (z 2) */
+.card-photo::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(to top, var(--scrim) 0%, rgba(20, 16, 30, 0.26) 24%, transparent 48%), linear-gradient(to bottom, rgba(20, 16, 30, 0.28), transparent 18%);
+}
 .card-media { position: relative; }
 /* the clip glyph at the top-start corner: how a clip is told from a photo in a card, a grid and the wall */
-.clip-pill { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.7); color: var(--ink); pointer-events: none; }
+.clip-pill { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(20, 16, 30, 0.7); color: var(--ink); pointer-events: none; }
 .clip-pill svg { inline-size: 12px; block-size: 12px; }
 .clip-pill span { font: var(--caps); font-size: 9.5px; letter-spacing: var(--caps-track); text-transform: uppercase; }
 [dir="rtl"] .clip-pill span { font-size: 11px; }
 /* the sound toggle: a 44px target at the photo's top-end corner, a 32px disc on a translucent dark ground; lilac once sound is on */
 .card-media .sound { position: absolute; inset-block-start: 4px; inset-inline-end: 4px; z-index: 3; inline-size: 44px; block-size: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
-.card-media .sound::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(11, 11, 15, 0.6); }
-.card-media .sound:active::before { background: rgba(11, 11, 15, 0.8); }
+.card-media .sound::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(20, 16, 30, 0.6); }
+.card-media .sound:active::before { background: rgba(20, 16, 30, 0.8); }
 .card-media .sound .icon { position: relative; }
 .card-media .sound svg { inline-size: 18px; block-size: 18px; }
 .card-media .sound.on { color: var(--accent); }   /* sound on; under reduced motion, playing */
-/* §3 the score ring: a gradient ring around a surface disc, the numeral inside, "/10" under it */
+/* §3 the score ring as a METER: the arc fills to the score (7/10 is 252° from the bottom-left, the gap at the foot like a
+   gauge) over a solid disc, the numeral inside, "/10" under it. --score is an inline style var set by core.js
+   scoreBadge() and breakdownRow() and by the checks list's .num; with none set the ring is full. A conic does not
+   mirror in RTL, and neither does a numeral. --arc is registered so the hero (check & result) can draw its arc on. */
+@property --arc { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.score-badge, .hero, .view .check-row .num {
+  --score: 10; --arc: calc(var(--score) * 36deg);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, conic-gradient(from 210deg, #b39dff 0deg, #ff8fb1 var(--arc), var(--ring-track) 0) border-box;
+}
 .score-badge {
-  position: absolute; inset-block-end: -14px; inset-inline-end: 14px; z-index: 2;
-  inline-size: 44px; block-size: 44px; border-radius: 50%; border: 3px solid transparent;
-  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box;
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 0.9; color: var(--ink); direction: ltr;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  position: absolute; inset-block-end: -16px; inset-inline-end: 14px; z-index: 2;
+  inline-size: 48px; block-size: 48px; border-radius: 50%; border: 4px solid transparent;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  font-family: var(--font-display); font-weight: 800; font-size: 25px; line-height: 0.9; letter-spacing: -0.03em; color: var(--ink); direction: ltr;
+  box-shadow: 0 0 0 4px rgba(20, 16, 30, 0.55), 0 8px 22px rgba(255, 143, 177, 0.32);   /* a stage-colour collar against the photo, a rose shadow */
 }
 .score-badge b { font: inherit; }
-.score-badge small { font: 700 8px/1 var(--font-body); letter-spacing: 0.02em; color: var(--ink-3); }
+.score-badge small { font: 700 7px/1 var(--font-body); letter-spacing: 0.02em; color: var(--ink-3); }
 .burst-flame {
   position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: var(--fire); z-index: 3;
   animation: burst 700ms ease-out forwards; filter: drop-shadow(0 6px 18px rgba(255, 106, 43, 0.5));
@@ -464,9 +515,9 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .burst-flame svg { inline-size: 110px; block-size: 110px; }
 @keyframes burst { 0% { opacity: 0; transform: scale(0.4); } 25% { opacity: 1; transform: scale(1.1); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2) translateY(-10px); } }
 /* the body */
-.card-body { padding-inline: 4px; padding-block: 22px 6px; }
-.card-body > * + * { margin-block-start: 8px; }
-.headline { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; }
+.card-body { padding-inline: 14px; padding-block: 26px 8px; }   /* 26 clears the ring's overhang */
+.card-body > * + * { margin-block-start: 10px; }
+.headline { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; }
 .caption { font-size: 15px; line-height: 1.5; color: var(--ink-2); white-space: pre-line; overflow-wrap: anywhere; }
 .caption a, .rich a { color: var(--accent); text-decoration: none; font-weight: 600; unicode-bidi: plaintext; }   /* a #tag or @mention keeps its sign at its own start inside a Hebrew line */
 /* Featured by NEXOR: a gradient-outlined pill */
@@ -477,7 +528,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .featured svg { inline-size: 12px; block-size: 12px; color: var(--accent-2); }
 .match { display: flex; align-items: center; gap: 12px; color: var(--ink-3); }
 .match .bar { flex: 1; }
-.bar { block-size: 3px; border-radius: var(--pill); background: var(--surface-2); overflow: hidden; }
+.bar { block-size: 4px; border-radius: var(--pill); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .bar-fill { block-size: 100%; border-radius: inherit; background: var(--grad); transition: inline-size 600ms ease-out; }
 .challenge-link { color: var(--accent); text-decoration: none; }
 .card .challenge-link { display: inline-block; }
@@ -485,11 +536,12 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .shop a { display: inline-flex; align-items: center; gap: 6px; min-block-size: 36px; padding-inline: 12px; font-size: 14px; color: var(--ink-2); text-decoration: none; background: transparent; border: 1px solid var(--line); border-radius: var(--pill); }
 .shop a svg { inline-size: 16px; block-size: 16px; }
 .shop a b { color: var(--accent); font-weight: 600; }
-/* actions: outlined pills in a 50px row */
-.actions { display: flex; align-items: center; gap: 6px; padding-inline: 0; padding-block: 8px 2px; min-block-size: 50px; border-block-start: 1px solid var(--line-soft); margin-block-start: 8px; }
+/* actions: raised pills in a 50px row */
+.actions { display: flex; align-items: center; gap: 6px; padding-inline: 10px; padding-block: 8px 10px; min-block-size: 50px; border-block-start: 1px solid var(--line-soft); margin-block-start: 6px; }
 .action {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 1px solid var(--line-soft); border-radius: var(--pill);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--pill);
   color: var(--ink-2); min-block-size: 42px; min-inline-size: 42px; padding-block: 0; padding-inline: 12px 14px; text-decoration: none; position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .action[aria-label] { padding-inline: 0; inline-size: 42px; }   /* save and share are icon-only; their names live in aria-label */
 .action svg { inline-size: 19px; block-size: 19px; flex: none; }   /* the glyph is the button; it is never the thing that gives way */
@@ -500,9 +552,15 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
    pill; core.js's sr-only spans keep the accessible name either way. The label comes back with the wide layout at the
    one breakpoint this sheet has (§ min-width: 560px), where it fits, and ellipsises there rather than spilling. */
 .action .lbl { display: none; color: var(--ink-3); min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.action[aria-pressed="true"] { color: var(--fire); border-color: var(--fire); background: var(--fire-tint); }
+.action[aria-pressed="true"] { color: var(--fire); border-color: var(--fire); background: var(--fire-tint); box-shadow: 0 0 20px rgba(255, 106, 43, 0.28); }
 .action[aria-pressed="true"] .count, .action[aria-pressed="true"] .lbl { color: var(--fire); }
-.action.save[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: transparent; }
+.action.save[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-tint); box-shadow: none; }
+/* the lit flame breathes: a glow layer under the pressed pill, opacity only, 3s there and back; §9 collapses it to a still glow */
+.action.fire[aria-pressed="true"]::before {
+  content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 22px rgba(255, 106, 43, 0.45); animation: fire-glow 3s ease-in-out infinite alternate;
+}
+@keyframes fire-glow { from { opacity: 0.25; } to { opacity: 1; } }
 .actions .end { margin-inline-start: auto; }
 .action.burst::after {
   content: ""; position: absolute; inset-inline-start: 20px; inset-block-start: 50%; inline-size: 12px; block-size: 12px; border-radius: 50%;
@@ -510,9 +568,10 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 }
 @keyframes spark { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(4.5); opacity: 0; } }
 /* the breakdown (rubric v2): three sub-score rings in a row, the same ring as the card's but in flow, a caps label under each; the result screen and the look page */
-.breakdown { display: flex; justify-content: flex-start; gap: 28px; list-style: none; margin: 0; padding: 0; }
+.breakdown { display: flex; justify-content: space-around; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .breakdown li { display: flex; flex-direction: column; align-items: center; gap: 8px; min-inline-size: 56px; }
-.breakdown .score-badge { position: static; box-shadow: none; }
+.breakdown .score-badge { position: static; inline-size: 60px; block-size: 60px; border-width: 4px; font-size: 28px; box-shadow: 0 8px 22px rgba(255, 143, 177, 0.22); }   /* static: only the hero draws on */
+.breakdown .score-badge small { font-size: 8px; }
 .breakdown-label { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
 [dir="rtl"] .breakdown-label { font-size: 12.5px; }
 /* the accessories read: a verdict pill (green when they make it, fire when they fight it, quiet otherwise), the pieces seen as small chips, the note, the one to add as a tip block */
@@ -545,7 +604,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .cmp-empty .loading-mark { margin-block-end: 0; }
 .cmp-letter {
   position: absolute; inset-block-start: 8px; inset-inline-start: 8px; z-index: 2; inline-size: 28px; block-size: 28px; border-radius: 50%;
-  display: grid; place-items: center; background: rgba(11, 11, 15, 0.72); color: var(--ink);
+  display: grid; place-items: center; background: rgba(20, 16, 30, 0.72); color: var(--ink);
   font-family: var(--font-display); font-weight: 800; font-size: 14px; line-height: 1; direction: ltr; pointer-events: none;
 }
 .cmp-replace { position: absolute; inset-block-end: 8px; inset-inline: 8px; background: var(--grad); color: var(--accent-ink); border-radius: var(--pill); padding: 7px 10px; font-size: 12px; font-weight: 700; }
@@ -573,9 +632,9 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-inline: 14px; }
 .grid a { position: relative; display: block; text-decoration: none; color: inherit; overflow: visible; background: var(--surface-2); border-radius: var(--radius-sm); }
 .grid img { aspect-ratio: 4 / 5; object-fit: cover; inline-size: 100%; border-radius: inherit; }
-.grid .score-badge { inline-size: 30px; block-size: 30px; border-width: 2px; font-size: 15px; gap: 0; inset-block-end: -8px; inset-inline-end: 6px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }
+.grid .score-badge { inline-size: 32px; block-size: 32px; border-width: 3px; font-size: 16px; gap: 0; inset-block-end: -9px; inset-inline-end: 6px; box-shadow: 0 0 0 3px rgba(20, 16, 30, 0.5), 0 6px 14px rgba(255, 143, 177, 0.25); }
 .grid .score-badge small { font-size: 6px; }
-.grid .private { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; background: rgba(11, 11, 15, 0.8); color: var(--ink-2); padding: 3px 8px; min-block-size: 0; z-index: 1; }
+.grid .private { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; background: rgba(20, 16, 30, 0.8); color: var(--ink-2); padding: 3px 8px; min-block-size: 0; z-index: 1; }
 /* clip tiles: the glyph alone (no room for the word); it steps aside for the author's "under review" tag */
 .grid video { aspect-ratio: 4 / 5; object-fit: cover; inline-size: 100%; border-radius: inherit; display: block; }
 .grid .clip-pill { inset-block-start: 6px; inset-inline-start: 6px; min-block-size: 20px; padding-inline: 5px; }
@@ -587,7 +646,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .grid.wall > a { counter-increment: look; background: none; border-radius: 0; }
 .grid.wall > a:nth-child(2n) { transform: translateY(32px); }
 .grid.wall figure, .x-hero figure { position: relative; background: var(--surface-2); border-radius: 16px; }
-.grid.wall .score-badge, .x-hero .score-badge { inline-size: 36px; block-size: 36px; font-size: 18px; gap: 0; inset-block-end: -12px; inset-inline-end: 10px; }
+.grid.wall .score-badge, .x-hero .score-badge { inline-size: 40px; block-size: 40px; border-width: 4px; font-size: 20px; gap: 0; inset-block-end: -12px; inset-inline-end: 10px; }
 .grid.wall .score-badge small, .x-hero .score-badge small { font-size: 7px; }
 .grid figcaption { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; row-gap: 3px; align-items: baseline; padding-block-start: 14px; }   /* rank, name, intent */
 .grid figcaption .rank { font-family: var(--font-display); font-weight: 700; font-size: 13px; line-height: 1; color: var(--accent); direction: ltr; font-variant-numeric: tabular-nums; }
@@ -632,7 +691,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .index .lead { flex: 1; min-inline-size: 16px; border-block-end: 1px dotted var(--line); transform: translateY(-5px); }
 .index .count { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 /* hashtag challenges: quiet outlined tickets, the hashtag first */
-.x-challenge { display: block; background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-decoration: none; color: inherit; }
+.x-challenge { display: block; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 14px 16px; text-decoration: none; color: inherit; }
 .x-challenge:active { background: var(--surface-2); }
 .x-challenge > * + * { margin-block-start: 6px; }
 .x-challenge .x-hash { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.2; color: var(--accent); }
@@ -643,20 +702,20 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 [dir="rtl"] .x-challenge .x-meta { font-size: 12px; }
 
 /* ---------- challenges ---------- */
-.challenge-card { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-inline: 16px; }
+.challenge-card { background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 16px; margin-inline: 16px; }
 .challenge-card > * + * { margin-block-start: 10px; }
 .challenge-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--ink-3); }
 .challenge-meta a.tag.accent { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; unicode-bidi: plaintext; }   /* a hashtag is data, not a label; its # stays at its own start in Hebrew */
 .challenge-title { font-family: var(--font-display); font-size: 26px; line-height: 1.08; font-weight: 700; }
-.prize { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; }
+.prize { display: flex; gap: 10px; align-items: flex-start; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; box-shadow: var(--shadow-card); }
 .prize svg { inline-size: 22px; block-size: 22px; color: var(--accent); flex: none; }
 .prize a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .thumbs { display: flex; gap: 6px; }
 .thumbs img { inline-size: 56px; block-size: 70px; object-fit: cover; border-radius: 8px; }
 .countdown { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--accent); }
 .lb { display: flex; flex-direction: column; gap: 10px; }
-.lb-row { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: var(--radius-sm); padding: 10px; }
-.lb-row.winner { box-shadow: inset 0 0 0 1px var(--accent); }
+.lb-row { display: flex; gap: 12px; align-items: center; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius-sm); padding: 10px; box-shadow: var(--shadow-card); }
+.lb-row.winner { border-color: var(--accent); }
 .lb-rank { font-family: var(--font-display); font-weight: 700; font-size: 22px; inline-size: 34px; text-align: center; color: var(--ink-3); direction: ltr; }
 .lb-row.winner .lb-rank { color: var(--accent); }
 .lb-row img { inline-size: 64px; block-size: 80px; object-fit: cover; border-radius: 8px; }
@@ -688,15 +747,22 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 @keyframes flame-breathe { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(1.06); } }
 .loading-mark { inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--grad); margin-inline: auto; margin-block-end: 18px; animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(0.7); opacity: 0.5; } 50% { transform: scale(1.3); opacity: 1; } }
-/* the verdict: the score lands inside the ring */
+/* the verdict: the meter at 156px, an 8px ring over the stage's own colour, the numeral at 82px read first and "/10"
+   under it; a 10px stage collar, a 1px light ring, the rose halo and a lilac bloom. The arc draws on over 900ms (the
+   same --arc as the badge, registered in §5; an engine that cannot tween a custom property snaps to the final arc
+   halfway). check.js adds .landed at the count-up's last frame for a 5% overshoot, at once under reduced motion. */
 .hero {
-  inline-size: 168px; block-size: 168px; border-radius: 50%; border: 6px solid transparent;
-  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad) border-box;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; direction: ltr;
-  box-shadow: 0 0 0 8px rgba(179, 157, 255, 0.08), 0 16px 40px rgba(179, 157, 255, 0.22);
+  inline-size: 156px; block-size: 156px; border-radius: 50%; border: 8px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, conic-gradient(from 210deg, #b39dff 0deg, #ff8fb1 var(--arc), var(--ring-track) 0) border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; direction: ltr;
+  box-shadow: 0 0 0 10px rgba(20, 16, 30, 0.62), 0 0 0 11px rgba(255, 255, 255, 0.07), 0 18px 48px rgba(255, 143, 177, 0.4), 0 0 70px rgba(179, 157, 255, 0.28);
+  animation: arc-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.score { font-family: var(--font-display); font-weight: 800; font-size: 80px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink); letter-spacing: -0.03em; }
-.score-out { font: 700 14px/1 var(--font-body); letter-spacing: 0.04em; color: var(--ink-3); }
+@keyframes arc-in { from { --arc: 0deg; } }
+.hero.landed { animation: arc-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both, land 200ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }   /* the count-up lands with a tiny overshoot */
+@keyframes land { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.score { font-family: var(--font-display); font-weight: 800; font-size: 82px; line-height: 0.9; font-variant-numeric: tabular-nums; color: var(--ink); letter-spacing: -0.05em; text-shadow: 0 0 28px rgba(255, 143, 177, 0.45); }
+.score-out { font: 700 12px/1 var(--font-body); letter-spacing: 0.04em; color: var(--ink-3); margin-block-start: 2px; }
 .result-headline { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1.02; }
 .vibe { color: var(--ink-3); margin-block-start: 6px; }
 .match-label { display: flex; justify-content: space-between; font-size: 14px; color: var(--ink-2); margin-block-end: 8px; }
@@ -743,7 +809,7 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 [dir="rtl"] .profile-bio { text-align: right; }
 .profile-bio > * + * { margin-block-start: 6px; }
 .profile-bio a { color: var(--accent); text-decoration: none; font-weight: 500; }
-.statline { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; padding-block: 14px 12px; border-block: 1px solid var(--line); }
+.statline { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; padding-block: 14px 12px; border-block: 1px solid var(--line-soft); }
 .statline > span { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; color: var(--ink-3); font-size: 10.5px; letter-spacing: 0.08em; }
 .statline b { font: 700 22px/1 var(--font-display); letter-spacing: 0; color: var(--ink); direction: ltr; }
 .statline .hot b { color: var(--fire); }
@@ -786,12 +852,13 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
 .post-section h2 { margin-block-end: 4px; }
 
 /* ---------- bottom sheet: a gradient top edge ---------- */
-.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(11, 11, 15, 0.6); animation: fade 160ms ease-out; touch-action: none; }
+.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(12, 8, 20, 0.62); animation: fade 160ms ease-out; touch-action: none; }   /* a plum veil, not black */
 .sheet {
   position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 21; max-inline-size: var(--col); margin-inline: auto;
   background: var(--grad) top / 100% 3px no-repeat, var(--surface);
+  border: 1px solid var(--glass-edge); border-block-end: 0;
   border-start-start-radius: 24px; border-start-end-radius: 24px;
-  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -20px 60px rgba(8, 4, 20, 0.6);
   padding: 13px 16px calc(16px + var(--safe-b)); overflow-y: auto; overscroll-behavior: contain; animation: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   /* --kb is how much of the screen the phone's keyboard has taken (set by sheet() in core.js, 0 when it is down). The
      sheet sits above it and gives up the same height, so its buttons stay on screen and its top does not leave it. */
@@ -818,11 +885,12 @@ body.sheet-open { overflow: hidden; }
   position: fixed; inset-block-end: calc(var(--tabbar) + var(--safe-b) + 12px); inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: 90vw;
   background: var(--ink); color: var(--bg); padding-block: 10px; padding-inline: 18px; border-radius: var(--pill); font-size: 14px; font-weight: 600;
   opacity: 0; transform: translateY(8px); transition: opacity 180ms ease, transform 180ms ease; pointer-events: none; z-index: 30; text-align: center;
+  box-shadow: 0 10px 30px rgba(8, 4, 20, 0.5);
 }
 .toast.show { opacity: 1; transform: translateY(0); }
 .skel { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: var(--radius-sm); }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
-.skel-card { margin-inline: 14px; background: var(--surface); border-radius: var(--radius); padding: 10px; }
+.skel-card { margin-inline: 14px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 10px; }
 .skel-card + .skel-card { margin-block-start: 20px; }
 .skel-card .skel-head { display: flex; gap: 10px; align-items: center; padding: 4px 4px 12px; }
 .skel-card .skel-avatar { inline-size: 36px; block-size: 36px; border-radius: 50%; }
@@ -832,7 +900,7 @@ body.sheet-open { overflow: hidden; }
 .ptr.armed { color: var(--accent); }
 .ptr .loading-mark { margin: 0; }
 .sentinel { block-size: 1px; }
-.install { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: var(--radius); padding: 12px 14px; margin: 12px 14px 0; box-shadow: var(--shadow-card); }
+.install { display: flex; gap: 12px; align-items: center; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 12px 14px; margin: 12px 14px 0; box-shadow: var(--shadow-card); }
 .install .mark { inline-size: 44px; block-size: 44px; flex: none; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--accent); direction: ltr; }
 .install .mark svg { display: block; inline-size: 44px; block-size: 44px; }
 .install .text { flex: 1; min-inline-size: 0; font-size: 14px; }
@@ -848,10 +916,9 @@ body.sheet-open { overflow: hidden; }
 .who > .skel:last-child { border-radius: var(--pill) !important; }   /* the follow label's placeholder */
 .grid > .skel { border-radius: var(--radius-sm) !important; }
 .view .check-row { border-block-end-color: var(--line-soft); }
-/* the check list's score as the same ring the cards wear */
+/* the check list's score as the same meter the cards wear (the ring itself is painted by the §5 rule; profile.js sets --score) */
 .view .check-row .num {
   inline-size: 44px; min-inline-size: 44px; block-size: 44px; border-radius: 50%; border: 3px solid transparent;
-  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad) border-box;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   font-family: var(--font-display); font-weight: 800; font-size: 20px; line-height: 0.9; color: var(--ink); direction: ltr;
 }
@@ -868,6 +935,8 @@ body.sheet-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   body::after { display: none; }   /* the aurora's breath is decoration; the still aurora stays */
+  .btn:active, .chip:active, .action:active, .segment:active, .pill:active, .vote:active { translate: none; }   /* the press dip is feedback, not content; it goes too */
+  .hero { animation: none; }   /* the final arc, at once; nothing waits on it */
 }
 
 /* ---------- §Round 10 items: the dots, the tag toggle, the count, "The look", the item sheet, the tagging editor, the item pages ---------- */
@@ -878,7 +947,7 @@ body.sheet-open { overflow: hidden; }
   position: absolute; inline-size: 44px; block-size: 44px; padding: 0; border: 0; background: transparent; color: var(--ink);
   transform: translate(-50%, -50%); display: grid; place-items: center; cursor: pointer; pointer-events: auto; touch-action: none;
 }
-.item-dot::before { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: rgba(11, 11, 15, 0.72); border: 2px solid var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+.item-dot::before { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: rgba(20, 16, 30, 0.72); border: 2px solid var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
 .item-dot span { position: relative; font: 700 11px/1 var(--font-display); direction: ltr; }
 .item-dot.active::before { background: var(--grad); border-color: transparent; }
 .item-dot.active span { color: var(--accent-ink); }
@@ -889,14 +958,14 @@ body.sheet-open { overflow: hidden; }
   position: absolute; inset-block-end: 2px; left: 2px; z-index: 3; display: inline-flex; align-items: center; gap: 5px; min-inline-size: 44px; min-block-size: 44px;
   padding-block: 0; padding-inline: 12px; border: 0; background: transparent; color: var(--ink); cursor: pointer;
 }
-.items-toggle::before { content: ""; position: absolute; inset: 6px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.66); }
-.items-toggle:active::before { background: rgba(11, 11, 15, 0.85); }
+.items-toggle::before { content: ""; position: absolute; inset: 6px; border-radius: var(--pill); background: rgba(20, 16, 30, 0.66); }
+.items-toggle:active::before { background: rgba(20, 16, 30, 0.85); }
 .items-toggle .icon, .items-toggle .n { position: relative; }
 .items-toggle svg { inline-size: 18px; block-size: 18px; }
 .items-toggle .n { font: 700 13px/1 var(--font-display); direction: ltr; }
 .items-toggle[aria-pressed="true"] { color: var(--accent); }
 /* the count on a card's photo: the same corner, a small pill like the clip glyph's */
-.item-count { position: absolute; inset-block-end: 8px; left: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(11, 11, 15, 0.7); color: var(--ink); pointer-events: none; }
+.item-count { position: absolute; inset-block-end: 8px; left: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; min-block-size: 22px; padding-inline: 7px; border-radius: var(--pill); background: rgba(20, 16, 30, 0.7); color: var(--ink); pointer-events: none; }
 .item-count svg { inline-size: 12px; block-size: 12px; }
 .item-count b { font: 700 11px/1 var(--font-display); direction: ltr; }
 .grid .item-count { display: none; }   /* prints stay the ring alone */
@@ -967,7 +1036,7 @@ body.sheet-open { overflow: hidden; }
 .items-add .icon svg { inline-size: 16px; block-size: 16px; color: var(--accent); }
 .items-add:disabled { opacity: 0.45; cursor: not-allowed; }
 /* the item pages (views/items.js): the search rule, the category chips of a brand page, the brand's account, the print grid */
-.items-cats a.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.items-cats a.chip[aria-pressed="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
 .items-more-link { display: flex; align-items: center; gap: 12px; min-block-size: 52px; padding-block: 4px; color: var(--ink); text-decoration: none; border-block: 1px solid var(--line-soft); }
 .items-more-link .txt { flex: 1; min-inline-size: 0; font-size: 15px; }
 .items-more-link .icon { color: var(--accent); }
@@ -991,7 +1060,7 @@ body.sheet-open { overflow: hidden; }
 .board-closes { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.08; color: var(--ink); overflow-wrap: anywhere; }
 .board-hall-link { flex: none; display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; }
 .board-hall-link svg { inline-size: 18px; block-size: 18px; }
-.board-sponsor { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.board-sponsor { display: grid; gap: 4px; padding: 12px 14px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius-sm); }
 .board-sponsor-by { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); }
 [dir="rtl"] .board-sponsor-by { font-size: 12.5px; }
 .board-sponsor-by a, .board-sponsor-by b { color: var(--accent-2); text-decoration: none; }
@@ -1016,7 +1085,7 @@ body.sheet-open { overflow: hidden; }
 [dir="rtl"] .board-fires { direction: rtl; }
 .board-fires svg { inline-size: 16px; block-size: 16px; }
 /* the medal: a numeral on a disc; the first three burn (the flame gradient), the rest sit on the raised surface */
-.rank-medal { flex: none; display: inline-grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1; direction: ltr; font-variant-numeric: tabular-nums; }
+.rank-medal { flex: none; display: inline-grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1; direction: ltr; font-variant-numeric: tabular-nums; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .rank-medal.top { background: linear-gradient(135deg, var(--fire) 0%, var(--fire-2) 100%); color: #1a0a04; box-shadow: 0 6px 16px rgba(255, 106, 43, 0.35); }
 .rank-medal.sm { inline-size: 28px; block-size: 28px; font-size: 13px; }
 .board-person { display: flex; align-items: center; gap: 12px; padding-inline: 16px; border-block-end: 1px solid var(--line-soft); }
@@ -1031,7 +1100,7 @@ body.sheet-open { overflow: hidden; }
 .board-strip-row .rank-medal, .hall-tile .rank-medal { position: absolute; inset-block-start: -6px; inset-inline-start: -6px; }
 .board-strip-row .board-fires { margin-block-start: 8px; font-size: 13px; }
 /* Home: the reset-day card, in the feed's rhythm above the Today strip */
-.board-reset { display: flex; align-items: flex-start; gap: 8px; margin: 0 14px 20px; padding-block: 14px 10px; padding-inline: 14px 8px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.board-reset { display: flex; align-items: flex-start; gap: 8px; margin: 0 14px 20px; padding-block: 14px 10px; padding-inline: 14px 8px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); }
 .install + .board-reset { margin-block-start: 12px; }
 .board-reset + .today-strip { margin-block-start: 0; }
 .board-reset-text { flex: 1; min-inline-size: 0; }

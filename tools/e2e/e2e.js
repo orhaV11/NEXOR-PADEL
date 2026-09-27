@@ -56,6 +56,38 @@ function start(cmd, args, env, log) {
 }
 
 const base = `http://127.0.0.1:${API_PORT}`;
+const API_ENV = {
+  ASPNETCORE_URLS: `http://127.0.0.1:${API_PORT}`,
+  ANTHROPIC_API_KEY: 'stub-key-not-real',
+  Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
+  ConnectionStrings__Default: `Data Source=${DB}`,
+  Storage__Root: path.join(DATA, 'storage'),
+  Email__Host: 'log',
+  Plans__FreeChecksPerDay: '5',
+  // Round 19: the forecast comes from the stub too (GET /v1/forecast), so Tomorrow dresses for a weather nobody dialled.
+  Weather__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
+  Board__NewAccountDays: '0',
+  Board__MinChecksToCount: '1',
+  Board__CacheSeconds: '0',
+  Email__From: 'OREVOSH <noreply@example.test>',
+};
+let apiProc = null;
+let apiLog = path.join(DATA, 'api.log');
+/** Round 20: the billing leg needs Stripe keys the rest of the run must not have, so the API is stopped and started again with more environment. */
+async function restartApi(extraEnv, log) {
+  const old = apiProc;
+  const gone = new Promise((resolve) => old.once('exit', resolve));
+  old.kill('SIGTERM');
+  await gone;
+  // Wait until the port really refuses, or the new process would lose the bind and the run would hit the dying one.
+  for (let i = 0; i < 60; i++) {
+    try { await get(`${base}/api/config`); } catch (e) { break; }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  apiLog = log;
+  apiProc = start('dotnet', ['run', '--no-build', '--project', REPO], { ...API_ENV, ...extraEnv }, log);
+  await waitFor(`${base}/api/config`);
+}
 const consoleErrors = [];
 const consoleWarnings = [];
 const failedUrls = [];
@@ -97,10 +129,12 @@ const hash = (page) => page.evaluate(() => location.hash);
 const text = (page, sel) => page.textContent(sel).then((s) => (s || '').trim());
 const count = async (page, sel) => (await page.$$(sel)).length;
 const me = async (page) => { const r = await page.request.get(base + '/api/auth/me'); return r.ok() ? await r.json() : null; };
+/** Extra environment for the maintenance commands; the billing leg (Round 20) sets the Stripe keys here so --stripe-check reads them. */
+let maintenanceEnv = {};
 /** Runs one of the app's maintenance commands (--admin, --unadmin, --backup) against the test database, as an owner would on the box. */
 function maintenance(...args) {
   return execFileSync('dotnet', ['run', '--no-build', '--project', REPO, '--', ...args], {
-    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real' }
+    env: { ...process.env, ConnectionStrings__Default: `Data Source=${DB}`, Storage__Root: path.join(DATA, 'storage'), ANTHROPIC_API_KEY: 'stub-key-not-real', ...maintenanceEnv }
   }).toString();
 }
 /** The pilot metrics are for moderators; read them through a promoted person's session. */
@@ -230,22 +264,8 @@ function checkClientModules() {
 
 (async () => {
   console.log('0. client modules parse: ' + checkClientModules() + ' files');
-  start('python3', [path.join(ROOT, 'stub_anthropic.py'), String(STUB_PORT)], {}, path.join(DATA, 'stub.log'));
-  start('dotnet', ['run', '--no-build', '--project', REPO], {
-    ASPNETCORE_URLS: `http://127.0.0.1:${API_PORT}`,
-    ANTHROPIC_API_KEY: 'stub-key-not-real',
-    Anthropic__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
-    ConnectionStrings__Default: `Data Source=${DB}`,
-    Storage__Root: path.join(DATA, 'storage'),
-    Email__Host: 'log',
-    Plans__FreeChecksPerDay: '5',
-    // Round 19: the forecast comes from the stub too (GET /v1/forecast), so Tomorrow dresses for a weather nobody dialled.
-    Weather__BaseUrl: `http://127.0.0.1:${STUB_PORT}`,
-    Board__NewAccountDays: '0',
-    Board__MinChecksToCount: '1',
-    Board__CacheSeconds: '0',
-    Email__From: 'OREVOSH <noreply@example.test>',
-  }, path.join(DATA, 'api.log'));
+  start('python3', [path.join(ROOT, 'stub_anthropic.py'), String(STUB_PORT), base], {}, path.join(DATA, 'stub.log'));
+  apiProc = start('dotnet', ['run', '--no-build', '--project', REPO], API_ENV, apiLog);
 
   await waitFor(`http://127.0.0.1:${STUB_PORT}/`);
   await waitFor(`${base}/api/metrics/pilot`);
@@ -1226,6 +1246,122 @@ function checkClientModules() {
   await dan.waitForSelector(settled);
   await dan.waitForFunction(() => !document.getElementById('top-auth'));
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
+
+  step = '14';
+  // 14. Money (Round 20). The API comes back with Stripe on and pointed at the stub: a yearly price beside the monthly
+  //     one, a seven-day no-card trial. Eli, a fourth person, reads the Pro page (the toggle, the saving computed from
+  //     the two numbers, the trial line and its button), buys the year on trial, and the signed webhook - posted twice,
+  //     the second time ignored by its id - makes him Pro for the trial's days; the portal returns to Settings; a
+  //     cancelled trial ends Pro and mails the "Pro ended" letter; and --stripe-check reads both prices from the stub.
+  const stripeEnv = {
+    Billing__Provider: 'stripe',
+    Billing__StripeSecretKey: 'sk_test_e2e',
+    Billing__StripePriceId: 'price_e2e_month',
+    Billing__StripeYearlyPriceId: 'price_e2e_year',
+    Billing__StripeWebhookSecret: 'whsec_e2e',
+    Billing__StripeBaseUrl: `http://127.0.0.1:${STUB_PORT}/`,
+    Billing__PublicOrigin: base,
+    Plans__ProPriceAmount: '29',
+    Plans__ProPriceCurrency: 'USD',
+    Plans__ProYearlyPriceAmount: '290',
+    Plans__ProTrialDays: '7',
+  };
+  await restartApi(stripeEnv, path.join(DATA, 'api-stripe.log'));
+  maintenanceEnv = stripeEnv;
+  assert.strictEqual((await getJson(`${base}/api/config`)).plans.yearly, true, 'the restarted API sells a year');
+  const eli = await person(browser, 'eli', 'en-US');
+  await signup(eli, 'eli', 'password123');
+  const eliMe = await me(eli);
+  await go(eli, '#/pro');
+  await eli.waitForSelector('#pro-go');
+  assert.ok(await eli.$('#pro-interval'), 'the interval toggle is drawn where a year can be sold');
+  assert.match(await text(eli, '#pro-price'), /a month/, 'monthly by default');
+  assert.ok((await eli.$$eval('li.pro-benefit', (items) => items.map((i) => i.textContent))).some((s) => s.includes('7 days free')), 'the trial line is drawn for a fresh account');
+  assert.strictEqual(await text(eli, '#pro-go'), 'Start 7 free days');
+  await eli.click('#pro-interval-year');
+  assert.match(await text(eli, '#pro-price'), /a year/, 'the year after the tap');
+  assert.strictEqual(await text(eli, '#pro-saving'), 'Save 17% against paying monthly', '1 - 290 / 348, rounded');
+  await shot(eli, '50-pro-yearly-trial-en');
+  await eli.click('#pro-go');
+  await eli.waitForFunction(() => location.hash === '#/pro');
+  await eli.waitForSelector('#pro-thanks:not([hidden])');
+  const stripeForms = await getJson(`http://127.0.0.1:${STUB_PORT}/stripe`);
+  const checkoutForm = stripeForms.find((r) => r.path === '/v1/checkout/sessions');
+  assert.ok(checkoutForm, 'the checkout session reached the stub');
+  assert.strictEqual(checkoutForm.form['line_items[0][price]'], 'price_e2e_year');
+  assert.strictEqual(checkoutForm.form['subscription_data[trial_period_days]'], '7');
+  assert.strictEqual(checkoutForm.form['payment_method_collection'], 'if_required');
+  assert.strictEqual(checkoutForm.form['metadata[interval]'], 'year');
+  assert.strictEqual(checkoutForm.form['metadata[trialDays]'], '7');
+  assert.strictEqual(checkoutForm.form.currency, 'usd');
+  assert.strictEqual(checkoutForm.form.client_reference_id, eliMe.id.replace(/-/g, ''));
+  // Eli confirms an address first, so the letters below have somewhere to go (the log, on this server).
+  await go(eli, '#/settings');
+  await eli.waitForSelector('#s-email');
+  await eli.fill('#s-email', 'eli@example.test');
+  await eli.click('#s-save');
+  await eli.waitForFunction(() => document.getElementById('s-save') && !document.getElementById('s-save').disabled);
+  const eliLinks = () => {
+    const log = fs.readFileSync(apiLog, 'utf8');
+    return [...log.matchAll(/https?:\/\/\S+\/#\/(verify|reset)\/([A-Za-z0-9_-]{43})/g)].map((m) => ({ kind: m[1], token: m[2] }));
+  };
+  const eliVerify = eliLinks().filter((l) => l.kind === 'verify').pop();
+  assert.ok(eliVerify, 'a verification link was logged for eli');
+  await go(eli, '#/verify/' + eliVerify.token);
+  await eli.waitForSelector('#v-done');
+  assert.strictEqual((await me(eli)).emailVerified, true);
+  // The webhook, signed the way Stripe signs it (StripeClient.VerifySignature), without the CSRF header Stripe cannot send.
+  const crypto = require('crypto');
+  const postEvent = async (event) => {
+    const body = JSON.stringify(event);
+    const t = Math.floor(Date.now() / 1000);
+    const v1 = crypto.createHmac('sha256', 'whsec_e2e').update(`${t}.${body}`).digest('hex');
+    const r = await eli.request.post(base + '/api/billing/webhook', { headers: { 'Stripe-Signature': `t=${t},v1=${v1}`, 'Content-Type': 'application/json' }, data: body });
+    assert.strictEqual(r.status(), 200, 'the webhook answers 200');
+    return r.json();
+  };
+  const completed = {
+    id: 'evt_e2e_1', type: 'checkout.session.completed',
+    data: { object: { id: 'cs_e2e', object: 'checkout.session', client_reference_id: eliMe.id.replace(/-/g, ''), customer: 'cus_e2e', subscription: 'sub_e2e', payment_status: 'no_payment_required', metadata: { userId: eliMe.id.replace(/-/g, ''), interval: 'year', trialDays: '7' } } },
+  };
+  const firstAnswer = await postEvent(completed);
+  assert.strictEqual(firstAnswer.replayed, undefined, 'the first delivery is handled');
+  const stateAfterFirst = await (await eli.request.get(base + '/api/billing/state')).json();
+  assert.strictEqual(stateAfterFirst.plan, 'pro', 'the trial made him Pro');
+  const daysOut = (new Date(stateAfterFirst.proUntil) - Date.now()) / 86400000;
+  assert.ok(daysOut > 9.9 && daysOut < 10.1, `a no-card trial grants its days plus the slack, not a year: ${daysOut}`);
+  const secondAnswer = await postEvent(completed);
+  assert.strictEqual(secondAnswer.replayed, true, 'the same event again is ignored by its id');
+  const stateAfterSecond = await (await eli.request.get(base + '/api/billing/state')).json();
+  assert.strictEqual(stateAfterSecond.proUntil, stateAfterFirst.proUntil, 'a replayed checkout stacks nothing');
+  assert.strictEqual(stateAfterSecond.trialDays, 0, 'a customer is never offered a second trial');
+  // The tab still holds the "me" it loaded before the webhook; a reload reads the plan again, as the person's next open would.
+  await eli.reload();
+  await eli.waitForSelector(settled);
+  await go(eli, '#/pro');
+  await eli.waitForSelector('#pro-current');
+  await eli.waitForSelector('#billing-manage');
+  await go(eli, '#/settings');
+  await eli.waitForSelector('#billing-manage');
+  await go(eli, '#/pro');
+  await eli.waitForSelector('#billing-manage');
+  await eli.click('#billing-manage');
+  await eli.waitForFunction(() => location.hash === '#/settings');
+  const portalForm = (await getJson(`http://127.0.0.1:${STUB_PORT}/stripe`)).find((r) => r.path === '/v1/billing_portal/sessions');
+  assert.ok(portalForm, 'the portal session reached the stub');
+  assert.strictEqual(portalForm.form.customer, 'cus_e2e');
+  assert.strictEqual(portalForm.form.return_url, base + '/#/settings');
+  // The trial ends with no card: Stripe cancels, Pro ends, and the letter says so.
+  await postEvent({ id: 'evt_e2e_2', type: 'customer.subscription.deleted', data: { object: { id: 'sub_e2e', object: 'subscription', customer: 'cus_e2e', status: 'canceled' } } });
+  assert.strictEqual((await (await eli.request.get(base + '/api/billing/state')).json()).plan, 'free', 'the cancelled trial ended Pro');
+  assert.ok(/Email to eli@example.test: Your OREVOSH Pro has ended/.test(fs.readFileSync(apiLog, 'utf8')), 'the "Pro ended" letter was logged');
+  // --stripe-check against the stub: both prices read back and matched to the two tables, the webhook endpoint found.
+  const stripeCheck = maintenance('--stripe-check');
+  assert.ok(/OK\s+stripe-live/.test(stripeCheck), 'stripe-live: ' + stripeCheck);
+  assert.ok(/OK\s+stripe-price/.test(stripeCheck), 'stripe-price: ' + stripeCheck);
+  assert.ok(/OK\s+stripe-yearly/.test(stripeCheck), 'stripe-yearly: ' + stripeCheck);
+  assert.ok(/OK\s+stripe-webhook/.test(stripeCheck), 'stripe-webhook: ' + stripeCheck);
+  assert.ok(/WARN billing .*StripeBaseUrl/.test(stripeCheck), 'the doctor warns that Stripe is somewhere else: ' + stripeCheck);
 
   const stubRequests = await getJson(`http://127.0.0.1:${STUB_PORT}/`);
   assert.ok(stubRequests.length >= 3, 'stub saw the checks (incl. the retried one)');

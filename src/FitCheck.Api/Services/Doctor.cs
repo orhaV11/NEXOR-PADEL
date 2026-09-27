@@ -55,8 +55,9 @@ public sealed record DoctorReport(IReadOnlyList<DoctorLine> Lines)
 /// endpoints (one is registered for this origin's <see cref="Endpoints.BillingEndpoints.WebhookPath"/>, enabled, and
 /// subscribed to <see cref="WebhookEvents"/>). Each reports the HTTP status it got. Round 13 — money: it also sends
 /// one test alert down every configured alert channel, so the owner watches it arrive.</item>
-/// <item><c>--stripe-check</c> is the Stripe part on its own: the three keys and their prefixes, then those two reads.
-/// The go-live runbook runs it after every key rotation. It is two GETs, it writes nothing and it charges nobody.</item>
+/// <item><c>--stripe-check</c> is the Stripe part on its own: the three keys and their prefixes, then those two reads
+/// (Round 20: three, when a yearly price is set - the second price has to recur every year and match its own table).
+/// The go-live runbook runs it after every key rotation. It is GETs only, it writes nothing and it charges nobody.</item>
 /// </list>
 /// <para>
 /// <b>No secret is ever printed.</b> A key is reported by its prefix and its length, a webhook secret as "set", a
@@ -157,7 +158,7 @@ public static class Doctor
         if (stripeOnly)
         {
             var origin = Origin(configuration);
-            Billing(lines, billing, origin);
+            Billing(lines, billing, planPrices, origin);
             await StripeLiveAsync(lines, billing, planPrices, origin, handler, ct);
             return new DoctorReport(lines);
         }
@@ -184,7 +185,7 @@ public static class Doctor
         AnthropicBaseUrl(lines, anthropic);
         Email(lines, email, publicOrigin);
         Contact(lines, legal, email);
-        Billing(lines, billing, publicOrigin);
+        Billing(lines, billing, plans, publicOrigin);
         PlanCaps(lines, plans, limits);
         Push(lines, push);
         Admin(lines, admin, configuration, contentRoot);
@@ -404,12 +405,23 @@ public static class Doctor
         lines.Add(new(DoctorStatus.Ok, "email", $"{host}:{email.Port.ToString(CultureInfo.InvariantCulture)} ({starttls}), from {email.From}, links to {origin}."));
     }
 
-    private static void Billing(List<DoctorLine> lines, BillingOptions billing, string origin)
+    /// <summary>
+    /// The billing settings as a set. Round 20 adds the yearly price and the trial: a yearly id has to look like a
+    /// price, the trial has to be inside Stripe's range, and each half of the yearly pair without the other is a
+    /// warning (an id with no amount is never shown; an amount with no id is never sold), as is a trial on the manual
+    /// provider (a trial is Checkout's) and a yearly amount that saves nothing against twelve months. The base url is
+    /// checked like Anthropic's: anything but api.stripe.com is where the money would really go.
+    /// </summary>
+    private static void Billing(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, string origin)
     {
         var provider = (billing.Provider ?? "").Trim();
+        var trialDays = plans.ProTrialDays;
         if (provider.Equals("manual", StringComparison.OrdinalIgnoreCase))
         {
-            lines.Add(new(DoctorStatus.Ok, "billing", "manual: Pro is granted from a shell with --pro <handle> <months>, and the Pro page offers no checkout."));
+            lines.Add(trialDays > 0
+                ? new(DoctorStatus.Warn, "billing",
+                    $"manual, but Plans__ProTrialDays is {trialDays.ToString(CultureInfo.InvariantCulture)}: a trial needs Checkout, so nobody gets one while Pro is granted by hand with --pro.")
+                : new(DoctorStatus.Ok, "billing", "manual: Pro is granted from a shell with --pro <handle> <months>, and the Pro page offers no checkout."));
             return;
         }
 
@@ -464,20 +476,65 @@ public static class Doctor
             wrong.Add("Billing__StripeWebhookSecret does not start with whsec_");
         }
 
+        var yearly = (billing.StripeYearlyPriceId ?? "").Trim();
+        if (yearly.Length > 0 && !yearly.StartsWith("price_", StringComparison.Ordinal))
+        {
+            wrong.Add($"Billing__StripeYearlyPriceId is \"{yearly}\", which does not start with price_");
+        }
+
+        if (trialDays is < 0 or > 730)
+        {
+            wrong.Add($"Plans__ProTrialDays is {trialDays.ToString(CultureInfo.InvariantCulture)}, outside Stripe's 0 to 730 days");
+        }
+
         if (wrong.Count > 0)
         {
             lines.Add(new(DoctorStatus.Fail, "billing", string.Join("; ", wrong) + "."));
             return;
         }
 
+        var warnings = new List<string>();
+        var stripeUrl = StripeClient.BaseAddress(billing);
+        if (!string.Equals(stripeUrl.Host, new Uri(StripeClient.BaseUrl).Host, StringComparison.OrdinalIgnoreCase))
+        {
+            warnings.Add($"Billing__StripeBaseUrl is {stripeUrl}, not {StripeClient.BaseUrl}: Checkout, the portal and these checks go there, not to Stripe");
+        }
+
+        var yearlyTable = plans.YearlyPriceTable();
+        if (yearly.Length > 0 && yearlyTable.Count == 0)
+        {
+            warnings.Add("Billing__StripeYearlyPriceId is set but Plans__ProYearlyPriceAmount and Plans__ProYearlyPrices are empty: the Pro page offers no yearly plan");
+        }
+        else if (yearly.Length == 0 && yearlyTable.Count > 0)
+        {
+            warnings.Add("a yearly amount is set (Plans__ProYearlyPriceAmount or Plans__ProYearlyPrices) but Billing__StripeYearlyPriceId is empty: it is never shown");
+        }
+
+        // The saving the page computes is (1 - yearly / 12 * monthly): at or above twelve months there is none to show,
+        // and a yearly plan that costs more than the year it replaces is a typo more often than a decision.
+        var monthlyTable = plans.PriceTable();
+        foreach (var (currency, amount) in yearlyTable.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            if (monthlyTable.TryGetValue(currency, out var monthly) && monthly > 0 && amount >= 12 * monthly)
+            {
+                warnings.Add($"the yearly {Money(amount, currency)} is not below twelve months of {Money(monthly, currency)}, so the Pro page shows no saving for it");
+            }
+        }
+
         if (test && origin.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            lines.Add(new(DoctorStatus.Warn, "billing",
-                $"stripe with a test key (sk_test_…) on {origin}: Checkout opens, no card is ever charged, and the live webhook secret will not match."));
+            warnings.Add($"stripe with a test key (sk_test_…) on {origin}: Checkout opens, no card is ever charged, and the live webhook secret will not match");
+        }
+
+        if (warnings.Count > 0)
+        {
+            lines.Add(new(DoctorStatus.Warn, "billing", string.Join("; ", warnings) + "."));
             return;
         }
 
-        lines.Add(new(DoctorStatus.Ok, "billing", $"stripe ({(live ? "sk_live_" : "sk_test_")}…), price {price}, webhook secret set."));
+        var trial = trialDays > 0 ? $"trial {trialDays.ToString(CultureInfo.InvariantCulture)} days" : "trial off";
+        lines.Add(new(DoctorStatus.Ok, "billing",
+            $"stripe ({(live ? "sk_live_" : "sk_test_")}…), price {price}, yearly {(yearly.Length > 0 ? yearly : "none")}, {trial}, webhook secret set."));
     }
 
     private static void PlanCaps(List<DoctorLine> lines, PlanOptions plans, LimitsOptions limits)
@@ -883,36 +940,87 @@ public static class Doctor
     }
 
     /// <summary>
-    /// The Stripe half of a live run: the price the app was given, then the webhook endpoint Stripe is supposed to post
-    /// back to. Two GETs, nothing written, nothing charged. Both lines are always added, skipped or not, so a run always
-    /// prints the same names.
+    /// The Stripe half of a live run: the monthly price the app was given (and the table it is shown from), the yearly
+    /// price when there is one (Round 20), then the webhook endpoint Stripe is supposed to post back to. Reads only,
+    /// nothing written, nothing charged. Every line is always added, skipped or not, so a run always prints the same names.
     /// </summary>
     private static async Task StripeLiveAsync(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, string origin, HttpMessageHandler? handler, CancellationToken ct)
     {
-        await StripePriceAsync(lines, billing, plans, handler, ct);
+        var yearlyId = (billing.StripeYearlyPriceId ?? "").Trim();
+        // With a yearly price beside it the monthly one has to really be a month: a swapped pair would show one
+        // cadence on the page and charge another. Alone, its cadence stays lenient, as it always was.
+        var (monthly, monthlyPrice) = await ReadPriceAsync("stripe-live", billing, (billing.StripePriceId ?? "").Trim(), yearlyId.Length > 0 ? "month" : null, "Billing__StripePriceId", handler, ct);
+        Add(lines, monthly);
+        if (monthlyPrice is not null)
+        {
+            using (monthlyPrice)
+            {
+                Add(lines, TableLine("stripe-price", plans.PriceTable(), monthlyPrice.RootElement, (billing.StripePriceId ?? "").Trim(), "Plans__ProPriceAmount and Plans__ProPrices"));
+            }
+        }
+
+        await StripeYearlyAsync(lines, billing, plans, yearlyId, handler, ct);
         await StripeWebhookAsync(lines, billing, origin, handler, ct);
     }
 
-    /// <summary>Reads the Pro price back from Stripe: the key is accepted, the price exists, it is in the same mode as the key, and it is a recurring price (Checkout runs in subscription mode and refuses a one-time one).</summary>
-    private static async Task<DoctorLine> StripePriceAsync(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, HttpMessageHandler? handler, CancellationToken ct)
+    /// <summary>
+    /// Round 20 — the yearly price: one line, always present. Skipped without an id; otherwise the price is read the
+    /// way the monthly one is, has to recur every year, and every yearly amount the Pro page shows has to be one it
+    /// would really charge, checked against <see cref="PlanOptions.YearlyPriceTable"/>.
+    /// </summary>
+    private static async Task StripeYearlyAsync(List<DoctorLine> lines, BillingOptions billing, PlanOptions plans, string yearlyId, HttpMessageHandler? handler, CancellationToken ct)
     {
-        var secret = (billing.StripeSecretKey ?? "").Trim();
-        var price = (billing.StripePriceId ?? "").Trim();
         if (!(billing.Provider ?? "").Trim().Equals("stripe", StringComparison.OrdinalIgnoreCase))
         {
-            return Add(lines, new(DoctorStatus.Skip, "stripe-live", "not called: Billing__Provider is not stripe."));
+            Add(lines, new(DoctorStatus.Skip, "stripe-yearly", "not called: Billing__Provider is not stripe."));
+            return;
+        }
+
+        if (yearlyId.Length == 0)
+        {
+            Add(lines, new(DoctorStatus.Skip, "stripe-yearly", "not called: Billing__StripeYearlyPriceId is empty (monthly only)."));
+            return;
+        }
+
+        var (line, price) = await ReadPriceAsync("stripe-yearly", billing, yearlyId, "year", "Billing__StripeYearlyPriceId", handler, ct);
+        if (price is null || line.Status != DoctorStatus.Ok)
+        {
+            Add(lines, line);
+            return;
+        }
+
+        using (price)
+        {
+            var table = TableLine("stripe-yearly", plans.YearlyPriceTable(), price.RootElement, yearlyId, "Plans__ProYearlyPriceAmount and Plans__ProYearlyPrices");
+            Add(lines, table.Status == DoctorStatus.Ok ? new(DoctorStatus.Ok, "stripe-yearly", line.Detail + " " + table.Detail) : table);
+        }
+    }
+
+    /// <summary>
+    /// Reads one price back from Stripe: the key is accepted, the price exists, it is in the same mode as the key, it
+    /// is a recurring price (Checkout runs in subscription mode and refuses a one-time one), it is not archived, and,
+    /// when <paramref name="requiredInterval"/> is given, it recurs at that cadence. Returns the line for
+    /// <paramref name="name"/> and, on a readable 200, the parsed price for the table check (the caller disposes it).
+    /// </summary>
+    private static async Task<(DoctorLine Line, JsonDocument? Price)> ReadPriceAsync(
+        string name, BillingOptions billing, string price, string? requiredInterval, string setting, HttpMessageHandler? handler, CancellationToken ct)
+    {
+        var secret = (billing.StripeSecretKey ?? "").Trim();
+        if (!(billing.Provider ?? "").Trim().Equals("stripe", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new(DoctorStatus.Skip, name, "not called: Billing__Provider is not stripe."), null);
         }
 
         if (secret.Length == 0 || price.Length == 0)
         {
-            return Add(lines, new(DoctorStatus.Skip, "stripe-live", "not called: Billing__StripeSecretKey or Billing__StripePriceId is empty."));
+            return (new(DoctorStatus.Skip, name, $"not called: Billing__StripeSecretKey or {setting} is empty."), null);
         }
 
         using var http = Client(handler);
         // expand[]=currency_options or Stripe leaves the per-currency amounts out, and every currency but the base one
         // would look missing. Expanding a field that is already there is harmless, so this is right either way.
         using var request = new HttpRequestMessage(HttpMethod.Get,
-            StripeClient.BaseUrl + "v1/prices/" + Uri.EscapeDataString(price) + "?expand[]=currency_options");
+            new Uri(StripeClient.BaseAddress(billing), "v1/prices/" + Uri.EscapeDataString(price) + "?expand[]=currency_options"));
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
         try
         {
@@ -920,12 +1028,12 @@ public static class Doctor
             var status = (int)response.StatusCode;
             if (status != 200)
             {
-                return Add(lines, status switch
+                return (status switch
                 {
-                    401 => new(DoctorStatus.Fail, "stripe-live", "HTTP 401: Stripe refused the secret key. Roll it in the Stripe dashboard and set Billing__StripeSecretKey again."),
-                    404 => new(DoctorStatus.Fail, "stripe-live", $"HTTP 404: no price {price} for this key. A live key cannot see a test price, or the other way round."),
-                    _ => new(DoctorStatus.Fail, "stripe-live", $"HTTP {status} from Stripe.")
-                });
+                    401 => new(DoctorStatus.Fail, name, "HTTP 401: Stripe refused the secret key. Roll it in the Stripe dashboard and set Billing__StripeSecretKey again."),
+                    404 => new(DoctorStatus.Fail, name, $"HTTP 404: no price {price} for this key. A live key cannot see a test price, or the other way round."),
+                    _ => new(DoctorStatus.Fail, name, $"HTTP {status} from Stripe.")
+                }, null);
             }
 
             // The recurring block is what makes a price usable by a subscription Checkout; a one-time price is accepted
@@ -933,40 +1041,45 @@ public static class Doctor
             var body = await response.Content.ReadAsStringAsync(ct);
             if (Json(body) is not { } document)
             {
-                return Add(lines, new(DoctorStatus.Warn, "stripe-live",
-                    $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer could not be read, so whether it is recurring is unknown."));
+                return (new(DoctorStatus.Warn, name,
+                    $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer could not be read, so whether it is recurring is unknown."), null);
             }
 
-            using (document)
+            var root = document.RootElement;
+            var recurring = root.TryGetProperty("recurring", out var block) && block.ValueKind == JsonValueKind.Object ? block : (JsonElement?)null;
+            var kind = root.TryGetProperty("type", out var typed) && typed.ValueKind == JsonValueKind.String ? typed.GetString() ?? "" : "";
+            if (recurring is null)
             {
-                var root = document.RootElement;
-                var recurring = root.TryGetProperty("recurring", out var block) && block.ValueKind == JsonValueKind.Object ? block : (JsonElement?)null;
-                var kind = root.TryGetProperty("type", out var typed) && typed.ValueKind == JsonValueKind.String ? typed.GetString() ?? "" : "";
-                if (recurring is null)
-                {
-                    return Add(lines, kind.Length == 0
-                        ? new(DoctorStatus.Warn, "stripe-live",
-                            $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer named neither a type nor a recurring block, so whether it is recurring is unknown.")
-                        : new(DoctorStatus.Fail, "stripe-live",
-                            $"HTTP 200, but {price} is a {kind.Replace('_', '-')} price. Checkout opens in subscription mode and refuses it: make a recurring price in Stripe and set Billing__StripePriceId to that one."));
-                }
-
-                var interval = recurring.Value.TryGetProperty("interval", out var every) && every.ValueKind == JsonValueKind.String ? every.GetString() ?? "" : "";
-                var count = recurring.Value.TryGetProperty("interval_count", out var many) && many.ValueKind == JsonValueKind.Number && many.TryGetInt32(out var parsed) ? parsed : 1;
-                var cadence = interval.Length == 0 ? "recurring" : count == 1 ? $"every {interval}" : $"every {count.ToString(CultureInfo.InvariantCulture)} {interval}s";
-                var active = !root.TryGetProperty("active", out var enabled) || enabled.ValueKind != JsonValueKind.False;
-                if (!active)
-                {
-                    return Add(lines, new(DoctorStatus.Fail, "stripe-live", $"HTTP 200: {price} is {cadence} but archived in Stripe (active is false). Checkout will refuse it."));
-                }
-
-                Add(lines, new(DoctorStatus.Ok, "stripe-live", $"HTTP 200: the key is accepted and {price} exists, {cadence}."));
-                return StripePriceMatchesTheTable(lines, plans, root, price);
+                document.Dispose();
+                return (kind.Length == 0
+                    ? new(DoctorStatus.Warn, name,
+                        $"HTTP 200: the key is accepted and {price} exists, but Stripe's answer named neither a type nor a recurring block, so whether it is recurring is unknown.")
+                    : new(DoctorStatus.Fail, name,
+                        $"HTTP 200, but {price} is a {kind.Replace('_', '-')} price. Checkout opens in subscription mode and refuses it: make a recurring price in Stripe and set {setting} to that one."), null);
             }
+
+            var interval = recurring.Value.TryGetProperty("interval", out var every) && every.ValueKind == JsonValueKind.String ? every.GetString() ?? "" : "";
+            var count = recurring.Value.TryGetProperty("interval_count", out var many) && many.ValueKind == JsonValueKind.Number && many.TryGetInt32(out var parsed) ? parsed : 1;
+            var cadence = interval.Length == 0 ? "recurring" : count == 1 ? $"every {interval}" : $"every {count.ToString(CultureInfo.InvariantCulture)} {interval}s";
+            var active = !root.TryGetProperty("active", out var enabled) || enabled.ValueKind != JsonValueKind.False;
+            if (!active)
+            {
+                document.Dispose();
+                return (new(DoctorStatus.Fail, name, $"HTTP 200: {price} is {cadence} but archived in Stripe (active is false). Checkout will refuse it."), null);
+            }
+
+            if (requiredInterval is not null && (interval != requiredInterval || count != 1))
+            {
+                document.Dispose();
+                return (new(DoctorStatus.Fail, name,
+                    $"HTTP 200: {price} is {cadence}, but {setting} has to be a price every {requiredInterval}: with both a monthly and a yearly price set, the page would show one cadence and Stripe charge another."), null);
+            }
+
+            return (new(DoctorStatus.Ok, name, $"HTTP 200: the key is accepted and {price} exists, {cadence}."), document);
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
         {
-            return Add(lines, new(DoctorStatus.Fail, "stripe-live", $"no answer from Stripe: {e.Message.TrimEnd('.')}."));
+            return (new(DoctorStatus.Fail, name, $"no answer from Stripe: {e.Message.TrimEnd('.')}."), null);
         }
     }
 
@@ -983,14 +1096,14 @@ public static class Doctor
     /// would show and Stripe cannot charge is a failure; so is an amount that differs. The other direction — Stripe
     /// carrying a currency the app never shows — is fine and only worth a note, because nobody is ever quoted it.
     /// </para>
+    /// <para>Round 20: the same check runs for the yearly price against its own table, under its own line name.</para>
     /// </summary>
-    private static DoctorLine StripePriceMatchesTheTable(List<DoctorLine> lines, PlanOptions plans, JsonElement price, string id)
+    private static DoctorLine TableLine(string name, Dictionary<string, decimal> table, JsonElement price, string id, string settings)
     {
-        var table = plans.PriceTable();
         if (table.Count == 0)
         {
-            return Add(lines, new(DoctorStatus.Warn, "stripe-price",
-                "the app has no price of its own (Plans__ProPriceAmount and Plans__ProPrices are both empty), so the Pro page shows no number and there is nothing to compare with Stripe."));
+            return new(DoctorStatus.Warn, name,
+                $"the app has no price of its own for {id} ({settings} are both empty), so the Pro page shows no number and there is nothing to compare with Stripe.");
         }
 
         // What Stripe would really charge, by currency, in minor units: the base currency, then each currency_option.
@@ -1018,8 +1131,8 @@ public static class Doctor
 
         if (offers.Count == 0)
         {
-            return Add(lines, new(DoctorStatus.Warn, "stripe-price",
-                $"Stripe's answer for {id} named no currency and amount that could be read, so the {Count(table.Count, "price")} the Pro page shows could not be checked against it."));
+            return new(DoctorStatus.Warn, name,
+                $"Stripe's answer for {id} named no currency and amount that could be read, so the {Count(table.Count, "price")} the Pro page shows could not be checked against it.");
         }
 
         var problems = new List<string>();
@@ -1052,16 +1165,16 @@ public static class Doctor
         var extra = offers.Keys.Where(currency => !table.ContainsKey(currency))
             .Select(currency => currency.ToUpperInvariant())
             .OrderBy(currency => currency, StringComparer.Ordinal).ToList();
-        var note = extra.Count == 0 ? "" : $" Stripe also prices in {string.Join(", ", extra)}, which the app never shows — harmless, but Plans__ProPrices could offer {(extra.Count == 1 ? "it" : "them")}.";
+        var note = extra.Count == 0 ? "" : $" Stripe also prices {id} in {string.Join(", ", extra)}, which the app never shows — harmless, but {settings} could offer {(extra.Count == 1 ? "it" : "them")}.";
 
         if (problems.Count > 0)
         {
-            return Add(lines, new(DoctorStatus.Fail, "stripe-price",
-                $"what the Pro page shows and what Stripe would charge are not the same: {string.Join("; ", problems)}. Fix it in one of the two places — add the currency to the price in Stripe (Product, then the price's other currencies), or take it out of Plans__ProPrices so nobody is quoted a number this price cannot honour.{note}"));
+            return new(DoctorStatus.Fail, name,
+                $"what the Pro page shows and what Stripe would charge for {id} are not the same: {string.Join("; ", problems)}. Fix it in one of the two places — add the currency to the price in Stripe (Product, then the price's other currencies), or take it out of {settings} so nobody is quoted a number this price cannot honour.{note}");
         }
 
-        return Add(lines, new(DoctorStatus.Ok, "stripe-price",
-            $"every price the Pro page shows is one Stripe would really charge ({string.Join(", ", table.OrderBy(entry => entry.Key, StringComparer.Ordinal).Select(entry => Money(entry.Value, entry.Key)))}).{note}"));
+        return new(DoctorStatus.Ok, name,
+            $"every price the Pro page shows for {id} is one Stripe would really charge ({string.Join(", ", table.OrderBy(entry => entry.Key, StringComparer.Ordinal).Select(entry => Money(entry.Value, entry.Key)))}).{note}");
     }
 
     /// <summary>An amount in a currency's smallest unit, or null when this machine has no decimal count for that currency.</summary>
@@ -1180,7 +1293,7 @@ public static class Doctor
 
         var wanted = origin.TrimEnd('/') + Endpoints.BillingEndpoints.WebhookPath;
         using var http = Client(handler);
-        using var request = new HttpRequestMessage(HttpMethod.Get, StripeClient.BaseUrl + "v1/webhook_endpoints?limit=100");
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(StripeClient.BaseAddress(billing), "v1/webhook_endpoints?limit=100"));
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
         try
         {

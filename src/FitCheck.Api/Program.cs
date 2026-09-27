@@ -331,10 +331,11 @@ builder.Services.AddSingleton<PushSender>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<PushSender>());
 
 // Stripe, when Billing:Provider is stripe: one named client for Checkout Sessions (the webhook needs none). Nothing is
-// sent while the provider is manual; the routes answer 400 instead.
-builder.Services.AddHttpClient(StripeClient.HttpClientName, client =>
+// sent while the provider is manual; the routes answer 400 instead. Round 20: the address is Billing:StripeBaseUrl
+// (Stripe itself unless set), so the browser test can point the app at a stub; the doctor warns on any other host.
+builder.Services.AddHttpClient(StripeClient.HttpClientName, (provider, client) =>
     {
-        client.BaseAddress = new Uri(StripeClient.BaseUrl);
+        client.BaseAddress = StripeClient.BaseAddress(provider.GetRequiredService<IOptions<BillingOptions>>().Value);
         client.Timeout = TimeSpan.FromSeconds(20);
     })
     // The secret key travels as a bearer token; trace-level logging must not print it.

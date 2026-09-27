@@ -754,8 +754,10 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Ok, report["weather-live"]!.Status);
         // Skipped calls are neither a pass nor a failure; the stub key itself is what fails the run.
         // Round 13 — money: the fourth skip is alerts-live, which has no channel to send its test alert down.
+        // Round 20: the fifth is stripe-yearly, skipped like the other Stripe lines on the manual provider.
         Assert.Equal(DoctorStatus.Skip, report["alerts-live"]!.Status);
-        Assert.Equal(4, report.Skipped);
+        Assert.Equal(DoctorStatus.Skip, report["stripe-yearly"]!.Status);
+        Assert.Equal(5, report.Skipped);
         Assert.Equal(1, report.ExitCode);
     }
 
@@ -765,7 +767,10 @@ public class DoctorTests : IDisposable
         var handler = new CannedHandler(HttpStatusCode.OK);
         var report = await Inspect(Healthy(), live: true, stripeOnly: true, handler: handler);
         // Round 17: stripe-price joined them — what the Pro page quotes, checked against what Stripe would charge.
-        Assert.Equal(["billing", "stripe-live", "stripe-price", "stripe-webhook"], report.Lines.Select(l => l.Name).ToArray());
+        // Round 20: stripe-yearly, always present and skipped without a yearly price id.
+        Assert.Equal(["billing", "stripe-live", "stripe-price", "stripe-yearly", "stripe-webhook"], report.Lines.Select(l => l.Name).ToArray());
+        Assert.Equal(DoctorStatus.Skip, report["stripe-yearly"]!.Status);
+        Assert.Contains("monthly only", report["stripe-yearly"]!.Detail);
         Assert.Equal(0, report.ExitCode);
         // Only Stripe was called: no Anthropic request, no key spent. Two reads, both GETs, nothing written.
         Assert.Equal(2, handler.Requests.Count);
@@ -781,6 +786,152 @@ public class DoctorTests : IDisposable
         // Not one character of the key, the price secret or the webhook secret reaches the printed page.
         Assert.DoesNotContain(LiveSecret, text, StringComparison.Ordinal);
         Assert.DoesNotContain(WebhookSecret, text, StringComparison.Ordinal);
+    }
+
+    /// <summary>Round 20: a healthy Stripe server with the yearly price beside the monthly one, priced in shekels.</summary>
+    private Dictionary<string, string> HealthyYearly()
+    {
+        var settings = Healthy();
+        settings["Billing:StripeYearlyPriceId"] = CannedHandler.YearlyPriceId;
+        settings["Plans:ProPriceAmount"] = "19.90";
+        settings["Plans:ProPriceCurrency"] = "ILS";
+        settings["Plans:ProYearlyPriceAmount"] = "199";
+        return settings;
+    }
+
+    private static string PriceOf(string id, string interval, string currency, long minor) =>
+        "{\"id\":\"" + id + "\",\"object\":\"price\",\"active\":true,\"type\":\"recurring\",\"currency\":\"" + currency + "\",\"unit_amount\":" + minor
+        + ",\"recurring\":{\"interval\":\"" + interval + "\",\"interval_count\":1}}";
+
+    /// <summary>
+    /// Round 20 — the yearly half of <c>--stripe-check</c>: the second price has to exist, recur every year, and carry
+    /// every yearly amount the Pro page shows; and with a yearly price set the monthly one has to really be a month,
+    /// or the page would show one cadence and Stripe charge another.
+    /// </summary>
+    [Fact]
+    public async Task The_yearly_price_has_to_be_a_year_and_match_its_own_table()
+    {
+        var handler = new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990) };
+        var report = await Inspect(HealthyYearly(), live: true, stripeOnly: true, handler: handler);
+        Assert.Equal(DoctorStatus.Ok, report["stripe-live"]!.Status);
+        Assert.Equal(DoctorStatus.Ok, report["stripe-price"]!.Status);
+        Assert.Equal(DoctorStatus.Ok, report["stripe-yearly"]!.Status);
+        Assert.Contains("every year", report["stripe-yearly"]!.Detail);
+        Assert.Contains("199 ILS", report["stripe-yearly"]!.Detail);
+        Assert.Equal(0, report.ExitCode);
+        // Three reads now: the monthly price, the yearly price, the webhook list; all GETs, all to Stripe.
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
+        Assert.Equal("/v1/prices/" + CannedHandler.YearlyPriceId, handler.Requests[1].Uri.AbsolutePath);
+        Assert.Contains("currency_options", handler.Requests[1].Uri.Query, StringComparison.Ordinal);
+
+        // A yearly id that recurs every month is the wrong price in the yearly slot.
+        var monthly = new CannedHandler(HttpStatusCode.OK)
+        {
+            PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990),
+            YearlyPriceBody = PriceOf(CannedHandler.YearlyPriceId, "month", "ils", 19900)
+        };
+        var swapped = await Inspect(HealthyYearly(), live: true, stripeOnly: true, handler: monthly);
+        Assert.Equal(DoctorStatus.Fail, swapped["stripe-yearly"]!.Status);
+        Assert.Contains("every month", swapped["stripe-yearly"]!.Detail);
+        Assert.Equal(1, swapped.ExitCode);
+
+        // The right cadence at the wrong number: the line names both.
+        var cheaper = new CannedHandler(HttpStatusCode.OK)
+        {
+            PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990),
+            YearlyPriceBody = PriceOf(CannedHandler.YearlyPriceId, "year", "ils", 18900)
+        };
+        var mismatch = await Inspect(HealthyYearly(), live: true, stripeOnly: true, handler: cheaper);
+        Assert.Equal(DoctorStatus.Fail, mismatch["stripe-yearly"]!.Status);
+        Assert.Contains("199 ILS", mismatch["stripe-yearly"]!.Detail);
+        Assert.Contains("189", mismatch["stripe-yearly"]!.Detail);
+
+        // The MONTHLY id answering a year while a yearly id is set: the pair is swapped, and stripe-live says so.
+        var pair = new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "year", "ils", 1990) };
+        var wrongMonth = await Inspect(HealthyYearly(), live: true, stripeOnly: true, handler: pair);
+        Assert.Equal(DoctorStatus.Fail, wrongMonth["stripe-live"]!.Status);
+        Assert.Contains("every month", wrongMonth["stripe-live"]!.Detail);
+        // Without a yearly id the monthly cadence stays lenient, as it always was.
+        var alone = await Inspect(Healthy(), live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "year", "ils", 1990) });
+        Assert.Equal(DoctorStatus.Ok, alone["stripe-live"]!.Status);
+        Assert.Equal(DoctorStatus.Skip, alone["stripe-yearly"]!.Status);
+        Assert.Equal(0, alone.ExitCode);
+
+        // Stripe cannot find the yearly price at all.
+        var missing = HealthyYearly();
+        missing["Billing:StripeYearlyPriceId"] = "price_1NotThere";
+        var gone = await Inspect(missing, live: true, stripeOnly: true, handler: new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990) });
+        // The canned handler answers an unknown price path with the monthly body, so this reads as a month in the yearly slot.
+        Assert.Equal(DoctorStatus.Fail, gone["stripe-yearly"]!.Status);
+    }
+
+    /// <summary>Round 20 — the billing line reads the yearly id, the trial and the base url, and says what each half-configured pair means.</summary>
+    [Fact]
+    public async Task Billing_reads_the_yearly_id_and_the_trial()
+    {
+        var product = HealthyYearly();
+        product["Billing:StripeYearlyPriceId"] = "prod_x";
+        var wrongId = await Inspect(product);
+        Assert.Equal(DoctorStatus.Fail, wrongId["billing"]!.Status);
+        Assert.Contains("Billing__StripeYearlyPriceId", wrongId["billing"]!.Detail);
+        Assert.Contains("does not start with price_", wrongId["billing"]!.Detail);
+
+        var tooLong = Healthy();
+        tooLong["Plans:ProTrialDays"] = "900";
+        var range = await Inspect(tooLong);
+        Assert.Equal(DoctorStatus.Fail, range["billing"]!.Status);
+        Assert.Contains("Plans__ProTrialDays", range["billing"]!.Detail);
+        Assert.Contains("730", range["billing"]!.Detail);
+
+        var manual = Healthy();
+        manual["Billing:Provider"] = "manual";
+        manual["Plans:ProTrialDays"] = "7";
+        var byHand = await Inspect(manual);
+        Assert.Equal(DoctorStatus.Warn, byHand["billing"]!.Status);
+        Assert.Contains("needs Checkout", byHand["billing"]!.Detail);
+
+        var idOnly = Healthy();
+        idOnly["Billing:StripeYearlyPriceId"] = CannedHandler.YearlyPriceId;
+        var noAmount = await Inspect(idOnly);
+        Assert.Equal(DoctorStatus.Warn, noAmount["billing"]!.Status);
+        Assert.Contains("offers no yearly plan", noAmount["billing"]!.Detail);
+
+        var amountOnly = Healthy();
+        amountOnly["Plans:ProPriceCurrency"] = "ILS";
+        amountOnly["Plans:ProYearlyPriceAmount"] = "199";
+        var noId = await Inspect(amountOnly);
+        Assert.Equal(DoctorStatus.Warn, noId["billing"]!.Status);
+        Assert.Contains("never shown", noId["billing"]!.Detail);
+
+        // A yearly amount at or above twelve months shows no saving, which is a typo more often than a plan.
+        var dear = HealthyYearly();
+        dear["Plans:ProYearlyPriceAmount"] = "240";
+        var noSaving = await Inspect(dear);
+        Assert.Equal(DoctorStatus.Warn, noSaving["billing"]!.Status);
+        Assert.Contains("no saving", noSaving["billing"]!.Detail);
+
+        var good = HealthyYearly();
+        good["Plans:ProTrialDays"] = "7";
+        var ok = await Inspect(good);
+        Assert.Equal(DoctorStatus.Ok, ok["billing"]!.Status);
+        Assert.Contains("yearly " + CannedHandler.YearlyPriceId, ok["billing"]!.Detail);
+        Assert.Contains("trial 7 days", ok["billing"]!.Detail);
+        Assert.Contains("trial off", (await Inspect(HealthyYearly()))["billing"]!.Detail);
+        Assert.Contains("yearly none", (await Inspect(Healthy()))["billing"]!.Detail);
+
+        // A base url that is not Stripe: a warning naming the host, and the live reads really go there.
+        var elsewhere = HealthyYearly();
+        elsewhere["Billing:StripeBaseUrl"] = "http://127.0.0.1:5099/";
+        var handler = new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990) };
+        var stubbed = await Inspect(elsewhere, live: true, stripeOnly: true, handler: handler);
+        Assert.Equal(DoctorStatus.Warn, stubbed["billing"]!.Status);
+        Assert.Contains("127.0.0.1", stubbed["billing"]!.Detail);
+        Assert.Contains("not https://api.stripe.com/", stubbed["billing"]!.Detail);
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.All(handler.Requests, r => Assert.Equal("127.0.0.1", r.Uri.Host));
+        Assert.All(handler.Requests, r => Assert.Equal(5099, r.Uri.Port));
+        Assert.Equal(0, stubbed.ExitCode);
     }
 
     /// <summary>The printed form: one line per check, a four-character verdict a script can grep, and a summary that names the exit code's reason.</summary>
@@ -1149,6 +1300,12 @@ public sealed class CannedHandler(HttpStatusCode status) : HttpMessageHandler
     /// <summary>The body for <c>GET /v1/webhook_endpoints</c>; null keeps the one matching, fully subscribed endpoint below.</summary>
     public string? WebhookBody { get; set; }
 
+    /// <summary>Round 20: the yearly price id the tests configure; a GET for it is answered with <see cref="YearlyPriceBody"/>.</summary>
+    public const string YearlyPriceId = "price_1NotARealYear";
+
+    /// <summary>The body for <c>GET /v1/prices/{YearlyPriceId}</c>; null keeps a recurring yearly price at 199 ILS below.</summary>
+    public string? YearlyPriceBody { get; set; }
+
     /// <summary>A webhook endpoint list Stripe would answer with, for the url and events given.</summary>
     public static string Endpoints(string url, params string[] events) =>
         $$"""{"object":"list","data":[{"id":"we_1","object":"webhook_endpoint","status":"enabled","url":"{{url}}","enabled_events":[{{string.Join(",", events.Select(e => $"\"{e}\""))}}]}]}""";
@@ -1163,7 +1320,12 @@ public sealed class CannedHandler(HttpStatusCode status) : HttpMessageHandler
 
         var path = request.RequestUri!.AbsolutePath;
         var answer = "{}";
-        if (path.StartsWith("/v1/prices/", StringComparison.Ordinal))
+        if (path == "/v1/prices/" + YearlyPriceId)
+        {
+            answer = YearlyPriceBody
+                ?? "{\"id\":\"" + YearlyPriceId + "\",\"object\":\"price\",\"active\":true,\"type\":\"recurring\",\"currency\":\"ils\",\"unit_amount\":19900,\"recurring\":{\"interval\":\"year\",\"interval_count\":1}}";
+        }
+        else if (path.StartsWith("/v1/prices/", StringComparison.Ordinal))
         {
             answer = PriceBody
                 ?? """{"id":"price_1NotAReal","object":"price","active":true,"type":"recurring","recurring":{"interval":"month","interval_count":1}}""";

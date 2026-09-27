@@ -53,6 +53,9 @@ public class PlansTests
             "the wardrobe reaching the stylist (Wardrobe.ForStylistAsync), which is Pro's where Plans:WardrobeNeedsPro is on"),
         ["pro.benefit_insights"] = ("plans.compareNeedsPro",
             "GET /api/users/me/insights, refused to a free account exactly where Plans:CompareNeedsPro is on"),
+        // Round 20 — the no-card trial.
+        ["pro.benefit_trial"] = ("plans.billing && plans.proTrialDays > 0 && trialOffered",
+            "POST /api/billing/checkout sends subscription_data[trial_period_days]=Plans:ProTrialDays with payment_method_collection=if_required exactly where Stripe is live, Plans:ProTrialDays > 0 and the account has no Stripe customer yet (BillingStateDto.TrialDays, BillingEndpoints.TrialDaysFor), and the webhook grants the trial days rather than a paid period"),
         // Round 19 — Tomorrow.
         ["pro.benefit_tomorrow"] = ("plans.tomorrow && plans.proSuggestionsPerDay > 0 && (plans.tomorrowNeedsPro || plans.freeSuggestionsPerDay <= 0)",
             "POST /api/tomorrow answers 403 error.pro_required to a free account exactly where Plans:TomorrowNeedsPro is on (Plans.TomorrowReachesStylist), or refuses free every tap where Plans:FreeSuggestionsPerDay is 0, while Plans:TomorrowEnabled is on and Pro's own cap (Plans.ProSuggestionCap, as /api/config publishes it) is above 0"),
@@ -119,6 +122,23 @@ public class PlansTests
             .Where(k => !drawn.Contains(k))
             .ToList();
         Assert.True(orphaned.Count == 0, "en.json still carries Pro benefits the page does not draw: " + string.Join(", ", orphaned));
+    }
+
+    /// <summary>
+    /// Round 20: the trial line is a promise about money, so its guard is pinned by name - Stripe live, a trial
+    /// configured, and the server's own word that this account is eligible. Anything looser would promise free days
+    /// to someone Checkout is about to charge.
+    /// </summary>
+    [Fact]
+    public void The_trial_line_is_drawn_only_behind_stripe_and_the_setting()
+    {
+        Assert.StartsWith("plans.billing && plans.proTrialDays > 0", Promises["pro.benefit_trial"].Guard, StringComparison.Ordinal);
+        var line = Assert.Single(BenefitLines(ProPageSource()), l => l.Keys.Contains("pro.benefit_trial"));
+        Assert.Equal(Promises["pro.benefit_trial"].Guard, line.Guard);
+        Assert.Contains("pro.benefit_trial_hint", line.Keys);
+        // The button says what the line promised, and only then.
+        Assert.Contains("t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
+        Assert.Contains("trialOffered && plans.proTrialDays > 0 ? t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
     }
 
     [Fact]

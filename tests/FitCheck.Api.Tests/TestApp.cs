@@ -78,6 +78,8 @@ public class TestApp : WebApplicationFactory<Program>
     public string StripeSecretKey { get; init; } = "";
     public string StripePriceId { get; init; } = "";
     public string StripeWebhookSecret { get; init; } = "";
+    /// <summary>Round 20: Billing:StripeYearlyPriceId, the second recurring price; empty means monthly only.</summary>
+    public string StripeYearlyPriceId { get; init; } = "";
     /// <summary>
     /// Stands in for api.stripe.com: records every request (the form fields included) and answers with
     /// <see cref="RecordingStripeHandler.Response"/>, or with <see cref="RecordingStripeHandler.PortalResponse"/> for a
@@ -131,6 +133,7 @@ public class TestApp : WebApplicationFactory<Program>
         builder.UseSetting("Billing:StripeSecretKey", StripeSecretKey);
         builder.UseSetting("Billing:StripePriceId", StripePriceId);
         builder.UseSetting("Billing:StripeWebhookSecret", StripeWebhookSecret);
+        builder.UseSetting("Billing:StripeYearlyPriceId", StripeYearlyPriceId);
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);

@@ -147,6 +147,36 @@ public class LocalizerTests
         Assert.NotEqual(localizer.Get("en", key, expected, 30), localizer.Get(locale, key, expected, 30));
     }
 
+    /// <summary>
+    /// Round 20: the renewal recap has seven holes, more than the theory above formats, so it gets its own check: every
+    /// locale takes all seven, keeps the three numbers and the link verbatim, and differs from the English.
+    /// </summary>
+    [Fact]
+    public void The_renewal_recap_formats_its_seven_holes_in_every_locale()
+    {
+        var localizer = new Localizer();
+        var english = localizer.Get("en", "email.renewal_body", "noa", "14 October", "2", "3", "1", "5", "https://looks.test/#/settings");
+        Assert.Contains("2 comparisons decided", english, StringComparison.Ordinal);
+        Assert.Contains("3 outfits planned, 1 of them worn", english, StringComparison.Ordinal);
+        Assert.Contains("5 tips that named", english, StringComparison.Ordinal);
+        Assert.Equal("Your OREVOSH Pro renews on 14 October", localizer.Get("en", "email.renewal_subject", "14 October"));
+        foreach (var locale in new[] { "he", "ar", "ru" })
+        {
+            var body = localizer.Get(locale, "email.renewal_body", "noa", "14 October", "2", "3", "1", "5", "https://looks.test/#/settings");
+            Assert.NotEqual(english, body);
+            Assert.Contains("@noa", body, StringComparison.Ordinal);
+            Assert.Contains("14 October", body, StringComparison.Ordinal);
+            Assert.Contains("https://looks.test/#/settings", body, StringComparison.Ordinal);
+            foreach (var number in new[] { "2", "3", "1", "5" })
+            {
+                Assert.Contains(number, body, StringComparison.Ordinal);
+            }
+
+            Assert.DoesNotContain("{", body, StringComparison.Ordinal);
+            Assert.Contains("14 October", localizer.Get(locale, "email.renewal_subject", "14 October"), StringComparison.Ordinal);
+        }
+    }
+
     private static Dictionary<string, Dictionary<string, string>> Messages()
     {
         var field = typeof(Localizer).GetField("Messages", BindingFlags.NonPublic | BindingFlags.Static);

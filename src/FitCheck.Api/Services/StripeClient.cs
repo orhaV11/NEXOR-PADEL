@@ -7,13 +7,21 @@ using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Services;
 
-/// <summary>What a Checkout Session needs from us: who is paying and where Stripe sends them afterwards.</summary>
 /// <summary>
+/// What a Checkout Session needs from us: who is paying and where Stripe sends them afterwards.
+/// <para>
 /// Round 17: <paramref name="Currency"/> is the currency the Pro page QUOTED this person, validated by the caller
 /// against the server's own price table. It is sent to Stripe so a multi-currency price charges in the same currency
 /// the person read, instead of in whatever the price happens to be denominated in. Empty leaves the choice to Stripe.
+/// </para>
+/// <para>
+/// Round 20: <paramref name="Interval"/> is "month" or "year" and picks which of the two recurring prices the session
+/// sells (validated by the caller: a year is only ever asked for where the page could show one). <paramref name="TrialDays"/>
+/// above 0 opens the session as a no-card trial of that many days; the caller decides who is eligible.
+/// </para>
 /// </summary>
-public sealed record CheckoutSessionRequest(Guid UserId, string? CustomerId, string? CustomerEmail, string SuccessUrl, string CancelUrl, string Currency = "");
+public sealed record CheckoutSessionRequest(Guid UserId, string? CustomerId, string? CustomerEmail, string SuccessUrl, string CancelUrl, string Currency = "",
+    string Interval = "month", int TrialDays = 0);
 
 /// <summary>
 /// The little of Stripe we use, over a raw HttpClient: two form-encoded POSTs, one that opens a Checkout Session and
@@ -25,6 +33,22 @@ public sealed class StripeClient
     public const string HttpClientName = "stripe";
     public const string BaseUrl = "https://api.stripe.com/";
     public const string SignatureHeader = "Stripe-Signature";
+
+    /// <summary>
+    /// Round 20: where the named client and the doctor's two reads go. Billing:StripeBaseUrl when it is an absolute
+    /// http(s) address, else Stripe itself; always with the trailing slash, because relative paths are resolved against
+    /// it and "http://host/prefix" without one would drop the prefix. The browser test points this at its stub.
+    /// </summary>
+    public static Uri BaseAddress(BillingOptions options)
+    {
+        var configured = (options.StripeBaseUrl ?? "").Trim();
+        if (configured.Length == 0 || !Uri.TryCreate(configured, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return new Uri(BaseUrl);
+        }
+
+        return uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");
+    }
 
     /// <summary>How far a signed timestamp may sit from now before an event is refused as a replay.</summary>
     public static readonly TimeSpan SignatureTolerance = TimeSpan.FromMinutes(5);
@@ -44,20 +68,38 @@ public sealed class StripeClient
     /// Creates a subscription Checkout Session for the Pro price and returns the hosted page's URL, or null when Stripe
     /// did not answer with one (logged; the caller answers 502). The account id travels twice, as client_reference_id
     /// and as metadata, so the webhook finds the person whichever one the event carries.
+    /// <para>
+    /// Round 20: the session also carries <c>metadata[interval]</c> (month or year, which of the two prices it sells) and,
+    /// for a trial, <c>metadata[trialDays]</c>, because the webhook is handed the session and nothing else: it grants
+    /// a year for a year and the trial's days for a trial from what is written here, never from a guess. A trial asks
+    /// for no card (payment_method_collection=if_required) and, if it ends without one, Stripe cancels the subscription
+    /// rather than leaving it past due, which is the customer.subscription.deleted the webhook already handles.
+    /// </para>
     /// </summary>
     public async Task<string?> CreateCheckoutSessionAsync(CheckoutSessionRequest request, CancellationToken ct)
     {
         var options = _billing.Value;
+        var yearly = request.Interval == "year";
         var form = new List<KeyValuePair<string, string>>
         {
             new("mode", "subscription"),
-            new("line_items[0][price]", options.StripePriceId),
+            new("line_items[0][price]", yearly ? options.StripeYearlyPriceId : options.StripePriceId),
             new("line_items[0][quantity]", "1"),
             new("client_reference_id", request.UserId.ToString("N")),
             new("success_url", request.SuccessUrl),
             new("cancel_url", request.CancelUrl),
-            new("metadata[userId]", request.UserId.ToString("N"))
+            new("metadata[userId]", request.UserId.ToString("N")),
+            new("metadata[interval]", yearly ? "year" : "month")
         };
+        if (request.TrialDays > 0)
+        {
+            var days = request.TrialDays.ToString(CultureInfo.InvariantCulture);
+            form.Add(new("subscription_data[trial_period_days]", days));
+            form.Add(new("payment_method_collection", "if_required"));
+            form.Add(new("subscription_data[trial_settings][end_behavior][missing_payment_method]", "cancel"));
+            form.Add(new("metadata[trialDays]", days));
+        }
+
         // Stripe wants it lower-case, and only sends it when there is one: an empty currency on a single-currency price
         // is fine, but a WRONG one is a 400 at the moment somebody presses the button.
         if (request.Currency.Length == 3)

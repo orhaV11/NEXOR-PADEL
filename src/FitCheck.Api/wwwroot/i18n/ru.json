@@ -1210,6 +1210,8 @@
   "pro.interval_month": "Помесячно",
   "pro.interval_year": "Ежегодно",
   "pro.go_trial": "Начать {days} бесплатных дн.",
+  "pro.benefit_trial": "Бесплатно: {days} дн., без карты",
+  "pro.benefit_trial_hint": "Затем {price} в месяц. Отмени до конца пробного периода - и ничего не списывается.",
   "inapp.title": "Ты в браузере другого приложения",
   "inapp.hint": "Открой OREVOSH в Safari или Chrome, чтобы добавить на главный экран.",
   "funnel.standalone": "Открытий с главного экрана",

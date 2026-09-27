@@ -9,6 +9,11 @@
 // from /api/config, and a benefit whose flag is false is not drawn at all: NOTHING on this page may promise a thing this
 // server cannot do. PlansTests reads this file's benefit lines and fails the build over an invented promise, so a new
 // benefit needs both a flag here and a row in that table. The cap is not a benefit; it is one fair-use line, once, last.
+// Round 20 — billing: a yearly price beside the monthly one (a two-button toggle, drawn only where the server has BOTH a
+// yearly price id and a yearly amount in the reader's currency, so nothing is shown that Checkout cannot sell; the
+// saving is computed here from the two numbers and never typed), and a no-card trial (Plans:ProTrialDays), offered
+// as one guarded benefit line only to an account /api/billing/state says is eligible - a signed-in person who already
+// went through Checkout once sees the plain price.
 import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale, getLocale } from '../core.js';
 
 const CSS = `
@@ -25,6 +30,10 @@ const CSS = `
 .pro-benefit b { display: block; font-weight: 700; font-size: 17px; line-height: 1.25; color: var(--ink); }
 .pro-benefit p { margin-block-start: 3px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
 .pro-price { text-align: center; }
+.pro-interval { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: var(--bg-2, var(--accent-tint)); margin-block-end: 14px; }
+.pro-interval button { border: 0; border-radius: 999px; padding: 10px 12px; font: inherit; font-weight: 700; color: var(--ink-2); background: transparent; cursor: pointer; }
+.pro-interval button[aria-pressed="true"] { background: var(--bg); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.pro-price .pro-saving { display: block; margin-block-start: 6px; font-weight: 700; color: var(--accent); }
 .pro-price .pro-amount { display: block; font-family: var(--font-display); font-weight: 800; font-size: 32px; line-height: 1; color: var(--ink); direction: ltr; unicode-bidi: isolate; }
 .pro-price .hint { display: block; margin-block-start: 8px; }
 .pro-foot > * + * { margin-block-start: 12px; }
@@ -126,6 +135,16 @@ register('pro', async (root, params, ctx) => {
   const plans = state.config.plans || {};
   const n = plans.proChecksPerDay || 0;
   const result = checkoutResult();
+
+  // Round 20: the trial is offered to a signed-out visitor (a new account is eligible) and to a signed-in one only when
+  // the server says so - one read of the billing state, and a read that fails means no trial line rather than a promise.
+  let billingState = null;
+  if (state.me && plans.billing && plans.proTrialDays > 0) {
+    try { billingState = await api('GET', '/api/billing/state'); } catch (e) { billingState = null; }
+    if (ctx.stale()) return;
+  }
+  const trialOffered = !state.me || !!(billingState && billingState.trialDays > 0);
+  const trialDays = plans.proTrialDays || 0;
   // The query has done its job; a reload or a Back later lands on the plain screen instead of thanking twice.
   if (result) history.replaceState(history.state, '', location.pathname + location.search + '#/pro');
 
@@ -139,9 +158,29 @@ register('pro', async (root, params, ctx) => {
     el('p', { class: 'lede', text: t('pro.lede') })
   ]));
 
+  // Round 16: money is written differently in every language this app speaks - where the symbol sits, which digits
+  // are used, how the decimal is marked - and proPriceText is ONE string shown to all four. So the server sends the
+  // amount and the currency, and the browser, which already knows all of that, writes it. proPriceText stays as the
+  // override for a price no format covers ("first month free, then...").
+  const currency = currencyForReader(plans);
+  const amount = (plans.proPrices && plans.proPrices[currency]) || plans.proPriceAmount;
+  const priceText = plans.proPriceText || money(amount, currency);
+  // Round 20: the yearly amount in the SAME currency, or nothing. A year is only ever shown where the server can sell
+  // one (plans.yearly: a yearly price id is set) in the currency the reader was quoted; no conversion, ever.
+  const yearlyAmount = (plans.proYearlyPrices && plans.proYearlyPrices[currency]) || (currency === plans.proPriceCurrency ? plans.proYearlyPriceAmount : 0) || 0;
+  const yearlyText = plans.yearly && yearlyAmount > 0 ? money(yearlyAmount, currency) : '';
+  const monthlyAmount = Number(amount) > 0 ? Number(amount) : 0;
+  // The saving is arithmetic over the two numbers the owner typed, never a third setting: 1 - year / twelve months.
+  const savingPct = yearlyText && monthlyAmount > 0 ? Math.round((1 - yearlyAmount / (12 * monthlyAmount)) * 100) : 0;
+  let interval = 'month';
+
   // Each line: an optional guard from /api/config, then the benefit. One benefit per line, because PlansTests reads
   // them from this file and matches every key against the thing in the server that makes it true.
   root.appendChild(el('ul', { class: 'pro-benefits' }, [
+    // Round 20 — the no-card trial, first because it is the line that changes what the button does: Checkout opens with
+    // trial_period_days and no card asked for exactly where Stripe is live, the server has a trial and this account
+    // never went through Checkout (GET /api/billing/state says trialDays > 0); the webhook grants the days, not a month.
+    plans.billing && plans.proTrialDays > 0 && trialOffered ? benefit('timer', t('pro.benefit_trial', { days: trialDays }), t('pro.benefit_trial_hint', { price: priceText })) : null,
     benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
     plans.tasteNeedsPro ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
     plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint', { free: plans.wardrobeNames })) : null,
@@ -162,18 +201,35 @@ register('pro', async (root, params, ctx) => {
     ? t('pro.allowance_month', { n: month })
     : t('pro.fair_use', { checks: n, compares: plans.proComparesPerDay || 0 }) }));
 
-  // Round 16: money is written differently in every language this app speaks - where the symbol sits, which digits
-  // are used, how the decimal is marked - and proPriceText is ONE string shown to all four. So the server sends the
-  // amount and the currency, and the browser, which already knows all of that, writes it. proPriceText stays as the
-  // override for a price no format covers ("first month free, then...").
-  const currency = currencyForReader(plans);
-  const amount = (plans.proPrices && plans.proPrices[currency]) || plans.proPriceAmount;
-  const priceText = plans.proPriceText || money(amount, currency);
+  // Round 20: the interval toggle, only when the year can really be sold in this currency, then the price block, which
+  // re-renders with the toggle: a month reads "a month" and "billed monthly", a year reads "a year", "billed once a
+  // year" and the saving when there is one (a yearly amount at or above twelve months shows no saving line).
+  const price = el('p', { class: 'pro-price', id: 'pro-price' });
+  const paintPrice = () => {
+    price.replaceChildren();
+    if (interval === 'year' && yearlyText) {
+      price.appendChild(el('span', { class: 'pro-amount', text: t('pro.per_year', { price: yearlyText }) }));
+      price.appendChild(el('span', { class: 'hint', text: t('pro.price_note_yearly') }));
+      if (savingPct > 0) price.appendChild(el('span', { class: 'pro-saving', id: 'pro-saving', text: t('pro.yearly_saving', { pct: savingPct }) }));
+      return;
+    }
+    price.appendChild(el('span', { class: 'pro-amount', text: t('pro.per_month', { price: priceText }) }));
+    if (plans.billing) price.appendChild(el('span', { class: 'hint', text: t('pro.price_note') }));
+  };
+  if (priceText && yearlyText && plans.billing) {
+    const pick = (next) => {
+      interval = next;
+      monthButton.setAttribute('aria-pressed', String(next === 'month'));
+      yearButton.setAttribute('aria-pressed', String(next === 'year'));
+      paintPrice();
+    };
+    const monthButton = el('button', { type: 'button', id: 'pro-interval-month', 'aria-pressed': 'true', text: t('pro.interval_month'), onclick: () => pick('month') });
+    const yearButton = el('button', { type: 'button', id: 'pro-interval-year', 'aria-pressed': 'false', text: t('pro.interval_year'), onclick: () => pick('year') });
+    root.appendChild(el('div', { class: 'pro-interval', id: 'pro-interval', role: 'group', 'aria-label': t('pro.interval_month') + ' / ' + t('pro.interval_year') }, [monthButton, yearButton]));
+  }
   if (priceText) {
-    root.appendChild(el('p', { class: 'pro-price', id: 'pro-price' }, [
-      el('span', { class: 'pro-amount', text: t('pro.per_month', { price: priceText }) }),
-      plans.billing ? el('span', { class: 'hint', text: t('pro.price_note') }) : null
-    ]));
+    paintPrice();
+    root.appendChild(price);
   }
 
   const foot = el('div', { class: 'pro-foot', id: 'pro-foot' });
@@ -199,7 +255,10 @@ register('pro', async (root, params, ctx) => {
     if (!plans.billing) { foot.appendChild(el('p', { class: 'notice', id: 'pro-manual', text: t('pro.manual') })); return; }
     // Just paid and the webhook has not landed yet: the thanks note above says so, and there is no button to tap again.
     if (result === 'success') return;
-    const go = el('button', { type: 'button', class: 'btn', id: 'pro-go', text: t('pro.go') });
+    // Round 20: the button says what the trial line promised, when it is drawn; a second Checkout on the same account
+    // never trials, and the server decides that whatever the button read.
+    const goText = () => (trialOffered && plans.proTrialDays > 0 ? t('pro.go_trial', { days: trialDays }) : t('pro.go'));
+    const go = el('button', { type: 'button', class: 'btn', id: 'pro-go', text: goText() });
     go.addEventListener('click', async () => {
       if (go.disabled) return;
       go.disabled = true;
@@ -207,8 +266,9 @@ register('pro', async (root, params, ctx) => {
       try {
         // Round 17: the currency this page QUOTED, so Stripe charges the number the person just read rather than
         // whatever the price is denominated in. The server drops anything it has no price for, so this can only ever
-        // pick from what the server itself offers.
-        const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency));
+        // pick from what the server itself offers. Round 20: and the interval the toggle stands on; a year the server
+        // cannot sell in this currency is refused (400), never quietly sold as a month.
+        const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency) + '&interval=' + encodeURIComponent(interval));
         location.href = url;   // Stripe's hosted page; it comes back to #/pro?checkout=...
       } catch (e) {
         if (ctx.stale()) return;
@@ -216,7 +276,7 @@ register('pro', async (root, params, ctx) => {
         // 409: this account is Pro already and this tab did not know (loaded before the webhook flipped the plan).
         if (e.status === 409) { await loadMe(); if (!ctx.stale()) paint(); return; }
         go.disabled = false;
-        go.textContent = t('pro.go');
+        go.textContent = goText();
       }
     });
     foot.appendChild(go);

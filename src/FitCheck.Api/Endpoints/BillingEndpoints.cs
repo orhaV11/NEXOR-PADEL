@@ -59,6 +59,30 @@ public static class BillingEndpoints
     /// <summary>Added to the period end Stripe names, and all that is left once collection has stopped (past due, unpaid, paused).</summary>
     public static readonly TimeSpan RenewalSlack = TimeSpan.FromDays(3);
 
+    /// <summary>
+    /// Round 20: what a completed Checkout for the yearly price grants: a year plus <see cref="RenewalSlack"/>, for the
+    /// same reason <see cref="PaidPeriod"/> is 35 days and not a month. From then on the end date follows the invoices.
+    /// </summary>
+    public static readonly TimeSpan PaidYear = TimeSpan.FromDays(368);
+
+    /// <summary>Round 20: the StripeEvents column's length; a longer event id is cut, and the cut id still compares equal to itself next time.</summary>
+    public const int EventIdMaxLength = 64;
+
+    /// <summary>
+    /// Round 20: how long a handled event's id is kept. Stripe retries a delivery for three days at most, so a month
+    /// covers every retry and every replay from its dashboard that anyone would make; older rows are pruned by the
+    /// renewal recap's hourly run, and the monotonic rules below are the second line of defence past that.
+    /// </summary>
+    public static readonly TimeSpan StripeEventKeep = TimeSpan.FromDays(30);
+
+    /// <summary>
+    /// Round 20: one delivery at a time. Stripe can post the same event twice within a second, and the replay check
+    /// reads the table before the handler and records after it, so without this two deliveries of one event could
+    /// both find nothing and both do the work. A single server with one SQLite file has one process, so a process-wide
+    /// gate is exactly the serialisation needed, and webhook traffic is a few events a day.
+    /// </summary>
+    private static readonly SemaphoreSlim WebhookGate = new(1, 1);
+
     public static IEndpointRouteBuilder MapBillingEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/billing");
@@ -121,7 +145,20 @@ public static class BillingEndpoints
         }
 
         var (plan, proUntil) = EffectivePlan(user, DateTime.UtcNow);
-        return Results.Json(new BillingStateDto(plan, proUntil, billing.Value.StripeEnabled, plans.Value.ProPriceText), AppJson.Options);
+        return Results.Json(new BillingStateDto(plan, proUntil, billing.Value.StripeEnabled, plans.Value.ProPriceText,
+            billing.Value.YearlyEnabled, TrialDaysFor(user, plans.Value, billing.Value)), AppJson.Options);
+    }
+
+    /// <summary>
+    /// Round 20: how many free days Checkout would open for this account: Plans:ProTrialDays (clamped to Stripe's range)
+    /// while Stripe is live and the account has never been a Stripe customer here. The customer id is what the first
+    /// completed Checkout stores, so a second subscription on the same account never trials again; Stripe itself does
+    /// not stop re-trials, and a --pro grant leaves nothing on Stripe's side, so a gifted person can still trial once.
+    /// </summary>
+    public static int TrialDaysFor(AppUser user, PlanOptions plans, BillingOptions billing)
+    {
+        var days = Math.Clamp(plans.ProTrialDays, 0, 730);
+        return billing.StripeEnabled && days > 0 && string.IsNullOrWhiteSpace(user.BillingCustomerId) ? days : 0;
     }
 
     /// <summary>
@@ -142,6 +179,25 @@ public static class BillingEndpoints
 
         var fallback = plans.FallbackCurrency();
         return fallback.Length == 3 && table.ContainsKey(fallback) ? fallback : "";
+    }
+
+    /// <summary>
+    /// Round 20: the currency of a yearly Checkout, against <see cref="PlanOptions.YearlyPriceTable"/>, or null when
+    /// the year cannot be sold in it. Stricter than the monthly rule on purpose: a quoted currency the yearly table lacks
+    /// is not swapped for the fallback, because the page never showed a year in that currency and the person who asked
+    /// for one must be refused rather than charged a different number.
+    /// </summary>
+    private static string? YearlyCurrency(HttpRequest request, PlanOptions plans)
+    {
+        var table = plans.YearlyPriceTable();
+        var asked = (request.Query["currency"].ToString() ?? "").Trim().ToUpperInvariant();
+        if (asked.Length == 3)
+        {
+            return table.ContainsKey(asked) ? asked : null;
+        }
+
+        var fallback = plans.FallbackCurrency();
+        return fallback.Length == 3 && table.ContainsKey(fallback) ? fallback : null;
     }
 
     private static async Task<IResult> CheckoutAsync(
@@ -167,6 +223,25 @@ public static class BillingEndpoints
             return UserEndpoints.Error(StatusCodes.Status409Conflict, localizer.Get(user.PreferredLanguage, "error.already_pro"));
         }
 
+        // Round 20: ?interval=year buys the yearly price, and only where the page could have offered it (a yearly price
+        // id AND a yearly amount in the quoted currency). Anything else that is not a month is refused, never quietly
+        // sold as a month: a person who read "a year" must not be charged a month.
+        var interval = (context.Request.Query["interval"].ToString() ?? "").Trim().ToLowerInvariant();
+        string currency;
+        if (interval is "" or "month")
+        {
+            interval = "month";
+            currency = QuotedCurrency(context.Request, plans.Value);
+        }
+        else if (interval == "year" && billing.Value.YearlyEnabled && YearlyCurrency(context.Request, plans.Value) is { } yearly)
+        {
+            currency = yearly;
+        }
+        else
+        {
+            return UserEndpoints.Error(StatusCodes.Status400BadRequest, localizer.Get(user.PreferredLanguage, "error.billing_interval"));
+        }
+
         var origin = Origin(context.Request, billing.Value);
         var request = new CheckoutSessionRequest(
             user.Id,
@@ -175,7 +250,10 @@ public static class BillingEndpoints
             user.EmailVerifiedAt is not null ? user.Email : null,
             $"{origin}/#/pro?checkout=success",
             $"{origin}/#/pro?checkout=cancel",
-            QuotedCurrency(context.Request, plans.Value));
+            currency,
+            interval,
+            // Decided here, never refused: an account that is not eligible simply pays from the first day.
+            TrialDaysFor(user, plans.Value, billing.Value));
         var url = await stripe.CreateCheckoutSessionAsync(request, ct);
         if (url is null)
         {
@@ -186,11 +264,21 @@ public static class BillingEndpoints
     }
 
     /// <summary>
-    /// Stripe's events. Nothing is stored per event and no event id is checked: every update here is monotonic enough
-    /// for a pilot (a repeated checkout.session.completed stacks one more period, a repeated invoice.paid or
-    /// customer.subscription.updated names the same period end and changes nothing, a repeated subscription.deleted ends
-    /// what already ended), and Stripe retries until it sees a 2xx, so a handler that cannot find the account still
-    /// answers 200 rather than asking for the same event again. A bad signature is 400 so the dashboard shows it.
+    /// Stripe's events. Round 20: a delivery is told from a replay by the event's own id (<see cref="StripeEvent"/>):
+    /// an id already on record answers 200 <c>{ received, replayed }</c> and does nothing, so a retried or replayed
+    /// checkout.session.completed no longer stacks one more period. The id is recorded AFTER the handler ran, so a
+    /// handler that threw (500) leaves no row and Stripe's retry is handled, not ignored; the two deliveries of one
+    /// event that could both slip through that window are serialised by <see cref="WebhookGate"/>. Rows older than
+    /// <see cref="StripeEventKeep"/> are pruned, and past that the monotonic rules stay as the second line of defence
+    /// (a repeated invoice.paid or customer.subscription.updated names the same period end and changes nothing, a
+    /// repeated subscription.deleted ends what already ended). An event without an id (a hand-made one) is handled every
+    /// time, as before. Stripe retries until it sees a 2xx, so a handler that cannot find the account still answers
+    /// 200 rather than asking for the same event again. A bad signature is 400 so the dashboard shows it.
+    /// <para>
+    /// Round 20 also reads what the Checkout Session sold from its metadata: interval=year grants <see cref="PaidYear"/>,
+    /// and a session with payment_status no_payment_required and metadata.trialDays grants the trial's days plus the
+    /// slack rather than a paid period, because a trial that asked for no card must not hand out a month of Pro.
+    /// </para>
     /// <para>
     /// Round 11: the account remembers which subscription it paid for (<see cref="AppUser.BillingSubscriptionId"/>).
     /// checkout.session.completed stores the session's subscription (the one the person just paid for; a different one
@@ -235,255 +323,326 @@ public static class BillingEndpoints
             var type = root.TryGetProperty("type", out var typeProperty) && typeProperty.ValueKind == JsonValueKind.String ? typeProperty.GetString() ?? "" : "";
             var payload = root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
                 && data.TryGetProperty("object", out var obj) && obj.ValueKind == JsonValueKind.Object ? obj : default;
-            var now = DateTime.UtcNow;
+            var eventId = SubscriptionId(root, "id");
 
-            switch (type)
+            await WebhookGate.WaitAsync(ct);
+            try
             {
-                case "checkout.session.completed":
+                if (eventId is not null && await db.StripeEvents.AnyAsync(e => e.Id == eventId, ct))
                 {
-                    var user = await FindByReferenceAsync(db, payload, ct);
-                    if (user is null)
-                    {
-                        logger.LogWarning("Stripe checkout.session.completed names no account we have (client_reference_id/metadata.userId); ignored.");
-                        break;
-                    }
-
-                    // On top of a period still running (a --pro grant, or a stale tab's Checkout the 409 above did not
-                    // catch): paying never cuts what the account already had.
-                    user.Plan = Plans.Pro;
-                    user.ProUntil = Later(user.ProUntil, now) + PaidPeriod;
-                    var customer = StringOrId(payload, "customer");
-                    if (!string.IsNullOrWhiteSpace(customer))
-                    {
-                        user.BillingCustomerId = customer;
-                    }
-
-                    // The subscription this Checkout paid for: the one the events below answer to from now on. A different id
-                    // already there (a second Checkout on the same account) is replaced, since this is the one just paid for.
-                    var subscription = SubscriptionId(payload, "subscription");
-                    if (subscription is not null)
-                    {
-                        if (user.BillingSubscriptionId is not null && user.BillingSubscriptionId != subscription)
-                        {
-                            logger.LogWarning("Account {Handle} paid for subscription {Subscription} while {Previous} was on record; the new one is followed now.",
-                                user.Handle, subscription, user.BillingSubscriptionId);
-                        }
-
-                        user.BillingSubscriptionId = subscription;
-                    }
-
-                    await db.SaveChangesAsync(ct);
-                    logger.LogInformation("Account {Handle} is Pro until {Until:u} (checkout completed).", user.Handle, user.ProUntil);
-                    break;
+                    logger.LogInformation("Stripe event {Id} ({Type}) was already handled; ignored.", eventId, type);
+                    return Results.Json(new { received = true, replayed = true }, AppJson.Options);
                 }
 
-                case "customer.subscription.created":
+                await HandleAsync(type, payload, db, localizer, billing.Value, logger, alerter, email, context.Request, ct);
+
+                if (eventId is not null)
                 {
-                    // Nothing is granted here (the checkout event does that): the account only learns its subscription id when
-                    // it has none, so a subscription that started on Stripe's side, or one from before this round, is followed too.
-                    var user = await FindByCustomerAsync(db, payload, logger, ct);
-                    if (user is null || SubscriptionId(payload, "id") is not { } created)
-                    {
-                        break;
-                    }
-
-                    if (user.BillingSubscriptionId is null)
-                    {
-                        user.BillingSubscriptionId = created;
-                        await db.SaveChangesAsync(ct);
-                        logger.LogInformation("Account {Handle} follows subscription {Subscription} (created).", user.Handle, created);
-                    }
-                    else if (user.BillingSubscriptionId != created)
-                    {
-                        logger.LogWarning("Stripe created subscription {Subscription} for account {Handle}, which already follows {Current}; ignored.",
-                            created, user.Handle, user.BillingSubscriptionId);
-                    }
-
-                    break;
+                    await RecordAsync(db, eventId, type, logger, ct);
                 }
-
-                case "invoice.paid":
-                {
-                    // The first invoice of a subscription is the checkout above; extending on it as well would give the
-                    // first period twice. Renewals (subscription_cycle) and anything without a reason extend.
-                    if (StringOrId(payload, "billing_reason") == "subscription_create")
-                    {
-                        break;
-                    }
-
-                    var user = await FindByCustomerAsync(db, payload, logger, ct);
-                    if (user is null)
-                    {
-                        break;
-                    }
-
-                    // Paid through the end of the period the invoice's lines name, plus slack; an invoice naming none is
-                    // worth a period from now. Never counted from the previous end date: a renewal every ~30 days would
-                    // otherwise run ahead by the difference each time. Never shorter than what is there.
-                    var paidUntil = PeriodEnd(payload) is { } periodEnd ? periodEnd + RenewalSlack : now + PaidPeriod;
-                    user.Plan = Plans.Pro;
-                    user.ProUntil = Later(user.ProUntil, paidUntil);
-                    await db.SaveChangesAsync(ct);
-                    logger.LogInformation("Account {Handle} is Pro until {Until:u} (invoice paid).", user.Handle, user.ProUntil);
-                    break;
-                }
-
-                case "customer.subscription.updated":
-                {
-                    var user = await FindByCustomerAsync(db, payload, logger, ct);
-                    if (user is null)
-                    {
-                        break;
-                    }
-
-                    // Only the subscription the account follows moves the end date; another on the same customer is logged and
-                    // ignored. An account that follows none yet (from before Round 11) adopts this one and keeps the customer-only
-                    // matching it had.
-                    if (!FollowsOrAdopts(user, payload, logger, "updated"))
-                    {
-                        break;
-                    }
-
-                    // An adopted id is kept whatever the status below does to the end date.
-                    if (db.ChangeTracker.HasChanges())
-                    {
-                        await db.SaveChangesAsync(ct);
-                    }
-
-                    var status = StringOrId(payload, "status");
-                    if (status is "active" or "trialing")
-                    {
-                        // Paid through the subscription's current period, plus slack; never shorter than what is there.
-                        if (CurrentPeriodEnd(payload) is not { } periodEnd)
-                        {
-                            break;
-                        }
-
-                        var until = periodEnd + RenewalSlack;
-                        if (user.ProUntil is { } running && running >= until)
-                        {
-                            break;
-                        }
-
-                        user.Plan = Plans.Pro;
-                        user.ProUntil = until;
-                        await db.SaveChangesAsync(ct);
-                        logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
-                    }
-                    else if (status is "past_due" or "unpaid" or "paused")
-                    {
-                        // Collection stopped without the subscription ending (Stripe's dunning can leave it like this for
-                        // good): what is left is the slack, not an end date that was granted on the promise of a payment.
-                        var cutoff = now + RenewalSlack;
-                        if (!Plans.IsPro(user, now) || (user.ProUntil is { } remaining && remaining <= cutoff))
-                        {
-                            break;
-                        }
-
-                        user.ProUntil = cutoff;
-                        await db.SaveChangesAsync(ct);
-                        logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
-                        // Round 17: and TELL them. Until now a declined card moved a paying person to three days from
-                        // Pro in silence — they would simply find the app smaller one morning, having done nothing
-                        // wrong and been asked for nothing. A card expires; that is not a decision to cancel, and
-                        // treating it as one loses a subscriber who wanted to stay.
-                        await TellAboutTheCardAsync(email, localizer, billing.Value, context.Request, user, cutoff, logger, ct);
-                    }
-
-                    break;
-                }
-
-                case "customer.subscription.deleted":
-                {
-                    var user = await FindByCustomerAsync(db, payload, logger, ct);
-                    if (user is null)
-                    {
-                        break;
-                    }
-
-                    // A deleted subscription that is not the one the account follows must not end Pro: the followed one still
-                    // bills. With none followed (an account from before Round 11) the customer match is all there is, as before.
-                    var deleted = SubscriptionId(payload, "id");
-                    if (user.BillingSubscriptionId is not null && deleted is not null && user.BillingSubscriptionId != deleted)
-                    {
-                        logger.LogWarning("Stripe deleted subscription {Subscription} for account {Handle}, which follows {Current}; Pro stays.",
-                            deleted, user.Handle, user.BillingSubscriptionId);
-                        break;
-                    }
-
-                    // The end date moves to now rather than the plan to free: the row still says a subscription existed. The
-                    // id is cleared so the next Checkout starts clean.
-                    var wasPro = Plans.IsPro(user, now);
-                    user.ProUntil = now;
-                    user.BillingSubscriptionId = null;
-                    await db.SaveChangesAsync(ct);
-                    logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
-                    // Round 17: only when they actually had it to lose. Stripe deletes a subscription for a cancellation
-                    // they asked for AND for one that quietly ran out of retries, and the two feel identical from the
-                    // inside - the app simply gets smaller. A line saying so, and that the wardrobe and the looks are
-                    // still there, is the difference between a lapse and a loss.
-                    if (wasPro)
-                    {
-                        await TellProEndedAsync(email, localizer, billing.Value, context.Request, user, logger, ct);
-                    }
-
-                    break;
-                }
-
-                // ---- Round 13 — money: a payment that went backwards. Stripe sends these on the charge, not the
-                // subscription, and nothing here used to read them: a refunded or disputed month left the account Pro.
-                // Both end Pro now, log it, and alert the owner, who has to decide what to do about the person. ----
-                case "charge.refunded":
-                case "charge.dispute.created":
-                {
-                    var user = await FindByCustomerAsync(db, payload, logger, ct);
-                    if (user is null)
-                    {
-                        break;
-                    }
-
-                    var reversal = type == "charge.refunded" ? "refunded" : "disputed";
-
-                    // Round 17. charge.refunded fires for ANY refund, and most refunds are not the whole month: a
-                    // goodwill five shekels back, a proration, a duplicate line. Taking Pro away for one of those is
-                    // the worst outcome available - the person keeps being billed by Stripe (a refund does not cancel
-                    // a subscription) and loses what they are paying for. So only a charge refunded IN FULL ends Pro.
-                    // A partial one still reaches the owner, because a refund he did not issue is worth knowing about.
-                    // The Charge carries both answers (amount, amount_refunded, refunded); a dispute has neither and
-                    // is always the whole charge.
-                    var partial = type == "charge.refunded" && !FullyRefunded(payload);
-                    if (partial)
-                    {
-                        logger.LogWarning("Account {Handle}: a Stripe charge was refunded in part. Pro was left alone.", user.Handle);
-                        await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
-                            $"part of a Stripe charge was refunded for one account ({type}). Pro was NOT removed, because the charge was not refunded in full and the subscription is still billing. Check the Stripe dashboard if this was not you.", ct);
-                        break;
-                    }
-
-                    if (!Plans.IsPro(user, now))
-                    {
-                        logger.LogInformation("Stripe {Type} for account {Handle}, which is not Pro; nothing to remove.", type, user.Handle);
-                        break;
-                    }
-
-                    // Same shape as a deleted subscription: the end date moves to now rather than the plan to free, so
-                    // the row still says a subscription existed. The subscription id is left alone — a dispute does not
-                    // cancel the subscription, and Stripe will send customer.subscription.deleted if it ends too.
-                    user.ProUntil = now;
-                    await db.SaveChangesAsync(ct);
-                    logger.LogWarning("Account {Handle} left Pro: a charge was {Reversal} ({Type}).", user.Handle, reversal, type);
-                    await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
-                        $"a Stripe charge was {reversal} ({type}) and Pro was removed from one account. Check the Stripe dashboard: a dispute has a deadline and a fee.", ct);
-                    break;
-                }
-
-                default:
-                    // Not ours to handle; 200 so Stripe stops sending it.
-                    break;
+            }
+            finally
+            {
+                WebhookGate.Release();
             }
         }
 
         return Results.Json(new { received = true }, AppJson.Options);
+    }
+
+    /// <summary>
+    /// The row that says this event was handled. Written after the work, in its own SaveChanges, and a duplicate key
+    /// (another process, or a hand-made pair) is swallowed: the work it stands for was done, and Stripe gets its 200.
+    /// </summary>
+    private static async Task RecordAsync(AppDbContext db, string eventId, string type, ILogger logger, CancellationToken ct)
+    {
+        db.StripeEvents.Add(new StripeEvent
+        {
+            Id = eventId,
+            Type = type.Length <= EventIdMaxLength ? type : type[..EventIdMaxLength],
+            ReceivedAt = DateTime.UtcNow
+        });
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            logger.LogInformation("Stripe event {Id} ({Type}) was recorded by another delivery meanwhile.", eventId, type);
+        }
+    }
+
+    /// <summary>The event handlers proper, one case per event the endpoint is subscribed to.</summary>
+    private static async Task HandleAsync(
+        string type, JsonElement payload, AppDbContext db, Localizer localizer, BillingOptions billing, ILogger logger,
+        Alerter alerter, IEmailSender email, HttpRequest request, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+
+        switch (type)
+        {
+            case "checkout.session.completed":
+            {
+                var user = await FindByReferenceAsync(db, payload, ct);
+                if (user is null)
+                {
+                    logger.LogWarning("Stripe checkout.session.completed names no account we have (client_reference_id/metadata.userId); ignored.");
+                    break;
+                }
+
+                // On top of a period still running (a --pro grant, or a stale tab's Checkout the 409 above did not
+                // catch): paying never cuts what the account already had. Round 20: what is added is what the
+                // session sold - a year for the yearly price, and for a no-card trial the trial's days and the slack,
+                // never a paid period; a session without metadata (hand-made, or from before) is a month, as before.
+                user.Plan = Plans.Pro;
+                user.ProUntil = Later(user.ProUntil, now) + GrantedBy(payload);
+                var customer = StringOrId(payload, "customer");
+                if (!string.IsNullOrWhiteSpace(customer))
+                {
+                    user.BillingCustomerId = customer;
+                }
+
+                // The subscription this Checkout paid for: the one the events below answer to from now on. A different id
+                // already there (a second Checkout on the same account) is replaced, since this is the one just paid for.
+                var subscription = SubscriptionId(payload, "subscription");
+                if (subscription is not null)
+                {
+                    if (user.BillingSubscriptionId is not null && user.BillingSubscriptionId != subscription)
+                    {
+                        logger.LogWarning("Account {Handle} paid for subscription {Subscription} while {Previous} was on record; the new one is followed now.",
+                            user.Handle, subscription, user.BillingSubscriptionId);
+                    }
+
+                    user.BillingSubscriptionId = subscription;
+                }
+
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Account {Handle} is Pro until {Until:u} (checkout completed).", user.Handle, user.ProUntil);
+                break;
+            }
+
+            case "customer.subscription.created":
+            {
+                // Nothing is granted here (the checkout event does that): the account only learns its subscription id when
+                // it has none, so a subscription that started on Stripe's side, or one from before this round, is followed too.
+                var user = await FindByCustomerAsync(db, payload, logger, ct);
+                if (user is null || SubscriptionId(payload, "id") is not { } created)
+                {
+                    break;
+                }
+
+                if (user.BillingSubscriptionId is null)
+                {
+                    user.BillingSubscriptionId = created;
+                    await db.SaveChangesAsync(ct);
+                    logger.LogInformation("Account {Handle} follows subscription {Subscription} (created).", user.Handle, created);
+                }
+                else if (user.BillingSubscriptionId != created)
+                {
+                    logger.LogWarning("Stripe created subscription {Subscription} for account {Handle}, which already follows {Current}; ignored.",
+                        created, user.Handle, user.BillingSubscriptionId);
+                }
+
+                break;
+            }
+
+            case "invoice.paid":
+            {
+                // The first invoice of a subscription is the checkout above; extending on it as well would give the
+                // first period twice. Renewals (subscription_cycle) and anything without a reason extend.
+                if (StringOrId(payload, "billing_reason") == "subscription_create")
+                {
+                    break;
+                }
+
+                var user = await FindByCustomerAsync(db, payload, logger, ct);
+                if (user is null)
+                {
+                    break;
+                }
+
+                // Paid through the end of the period the invoice's lines name, plus slack; an invoice naming none is
+                // worth a period from now. Never counted from the previous end date: a renewal every ~30 days would
+                // otherwise run ahead by the difference each time. Never shorter than what is there.
+                var paidUntil = PeriodEnd(payload) is { } periodEnd ? periodEnd + RenewalSlack : now + PaidPeriod;
+                user.Plan = Plans.Pro;
+                user.ProUntil = Later(user.ProUntil, paidUntil);
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Account {Handle} is Pro until {Until:u} (invoice paid).", user.Handle, user.ProUntil);
+                break;
+            }
+
+            case "customer.subscription.updated":
+            {
+                var user = await FindByCustomerAsync(db, payload, logger, ct);
+                if (user is null)
+                {
+                    break;
+                }
+
+                // Only the subscription the account follows moves the end date; another on the same customer is logged and
+                // ignored. An account that follows none yet (from before Round 11) adopts this one and keeps the customer-only
+                // matching it had.
+                if (!FollowsOrAdopts(user, payload, logger, "updated"))
+                {
+                    break;
+                }
+
+                // An adopted id is kept whatever the status below does to the end date.
+                if (db.ChangeTracker.HasChanges())
+                {
+                    await db.SaveChangesAsync(ct);
+                }
+
+                var status = StringOrId(payload, "status");
+                if (status is "active" or "trialing")
+                {
+                    // Paid through the subscription's current period, plus slack; never shorter than what is there.
+                    if (CurrentPeriodEnd(payload) is not { } periodEnd)
+                    {
+                        break;
+                    }
+
+                    var until = periodEnd + RenewalSlack;
+                    if (user.ProUntil is { } running && running >= until)
+                    {
+                        break;
+                    }
+
+                    user.Plan = Plans.Pro;
+                    user.ProUntil = until;
+                    await db.SaveChangesAsync(ct);
+                    logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
+                }
+                else if (status is "past_due" or "unpaid" or "paused")
+                {
+                    // Collection stopped without the subscription ending (Stripe's dunning can leave it like this for
+                    // good): what is left is the slack, not an end date that was granted on the promise of a payment.
+                    var cutoff = now + RenewalSlack;
+                    if (!Plans.IsPro(user, now) || (user.ProUntil is { } remaining && remaining <= cutoff))
+                    {
+                        break;
+                    }
+
+                    user.ProUntil = cutoff;
+                    await db.SaveChangesAsync(ct);
+                    logger.LogInformation("Account {Handle} is Pro until {Until:u} (subscription {Status}).", user.Handle, user.ProUntil, status);
+                    // Round 17: and TELL them. Until now a declined card moved a paying person to three days from
+                    // Pro in silence — they would simply find the app smaller one morning, having done nothing
+                    // wrong and been asked for nothing. A card expires; that is not a decision to cancel, and
+                    // treating it as one loses a subscriber who wanted to stay.
+                    await TellAboutTheCardAsync(email, localizer, billing, request, user, cutoff, logger, ct);
+                }
+
+                break;
+            }
+
+            case "customer.subscription.deleted":
+            {
+                var user = await FindByCustomerAsync(db, payload, logger, ct);
+                if (user is null)
+                {
+                    break;
+                }
+
+                // A deleted subscription that is not the one the account follows must not end Pro: the followed one still
+                // bills. With none followed (an account from before Round 11) the customer match is all there is, as before.
+                var deleted = SubscriptionId(payload, "id");
+                if (user.BillingSubscriptionId is not null && deleted is not null && user.BillingSubscriptionId != deleted)
+                {
+                    logger.LogWarning("Stripe deleted subscription {Subscription} for account {Handle}, which follows {Current}; Pro stays.",
+                        deleted, user.Handle, user.BillingSubscriptionId);
+                    break;
+                }
+
+                // The end date moves to now rather than the plan to free: the row still says a subscription existed. The
+                // id is cleared so the next Checkout starts clean.
+                var wasPro = Plans.IsPro(user, now);
+                user.ProUntil = now;
+                user.BillingSubscriptionId = null;
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
+                // Round 17: only when they actually had it to lose. Stripe deletes a subscription for a cancellation
+                // they asked for AND for one that quietly ran out of retries, and the two feel identical from the
+                // inside - the app simply gets smaller. A line saying so, and that the wardrobe and the looks are
+                // still there, is the difference between a lapse and a loss.
+                if (wasPro)
+                {
+                    await TellProEndedAsync(email, localizer, billing, request, user, logger, ct);
+                }
+
+                break;
+            }
+
+            // ---- Round 13 — money: a payment that went backwards. Stripe sends these on the charge, not the
+            // subscription, and nothing here used to read them: a refunded or disputed month left the account Pro.
+            // Both end Pro now, log it, and alert the owner, who has to decide what to do about the person. ----
+            case "charge.refunded":
+            case "charge.dispute.created":
+            {
+                var user = await FindByCustomerAsync(db, payload, logger, ct);
+                if (user is null)
+                {
+                    break;
+                }
+
+                var reversal = type == "charge.refunded" ? "refunded" : "disputed";
+
+                // Round 17. charge.refunded fires for ANY refund, and most refunds are not the whole month: a
+                // goodwill five shekels back, a proration, a duplicate line. Taking Pro away for one of those is
+                // the worst outcome available - the person keeps being billed by Stripe (a refund does not cancel
+                // a subscription) and loses what they are paying for. So only a charge refunded IN FULL ends Pro.
+                // A partial one still reaches the owner, because a refund he did not issue is worth knowing about.
+                // The Charge carries both answers (amount, amount_refunded, refunded); a dispute has neither and
+                // is always the whole charge.
+                var partial = type == "charge.refunded" && !FullyRefunded(payload);
+                if (partial)
+                {
+                    logger.LogWarning("Account {Handle}: a Stripe charge was refunded in part. Pro was left alone.", user.Handle);
+                    await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
+                        $"part of a Stripe charge was refunded for one account ({type}). Pro was NOT removed, because the charge was not refunded in full and the subscription is still billing. Check the Stripe dashboard if this was not you.", ct);
+                    break;
+                }
+
+                if (!Plans.IsPro(user, now))
+                {
+                    logger.LogInformation("Stripe {Type} for account {Handle}, which is not Pro; nothing to remove.", type, user.Handle);
+                    break;
+                }
+
+                // Same shape as a deleted subscription: the end date moves to now rather than the plan to free, so
+                // the row still says a subscription existed. The subscription id is left alone — a dispute does not
+                // cancel the subscription, and Stripe will send customer.subscription.deleted if it ends too.
+                user.ProUntil = now;
+                await db.SaveChangesAsync(ct);
+                logger.LogWarning("Account {Handle} left Pro: a charge was {Reversal} ({Type}).", user.Handle, reversal, type);
+                await alerter.RaiseAsync(Alerter.Kind.BillingReversed,
+                    $"a Stripe charge was {reversal} ({type}) and Pro was removed from one account. Check the Stripe dashboard: a dispute has a deadline and a fee.", ct);
+                break;
+            }
+
+            default:
+                // Not ours to handle; 200 so Stripe stops sending it.
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Round 20: the period a completed Checkout grants, read from the session. A no-card trial (payment_status
+    /// no_payment_required with a trialDays the app wrote into the metadata) is worth its days plus the slack; a
+    /// session sold as a year is worth <see cref="PaidYear"/>; everything else, a month as before.
+    /// </summary>
+    private static TimeSpan GrantedBy(JsonElement session)
+    {
+        var metadata = session.ValueKind == JsonValueKind.Object && session.TryGetProperty("metadata", out var block) && block.ValueKind == JsonValueKind.Object
+            ? block : default;
+        var trialDays = int.TryParse(StringOrId(metadata, "trialDays"), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days) ? days : 0;
+        if (StringOrId(session, "payment_status") == "no_payment_required" && trialDays > 0)
+        {
+            return TimeSpan.FromDays(Math.Min(trialDays, 730)) + RenewalSlack;
+        }
+
+        return StringOrId(metadata, "interval") == "year" ? PaidYear : PaidPeriod;
     }
 
     /// <summary>The account a Checkout Session was opened for: client_reference_id first, metadata.userId as the fallback.</summary>

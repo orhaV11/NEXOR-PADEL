@@ -11,15 +11,27 @@ wardrobe, and the answer is its first three refs with a sentence in the requeste
 answered with B winning, 6 to 8, in the requested language.
 
 GET /v1/forecast answers as Open-Meteo would (three days of daily figures), so an end-to-end run can point
-Weather__BaseUrl here and never leave the machine.
+Weather__BaseUrl here and never leave the machine - and, since Round 20, Stripe's two session POSTs
+(/v1/checkout/sessions answers with the form's own success_url, /v1/billing_portal/sessions with its return_url,
+both recorded with their form fields and read back from GET /stripe) plus the two reads --stripe-check makes
+(GET /v1/prices/{id}: a recurring month or year in USD by the id's suffix; GET /v1/webhook_endpoints: one endpoint
+for the API origin given as the second argument, subscribed to every event), so the billing leg never leaves
+the machine either.
 """
 import base64
 import json
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qsl
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5099
+API_ORIGIN = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:5088"
 REQUESTS = []
+STRIPE = []
+WEBHOOK_EVENTS = [
+    "checkout.session.completed", "customer.subscription.created", "customer.subscription.updated",
+    "customer.subscription.deleted", "invoice.paid", "charge.refunded", "charge.dispute.created",
+]
 
 EN = {
     "status": "ok", "score": 7, "intent_match": 72,
@@ -178,7 +190,27 @@ class Handler(BaseHTTPRequestHandler):
             problems.append("%s media_type says jpeg but bytes are not" % label)
         return image_bytes, media_type
 
+    def _json(self, status, payload):
+        out = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
     def do_POST(self):
+        if self.path in ("/v1/checkout/sessions", "/v1/billing_portal/sessions"):
+            # Round 20: Stripe's two session POSTs. The form is recorded as sent and the answer's url is the address the
+            # form itself named, so the browser lands where the real Stripe would send it.
+            length = int(self.headers.get("Content-Length", "0"))
+            form = dict(parse_qsl(self.rfile.read(length).decode("utf-8"), keep_blank_values=True))
+            if not (self.headers.get("Authorization") or "").startswith("Bearer sk_"):
+                return self._fail(401, "no bearer key")
+            STRIPE.append({"path": self.path, "form": form})
+            sys.stderr.write("STUB STRIPE %s %s\n" % (self.path, json.dumps(form)))
+            if self.path == "/v1/checkout/sessions":
+                return self._json(200, {"id": "cs_e2e", "object": "checkout.session", "url": form.get("success_url", "")})
+            return self._json(200, {"id": "bps_e2e", "object": "billing_portal.session", "url": form.get("return_url", "")})
         if self.path != "/v1/messages":
             return self._fail(404, "unknown path " + self.path)
         length = int(self.headers.get("Content-Length", "0"))
@@ -343,6 +375,23 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(out)
 
     def do_GET(self):
+        if self.path == "/stripe":
+            return self._json(200, STRIPE)
+        if self.path.startswith("/v1/prices/"):
+            # Round 20: --stripe-check reads both prices back. The id says which cadence it is; the amounts are the
+            # ones the e2e configures (USD 29 a month, USD 290 a year).
+            price_id = self.path[len("/v1/prices/"):].split("?")[0]
+            yearly = price_id.endswith("year")
+            return self._json(200, {
+                "id": price_id, "object": "price", "active": True, "type": "recurring",
+                "currency": "usd", "unit_amount": 29000 if yearly else 2900,
+                "recurring": {"interval": "year" if yearly else "month", "interval_count": 1},
+            })
+        if self.path.startswith("/v1/webhook_endpoints"):
+            return self._json(200, {"object": "list", "data": [{
+                "id": "we_e2e", "object": "webhook_endpoint", "status": "enabled",
+                "url": API_ORIGIN + "/api/billing/webhook", "enabled_events": WEBHOOK_EVENTS,
+            }]})
         if self.path.startswith("/v1/forecast"):
             # Round 19: Open-Meteo's daily block for today and the two days after; tomorrow is clear, 24/17, a 10% chance of rain.
             import datetime

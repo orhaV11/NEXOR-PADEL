@@ -37,24 +37,58 @@ public sealed class StripeBillingApp : TestApp
 }
 
 /// <summary>
+/// Round 20: the Stripe app with a second, yearly price beside the monthly one, priced in shekels with a euro monthly
+/// price that has no yearly twin - the case where a year must be refused for a currency the page could not offer it in.
+/// </summary>
+public sealed class YearlyStripeBillingApp : TestApp
+{
+    public const string YearlyPriceId = "price_pro_yearly";
+
+    public YearlyStripeBillingApp()
+    {
+        ChecksPerDay = 30;
+        FreeChecksPerDay = 3;
+        BillingProvider = "stripe";
+        StripeSecretKey = StripeBillingApp.SecretKey;
+        StripePriceId = StripeBillingApp.PriceId;
+        StripeWebhookSecret = StripeBillingApp.WebhookSecret;
+        StripeYearlyPriceId = YearlyPriceId;
+        Settings["Plans:ProPriceAmount"] = "29";
+        Settings["Plans:ProPriceCurrency"] = "ILS";
+        Settings["Plans:ProPrices:EUR"] = "9.90";
+        Settings["Plans:ProYearlyPriceAmount"] = "290";
+    }
+}
+
+/// <summary>
 /// Plans and billing: the state route for free and Pro, Checkout refused without Stripe (and for an account that is Pro
 /// already) and the exact request that goes out with it, the Billing Portal (Round 11: 404 on the manual provider or
 /// without a customer, the exact request, 502 when Stripe refuses), the webhook (signature, the seven events, unknown
 /// ones, and the subscription id that tells one subscription on a customer from another) and its CSRF exemption, the
 /// --pro command through AdminSync, the plan fields on "me", and the plans block on /api/config.
 /// </summary>
-public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<StripeBillingApp>
+public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<StripeBillingApp>, IClassFixture<YearlyStripeBillingApp>
 {
     private readonly ManualBillingApp _manual;
     private readonly StripeBillingApp _stripe;
+    private readonly YearlyStripeBillingApp _yearly;
 
-    public BillingTests(ManualBillingApp manual, StripeBillingApp stripe)
+    public BillingTests(ManualBillingApp manual, StripeBillingApp stripe, YearlyStripeBillingApp yearly)
     {
         _manual = manual;
         _stripe = stripe;
+        _yearly = yearly;
         _manual.Vision.Handler = _ => Payloads.Ok();
         _stripe.Vision.Handler = _ => Payloads.Ok();
+        _yearly.Vision.Handler = _ => Payloads.Ok();
     }
+
+    /// <summary>
+    /// Round 20: every factory below stamps a fresh event id unless the test gives one, because the webhook now ignores
+    /// an id it has seen. A test that means "the same event again" passes the same id twice; one that posts several
+    /// events of one kind means several events, which is what distinct ids say.
+    /// </summary>
+    private static string NewEventId() => "evt_" + Guid.NewGuid().ToString("N")[..12];
 
     private static async Task<JsonElement> Json(HttpResponseMessage response) => await response.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -91,24 +125,39 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     }
 
     /// <summary>A completed Checkout Session; <paramref name="subscription"/> is the id Stripe puts on it (a string, or the expanded object).</summary>
-    private static object CheckoutCompleted(string? reference, string? metadataUserId, string? customer, object? subscription = null) => new
+    private static object CheckoutCompleted(string? reference, string? metadataUserId, string? customer, object? subscription = null, string? id = null) => new
     {
-        id = "evt_checkout",
+        id = id ?? NewEventId(),
         type = "checkout.session.completed",
         data = new { @object = new { id = "cs_1", @object = "checkout.session", client_reference_id = reference, customer, subscription, metadata = new { userId = metadataUserId } } }
     };
 
+    /// <summary>Round 20: a completed session as Checkout writes it, with what it sold in the metadata and how it was paid.</summary>
+    private static object CheckoutCompletedWith(string reference, string customer, string subscription, string? interval, string? trialDays, string paymentStatus, string? id = null) => new
+    {
+        id = id ?? NewEventId(),
+        type = "checkout.session.completed",
+        data = new
+        {
+            @object = new
+            {
+                id = "cs_1", @object = "checkout.session", client_reference_id = reference, customer, subscription, payment_status = paymentStatus,
+                metadata = new { userId = reference, interval, trialDays }
+            }
+        }
+    };
+
     private static object SubscriptionCreated(string customer, string id) => new
     {
-        id = "evt_sub_created",
+        id = NewEventId(),
         type = "customer.subscription.created",
         data = new { @object = new { id, @object = "subscription", customer, status = "active" } }
     };
 
     /// <summary>A renewal invoice as Stripe posts it: the customer, the reason and, with <paramref name="periodEnd"/>, one line naming the paid period.</summary>
-    private static object InvoicePaid(string customer, string billingReason = "subscription_cycle", DateTimeOffset? periodEnd = null) => new
+    private static object InvoicePaid(string customer, string billingReason = "subscription_cycle", DateTimeOffset? periodEnd = null, string? eventId = null) => new
     {
-        id = "evt_invoice",
+        id = eventId ?? NewEventId(),
         type = "invoice.paid",
         data = new
         {
@@ -126,9 +175,9 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     /// A subscription as customer.subscription.updated carries it: the status and, when given, the current period end on
     /// the subscription itself (API versions before 2025-03-31) or on its item (since).
     /// </summary>
-    private static object SubscriptionUpdated(string customer, string status, DateTimeOffset? periodEnd = null, bool onItems = false, string id = "sub_1") => new
+    private static object SubscriptionUpdated(string customer, string status, DateTimeOffset? periodEnd = null, bool onItems = false, string id = "sub_1", string? eventId = null) => new
     {
-        id = "evt_sub_updated",
+        id = eventId ?? NewEventId(),
         type = "customer.subscription.updated",
         data = new
         {
@@ -145,9 +194,9 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         }
     };
 
-    private static object SubscriptionDeleted(string customer, string id = "sub_1") => new
+    private static object SubscriptionDeleted(string customer, string id = "sub_1", string? eventId = null) => new
     {
-        id = "evt_sub",
+        id = eventId ?? NewEventId(),
         type = "customer.subscription.deleted",
         data = new { @object = new { id, @object = "subscription", customer, status = "canceled" } }
     };
@@ -218,6 +267,11 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         // No address on the account and no customer yet: neither field goes out.
         Assert.Null(request["customer"]);
         Assert.Null(request["customer_email"]);
+        // Round 20: a month by default, and no trial fields while Plans:ProTrialDays is 0.
+        Assert.Equal("month", request["metadata[interval]"]);
+        Assert.Null(request["subscription_data[trial_period_days]"]);
+        Assert.Null(request["payment_method_collection"]);
+        Assert.Null(request["metadata[trialDays]"]);
 
         // A confirmed address is prefilled; an unconfirmed one is not.
         WithDb(_stripe, db => { var u = db.Users.Single(x => x.Id == id); u.Email = "checkout@example.test"; u.EmailVerifiedAt = null; });
@@ -562,14 +616,14 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     /// <summary>A charge Stripe refunded, in full or in part. A dispute carries neither field and is always the whole charge.</summary>
     private static object ChargeRefunded(string customer, long amount, long refunded) => new
     {
-        id = "evt_refund",
+        id = NewEventId(),
         type = "charge.refunded",
         data = new { @object = new { id = "ch_1", @object = "charge", customer, amount, amount_refunded = refunded, refunded = refunded >= amount } }
     };
 
     private static object ChargeDisputed(string customer) => new
     {
-        id = "evt_dispute",
+        id = NewEventId(),
         type = "charge.dispute.created",
         data = new { @object = new { id = "dp_1", @object = "dispute", customer, amount = 1990L } }
     };
@@ -802,11 +856,14 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         // A renewal is paid through the period its line names, plus three days of slack: read from the invoice, not
         // counted from the previous end date, so a cycle every ~30 days does not run ahead by the difference each time.
         var periodEnd = DateTimeOffset.UtcNow.AddDays(30);
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd, eventId: "evt_invoice_renew"))).StatusCode);
         AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(33));
 
-        // The same event again (Stripe retries until it sees a 2xx) names the same period: nothing stacks.
-        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd))).StatusCode);
+        // The same event again (Stripe retries until it sees a 2xx): Round 20 ignores it by id, and it named the same
+        // period anyway. Nothing stacks either way.
+        var replayed = await PostEventAsync(_stripe, InvoicePaid("cus_renew", periodEnd: periodEnd, eventId: "evt_invoice_renew"));
+        Assert.Equal(HttpStatusCode.OK, replayed.StatusCode);
+        Assert.True((await Json(replayed)).GetProperty("replayed").GetBoolean());
         AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(33));
 
         // The next cycle moves the end to its own period.
@@ -1035,6 +1092,26 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         var stripe = (await _stripe.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
         Assert.True(stripe.GetProperty("billing").GetBoolean());
 
+        // Round 20: the yearly price and the trial. Yearly is false without a yearly price id, whatever the amounts say;
+        // the trial is the clamped setting and 0 by default.
+        Assert.False(manual.GetProperty("yearly").GetBoolean());
+        Assert.Equal(0m, manual.GetProperty("proYearlyPriceAmount").GetDecimal());
+        Assert.Equal(0, manual.GetProperty("proTrialDays").GetInt32());
+        Assert.False(stripe.GetProperty("yearly").GetBoolean());
+        Assert.Empty(stripe.GetProperty("proYearlyPrices").EnumerateObject());
+        var yearly = (await _yearly.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
+        Assert.True(yearly.GetProperty("yearly").GetBoolean());
+        Assert.Equal(290m, yearly.GetProperty("proYearlyPriceAmount").GetDecimal());
+        Assert.Equal(290m, yearly.GetProperty("proYearlyPrices").GetProperty("ILS").GetDecimal());
+        Assert.False(yearly.GetProperty("proYearlyPrices").TryGetProperty("EUR", out _));
+        Assert.Equal(0, yearly.GetProperty("proTrialDays").GetInt32());
+        using var trial = new TestApp { Settings = { ["Plans:ProTrialDays"] = "900" } };
+        Assert.Equal(730, (await trial.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans").GetProperty("proTrialDays").GetInt32());
+        using var amountOnly = new TestApp { BillingProvider = "stripe", StripeSecretKey = StripeBillingApp.SecretKey, StripePriceId = StripeBillingApp.PriceId, StripeWebhookSecret = StripeBillingApp.WebhookSecret, Settings = { ["Plans:ProYearlyPriceAmount"] = "290", ["Plans:ProPriceCurrency"] = "ILS" } };
+        var amountOnlyPlans = (await amountOnly.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
+        Assert.False(amountOnlyPlans.GetProperty("yearly").GetBoolean());
+        Assert.Equal(290m, amountOnlyPlans.GetProperty("proYearlyPriceAmount").GetDecimal());
+
         // The Pro number published is what a Pro account really gets: Plans:ProChecksPerDay clamped to Limits:ChecksPerDay.
         using var clamped = new TestApp { ChecksPerDay = 12, FreeChecksPerDay = 3 };
         var clampedPlans = (await clamped.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans");
@@ -1046,5 +1123,290 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.False((await half.NewClient().GetFromJsonAsync<JsonElement>("/api/config")).GetProperty("plans").GetProperty("billing").GetBoolean());
         var (client, _, _) = await half.NewUserAsync("bill_half");
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/billing/checkout", null)).StatusCode);
+    }
+
+    // ---- Round 20 — the wedge: replays, the yearly price, the no-card trial ----
+
+    private static int EventRows(TestApp app, string id)
+    {
+        using var scope = app.Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<AppDbContext>().StripeEvents.Count(e => e.Id == id);
+    }
+
+    /// <summary>
+    /// Stripe retries until it sees a 2xx and its dashboard can resend any event by hand; before Round 20 a resent
+    /// checkout.session.completed stacked one more period each time. The event's own id is the key, not the session's.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_replays_of_one_event_are_ignored()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_replay");
+        var first = await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_replay", "sub_replay", id: "evt_replay_1"));
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.False((await Json(first)).TryGetProperty("replayed", out _));
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        var again = await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_replay", "sub_replay", id: "evt_replay_1"));
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.True((await Json(again)).GetProperty("replayed").GetBoolean());
+        // A fresh signature timestamp is still the same event.
+        var later = await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_replay", "sub_replay", id: "evt_replay_1"), timestamp: DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds());
+        Assert.True((await Json(later)).GetProperty("replayed").GetBoolean());
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        WithDb(_stripe, db =>
+        {
+            var row = Assert.Single(db.StripeEvents.Where(e => e.Id == "evt_replay_1"));
+            Assert.Equal("checkout.session.completed", row.Type);
+            Assert.InRange(row.ReceivedAt, DateTime.UtcNow.AddMinutes(-2), DateTime.UtcNow.AddMinutes(2));
+        });
+
+        // Another event id for the same session is another event: it stacks, as a second Checkout always did.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(id.ToString("N"), null, "cus_replay", "sub_replay", id: "evt_replay_2"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(70));
+
+        // An id longer than the column is cut, and the cut id is still the same event next time.
+        var longId = "evt_" + new string('y', 80);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, new { id = longId, type = "ping" })).StatusCode);
+        Assert.Equal(1, EventRows(_stripe, longId[..64]));
+        Assert.True((await Json(await PostEventAsync(_stripe, new { id = longId, type = "ping" }))).GetProperty("replayed").GetBoolean());
+    }
+
+    /// <summary>
+    /// The id is recorded after the handler, so a handler that failed leaves no row and Stripe's retry is handled;
+    /// an event with no id at all (a hand-made one) is handled every time and recorded never; and two deliveries of
+    /// one id that arrive together are handled once, because the check-handle-record run is serialised.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_records_an_event_only_after_it_was_handled()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_noid");
+        var bare = new
+        {
+            type = "checkout.session.completed",
+            data = new { @object = new { id = "cs_bare", @object = "checkout.session", client_reference_id = id.ToString("N"), customer = "cus_bare" } }
+        };
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, bare)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, bare)).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(70));
+        WithDb(_stripe, db => Assert.DoesNotContain(db.StripeEvents.ToList(), e => e.Type == "checkout.session.completed" && e.Id.Length == 0));
+
+        // A burst of the same event: one period, one row, and every delivery answered 200.
+        var (_, burstId, _) = await _stripe.NewUserAsync("bill_burst");
+        var burst = CheckoutCompleted(burstId.ToString("N"), null, "cus_burst", "sub_burst", id: "evt_burst");
+        var answers = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => PostEventAsync(_stripe, burst)));
+        Assert.All(answers, a => Assert.Equal(HttpStatusCode.OK, a.StatusCode));
+        var replays = 0;
+        foreach (var answer in answers)
+        {
+            if ((await Json(answer)).TryGetProperty("replayed", out _))
+            {
+                replays++;
+            }
+        }
+
+        Assert.Equal(3, replays);
+        AssertAround(UserOf(_stripe, burstId).ProUntil, DateTime.UtcNow.AddDays(35));
+        Assert.Equal(1, EventRows(_stripe, "evt_burst"));
+    }
+
+    [Fact]
+    public async Task Checkout_yearly_sends_the_yearly_price_and_a_month_stays_the_default()
+    {
+        var (client, id, _) = await _yearly.NewUserAsync("bill_year");
+        _yearly.StripeHandler.Clear();
+
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout?interval=year", null)).StatusCode);
+        var year = Assert.Single(_yearly.StripeHandler.Requests);
+        Assert.Equal(YearlyStripeBillingApp.YearlyPriceId, year["line_items[0][price]"]);
+        Assert.Equal("year", year["metadata[interval]"]);
+        Assert.Equal("ils", year["currency"]);
+        Assert.Equal(id.ToString("N"), year["metadata[userId]"]);
+
+        _yearly.StripeHandler.Clear();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout", null)).StatusCode);
+        var month = Assert.Single(_yearly.StripeHandler.Requests);
+        Assert.Equal(StripeBillingApp.PriceId, month["line_items[0][price]"]);
+        Assert.Equal("month", month["metadata[interval]"]);
+
+        _yearly.StripeHandler.Clear();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/billing/checkout?interval=month&currency=EUR", null)).StatusCode);
+        var euro = Assert.Single(_yearly.StripeHandler.Requests);
+        Assert.Equal(StripeBillingApp.PriceId, euro["line_items[0][price]"]);
+        Assert.Equal("month", euro["metadata[interval]"]);
+        Assert.Equal("eur", euro["currency"]);
+
+        // Anything else is refused, and nothing reaches Stripe: a person who read one cadence is never sold another.
+        _yearly.StripeHandler.Clear();
+        var weekly = await client.PostAsync("/api/billing/checkout?interval=weekly", null);
+        Assert.Equal(HttpStatusCode.BadRequest, weekly.StatusCode);
+        Assert.Equal("Yearly billing isn't available here yet.", await ErrorOf(weekly));
+        Assert.Empty(_yearly.StripeHandler.Requests);
+    }
+
+    [Fact]
+    public async Task Checkout_yearly_is_refused_where_the_page_could_not_offer_it()
+    {
+        // No yearly price id: the page never showed a year, so a year is not for sale.
+        var (plain, _, _) = await _stripe.NewUserAsync("bill_year_none");
+        _stripe.StripeHandler.Clear();
+        var refused = await plain.PostAsync("/api/billing/checkout?interval=year", null);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("Yearly billing isn't available here yet.", await ErrorOf(refused));
+        Assert.Empty(_stripe.StripeHandler.Requests);
+
+        // A yearly id, but the quoted currency has a monthly price only: refused rather than swapped for the fallback.
+        var (client, _, _) = await _yearly.NewUserAsync("bill_year_eur", language: "he");
+        _yearly.StripeHandler.Clear();
+        var euro = await client.PostAsync("/api/billing/checkout?interval=year&currency=EUR", null);
+        Assert.Equal(HttpStatusCode.BadRequest, euro.StatusCode);
+        Assert.Equal("חיוב שנתי עדיין לא זמין כאן.", await ErrorOf(euro));
+        Assert.Empty(_yearly.StripeHandler.Requests);
+
+        // With a euro yearly price too, the form carries the currency and the yearly price.
+        await using var both = new TestApp
+        {
+            BillingProvider = "stripe", StripeSecretKey = StripeBillingApp.SecretKey, StripePriceId = StripeBillingApp.PriceId, StripeWebhookSecret = StripeBillingApp.WebhookSecret,
+            StripeYearlyPriceId = YearlyStripeBillingApp.YearlyPriceId,
+            Settings =
+            {
+                ["Plans:ProPriceAmount"] = "29", ["Plans:ProPriceCurrency"] = "ILS", ["Plans:ProPrices:EUR"] = "9.90",
+                ["Plans:ProYearlyPriceAmount"] = "290", ["Plans:ProYearlyPrices:EUR"] = "99"
+            }
+        };
+        var (twice, _, _) = await both.NewUserAsync("bill_year_both");
+        Assert.Equal(HttpStatusCode.OK, (await twice.PostAsync("/api/billing/checkout?interval=year&currency=eur", null)).StatusCode);
+        var request = Assert.Single(both.StripeHandler.Requests);
+        Assert.Equal("eur", request["currency"]);
+        Assert.Equal(YearlyStripeBillingApp.YearlyPriceId, request["line_items[0][price]"]);
+        Assert.Equal("year", request["metadata[interval]"]);
+    }
+
+    [Fact]
+    public async Task Webhook_checkout_completed_grants_a_year_for_a_yearly_session()
+    {
+        var (_, yearId, _) = await _stripe.NewUserAsync("bill_grant_year");
+        var (_, monthId, _) = await _stripe.NewUserAsync("bill_grant_month");
+        var (_, bareId, _) = await _stripe.NewUserAsync("bill_grant_bare");
+        var (_, giftedId, _) = await _stripe.NewUserAsync("bill_grant_gifted");
+        WithDb(_stripe, db => { var g = db.Users.Single(u => u.Id == giftedId); g.Plan = "pro"; g.ProUntil = DateTime.UtcNow.AddDays(100); });
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(yearId.ToString("N"), "cus_gy", "sub_gy", "year", null, "paid"))).StatusCode);
+        var year = UserOf(_stripe, yearId);
+        Assert.Equal("pro", year.Plan);
+        AssertAround(year.ProUntil, DateTime.UtcNow.AddDays(368));
+        Assert.Equal("sub_gy", year.BillingSubscriptionId);
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(monthId.ToString("N"), "cus_gm", "sub_gm", "month", null, "paid"))).StatusCode);
+        AssertAround(UserOf(_stripe, monthId).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        // No interval at all (a hand-made session, or one from before this round): a month, as before.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompleted(bareId.ToString("N"), null, "cus_gb", "sub_gb"))).StatusCode);
+        AssertAround(UserOf(_stripe, bareId).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        // On top of a running --pro grant the year is added to its end; paying never cuts what is there.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(giftedId.ToString("N"), "cus_gg", "sub_gg", "year", null, "paid"))).StatusCode);
+        AssertAround(UserOf(_stripe, giftedId).ProUntil, DateTime.UtcNow.AddDays(468));
+    }
+
+    /// <summary>
+    /// The trial is Checkout's and the eligibility is the app's: once per account, to one that has never been a Stripe
+    /// customer here. Stripe would happily trial the same person again; the stored customer id is what stops it.
+    /// </summary>
+    [Fact]
+    public async Task Checkout_offers_the_trial_once_and_only_without_a_customer()
+    {
+        await using var app = new StripeBillingApp { Settings = { ["Plans:ProTrialDays"] = "7" } };
+        var (fresh, freshId, _) = await app.NewUserAsync("bill_trial_fresh");
+        var (known, knownId, _) = await app.NewUserAsync("bill_trial_known");
+        WithDb(app, db => db.Users.Single(u => u.Id == knownId).BillingCustomerId = "cus_known");
+
+        Assert.Equal(HttpStatusCode.OK, (await fresh.PostAsync("/api/billing/checkout", null)).StatusCode);
+        var trial = Assert.Single(app.StripeHandler.Requests);
+        Assert.Equal("7", trial["subscription_data[trial_period_days]"]);
+        Assert.Equal("if_required", trial["payment_method_collection"]);
+        Assert.Equal("cancel", trial["subscription_data[trial_settings][end_behavior][missing_payment_method]"]);
+        Assert.Equal("7", trial["metadata[trialDays]"]);
+        Assert.Equal(freshId.ToString("N"), trial["metadata[userId]"]);
+
+        app.StripeHandler.Clear();
+        Assert.Equal(HttpStatusCode.OK, (await known.PostAsync("/api/billing/checkout", null)).StatusCode);
+        var paid = Assert.Single(app.StripeHandler.Requests);
+        Assert.Equal("cus_known", paid["customer"]);
+        Assert.Null(paid["subscription_data[trial_period_days]"]);
+        Assert.Null(paid["payment_method_collection"]);
+        Assert.Null(paid["subscription_data[trial_settings][end_behavior][missing_payment_method]"]);
+        Assert.Null(paid["metadata[trialDays]"]);
+
+        // The state route says what the page may promise: 7 for the fresh account, 0 for the known customer.
+        Assert.Equal(7, (await Json(await fresh.GetAsync("/api/billing/state"))).GetProperty("trialDays").GetInt32());
+        Assert.Equal(0, (await Json(await known.GetAsync("/api/billing/state"))).GetProperty("trialDays").GetInt32());
+
+        // Without the setting there is never a trial field, and the manual provider never publishes one.
+        var (plain, _, _) = await _stripe.NewUserAsync("bill_trial_off");
+        _stripe.StripeHandler.Clear();
+        Assert.Equal(HttpStatusCode.OK, (await plain.PostAsync("/api/billing/checkout", null)).StatusCode);
+        Assert.Null(Assert.Single(_stripe.StripeHandler.Requests)["subscription_data[trial_period_days]"]);
+        Assert.Equal(0, (await Json(await plain.GetAsync("/api/billing/state"))).GetProperty("trialDays").GetInt32());
+        await using var manualTrial = new TestApp { Settings = { ["Plans:ProTrialDays"] = "7" } };
+        var (manual, _, _) = await manualTrial.NewUserAsync("bill_trial_manual");
+        Assert.Equal(0, (await Json(await manual.GetAsync("/api/billing/state"))).GetProperty("trialDays").GetInt32());
+    }
+
+    /// <summary>
+    /// The guard on the whole trial: a session that asked for no card must grant the trial's days, never the 35 days a
+    /// payment earns, or a trial would hand a month of Pro to anyone with an email address.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_a_no_card_trial_grants_the_trial_days_not_a_paid_period()
+    {
+        const string address = "trial@example.test";
+        var (client, id, _) = await _stripe.NewUserAsync("bill_trial_grant");
+        WithDb(_stripe, db => { var u = db.Users.Single(x => x.Id == id); u.Email = address; u.EmailVerifiedAt = DateTime.UtcNow; });
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(id.ToString("N"), "cus_trial", "sub_trial", "month", "7", "no_payment_required"))).StatusCode);
+        var user = UserOf(_stripe, id);
+        Assert.Equal("pro", user.Plan);
+        AssertAround(user.ProUntil, DateTime.UtcNow.AddDays(10));
+        Assert.Equal("cus_trial", user.BillingCustomerId);
+        Assert.Equal("sub_trial", user.BillingSubscriptionId);
+        Assert.Equal("pro", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+        // And having been a customer once, the account is never offered a second trial.
+        Assert.Equal(0, (await Json(await client.GetAsync("/api/billing/state"))).GetProperty("trialDays").GetInt32());
+
+        // The same session paid for: a month. (Another account, so nothing stacks on the trial above.)
+        var (_, paidId, _) = await _stripe.NewUserAsync("bill_trial_paid");
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(paidId.ToString("N"), "cus_trial_paid", "sub_trial_paid", "month", "7", "paid"))).StatusCode);
+        AssertAround(UserOf(_stripe, paidId).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        // Stripe's own trialing event names the trial end: the end date lands on it plus the slack (the Round 11 branch).
+        var trialEnd = DateTimeOffset.UtcNow.AddDays(9);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_trial", "trialing", trialEnd, id: "sub_trial"))).StatusCode);
+        AssertAround(UserOf(_stripe, id).ProUntil, DateTime.UtcNow.AddDays(12));
+
+        // A trial that ends with no card is cancelled by Stripe: Pro ends now, and the Round 17 letter goes.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_trial", "sub_trial"))).StatusCode);
+        Assert.True(UserOf(_stripe, id).ProUntil <= DateTime.UtcNow.AddSeconds(1));
+        Assert.Equal("free", (await Json(await client.GetAsync("/api/auth/me"))).GetProperty("plan").GetString());
+        var ended = Assert.Single(_stripe.Email.To(address));
+        Assert.Contains("ended", ended.Subject, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task State_carries_yearly_and_the_trial()
+    {
+        var (yearly, _, _) = await _yearly.NewUserAsync("bill_state_year");
+        var state = await Json(await yearly.GetAsync("/api/billing/state"));
+        Assert.True(state.GetProperty("yearly").GetBoolean());
+        Assert.Equal(0, state.GetProperty("trialDays").GetInt32());
+        Assert.True(state.GetProperty("billing").GetBoolean());
+
+        var (stripe, _, _) = await _stripe.NewUserAsync("bill_state_stripe");
+        Assert.False((await Json(await stripe.GetAsync("/api/billing/state"))).GetProperty("yearly").GetBoolean());
+
+        var (manual, _, _) = await _manual.NewUserAsync("bill_state_manual");
+        var off = await Json(await manual.GetAsync("/api/billing/state"));
+        Assert.False(off.GetProperty("yearly").GetBoolean());
+        Assert.Equal(0, off.GetProperty("trialDays").GetInt32());
     }
 }

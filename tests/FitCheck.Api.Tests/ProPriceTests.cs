@@ -175,4 +175,54 @@ public class ProPriceTests
         // Unset: the home currency, which is the behaviour a single-market server wants.
         Assert.Equal("ILS", new PlanOptions { ProPriceAmount = 29.90m, ProPriceCurrency = "ILS" }.FallbackCurrency());
     }
+
+    /// <summary>
+    /// Round 20: the yearly amounts travel beside the monthly ones, per currency and never converted, and the saving
+    /// does not travel at all - it is arithmetic over two numbers the page already has, so it cannot disagree with them.
+    /// </summary>
+    [Fact]
+    public async Task The_yearly_amount_reaches_the_client_beside_the_monthly_one()
+    {
+        using var app = new TestApp
+        {
+            Settings =
+            {
+                ["Plans:ProPriceAmount"] = "29.90", ["Plans:ProPriceCurrency"] = "ILS", ["Plans:ProPrices:EUR"] = "7.90",
+                ["Plans:ProYearlyPriceAmount"] = "290", ["Plans:ProYearlyPrices:EUR"] = "49.90"
+            }
+        };
+        var response = await app.NewClient().GetAsync("/api/config");
+        var text = await response.Content.ReadAsStringAsync();
+        var plans = JsonDocument.Parse(text).RootElement.GetProperty("plans");
+        Assert.Equal(290m, plans.GetProperty("proYearlyPriceAmount").GetDecimal());
+        var yearly = plans.GetProperty("proYearlyPrices");
+        Assert.Equal(2, yearly.EnumerateObject().Count());
+        Assert.Equal(290m, yearly.GetProperty("ILS").GetDecimal());
+        Assert.Equal(49.90m, yearly.GetProperty("EUR").GetDecimal());
+        Assert.DoesNotContain("saving", text, StringComparison.OrdinalIgnoreCase);
+        // Without a yearly Stripe price the year is published as a number but not as something Checkout sells.
+        Assert.False(plans.GetProperty("yearly").GetBoolean());
+    }
+
+    [Fact]
+    public void The_page_computes_the_saving_from_the_two_numbers()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "app", "views", "pro.js"));
+        var source = File.ReadAllText(path);
+        Assert.Matches(@"1 - yearlyAmount / \(12 \* monthlyAmount\)", source);
+        // The saving line is drawn only when there is one: a year at or above twelve months shows no saving.
+        Assert.Contains("if (savingPct > 0) price.appendChild(el('span', { class: 'pro-saving', id: 'pro-saving', text: t('pro.yearly_saving'", source, StringComparison.Ordinal);
+        // The toggle exists only where the server can sell the year in the reader's currency.
+        Assert.Contains("plans.yearly && yearlyAmount > 0 ? money(yearlyAmount, currency) : ''", source, StringComparison.Ordinal);
+        Assert.Contains("'&interval=' + encodeURIComponent(interval)", source, StringComparison.Ordinal);
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            var strings = Strings(code);
+            Assert.Contains("{price}", strings["pro.per_year"], StringComparison.Ordinal);
+            Assert.Contains("{pct}", strings["pro.yearly_saving"], StringComparison.Ordinal);
+            Assert.Contains("{days}", strings["pro.benefit_trial"], StringComparison.Ordinal);
+            Assert.Contains("{price}", strings["pro.benefit_trial_hint"], StringComparison.Ordinal);
+            Assert.Contains("{days}", strings["pro.go_trial"], StringComparison.Ordinal);
+        }
+    }
 }

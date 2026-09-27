@@ -8,7 +8,7 @@
 // The phone pass: the offline page's own script (/offline.js) and the font flip (/fonts.js) are precached beside the
 // files they belong to; a 5xx from the edge gets our offline page instead of Cloudflare's; and a cached shell stops
 // waiting on a network that has gone quiet after SLOW_MS.
-const VERSION = 'orevosh-shell-v6';
+const VERSION = 'orevosh-shell-v7';
 const OFFLINE = '/offline.html';
 const SHELL = ['/', '/index.html', '/app.css', '/app/main.js', '/app/core.js', '/app/push.js', '/app/sharecard.js', '/app/sharevideo.js', '/vendor/mp4-muxer/mp4-muxer.mjs', '/vendor/webm-muxer/webm-muxer.mjs', '/brand/wordmark.svg', '/brand/mark.svg', '/manifest.webmanifest', '/fonts.js', '/i18n/en.json', '/i18n/he.json', '/i18n/ar.json', '/i18n/ru.json', OFFLINE, '/offline.js'];
 // How long a cached shell waits for the network before it answers anyway. Cafe wifi that is associated but passing no
@@ -82,6 +82,8 @@ self.addEventListener('fetch', (event) => {
 
 // The server sends { title, body, url, tag, type }. A push must show something (userVisibleOnly), so a payload that
 // cannot be read still becomes a plain OREVOSH notification that opens the activity list.
+// Round 20: the Tomorrow morning push carries /#/tomorrow?from=push; a hash URL with a query is a same-origin path like
+// any other, and the Tomorrow view reads the query, counts the open with the server, and drops it from the address.
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }

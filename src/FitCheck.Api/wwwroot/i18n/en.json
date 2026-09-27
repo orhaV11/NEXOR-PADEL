@@ -1235,6 +1235,7 @@
   "push.morning_off_toast": "Morning ping off",
   "tomorrow.dash_pushed": "Morning pushes",
   "tomorrow.dash_opened": "Opened",
+  "tomorrow.dash_loop": "Read the three together: pushed, opened, worn.",
   "admin.verify": "Verify brand",
   "admin.unverify": "Remove verification",
   "admin.verified": "Verified",

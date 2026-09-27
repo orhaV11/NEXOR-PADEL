@@ -577,6 +577,44 @@ public sealed class Tomorrow(AppDbContext db, IOutfitVisionClient vision, Weathe
     public sealed record Numbers(int LeftToday, int CapToday, int LeftMonth, int CapMonth);
 
     /// <summary>
+    /// The wardrobe as the model would be shown it: the plan's slice of the rows, each with its looks. One definition for
+    /// the read, the compose and the morning push, so "enough pieces of enough kinds" is the same question everywhere.
+    /// </summary>
+    public static async Task<List<(WardrobeItem Item, List<WardrobeAppearance> Looks)>> OfferedAsync(AppDbContext db, AppUser me, PlanOptions plans, bool isPro, CancellationToken ct)
+    {
+        var rows = await Wardrobe.ListAsync(db, me.Id, ct);
+        var looks = rows.ToDictionary(r => r.Item.Id, r => r.Looks);
+        return Wardrobe.PromptItems(rows.Select(r => r.Item), plans.WardrobeNamesFor(isPro))
+            .Select(item => (item, looks[item.Id]))
+            .ToList();
+    }
+
+    /// <summary>
+    /// What is left today and this month, computed the way the routes enforce it: Pro against its own bucket, free
+    /// against its brake AND its shared day, whichever is smaller; the month against the one pot. Never negative.
+    /// </summary>
+    public static async Task<Numbers> NumbersAsync(AppDbContext db, AppUser me, PlanOptions plans, LimitsOptions limits, DateTime now, CancellationToken ct)
+    {
+        var suggestionsToday = await Spend.RecentSuggestionsForUserAsync(db, me.Id, now, ct);
+        int cap, left;
+        if (Plans.IsPro(me, now))
+        {
+            cap = Plans.ProSuggestionCap(plans, limits);
+            left = cap - suggestionsToday.Count;
+        }
+        else
+        {
+            cap = Plans.FreeSuggestionCap(plans, limits);
+            var together = await Spend.RecentForUserAsync(db, me.Id, now, ct, plans.NoOutfitForgivenPerDay, Allowance.Together);
+            left = Math.Min(cap - suggestionsToday.Count, Plans.CapFor(me, plans, limits, now) - together.Count);
+        }
+
+        var capMonth = Plans.MonthlyCallsFor(me, plans, now);
+        var leftMonth = capMonth > 0 ? capMonth - await Spend.MonthCountForUserAsync(db, me.Id, now, ct) : 0;
+        return new Numbers(Math.Max(0, left), cap, Math.Max(0, leftMonth), capMonth);
+    }
+
+    /// <summary>
     /// The row as the client reads it: names and worn counts from the wardrobe rows by id while they exist (a rename
     /// reads right), the stored name once a piece is gone, the photo route per piece, the forecast it was written for.
     /// </summary>

@@ -1235,6 +1235,7 @@
   "push.morning_off_toast": "Утреннее напоминание выключено",
   "tomorrow.dash_pushed": "Утренних уведомлений",
   "tomorrow.dash_opened": "Открыто",
+  "tomorrow.dash_loop": "Читайте три числа вместе: отправлено, открыто, надето.",
   "admin.verify": "Подтвердить бренд",
   "admin.unverify": "Снять подтверждение",
   "admin.verified": "Подтверждён",

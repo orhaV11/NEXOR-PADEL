@@ -42,6 +42,10 @@ const CSS = `
 .s-export-status p { color: var(--ok); font-weight: 600; }
 .s-export-status .s-export-size { color: var(--ink-2); font-weight: 400; }
 /* Round 13 — the growth loop: the weekly mail's switch and the invite row, in the same voice as the push block. */
+.s-morning { border-block-start: 1px solid var(--line); padding-block-start: 18px; }
+.s-morning .switch:has(input:disabled) .s-switch-text { color: var(--ink-2); }
+.s-morning .switch input:disabled { opacity: 0.45; cursor: not-allowed; }
+.s-morning-status { padding-inline: 2px; }
 .s-digest { border-block-start: 1px solid var(--line); padding-block-start: 18px; }
 .s-digest .switch:has(input:disabled) .s-switch-text { color: var(--ink-2); }
 .s-digest .switch input:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -282,6 +286,59 @@ function pushSection(ctx) {
   return el('section', { class: 's-section s-push' }, [label, status, test]);
 }
 
+/**
+ * Round 20 — "Your outfit each morning": the person's own switch on the morning push (GET/POST /api/push/morning), drawn
+ * only when this server offers it (config plans.tomorrowMorningPush, which is already false when Tomorrow is off). It is
+ * usable only when this browser has a push subscription and the server can send one; otherwise it sits off, disabled,
+ * with the line that says to turn notifications on above first. The hint names the local hour the server sends at.
+ */
+function morningSection(ctx) {
+  const plans = (state.config && state.config.plans) || {};
+  if (!plans.tomorrowMorningPush || plans.tomorrow === false) return null;
+  const input = el('input', { type: 'checkbox', id: 's-push-morning', name: 'push-morning', disabled: true, 'aria-describedby': 's-push-morning-status' });
+  const status = el('p', { class: 'hint s-morning-status', id: 's-push-morning-status', hidden: true });
+  const hint = el('span', { class: 'hint', text: t('push.morning_hint', { time: plans.tomorrowMorningHour || '07:30' }) });
+  const label = el('label', { class: 'switch', for: 's-push-morning' }, [
+    el('span', { class: 's-switch-text' }, [el('b', { text: t('push.morning_title') }), hint]),
+    input
+  ]);
+  const setStatus = (text) => { status.textContent = text || ''; status.hidden = !text; };
+  let locked = true;
+  const setLocked = (value) => { locked = value; input.disabled = value; };
+  let answer = null;
+
+  // Both halves are asked at once: the server's state and whether this browser is subscribed at all.
+  const subscribed = pushSupport() === 'ready' ? getPushSubscription().then((sub) => !!sub).catch(() => false) : Promise.resolve(false);
+  Promise.all([api('GET', '/api/push/morning'), subscribed]).then(([state_, sub]) => {
+    if (ctx.stale()) return;
+    answer = state_;
+    hint.textContent = t('push.morning_hint', { time: state_.hour || plans.tomorrowMorningHour || '07:30' });
+    const usable = !!(state_.offered && sub);
+    input.checked = usable && !!state_.on;
+    if (usable) { setLocked(false); setStatus(''); } else { setStatus(t('push.morning_needs_push')); }
+  }).catch(() => { if (!ctx.stale()) setStatus(t('push.morning_needs_push')); });
+
+  input.addEventListener('change', async () => {
+    if (locked) { input.checked = !input.checked; return; }
+    const wantOn = input.checked;
+    setLocked(true);
+    try {
+      answer = await api('POST', '/api/push/morning', { on: wantOn });
+      if (ctx.stale()) return;
+      input.checked = !!answer.on;
+      toast(t(input.checked ? 'push.morning_on_toast' : 'push.morning_off_toast'));
+    } catch (e) {
+      if (ctx.stale()) return;
+      input.checked = !wantOn;
+      toast(e.message || t('error.generic'));
+    } finally {
+      if (!ctx.stale()) setLocked(false);
+    }
+  });
+
+  return el('section', { class: 's-section s-morning', id: 'morning-section' }, [label, status]);
+}
+
 register('settings', async (root, params, ctx) => {
   setTopBar({ back: '#/me', title: t('settings.title') });
   // The top bar carries the visible title; this one is for the focus move and the outline.
@@ -487,6 +544,8 @@ register('settings', async (root, params, ctx) => {
   ]));
 
   root.appendChild(pushSection(ctx));
+  const morning = morningSection(ctx);
+  if (morning) root.appendChild(morning);
   // Round 14 — the loop: what OREVOSH has learned about this person's taste, the literal text the stylist is told, the
   // switch that stops the learning and the button that clears it. Both are honoured at once.
   root.appendChild(el('section', { class: 's-section s-taste' }, [tasteCard({ controls: true })]));

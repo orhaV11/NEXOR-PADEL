@@ -191,6 +191,7 @@ public static class MetricsEndpoints
     /// Round 19 — Tomorrow over the last thirty days: outfits composed (ok rows), how many were worn (answered yes, or
     /// checked from), the reuse rate (stored answers handed back over answers made), the refs the model returned that
     /// were not in its list, the sentences the template replaced, and the typed reasons. Counts, no rows in memory.
+    /// Round 20: the morning pushes sent and opened over the same days, so the founder reads pushed, opened, worn together.
     /// </summary>
     public static async Task<TomorrowMetricsDto> TomorrowMetricsAsync(AppDbContext db, DateTime now, CancellationToken ct)
     {
@@ -211,7 +212,10 @@ public static class MetricsEndpoints
             }
         }
 
-        return new TomorrowMetricsDto(suggestions, worn, Rate(worn, suggestions), reused, Rate(reused, suggestions + reused), invented, templated, reasons);
+        var pushesSent = await db.TomorrowPushes.CountAsync(p => p.SentAt >= since, ct);
+        var pushesOpened = await db.TomorrowPushes.CountAsync(p => p.SentAt >= since && p.OpenedAt != null, ct);
+        return new TomorrowMetricsDto(suggestions, worn, Rate(worn, suggestions), reused, Rate(reused, suggestions + reused), invented, templated, reasons,
+            pushesSent, pushesOpened, Rate(pushesOpened, pushesSent));
     }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>

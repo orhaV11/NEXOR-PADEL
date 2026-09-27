@@ -442,9 +442,17 @@ function recentList() {
 
 // ---------- the calls ----------
 
-async function load() {
-  page = await api('GET', '/api/tomorrow');
+// Round 20: a tap on the morning push arrives as #/tomorrow?from=push; the read carries it once so the server can stamp
+// the push as opened (nothing else about the answer changes), and the query is then dropped from the address so a refresh
+// or a back-swipe does not send it again (the server counts each push once anyway).
+async function load(from) {
+  page = await api('GET', '/api/tomorrow' + (from === 'push' ? '?from=push' : ''));
   return page;
+}
+
+function fromQuery() {
+  const q = location.hash.indexOf('?');
+  return q < 0 ? null : new URLSearchParams(location.hash.slice(q + 1)).get('from');
 }
 
 async function compose(fresh) {
@@ -515,8 +523,10 @@ register('tomorrow', async (r, params, c) => {
     pick.loaded = true;
   }
 
+  const from = fromQuery();
+  if (from) history.replaceState(history.state, '', location.pathname + location.search + '#/tomorrow');
   try {
-    await load();
+    await load(from);
   } catch (e) {
     if (ctx.stale()) return;
     body.replaceChildren(errorBlock(e));

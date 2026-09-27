@@ -119,18 +119,8 @@ public sealed class Digest(
         return nowUtc - due <= SendWindow ? due : null;
     }
 
-    /// <summary>A local date and hour in the board's zone as a UTC instant, the ambiguous and skipped hours of a DST change included.</summary>
-    private static DateTime LocalToUtc(DateOnly day, int hour, TimeZoneInfo zone)
-    {
-        var local = day.ToDateTime(new TimeOnly(hour, 0), DateTimeKind.Unspecified);
-        // A clock that jumps forward skips the hour entirely; the next one that exists is when the mail goes.
-        while (zone.IsInvalidTime(local))
-        {
-            local = local.AddHours(1);
-        }
-
-        return TimeZoneInfo.ConvertTimeToUtc(local, zone);
-    }
+    /// <summary>A local date and hour in the board's zone as a UTC instant; <see cref="Board.LocalToUtc"/> handles the skipped hour of a DST change.</summary>
+    private static DateTime LocalToUtc(DateOnly day, int hour, TimeZoneInfo zone) => Board.LocalToUtc(day, new TimeOnly(hour, 0), zone);
 
     /// <summary>Email:PublicOrigin, else Billing:PublicOrigin, else empty: a mailed link is never built from a request.</summary>
     public string Origin()

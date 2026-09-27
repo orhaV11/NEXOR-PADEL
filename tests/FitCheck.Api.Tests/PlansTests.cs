@@ -237,13 +237,23 @@ public class PlansTests
         Assert.Equal(2, plans.GetProperty("freeSuggestionsPerDay").GetInt32());
         Assert.Equal(2, plans.GetProperty("suggestionMinPieces").GetInt32());
         Assert.Equal(2, plans.GetProperty("suggestionMinCategories").GetInt32());
+        // Round 20: the morning push is off by default and its hour is published as the sender reads it.
+        Assert.False(plans.GetProperty("tomorrowMorningPush").GetBoolean());
+        Assert.Equal("07:30", plans.GetProperty("tomorrowMorningHour").GetString());
 
-        using var walled = new TestApp { Settings = { ["Plans:TomorrowNeedsPro"] = "true", ["Plans:TomorrowEnabled"] = "false" } };
+        using var walled = new TestApp { Settings = { ["Plans:TomorrowNeedsPro"] = "true", ["Plans:TomorrowEnabled"] = "false", ["Plans:TomorrowMorningPush"] = "true" } };
         var off = (await (await walled.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("plans");
         Assert.False(off.GetProperty("tomorrow").GetBoolean());
         Assert.True(off.GetProperty("tomorrowNeedsPro").GetBoolean());
         Assert.Equal(10, off.GetProperty("proSuggestionsPerDay").GetInt32());
         Assert.Equal(1, off.GetProperty("freeSuggestionsPerDay").GetInt32());
+        // The flag is on but Tomorrow is off: a tap would 404, so the client is told the morning push is off too.
+        Assert.False(off.GetProperty("tomorrowMorningPush").GetBoolean());
+
+        using var morning = new TestApp { Settings = { ["Plans:TomorrowMorningPush"] = "true", ["Plans:TomorrowMorningHour"] = "06:45" } };
+        var on = (await (await morning.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("plans");
+        Assert.True(on.GetProperty("tomorrowMorningPush").GetBoolean());
+        Assert.Equal("06:45", on.GetProperty("tomorrowMorningHour").GetString());
     }
 
     [Fact]

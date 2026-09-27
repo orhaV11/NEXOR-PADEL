@@ -1235,6 +1235,7 @@
   "push.morning_off_toast": "تنبيه الصباح مغلق",
   "tomorrow.dash_pushed": "تنبيهات الصباح",
   "tomorrow.dash_opened": "فُتحت",
+  "tomorrow.dash_loop": "اقرأ الثلاثة معًا: أُرسل، فُتح، ارتُدي.",
   "admin.verify": "وثّق العلامة",
   "admin.unverify": "أزل التوثيق",
   "admin.verified": "موثّق",

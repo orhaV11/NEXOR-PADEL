@@ -185,19 +185,22 @@ function draw(root, m, ctx, reload) {
 
   // Round 19 — Tomorrow, counted (/api/metrics/pilot -> tomorrow): whether planned outfits get worn, how often a stored
   // one is handed back instead of a new call, and how often the model reached outside the wardrobe or had its sentence
-  // replaced. Null rates read as an en dash here too.
+  // replaced. Null rates read as an en dash here too. Round 20: the morning pushes sent and opened, always drawn (zeros
+  // while the switch is off) so the founder sees the block exists; with wornRate they read pushed, opened, worn.
   if (m.tomorrow) {
     const tm = m.tomorrow;
     const rate = (value) => (value === null || value === undefined ? '\u2013' : percent(value));
     root.appendChild(el('section', { class: 'dash-section' }, [
       el('h2', { text: t('tomorrow.dash_title') }),
-      el('p', { class: 'hint', text: t('tomorrow.dash_hint') }),
+      el('p', { class: 'hint', text: t('tomorrow.dash_hint') + ' ' + t('tomorrow.dash_loop') }),
       el('div', { class: 'dash-tiles', id: 'dash-tomorrow' }, [
         tile(t('tomorrow.dash_outfits'), fmtNumber(tm.suggestions || 0)),
         tile(t('tomorrow.dash_worn'), rate(tm.wornRate)),
         tile(t('tomorrow.dash_reused'), rate(tm.reuseRate)),
         tile(t('tomorrow.dash_invented'), fmtNumber(tm.inventedRefs || 0)),
-        tile(t('tomorrow.dash_templated'), fmtNumber(tm.templated || 0))
+        tile(t('tomorrow.dash_templated'), fmtNumber(tm.templated || 0)),
+        tile(t('tomorrow.dash_pushed'), fmtNumber(tm.pushesSent || 0)),
+        tile(t('tomorrow.dash_opened'), rate(tm.openRate))
       ])
     ]));
   }

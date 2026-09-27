@@ -24,47 +24,15 @@ public static class TomorrowEndpoints
         return app;
     }
 
-    /// <summary>The wardrobe as the model would be shown it: the plan's slice of the rows, each with its looks.</summary>
-    private static async Task<List<(WardrobeItem Item, List<WardrobeAppearance> Looks)>> OfferedAsync(AppDbContext db, AppUser me, PlanOptions plans, bool isPro, CancellationToken ct)
-    {
-        var rows = await Wardrobe.ListAsync(db, me.Id, ct);
-        var looks = rows.ToDictionary(r => r.Item.Id, r => r.Looks);
-        return Wardrobe.PromptItems(rows.Select(r => r.Item), plans.WardrobeNamesFor(isPro))
-            .Select(item => (item, looks[item.Id]))
-            .ToList();
-    }
-
-    /// <summary>
-    /// What is left today and this month, computed the way the routes enforce it: Pro against its own bucket, free
-    /// against its brake AND its shared day, whichever is smaller; the month against the one pot. Never negative.
-    /// </summary>
-    private static async Task<Tomorrow.Numbers> NumbersAsync(AppDbContext db, AppUser me, PlanOptions plans, LimitsOptions limits, DateTime now, CancellationToken ct)
-    {
-        var suggestionsToday = await Spend.RecentSuggestionsForUserAsync(db, me.Id, now, ct);
-        int cap, left;
-        if (Plans.IsPro(me, now))
-        {
-            cap = Plans.ProSuggestionCap(plans, limits);
-            left = cap - suggestionsToday.Count;
-        }
-        else
-        {
-            cap = Plans.FreeSuggestionCap(plans, limits);
-            var together = await Spend.RecentForUserAsync(db, me.Id, now, ct, plans.NoOutfitForgivenPerDay, Allowance.Together);
-            left = Math.Min(cap - suggestionsToday.Count, Plans.CapFor(me, plans, limits, now) - together.Count);
-        }
-
-        var capMonth = Plans.MonthlyCallsFor(me, plans, now);
-        var leftMonth = capMonth > 0 ? capMonth - await Spend.MonthCountForUserAsync(db, me.Id, now, ct) : 0;
-        return new Tomorrow.Numbers(Math.Max(0, left), cap, Math.Max(0, leftMonth), capMonth);
-    }
-
     private static IResult NotFound(Localizer localizer, string language) =>
         UserEndpoints.Error(StatusCodes.Status404NotFound, localizer.Get(language, "error.tomorrow_not_found"));
 
     /// <summary>
     /// The screen's first paint: what this account may do and why not, the wardrobe against the two minimums, the
     /// strip of its own pieces as photos, the recent outfits, the numbers, the chips to pre-light. Never a model call.
+    /// Round 20: <c>?from=push</c> is the morning push's tap landing; it stamps the push's receipt as opened (once per
+    /// push, only within a day of one) and changes nothing else about the answer. A read with no push behind it counts
+    /// nothing.
     /// </summary>
     private static async Task<IResult> ReadAsync(
         HttpContext context, AppDbContext db, Tomorrow tomorrow, Localizer localizer, IClock clock,
@@ -83,8 +51,13 @@ public static class TomorrowEndpoints
         }
 
         var now = clock.UtcNow;
+        if (string.Equals(context.Request.Query["from"], "push", StringComparison.Ordinal))
+        {
+            await TomorrowMorning.MarkOpenedAsync(db, me.Id, now, ct);
+        }
+
         var isPro = Plans.IsPro(me, now);
-        var offered = await OfferedAsync(db, me, plans.Value, isPro, ct);
+        var offered = await Tomorrow.OfferedAsync(db, me, plans.Value, isPro, ct);
         var pieces = Tomorrow.Refs(offered);
         var stylistOn = await Wardrobe.ToStylistAsync(db, me.Id, ct);
         var available = Plans.TomorrowReachesStylist(me, plans.Value, now)
@@ -99,7 +72,7 @@ public static class TomorrowEndpoints
             return new StripPieceDto(p.Item.Id, p.Name, p.Item.Category, photo, photo is { } check ? $"/api/checks/{check}/image" : null, p.Looks.Count);
         }).ToList();
 
-        var numbers = await NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
+        var numbers = await Tomorrow.NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
         var recentRows = await db.Suggestions.AsNoTracking()
             .Where(s => s.UserId == me.Id && s.Status != CheckStatus.Error)
             .OrderByDescending(s => s.CreatedAt)
@@ -198,7 +171,7 @@ public static class TomorrowEndpoints
 
         // 5. Enough pieces of enough kinds, or a first-class "not enough": nothing spent, the model never asked.
         var isPro = Plans.IsPro(me, now);
-        var offered = await OfferedAsync(db, me, plans.Value, isPro, ct);
+        var offered = await Tomorrow.OfferedAsync(db, me, plans.Value, isPro, ct);
         var kinds = Tomorrow.Kinds(Tomorrow.Refs(offered)).Count;
         var minPieces = Math.Max(0, plans.Value.SuggestionMinPieces);
         var minKinds = Math.Max(0, plans.Value.SuggestionMinCategories);
@@ -212,7 +185,7 @@ public static class TomorrowEndpoints
         if (!fresh && await tomorrow.FindReusableAsync(me.Id, occasion, style, language, forDate, now, ct) is { } reusable)
         {
             var reusablePieces = (await tomorrow.PiecesOfAsync([reusable.Id], ct)).GetValueOrDefault(reusable.Id, []);
-            var numbers = await NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
+            var numbers = await Tomorrow.NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
             var stale = await tomorrow.IsStaleAsync(reusable, reusablePieces, ct);
             return Results.Json(await tomorrow.DtoAsync(reusable, reusablePieces, numbers, reused: true, stale, counted: false, ct), AppJson.Options);
         }
@@ -303,7 +276,7 @@ public static class TomorrowEndpoints
         }
 
         // 12. The answer, with the numbers as they stand now that the row is stored.
-        var after = await NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
+        var after = await Tomorrow.NumbersAsync(db, me, plans.Value, limits.Value, now, ct);
         var dto = await tomorrow.DtoAsync(composed.Row, composed.Pieces, after, reused: false, stale: false, counted: composed.Row.Status != CheckStatus.Error, ct);
         return Results.Json(dto, AppJson.Options, statusCode: StatusCodes.Status201Created);
     }

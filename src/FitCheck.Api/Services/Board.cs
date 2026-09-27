@@ -108,6 +108,22 @@ public sealed class Board
 
     public TimeZoneInfo Zone => _zone;
 
+    /// <summary>
+    /// A local date and time in a zone as a UTC instant, the skipped hour of a DST change included: a clock that jumps
+    /// forward skips the time entirely, and the next minute that exists is when the thing happens. Shared by every
+    /// scheduled sender that speaks the board's local time (the weekly mail, the morning push).
+    /// </summary>
+    public static DateTime LocalToUtc(DateOnly day, TimeOnly time, TimeZoneInfo zone)
+    {
+        var local = day.ToDateTime(time, DateTimeKind.Unspecified);
+        while (zone.IsInvalidTime(local))
+        {
+            local = local.AddHours(1);
+        }
+
+        return TimeZoneInfo.ConvertTimeToUtc(local, zone);
+    }
+
     /// <summary>The zone the week is cut in; UTC, with a warning, when the configured id is not one this machine knows.</summary>
     public static TimeZoneInfo ResolveZone(string id, ILogger logger)
     {

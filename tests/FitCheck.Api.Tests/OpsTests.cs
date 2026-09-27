@@ -277,6 +277,44 @@ public class DoctorTests : IDisposable
         Assert.Null((await Inspect(off, live: true, handler: new CannedHandler(HttpStatusCode.OK)))["weather-live"]);
     }
 
+    /// <summary>
+    /// Round 20 — the morning push on the plans line: off by default; on, it names the hour and the zone; on without push
+    /// keys or without Tomorrow it warns, and an hour that is not HH:mm says the fallback is in use.
+    /// </summary>
+    [Fact]
+    public async Task The_morning_push_is_read_with_its_hour_and_warns_when_nothing_could_be_sent()
+    {
+        var healthy = await Inspect(Healthy());
+        Assert.Equal(DoctorStatus.Ok, healthy["plans"]!.Status);
+        Assert.Contains("morning push off", healthy["plans"]!.Detail);
+
+        var on = Healthy();
+        on["Plans:TomorrowMorningPush"] = "true";
+        on["Plans:TomorrowMorningHour"] = "06:45";
+        var named = await Inspect(on);
+        Assert.Equal(DoctorStatus.Ok, named["plans"]!.Status);
+        Assert.Contains("morning push 06:45 Asia/Jerusalem", named["plans"]!.Detail);
+
+        var noKeys = Healthy();
+        noKeys["Plans:TomorrowMorningPush"] = "true";
+        noKeys.Remove("Push:PublicKey");
+        noKeys.Remove("Push:PrivateKey");
+        var silent = await Inspect(noKeys);
+        Assert.Equal(DoctorStatus.Warn, silent["plans"]!.Status);
+        Assert.Contains("TomorrowMorningPush is on but push is off", silent["plans"]!.Detail);
+
+        var noTomorrow = Healthy();
+        noTomorrow["Plans:TomorrowMorningPush"] = "true";
+        noTomorrow["Plans:TomorrowEnabled"] = "false";
+        Assert.Contains("TomorrowMorningPush is on but Plans__TomorrowEnabled is off", (await Inspect(noTomorrow))["plans"]!.Detail);
+
+        var odd = Healthy();
+        odd["Plans:TomorrowMorningHour"] = "7:30";
+        var fallback = await Inspect(odd);
+        Assert.Equal(DoctorStatus.Warn, fallback["plans"]!.Status);
+        Assert.Contains("Plans__TomorrowMorningHour \"7:30\" is not HH:mm; 07:30 is used", fallback["plans"]!.Detail);
+    }
+
     /// <summary>Round 19 — Tomorrow's two day numbers on the plans line, as really enforced, and the Pro line's truth.</summary>
     [Fact]
     public async Task The_tomorrow_caps_are_read_as_the_app_reads_them()

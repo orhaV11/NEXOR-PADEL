@@ -66,6 +66,10 @@ const API_ENV = {
   // Round 20: the prompt cache on, so every check and comparison is asserted to carry the breakpoint (and no compose).
   Anthropic__PromptCache: '5m',
   Plans__FreeChecksPerDay: '5',
+  // Round 20: the morning push is offered by this server (so /api/config publishes it and Settings draws its switch), but
+  // push itself has no keys here and the browser blocks service workers, so nothing is ever sent: the run proves the
+  // client half and the never-spend rule; the sender is TomorrowMorningTests' to prove.
+  Plans__TomorrowMorningPush: 'true',
   // Round 20: the stub names three pieces per language on every check, so the free slice is two to make the Pro moment
   // ("your wardrobe has 3 pieces; Pro lets the stylist see all of them") reachable by one free account in one check.
   // Nothing else in the run reads the number: noa is Pro by then, and no assertion quotes the "first {free}" text.
@@ -1140,6 +1144,34 @@ function checkClientModules() {
   await dan2.waitForSelector('#pro-manual');
   assert.strictEqual(await hash(dan2), '#/pro', 'the source query is read and stripped');
   await dan2.close();
+
+  // Round 20 — the morning loop behind a switch. The push's tap lands on #/tomorrow?from=push: the view reads the query
+  // once, the server stamps a push's receipt (there is none here, so nothing is counted), and the address loses the
+  // query; the stub sees no compose from any of it, twice over. Then the switch in Settings, drawn because the server
+  // offers the push, disabled because this browser has no subscription (and push has no keys), with its line saying so.
+  step = 'morning';
+  const composesBeforeMarker = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'compose_outfit').length;
+  for (let visit = 0; visit < 2; visit++) {
+    await noa.evaluate(() => { location.hash = '#/tomorrow?from=push'; });
+    await noa.waitForFunction(() => location.hash === '#/tomorrow');
+    await noa.waitForSelector('#strip .tm-tile');
+  }
+  const composesAfterMarker = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'compose_outfit').length;
+  assert.strictEqual(composesAfterMarker, composesBeforeMarker, 'opening from the push composes nothing');
+  await go(noa, '#/settings');
+  await noa.waitForSelector('#s-push-morning');
+  await noa.waitForFunction(() => !document.getElementById('s-push-morning-status').hidden);
+  assert.strictEqual(await noa.isDisabled('#s-push-morning'), true, 'no subscription in this browser: the switch is locked');
+  assert.strictEqual(await noa.isChecked('#s-push-morning'), false);
+  assert.strictEqual(await text(noa, '#s-push-morning-status'), 'Turn on notifications above first.');
+  assert.strictEqual(await text(noa, 'label[for="s-push-morning"] b'), 'Your outfit each morning');
+  assert.match(await text(noa, 'label[for="s-push-morning"] .hint'), /One ping at 07:30\./, 'the hint names the server\'s hour');
+  const morningState = await (await noa.request.get(base + '/api/push/morning')).json();
+  assert.deepStrictEqual(morningState, { on: true, offered: false, hour: '07:30' }, 'the account\'s switch is on by default; the server cannot send');
+  await shot(noa, '33f-settings-morning-en');
+  await go(dan, '#/settings');
+  await dan.waitForSelector('#s-push-morning');
+  assert.strictEqual(await text(dan, 'label[for="s-push-morning"] b'), 'הלוק שלך כל בוקר');
   step = 'today';
 
   // Today's look: the daily prompt strip on For you, its page, and "Post yours" pre-filling the tag.
@@ -1190,6 +1222,17 @@ function checkClientModules() {
   assert.ok(wedge.momentShown >= 2, 'moment shown: ' + wedge.momentShown);
   assert.ok(wedge.momentGo >= 1, 'moment taken: ' + wedge.momentGo);
   assert.strictEqual(typeof wedge.piecesPerActiveMedian, 'number', 'a median while people are active');
+  // Round 20 — the morning push's two tiles in the Tomorrow block (seven now): nothing was sent in this run, so the
+  // pushes read 0 and the open rate is the en dash, and the two opens-from-push above counted nothing.
+  await noa.waitForSelector('#dash-tomorrow');
+  assert.strictEqual(await count(noa, '#dash-tomorrow .dash-tile'), 7);
+  const tomorrowTiles = await noa.$$eval('#dash-tomorrow .dash-tile', (tiles) => tiles.map((tile) => tile.textContent.replace(/\s+/g, ' ').trim()));
+  assert.ok(tomorrowTiles.includes('Morning pushes0'), 'morning pushes 0: ' + tomorrowTiles.join(' | '));
+  assert.ok(tomorrowTiles.includes('Opened\u2013'), 'opened is the en dash: ' + tomorrowTiles.join(' | '));
+  const morningMetrics = (await metricsAs(noa)).tomorrow;
+  assert.strictEqual(morningMetrics.pushesSent, 0);
+  assert.strictEqual(morningMetrics.pushesOpened, 0);
+  assert.strictEqual(morningMetrics.openRate, undefined, 'no rate without a push');
   await shot(noa, '31-numbers-en');
   expected.push('GET /api/metrics/pilot -> 403');
   await go(dan, '#/admin/metrics');
@@ -1776,6 +1819,8 @@ function checkClientModules() {
   // Round 19: a planned outfit is text only — no photograph ever travels with it; every other call carried the JPEG.
   const composes = stubRequests.filter((r) => r.tool === 'compose_outfit');
   assert.ok(composes.length >= 2, 'the stub saw the compose and the second idea');
+  // Round 20: the two opens from the morning push added none of them.
+  assert.strictEqual(composesAfterMarker, composesBeforeMarker, 'the open marker never composes');
   for (const r of composes) { assert.strictEqual(r.image_len, 0); assert.strictEqual(r.media_type, ''); assert.ok(!r.user_text.includes('@'), 'no handle in the figures'); }
   for (const r of stubRequests.filter((r) => r.tool !== 'compose_outfit')) { assert.strictEqual(r.media_type, 'image/jpeg'); }
   assert.ok(stubRequests[1].image_len < bigJpeg.length, `downscaled: ${stubRequests[1].image_len} < ${bigJpeg.length}`);

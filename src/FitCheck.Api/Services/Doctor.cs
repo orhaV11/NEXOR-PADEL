@@ -186,7 +186,7 @@ public static class Doctor
         Email(lines, email, publicOrigin);
         Contact(lines, legal, email);
         Billing(lines, billing, plans, publicOrigin);
-        PlanCaps(lines, plans, limits);
+        PlanCaps(lines, plans, limits, push, board);
         Push(lines, push);
         Admin(lines, admin, configuration, contentRoot);
         Board(lines, board);
@@ -547,7 +547,7 @@ public static class Doctor
             $"stripe ({(live ? "sk_live_" : "sk_test_")}…), price {price}, yearly {(yearly.Length > 0 ? yearly : "none")}, {trial}, webhook secret set."));
     }
 
-    private static void PlanCaps(List<DoctorLine> lines, PlanOptions plans, LimitsOptions limits)
+    private static void PlanCaps(List<DoctorLine> lines, PlanOptions plans, LimitsOptions limits, PushOptions push, BoardOptions board)
     {
         var proCap = Plans.ProCap(plans, limits);
         var freeCap = Math.Max(0, Math.Min(plans.FreeChecksPerDay, limits.ChecksPerDay));
@@ -639,11 +639,34 @@ public static class Doctor
             }
         }
 
+        // Round 20 — the morning push: on only when a tap could land somewhere and a push could go at all, and the hour
+        // is read the way the sender reads it (07:30 when the text is not HH:mm).
+        if (plans.TomorrowMorningPush)
+        {
+            if (!plans.TomorrowEnabled)
+            {
+                notes.Add("Plans__TomorrowMorningPush is on but Plans__TomorrowEnabled is off: a tap on the morning ping would land on a 404, so nothing is sent");
+            }
+
+            if (string.IsNullOrWhiteSpace(push.PublicKey) || string.IsNullOrWhiteSpace(push.PrivateKey))
+            {
+                notes.Add("Plans__TomorrowMorningPush is on but push is off (no VAPID keys): nobody gets the morning ping");
+            }
+        }
+
+        if (!TomorrowMorning.HourIsValid(plans))
+        {
+            notes.Add($"Plans__TomorrowMorningHour \"{(plans.TomorrowMorningHour ?? "").Trim()}\" is not HH:mm; 07:30 is used");
+        }
+
         var tomorrow = plans.TomorrowEnabled ? $"tomorrow pro {proSuggestions} / free {freeSuggestions} a day" : "tomorrow off";
+        var morning = plans.TomorrowMorningPush
+            ? $"morning push {TomorrowMorning.HourOf(plans).ToString("HH:mm", CultureInfo.InvariantCulture)} {(board.TimeZone ?? "").Trim()}"
+            : "morning push off";
         lines.Add(notes.Count > 0
             ? new(DoctorStatus.Warn, "plans", string.Join("; ", notes) + ".")
             : new(DoctorStatus.Ok, "plans",
-                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; pro {plans.ProCallsPerMonth} model calls a month; {tomorrow}; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
+                $"free {freeCap}, pro {proCap}, guest {plans.GuestChecksPerDay} a day; pro {plans.ProCallsPerMonth} model calls a month; {tomorrow}; {morning}; ceiling {limits.ChecksPerDay} per account and {limits.ChecksPerDayGlobal} for everyone."));
     }
 
     private static void Push(List<DoctorLine> lines, PushOptions push)

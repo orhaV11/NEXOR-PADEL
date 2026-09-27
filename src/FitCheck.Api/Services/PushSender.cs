@@ -15,7 +15,9 @@ namespace FitCheck.Api.Services;
 /// <summary>
 /// One push to send: the same facts as an activity row. The worker turns them into text in the recipient's language.
 /// <paramref name="NotificationId"/> is the activity row the job announces; the worker waits for it to be committed and drops
-/// the job if it never is. Null for a push with no row behind it (the test ping).
+/// the job if it never is. Null for a push with no row behind it: the test ping, and (Round 20) the morning
+/// <c>tomorrow_morning</c> push, whose receipt is a <see cref="TomorrowPush"/> row rather than an activity line, since a
+/// doorbell is not something that happened to you.
 /// </summary>
 /// <summary>Rank: the place on the board for a board_rank push, where the line reads it instead of the actor's name.</summary>
 /// <summary>CheckId (Round 20): the check a try_tip nudge is about; the tap lands on it and repeats about it collapse.</summary>
@@ -161,6 +163,9 @@ public sealed class PushSender : BackgroundService
             case NotificationType.TryTip:
                 // Round 20: "did you try the tip?" lands on that check in the person's own list, where the button to try it is.
                 return job.CheckId is { } checkId ? $"/#/checks?try={checkId:D}" : "/#/checks";
+            case NotificationType.TomorrowMorning:
+                // Round 20: the morning ping lands on the Tomorrow screen; ?from=push is how the screen's read stamps the receipt as opened.
+                return "/#/tomorrow?from=push";
             case NotificationType.BoardRank:
                 // Six and a half days back lands mid-week inside the week that closed whether that week ran 167, 168 or 169
                 // hours (a DST week) and whether the closer ran on time or hours late.

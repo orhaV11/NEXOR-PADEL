@@ -26,13 +26,14 @@ function ensureStyle() {
        look posted to the prompt, tilted like a photo left on a table, first in the head */
     '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: linear-gradient(135deg, rgba(255, 180, 107, 0.14), rgba(255, 143, 177, 0.11) 60%, rgba(179, 157, 255, 0.11)), var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card), 0 16px 40px rgba(255, 180, 107, 0.1); }',
     '.install + .today-strip { margin-block-start: 12px; }',
-    '.today-strip { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* it rises in with the screen (app.css §9's keyframe; collapsed under reduced motion) */
+    '.today-strip { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* it rises in with the screen (app.css §9's keyframe) */
+    '@media (prefers-reduced-motion: reduce) { .today-strip { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
     /* the head wraps: the print and the words share the first line, and the tags (the hashtag, "You're in") sit beside
-       them when the column is wide enough for 172px of words, else on a line of their own at the end. A grid item:
+       them when the column is wide enough for 200px of words, else on a line of their own at the end. A grid item:
        without min-inline-size 0 its own min-content would push the tags past the card's edge */
     '.today-strip .today-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-inline-size: 0; }',
     '.today-strip .today-head > div { min-inline-size: 0; }',
-    '.today-strip .today-head > div:not(.today-side) { flex: 1 1 172px; }',
+    '.today-strip .today-head > div:not(.today-side) { flex: 1 1 200px; }',   /* 200: on a 390px phone the tags always drop under the words, so a prompt's title never wraps around a pill */
     '.today-strip .today-side { flex: 0 1 auto; max-inline-size: 100%; margin-inline-start: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }',
     '.today-print { position: relative; flex: none; display: block; inline-size: 54px; block-size: 68px; border-radius: 12px; overflow: hidden; background: var(--surface-2); rotate: -4deg; margin-inline-end: 4px; box-shadow: 0 8px 18px rgba(8, 4, 20, 0.5); }',
     '.today-print img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',

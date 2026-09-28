@@ -26,6 +26,7 @@
   --fire: #ff6a2b;                        /* reactions, medals, the flame and the weak dot only */
   --fire-2: #ffa83a;                      /* the flame's tip */
   --fire-tint: rgba(255, 106, 43, 0.14);
+  --fire-ink: #ff8a5a;                    /* fire as a WORD on its own wash (the weak verdict word, the lit reaction's count): 5.1:1 on --fire-tint over --surface-2, where --fire itself is 4.1:1 */
   --ok: #6ff0ad;                          /* the works dot, the keep row */
   --ok-tint: rgba(111, 240, 173, 0.13);   /* the keep row's ground, the works chip's wash */
   --danger: #ff5d7a;
@@ -371,7 +372,7 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 .result-pieces .pieces .chip.piece[data-verdict="works"] { background: linear-gradient(var(--ok-tint), var(--ok-tint)), var(--surface-2); }
 .result-pieces .pieces .chip.piece[data-verdict="works"] .item-verdict { color: var(--ok); }
 .result-pieces .pieces .chip.piece[data-verdict="weak"] { background: linear-gradient(var(--fire-tint), var(--fire-tint)), var(--surface-2); }
-.result-pieces .pieces .chip.piece[data-verdict="weak"] .item-verdict { color: var(--fire); }
+.result-pieces .pieces .chip.piece[data-verdict="weak"] .item-verdict { color: var(--fire-ink); }   /* a word on the wash: the lighter fire (--fire reads 4.1:1 there) */
 .result-pieces .pieces .chip.piece[aria-expanded="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 143, 177, 0.24); }
 .result-pieces .pieces .chip.piece[aria-expanded="true"] .item-verdict { color: var(--accent-ink); opacity: 0.8; }
 /* the feed switch: two coins named after the halves of the mark (the flame = For you, the ring = Your circle). The
@@ -586,8 +587,8 @@ input[type="text"]:focus-visible, input[type="password"]:focus-visible, input[ty
    pill; core.js's sr-only spans keep the accessible name either way. The label comes back with the wide layout at the
    one breakpoint this sheet has (§ min-width: 560px), where it fits, and ellipsises there rather than spilling. */
 .action .lbl { display: none; color: var(--ink-3); min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.action[aria-pressed="true"] { color: var(--fire); border-color: var(--fire); background: var(--fire-tint); box-shadow: 0 0 20px rgba(255, 106, 43, 0.28); }
-.action[aria-pressed="true"] .count, .action[aria-pressed="true"] .lbl { color: var(--fire); }
+.action[aria-pressed="true"] { color: var(--fire-ink); border-color: var(--fire); background: var(--fire-tint); box-shadow: 0 0 20px rgba(255, 106, 43, 0.28); }   /* the glyph and the count in the lighter fire: --fire on its own wash is 4.1:1, this is 5.1:1 */
+.action[aria-pressed="true"] .count, .action[aria-pressed="true"] .lbl { color: var(--fire-ink); }
 .action.save[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-tint); box-shadow: none; }
 /* the lit flame breathes: a glow layer under the pressed pill, opacity only, 3s there and back; §9 collapses it to a still glow */
 .action.fire[aria-pressed="true"]::before {
@@ -988,7 +989,11 @@ body.sheet-open { overflow: hidden; }
   body::after { display: none; }   /* the aurora's breath is decoration; the still aurora stays */
   .btn:active, .chip:active, .action:active, .segment:active, .pill:active, .vote:active { translate: none; }   /* the press dip is feedback, not content; it goes too */
   .card-photo:active img { transform: none; }   /* and the picture's settle with it */
-  .hero { animation: none; }   /* the final arc, at once; nothing waits on it */
+  .hero, .hero.landed { animation: none; }   /* the final arc, at once; nothing waits on it. .hero.landed (check.js adds it at once here) re-declares arc-in + land at a higher specificity, and collapsed to 0.01ms it still painted --arc: 0deg for one frame (measured) */
+  /* the entrances are off outright, not collapsed: a 0.01ms rise-in still paints its from-keyframe (opacity 0, 8px down)
+     for the first frame (measured on the feed under reduced motion), and nothing waits on its end. The views' own
+     entrances (check.js, tomorrow.js, today.js) do the same in their blocks. */
+  .enter .card, .notice { animation: none; }
 }
 
 /* ---------- §Round 10 items: the dots, the tag toggle, the count, "The look", the item sheet, the tagging editor, the item pages ---------- */

@@ -227,8 +227,8 @@ const CSS = `
 .result-photo { position: relative; z-index: 1; margin-inline: -16px; margin-block-start: -16px; background: var(--surface-2); border-end-start-radius: 28px; border-end-end-radius: 28px; }
 .result-photo img { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
 .result-scrim { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(to top, rgba(20, 16, 30, 0.72) 0%, rgba(20, 16, 30, 0.42) 24%, transparent 56%), linear-gradient(to bottom, rgba(20, 16, 30, 0.5), transparent 22%); }
-.result-photo .pieces { position: absolute; inset-block-end: 18px; left: 16px; right: 184px; z-index: 2; min-block-size: 0; gap: 7px 6px; align-items: flex-end; align-content: flex-end; }
-.result-photo .chip.piece { min-block-size: 36px; padding-inline: 12px; font-size: 13.5px; }
+.result-photo .pieces { position: absolute; inset-block-end: 18px; left: 16px; right: 176px; z-index: 2; min-block-size: 0; gap: 7px 6px; align-items: flex-end; align-content: flex-end; }   /* 176: the ring's collar ends at 180px from the right; measured at 390px, three short names take two rows here */
+.result-photo .chip.piece { min-block-size: 36px; padding-inline: 10px; font-size: 13px; }
 .result-photo .chip.piece:nth-child(3n+1) { rotate: -2deg; }   /* pinned on the picture: static, nothing to reduce */
 .result-photo .chip.piece:nth-child(3n+2) { rotate: 1.5deg; }
 .result-photo .chip.piece:nth-child(3n) { rotate: -1deg; }
@@ -276,6 +276,7 @@ const CSS = `
 .result-read { animation-delay: 80ms; }
 .result-pieces { animation-delay: 140ms; }
 .result-doors { animation-delay: 200ms; }
+@media (prefers-reduced-motion: reduce) { .result-verdict, .result-read, .result-pieces, .result-doors { animation: none; } }   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
 .nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
 .nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
 .nooutfit-free { margin-block-start: 10px; }
@@ -406,6 +407,7 @@ register('check', async (root) => {
 // Round 19: the two chip rows are shared with the Tomorrow screen (views/tomorrow.js), which passes its own
 // { occasion, style } object and a repaint callback; on this screen the defaults make them byte for byte what they were.
 export function occasionChips(picked = pick, onPick = updateSubmit) {
+  ensureStyle();   // Tomorrow draws these rows too, in a browser that may never have opened the check screen
   const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });
   for (const occasion of OCCASIONS) {
     chips.appendChild(el('button', {
@@ -431,6 +433,7 @@ function paintOccasions(picked = pick) {
  * differs from what is saved, one line offers to make it the new preference.
  */
 export function styleChips(picked = pick, onPick = updateSubmit) {
+  ensureStyle();   // the offer line under the row (.style-default) is this file's rule
   const chips = el('div', { class: 'chips', id: 'styles', role: 'group', 'aria-label': t('style.title') });
   const offer = el('p', { class: 'hint style-default', id: 'style-default' });
   const paint = () => {

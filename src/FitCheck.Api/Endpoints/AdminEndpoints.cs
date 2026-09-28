@@ -582,8 +582,10 @@ public static class AdminEndpoints
     /// <summary>
     /// The sponsor of the week as the server read it from Board:Sponsor:* at start, read-only: whether one is set, the
     /// link as the board shows it (and whether the raw setting was dropped for not being http(s)), and whether the handle
-    /// the owner typed is an account here and a verified brand. The setting itself stays in the environment; this tells
-    /// the owner what it came to without a terminal.
+    /// the owner typed is an account here, a brand account, and a verified brand (verified alone is not enough: a verified
+    /// person shows no brand mark anywhere). The handle is read the way the board reads it
+    /// (<see cref="BoardSponsorOptions.NormalizeHandle"/>). The setting itself stays in the environment; this tells the
+    /// owner what it came to without a terminal.
     /// </summary>
     private static async Task<IResult> SponsorAsync(AppDbContext db, Board board, CancellationToken ct)
     {
@@ -593,21 +595,23 @@ public static class AdminEndpoints
             return Results.Json(new AdminSponsorDto(false, null, null, null, null, false, null, null), AppJson.Options);
         }
 
-        var handle = sponsor.Handle.Trim().TrimStart('@');
+        var handle = BoardSponsorOptions.NormalizeHandle(sponsor.Handle);
         bool? exists = null;
+        bool? brand = null;
         bool? verified = null;
-        if (handle.Length > 0)
+        if (handle is not null)
         {
             var lower = handle.ToLowerInvariant();
-            var row = await db.Users.Where(u => u.HandleLower == lower).Select(u => new { u.Verified }).FirstOrDefaultAsync(ct);
+            var row = await db.Users.Where(u => u.HandleLower == lower).Select(u => new { u.Verified, u.AccountType }).FirstOrDefaultAsync(ct);
             exists = row is not null;
-            verified = row?.Verified ?? false;
+            brand = row is null ? null : row.AccountType == AccountType.Brand;
+            verified = row is { Verified: true, AccountType: AccountType.Brand };
         }
 
         var prize = sponsor.PrizeText.Trim();
         var dto = new AdminSponsorDto(
-            true, sponsor.Name.Trim(), handle.Length == 0 ? null : handle, prize.Length == 0 ? null : prize,
-            board.SponsorUrl, UrlDropped: !string.IsNullOrWhiteSpace(sponsor.Url) && board.SponsorUrl is null, exists, verified);
+            true, sponsor.Name.Trim(), handle, prize.Length == 0 ? null : prize,
+            board.SponsorUrl, UrlDropped: !string.IsNullOrWhiteSpace(sponsor.Url) && board.SponsorUrl is null, exists, verified, brand);
         return Results.Json(dto, AppJson.Options);
     }
 

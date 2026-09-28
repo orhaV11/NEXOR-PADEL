@@ -132,8 +132,9 @@ function verifyButton(handle, verified, act) {
 }
 
 /**
- * Grant Pro opens a sheet with the months (1, 3, 6 or 12) - the first admin sheet with a select, so the backdrop's first
- * tap only drops the keyboard and does not lose the choice; Remove Pro confirms, since the person goes back to Free now.
+ * Grant Pro opens a sheet with the months (1, 2, 3, 6 or 12; two is the founding members' gift in LAUNCH.md) - the first
+ * admin sheet with a select, so the backdrop's first tap only drops the keyboard and does not lose the choice; Remove Pro
+ * confirms, since the person goes back to Free now.
  * The server refuses an account that pays through Stripe (its plan is changed there) and act() toasts that refusal as given.
  */
 function proButton(handle, plan, act) {
@@ -145,7 +146,7 @@ function proButton(handle, plan, act) {
   }
   return actionButton(t('admin.grant_pro'), () => new Promise((resolve) => {
     let chosen = false;
-    const select = el('select', { id: 'adm-months', name: 'months' }, [1, 3, 6, 12].map((n) => el('option', { value: String(n), text: t('admin.months_n', { n }) })));
+    const select = el('select', { id: 'adm-months', name: 'months' }, [1, 2, 3, 6, 12].map((n) => el('option', { value: String(n), text: t('admin.months_n', { n }) })));
     select.value = '3';
     const s = sheet({
       title: t('admin.grant_pro'), onClose: () => { if (!chosen) resolve(); },
@@ -201,7 +202,8 @@ function userRow(row, act) {
       verifyButton(user.handle, row.verified, act),
       proButton(user.handle, row.plan, act),
       boardButton(user.handle, row.boardExcluded, act),
-      isMe(user.handle) ? null : suspendButton(user.handle, row.suspended, act)
+      // The server refuses to suspend a moderator (--unadmin on the box first), so their row offers no Suspend to be refused.
+      isMe(user.handle) || (row.isAdmin && !row.suspended) ? null : suspendButton(user.handle, row.suspended, act)
     ])
   ]);
 }
@@ -211,8 +213,9 @@ function hostOf(url) { try { return new URL(url).host.replace(/^www\./i, ''); } 
 
 /**
  * The sponsor of the week as the server read it from its settings: not set, or the name, the prize, the link (or the
- * word that it was dropped for not being http(s)), and whether the handle is an account here and a verified brand. Read
- * only; the fix for an unverified handle is the Verify button one section up.
+ * word that it was dropped for not being http(s)), and whether the handle is an account here, a brand, and a verified
+ * brand. Read only; the fix for an unverified brand is the Verify button one section up, and a personal account is either
+ * the wrong handle or a brand that has not switched its account type.
  */
 function sponsorCard(s) {
   if (!s || !s.configured) return el('p', { class: 'muted', text: t('admin.sponsor_none') });
@@ -224,7 +227,8 @@ function sponsorCard(s) {
     s.urlDropped ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_link_dropped') }) : null,
     handle && s.handleExists ? el('a', { href: '#/u/' + encodeURIComponent(handle) }, [handleText(handle)]) : null,
     handle && s.handleExists === false ? el('p', { class: 'alert danger', role: 'alert', text: t('admin.sponsor_handle_missing', { handle }) }) : null,
-    handle && s.handleExists && !s.handleVerified ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_handle_unverified', { handle }) }) : null,
+    handle && s.handleExists && s.handleIsBrand === false ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_handle_person', { handle }) }) : null,
+    handle && s.handleExists && s.handleIsBrand !== false && !s.handleVerified ? el('p', { class: 'alert', role: 'alert', text: t('admin.sponsor_handle_unverified', { handle }) }) : null,
     el('p', { class: 'hint', text: t('admin.sponsor_readonly') })
   ]);
 }

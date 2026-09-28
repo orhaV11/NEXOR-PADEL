@@ -541,7 +541,7 @@ public sealed class Board
         }
 
         var sponsor = _options.Sponsor is { Enabled: true } s
-            ? new BoardSponsorDto(s.Name.Trim(), Blank(s.Handle), Blank(s.PrizeText), _sponsorUrl)
+            ? new BoardSponsorDto(s.Name.Trim(), BoardSponsorOptions.NormalizeHandle(s.Handle), Blank(s.PrizeText), _sponsorUrl)
             : null;
 
         return new BoardDto(

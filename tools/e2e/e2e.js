@@ -1192,15 +1192,21 @@ function checkClientModules() {
 
   // Round 20 — the morning loop behind a switch. The push's tap lands on #/tomorrow?from=push: the view reads the query
   // once, the server stamps a push's receipt (there is none here, so nothing is counted), and the address loses the
-  // query; the stub sees no compose from any of it, twice over. Then the switch in Settings, drawn because the server
-  // offers the push, disabled because this browser has no subscription (and push has no keys), with its line saying so.
+  // query; the stub sees no compose from any of it, twice over. The push says "today", so the screen opens on Today
+  // although Noa last pressed Tomorrow (the Round 19 step above), and that saved pill is left as she pressed it.
+  // Then the switch in Settings, drawn because the server offers the push, disabled because this browser has no
+  // subscription (and push has no keys), with its line saying so.
   step = 'morning';
   const composesBeforeMarker = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'compose_outfit').length;
+  const savedWhen = () => noa.evaluate(() => (JSON.parse(localStorage.getItem('orevosh.prefs') || '{}') || {}).tomorrowWhen);
+  assert.strictEqual(await savedWhen(), 'tomorrow', 'the pill Noa pressed last is Tomorrow');
   for (let visit = 0; visit < 2; visit++) {
     await noa.evaluate(() => { location.hash = '#/tomorrow?from=push'; });
     await noa.waitForFunction(() => location.hash === '#/tomorrow');
     await noa.waitForSelector('#strip .tm-tile');
+    await noa.waitForSelector('#when .chip[data-when="today"][aria-pressed="true"]');
   }
+  assert.strictEqual(await savedWhen(), 'tomorrow', 'the push opens on Today without saving it over her own choice');
   const composesAfterMarker = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'compose_outfit').length;
   assert.strictEqual(composesAfterMarker, composesBeforeMarker, 'opening from the push composes nothing');
   await go(noa, '#/settings');
@@ -1267,10 +1273,11 @@ function checkClientModules() {
   assert.ok(wedge.momentShown >= 2, 'moment shown: ' + wedge.momentShown);
   assert.ok(wedge.momentGo >= 1, 'moment taken: ' + wedge.momentGo);
   assert.strictEqual(typeof wedge.piecesPerActiveMedian, 'number', 'a median while people are active');
-  // Round 20 — the morning push's two tiles in the Tomorrow block (seven now): nothing was sent in this run, so the
-  // pushes read 0 and the open rate is the en dash, and the two opens-from-push above counted nothing.
+  // Round 20 — the morning push's two tiles in the Tomorrow block: nothing was sent in this run, so the pushes read 0
+  // and the open rate is the en dash, and the two opens-from-push above counted nothing. The review added an eighth,
+  // "People planning", the people behind the outfits that the push's go/no-go rule in LAUNCH.md asks for.
   await noa.waitForSelector('#dash-tomorrow');
-  assert.strictEqual(await count(noa, '#dash-tomorrow .dash-tile'), 7);
+  assert.strictEqual(await count(noa, '#dash-tomorrow .dash-tile'), 8);
   const tomorrowTiles = await noa.$$eval('#dash-tomorrow .dash-tile', (tiles) => tiles.map((tile) => tile.textContent.replace(/\s+/g, ' ').trim()));
   assert.ok(tomorrowTiles.includes('Morning pushes0'), 'morning pushes 0: ' + tomorrowTiles.join(' | '));
   assert.ok(tomorrowTiles.includes('Opened\u2013'), 'opened is the en dash: ' + tomorrowTiles.join(' | '));
@@ -1278,6 +1285,8 @@ function checkClientModules() {
   assert.strictEqual(morningMetrics.pushesSent, 0);
   assert.strictEqual(morningMetrics.pushesOpened, 0);
   assert.strictEqual(morningMetrics.openRate, undefined, 'no rate without a push');
+  assert.ok(morningMetrics.planners >= 1 && morningMetrics.planners <= morningMetrics.suggestions, 'people behind the outfits: ' + morningMetrics.planners);
+  assert.ok(tomorrowTiles.includes('People planning' + morningMetrics.planners), 'the tile says how many: ' + tomorrowTiles.join(' | '));
   await shot(noa, '31-numbers-en');
   expected.push('GET /api/metrics/pilot -> 403');
   await go(dan, '#/admin/metrics');
@@ -1600,6 +1609,8 @@ function checkClientModules() {
   await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] button:has-text("Grant Pro")');
   await noa.click('#adm-users .adm-account[data-handle="dan"] button:has-text("Grant Pro")');
   await noa.waitForSelector('.sheet #adm-months');
+  // Two months is on the sheet: it is the founding members' gift LAUNCH.md tells the owner to give from here.
+  assert.deepStrictEqual(await noa.$$eval('.sheet #adm-months option', (options) => options.map((o) => o.value)), ['1', '2', '3', '6', '12']);
   await noa.selectOption('.sheet #adm-months', '3');
   await noa.click('.sheet button:has-text("Grant Pro")');
   await noa.waitForSelector('#adm-users .adm-account[data-handle="dan"] .tag:has-text("Pro")');
@@ -1644,6 +1655,7 @@ function checkClientModules() {
   await noa.press('#adm-q', 'Enter');
   await noa.waitForSelector('#adm-users .adm-account[data-handle="nexor"] button:has-text("Verify brand")');
   assert.strictEqual(await count(noa, '#adm-users .adm-account[data-handle="nexor"] .tag:has-text("Moderator")'), 1, 'nexor is a moderator too, and the row says so');
+  assert.strictEqual(await count(noa, '#adm-users .adm-account[data-handle="nexor"] button:has-text("Suspend account")'), 0, 'and offers no Suspend the server would refuse');
   await noa.click('#adm-users .adm-account[data-handle="nexor"] button:has-text("Verify brand")');
   await noa.waitForSelector('#adm-users .adm-account[data-handle="nexor"] .tag:has-text("Verified")');
   await noa.waitForFunction(() => document.querySelector('#adm-sponsor .adm-sponsor') && !document.querySelector('#adm-sponsor .alert'));

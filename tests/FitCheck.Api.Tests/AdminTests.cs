@@ -862,15 +862,35 @@ public class AdminTests : IClassFixture<AdminApp>
             Assert.False(sponsor.GetProperty("urlDropped").GetBoolean());
             Assert.False(sponsor.GetProperty("handleExists").GetBoolean());
             Assert.False(sponsor.GetProperty("handleVerified").GetBoolean());
+            Assert.False(sponsor.TryGetProperty("handleIsBrand", out _));
+
+            // The card and the board read the handle the same way: the '@' the owner typed is dropped by both, so the
+            // board's "Presented by" opens the profile the card links to.
+            Assert.Equal("nexor_sp", (await plain.GetFromJsonAsync<JsonElement>("/api/board")).GetProperty("sponsor").GetProperty("handle").GetString());
 
             // The account exists but is not a verified brand; the Verify button one section up is the fix.
             await app.NewUserAsync("nexor_sp", accountType: "Brand");
             sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
             Assert.True(sponsor.GetProperty("handleExists").GetBoolean());
+            Assert.True(sponsor.GetProperty("handleIsBrand").GetBoolean());
             Assert.False(sponsor.GetProperty("handleVerified").GetBoolean());
             Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync("/api/admin/users/nexor_sp/verify", null)).StatusCode);
             sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
             Assert.True(sponsor.GetProperty("handleVerified").GetBoolean());
+        }
+
+        // A personal account under the sponsor's handle (a typo, or a brand that never switched): verifying it is not
+        // enough, since a person shows no brand mark anywhere. The card says it is not a brand, and never "verified".
+        using (var app = new TestApp { Settings = new() { ["Board:Sponsor:Name"] = "NEXOR", ["Board:Sponsor:Handle"] = "sp_person" } })
+        {
+            var (moderator, _, _) = await app.NewUserAsync("sp_mod3");
+            Assert.Equal(AdminChange.Changed, await app.PromoteAsync("sp_mod3"));
+            await app.NewUserAsync("sp_person");
+            Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync("/api/admin/users/sp_person/verify", null)).StatusCode);
+            var sponsor = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/sponsor");
+            Assert.True(sponsor.GetProperty("handleExists").GetBoolean());
+            Assert.False(sponsor.GetProperty("handleIsBrand").GetBoolean());
+            Assert.False(sponsor.GetProperty("handleVerified").GetBoolean());
         }
 
         // A link that is not http(s) was dropped at start; the card says so instead of showing it.

@@ -678,6 +678,17 @@ public sealed class BoardSponsorOptions
     public bool Enabled => !string.IsNullOrWhiteSpace(Name);
 
     /// <summary>
+    /// The handle as the board links it and the admin card checks it: trimmed, a leading '@' dropped (an owner writes it
+    /// either way, as on the account commands), null when nothing is left. One reading, so the card can never call a
+    /// handle fine that the board's "Presented by" link would open as not found.
+    /// </summary>
+    public static string? NormalizeHandle(string? handle)
+    {
+        var text = (handle ?? "").Trim().TrimStart('@').Trim();
+        return text.Length == 0 ? null : text;
+    }
+
+    /// <summary>
     /// The link as the board may show it: the trimmed <see cref="Url"/> when it is an absolute http(s) URL with a host
     /// and no user info, a bare host ("nexor.example", "www.nexor.example/drop") read as https, and null for anything
     /// else (another scheme, garbage), so a setting can never reach the page as a javascript: or a relative link. The

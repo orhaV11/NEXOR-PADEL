@@ -2617,3 +2617,32 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   post's id, so the before/after card and film name `/look/<id>` without the screen being drawn again. With a clip the
   wait now opens on "Sending your clip" (the stages used to start under the first frame and a second run of them at the
   swap), and the swap starts the stages on the line on screen, not on one a re-render during the upload had replaced.
+- **The morning push keeps its morning.** It went out with every push's one-day time to live, so a phone that was off
+  from before the hour came back in the evening, or the next morning, to "your outfit for today". The morning job now
+  asks the push service to hold it only for what is left of the three-hour window (a new optional time to live on the
+  job; every other push keeps its day). A phone offline for the whole window gets nothing that morning, which is the
+  window's own rule: past it "today" is no longer true. The run line is written at Information once a morning, the
+  day's first pass, and again only by a later pass that pushed somebody; DEPLOY said once a morning, and the quarter
+  hours that re-check the skipped wrote twelve.
+- **A tap on the morning push opens on Today.** The screen restored the last pill pressed, so an evening planner tapped
+  "your outfit for today" and was offered tomorrow's, spending the free day's one outfit on the wrong day. The tap now
+  presses Today for that visit without saving it; the pill the person pressed stays theirs for the next launch. The
+  Settings hint no longer says the tap puts the outfit together: it opens the planner on today, and the outfit is made
+  when the person asks. The morning switch in Settings follows the notifications switch above it as it changes, rather
+  than keeping the state it read when the page opened.
+- **The go/no-go number is on the page.** LAUNCH gated the morning push on "at least 20 wardrobes of two kinds behind"
+  the worn rate, and the Tomorrow block had no count of anybody. It now has "People planning" (`planners`, the distinct
+  accounts behind the outfits over the same thirty days), one count query. The compose route refuses a wardrobe under
+  two kinds, so every one of them planned from one; the rule now names the two tiles, rather than being restated around
+  "Outfits", which would have let one keen account pass it alone.
+- **The sponsor's handle is read one way, and a brand is a brand.** The admin card dropped a leading `@` and the board
+  did not, so `Board__Sponsor__Handle=@nexor` read as fine on the card while "Presented by" opened a missing profile.
+  Both now read it through `BoardSponsorOptions.NormalizeHandle`. The card's "verified" meant any verified account; it
+  now means a verified brand account, and a personal account under the handle gets its own line (a typo in the
+  setting, or an account that has not turned on "Brand account"), since "Verify it above" would not help a person the
+  moderator has already verified.
+- **The Grant Pro sheet offers two months,** the founding members' gift LAUNCH sends the owner there to give; the
+  server already took any count from 1 to 120. Another moderator's row no longer offers Suspend, which the server
+  always refuses; Lift stays on a suspended one. In Arabic the months read "عدد الأشهر: {n}", the count after a
+  colon as the Russian does, because the noun agrees with the number (a dual for 2, a plural for 3 to 10, a singular
+  for 11 and up) and "{n} أشهر" read "12 أشهر"; one line for every count was preferred to a key per option.

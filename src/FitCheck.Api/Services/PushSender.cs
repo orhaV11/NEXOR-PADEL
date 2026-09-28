@@ -21,7 +21,12 @@ namespace FitCheck.Api.Services;
 /// </summary>
 /// <summary>Rank: the place on the board for a board_rank push, where the line reads it instead of the actor's name.</summary>
 /// <summary>CheckId (Round 20): the check a try_tip nudge is about; the tap lands on it and repeats about it collapse.</summary>
-public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null, int? Rank = null, Guid? CheckId = null);
+/// <summary>
+/// TimeToLive: how long the push service may hold the push for a phone that is offline; null is
+/// <see cref="PushSender.TimeToLiveSeconds"/>. The morning push carries what is left of its send window, so a phone that
+/// comes back online in the afternoon or the next day is not told about "today's" outfit.
+/// </summary>
+public sealed record PushJob(Guid UserId, string Type, string ActorHandle, Guid? PostId, Guid? ChallengeId, Guid? NotificationId = null, int? Rank = null, Guid? CheckId = null, TimeSpan? TimeToLive = null);
 
 /// <summary>
 /// Sends Web Push messages in the background. <see cref="Notifier"/> drops a <see cref="PushJob"/> on the queue next to
@@ -37,7 +42,7 @@ public sealed class PushSender : BackgroundService
 
     public const string Title = "OREVOSH";
 
-    /// <summary>A day: the phone is usually back online by then; older pings are stale anyway.</summary>
+    /// <summary>A day: the phone is usually back online by then; older pings are stale anyway. A job may ask for less.</summary>
     public const int TimeToLiveSeconds = 86400;
 
     /// <summary>How long the worker gives a request to commit its activity row: 20 looks, 250 ms apart, five seconds in all.</summary>
@@ -290,7 +295,7 @@ public sealed class PushSender : BackgroundService
             var target = new WebPushSubscription { Endpoint = subscription.Endpoint };
             target.SetKey(PushEncryptionKeyName.P256DH, subscription.P256dh);
             target.SetKey(PushEncryptionKeyName.Auth, subscription.Auth);
-            var message = new PushMessage(payload) { Urgency = PushMessageUrgency.Normal, Topic = TopicFor(job) };
+            var message = new PushMessage(payload) { Urgency = PushMessageUrgency.Normal, Topic = TopicFor(job), TimeToLive = TimeToLiveFor(job) };
             try
             {
                 await client.RequestPushMessageDeliveryAsync(target, message, ct);
@@ -321,6 +326,13 @@ public sealed class PushSender : BackgroundService
             }
         }
     }
+
+    /// <summary>
+    /// The job's own time to live in whole seconds, between 0 (deliver now or never) and the default day; null leaves the
+    /// client's default of <see cref="TimeToLiveSeconds"/>.
+    /// </summary>
+    public static int? TimeToLiveFor(PushJob job) =>
+        job.TimeToLive is { } ttl ? (int)Math.Clamp(Math.Ceiling(ttl.TotalSeconds), 0, TimeToLiveSeconds) : null;
 
     /// <summary>The push service's own collapse key: at most 32 base64url characters, so the id is shortened.</summary>
     private static string? TopicFor(PushJob job)

@@ -192,12 +192,15 @@ public static class MetricsEndpoints
     /// checked from), the reuse rate (stored answers handed back over answers made), the refs the model returned that
     /// were not in its list, the sentences the template replaced, and the typed reasons. Counts, no rows in memory.
     /// Round 20: the morning pushes sent and opened over the same days, so the founder reads pushed, opened, worn together.
+    /// Round 21 review: the people behind those outfits (distinct accounts), the number the morning push's go/no-go rule
+    /// asks for beside the worn rate; the compose route refuses a wardrobe under two kinds, so each is a wardrobe of two kinds.
     /// </summary>
     public static async Task<TomorrowMetricsDto> TomorrowMetricsAsync(AppDbContext db, DateTime now, CancellationToken ct)
     {
         var since = now.AddDays(-30);
         var rows = db.Suggestions.Where(s => s.Status == CheckStatus.Ok && s.CreatedAt >= since);
         var suggestions = await rows.CountAsync(ct);
+        var planners = await rows.Select(s => s.UserId).Distinct().CountAsync(ct);
         var worn = await rows.CountAsync(s => s.UsefulReason == TipReason.Worked || s.WornCheckId != null, ct);
         var reused = await rows.SumAsync(s => s.Reuses, ct);
         var invented = await rows.SumAsync(s => s.InventedRefs, ct);
@@ -215,7 +218,7 @@ public static class MetricsEndpoints
         var pushesSent = await db.TomorrowPushes.CountAsync(p => p.SentAt >= since, ct);
         var pushesOpened = await db.TomorrowPushes.CountAsync(p => p.SentAt >= since && p.OpenedAt != null, ct);
         return new TomorrowMetricsDto(suggestions, worn, Rate(worn, suggestions), reused, Rate(reused, suggestions + reused), invented, templated, reasons,
-            pushesSent, pushesOpened, Rate(pushesOpened, pushesSent));
+            pushesSent, pushesOpened, Rate(pushesOpened, pushesSent), planners);
     }
 
     /// <summary>Breakdown is the rubric v2 sub-scores when the check has them; null for a v1 check.</summary>

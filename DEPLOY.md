@@ -662,13 +662,17 @@ uncounted, and nothing here sets a cookie. A CDN or a WAF in front must let `GET
 cache it (every answer is `Cache-Control: no-store`).
 
 **The morning push stays off until the numbers say so.** The flag is `false` and the founder flips it once the Tomorrow
-block on `#/admin/metrics` shows planned outfits get worn — a `wornRate` above about 25% with at least 20 wardrobes of
-two kinds behind it — and the VAPID keys are set (`--doctor` warns when the flag is on without them, and when it is on
+block on `#/admin/metrics` shows planned outfits get worn — the "Worn" tile above about 25% with "People planning" at 20
+or more behind it (each of them composed from a wardrobe of two kinds, since the compose route asks for one) — and the
+VAPID keys are set (`--doctor` warns when the flag is on without them, and when it is on
 with `Plans__TomorrowEnabled` off, since a tap would land on a 404). On, one push a day at the hour to each account with
 its own switch on in Settings, a subscription, a wardrobe of two kinds and something left to spend; nothing is composed
 until the tap, so the push itself costs no model call. Its receipts are `TomorrowPushes` rows and the block's "Morning
-pushes" and "Opened" tiles; read them with the worn rate, in that order. The log says `TomorrowMorning: run at … for
-<day>, N sent, M skipped` once a morning while the flag is on and nothing at Information while it is off.
+pushes" and "Opened" tiles; read them with the worn rate, in that order. The push service holds a morning push only
+until the end of the three-hour window, so a phone that was off all morning does not get it in the evening. The log
+says `TomorrowMorning: run at … for <day>, N sent, M skipped` once a morning while the flag is on (the day's first pass
+inside the window; a later quarter hour writes its own line only when it pushed somebody who subscribed since) and
+nothing at Information while it is off.
 
 ## The weekly board and store links
 
@@ -689,7 +693,7 @@ anything until you list a host. In `.env` on a server, `fly secrets set` on Fly:
 | `Board__Size` | Places on each board, `10` |
 | `Board__RisingDays` | The rising board lists the fired looks of accounts younger than this at the week's end, `30` |
 | `Board__CacheSeconds` | How long the running week and the one before it are served from memory, `60` seconds, real time, per process (two entries at most; every other week is computed on each read). `0` turns the cache off |
-| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host such as `nexor.example` is read as `https://nexor.example`; anything else is dropped at start with `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link` in the log, and the name shows without a link. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over. **Round 20:** a moderator can read what it came to on `#/admin` (the *Sponsor of the week* card, `GET /api/admin/sponsor`): the name, the prize, the link as the board shows it, a note when the link was dropped for not being `http(s)`, and whether the handle is an account here and a verified brand — the Verify button one section up is the fix. Still set by hand here; the card is read-only |
+| `Board__Sponsor__Name`, `Board__Sponsor__Handle`, `Board__Sponsor__PrizeText`, `Board__Sponsor__Url` | The week's sponsor: while `Name` is set the board shows "Presented by <name>" (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host such as `nexor.example` is read as `https://nexor.example`; anything else is dropped at start with `Board: the sponsor link <url> is not an http(s) URL; the board shows the sponsor without a link` in the log, and the name shows without a link. There is no self-service: a brand that sponsors a week is one you agreed a prize with, verified with `--verify`, and put here by hand; unset it when the week is over. **Round 20:** a moderator can read what it came to on `#/admin` (the *Sponsor of the week* card, `GET /api/admin/sponsor`): the name, the prize, the link as the board shows it, a note when the link was dropped for not being `http(s)`, and whether the handle is an account here, a brand account and a verified brand — the Verify button one section up is the fix for an unverified brand; a personal account under the handle is a typo in the setting or an account that has not turned on "Brand account", and the card says so. A leading `@` in `Board__Sponsor__Handle` is dropped, by the board and the card alike. Still set by hand here; the card is read-only |
 | `Affiliate__Hosts__<host>` | One line per programme you joined: `Affiliate__Hosts__amazon.com=tag=orevosh-20` appends `?tag=orevosh-20` (or `&tag=…`, before any `#fragment`) to every store link that leaves for `amazon.com` or a subdomain of it. Nothing is stored on the link: the parameters are added at the door, so joining, changing or leaving a programme is one line for every link at once. Leave every line out until you have joined a programme; with none, every link is redirected as given |
 | `Affiliate__Disclosure` | `true`. Whether the item sheet shows "This link may earn OREVOSH a commission." under a store link, listed host or not: `/api/config` publishes it as `affiliate.disclosure` and the sheet reads it ("Leaves OREVOSH" shows under every store link either way). Keep it on; programme terms and consumer law expect the line |
 

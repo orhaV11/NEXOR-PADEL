@@ -211,8 +211,9 @@ function inviteSection() {
  * "Notifications on your phone": a switch that reads its state from this browser's own push subscription, never from
  * the server (which only knows endpoints). Off the happy path it explains itself in one line: install the app first on
  * iPhone, blocked in the browser, not set up on this server, or not possible here. A small test button when it is on.
+ * onSubscribed(on) is told what the switch found on load and what each change left, so the morning switch below can follow.
  */
-function pushSection(ctx) {
+function pushSection(ctx, onSubscribed) {
   const input = el('input', { type: 'checkbox', id: 's-push', name: 'push', disabled: true, 'aria-describedby': 's-push-status' });
   const status = el('p', { class: 'hint s-push-status', id: 's-push-status', hidden: true });
   const test = el('button', { type: 'button', class: 'btn btn-sm btn-secondary s-push-test', text: t('push.test'), hidden: true });
@@ -234,6 +235,7 @@ function pushSection(ctx) {
       if (ctx.stale()) return;
       paint(!!sub);
       setLocked(false);
+      if (onSubscribed) onSubscribed(!!sub);
       if (sub) syncPush(sub);   // the endpoint follows whoever is signed in on this phone
     });
   } else {
@@ -253,11 +255,13 @@ function pushSection(ctx) {
         if (!sub) { paint(false); return; }   // the permission prompt was dismissed: nothing changed
         paint(true);
         setStatus('');
+        if (onSubscribed) onSubscribed(true);
         toast(t('push.enabled_toast'));
       } else {
         await disablePush();
         if (ctx.stale()) return;
         paint(false);
+        if (onSubscribed) onSubscribed(false);
         toast(t('push.disabled_toast'));
       }
     } catch (e) {
@@ -291,6 +295,8 @@ function pushSection(ctx) {
  * only when this server offers it (config plans.tomorrowMorningPush, which is already false when Tomorrow is off). It is
  * usable only when this browser has a push subscription and the server can send one; otherwise it sits off, disabled,
  * with the line that says to turn notifications on above first. The hint names the local hour the server sends at.
+ * Returns the section and recheck(on), which the notifications switch above calls whenever the subscription changes, so
+ * turning notifications on unlocks this switch at once rather than after leaving Settings.
  */
 function morningSection(ctx) {
   const plans = (state.config && state.config.plans) || {};
@@ -306,22 +312,35 @@ function morningSection(ctx) {
   let locked = true;
   const setLocked = (value) => { locked = value; input.disabled = value; };
   let answer = null;
+  let subscribed = null;   // this browser's subscription: read below, then whatever the switch above last said
+  let saving = false;
+  const draw = () => {
+    const usable = !!(answer && answer.offered && subscribed);
+    input.checked = usable && !!answer.on;
+    setLocked(!usable);
+    setStatus(usable ? '' : t('push.morning_needs_push'));
+  };
 
   // Both halves are asked at once: the server's state and whether this browser is subscribed at all.
-  const subscribed = pushSupport() === 'ready' ? getPushSubscription().then((sub) => !!sub).catch(() => false) : Promise.resolve(false);
-  Promise.all([api('GET', '/api/push/morning'), subscribed]).then(([state_, sub]) => {
+  const read = pushSupport() === 'ready' ? getPushSubscription().then((sub) => !!sub).catch(() => false) : Promise.resolve(false);
+  Promise.all([api('GET', '/api/push/morning'), read]).then(([state_, sub]) => {
     if (ctx.stale()) return;
     answer = state_;
+    if (subscribed === null) subscribed = sub;
     hint.textContent = t('push.morning_hint', { time: state_.hour || plans.tomorrowMorningHour || '07:30' });
-    const usable = !!(state_.offered && sub);
-    input.checked = usable && !!state_.on;
-    if (usable) { setLocked(false); setStatus(''); } else { setStatus(t('push.morning_needs_push')); }
+    draw();
   }).catch(() => { if (!ctx.stale()) setStatus(t('push.morning_needs_push')); });
+
+  const recheck = (on) => {
+    subscribed = !!on;
+    if (!ctx.stale() && answer && !saving) draw();
+  };
 
   input.addEventListener('change', async () => {
     if (locked) { input.checked = !input.checked; return; }
     const wantOn = input.checked;
     setLocked(true);
+    saving = true;
     try {
       answer = await api('POST', '/api/push/morning', { on: wantOn });
       if (ctx.stale()) return;
@@ -332,11 +351,12 @@ function morningSection(ctx) {
       input.checked = !wantOn;
       toast(e.message || t('error.generic'));
     } finally {
-      if (!ctx.stale()) setLocked(false);
+      saving = false;
+      if (!ctx.stale()) draw();
     }
   });
 
-  return el('section', { class: 's-section s-morning', id: 'morning-section' }, [label, status]);
+  return { section: el('section', { class: 's-section s-morning', id: 'morning-section' }, [label, status]), recheck };
 }
 
 register('settings', async (root, params, ctx) => {
@@ -543,9 +563,10 @@ register('settings', async (root, params, ctx) => {
     save
   ]));
 
-  root.appendChild(pushSection(ctx));
+  let morningRecheck = null;
+  root.appendChild(pushSection(ctx, (on) => { if (morningRecheck) morningRecheck(on); }));
   const morning = morningSection(ctx);
-  if (morning) root.appendChild(morning);
+  if (morning) { root.appendChild(morning.section); morningRecheck = morning.recheck; }
   // Round 14 — the loop: what OREVOSH has learned about this person's taste, the literal text the stylist is told, the
   // switch that stops the learning and the button that clears it. Both are honoured at once.
   root.appendChild(el('section', { class: 's-section s-taste' }, [tasteCard({ controls: true })]));

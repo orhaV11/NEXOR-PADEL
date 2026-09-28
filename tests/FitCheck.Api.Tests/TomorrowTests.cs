@@ -958,6 +958,8 @@ public class TomorrowTests
         var metrics = await me.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
         var tomorrow = metrics.GetProperty("tomorrow");
         Assert.Equal(4, tomorrow.GetProperty("suggestions").GetInt32());
+        // Round 21 review: the people behind them, the number the morning push's go/no-go rule asks for: four outfits, one person.
+        Assert.Equal(1, tomorrow.GetProperty("planners").GetInt32());
         Assert.Equal(1, tomorrow.GetProperty("worn").GetInt32());
         Assert.Equal(0.25, tomorrow.GetProperty("wornRate").GetDouble());
         Assert.Equal(1, tomorrow.GetProperty("reused").GetInt32());

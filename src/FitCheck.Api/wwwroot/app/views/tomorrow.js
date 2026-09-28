@@ -618,6 +618,9 @@ register('tomorrow', async (r, params, c) => {
 
   const from = fromQuery();
   if (from) history.replaceState(history.state, '', location.pathname + location.search + '#/tomorrow');
+  // The morning push says "your outfit for today": its tap opens on Today whatever day was pressed last. It is not saved,
+  // so the next launch still opens on the pill the person pressed themselves.
+  if (from === 'push') pick.when = 'today';
   try {
     await load(from);
   } catch (e) {

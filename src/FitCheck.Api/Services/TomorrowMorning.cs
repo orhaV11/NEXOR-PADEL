@@ -41,6 +41,9 @@ public sealed class TomorrowMorning(
 
     private readonly SemaphoreSlim _running = new(1, 1);
 
+    /// <summary>The local day whose run line was last written at Information; every pass runs under <see cref="_running"/>.</summary>
+    private DateOnly? _reportedDay;
+
     /// <summary>
     /// A test's stand-in for another process: called with the account and the day once its receipt row is added and
     /// before it is saved, so the test can write the same row from the side and watch this run give way. Null outside tests.
@@ -161,7 +164,9 @@ public sealed class TomorrowMorning(
                     continue;
                 }
 
-                push.Enqueue(new PushJob(user.Id, NotificationType.TomorrowMorning, user.Handle, null, null));
+                // The push service holds it only for what is left of the window: a phone that comes back online after
+                // the morning is not told about "today's" outfit (a day, the default, would reach it in the evening).
+                push.Enqueue(new PushJob(user.Id, NotificationType.TomorrowMorning, user.Handle, null, null, TimeToLive: dueAtUtc + SendWindow - now));
                 sent++;
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
@@ -173,7 +178,11 @@ public sealed class TomorrowMorning(
             }
         }
 
-        logger.LogInformation("TomorrowMorning: run at {Now:o} for {Day}, {Sent} sent, {Skipped} skipped (due {Due:o})", now, day, sent, skipped, dueAtUtc);
+        // Once a morning at Information: the day's first pass, and a later one only when it pushed someone (an account that
+        // subscribed or turned its switch on since). The window's other quarter-hour passes re-check the skipped at Debug.
+        var level = sent > 0 || _reportedDay != day ? LogLevel.Information : LogLevel.Debug;
+        _reportedDay = day;
+        logger.Log(level, "TomorrowMorning: run at {Now:o} for {Day}, {Sent} sent, {Skipped} skipped (due {Due:o})", now, day, sent, skipped, dueAtUtc);
         return new Run(sent, skipped);
     }
 

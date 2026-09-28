@@ -205,7 +205,8 @@ tabs caps 11 start-aligned, active `--ink` with a 3px gradient underline; grid p
   take the file and there is no download manager to show a download for.
 - **Moderation** (`views/admin.js`): the queue as compact look cards (or the comment text with its author row), a meta line
   with the report count, the reasons as small chips, Hidden/Suspended tags, and an action row of outlined pills; Delete
-  and Suspend confirm in a danger sheet. Reached from Settings, only for `isAdmin`.
+  and Suspend confirm in a danger sheet, and a moderator's own account row and another moderator's carry no Suspend (the
+  server refuses it). Reached from Settings, only for `isAdmin`.
 - **The guidelines** (`views/pages.js`): h1, the intro, five numbered rules with bold titles, "What we keep", a version
   line. Linked from the agreement line under the signup button, with the terms and the privacy policy (§8c).
 

@@ -789,9 +789,34 @@ public class BoardTests : IClassFixture<TestApp>
     }
 }
 
-/// <summary>Board:Sponsor:Url reaches the page only as an http(s) link: validated once at start, checked again on the client.</summary>
+/// <summary>
+/// Board:Sponsor:Url reaches the page only as an http(s) link: validated once at start, checked again on the client.
+/// Board:Sponsor:Handle is read once, one way (a leading '@' dropped), by the board and by the admin card alike.
+/// </summary>
 public class BoardSponsorUrlTests
 {
+    [Theory]
+    [InlineData("nexor", "nexor")]
+    [InlineData("@nexor", "nexor")]
+    [InlineData("  @Nexor_SP ", "Nexor_SP")]
+    [InlineData("@", null)]
+    [InlineData("   ", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void The_handle_drops_a_leading_at(string? configured, string? expected) =>
+        Assert.Equal(expected, BoardSponsorOptions.NormalizeHandle(configured));
+
+    [Fact]
+    public async Task A_handle_written_with_an_at_links_the_board_to_the_account()
+    {
+        using var app = new TestApp { Settings = new() { ["Board:Sponsor:Name"] = "NEXOR", ["Board:Sponsor:Handle"] = " @nexor_bd " } };
+        await app.NewUserAsync("nexor_bd", accountType: "Brand");
+        var handle = (await BoardFixtures.BoardAsync(app)).GetProperty("sponsor").GetProperty("handle").GetString();
+        Assert.Equal("nexor_bd", handle);
+        // The profile the board's "Presented by" opens (#/u/{handle}) is there; with the '@' kept it was a 404.
+        Assert.Equal(HttpStatusCode.OK, (await app.NewClient().GetAsync("/api/users/" + Uri.EscapeDataString(handle!))).StatusCode);
+    }
+
     [Theory]
     [InlineData("https://nexor.example/board", "https://nexor.example/board")]
     [InlineData("http://nexor.example", "http://nexor.example")]

@@ -133,9 +133,11 @@ public class Round20SkeletonTests
         [
             "admin.verify", "admin.unverify", "admin.verified", "admin.moderator", "admin.grant_pro", "admin.remove_pro", "admin.pro_until", "admin.pro_months",
             "admin.months_n", "admin.months_n_one", "admin.confirm_remove_pro", "admin.exclude_board", "admin.include_board", "admin.board_excluded", "admin.confirm_exclude",
-            "admin.sponsor", "admin.sponsor_none", "admin.sponsor_prize", "admin.sponsor_link_dropped", "admin.sponsor_handle_missing", "admin.sponsor_handle_unverified", "admin.sponsor_readonly"
+            "admin.sponsor", "admin.sponsor_none", "admin.sponsor_prize", "admin.sponsor_link_dropped", "admin.sponsor_handle_missing", "admin.sponsor_handle_unverified", "admin.sponsor_readonly",
+            // Round 21 review: a personal account under the sponsor's handle is not a brand, verified or not.
+            "admin.sponsor_handle_person"
         ];
-        Assert.Equal(22, admin.Length);
+        Assert.Equal(23, admin.Length);
         var files = new[] { "en", "he", "ar", "ru" }.ToDictionary(c => c, c => JsonDocument.Parse(File.ReadAllText(Path.Combine(I18nRoot, c + ".json"))).RootElement);
         static string Placeholders(string text) => string.Join(",", System.Text.RegularExpressions.Regex.Matches(text, @"\{[a-z]+\}").Select(m => m.Value).Order());
         foreach (var (code, table) in files)
@@ -154,5 +156,9 @@ public class Round20SkeletonTests
         Assert.Equal("Sponsor of the week", en.GetProperty("admin.sponsor").GetString());
         // The Russian count keeps the noun first, so two forms are enough (LanguagesTests).
         Assert.StartsWith("Месяцев: {n}", files["ru"].GetProperty("admin.months_n").GetString());
+        // Round 21 review: so does the Arabic one. The noun agrees with the number there (a dual for 2, a plural for 3 to 10,
+        // a singular for 11 and up), and "{n} أشهر" read "12 أشهر" in the Grant Pro sheet; the count now stands after a colon.
+        Assert.EndsWith(": {n}", files["ar"].GetProperty("admin.months_n").GetString());
+        Assert.DoesNotContain("{n} أشهر", files["ar"].GetProperty("admin.months_n").GetString());
     }
 }

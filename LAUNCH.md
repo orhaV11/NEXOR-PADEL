@@ -213,8 +213,9 @@ Four decisions the wedge left with the founder, and none of them is a line of co
    twelve months of the monthly is not offered, and `--doctor` warns "no saving"). Run `--stripe-check` again
    after adding it. "Not yet" is an answer too: leave both out and the page sells a month.
 3. **The morning push stays off.** `Plans__TomorrowMorningPush` is `false` and stays so until the Tomorrow block on
-   `#/admin/metrics` says planned outfits get worn — a worn rate above about 25% with at least 20 wardrobes of two kinds
-   behind it — and the VAPID keys are set. Flipping it earlier pings people about a habit the numbers have not earned.
+   `#/admin/metrics` says planned outfits get worn — the "Worn" tile above about 25% with "People planning" at 20 or
+   more behind it (each one planned from a wardrobe of two kinds) — and the VAPID keys are set. Flipping it earlier
+   pings people about a habit the numbers have not earned.
 4. **The calibration pass, before any reel carries a number.** `tools\eval\calibrate.ps1 -Photos <folder> -Occasion
    date -Language he` from a Windows machine against the live server, signed in as a **Pro** account (eight runs a photo
    do not fit a free day; `--pro <handle> 1` on your own account first). `tools/eval/README.md` has the exact command,
@@ -1378,8 +1379,9 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
    שנה רק כשהיא חיסכון (סכום שנתי ששווה לשנים-עשר חודשים או יותר לא מוצע, ו-`--doctor` מזהיר "no saving"). אחרי
    ההוספה מריצים שוב `--stripe-check`. גם "עוד לא" היא תשובה: משאירים את שניהם בחוץ והדף מוכר חודש.
 3. **דחיפת הבוקר נשארת כבויה.** `Plans__TomorrowMorningPush` הוא `false` ונשאר כך עד שבלוק Tomorrow ב-`#/admin/metrics`
-   אומר שלוקים מתוכננים באמת נלבשים — שיעור לבישה מעל 25% בערך, עם לפחות 20 ארונות של שני סוגים מאחוריו — ומפתחות
-   ה-VAPID מוגדרים. להדליק קודם זה לצלצל לאנשים על הרגל שהמספרים עוד לא הרוויחו.
+   אומר שלוקים מתוכננים באמת נלבשים — אריח "נלבשו" מעל 25% בערך, עם "אנשים שמתכננים" על 20 לפחות מאחוריו (כל אחד
+   מהם תכנן מארון של שני סוגים) — ומפתחות ה-VAPID מוגדרים. להדליק קודם זה לצלצל לאנשים על הרגל שהמספרים עוד לא
+   הרוויחו.
 4. **מעבר הכיול, לפני שריל כלשהו נושא מספר.** `tools\eval\calibrate.ps1 -Photos <תיקייה> -Occasion date -Language he`
    ממחשב Windows מול השרת החי, מחוברים כחשבון **Pro** (שמונה ריצות לתמונה לא נכנסות ביום של חשבון חינמי; קודם
    `--pro <handle> 1` על החשבון שלכם). ב-`tools/eval/README.md` הפקודה המדויקת, מה מעבר עולה (תמונות × ריצות, בערך סנט

@@ -1159,6 +1159,7 @@
   "tomorrow.dash_title": "الغد",
   "tomorrow.dash_hint": "هل تُرتدى الإطلالات المخطّطة، وكم مرة أُعيدت إطلالة محفوظة بدل نداء جديد، وكم مرة خرج النموذج عن الخزانة.",
   "tomorrow.dash_outfits": "إطلالات",
+  "tomorrow.dash_planners": "أشخاص يخطّطون",
   "tomorrow.dash_worn": "ارتُديت",
   "tomorrow.dash_reused": "أُعيد استخدامها",
   "tomorrow.dash_invented": "إشارات خارج الخزانة",
@@ -1231,7 +1232,7 @@
   "source.story": "ستوري",
   "source.dm": "رسالة خاصة",
   "push.morning_title": "إطلالتك كل صباح",
-  "push.morning_hint": "تنبيه واحد في {time}. انقر عليه ويُركّب المصمّم إطلالة اليوم من خزانتك. لا يُخطَّط شيء حتى تنقر.",
+  "push.morning_hint": "تنبيه واحد في {time}. النقر عليه يفتح تخطيط اليوم، ويُركّب المصمّم إطلالتك من خزانتك حين تطلب. لا يُخطَّط شيء قبل ذلك.",
   "push.morning_needs_push": "فعّل الإشعارات أعلاه أولًا.",
   "push.morning_on_toast": "تنبيه الصباح مفعّل",
   "push.morning_off_toast": "تنبيه الصباح مغلق",
@@ -1246,7 +1247,7 @@
   "admin.remove_pro": "أزل Pro",
   "admin.pro_until": "Pro حتى {date}",
   "admin.pro_months": "لكم من الوقت؟",
-  "admin.months_n": "{n} أشهر",
+  "admin.months_n": "عدد الأشهر: {n}",
   "admin.months_n_one": "شهر واحد",
   "admin.confirm_remove_pro": "إزالة Pro من ⁦@{handle}⁩؟ يعودون إلى المجاني الآن.",
   "admin.exclude_board": "استبعد من اللوحة",
@@ -1259,5 +1260,6 @@
   "admin.sponsor_link_dropped": "أُسقط الرابط عند البدء لأنه ليس عنوان http(s)؛ تعرض اللوحة الاسم من دون رابط.",
   "admin.sponsor_handle_missing": "لا حساب باسم ⁦@{handle}⁩.",
   "admin.sponsor_handle_unverified": "⁦@{handle}⁩ ليس علامة موثّقة بعد. وثّقها أعلاه.",
+  "admin.sponsor_handle_person": "⁦@{handle}⁩ حساب شخصي وليس ماركة، فتعرضه اللوحة بلا شارة الماركة. راجع Board__Sponsor__Handle، أو يفعّل الحساب «حساب ماركة» في إعداداته.",
   "admin.sponsor_readonly": "يُضبط يدويًا في إعدادات الخادم ويُقرأ هنا؛ لا نموذج."
 }

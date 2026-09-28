@@ -195,6 +195,8 @@ function draw(root, m, ctx, reload) {
       el('p', { class: 'hint', text: t('tomorrow.dash_hint') + ' ' + t('tomorrow.dash_loop') }),
       el('div', { class: 'dash-tiles', id: 'dash-tomorrow' }, [
         tile(t('tomorrow.dash_outfits'), fmtNumber(tm.suggestions || 0)),
+        // Round 21 review: the people behind the outfits, the other half of the morning push's go/no-go rule (LAUNCH.md).
+        tile(t('tomorrow.dash_planners'), fmtNumber(tm.planners || 0)),
         tile(t('tomorrow.dash_worn'), rate(tm.wornRate)),
         tile(t('tomorrow.dash_reused'), rate(tm.reuseRate)),
         tile(t('tomorrow.dash_invented'), fmtNumber(tm.inventedRefs || 0)),

@@ -6,6 +6,8 @@ using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FitCheck.Api.Tests;
 
@@ -162,6 +164,9 @@ public class TomorrowMorningTests
         Assert.Equal($"tomorrow_morning:{a.Handle.ToLowerInvariant()}", payload.GetProperty("tag").GetString());
         Assert.Equal(NotificationType.TomorrowMorning, payload.GetProperty("type").GetString());
         Assert.Null(request.Topic);
+        // The push service keeps it only for what is left of the window (07:35 to 10:30), not the default day: a phone
+        // that comes back online in the evening is not told about "today's" outfit.
+        Assert.Equal("10500", request.Ttl);
         foreach (var other in new[] { bBrowser.Endpoint, dBrowser.Endpoint, eBrowser.Endpoint })
         {
             Assert.DoesNotContain(app.PushHandler.Requests, r => r.Endpoint.ToString() == other);
@@ -192,6 +197,7 @@ public class TomorrowMorningTests
         Assert.Equal(3, tomorrow.Sent);
         Assert.Equal(1, tomorrow.Skipped);
         Assert.Equal(2, (await app.PushHandler.WaitForAsync(a.Browser.Endpoint, count: 2)).Count);
+        Assert.Equal("10200", (await app.PushHandler.WaitForAsync(a.Browser.Endpoint, count: 2))[1].Ttl);   // 07:40 to 10:30
         Assert.Single(await app.PushHandler.WaitForAsync(dBrowser.Endpoint));
         Assert.Single(await app.PushHandler.WaitForAsync(eBrowser.Endpoint));
         Assert.Equal(2, WithDb(app, db => db.TomorrowPushes.Count(p => p.UserId == a.Id)));
@@ -482,5 +488,55 @@ public class TomorrowMorningTests
         var job = new PushJob(Guid.NewGuid(), NotificationType.TomorrowMorning, "Handle", null, null);
         Assert.Equal("/#/tomorrow?from=push", PushSender.UrlFor(job));
         Assert.Equal("tomorrow_morning:handle", PushSender.TagFor(job));
+
+        // A job's own time to live, in whole seconds between "now or never" and the default day; none is the default.
+        Assert.Null(PushSender.TimeToLiveFor(job));
+        Assert.Equal(10500, PushSender.TimeToLiveFor(job with { TimeToLive = TimeSpan.FromMinutes(175) }));
+        Assert.Equal(1, PushSender.TimeToLiveFor(job with { TimeToLive = TimeSpan.FromMilliseconds(200) }));
+        Assert.Equal(0, PushSender.TimeToLiveFor(job with { TimeToLive = TimeSpan.FromMinutes(-5) }));
+        Assert.Equal(PushSender.TimeToLiveSeconds, PushSender.TimeToLiveFor(job with { TimeToLive = TimeSpan.FromDays(3) }));
+    }
+
+    /// <summary>
+    /// The sender ticks every quarter hour through its three-hour window, and every tick re-checks the accounts it skipped.
+    /// Its run line is written at Information once a morning (the day's first pass) and again only by a pass that pushed
+    /// someone, so the log DEPLOY.md describes is a line a morning, not twelve.
+    /// </summary>
+    [Fact]
+    public async Task The_run_line_is_written_once_a_morning_and_again_only_by_a_pass_that_sends()
+    {
+        using var app = NewApp();
+        await app.NewUserAsync("tm_log_first");   // the host is up (its own first pass ran at 05:00, not due) before the clock moves
+        var provider = new RecordingLoggerProvider();
+        using var logs = LoggerFactory.Create(builder => builder.AddProvider(provider));   // Information and up, as a server logs
+        var worker = new TomorrowMorning(
+            app.Services.GetRequiredService<IServiceScopeFactory>(), app.Services.GetRequiredService<Board>(), app.Services.GetRequiredService<IClock>(),
+            app.Services.GetRequiredService<PushSender>(), app.Services.GetRequiredService<IOptions<PlanOptions>>(),
+            app.Services.GetRequiredService<IOptions<LimitsOptions>>(), logs.CreateLogger<TomorrowMorning>());
+        List<string> RunLines() => provider.Lines.Select(l => l.Message).Where(m => m.StartsWith("TomorrowMorning: run at ", StringComparison.Ordinal)).ToList();
+
+        // Nobody to push yet: the day's first pass still says so once; the next quarter hour is quiet.
+        app.Clock.Now = new DateTime(2026, 9, 16, 7, 31, 0, DateTimeKind.Utc);
+        Assert.Equal(0, (await worker.RunAsync(CancellationToken.None)).Sent);
+        app.Clock.Now = new DateTime(2026, 9, 16, 7, 46, 0, DateTimeKind.Utc);
+        Assert.Equal(0, (await worker.RunAsync(CancellationToken.None)).Sent);
+        Assert.Single(RunLines());
+
+        // Someone subscribes inside the window: the pass that pushes them writes its own line, the one after it does not.
+        var late = await KeeperAsync(app, "tm_log_late");
+        using var lateBrowser = late.Browser;
+        app.Clock.Now = new DateTime(2026, 9, 16, 8, 1, 0, DateTimeKind.Utc);
+        Assert.Equal(1, (await worker.RunAsync(CancellationToken.None)).Sent);
+        app.Clock.Now = new DateTime(2026, 9, 16, 8, 16, 0, DateTimeKind.Utc);
+        Assert.Equal(0, (await worker.RunAsync(CancellationToken.None)).Sent);
+        Assert.Equal(2, RunLines().Count);
+        Assert.Contains(", 1 sent, ", RunLines()[1]);
+
+        // The next morning starts over: one line for its first pass, none for the tick after.
+        app.Clock.Now = new DateTime(2026, 9, 17, 7, 31, 0, DateTimeKind.Utc);
+        Assert.Equal(1, (await worker.RunAsync(CancellationToken.None)).Sent);
+        app.Clock.Now = new DateTime(2026, 9, 17, 7, 46, 0, DateTimeKind.Utc);
+        Assert.Equal(0, (await worker.RunAsync(CancellationToken.None)).Sent);
+        Assert.Equal(3, RunLines().Count);
     }
 }

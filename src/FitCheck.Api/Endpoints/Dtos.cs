@@ -531,8 +531,13 @@ public sealed record ProGrantRequest(int Months);
 /// <summary>POST /api/admin/users/{handle}/board-exclusion: an optional reason, kept in the audit line only.</summary>
 public sealed record BoardExclusionRequest(string? Reason);
 
-/// <summary>GET /api/admin/sponsor: the sponsor of the week as the server reads it from its settings, read-only.</summary>
-public sealed record AdminSponsorDto(bool Configured, string? Name, string? Handle, string? PrizeText, string? Url, bool UrlDropped, bool? HandleExists, bool? HandleVerified);
+/// <summary>
+/// GET /api/admin/sponsor: the sponsor of the week as the server reads it from its settings, read-only. HandleVerified is
+/// a verified BRAND account; HandleIsBrand says whether the account is a brand at all, so the card can tell a personal
+/// account (the wrong handle, or a brand that has not switched) from a brand still waiting for its check.
+/// </summary>
+public sealed record AdminSponsorDto(bool Configured, string? Name, string? Handle, string? PrizeText, string? Url, bool UrlDropped, bool? HandleExists, bool? HandleVerified,
+    bool? HandleIsBrand = null);
 
 // ---- metrics ----
 
@@ -924,4 +929,6 @@ public sealed record TomorrowRequest(string? Occasion, string? Style, string? Wh
 /// <summary>The numbers page's Tomorrow block over the last 30 days: whether planned outfits get worn, how often a stored one is reused, and how often the model reached outside the wardrobe.</summary>
 public sealed record TomorrowMetricsDto(int Suggestions, int Worn, double? WornRate, int Reused, double? ReuseRate, int InventedRefs, int Templated, List<TasteCountDto> Reasons,
     // Round 20: the morning push, counted: sent, opened, and the rate; read with wornRate as pushed → opened → worn.
-    int PushesSent = 0, int PushesOpened = 0, double? OpenRate = null);
+    int PushesSent = 0, int PushesOpened = 0, double? OpenRate = null,
+    // Round 21 review: the distinct accounts behind Suggestions, so "at least 20 wardrobes behind the worn rate" can be read.
+    int Planners = 0);

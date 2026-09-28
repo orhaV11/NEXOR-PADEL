@@ -208,7 +208,7 @@ Six blocks sit beside it, each with its own DTO and nothing shared with the tile
 | `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting. **Round 20:** each `days[]` row gains `proFromCompare` and `proFromWardrobe` (the Pro page opened from a refused compare or from the wardrobe line) and `standalone` (launches from the home screen), and `sources` lists `{ source, arrivals, guestChecks, signups, firstPosts }` per allowlisted source in `Funnel:Sources` order over the fourteen-day window, zero rows included: arrivals off `funnel:src:<source>:<day>`, guest checks off `Checks.Source` (guest or claimed, not `error`), signups off `Users.Source`, first posts off each poster's `Users.Source`. An unclaimed guest check is swept a day after it was made, so the sweep leaves `funnel:guest:swept:<day>` and `funnel:guest:swept:<source>:<day>` behind (by the day it was made, in the delete's transaction) and both the day's `guestChecks` and the source's add them to the rows still there |
 | `wardrobe` | **Round 15.** The two numbers `MARKETING.md` watches. `keepRate` is `keepers` (accounts with at least one kept piece) ÷ `checkedUsers` (accounts with at least one OK check — the same number the hero tile reads, so the page cannot say two different things about who has checked), with `items` as the raw row count behind it; `dontOwnRate` is `dontOwn` ÷ `reasons`, the "I do not own that" answer over every typed answer to the tip, and it is watched **falling**, because a tip that draws it is exactly the tip a wardrobe should have prevented. `toStylistOff` counts the accounts that turned the sending off, which is what keeps a flat `dontOwnRate` readable: a wardrobe nobody sends cannot prevent anything. **A rate with nothing to divide by is absent from the JSON, not `0`.** **Round 20** adds `keepAll` (keep-all requests that wrote at least one row), `momentShown` and `momentGo` (the Pro moment, counted only while it was true for that account), `momentGoRate` (go ÷ shown, absent while nothing was shown) and `piecesPerActiveMedian` (the median of kept pieces over the seven-day active set — checks, fires, comments, votes — zeros included, even counts averaged to two decimals; absent while nobody is active) |
 | `breakdownAverages` | The mean of each rubric sub-score over the checks that carry one; absent while no check does |
-| `tomorrow` | **Round 19.** Planned outfits, the worn and reuse rates, refs the model returned that were not in its list, sentences the template replaced, the reasons. **Round 20** adds `pushesSent` (morning push receipts with `SentAt` in the last 30 days), `pushesOpened` (of those, with `OpenedAt` set) and `openRate` (opened ÷ sent, four decimals, absent while nothing was sent) |
+| `tomorrow` | **Round 19.** Planned outfits, the worn and reuse rates, refs the model returned that were not in its list, sentences the template replaced, the reasons. **Round 20** adds `pushesSent` (morning push receipts with `SentAt` in the last 30 days), `pushesOpened` (of those, with `OpenedAt` set) and `openRate` (opened ÷ sent, four decimals, absent while nothing was sent). **Review fixes:** `planners`, the distinct accounts behind those outfits over the same 30 days ("People planning"), the number the morning push's go/no-go rule in `LAUNCH.md` reads beside the worn rate |
 
 The route answers only through a moderator's session (below), and moderators see the same numbers drawn as a page at
 `#/admin/metrics` (one hero figure, the return rate; tiles; the score distribution as bars; the stylist, money and
@@ -216,7 +216,8 @@ funnel sections), linked from the moderation page. Round 20 adds a "Latency (p95
 cache tiles among the money tiles (six), three wardrobe tiles ("Keep-all taps", "Pro moment → Go Pro" with "{shown}
 shown, {go} tapped" under it, "Pieces per active person (median)", an en dash while null; eight in the block), two
 funnel columns and the per-source table ("Where people come from"), and "Morning pushes" and "Opened" in the Tomorrow
-block (seven), whose hint ends "Read the three together: pushed, opened, worn."
+block, whose hint ends "Read the three together: pushed, opened, worn." (eight tiles since the review fixes added
+"People planning", the people behind the outfits).
 
 ### Run the tests
 
@@ -391,7 +392,7 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Plans:ProTrialDays` | `0` | Days of Pro before the first charge, with no card asked for (Stripe Checkout's trial; 1..730 is Stripe's range and the doctor fails outside it). Offered once per account, to one with no `BillingCustomerId`, so a deleted-and-recreated account can trial again and a `--pro` grant does not disqualify; a trial that ends with no card simply ends. A trial is Checkout's and means nothing while `Billing:Provider` is `manual`, which the doctor warns about |
 | `Plans:WardrobeUnkeptChecks` | `20` | **Round 20.** How many of the person's latest OK checks the wardrobe screen looks back through for pieces the stylist named that were never kept ("Keep from an older look"). `0` hides the section. Not published on `/api/config` |
 | `Plans:TomorrowMorningPush` | `false` | **Round 20.** The server flag for the morning push. Off: nothing is sent, `/api/config` publishes `plans.tomorrowMorningPush=false`, Settings draws no switch and the dashboard's two tiles read zero. On: once a day at the hour below, one push to each account with its own switch on, a push subscription, a wardrobe of two kinds and something left to spend — nothing is composed until the tap. The founder flips it once the worn rate says planned outfits get worn |
-| `Plans:TomorrowMorningHour` | `07:30` | `HH:mm`, local to `Board:TimeZone`, the same clock for everybody. Anything not `HH:mm` falls back to 07:30 and the doctor warns. Constants beside it, not settings: the send window is three hours (a push after 10:30 local is skipped for the day), the sender ticks every fifteen minutes with a first pass at start, and a receipt may be opened for 24 hours |
+| `Plans:TomorrowMorningHour` | `07:30` | `HH:mm`, local to `Board:TimeZone`, the same clock for everybody. Anything not `HH:mm` falls back to 07:30 and the doctor warns. Constants beside it, not settings: the send window is three hours (a push after 10:30 local is skipped for the day), the sender ticks every fifteen minutes with a first pass at start, a receipt may be opened for 24 hours, and the push service holds the push only for what is left of the window (its time to live), so a phone that comes back online after the morning is never told about "today's" outfit |
 | `Billing:Provider` | `manual` | `manual`: Pro is granted with `--pro`, and the Pro page shows a note instead of a checkout button. `stripe`: Checkout and the webhook are live once the three keys below are set; until they are, the routes answer 400 `error.billing_disabled` |
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
@@ -412,7 +413,7 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Board:Size` | `10` | Places on each board |
 | `Board:RisingDays` | `30` | The rising board lists the fired looks of accounts younger than this at the week's end |
 | `Board:CacheSeconds` | `60` | How long a computed week is served from memory, real time, per process. Only the running week and, until the closer has written it, the one before are kept (two entries at most; an exclusion drops them); every other week, the archive browsed back or next week, is computed on each read. `0` turns the cache off (the browser test runs so) |
-| `Board:Sponsor:Name` / `Handle` / `PrizeText` / `Url` | empty | The week's sponsor, on the board only while `Name` is set: the name (linked to the account when `Handle` names one, else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host (`nexor.example`, `www.nexor.example/drop`) is read as `https://`; anything else (`javascript:`, `ftp:`, `mailto:`, `user:pw@host`) is dropped at start with the warning `Board: the sponsor link {Url} is not an http(s) URL; the board shows the sponsor without a link`, and the page checks the link again before it becomes an `href`. Settings, not a form: there is no sponsor self-service |
+| `Board:Sponsor:Name` / `Handle` / `PrizeText` / `Url` | empty | The week's sponsor, on the board only while `Name` is set: the name (linked to the account when `Handle` names one — a leading `@` is dropped, the same way on the board and on the admin card — else to `Url`), the prize line and the site's host. `Url` must be an `http(s)` link with a host and no user info; a bare host (`nexor.example`, `www.nexor.example/drop`) is read as `https://`; anything else (`javascript:`, `ftp:`, `mailto:`, `user:pw@host`) is dropped at start with the warning `Board: the sponsor link {Url} is not an http(s) URL; the board shows the sponsor without a link`, and the page checks the link again before it becomes an `href`. Settings, not a form: there is no sponsor self-service |
 | `Affiliate:Disclosure` | `true` | Whether the item sheet shows "This link may earn OREVOSH a commission." under a store link. Published by `/api/config` as `affiliate.disclosure` and read by the sheet: while `true`, the line follows "Leaves OREVOSH" under every store link, listed host or not; `false` leaves "Leaves OREVOSH" on its own. Keep it on wherever a programme is joined; the hosts and their parameters are never published |
 | `Affiliate:Hosts` | `{}` | Host → the query string `GET /api/items/{id}/out` appends when a link goes there, e.g. `"amazon.com": "tag=orevosh-20"` (`Affiliate__Hosts__amazon.com=tag=orevosh-20` as an environment variable); a listed host matches case-insensitively with its subdomains (`www.amazon.com` and `smile.amazon.com`, not `notamazon.com`). Empty by default: nothing is appended and no link earns anything until you list a programme you joined. The parameters are added at the door, never stored, so a change here changes every link at once |
 | `Anthropic:PriceInPerMillion` / `PriceOutPerMillion` | `2.00` / `10.00` | **Round 13 — money.** USD per million tokens, the owner's own contract prices. Every dollar on the numbers page and the daily ceiling is built on these: they are settings, never Anthropic's invoice, and `appsettings.json` says so in a `_prices` note. The doctor prints them |
@@ -555,7 +556,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `DELETE /api/admin/users/{handle}/pro` 🔒 | — | `200` the row, back on Free (200 even when it already was, and then no audit line); 400 `error.pro_billing` under the same guard. Logs `Admin: {Handle} back on Free by {Moderator}` |
 | `POST /api/admin/users/{handle}/board-exclusion` 🔒 | `{ reason? }` | `200` the row, the account off every board computed from now on (`AppUser.BoardExcludedAt`, one column: its looks and the fires on them, looks posted later included; the account's own fires on other people's looks still count; a closed week keeps its rows); 409 `error.board_account_excluded` when it is already off. `reason` is trimmed, cut at 200 and kept in the audit line only, `Admin: {Handle} excluded from the board by {Moderator}: {Reason}`, never in a column |
 | `DELETE /api/admin/users/{handle}/board-exclusion` 🔒 | — | `200` the row, back on the board; 404 `error.board_account_included` when it was not off. Logs `Admin: {Handle} back on the board by {Moderator}` |
-| `GET /api/admin/sponsor` 🔒 | — | `AdminSponsorDto` `{ configured, name?, handle?, prizeText?, url?, urlDropped, handleExists?, handleVerified? }`: what `Board:Sponsor:*` came to, read-only and not rate-limited — the link as the board would show it, whether it was dropped for not being `http(s)`, and whether the handle is an account here and a verified brand (the Verify button one section up on `#/admin` is the fix). `{ configured: false, urlDropped: false }` while no sponsor is set |
+| `GET /api/admin/sponsor` 🔒 | — | `AdminSponsorDto` `{ configured, name?, handle?, prizeText?, url?, urlDropped, handleExists?, handleVerified?, handleIsBrand? }`: what `Board:Sponsor:*` came to, read-only and not rate-limited — the handle as the board links it (a leading `@` dropped), the link as the board would show it, whether it was dropped for not being `http(s)`, and whether the handle is an account here (`handleExists`), a brand account (`handleIsBrand`, absent without an account) and a verified brand (`handleVerified`, never true for a person, verified or not). The Verify button one section up on `#/admin` is the fix for an unverified brand; a personal account is the wrong handle or an account that has not turned on "Brand account", and the card says so. `{ configured: false, urlDropped: false }` while no sponsor is set |
 | `GET /api/metrics/pilot` 🔒 | — | See above; moderators only (403 otherwise) |
 
 ## How it is built
@@ -1815,21 +1816,24 @@ replaced) has no activity row; its receipt is a `TomorrowPushes` row (unique per
 goes, so a crash costs one morning and never a double), and the tap on `#/tomorrow?from=push` stamps it opened once.
 Settings draws the switch (`#morning-section`) only when `/api/config` says `plans.tomorrowMorningPush`, checked only
 when the server offers it and this browser is subscribed, otherwise unchecked and disabled with "Turn on notifications
-above first." The Tomorrow block gains `pushesSent`, `pushesOpened` and `openRate`, and the doctor's `plans` line ends
-with the morning push. The flag is off by default and stays off until the worn rate says planned outfits get worn
-(`DEPLOY.md`).
+above first." (since the review fixes it follows the notifications switch above as it changes, so turning that on
+unlocks it without leaving Settings). A tap on the push opens the screen on Today, whatever pill was pressed last, and
+does not save that choice. The Tomorrow block gains `pushesSent`, `pushesOpened` and `openRate`, and the doctor's
+`plans` line ends with the morning push. The flag is off by default and stays off until the worn rate says planned
+outfits get worn (`DEPLOY.md`).
 
 **Owner tooling without a terminal** (`9a61599`). `#/admin` gains an Accounts section: search a handle and act on the
-row — Verify / Unverify, Grant Pro (a sheet with 1, 3, 6 or 12 months) / Remove Pro, Exclude from board / Put back,
-Suspend / Lift — through six new routes and the two old ones, every one behind the moderator gate, one audit line each
+row — Verify / Unverify, Grant Pro (a sheet with 1, 3, 6 or 12 months; 2 since the review fixes, the founding members'
+gift) / Remove Pro, Exclude from board / Put back, Suspend / Lift (no Suspend on another moderator's row, which the
+server refuses) — through six new routes and the two old ones, every one behind the moderator gate, one audit line each
 under `FitCheck.Api.Endpoints.AdminEndpoints`, and one shared per-moderator brake (`Limits:AdminActionsPerHour`, 120).
 The screen refuses a Pro grant or removal on an account that pays through Stripe (400 `error.pro_billing`); the
 command does not. The account exclusion is one column (`AppUser.BoardExcludedAt`) that `Board.ComputeAsync` honours for
 every open week, so looks posted later stay off too. `AdminUserDto` carries `verified`, `plan`, `proUntil`,
 `boardExcluded` and `isAdmin`, and every action answers with the row. `GET /api/admin/sponsor` feeds a read-only
 "Sponsor of the week" card that says what `Board:Sponsor:*` came to, warns when the link was dropped or the handle is
-not a verified brand, and reloads with every action, so a Verify tap on the sponsor's handle is seen to clear the
-warning. The commands stay as the terminal fallback and the browser test proves both doors.
+a personal account or not yet a verified brand, and reloads with every action, so a Verify tap on the sponsor's handle
+is seen to clear the warning. The commands stay as the terminal fallback and the browser test proves both doors.
 
 **Background services.** Four hosted services joined `DigestService`, each a worker class beside a `BackgroundService`
 wrapper and each idempotent by a row rather than by its schedule. `TryTipNudgeService` wakes hourly and, inside the
@@ -1840,14 +1844,16 @@ before its mail; `RenewalRecapService` wakes hourly, prunes webhook event ids ol
 whether or not mail is on, and, with mail and a public origin configured, sends the pre-renewal recap once per period
 (`RenewalRecap: run at …, N recaps sent, M failed, K old Stripe events pruned`; a failed send is tried again next hour);
 `TomorrowMorningService` ticks every fifteen minutes, logs its global reasons for doing nothing at Debug (the flag is off
-on most servers) and its real run at Information (`TomorrowMorning: run at … for {Day}, {Sent} sent, {Skipped} skipped (due …)`).
+on most servers) and its run at Information once a morning (`TomorrowMorning: run at … for {Day}, {Sent} sent, {Skipped} skipped (due …)`:
+the day's first pass inside the window, and a later pass only when it pushed someone; the other quarter-hour passes are Debug).
 None of the four ever asks the model.
 
 **Tests.** `BillingTests` (the replay ignored by id, a parallel burst handled once, the yearly session and its refusal,
 the trial offered once and granted as days), `RenewalRecapTests`, `StylistBackTests`, `TryTipNudgeTests` (the window, one
 a day, the quiet hours, the newest check carrying it), `DistributionTests`, `TomorrowMorningTests` (seven: the right
 accounts and never a compose, the flag, the window and the switches, the row before the push and the second process
-giving way, the open marker, the recipient's language, DST and the hour parsing), the compare questions and the close
+giving way, the open marker, the recipient's language, DST and the hour parsing; an eighth since the review fixes, the
+run line once a morning, and the push's time to live is asserted with the right accounts), the compare questions and the close
 call in `CompareTests` and `OutfitComparerTests`, keep-all, the unkept list and the Pro moment in `WardrobeTests` with
 the wedge numbers in `MetricsTests`, the tried share and the `postId` in `TriedTests`, the account actions, the audit
 lines and the sponsor reader in `AdminTests`, `Round20SkeletonTests`, and `tools/brand/test/before-after.test.js`; the

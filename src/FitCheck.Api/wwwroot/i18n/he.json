@@ -1159,6 +1159,7 @@
   "tomorrow.dash_title": "מחר",
   "tomorrow.dash_hint": "האם לוקים מתוכננים נלבשים, כמה פעמים לוק שמור חוזר במקום קריאה חדשה, וכמה פעמים המודל חרג מהארון.",
   "tomorrow.dash_outfits": "לוקים",
+  "tomorrow.dash_planners": "אנשים שמתכננים",
   "tomorrow.dash_worn": "נלבשו",
   "tomorrow.dash_reused": "חזרו מהמטמון",
   "tomorrow.dash_invented": "הפניות מחוץ לארון",
@@ -1231,7 +1232,7 @@
   "source.story": "סטורי",
   "source.dm": "הודעה פרטית",
   "push.morning_title": "הלוק שלך כל בוקר",
-  "push.morning_hint": "פינג אחד ב-{time}. לחץ עליו והסטייליסט מרכיב את הלוק של היום מהארון שלך. שום דבר לא מתוכנן עד שתלחץ.",
+  "push.morning_hint": "פינג אחד ב-{time}. לחיצה עליו פותחת את התכנון של היום, והסטייליסט מרכיב את הלוק מהארון שלך כשמבקשים. שום דבר לא מתוכנן לפני כן.",
   "push.morning_needs_push": "קודם הפעל התראות למעלה.",
   "push.morning_on_toast": "פינג הבוקר פעיל",
   "push.morning_off_toast": "פינג הבוקר כבוי",
@@ -1259,5 +1260,6 @@
   "admin.sponsor_link_dropped": "הקישור הושמט בהפעלה כי הוא לא כתובת http(s); הלוח מציג את השם בלי קישור.",
   "admin.sponsor_handle_missing": "אין חשבון עם הכינוי ⁦@{handle}⁩.",
   "admin.sponsor_handle_unverified": "⁦@{handle}⁩ עדיין לא מותג מאומת. אמת אותו למעלה.",
+  "admin.sponsor_handle_person": "⁦@{handle}⁩ הוא חשבון אישי ולא מותג, ולכן הלוח מציג אותו בלי סימן מותג. כדאי לבדוק את Board__Sponsor__Handle, או להפעיל “חשבון מותג” בהגדרות של החשבון עצמו.",
   "admin.sponsor_readonly": "מוגדר ידנית בהגדרות השרת ונקרא כאן; אין טופס."
 }

@@ -1159,6 +1159,7 @@
   "tomorrow.dash_title": "Tomorrow",
   "tomorrow.dash_hint": "Whether planned outfits get worn, how often a stored one is reused, and how often the model reached outside the wardrobe.",
   "tomorrow.dash_outfits": "Outfits",
+  "tomorrow.dash_planners": "People planning",
   "tomorrow.dash_worn": "Worn",
   "tomorrow.dash_reused": "Reused",
   "tomorrow.dash_invented": "Refs outside the wardrobe",
@@ -1231,7 +1232,7 @@
   "source.story": "Story",
   "source.dm": "DM",
   "push.morning_title": "Your outfit each morning",
-  "push.morning_hint": "One ping at {time}. Tap it and the stylist puts today's outfit together from your wardrobe. Nothing is planned until you tap.",
+  "push.morning_hint": "One ping at {time}. Tap it to plan today's outfit: the stylist puts it together from your wardrobe when you ask. Nothing is planned until you ask.",
   "push.morning_needs_push": "Turn on notifications above first.",
   "push.morning_on_toast": "Morning ping on",
   "push.morning_off_toast": "Morning ping off",
@@ -1259,5 +1260,6 @@
   "admin.sponsor_link_dropped": "The link was dropped at start because it is not an http(s) URL; the board shows the name without a link.",
   "admin.sponsor_handle_missing": "No account has the handle ⁦@{handle}⁩.",
   "admin.sponsor_handle_unverified": "⁦@{handle}⁩ is not a verified brand yet. Verify it above.",
+  "admin.sponsor_handle_person": "⁦@{handle}⁩ is a personal account, not a brand, so the board shows it with no brand mark. Check Board__Sponsor__Handle, or the account turns on “Brand account” in its own Settings.",
   "admin.sponsor_readonly": "Set by hand in the server's settings and read here; there is no form."
 }

@@ -1757,8 +1757,10 @@ function checkClientModules() {
   step = '14';
   // 14. Money (Round 20). The API comes back with Stripe on and pointed at the stub: a yearly price beside the monthly
   //     one, a seven-day no-card trial. Eli, a fourth person, reads the Pro page (the toggle, the saving computed from
-  //     the two numbers, the trial line and its button), buys the year on trial, and the signed webhook - posted twice,
-  //     the second time ignored by its id - makes him Pro for the trial's days; the portal returns to Settings; a
+  //     the two numbers, the trial line, whose price follows the toggle, and its button), back from a Checkout he
+  //     cancelled on the way from a compare, so the next one still asks to return there; he buys the year on trial,
+  //     and the signed webhook - posted twice, the second time ignored by its id - makes him Pro for the trial's days;
+  //     the portal returns to Settings; a
   //     cancelled trial ends Pro and mails the "Pro ended" letter; and --stripe-check reads both prices from the stub.
   const stripeEnv = {
     Billing__Provider: 'stripe',
@@ -1779,15 +1781,20 @@ function checkClientModules() {
   const eli = await person(browser, 'eli', 'en-US');
   await signup(eli, 'eli', 'password123');
   const eliMe = await me(eli);
-  await go(eli, '#/pro');
+  // Stripe's cancel URL for a Checkout that started on a refused compare (BillingEndpoints puts return=compare on both).
+  await go(eli, '#/pro?checkout=cancel&return=compare');
   await eli.waitForSelector('#pro-go');
+  assert.strictEqual(await hash(eli), '#/pro', 'the query is stripped once it has been read');
   assert.ok(await eli.$('#pro-interval'), 'the interval toggle is drawn where a year can be sold');
   assert.match(await text(eli, '#pro-price'), /a month/, 'monthly by default');
   assert.ok((await eli.$$eval('li.pro-benefit', (items) => items.map((i) => i.textContent))).some((s) => s.includes('7 days free')), 'the trial line is drawn for a fresh account');
+  assert.match(await text(eli, '#pro-trial-hint'), /^Then \$29(\.00)? a month\. Cancel before the trial ends/, 'the trial turns into the month the page is on');
   assert.strictEqual(await text(eli, '#pro-go'), 'Start 7 free days');
   await eli.click('#pro-interval-year');
   assert.match(await text(eli, '#pro-price'), /a year/, 'the year after the tap');
   assert.strictEqual(await text(eli, '#pro-saving'), 'Save 17% against paying monthly', '1 - 290 / 348, rounded');
+  // Review of Round 20: Checkout sells the year after the trial, so the trial line says the year too.
+  assert.match(await text(eli, '#pro-trial-hint'), /^Then \$290(\.00)? a year\. Cancel before the trial ends/, 'the trial line follows the toggle');
   await shot(eli, '50-pro-yearly-trial-en');
   await eli.click('#pro-go');
   await eli.waitForFunction(() => location.hash === '#/pro');
@@ -1802,6 +1809,8 @@ function checkClientModules() {
   assert.strictEqual(checkoutForm.form['metadata[trialDays]'], '7');
   assert.strictEqual(checkoutForm.form.currency, 'usd');
   assert.strictEqual(checkoutForm.form.client_reference_id, eliMe.id.replace(/-/g, ''));
+  // The second try after a cancel still asks Checkout to come back to the compare screen once paid.
+  assert.ok(checkoutForm.form.success_url.endsWith('#/pro?checkout=success&return=compare'), 'the return to the compare outlived the cancel: ' + checkoutForm.form.success_url);
   // Eli confirms an address first, so the letters below have somewhere to go (the log, on this server).
   await go(eli, '#/settings');
   await eli.waitForSelector('#s-email');

@@ -140,7 +140,7 @@ public class CompareTests : IClassFixture<CompareApp>
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var row = await db.Comparisons.SingleAsync(c => c.Id == id);
             Assert.Equal("b", row.Winner);
-            Assert.Equal("cmp-v2", row.PromptVersion);
+            Assert.Equal("cmp-v3", row.PromptVersion);
             Assert.Equal(OutfitOccasion.Office, row.OccasionKind);
             Assert.Null(row.Style);
             Assert.Equal("first day", row.Occasion);
@@ -610,6 +610,13 @@ public class CompareTests : IClassFixture<CompareApp>
             var wall = await (await client.PostAsync("/api/compare", CompareForm(TestImages.Jpeg(), TestImages.Jpeg()))).Content.ReadFromJsonAsync<JsonElement>();
             Assert.False(wall.GetProperty("feedback").GetProperty("close").GetBoolean());
 
+            // Review of Round 20: two casual outfits for a wedding, a 3 and a 4. Within a point, but neither works, so it is
+            // a plain win for the one that comes closer - never "Both work" over two failing rings.
+            _app.Vision.Handler = _ => OutfitComparerTests.Pick(scoreA: 3, scoreB: 4, winner: "b");
+            var neither = await (await client.PostAsync("/api/compare", CompareForm(TestImages.Jpeg(), TestImages.Jpeg()))).Content.ReadFromJsonAsync<JsonElement>();
+            Assert.False(neither.GetProperty("feedback").GetProperty("close").GetBoolean());
+            Assert.Equal("b", neither.GetProperty("feedback").GetProperty("winner").GetString());
+
             // The stored JSON carries the word, so a reopened comparison reads the same way.
             using var scope = _app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -617,7 +624,15 @@ public class CompareTests : IClassFixture<CompareApp>
             Assert.Contains("\"close\":true", stored.FeedbackJson);
             var reread = await client.GetFromJsonAsync<JsonElement>($"/api/compare/{stored.Id}");
             Assert.True(reread.GetProperty("feedback").GetProperty("close").GetBoolean());
-            Assert.Equal(3, await db.Comparisons.CountAsync(c => c.UserId == userId));
+            Assert.Equal(4, await db.Comparisons.CountAsync(c => c.UserId == userId));
+
+            // A row stored under cmp-v2 said close over a 2 and a 2; reopened, it is no longer "Both work".
+            var stale = await db.Comparisons.SingleAsync(c => c.Id == neither.GetProperty("id").GetGuid());
+            stale.FeedbackJson = stale.FeedbackJson!.Replace("\"scoreA\":3", "\"scoreA\":2").Replace("\"scoreB\":4", "\"scoreB\":2").Replace("\"close\":false", "\"close\":true");
+            await db.SaveChangesAsync();
+            Assert.Contains("\"close\":true", stale.FeedbackJson);
+            var reopened = await client.GetFromJsonAsync<JsonElement>($"/api/compare/{stale.Id}");
+            Assert.False(reopened.GetProperty("feedback").GetProperty("close").GetBoolean());
         }
         finally
         {

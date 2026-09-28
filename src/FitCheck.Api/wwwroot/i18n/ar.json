@@ -1210,7 +1210,7 @@
   "pro.interval_year": "سنوي",
   "pro.go_trial": "ابدأ {days} أيامًا مجانية",
   "pro.benefit_trial": "{days} أيام مجانًا، بلا بطاقة",
-  "pro.benefit_trial_hint": "ثم {price} في الشهر. ألغِ قبل انتهاء الفترة التجريبية ولن يُحصَّل شيء.",
+  "pro.benefit_trial_hint": "ثم {price}. ألغِ قبل انتهاء الفترة التجريبية ولن يُحصَّل شيء.",
   "inapp.title": "أنت في متصفّح تطبيق آخر",
   "inapp.hint": "افتح OREVOSH في Safari أو Chrome لتُبقيه على شاشتك الرئيسية.",
   "funnel.standalone": "فتحات من الشاشة الرئيسية",

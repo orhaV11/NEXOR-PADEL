@@ -378,6 +378,12 @@ public static class CompareEndpoints
         else if (comparison.FeedbackJson is not null)
         {
             feedback = JsonSerializer.Deserialize<ComparisonFeedback>(comparison.FeedbackJson, AppJson.Options);
+            // Review of Round 20: a row stored under cmp-v2 may say close over two failing scores; "Both work" is only
+            // said where both do, so the stored word is lowered here (never raised: older rows stay false).
+            if (feedback is { Close: true } && !OutfitComparer.IsClose(feedback.Status, feedback.ScoreA, feedback.ScoreB))
+            {
+                feedback.Close = false;
+            }
         }
 
         var hasImages = comparison.ImagePathA.Length > 0 && comparison.ImagePathB.Length > 0;

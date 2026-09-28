@@ -1210,7 +1210,7 @@
   "pro.interval_year": "שנתי",
   "pro.go_trial": "התחל {days} ימים חינם",
   "pro.benefit_trial": "{days} ימים חינם, בלי כרטיס",
-  "pro.benefit_trial_hint": "אחר כך {price} לחודש. ביטול לפני סוף תקופת הניסיון - ולא מחויבים בכלום.",
+  "pro.benefit_trial_hint": "אחר כך {price}. ביטול לפני סוף תקופת הניסיון - ולא מחויבים בכלום.",
   "inapp.title": "אתה בדפדפן של אפליקציה אחרת",
   "inapp.hint": "פתח את OREVOSH ב-Safari או ב-Chrome כדי לשמור אותו במסך הבית.",
   "funnel.standalone": "פתיחות ממסך הבית",

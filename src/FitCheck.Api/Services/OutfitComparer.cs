@@ -15,6 +15,9 @@ namespace FitCheck.Api.Services;
 /// Round 20 also names the close call: when the two scores land within a point of each other the prompt asks for "both
 /// work" in the first sentence of the reason and for the occasion to decide, and the server marks
 /// <see cref="ComparisonFeedback.Close"/> off the scores it already has, so the schema gains no field and no third score.
+/// Review of Round 20 (<c>cmp-v3</c>): "both work" is only true when both do, so a close call also needs both scores at
+/// <see cref="WorksFrom"/> or above; two outfits that both fail the occasion are a plain win for the one that comes
+/// closer, and the prompt asks the reason to say that neither is right yet.
 /// </para>
 /// <para>
 /// Round 15 appended the wardrobe. It is not part of the prompt every comparison gets: like the check's, it is one
@@ -25,7 +28,14 @@ namespace FitCheck.Api.Services;
 /// </summary>
 public sealed class OutfitComparer(IOutfitVisionClient vision)
 {
-    public const string PromptVersion = "cmp-v2";
+    public const string PromptVersion = "cmp-v3";
+
+    /// <summary>
+    /// Review of Round 20: the lowest score at which an outfit works for the occasion, the foot of the calibration's
+    /// "5-6: fine, ordinary, nothing wrong" band; 3-4 is "plainly wrong for where it is going" and 1-2 "does not serve the
+    /// occasion at all". A close call needs both outfits here or above, because it tells the wearer both work.
+    /// </summary>
+    public const int WorksFrom = 5;
     public const string ToolName = "pick_outfit";
 
     private const string ToolDescription =
@@ -72,9 +82,11 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
         THE PICK:
         The winner is the outfit with the higher score. When the scores are equal, the winner is the one that reads more
         clearly as the stated intent to a stranger. There is always exactly one winner.
-        A close call is a real answer. When your two scores are within one point of each other, both outfits work: say so
-        in the first sentence of reason, in plain words, then say why the winner wins for THIS occasion.
-        The occasion decides a close call, never the style, never a coin flip.
+        A close call is a real answer. When your two scores are within one point of each other and both are 5 or more,
+        both outfits work: say so in the first sentence of reason, in plain words, then say why the winner wins for THIS
+        occasion. The occasion decides a close call, never the style, never a coin flip.
+        When both scores are 4 or less, neither outfit works for this occasion yet: say so in the first sentence of
+        reason, in plain words, then say why the winner comes closer.
         Do not widen the gap to sound decisive; a 7 and a 7 is honest.
         headline_a and headline_b: at most 8 words each, specific to that outfit, never generic.
         reason: two or three sentences on what decides it, for this intent. Name the pieces that decide it.
@@ -228,7 +240,7 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
     /// numbers, "B" or "Outfit B" for the winner), strict about the rules: scores clamped to 1–10, a winner that is
     /// always a or b (the higher score decides when the model's word is unusable, A on a tie), and nothing but the
     /// message when the status is not ok. Round 20: the close call is read off the two scores here (within one point,
-    /// on an ok verdict only), never asked of the model.
+    /// on an ok verdict only), never asked of the model; since the review, only when both work (<see cref="IsClose"/>).
     /// </summary>
     public static ComparisonFeedback MapToolInput(JsonElement input)
     {
@@ -259,7 +271,7 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
             OneTip = ReadString(input, "one_tip"),
             // Round 13: a no-outfit reason is read by the person, so rule 1 is checked on it as on a check's (OutfitAnalyzer.SafeNoOutfitMessage).
             Message = status == CheckStatus.NotOutfit ? OutfitAnalyzer.SafeNoOutfitMessage(ReadString(input, "message")) : NullIfEmpty(ReadString(input, "message")),
-            Close = status == CheckStatus.Ok && Math.Abs(scoreA - scoreB) <= 1
+            Close = IsClose(status, scoreA, scoreB)
         };
 
         if (status != CheckStatus.Ok)
@@ -276,6 +288,13 @@ public sealed class OutfitComparer(IOutfitVisionClient vision)
 
         return feedback;
     }
+
+    /// <summary>
+    /// A close call: an ok verdict whose two scores are within one point of each other AND both at <see cref="WorksFrom"/>
+    /// or above, since the screen then says "Both work". A 2 and a 3, or a 4 and a 5, is a plain win for the higher one.
+    /// </summary>
+    public static bool IsClose(string status, int scoreA, int scoreB) =>
+        status == CheckStatus.Ok && Math.Abs(scoreA - scoreB) <= 1 && Math.Min(scoreA, scoreB) >= WorksFrom;
 
     /// <summary>"a" or "b" from whatever the model wrote ("B", "outfit b", "A."); the scores decide when that is unreadable.</summary>
     public static string NormalizeWinner(string raw, int scoreA, int scoreB)

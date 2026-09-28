@@ -105,7 +105,8 @@ public sealed class ComparisonFeedback
 
     /// <summary>
     /// Round 20: a close call, derived by the server in <c>OutfitComparer.MapToolInput</c> and never a field the model
-    /// fills: an ok verdict whose two scores are within one point of each other. False on every non-ok status, and false
+    /// fills: an ok verdict whose two scores are within one point of each other, and since the review both at
+    /// <c>OutfitComparer.WorksFrom</c> or above, because it reads "Both work". False on every non-ok status, and false
     /// on every row stored before this round, whose JSON simply lacks it.
     /// </summary>
     public bool Close { get; set; }

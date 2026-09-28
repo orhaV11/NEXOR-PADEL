@@ -11,13 +11,16 @@
 // benefit needs both a flag here and a row in that table. The cap is not a benefit; it is one fair-use line, once, last.
 // Round 20 — billing: a yearly price beside the monthly one (a two-button toggle, drawn only where the server has BOTH a
 // yearly price id and a yearly amount in the reader's currency, so nothing is shown that Checkout cannot sell; the
-// saving is computed here from the two numbers and never typed), and a no-card trial (Plans:ProTrialDays), offered
-// as one guarded benefit line only to an account /api/billing/state says is eligible - a signed-in person who already
-// went through Checkout once sees the plain price.
+// saving is computed here from the two numbers and never typed, and since the review a year that saves nothing against
+// twelve months is not offered at all), and a no-card trial (Plans:ProTrialDays), offered as one guarded benefit line
+// only to an account /api/billing/state says is eligible - a signed-in person who already went through Checkout once
+// sees the plain price. The trial line names what the trial turns into on the interval the toggle stands on.
 // Round 20 — the wedge: #/pro?from=compare|wardrobe says which surface sent the person here, and the page tells the
 // server once (POST /api/funnel/pro-opened, a funnel tally, never awaited); from=compare also asks Checkout to come back
 // as #/pro?checkout=success&return=compare, and once the poll sees the plan flip the page redirects to
-// #/compare?ready=1, where the camera is ready. Every query value is read before the query is stripped.
+// #/compare?ready=1, where the camera is ready. Every query value is read before the query is stripped. A cancelled
+// Checkout comes back as #/pro?checkout=cancel&return=compare, and a second try from there asks for the same return: the
+// intent lasts until Checkout succeeds or the person leaves this page.
 import { register, state, t, el, icon, api, setTopBar, signInPrompt, toast, loadMe, fmtDate, logoMark, proBadge, onLeave, intlLocale, getLocale, hashQuery, redirect } from '../core.js';
 
 const CSS = `
@@ -127,10 +130,11 @@ function money(amount, currency) {
   }
 }
 
-function benefit(name, title, hint) {
+/** One benefit row; a hint that is '' draws no line under the title, and hintId names the one the toggle repaints. */
+function benefit(name, title, hint, hintId) {
   return el('li', { class: 'pro-benefit' }, [
     el('span', { class: 'pro-icon', 'aria-hidden': 'true' }, [icon(name)]),
-    el('div', {}, [el('b', { text: title }), el('p', { text: hint })])
+    el('div', {}, [el('b', { text: title }), hint ? el('p', { id: hintId, text: hint }) : null])
   ]);
 }
 
@@ -143,6 +147,9 @@ register('pro', async (root, params, ctx) => {
   // Round 20: where the person came from, and where a paid Checkout should land them. Both read now, before the query goes.
   const from = FROM_SURFACES.includes(hashQuery('from')) ? hashQuery('from') : null;
   const returnTo = hashQuery('return') === 'compare' ? 'compare' : null;
+  // Sent by a refused compare, or back from a Checkout that was (a cancel carries return=compare too): either way the
+  // next Checkout from this page comes back to the compare screen.
+  const backToCompare = from === 'compare' || returnTo === 'compare';
   // The open is counted once, on arrival, by a signed-in account; the answer is nobody's business here and never awaited.
   if (from && state.me) api('POST', '/api/funnel/pro-opened', { from }).catch(() => {});
 
@@ -183,6 +190,9 @@ register('pro', async (root, params, ctx) => {
   // The saving is arithmetic over the two numbers the owner typed, never a third setting: 1 - year / twelve months.
   const savingPct = yearlyText && monthlyAmount > 0 ? Math.round((1 - yearlyAmount / (12 * monthlyAmount)) * 100) : 0;
   let interval = 'month';
+  // Review of Round 20: what the trial turns into, on the interval the toggle stands on - after the trial Checkout sells
+  // the year when Yearly is pressed - and nothing at all when no price is published, rather than "Then  a month".
+  const trialThen = () => (interval === 'year' && yearlyText ? t('pro.per_year', { price: yearlyText }) : priceText ? t('pro.per_month', { price: priceText }) : '');
 
   // Each line: an optional guard from /api/config, then the benefit. One benefit per line, because PlansTests reads
   // them from this file and matches every key against the thing in the server that makes it true.
@@ -190,7 +200,7 @@ register('pro', async (root, params, ctx) => {
     // Round 20 — the no-card trial, first because it is the line that changes what the button does: Checkout opens with
     // trial_period_days and no card asked for exactly where Stripe is live, the server has a trial and this account
     // never went through Checkout (GET /api/billing/state says trialDays > 0); the webhook grants the days, not a month.
-    plans.billing && plans.proTrialDays > 0 && trialOffered ? benefit('timer', t('pro.benefit_trial', { days: trialDays }), t('pro.benefit_trial_hint', { price: priceText })) : null,
+    plans.billing && plans.proTrialDays > 0 && trialOffered ? benefit('timer', t('pro.benefit_trial', { days: trialDays }), trialThen() && t('pro.benefit_trial_hint', { price: trialThen() }), 'pro-trial-hint') : null,
     benefit('flip', t('pro.benefit_which'), t(plans.compareNeedsPro ? 'pro.benefit_which_hint_only' : 'pro.benefit_which_hint')),
     plans.tasteNeedsPro ? benefit('sparkle', t('pro.benefit_taste'), t('pro.benefit_taste_hint')) : null,
     plans.wardrobe ? benefit('bag', t('pro.benefit_wardrobe'), t('pro.benefit_wardrobe_hint', { free: plans.wardrobeNames })) : null,
@@ -213,7 +223,8 @@ register('pro', async (root, params, ctx) => {
 
   // Round 20: the interval toggle, only when the year can really be sold in this currency, then the price block, which
   // re-renders with the toggle: a month reads "a month" and "billed monthly", a year reads "a year", "billed once a
-  // year" and the saving when there is one (a yearly amount at or above twelve months shows no saving line).
+  // year" and the saving. Review of Round 20: a yearly amount at or above twelve months saves nothing, and a year that
+  // costs as much as the months it replaces is not offered at all (the doctor warns "no saving"), so no toggle.
   const price = el('p', { class: 'pro-price', id: 'pro-price' });
   const paintPrice = () => {
     price.replaceChildren();
@@ -226,12 +237,15 @@ register('pro', async (root, params, ctx) => {
     price.appendChild(el('span', { class: 'pro-amount', text: t('pro.per_month', { price: priceText }) }));
     if (plans.billing) price.appendChild(el('span', { class: 'hint', text: t('pro.price_note') }));
   };
-  if (priceText && yearlyText && plans.billing) {
+  if (priceText && yearlyText && savingPct > 0 && plans.billing) {
     const pick = (next) => {
       interval = next;
       monthButton.setAttribute('aria-pressed', String(next === 'month'));
       yearButton.setAttribute('aria-pressed', String(next === 'year'));
       paintPrice();
+      // The trial line above promises the price after the trial, so it follows the toggle too.
+      const trialHint = root.querySelector('#pro-trial-hint');
+      if (trialHint) trialHint.textContent = t('pro.benefit_trial_hint', { price: trialThen() });
     };
     const monthButton = el('button', { type: 'button', id: 'pro-interval-month', 'aria-pressed': 'true', text: t('pro.interval_month'), onclick: () => pick('month') });
     const yearButton = el('button', { type: 'button', id: 'pro-interval-year', 'aria-pressed': 'false', text: t('pro.interval_year'), onclick: () => pick('year') });
@@ -279,7 +293,7 @@ register('pro', async (root, params, ctx) => {
         // pick from what the server itself offers. Round 20: and the interval the toggle stands on; a year the server
         // cannot sell in this currency is refused (400), never quietly sold as a month.
         // Round 20: a person sent here by a refused compare is landed back on that screen once the plan has flipped.
-        const back = from === 'compare' ? '&return=compare' : '';
+        const back = backToCompare ? '&return=compare' : '';
         const { url } = await api('POST', '/api/billing/checkout?currency=' + encodeURIComponent(currency) + '&interval=' + encodeURIComponent(interval) + back);
         location.href = url;   // Stripe's hosted page; it comes back to #/pro?checkout=...
       } catch (e) {

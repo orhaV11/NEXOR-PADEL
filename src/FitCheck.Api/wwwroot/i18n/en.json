@@ -1210,7 +1210,7 @@
   "pro.interval_year": "Yearly",
   "pro.go_trial": "Start {days} free days",
   "pro.benefit_trial": "{days} days free, no card needed",
-  "pro.benefit_trial_hint": "Then {price} a month. Cancel before the trial ends and nothing is charged.",
+  "pro.benefit_trial_hint": "Then {price}. Cancel before the trial ends and nothing is charged.",
   "inapp.title": "You're in another app's browser",
   "inapp.hint": "Open OREVOSH in Safari or Chrome to keep it on your home screen.",
   "funnel.standalone": "Home-screen opens",

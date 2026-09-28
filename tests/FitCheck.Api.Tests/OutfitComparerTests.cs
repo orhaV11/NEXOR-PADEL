@@ -165,7 +165,7 @@ public class OutfitComparerTests
         Assert.Equal(["status", "winner", "score_a", "score_b", "headline_a", "headline_b", "reason", "one_tip"], required);
         var winner = OutfitComparer.ToolSchema.GetProperty("properties").GetProperty("winner").GetProperty("enum").EnumerateArray().Select(r => r.GetString()).ToList();
         Assert.Equal(["a", "b"], winner);
-        Assert.Equal("cmp-v2", OutfitComparer.PromptVersion);
+        Assert.Equal("cmp-v3", OutfitComparer.PromptVersion);
         // Round 20: the close call is the server's word off the two scores, never a field or a third score the model fills.
         var properties = OutfitComparer.ToolSchema.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToList();
         Assert.DoesNotContain(properties, name => name.Contains("close", StringComparison.OrdinalIgnoreCase));
@@ -179,6 +179,9 @@ public class OutfitComparerTests
 
         Assert.Contains("within one point", prompt);
         Assert.Contains("both outfits work", prompt);
+        // Review of Round 20: "both work" only where both do, at the same line the server marks close from.
+        Assert.Contains($"both are {OutfitComparer.WorksFrom} or more", prompt);
+        Assert.Contains($"When both scores are {OutfitComparer.WorksFrom - 1} or less, neither outfit works for this occasion yet", prompt);
         Assert.Contains("The occasion decides a close call, never the style, never a coin flip", prompt);
         Assert.Contains("a 7 and a 7 is honest", prompt);
         // The rules from before stay where they were.
@@ -191,9 +194,16 @@ public class OutfitComparerTests
     [InlineData(6, 7, "ok", true)]
     [InlineData(7, 6, "ok", true)]
     [InlineData(6, 8, "ok", false)]
+    // Review of Round 20: two outfits that both fail the occasion are not "Both work", however near their scores are.
+    [InlineData(2, 2, "ok", false)]
+    [InlineData(3, 4, "ok", false)]
+    [InlineData(4, 5, "ok", false)]
+    [InlineData(5, 5, "ok", true)]
+    [InlineData(5, 6, "ok", true)]
+    [InlineData(10, 9, "ok", true)]
     [InlineData(7, 7, "not_outfit", false)]
     [InlineData(7, 7, "rejected", false)]
-    public void MapToolInput_marks_close_within_one_point_and_never_off_an_ok(int scoreA, int scoreB, string status, bool close)
+    public void MapToolInput_marks_close_within_one_point_when_both_work_and_never_off_an_ok(int scoreA, int scoreB, string status, bool close)
     {
         Assert.Equal(close, OutfitComparer.MapToolInput(Pick(scoreA: scoreA, scoreB: scoreB, status: status, message: status == "ok" ? null : "a wall")).Close);
     }

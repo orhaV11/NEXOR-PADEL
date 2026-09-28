@@ -987,12 +987,14 @@ public class DoctorTests : IDisposable
         Assert.Equal(DoctorStatus.Warn, noId["billing"]!.Status);
         Assert.Contains("never shown", noId["billing"]!.Detail);
 
-        // A yearly amount at or above twelve months shows no saving, which is a typo more often than a plan.
+        // A yearly amount at or above twelve months saves nothing, which is a typo more often than a plan; since the
+        // review the Pro page does not offer it, and the warning says so.
         var dear = HealthyYearly();
         dear["Plans:ProYearlyPriceAmount"] = "240";
         var noSaving = await Inspect(dear);
         Assert.Equal(DoctorStatus.Warn, noSaving["billing"]!.Status);
         Assert.Contains("no saving", noSaving["billing"]!.Detail);
+        Assert.Contains("the Pro page does not offer it", noSaving["billing"]!.Detail);
 
         var good = HealthyYearly();
         good["Plans:ProTrialDays"] = "7";

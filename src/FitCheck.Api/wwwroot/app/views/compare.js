@@ -286,8 +286,8 @@ function askedPair(result) {
 
 /**
  * The verdict: the two photos with their score rings, the winner in a gradient frame with its pill, the headlines, what
- * was asked, why, and the one tip. A close call (feedback.close, the server's word for scores within a point) reads
- * "Both work" over the winner. A comparison the stylist could not make (not two outfits, or refused) shows the reason
+ * was asked, why, and the one tip. A close call (feedback.close, the server's word for scores within a point that
+ * both work for the occasion) reads "Both work" over the winner. A comparison the stylist could not make (not two outfits, or refused) shows the reason
  * and a way back.
  */
 function renderResult(root, result) {

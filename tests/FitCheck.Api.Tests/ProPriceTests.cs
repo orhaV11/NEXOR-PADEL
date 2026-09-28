@@ -214,6 +214,9 @@ public class ProPriceTests
         Assert.Contains("if (savingPct > 0) price.appendChild(el('span', { class: 'pro-saving', id: 'pro-saving', text: t('pro.yearly_saving'", source, StringComparison.Ordinal);
         // The toggle exists only where the server can sell the year in the reader's currency.
         Assert.Contains("plans.yearly && yearlyAmount > 0 ? money(yearlyAmount, currency) : ''", source, StringComparison.Ordinal);
+        // Review of Round 20: and only where the year saves something. A yearly amount at or above twelve months is a
+        // doctor warning ("no saving") and is never offered, as LAUNCH 0.8 tells the owner.
+        Assert.Contains("if (priceText && yearlyText && savingPct > 0 && plans.billing) {", source, StringComparison.Ordinal);
         Assert.Contains("'&interval=' + encodeURIComponent(interval)", source, StringComparison.Ordinal);
         foreach (var code in new[] { "en", "he", "ar", "ru" })
         {

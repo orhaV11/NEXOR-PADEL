@@ -2249,7 +2249,8 @@ Verify fix "one section up". None of these routes asks the model, so the stub is
 - **"Cache Tomorrow's prompt too."** Its tool schema is the wearer's wardrobe, so nothing before the rubric is shared;
   a breakpoint there would write and never read. The stub refuses a compose with `cache_control` so it stays that way.
 - **"Ask the model whether it is a close call."** A third score or a `closeness` field would move the schema and every
-  stored row for a fact the two scores already state. Derived on the server, within one point, `ok` only.
+  stored row for a fact the two scores already state. Derived on the server, within one point, `ok` only (and, since
+  the review, both at 5 or more).
 - **"Send the comparison's note under a new name."** The pilot file is upgraded by column matching; `Occasion` stays the
   column and the JSON name, and the pair is appended.
 - **"Rename the card's before/after tally for pairs that were never posted."** One pair share is one pair share; two
@@ -2529,3 +2530,27 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   doctor compares the whole address, so a port or a path prefix on api.stripe.com is a warning that names it. It also
   warns on a yearly amount in a currency with no monthly price (the page never shows it), and the `anthropic-url` line
   gathers the unknown cache word and a low ceiling into one warning instead of stopping at the first.
+- **"Both work" only where both do.** The close call was the gap alone, so two casual outfits for a formal wedding, a 3
+  and a 4, read "Both work" over two failing rings, and the prompt told the reason to say so. A close call now also
+  needs both scores at 5 or more (`OutfitComparer.WorksFrom`): nothing in the code named a pass line, and 5 is the foot
+  of the calibration's "fine, nothing wrong" band, with 3-4 "plainly wrong for where it is going". Below it the verdict
+  is the plain win, "{outfit} wins" is true of the one that comes closer, so no new string; the prompt (`cmp-v3`) asks
+  the reason to say that neither works yet. A row stored under `cmp-v2` that said close over a lower score is lowered
+  when it is read, never raised.
+- **The trial line quotes what Checkout will sell.** With Yearly pressed it still said "Then {the monthly price} a
+  month", and Checkout sells the year after the trial. The hint's `{price}` now carries the interval, in the price
+  block's own words ("$29 a month", "$290 a year"), and is repainted with the toggle; with no price published the hint
+  is left out rather than read "Then  a month". "Cancel before the trial ends and nothing is charged" stays: it is true
+  of a trial with a card and costs nothing to one without.
+- **A year that saves nothing is not offered.** LAUNCH told the owner the page shows the year only when it is a saving;
+  the page drew the toggle anyway and only left the saving line out. The page now does what the owner was told, the
+  side that never sells a year for as much as the months it replaces (or more), and the doctor's "no saving" warning
+  says the page does not offer it. A monthly price given only as text (`Plans:ProPriceText`, no amount) leaves no saving
+  to compute, so no year is offered beside it either. Checkout itself still sells a year to a request that asks for one.
+- **A cancelled Checkout keeps the way back to the compare.** Stripe's cancel URL carries `return=compare`, and the
+  next try from that page now asks for it again, until Checkout succeeds or the person leaves the Pro page.
+- **The Pro-page tally loads the account**, as every signed-in door does: a suspended account (403) and a cookie whose
+  account is gone (401) are signed out and count nothing.
+- **The Russian trial button counts in the file's shape**, "Начать бесплатно, дней: {days}", since "{days} бесплатных
+  дн." agreed with the number and read wrong for 1 and 21. `LanguagesTests` now holds every Russian `{days}` to the
+  count rule, with the abbreviation "дн." the one word allowed after it, since it reads the same for every number.

@@ -9,6 +9,9 @@ namespace FitCheck.Api.Endpoints;
 /// A hash route never reaches the funnel middleware, so the page says so itself, once, on arrival. Both surfaces are
 /// signed-in ones, so the route needs a session; it is a client-driven tally by an account, as the board views are:
 /// a script can inflate it, it is a moderators' number and never a decision, and a tally is never worth failing a request.
+/// Review of Round 20: the session is not enough. The account is loaded like on every other signed-in door, so a
+/// suspended account (403) and a cookie that outlived its account (401) are refused and signed out before anything is
+/// counted; a locked-out account cannot move the moderators' number.
 /// </summary>
 public static class FunnelEndpoints
 {
@@ -20,6 +23,12 @@ public static class FunnelEndpoints
 
     private static async Task<IResult> ProOpenedAsync(ProOpenedRequest? body, HttpContext context, AppDbContext db, Localizer localizer, CancellationToken ct)
     {
+        var (me, failure) = await UserEndpoints.RequireUserAsync(context, db, localizer, ct);
+        if (me is null)
+        {
+            return failure!;
+        }
+
         var name = Funnel.ProOpenedCounter(body?.From?.Trim().ToLowerInvariant(), DateOnly.FromDateTime(DateTime.UtcNow));
         if (name is null)
         {

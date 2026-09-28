@@ -145,5 +145,21 @@ public class LanguagesTests
                     $"ru.json \"{name}\" counts into a bare noun (\"{match.Value}\"), which only reads right for some numbers: {text}");
             }
         }
+
+        // Review of Round 20: the trial's day count has no _one form at all, so every Russian string carrying {days} is
+        // held to the same shape. "дн." is the one word allowed after it: an abbreviation reads the same for 1, 3 and 21,
+        // where "{days} бесплатных дн." counted an adjective that agrees with the number and read wrong for 1 and 21.
+        var days = new System.Text.RegularExpressions.Regex(@"(?<before>\S+ )?\{days\} (?<after>[\u0400-\u04FF]+\.?)");
+        foreach (var property in ru.EnumerateObject())
+        {
+            var text = property.Value.GetString() ?? "";
+            foreach (System.Text.RegularExpressions.Match match in days.Matches(text))
+            {
+                var before = match.Groups["before"].Value.Trim().ToLowerInvariant();
+                var after = match.Groups["after"].Value.ToLowerInvariant();
+                Assert.True(after == "дн." || prepositions.Contains(before) || prepositions.Contains(after.TrimEnd('.')),
+                    $"ru.json \"{property.Name}\" counts days into a bare word (\"{match.Value}\"), which only reads right for some numbers: {text}");
+            }
+        }
     }
 }

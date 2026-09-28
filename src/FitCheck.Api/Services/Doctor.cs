@@ -532,8 +532,9 @@ public static class Doctor
             warnings.Add("a yearly amount is set (Plans__ProYearlyPriceAmount or Plans__ProYearlyPrices) but Billing__StripeYearlyPriceId is empty: it is never shown");
         }
 
-        // The saving the page computes is (1 - yearly / 12 * monthly): at or above twelve months there is none to show,
-        // and a yearly plan that costs more than the year it replaces is a typo more often than a decision.
+        // The saving the page computes is (1 - yearly / 12 * monthly): at or above twelve months there is none, and a
+        // yearly plan that costs more than the year it replaces is a typo more often than a decision. Since the review
+        // the page does not offer such a year at all.
         // Review of Round 20: the page picks the reader's currency from the monthly table alone, so a yearly amount in a
         // currency with no monthly price is never offered to anybody.
         var monthlyTable = plans.PriceTable();
@@ -545,7 +546,7 @@ public static class Doctor
             }
             else if (amount >= 12 * monthly)
             {
-                warnings.Add($"the yearly {Money(amount, currency)} is not below twelve months of {Money(monthly, currency)}, so the Pro page shows no saving for it");
+                warnings.Add($"the yearly {Money(amount, currency)} is not below twelve months of {Money(monthly, currency)}: no saving, so the Pro page does not offer it");
             }
         }
 

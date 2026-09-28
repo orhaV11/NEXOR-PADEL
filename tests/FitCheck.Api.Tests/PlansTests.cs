@@ -139,6 +139,24 @@ public class PlansTests
         // The button says what the line promised, and only then.
         Assert.Contains("t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
         Assert.Contains("trialOffered && plans.proTrialDays > 0 ? t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
+
+        // Review of Round 20: the price after the trial is the one Checkout will sell. With Yearly pressed that is the
+        // year, so the hint is built from the interval the toggle stands on and repainted when it moves; with no price
+        // published it names none (the hint is left out) rather than read "Then  a month".
+        var source = ProPageSource();
+        Assert.Contains("t('pro.benefit_trial_hint', { price: trialThen() })", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("t('pro.benefit_trial_hint', { price: priceText })", source, StringComparison.Ordinal);
+        Assert.Contains("interval === 'year' && yearlyText ? t('pro.per_year', { price: yearlyText }) : priceText ? t('pro.per_month', { price: priceText }) : ''", source, StringComparison.Ordinal);
+        Assert.Contains("if (trialHint) trialHint.textContent = t('pro.benefit_trial_hint', { price: trialThen() });", source, StringComparison.Ordinal);
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            // The interval is in {price} now ("$29 a month", "$290 a year"), so the sentence itself may not name one.
+            var hint = Strings(code)["pro.benefit_trial_hint"];
+            foreach (var month in new[] { "a month", "לחודש", "في الشهر", "شهري", "в месяц" })
+            {
+                Assert.DoesNotContain(month, hint, StringComparison.Ordinal);
+            }
+        }
     }
 
     [Fact]

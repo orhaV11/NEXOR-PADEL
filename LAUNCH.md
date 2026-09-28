@@ -209,7 +209,8 @@ Four decisions the wedge left with the founder, and none of them is a line of co
    moment it is on.
 2. **A yearly price, or not.** If yes: a second recurring price on the Stripe product (yearly), its id in
    `Billing__StripeYearlyPriceId`, the amount in `Plans__ProYearlyPriceAmount` (and `Plans__ProYearlyPrices__<CUR>` per
-   currency); the page computes the saving itself and shows the year only when it is one. Run `--stripe-check` again
+   currency); the page computes the saving itself and shows the year only when it is one (a yearly amount at or above
+   twelve months of the monthly is not offered, and `--doctor` warns "no saving"). Run `--stripe-check` again
    after adding it. "Not yet" is an answer too: leave both out and the page sells a month.
 3. **The morning push stays off.** `Plans__TomorrowMorningPush` is `false` and stays so until the Tomorrow block on
    `#/admin/metrics` says planned outfits get worn — a worn rate above about 25% with at least 20 wardrobes of two kinds
@@ -1374,8 +1375,8 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
    ו-`--doctor` אומר את זה. מחליטים יחד עם המחיר, כי כפתור דף ה-Pro נקרא "התחל 7 ימים חינם" ברגע שזה דלוק.
 2. **מחיר שנתי, או לא.** אם כן: מחיר מתחדש שני על המוצר ב-Stripe (שנתי), המזהה שלו ב-`Billing__StripeYearlyPriceId`,
    הסכום ב-`Plans__ProYearlyPriceAmount` (ו-`Plans__ProYearlyPrices__<CUR>` לכל מטבע); הדף מחשב את החיסכון בעצמו ומציג
-   שנה רק כשהיא חיסכון. אחרי ההוספה מריצים שוב `--stripe-check`. גם "עוד לא" היא תשובה: משאירים את שניהם בחוץ והדף
-   מוכר חודש.
+   שנה רק כשהיא חיסכון (סכום שנתי ששווה לשנים-עשר חודשים או יותר לא מוצע, ו-`--doctor` מזהיר "no saving"). אחרי
+   ההוספה מריצים שוב `--stripe-check`. גם "עוד לא" היא תשובה: משאירים את שניהם בחוץ והדף מוכר חודש.
 3. **דחיפת הבוקר נשארת כבויה.** `Plans__TomorrowMorningPush` הוא `false` ונשאר כך עד שבלוק Tomorrow ב-`#/admin/metrics`
    אומר שלוקים מתוכננים באמת נלבשים — שיעור לבישה מעל 25% בערך, עם לפחות 20 ארונות של שני סוגים מאחוריו — ומפתחות
    ה-VAPID מוגדרים. להדליק קודם זה לצלצל לאנשים על הרגל שהמספרים עוד לא הרוויחו.

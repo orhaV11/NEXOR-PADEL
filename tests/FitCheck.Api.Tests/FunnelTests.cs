@@ -181,6 +181,34 @@ public class FunnelTests : IClassFixture<TestApp>
         Assert.Equal(wardrobeBefore + 2, await CounterAsync(_app, Funnel.ProFromWardrobe(Today)));
     }
 
+    /// <summary>
+    /// Review of Round 20: a session is not an account. A suspended account's cookie and a cookie that outlived its
+    /// account are refused (403 and 401, as on every other signed-in door) and signed out, and neither moves the tally
+    /// the moderators read - the account they locked out least of all.
+    /// </summary>
+    [Fact]
+    public async Task Pro_opened_is_refused_to_a_suspended_account_and_a_cookie_with_no_account()
+    {
+        using var app = new TestApp();
+        var (suspended, suspendedId, _) = await app.NewUserAsync("proopened_locked");
+        var (ghost, ghostId, _) = await app.NewUserAsync("proopened_ghost");
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == suspendedId)).Suspended = true;
+            db.Users.Remove(await db.Users.SingleAsync(u => u.Id == ghostId));
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await suspended.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await ghost.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "wardrobe" })).StatusCode);
+        // The refusal dropped the cookie, so the next try is plainly signed out.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await suspended.PostAsJsonAsync("/api/funnel/pro-opened", new { from = "compare" })).StatusCode);
+
+        Assert.Equal(0, await CounterAsync(app, Funnel.ProFromCompare(Today)));
+        Assert.Equal(0, await CounterAsync(app, Funnel.ProFromWardrobe(Today)));
+    }
+
     [Fact]
     public async Task The_funnel_is_moderators_only_like_the_rest_of_the_page()
     {

@@ -143,6 +143,91 @@ public class TryTipNudgeTests : IClassFixture<PushTests.PushApp>
         }
     }
 
+    /// <summary>
+    /// Review fixes: a pair made on the post sheet ("After the tip", Post.BeforePostId) is as much a pair as an "I tried
+    /// it" link, and neither of its checks is nudged. A person with no pair, at the same hour, still is.
+    /// </summary>
+    [Fact]
+    public async Task A_look_posted_as_the_after_of_another_is_a_pair_and_neither_side_is_nudged()
+    {
+        var (client, _, _) = await App.NewUserAsync("nudge_post_pair");
+        using var browser = new PushTests.Browser("nudge_post_pair");
+        await Subscribe(client, browser);
+        var (control, _, _) = await App.NewUserAsync("nudge_post_none");
+        using var controlBrowser = new PushTests.Browser("nudge_post_none");
+        await Subscribe(control, controlBrowser);
+
+        // 10:00 in Jerusalem: the before is posted; eight hours later the after is posted with the before picked.
+        var t0 = new DateTime(2026, 8, 10, 7, 0, 0, DateTimeKind.Utc);
+        var before = await App.CheckAsync(client);
+        var beforePost = (await App.PostAsync(client, before)).GetProperty("id").GetGuid();
+        var after = await App.CheckAsync(client);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/posts", new { checkId = after, beforePostId = beforePost })).StatusCode);
+        await MoveAsync(before, t0);
+        await MoveAsync(after, t0.AddHours(8));
+        var unpaired = await CheckAtAsync(control, t0);
+
+        // The next morning the before is in its window (the after is not yet): only the person with no pair hears.
+        App.Clock.Now = t0.AddHours(25);
+        Assert.Equal(1, await Nudge.RunAsync(CancellationToken.None));
+        Assert.Equal(unpaired, Assert.Single(await TryTipRows(control)).GetProperty("checkId").GetGuid());
+        Assert.Empty(await TryTipRows(client));
+
+        // That evening both sides are in their windows, and the after is not nudged either.
+        App.Clock.Now = t0.AddHours(33);
+        Assert.Equal(0, await Nudge.RunAsync(CancellationToken.None));
+        Assert.Empty(await TryTipRows(client));
+    }
+
+    /// <summary>
+    /// Review fixes: a nudge whose row cannot be written costs that person their nudge this hour and nobody else theirs.
+    /// The failed row used to stay in the pass's context, so every later save tried it again and failed with it.
+    /// </summary>
+    [Fact]
+    public async Task A_row_that_cannot_be_written_does_not_stop_the_next_person()
+    {
+        var (first, _, _) = await App.NewUserAsync("nudge_fails");
+        using var firstBrowser = new PushTests.Browser("nudge_fails");
+        await Subscribe(first, firstBrowser);
+        var (second, _, _) = await App.NewUserAsync("nudge_after_fail");
+        using var secondBrowser = new PushTests.Browser("nudge_after_fail");
+        await Subscribe(second, secondBrowser);
+        var t0 = new DateTime(2026, 8, 3, 8, 0, 0, DateTimeKind.Utc);
+        var secondCheck = await CheckAtAsync(second, t0);
+        // The newest check goes first, so the failing one is the first save of the pass.
+        var firstCheck = await CheckAtAsync(first, t0.AddHours(1));
+
+        await SqlAsync("""
+            CREATE TRIGGER nudge_fails BEFORE INSERT ON "Notifications"
+            WHEN NEW."Type" = 'try_tip' AND NEW."UserId" = (SELECT "Id" FROM "Users" WHERE "Handle" = 'nudge_fails')
+            BEGIN SELECT RAISE(ABORT, 'this row cannot be written'); END
+            """);
+        try
+        {
+            App.Clock.Now = t0.AddHours(26);
+            Assert.Equal(1, await Nudge.RunAsync(CancellationToken.None));
+            Assert.Empty(await TryTipRows(first));
+            Assert.Equal(secondCheck, Assert.Single(await TryTipRows(second)).GetProperty("checkId").GetGuid());
+            Assert.Single(await Pushes.WaitForAsync(secondBrowser.Endpoint));
+        }
+        finally
+        {
+            await SqlAsync("DROP TRIGGER IF EXISTS nudge_fails");
+        }
+
+        // The next hour the check is still inside its window, and the row goes in.
+        App.Clock.Now = t0.AddHours(27);
+        Assert.Equal(1, await Nudge.RunAsync(CancellationToken.None));
+        Assert.Equal(firstCheck, Assert.Single(await TryTipRows(first)).GetProperty("checkId").GetGuid());
+        Assert.Single(await TryTipRows(second));
+    }
+
+    private async Task SqlAsync(string sql)
+    {
+        using var scope = App.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlRawAsync(sql);
+    }
+
     [Fact]
     public async Task The_window_is_a_day_after_a_day()
     {

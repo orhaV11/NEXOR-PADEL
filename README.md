@@ -365,9 +365,9 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Storage:FfmpegPath` | empty | The ffmpeg binary, with ffprobe next to it. Empty means `ffmpeg` on `PATH` |
 | `Push:PublicKey` / `Push:PrivateKey` | empty | VAPID keys for Web Push, generated once with `dotnet run -- --vapid`. Environment only (`Push__PublicKey`, `Push__PrivateKey`), never in appsettings. Push is off until both are set; a new pair drops every existing subscription (the push service answers 401/403 and the app deletes it) |
 | `Push:Subject` | `mailto:hello@orevosh.app` | Contact the push services see |
-| `Push:TryTipNudge` | `true` | **Round 20.** Whether the day-after nudge runs at all: one push per check, one per person a day, to push-subscribed accounts whose change tip nobody answered on a check that is in no pair (`TryTipNudgeService`, hourly) |
+| `Push:TryTipNudge` | `true` | **Round 20.** Whether the day-after nudge runs at all: one push per check, one per person a day, to push-subscribed accounts whose change tip nobody answered on a check that is in no pair, an "I tried it" link or a posted look marked as the after of another (`TryTipNudgeService`, hourly) |
 | `Push:TryTipAfterHours` / `TryTipWindowHours` | `24` / `24` | Hours after the verdict before a check may be nudged, and how long after that it still may be; older is never nudged, so a server that was down for a week does not nudge last week |
-| `Push:TryTipDayStart` / `TryTipDayEnd` | `9` / `21` | The local hours in `Board:TimeZone` between which nudges go out (`[start, end)`); a check due in the night waits for the morning's run. The quiet hours are the server's, not the person's |
+| `Push:TryTipDayStart` / `TryTipDayEnd` | `9` / `21` | The local hours in `Board:TimeZone` between which nudges go out (`[start, end)`); a check due in the night waits for the morning's run. The stylist-back note keeps the same hours: the ceiling reopens at UTC midnight, and those notes wait for the morning too. The quiet hours are the server's, not the person's |
 | `Email:Host` / `Port` / `User` / `Password` / `From` / `UseStartTls` | empty | SMTP for confirmation and reset links (`Email__Host` etc.; the password is environment only). Mail is on when Host and From are set; `Email__Host=log` writes the links to the log instead of sending |
 | `Legal:ContactEmail` | empty | The address the terms of use and the privacy policy tell a reader to write to — a privacy question, deleting their data, reporting an account belonging to someone under 16. Empty falls back to the address in `Email:From`; with neither, those pages leave the contact section out rather than name nobody, and `--doctor` says so. Public, not a secret |
 | `Email:PublicOrigin` | empty | The https origin the links in mails carry, e.g. `https://looks.example.com`. **Required on any host that is not localhost**: a link is never built from the request's `Host` header (a stranger could choose it), so with mail on and this empty only a laptop run gets links, the start log warns, and a request for one on a real host is logged as an error and answered 502 (`error.email_send_failed`) or, for a forgotten password, silently not sent |
@@ -461,7 +461,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/auth/signup` | `{ handle, password, birthDate, today?, language, displayName?, notifyStylistBack?, source? }` | `201` me. Handle: 2–40 letters, digits, dots or underscores, unique case-insensitively; password 8–200; `birthDate` is `yyyy-MM-dd` (what a date input sends), 16 years or more before today, not before 1900 and not in the future: 400 `birthdate_required`, `birthdate_invalid` or `underage` in that order after the handle and password rules. `today` is the client's own calendar date (`yyyy-MM-dd`): the sixteen rule and the not-in-the-future check are measured on it when it is within one day of the server's UTC date, otherwise on the UTC date, so nobody is stopped on their birthday east of Greenwich. The date is stored and never returned by any route. `confirmed16Plus` from older clients is ignored. 409 taken (a handle listed in `Admin:Handles` counts as taken), 429 too many signups from one address. **Round 20** adds two optional body fields, neither ever a reason to refuse: `notifyStylistBack` (bool, default false) — when true AND the spend ceiling is closed at that moment, a `Counter` row `stylist_back:{userId}` is written after the account is created, which `StylistBackService` turns into one note once the stylist is back (the client sends it from `#/signup?back=stylist`, where the check screen's `#resting-offer` points after a guest's 503 `error.stylist_resting`) — and `source`, the entry link's word, normalised against `Funnel:Sources` and stored on `AppUser.Source` (at most 16 characters; anything else is stored as null) |
 | `POST /api/auth/login` | `{ handle, password }` | `200` me. 401 for a wrong handle or password (same message for both), 429 too many attempts |
 | `POST /api/auth/logout` 🔒 | — | 204 |
-| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap; on a FREE account comparisons are counted in the same number, and on a PRO account they are not — Round 14 gives Pro a second allowance for comparisons alone (`Plans:ProComparesPerDay`, enforced on `POST /api/compare`), so `checksToday` on Pro is checks only. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. A suspended account gets 403 and is signed out |
+| `GET /api/auth/me` 🔒 | — | `{ id, handle, name, accountType, language, bio, website, streak, unreadNotifications, avatarUrl, interests, isAdmin, email, emailVerified, plan, proUntil, verified, checksToday, checksPerDay, badge? }`. `isAdmin` is the account's persisted moderator flag, set at start from `Admin:Handles` or by `--admin`, never by a request. `plan` is `free` or `pro` (`pro` only while `proUntil` is in the future or open), `verified` is the `--verify` flag, `checksToday` counts the account's checks in the rolling 24 hours (failed ones excluded) and `checksPerDay` is its cap; on a FREE account comparisons are counted in the same number, and on a PRO account they are not — Round 14 gives Pro a second allowance for comparisons alone (`Plans:ProComparesPerDay`, enforced on `POST /api/compare`), so `checksToday` on Pro is checks only. `badge` is last week's place in the top three of the looks board, `{ board: "looks", rank, weekStart }`, worn for this week only and absent otherwise. `stylistBackAsked` (every answer that carries me) is true while the account holds the stylist-back ask its signup recorded, until the pass keeps it; the welcome screen promises the note only on it. A suspended account gets 403 and is signed out |
 | `POST /api/auth/forgot` | `{ handleOrEmail }` | `202` always, same body whether or not the account exists; mails a reset link when the account has a confirmed email (5 per hour per address) |
 | `POST /api/auth/reset` | `{ token, password }` | `200` me, signed in. 400 for a used, expired or unknown link (the link survives a too-short password) |
 | `POST /api/auth/verify-email` | `{ token }` | `200` me. Confirms the address the link was sent to, and only while that is still the account's address; works signed out, signs nobody in |
@@ -1076,7 +1076,7 @@ so.
 **The ceiling.** `Limits:SpendPerDayUsd` (default `0` = off, which the doctor warns about and `LAUNCH.md` tells the
 owner to set — 5 USD for the pilot). Once today's estimate reaches it, `POST /api/checks` and `POST /api/compare` answer
 **503 `error.stylist_resting`** ("The stylist is resting until tomorrow. Your look is not spent.", in all four
-languages) *before* the model is asked: no allowance spent, no guest free look spent, no row stored, no photo written.
+languages, with `code: "stylist_resting"`, which the check screen offers the stylist-back note on) *before* the model is asked: no allowance spent, no guest free look spent, no row stored, no photo written.
 One log line and one alert the first time it closes on a given day, never one per refused request. It opens again at the
 next UTC midnight, because the rows are per UTC day. `Limits:ChecksPerDayGlobal` stays beside it as the count-based
 brake: one caps how many calls are made, the other caps what they are estimated to cost. `GET /api/users/me/insights`
@@ -1723,9 +1723,12 @@ the doctor's `anthropic-url` line names the mode and the money tiles show the re
 day's ceiling (503 `error.stylist_resting`) is now offered a signup that promises exactly what the code does
 (`#resting-offer`, `#/signup?back=stylist`, `notifyStylistBack` on the body): while the ceiling is really closed a
 `Counter` row `stylist_back:{userId}` is written, and `StylistBackService` (every five minutes, first pass at start)
-turns it, once the ceiling is open, into one in-app line of type `stylist_back` (pushed to a subscribed browser), one mail
-only to a confirmed address when mail and a public origin are configured, and deletes the row; the welcome screen offers
-the push step to that person when the browser can take one.
+turns it, once the ceiling is open and inside the `Push:TryTipDayStart`–`TryTipDayEnd` local hours, into one in-app line
+of type `stylist_back` (pushed to a subscribed browser), one mail only to a confirmed address when mail and a public origin
+are configured, and deletes the row, in a save of its own before the mail, so a failed save or a shutdown never mails
+anyone twice; the welcome screen offers the push step when me says `stylistBackAsked` and the browser can take one, and
+says the app's usual pings come with it. The offer names the mail only where the server can confirm an address, and
+appears only on the ceiling's own 503 (`code: "stylist_resting"`).
 
 **Compare: the two questions, the close call, the Pro nudge** (`d00260c`). `POST /api/compare` asks the check's two
 questions (`occasion`, `style`, the free line as `note`) and keeps the one word as a legacy shape; `ComparisonDto` appends
@@ -1778,7 +1781,8 @@ a "One change" heading, the two numbers (`<b class="pair-n">`) only when neither
 section at all (the page still 200) when the before is hidden or deleted. `Services/TryTipNudge.cs` (hosted
 `TryTipNudgeService`, hourly, first pass at start, log line `TryTip: {N} nudged`) writes, inside `Push:TryTipDayStart`
 to `Push:TryTipDayEnd` local hours, one `try_tip` notification and push per check whose change tip nobody answered and
-that is in no pair, `Push:TryTipAfterHours` after the verdict and for `Push:TryTipWindowHours` after that, to an
+that is in no pair (an "I tried it" link, or a post whose `BeforePostId` names this check's post or that this check's post
+carries), `Push:TryTipAfterHours` after the verdict and for `Push:TryTipWindowHours` after that, to an
 account that is not suspended and has a push subscription at query time, at most one per person a day (the newest
 unanswered check carries it); the row is stamped with the scheduler's clock so the once-a-day rule reads it back against
 the same clock. Its tap lands on `#/checks?try=<checkId>`, which scrolls to that check and focuses its `.loop-start`,
@@ -1829,9 +1833,10 @@ warning. The commands stay as the terminal fallback and the browser test proves 
 
 **Background services.** Four hosted services joined `DigestService`, each a worker class beside a `BackgroundService`
 wrapper and each idempotent by a row rather than by its schedule. `TryTipNudgeService` wakes hourly and, inside the
-server's quiet hours, writes the day-after nudges described above; `StylistBackService` wakes every five minutes, reads
-the `stylist_back:` rows before it asks whether the ceiling is open (so a pass with nothing to do never touches the
-meter), and keeps each promise once; `RenewalRecapService` wakes hourly, prunes webhook event ids older than 30 days
+server's quiet hours, writes the day-after nudges described above; `StylistBackService` wakes every five minutes, does
+nothing outside the try-tip nudge's local hours, reads the `stylist_back:` rows before it asks whether the ceiling is open
+(so a pass with nothing to do never touches the meter), and keeps each promise once, committing each row's removal
+before its mail; `RenewalRecapService` wakes hourly, prunes webhook event ids older than 30 days
 whether or not mail is on, and, with mail and a public origin configured, sends the pre-renewal recap once per period
 (`RenewalRecap: run at …, N recaps sent, M failed, K old Stripe events pruned`; a failed send is tried again next hour);
 `TomorrowMorningService` ticks every fifteen minutes, logs its global reasons for doing nothing at Debug (the flag is off

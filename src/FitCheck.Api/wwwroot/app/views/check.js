@@ -249,7 +249,8 @@ const CSS = `
 .result-read .tip.acc-add > p { font-size: 18px; line-height: 1.3; }
 /* 3. The pieces, what works, and the one tip as the warmest panel on the screen: lilac→rose→amber tinted glass with the
    gradient bar inside it, the primary door (app/taste.js #tried-start) right under the words and its hint under that.
-   taste.js's .loop is a card of its own on other screens; inside the panel it is the panel's last lines. */
+   taste.js's .loop is a card of its own on other screens; inside the panel it is the panel's last lines. The panel is
+   #tip itself: the pair block mounts inside it, and its two sides' own .tip lines stay the plain pull quote (app.css). */
 .result-pieces > * + * { margin-block-start: 22px; }
 .result-pieces h2, .result-pieces .tip-head { margin-block-end: 12px; }
 .result-pieces .tip-head h2 { margin-block-end: 0; }
@@ -257,11 +258,11 @@ const CSS = `
 .piece-note b { color: var(--ink); font-weight: 700; }
 .result-pieces .working li { font-size: 16px; color: var(--ink-2); }
 .result-pieces .working li::before { box-shadow: 0 0 10px rgba(255, 143, 177, 0.5); }
-.result-pieces .tip { padding: 18px 18px 16px 22px; border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(135deg, rgba(179, 157, 255, 0.17), rgba(255, 143, 177, 0.15) 55%, rgba(255, 180, 107, 0.17)); box-shadow: var(--shadow-card), 0 20px 50px rgba(255, 143, 177, 0.12); }
-[dir="rtl"] .result-pieces .tip { padding-inline: 22px 18px; }
-.result-pieces .tip::before { inset-block: 16px; inset-inline-start: 10px; inline-size: 4px; box-shadow: 0 0 12px rgba(255, 143, 177, 0.6); }
-.result-pieces .tip.keep::before { background: var(--ok); box-shadow: 0 0 12px rgba(111, 240, 173, 0.5); }
-.result-pieces .tip > p { font-size: 23px; line-height: 1.28; }
+.result-pieces #tip { padding: 18px 18px 16px 22px; border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(135deg, rgba(179, 157, 255, 0.17), rgba(255, 143, 177, 0.15) 55%, rgba(255, 180, 107, 0.17)); box-shadow: var(--shadow-card), 0 20px 50px rgba(255, 143, 177, 0.12); }
+[dir="rtl"] .result-pieces #tip { padding-inline: 22px 18px; }
+.result-pieces #tip::before { inset-block: 16px; inset-inline-start: 10px; inline-size: 4px; box-shadow: 0 0 12px rgba(255, 143, 177, 0.6); }
+.result-pieces #tip.keep::before { background: var(--ok); box-shadow: 0 0 12px rgba(111, 240, 173, 0.5); }
+.result-pieces #tip > p { font-size: 23px; line-height: 1.28; }
 .result-pieces .tip .loop { padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 0; }
 .result-pieces .tip .loop-start { margin-block-start: 16px; }
 .result-pieces .tip .loop > .hint { margin-block-start: 10px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
@@ -377,11 +378,12 @@ register('check', async (root) => {
   form.appendChild(error);
   // Round 20: a guest the resting stylist turned away is offered an account with a promise the server keeps - one note
   // when the stylist is back (StylistBack.cs), in the app always, on the phone and by mail only where those are set up.
-  // The signup link carries ?back=stylist so the join form says so and sends the flag.
+  // The signup link carries ?back=stylist so the join form says so and sends the flag. The mail is to a confirmed
+  // address, and a server that cannot confirm one (state.config.email off) is offered without the mail at all.
   if (ck.resting) {
     ck.resting = false;
     form.appendChild(el('div', { class: 'notice', id: 'resting-offer' }, [
-      el('p', { class: 'muted', text: t('guest.resting_offer') }),
+      el('p', { class: 'muted', text: t(state.config.email ? 'guest.resting_offer' : 'guest.resting_offer_no_mail') }),
       el('a', { class: 'btn-text', id: 'resting-join', href: '#/signup?back=stylist', text: t('guest.resting_join'), onclick: () => { state.returnTo = '#/check'; } })
     ]));
   }
@@ -543,8 +545,11 @@ function showLoading(root) {
   const ck = state.check;
   const sending = !!(ck.clip && ck.sending);
   root.appendChild(loadingBlock(sending ? 'loading.sending' : null));
-  if (!sending) stagedWaitLine($('loading-line'), ck.startedAt, 'loading.stage_look');
+  waitLine = $('loading-line');
+  if (!sending) stagedWaitLine(waitLine, ck.startedAt, 'loading.stage_look');
 }
+/** The check's wait line as last drawn by showLoading; the clip's swap starts the stages on this one (compare's is its own). */
+let waitLine = null;
 
 /** Paints the photo button from state: empty prompt, "preparing", the photo, or the clip paused on its chosen frame (with the picker under it). */
 function renderPhoto() {
@@ -791,6 +796,8 @@ async function submitCheck() {
   if (!pick.occasion || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
   ck.busy = true;
   ck.startedAt = Date.now();
+  // With a clip the wait opens on "sending": the stages start at the swap below, not under the first frame.
+  ck.sending = !!ck.clip;
   updateSubmit();
   const root = view();
   root.innerHTML = '';
@@ -822,10 +829,10 @@ async function submitCheck() {
     // a deliberately pessimistic 1 Mbps: early is fine (the next line is the true one anyway), late would be the lie.
     let swap = 0;
     if (ck.clip) {
-      ck.sending = true;
-      const line = document.getElementById('loading-line');
-      // Round 20: the stages count from the swap, the moment only the model can be the wait.
-      swap = setTimeout(() => { ck.sending = false; ck.startedAt = Date.now(); if (line && line.isConnected) stagedWaitLine(line, ck.startedAt, 'loading.stage_look'); },
+      // Round 20: the stages count from the swap, the moment only the model can be the wait. The line is the one on
+      // screen when it fires (waitLine): a re-render during the upload (the Check tab tapped again, a language switch)
+      // drew a new "sending" line, and the node from the submit is gone by then.
+      swap = setTimeout(() => { ck.sending = false; ck.startedAt = Date.now(); if (waitLine && waitLine.isConnected) stagedWaitLine(waitLine, ck.startedAt, 'loading.stage_look'); },
         Math.min(45000, Math.max(2000, Math.round(ck.clip.size / 125000) * 1000)));
     }
     try {
@@ -851,6 +858,7 @@ async function submitCheck() {
     navigate('#/result');
   } catch (e) {
     ck.busy = false;
+    ck.sending = false;
     // A cut that lands while the model is being asked leaves nothing stored and nothing counted (CheckEndpoints), and
     // "did that just cost me my only look?" is the first thing a person wonders. Only for a connection that died: a 429
     // or a 413 carries its own sentence and this would contradict it.
@@ -860,8 +868,9 @@ async function submitCheck() {
     // the next open to ask about within its ten minutes.
     if (!lostConnection) clearInterruptedCheck();
     // Round 20: a guest met the day's spend ceiling (503 error.stylist_resting). The form shows the sentence as it did,
-    // and under it the offer to be told when the stylist is back. Signed-in accounts keep the sentence alone.
-    if (e && e.status === 503 && !wasSignedIn) ck.resting = true;
+    // and under it the offer to be told when the stylist is back. Signed-in accounts keep the sentence alone. Only the
+    // ceiling's own refusal (code stylist_resting): a proxy's 503 during a deploy is no reason to promise a note.
+    if (e && e.status === 503 && e.code === 'stylist_resting' && !wasSignedIn) ck.resting = true;
     ck.error = e && e.status === 401 && wasSignedIn ? null
       : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
     // Back to the form with the planned outfit still attached, so the retry closes the loop the failed try could not.
@@ -1279,6 +1288,12 @@ function openPostSheet(area, result) {
       });
       state.resultPostId = post.id;
       result.postId = post.id;
+      // The pair's shares (#share-pair, the pair block's .pair-share) read the after's public address off the pair the
+      // loop handed over, which was linked before this look was posted: the card and the film now name /look/<id>.
+      if (result.pair) {
+        if (result.pair.after.id === result.id) result.pair.after.postId = post.id;
+        if (result.pair.before.id === result.id) result.pair.before.postId = post.id;
+      }
       state.check.challenge = null;
       s.close();
       toast(t('result.posted'));

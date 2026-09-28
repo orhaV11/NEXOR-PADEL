@@ -128,7 +128,9 @@ public static partial class AuthEndpoints
             // Round 16 - the month. For a Pro account it is the bound that actually runs out, so the check screen has to
             // know it; without it the screen quoted "of 30 today" at somebody whose real answer was 150 for the month.
             CallsThisMonth: await Spend.MonthCountForUserAsync(db, user.Id, now, ct),
-            CallsPerMonth: Plans.MonthlyCallsFor(user, plans, now));
+            CallsPerMonth: Plans.MonthlyCallsFor(user, plans, now),
+            // The server's own record of the stylist-back ask, never the client's memory of having sent it.
+            StylistBackAsked: await Counters.ReadAsync(db, StylistBack.AskedName(user.Id), ct) > 0);
     }
 
     /// <summary>

@@ -11,7 +11,8 @@ namespace FitCheck.Api.Services;
 /// activity row and a push) to a push-subscribed account, inside the local day, once per check and once per person a
 /// day. Everything that decides who is nudged is a row the person already wrote: an ok check with a change tip, no
 /// answer under it (worked and didn't-work mean they tried; not-my-style and don't-own mean they will not), no pair on
-/// either side, a push subscription (an activity row nobody would be told about is a row nobody asked for), and no
+/// either side (an "I tried it" link, or a posted look marked as the after of another with the post sheet's "After the
+/// tip", whichever side this check is on), a push subscription (an activity row nobody would be told about is a row nobody asked for), and no
 /// try_tip row for that check yet. The check stays inside its window (<see cref="PushOptions.TryTipAfterHours"/> to
 /// that plus <see cref="PushOptions.TryTipWindowHours"/>) across the quiet hours, so a verdict from last night is nudged
 /// on the morning's run and a verdict from last week is never nudged at all.
@@ -49,6 +50,7 @@ public sealed class TryTipNudge(IServiceScopeFactory scopes, IClock clock, Board
                 && db.Users.Any(u => u.Id == c.UserId && !u.Suspended)
                 && db.PushSubscriptions.Any(s => s.UserId == c.UserId)
                 && !db.CheckLinks.Any(l => l.BeforeCheckId == c.Id || l.AfterCheckId == c.Id)
+                && !db.Posts.Any(p => p.CheckId == c.Id && (p.BeforePostId != null || db.Posts.Any(q => q.BeforePostId == p.Id)))
                 && !db.Notifications.Any(n => n.Type == NotificationType.TryTip && n.CheckId == c.Id))
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new { c.Id, UserId = c.UserId!.Value, c.FeedbackJson })
@@ -91,6 +93,9 @@ public sealed class TryTipNudge(IServiceScopeFactory scopes, IClock clock, Board
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
             {
                 // One person's failed row must not cost everyone else theirs; the check is still inside its window next hour.
+                // The row the Notifier added is still tracked, and the next person's save would try it again (and fail
+                // with it, or commit it uncounted), so the context lets go of it, as TomorrowMorning does.
+                db.ChangeTracker.Clear();
                 logger.LogWarning(ex, "TryTip: the nudge for check {CheckId} was not written; the run goes on", candidate.Id);
             }
 

@@ -637,7 +637,9 @@ chips and its glow take the occasion's pastel; every id stays inside `#result`.
    works, `#taste-win`, and **the tip as the warmest panel**: glass tinted lilac to rose to amber (17%, 15%, 17%), a 1px
    light edge, the card shadow and a rose bloom, the gradient bar inside it glowing 10px in from the start edge, the words
    at 23px, and `#tried-action` — the primary *Try the tip, then show me* with its hint, the waiting line, or the pair —
-   inside `#tip`. `#taste-reasons` follows as its own glass panel, then `#wardrobe-keep`.
+   inside `#tip`. The panel's rules name `#tip` itself, so the pair's two sides keep their own tips as the plain pull
+   quote on its bar, not two more warm panels inside this one. `#taste-reasons` follows as its own glass panel, then
+   `#wardrobe-keep`.
 4. **`.result-doors`**: Post it (`#post-open`) and *Posted · See the look* (`#post-link`) are secondary now, `#guest-keep`
    stays the primary (it is a guest's only door), then the share row and Check another.
 

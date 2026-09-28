@@ -96,6 +96,12 @@ public sealed class SpendMeter(
     Alerter alerter,
     ILogger<SpendMeter> logger)
 {
+    /// <summary>
+    /// The code the ceiling's 503 carries beside error.stylist_resting, so a client tells the resting stylist from any
+    /// other 503 (a proxy's during a deploy has no body at all) and offers the stylist-back note only on this one.
+    /// </summary>
+    public const string RestingCode = "stylist_resting";
+
     public const string CallsPrefix = "spend:calls:";
     public const string InPrefix = "spend:in:";
     public const string OutPrefix = "spend:out:";

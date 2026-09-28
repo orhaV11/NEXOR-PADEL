@@ -193,7 +193,7 @@ public static class TomorrowEndpoints
         // 7. The money ceiling: Round 17's rule, a Pro account passes it.
         if (await spend.CeilingReachedAsync(db, ct) && !isPro)
         {
-            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
+            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"), SpendMeter.RestingCode);
         }
 
         // 8. The month: the same pot the check and the compare use, and a planned outfit is in it now.

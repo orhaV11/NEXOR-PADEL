@@ -273,7 +273,7 @@ public static class CheckEndpoints
         var now = DateTime.UtcNow;
         if (await spend.CeilingReachedAsync(db, ct) && !(user is not null && Plans.IsPro(user, now)))
         {
-            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
+            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"), SpendMeter.RestingCode);
         }
 
         int cap;

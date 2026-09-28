@@ -206,7 +206,7 @@ public static class CompareEndpoints
         // of this.
         if (await spend.CeilingReachedAsync(db, ct) && !Plans.IsPro(user, now))
         {
-            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"));
+            return UserEndpoints.Error(StatusCodes.Status503ServiceUnavailable, localizer.Get(language, "error.stylist_resting"), SpendMeter.RestingCode);
         }
 
         // Round 14 — Pro worth paying for: a comparison is the moment people pay for, so a PRO account has its own

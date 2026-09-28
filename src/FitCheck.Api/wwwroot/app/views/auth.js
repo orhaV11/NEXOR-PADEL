@@ -98,8 +98,7 @@ function authView(mode) {
           ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: pendingInvite(), notifyStylistBack: stylistBack, source: pendingSource() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
         if (signup) { takeInvite(); takeSource(); }       // spent: one arrival, one account
-        state.me = me;
-        if (stylistBack) state.stylistBackAsked = true;   // memory only: the welcome screen reads it once
+        state.me = me;                                    // me.stylistBackAsked: the ask as the server recorded it
         renderShell();
         // A check made as a guest on this phone follows the person in (one cheap call; 0 is the usual answer). This is the
         // claim that finds the rows, so the confirmation is announced here; the result screen's later claim finds nothing.
@@ -186,9 +185,12 @@ register('welcome', async (root, params, ctx) => {
   const emailError = el('p', { class: 'alert danger', role: 'alert', hidden: true });
 
   // Round 20: the guest who asked, at the ceiling, to hear when the stylist is back. The in-app line is theirs whatever
-  // they do here; this step is the phone, offered only where this browser can subscribe and the server has keys. One
-  // notification is what the copy promises, and PushSender sends exactly the one the pass writes.
-  const stylistBack = !!state.stylistBackAsked;
+  // they do here; this step is the phone, offered only where this browser can subscribe and the server has keys. The
+  // subscription is the account's like any other, so the copy says the app's usual pings come with it. Review fixes: the
+  // promise is drawn on the server's record (me.stylistBackAsked, the row the signup wrote while the ceiling was really
+  // closed, until the pass keeps it), never on having sent the flag: a signup after the day reopened, or the next
+  // person to sign up in this tab, is promised nothing.
+  const stylistBack = !!state.me.stylistBackAsked;
   const pushStep = stylistBack && pushSupport() === 'ready' ? el('section', { class: 'w-step', id: 'w-push' }, [
     el('h2', { text: t('welcome.push_title') }),
     el('p', { class: 'hint', text: t('welcome.push_hint') }),
@@ -248,10 +250,11 @@ register('welcome', async (root, params, ctx) => {
   ]));
   if (pushStep) root.appendChild(pushStep);
   if (emailInput) {
-    // The address is the mail channel for the stylist's note too, so the hint says so in that one state.
+    // The address is the mail channel for the stylist's note too, once it is confirmed (StylistBack mails only a
+    // confirmed address), so in that one state the hint is its own sentence rather than "only for password reset".
     root.appendChild(el('section', { class: 'w-step', id: 'w-email-step' }, [
       el('h2', { text: t('welcome.email_title') }),
-      el('p', { class: 'hint', text: t('welcome.email_hint') + (stylistBack ? ' ' + t('welcome.email_stylist_back') : '') }),
+      el('p', { class: 'hint', text: t(stylistBack ? 'welcome.email_stylist_back' : 'welcome.email_hint') }),
       el('div', { class: 'field' }, [emailInput]),
       emailError
     ]));

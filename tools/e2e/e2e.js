@@ -784,6 +784,13 @@ function checkClientModules() {
   await noa.click('#post-confirm');
   await noa.waitForSelector('#post-link');
   const postAfter = (await noa.getAttribute('#post-link', 'href')).replace('#/post/', '');
+  // The pair both shares read (#share-pair, .pair-share) now carries the after's post, so the card and the film name
+  // /look/<id> without the screen being drawn again.
+  const pairAfterPost = await noa.evaluate(async () => {
+    const { state } = await import('/app/core.js');
+    return state.result && state.result.pair ? state.result.pair.after.postId || null : 'no pair';
+  });
+  assert.strictEqual(pairAfterPost, postAfter, 'the pair on the result knows the after is posted');
   const pairPage = (await get(`${base}/look/${postAfter}`)).body.toString('utf8');
   assert.ok(pairPage.includes('class="pair"'), 'the public page shows the pair');
   assert.ok(pairPage.includes(`/look/${post2}/image`), 'with the earlier look\'s photo');
@@ -853,7 +860,20 @@ function checkClientModules() {
   });
   await noa.waitForFunction(() => !document.getElementById('submit').disabled, null, { timeout: 15000 });
   await shot(noa, '21-check-clip-en');
+  // The wait with a clip: "sending" from the first frame, the stages from the swap (timed off the clip's size at 1 Mbps,
+  // at least two seconds), and a re-render during the upload (what a tap on the Check tab or a language switch does; a
+  // bare hashchange here, so no view is told to refresh) draws a new line that the swap still reaches. The stub holds
+  // the answer long enough for the swap and a stage to be seen.
+  const swapMs = await noa.evaluate(async () => {
+    const { state } = await import('/app/core.js');
+    return Math.min(45000, Math.max(2000, Math.round(state.check.clip.size / 125000) * 1000));
+  });
+  await get(`http://127.0.0.1:${STUB_PORT}/__delay/${swapMs + 4000}`);
   await noa.click('#submit');
+  await noa.waitForFunction(() => (document.getElementById('loading-line') || {}).textContent === 'Sending your clip…', null, { timeout: 2000 });
+  await noa.evaluate(() => { document.getElementById('loading-line').dataset.drawn = 'at-submit'; window.dispatchEvent(new HashChangeEvent('hashchange')); });
+  await noa.waitForFunction(() => { const line = document.getElementById('loading-line'); return !!line && !line.dataset.drawn && line.textContent === 'Sending your clip…'; }, null, { timeout: 2000 });
+  await noa.waitForFunction(() => (document.getElementById('loading-line') || {}).textContent === 'Looking at the look', null, { timeout: swapMs + 3000 });
   await noa.waitForSelector('#result .score', { timeout: 30000 });
   await noa.click('#share-card');
   await noa.waitForSelector('#sc-card');
@@ -1955,6 +1975,8 @@ function checkClientModules() {
   await guest.waitForSelector('#resting-offer', { timeout: 30000 });
   assert.strictEqual(await text(guest, '#check-error'), 'The stylist is resting until tomorrow. Your look is not spent.');
   assert.match(await text(guest, '#resting-offer p'), /Sign up now and we'll tell you when the stylist is back/);
+  // This server can confirm an address, so the offer names the mail, and says the address is confirmed first.
+  assert.match(await text(guest, '#resting-offer p'), /by mail if you add an address and confirm it\.$/);
   await shot(guest, '40-resting-offer-en');
   await guest.click('#resting-join');
   await guest.waitForFunction(() => location.hash === '#/signup?back=stylist');
@@ -1967,11 +1989,17 @@ function checkClientModules() {
   await guest.waitForFunction(() => location.hash === '#/welcome');
   await guest.waitForSelector('#w-push');
   assert.strictEqual(await text(guest, '#w-push h2'), 'Hear when the stylist is back');
-  assert.match(await text(guest, '#w-email-step .hint'), /reaches your inbox too/);
+  // The push step does not promise that nothing else comes: the subscription is the account's, like the one in Settings.
+  assert.match(await text(guest, '#w-push .hint'), /^A ping when the stylist is back, plus the app's usual ones/);
+  // One sentence, not "only for password reset" followed by its contradiction, and the mail waits for the confirmation.
+  assert.strictEqual(await text(guest, '#w-email-step .hint'), 'Optional. For password reset and, once you confirm it, the note when the stylist is back. Nobody sees it.');
   await shot(guest, '41-welcome-push-en');
+  // The ask is on the account: the row the five-minute pass will turn into the one note once the day opens. The welcome
+  // screen above is drawn from this same record (me.stylistBackAsked), which a signup without the flag never has.
+  const restingMe = await guest.evaluate(() => fetch('/api/auth/me').then((r) => r.json()));
+  assert.strictEqual(restingMe.stylistBackAsked, true, 'the signup recorded the stylist-back ask');
   await guest.click('#w-skip');
   await guest.waitForFunction(() => location.hash === '#/check');
-  // The ask is on the account: the row the five-minute pass will turn into the one note once the day opens.
   const restingLog = fs.readFileSync(path.join(DATA, 'api-resting.log'), 'utf8');
   assert.ok(/daily spend ceiling is reached/.test(restingLog), 'the closed day was announced once');
   await guest.context().close();

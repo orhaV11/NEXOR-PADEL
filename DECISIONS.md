@@ -2589,3 +2589,31 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   a person, the Pro slice), not the slice's size, and a wardrobe Pro would carry none of has no moment. Its tally has
   the tallies' hourly brake (the `useful` policy), so a script can add at most sixty an hour; pairing each "go" with a
   "shown" per account would have needed a per-person row the privacy page does not list.
+- **The stylist-back note promises what the code does, when it does it.** The welcome's push step said "one
+  notification, nothing else unless you ask", over a subscription that is the account's like the one in Settings, so
+  the try-tip nudge, a fire and a follow came with it. The step now says the app's usual pings come with the note and
+  that Settings turns them off; a subscription scoped to one kind was the other way, and would have needed a column and a
+  filter in the sender for a step most people see once. The offer and the welcome hint said the mail comes "if you add
+  an address"; the pass mails only a confirmed one (Round 13's reason stands), so both now say "and confirm it", the
+  hint is one sentence in that state rather than "only for password reset" followed by its contradiction, and a server
+  that cannot confirm an address offers no mail at all. The welcome draws the promise from the server's record
+  (`me.stylistBackAsked`, the row itself) instead of the phone's memory of having sent the flag, so a signup after the
+  day reopened, or the next person to sign up in the same tab, is promised nothing; and the offer appears only on the
+  ceiling's own 503, which now carries `code: "stylist_resting"`, never on a proxy's during a deploy.
+- **The note keeps the nudge's day.** The ceiling reopens at UTC midnight, the small hours here, so every note went out
+  at two or three in the morning. The pass now does nothing outside `Push:TryTipDayStart`–`TryTipDayEnd` in
+  `Board:TimeZone` and the rows wait for the morning. The nudge's two settings are reused rather than a pair of new
+  ones: both are a ping about the person's own look, by day. A server whose ceiling closes again before nine holds the
+  note until a morning it is open: at three, "the stylist is back" would be true for four hours and then false.
+- **A note is claimed before it is mailed.** Each person's row now goes, with their line, in a save of its own before
+  their mail, so a save that fails or a shutdown in the middle of a pass leaves that row for the next pass and mails
+  nobody twice; the pass used to mail everyone and then save once, and the mail says there will not be another.
+- **A pair made on the post sheet is a pair.** The day-after nudge counted only an "I tried it" link as proof, so a
+  look posted with "After the tip" picked still had its before (and its after) nudged about a tip whose result was
+  already public. Both sides of a `Post.BeforePostId` pair are now left alone. A nudge whose row cannot be written is
+  let go of by the pass's context, as `TomorrowMorning` already did, so the next person's save no longer fails with it.
+- **The result screen, three small corrections.** The warm panel's rules name `#tip` itself, so the pair mounted inside
+  it no longer draws two more warm panels in its columns. Posting the after once the pair exists tells the pair the
+  post's id, so the before/after card and film name `/look/<id>` without the screen being drawn again. With a clip the
+  wait now opens on "Sending your clip" (the stages used to start under the first frame and a second run of them at the
+  swap), and the swap starts the stages on the line on screen, not on one a re-render during the upload had replaced.

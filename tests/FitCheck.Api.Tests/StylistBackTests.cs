@@ -14,22 +14,38 @@ namespace FitCheck.Api.Tests;
 /// stylist is back. These are the promise's mechanics (<see cref="StylistBack"/>): the flag is a Counter row set at
 /// signup only while the ceiling is really closed; the five-minute pass leaves the rows alone while it still is; once the
 /// day is open again each row is one in-app notification (and its push job), one mail where the address is confirmed,
-/// and then it is gone, so it happens once. Each test owns its app: the ceiling is global state.
+/// and then it is gone, so it happens once. Each test owns its app: the ceiling is global state. Since the review fixes
+/// the pass keeps the try-tip nudge's local day, so every app's clock starts at 09:00 UTC today (noon or eleven in
+/// Jerusalem), and a person's row goes in a save of its own before their mail.
 /// </summary>
 public class StylistBackTests
 {
     private const string OwnerAddress = "owner@orevosh.example";
 
-    /// <summary>A MoneyApp with a 3 USD ceiling (two 2 USD calls close it), mail on, a public origin for the link, and the owner's alert address.</summary>
-    private static MoneyApp Resting() => new()
+    /// <summary>
+    /// A MoneyApp with a 3 USD ceiling (two 2 USD calls close it), mail on, a public origin for the link, and the owner's
+    /// alert address; its clock at 09:00 UTC today, inside the note's day in Board:TimeZone.
+    /// </summary>
+    private static MoneyApp Resting()
     {
-        Settings =
+        var app = new MoneyApp
         {
-            ["Limits:SpendPerDayUsd"] = "3",
-            ["Email:PublicOrigin"] = "https://orevosh.example",
-            ["Alerts:Email"] = OwnerAddress
-        }
-    };
+            Settings =
+            {
+                ["Limits:SpendPerDayUsd"] = "3",
+                ["Email:PublicOrigin"] = "https://orevosh.example",
+                ["Alerts:Email"] = OwnerAddress
+            }
+        };
+        app.Clock.Now = DateTime.UtcNow.Date.AddHours(9);
+        return app;
+    }
+
+    private static async Task SqlAsync(TestApp app, string sql)
+    {
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlRawAsync(sql);
+    }
 
     private static async Task CloseTheDayAsync(MoneyApp app)
     {
@@ -89,13 +105,18 @@ public class StylistBackTests
         var guest = Guest(app, "203.0.113.10");
         var refused = await guest.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
         Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.StatusCode);
-        Assert.Equal("The stylist is resting until tomorrow. Your look is not spent.",
-            (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+        var refusal = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("The stylist is resting until tomorrow. Your look is not spent.", refusal.GetProperty("error").GetString());
+        // The code is what the check screen offers the note on: any other 503 (a proxy's during a deploy) carries none.
+        Assert.Equal("stylist_resting", refusal.GetProperty("code").GetString());
 
-        // The signup with the flag records the ask, because the ceiling really is closed.
+        // The signup with the flag records the ask, because the ceiling really is closed, and the answer says so: the
+        // welcome screen promises the note on the server's record, not on having sent the flag.
         var me = await SignupAsync(guest, "resting_guest", notify: true);
         var id = me.GetProperty("id").GetGuid();
         Assert.Equal(1, await AskedAsync(app, id));
+        Assert.True(me.GetProperty("stylistBackAsked").GetBoolean());
+        Assert.True((await guest.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("stylistBackAsked").GetBoolean());
 
         // Still resting: the pass does nothing and the row waits.
         Assert.Equal(0, await Worker(app).RunAsync(CancellationToken.None));
@@ -108,6 +129,7 @@ public class StylistBackTests
         var told = Assert.Single(await StylistBackNotificationsAsync(guest));
         Assert.Equal("resting_guest", told.GetProperty("actorHandle").GetString());
         Assert.Equal(0, await AskedAsync(app, id));
+        Assert.False((await guest.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("stylistBackAsked").GetBoolean());
 
         // Once. The next pass finds no row and writes nothing more.
         Assert.Equal(0, await Worker(app).RunAsync(CancellationToken.None));
@@ -124,6 +146,7 @@ public class StylistBackTests
         // An open day: the flag is asked for, and nothing is written, because there is nothing to tell.
         var open = await SignupAsync(Guest(app, "203.0.113.11"), "open_day", notify: true);
         Assert.Equal(0, await AskedAsync(app, open.GetProperty("id").GetGuid()));
+        Assert.False(open.GetProperty("stylistBackAsked").GetBoolean());
 
         // A closed day without the flag: an ordinary signup, no row.
         await CloseTheDayAsync(app);
@@ -133,6 +156,95 @@ public class StylistBackTests
         // The same closed day with the flag: the row.
         var asked = await SignupAsync(Guest(app, "203.0.113.13"), "closed_asked", notify: true);
         Assert.Equal(1, await AskedAsync(app, asked.GetProperty("id").GetGuid()));
+        Assert.True(asked.GetProperty("stylistBackAsked").GetBoolean());
+        Assert.False(quiet.GetProperty("stylistBackAsked").GetBoolean());
+    }
+
+    /// <summary>
+    /// Review fixes: the ceiling reopens at UTC midnight, the small hours in Board:TimeZone, and nobody asked for a phone
+    /// that buzzes at three. The note keeps the try-tip nudge's day (Push:TryTipDayStart to TryTipDayEnd): at night the
+    /// pass does nothing and the rows wait; the first pass of the morning tells, once, and mails, once.
+    /// </summary>
+    [Fact]
+    public async Task The_note_waits_for_the_morning()
+    {
+        using var app = Resting();
+        await CloseTheDayAsync(app);
+        var client = Guest(app, "203.0.113.50");
+        var me = await SignupAsync(client, "night_owl", notify: true);
+        var id = me.GetProperty("id").GetGuid();
+        WithDb(app, db =>
+        {
+            var user = db.Users.Single(u => u.Id == id);
+            user.Email = "owl@example.test";
+            user.EmailVerifiedAt = DateTime.UtcNow;
+        });
+        await app.ClearSpendAsync();
+
+        // 23:30 UTC, half past one or two in Jerusalem: the day is open, and the note still waits.
+        app.Clock.Now = DateTime.UtcNow.Date.AddHours(23).AddMinutes(30);
+        Assert.Equal(0, await Worker(app).RunAsync(CancellationToken.None));
+        Assert.Equal(1, await AskedAsync(app, id));
+        Assert.Empty(await StylistBackNotificationsAsync(client));
+        Assert.Empty(app.Email.To("owl@example.test"));
+        Assert.False(Worker(app).InsideTheDay(app.Clock.UtcNow));
+
+        // 07:00 UTC the next day, nine or ten in Jerusalem: told, and mailed.
+        app.Clock.Now = DateTime.UtcNow.Date.AddDays(1).AddHours(7);
+        Assert.True(Worker(app).InsideTheDay(app.Clock.UtcNow));
+        Assert.Equal(1, await Worker(app).RunAsync(CancellationToken.None));
+        Assert.Single(await StylistBackNotificationsAsync(client));
+        Assert.Single(app.Email.To("owl@example.test"));
+        Assert.Equal(0, await AskedAsync(app, id));
+    }
+
+    /// <summary>
+    /// Review fixes: each person's row goes, with their line, in a save of its own before their mail. A save that fails
+    /// keeps that row for the next pass and sends nothing; the people already told are never mailed twice. The pass used
+    /// to mail everyone first and save once at the end, so one failed save mailed them all again five minutes later.
+    /// </summary>
+    [Fact]
+    public async Task A_row_that_cannot_be_saved_waits_and_nobody_is_mailed_twice()
+    {
+        using var app = Resting();
+        await CloseTheDayAsync(app);
+        var ids = new Dictionary<string, Guid>();
+        var clients = new Dictionary<string, HttpClient>();
+        foreach (var (handle, ip) in new[] { ("told_once", "203.0.113.60"), ("saved_later", "203.0.113.61") })
+        {
+            clients[handle] = Guest(app, ip);
+            ids[handle] = (await SignupAsync(clients[handle], handle, notify: true)).GetProperty("id").GetGuid();
+        }
+
+        WithDb(app, db =>
+        {
+            foreach (var (handle, id) in ids)
+            {
+                var user = db.Users.Single(u => u.Id == id);
+                user.Email = handle + "@example.test";
+                user.EmailVerifiedAt = DateTime.UtcNow;
+            }
+        });
+        await app.ClearSpendAsync();
+
+        await SqlAsync(app, "CREATE TRIGGER saved_later BEFORE INSERT ON \"Notifications\" " +
+            "WHEN NEW.\"Type\" = 'stylist_back' AND NEW.\"UserId\" = (SELECT \"Id\" FROM \"Users\" WHERE \"Handle\" = 'saved_later') " +
+            "BEGIN SELECT RAISE(ABORT, 'this row cannot be written'); END");
+        Assert.Equal(1, await Worker(app).RunAsync(CancellationToken.None));
+        Assert.Single(app.Email.To("told_once@example.test"));
+        Assert.Empty(app.Email.To("saved_later@example.test"));
+        Assert.Equal(0, await AskedAsync(app, ids["told_once"]));
+        Assert.Equal(1, await AskedAsync(app, ids["saved_later"]));
+        Assert.Empty(await StylistBackNotificationsAsync(clients["saved_later"]));
+
+        await SqlAsync(app, "DROP TRIGGER saved_later");
+        Assert.Equal(1, await Worker(app).RunAsync(CancellationToken.None));
+        Assert.Single(app.Email.To("saved_later@example.test"));
+        Assert.Single(await StylistBackNotificationsAsync(clients["saved_later"]));
+        Assert.Equal(0, await AskedAsync(app, ids["saved_later"]));
+        // Once each: the person told on the first pass has one line and one mail.
+        Assert.Single(app.Email.To("told_once@example.test"));
+        Assert.Single(await StylistBackNotificationsAsync(clients["told_once"]));
     }
 
     [Fact]

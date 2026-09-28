@@ -273,9 +273,13 @@ public static class BillingEndpoints
     /// <summary>
     /// Stripe's events. Round 20: a delivery is told from a replay by the event's own id (<see cref="StripeEvent"/>):
     /// an id already on record answers 200 <c>{ received, replayed }</c> and does nothing, so a retried or replayed
-    /// checkout.session.completed no longer stacks one more period. The id is recorded AFTER the handler ran, so a
-    /// handler that threw (500) leaves no row and Stripe's retry is handled, not ignored; the two deliveries of one
-    /// event that could both slip through that window are serialised by <see cref="WebhookGate"/>. Rows older than
+    /// checkout.session.completed no longer stacks one more period. The id is written in the same SaveChanges as the
+    /// handler's own work (review of Round 20: it used to be a second save after it, so a delivery that died between
+    /// the two granted twice on Stripe's retry), so a handler that threw before saving (500) leaves no row and Stripe's
+    /// retry is handled, not ignored, and a grant is never on record without its id. Past the gate the work runs to
+    /// its end whatever the connection does: a delivery Stripe gave up on is then on record, and its retry is answered
+    /// as a replay. The two deliveries of one event that could both find no row are serialised by
+    /// <see cref="WebhookGate"/>. Rows older than
     /// <see cref="StripeEventKeep"/> are pruned, and past that the monotonic rules stay as the second line of defence
     /// (a repeated invoice.paid or customer.subscription.updated names the same period end and changes nothing, a
     /// repeated subscription.deleted ends what already ended). An event without an id (a hand-made one) is handled every
@@ -341,12 +345,18 @@ public static class BillingEndpoints
                     return Results.Json(new { received = true, replayed = true }, AppJson.Options);
                 }
 
-                await HandleAsync(type, payload, db, localizer, billing.Value, logger, alerter, email, context.Request, ct);
-
                 if (eventId is not null)
                 {
-                    await RecordAsync(db, eventId, type, logger, ct);
+                    db.StripeEvents.Add(new StripeEvent
+                    {
+                        Id = eventId,
+                        Type = type.Length <= EventIdMaxLength ? type : type[..EventIdMaxLength],
+                        ReceivedAt = DateTime.UtcNow
+                    });
                 }
+
+                await HandleAsync(type, payload, db, localizer, billing.Value, logger, alerter, email, context.Request, CancellationToken.None);
+                await SaveTheRestAsync(db, eventId, type, logger);
             }
             finally
             {
@@ -358,22 +368,23 @@ public static class BillingEndpoints
     }
 
     /// <summary>
-    /// The row that says this event was handled. Written after the work, in its own SaveChanges, and a duplicate key
-    /// (another process, or a hand-made pair) is swallowed: the work it stands for was done, and Stripe gets its 200.
+    /// What is still unsaved once the handler returns: the event's row when the handler wrote nothing of its own (an
+    /// event for nobody, one it ignores), and anything a handler left for here. A handler that saved took the row with
+    /// its work. A duplicate key (another process, or a hand-made pair) is swallowed: the work it stands for was done,
+    /// and Stripe gets its 200.
     /// </summary>
-    private static async Task RecordAsync(AppDbContext db, string eventId, string type, ILogger logger, CancellationToken ct)
+    private static async Task SaveTheRestAsync(AppDbContext db, string? eventId, string type, ILogger logger)
     {
-        db.StripeEvents.Add(new StripeEvent
+        if (!db.ChangeTracker.HasChanges())
         {
-            Id = eventId,
-            Type = type.Length <= EventIdMaxLength ? type : type[..EventIdMaxLength],
-            ReceivedAt = DateTime.UtcNow
-        });
+            return;
+        }
+
         try
         {
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(CancellationToken.None);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException) when (eventId is not null)
         {
             logger.LogInformation("Stripe event {Id} ({Type}) was recorded by another delivery meanwhile.", eventId, type);
         }
@@ -403,6 +414,11 @@ public static class BillingEndpoints
                 // never a paid period; a session without metadata (hand-made, or from before) is a month, as before.
                 user.Plan = Plans.Pro;
                 user.ProUntil = Later(user.ProUntil, now) + GrantedBy(payload);
+                // Review of Round 20: what the renewal recap reads. The first charge is one period from now whatever was
+                // under the grant, and a trial that asked for no card has nothing to charge; the subscription's own events
+                // correct both (the account usually learns its customer id only here, so the earlier ones found nobody).
+                user.BillingRenews = TrialDays(payload) == 0;
+                user.BillingPeriodEnd = FirstPeriodEnd(payload, now);
                 var customer = StringOrId(payload, "customer");
                 if (!string.IsNullOrWhiteSpace(customer))
                 {
@@ -438,18 +454,22 @@ public static class BillingEndpoints
                     break;
                 }
 
-                if (user.BillingSubscriptionId is null)
-                {
-                    user.BillingSubscriptionId = created;
-                    await db.SaveChangesAsync(ct);
-                    logger.LogInformation("Account {Handle} follows subscription {Subscription} (created).", user.Handle, created);
-                }
-                else if (user.BillingSubscriptionId != created)
+                if (user.BillingSubscriptionId is not null && user.BillingSubscriptionId != created)
                 {
                     logger.LogWarning("Stripe created subscription {Subscription} for account {Handle}, which already follows {Current}; ignored.",
                         created, user.Handle, user.BillingSubscriptionId);
+                    break;
                 }
 
+                if (user.BillingSubscriptionId is null)
+                {
+                    user.BillingSubscriptionId = created;
+                    logger.LogInformation("Account {Handle} follows subscription {Subscription} (created).", user.Handle, created);
+                }
+
+                // Review of Round 20: the followed subscription's period and whether it will charge, for the recap.
+                NoteRenewal(user, payload);
+                await db.SaveChangesAsync(ct);
                 break;
             }
 
@@ -471,9 +491,16 @@ public static class BillingEndpoints
                 // Paid through the end of the period the invoice's lines name, plus slack; an invoice naming none is
                 // worth a period from now. Never counted from the previous end date: a renewal every ~30 days would
                 // otherwise run ahead by the difference each time. Never shorter than what is there.
-                var paidUntil = PeriodEnd(payload) is { } periodEnd ? periodEnd + RenewalSlack : now + PaidPeriod;
+                var named = PeriodEnd(payload);
+                var paidUntil = named is { } periodEnd ? periodEnd + RenewalSlack : now + PaidPeriod;
                 user.Plan = Plans.Pro;
                 user.ProUntil = Later(user.ProUntil, paidUntil);
+                // The next charge is the end of the period just paid for (review of Round 20); never moved back by a late one.
+                if (named is { } paidThrough)
+                {
+                    user.BillingPeriodEnd = Later(user.BillingPeriodEnd, paidThrough);
+                }
+
                 await db.SaveChangesAsync(ct);
                 logger.LogInformation("Account {Handle} is Pro until {Until:u} (invoice paid).", user.Handle, user.ProUntil);
                 break;
@@ -495,11 +522,9 @@ public static class BillingEndpoints
                     break;
                 }
 
-                // An adopted id is kept whatever the status below does to the end date.
-                if (db.ChangeTracker.HasChanges())
-                {
-                    await db.SaveChangesAsync(ct);
-                }
+                // Review of Round 20: the period and whether it will charge, for the recap; saved with the end date below,
+                // or, where the status leaves the end date alone, by the webhook after the handler, like an adopted id.
+                NoteRenewal(user, payload);
 
                 var status = StringOrId(payload, "status");
                 if (status is "active" or "trialing")
@@ -567,6 +592,8 @@ public static class BillingEndpoints
                 var wasPro = Plans.IsPro(user, now);
                 user.ProUntil = now;
                 user.BillingSubscriptionId = null;
+                user.BillingRenews = null;
+                user.BillingPeriodEnd = null;
                 await db.SaveChangesAsync(ct);
                 logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
                 // Round 17: only when they actually had it to lose. Stripe deletes a subscription for a cancellation
@@ -639,17 +666,77 @@ public static class BillingEndpoints
     /// no_payment_required with a trialDays the app wrote into the metadata) is worth its days plus the slack; a
     /// session sold as a year is worth <see cref="PaidYear"/>; everything else, a month as before.
     /// </summary>
-    private static TimeSpan GrantedBy(JsonElement session)
+    private static TimeSpan GrantedBy(JsonElement session) =>
+        TrialDays(session) is > 0 and var days ? TimeSpan.FromDays(days) + RenewalSlack : SoldAYear(session) ? PaidYear : PaidPeriod;
+
+    /// <summary>
+    /// Review of Round 20: when a completed Checkout's subscription charges first: the trial's end, or one calendar
+    /// month or year from now, which is where Stripe anchors a subscription opened without a billing anchor.
+    /// </summary>
+    private static DateTime FirstPeriodEnd(JsonElement session, DateTime now) =>
+        TrialDays(session) is > 0 and var days ? now.AddDays(days) : SoldAYear(session) ? now.AddYears(1) : now.AddMonths(1);
+
+    /// <summary>The days of a no-card trial the session opened (payment_status no_payment_required and metadata.trialDays, capped at 730), or 0.</summary>
+    private static int TrialDays(JsonElement session)
     {
-        var metadata = session.ValueKind == JsonValueKind.Object && session.TryGetProperty("metadata", out var block) && block.ValueKind == JsonValueKind.Object
-            ? block : default;
-        var trialDays = int.TryParse(StringOrId(metadata, "trialDays"), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days) ? days : 0;
-        if (StringOrId(session, "payment_status") == "no_payment_required" && trialDays > 0)
+        var trialDays = int.TryParse(StringOrId(Metadata(session), "trialDays"), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days) ? days : 0;
+        return StringOrId(session, "payment_status") == "no_payment_required" && trialDays > 0 ? Math.Min(trialDays, 730) : 0;
+    }
+
+    private static bool SoldAYear(JsonElement session) => StringOrId(Metadata(session), "interval") == "year";
+
+    private static JsonElement Metadata(JsonElement session) =>
+        session.ValueKind == JsonValueKind.Object && session.TryGetProperty("metadata", out var block) && block.ValueKind == JsonValueKind.Object ? block : default;
+
+    /// <summary>
+    /// Review of Round 20: what the renewal recap needs from an event about the followed subscription. The period end
+    /// when the event names one, and whether the subscription will charge at it: active or trialing, not set to cancel
+    /// by then (cancel_at_period_end, or a cancel_at no later than the period end), and, while it trials, with a card on
+    /// it; past due, unpaid, paused or anything else will not. A card kept only on the customer is not in the event, so
+    /// such a trial reads as not renewing: the safe side, where the recap stays quiet rather than promise a renewal.
+    /// "incomplete" (a first payment still being confirmed) says nothing either way and leaves the flag as it was: the
+    /// event that follows it does, and Stripe does not promise the order they arrive in.
+    /// </summary>
+    private static void NoteRenewal(AppUser user, JsonElement subscription)
+    {
+        var end = CurrentPeriodEnd(subscription);
+        if (end is not null)
         {
-            return TimeSpan.FromDays(Math.Min(trialDays, 730)) + RenewalSlack;
+            user.BillingPeriodEnd = end;
         }
 
-        return StringOrId(metadata, "interval") == "year" ? PaidYear : PaidPeriod;
+        if (WillRenew(subscription, end) is { } renews)
+        {
+            user.BillingRenews = renews;
+        }
+    }
+
+    private static bool? WillRenew(JsonElement subscription, DateTime? periodEnd)
+    {
+        var status = StringOrId(subscription, "status");
+        if (status == "incomplete")
+        {
+            return null;
+        }
+
+        if (status is not ("active" or "trialing"))
+        {
+            return false;
+        }
+
+        if (subscription.TryGetProperty("cancel_at_period_end", out var cancelling) && cancelling.ValueKind == JsonValueKind.True)
+        {
+            return false;
+        }
+
+        if (UnixTime(subscription, "cancel_at") is { } cancelAt && (periodEnd is null || cancelAt <= periodEnd))
+        {
+            return false;
+        }
+
+        return status == "active"
+            || !string.IsNullOrWhiteSpace(StringOrId(subscription, "default_payment_method"))
+            || !string.IsNullOrWhiteSpace(StringOrId(subscription, "default_source"));
     }
 
     /// <summary>The account a Checkout Session was opened for: client_reference_id first, metadata.userId as the fallback.</summary>
@@ -814,7 +901,7 @@ public static class BillingEndpoints
             await email.SendAsync(new EmailMessage(
                 user.Email!,
                 localizer.Get(language, "email.billing_problem_subject"),
-                localizer.Get(language, "email.billing_problem_body", user.Handle, until.ToString("d MMMM", System.Globalization.CultureInfo.InvariantCulture), link)), ct);
+                localizer.Get(language, "email.billing_problem_body", user.Handle, Localizer.Day(until, language), link)), ct);
         }
         catch (Exception e)
         {

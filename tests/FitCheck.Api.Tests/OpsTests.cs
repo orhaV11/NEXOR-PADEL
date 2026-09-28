@@ -159,6 +159,26 @@ public class DoctorTests : IDisposable
         var ok = await Inspect(hour);
         Assert.Equal(DoctorStatus.Ok, ok["anthropic-url"]!.Status);
         Assert.Contains("prompt cache 1h", ok["anthropic-url"]!.Detail);
+
+        // Review of Round 20: a typo in the cache word no longer hides a ceiling that cuts verdicts off. Both are said,
+        // on the one line, and the line names the cache mode whatever it warns about.
+        var both = Healthy();
+        both["Anthropic:PromptCache"] = "5min";
+        both["Anthropic:MaxTokens"] = "1200";
+        var twice = (await Inspect(both))["anthropic-url"]!;
+        Assert.Equal(DoctorStatus.Warn, twice.Status);
+        Assert.Contains("\"5min\", not off, 5m or 1h: caching is off", twice.Detail);
+        Assert.Contains("max_tokens 1200", twice.Detail);
+        Assert.Contains("below 3000 a full verdict does not fit", twice.Detail);
+        Assert.Contains("prompt cache off", twice.Detail);
+
+        var low = Healthy();
+        low["Anthropic:PromptCache"] = "5m";
+        low["Anthropic:MaxTokens"] = "1200";
+        var ceiling = (await Inspect(low))["anthropic-url"]!;
+        Assert.Equal(DoctorStatus.Warn, ceiling.Status);
+        Assert.Contains("prompt cache 5m", ceiling.Detail);
+        Assert.Contains("Raise Anthropic__MaxTokens", ceiling.Detail);
     }
 
     [Fact]
@@ -995,6 +1015,63 @@ public class DoctorTests : IDisposable
         Assert.All(handler.Requests, r => Assert.Equal("127.0.0.1", r.Uri.Host));
         Assert.All(handler.Requests, r => Assert.Equal(5099, r.Uri.Port));
         Assert.Equal(0, stubbed.ExitCode);
+
+        // Review of Round 20: the whole address counts, not the host. A port or a path prefix on api.stripe.com is
+        // somewhere else too, and the line names it in full.
+        foreach (var other in new[] { "https://api.stripe.com:8443/", "https://api.stripe.com/v1/" })
+        {
+            var odd = HealthyYearly();
+            odd["Billing:StripeBaseUrl"] = other;
+            var line = (await Inspect(odd))["billing"]!;
+            Assert.Equal(DoctorStatus.Warn, line.Status);
+            Assert.Contains($"Billing__StripeBaseUrl is {other}, not https://api.stripe.com/", line.Detail);
+        }
+
+        // Plain http to another machine would carry the secret key in the clear: the app refuses it and uses Stripe,
+        // and the doctor says the setting is ignored, while the live reads go to Stripe over https.
+        var cleartext = HealthyYearly();
+        cleartext["Billing:StripeBaseUrl"] = "http://api.stripe.com";
+        var plain = new CannedHandler(HttpStatusCode.OK) { PriceBody = PriceOf("price_1NotAReal", "month", "ils", 1990) };
+        var refused = await Inspect(cleartext, live: true, stripeOnly: true, handler: plain);
+        Assert.Equal(DoctorStatus.Warn, refused["billing"]!.Status);
+        Assert.Contains("Billing__StripeBaseUrl is http://api.stripe.com, which is ignored", refused["billing"]!.Detail);
+        Assert.All(plain.Requests, r => Assert.Equal("https://api.stripe.com/", r.Uri.GetLeftPart(UriPartial.Authority) + "/"));
+
+        // Stripe's own address, however it is typed, is no warning.
+        var typed = HealthyYearly();
+        typed["Billing:StripeBaseUrl"] = "https://API.stripe.com:443";
+        Assert.Equal(DoctorStatus.Ok, (await Inspect(typed))["billing"]!.Status);
+    }
+
+    /// <summary>Review of Round 20: the address the secret key may go to - https anywhere, plain http only to this machine (the browser test's stub).</summary>
+    [Theory]
+    [InlineData("", "https://api.stripe.com/")]
+    [InlineData("https://stripe.proxy.example/prefix", "https://stripe.proxy.example/prefix/")]
+    [InlineData("http://127.0.0.1:5099", "http://127.0.0.1:5099/")]
+    [InlineData("http://localhost:5099/", "http://localhost:5099/")]
+    [InlineData("http://api.stripe.com", "https://api.stripe.com/")]
+    [InlineData("http://10.0.0.5:8080/", "https://api.stripe.com/")]
+    [InlineData("ftp://api.stripe.com/", "https://api.stripe.com/")]
+    [InlineData("not a url", "https://api.stripe.com/")]
+    public void The_stripe_address_is_https_or_this_machine(string configured, string expected) =>
+        Assert.Equal(expected, StripeClient.BaseAddress(new BillingOptions { StripeBaseUrl = configured }).AbsoluteUri);
+
+    /// <summary>
+    /// Review of Round 20: the Pro page picks the reader's currency from the monthly table alone, so a yearly amount in
+    /// a currency with no monthly price is never offered; the doctor used to call it shown.
+    /// </summary>
+    [Fact]
+    public async Task A_yearly_price_with_no_monthly_twin_is_a_warning()
+    {
+        var euros = HealthyYearly();
+        euros["Plans:ProYearlyPrices:EUR"] = "69";
+        var line = (await Inspect(euros))["billing"]!;
+        Assert.Equal(DoctorStatus.Warn, line.Status);
+        Assert.Contains("the yearly 69 EUR is never shown: there is no monthly price in EUR", line.Detail);
+
+        // With its monthly twin it is shown, and the line is green again.
+        euros["Plans:ProPrices:EUR"] = "7.90";
+        Assert.Equal(DoctorStatus.Ok, (await Inspect(euros))["billing"]!.Status);
     }
 
     /// <summary>The printed form: one line per check, a four-character verdict a script can grep, and a summary that names the exit code's reason.</summary>

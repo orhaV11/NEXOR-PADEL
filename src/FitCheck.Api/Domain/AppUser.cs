@@ -87,8 +87,28 @@ public sealed class AppUser
     /// <summary>Round 20: the entry link (/go/&lt;source&gt;) the device arrived through before this signup, an allowlisted word or null.</summary>
     public string? Source { get; set; }
 
-    /// <summary>Round 20: the ProUntil the last pre-renewal recap mail was written for; a renewal moves ProUntil, which makes it once per period.</summary>
+    /// <summary>
+    /// Round 20: the charge the last pre-renewal recap mail was written for; a renewal moves the charge on, which makes it
+    /// once per period. Round 20 wrote the ProUntil here, which is later than its own charge, so an old stamp still
+    /// covers its period.
+    /// </summary>
     public DateTime? RenewalRecapUntil { get; set; }
+
+    /// <summary>
+    /// Review of Round 20: whether the followed subscription will charge again at <see cref="BillingPeriodEnd"/>, as the
+    /// last webhook event said: false once it is set to cancel at the period end, while it trials with no card on it, and
+    /// while collection has stopped (past due, unpaid, paused). Null until Stripe says (an account from before the
+    /// column), read as renewing, as before. Only the renewal recap reads it. Never shown.
+    /// </summary>
+    public bool? BillingRenews { get; set; }
+
+    /// <summary>
+    /// Review of Round 20: the end of the followed subscription's current period, the moment Stripe charges next: the
+    /// period a completed Checkout sold (a month, a year or the trial's days from then) until an event names Stripe's own
+    /// (a subscription's current_period_end, a paid invoice's lines). Null for an account from before the column until
+    /// the next such event. Unlike <see cref="ProUntil"/> it carries no slack and no gift. Never shown.
+    /// </summary>
+    public DateTime? BillingPeriodEnd { get; set; }
 
     /// <summary>Round 20: the person's own switch for the morning push (Settings); the server flag decides whether it is offered at all.</summary>
     public bool TomorrowPushOn { get; set; } = true;

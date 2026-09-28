@@ -13,14 +13,17 @@ namespace FitCheck.Api.Services;
 /// model did not write and the way to manage the subscription; once per period. The same hourly pass prunes handled
 /// Stripe events older than <see cref="BillingEndpoints.StripeEventKeep"/>, always, even with mail off.
 /// <para>
-/// Who gets it: an account whose Pro is running, that follows a subscription (<see cref="AppUser.BillingSubscriptionId"/>:
-/// something will actually renew; a --pro grant has no renewal and no portal), with a confirmed address, not suspended,
-/// and whose <see cref="AppUser.RenewalRecapUntil"/> is not already this period's end. The send moment is
-/// <see cref="Lead"/> before the charge, and the charge is <see cref="AppUser.ProUntil"/> minus
-/// <see cref="BillingEndpoints.RenewalSlack"/>, because the end date carries the slack. A renewal moves ProUntil, and
-/// that is what makes the mail once per period. It is transactional, like the card and the "Pro ended" letters: it
-/// ignores <see cref="AppUser.DigestOn"/> and carries no unsubscribe link, because it is the one mail that can save
-/// the person money.
+/// Who gets it: an account whose Pro is running, that follows a subscription (<see cref="AppUser.BillingSubscriptionId"/>;
+/// a --pro grant has no renewal and no portal) that will really charge (<see cref="AppUser.BillingRenews"/> is not
+/// false: not set to cancel at the period end, not a trial with no card, not a declined renewal), with a confirmed
+/// address, not suspended, and whose <see cref="AppUser.RenewalRecapUntil"/> is not already this charge. The charge is
+/// <see cref="AppUser.BillingPeriodEnd"/>, the period Stripe named (review of Round 20: ProUntil carries a Checkout's
+/// 35 or 368 days and any gift under them, so it named the wrong day for every first renewal); an account from before
+/// that column falls back to <see cref="AppUser.ProUntil"/> minus <see cref="BillingEndpoints.RenewalSlack"/>, as
+/// Round 20 did, until Stripe's next event names it. The send moment is <see cref="Lead"/> before the charge. A renewal
+/// moves the charge on, and that is what makes the mail once per period. It is transactional, like the card and the
+/// "Pro ended" letters: it ignores <see cref="AppUser.DigestOn"/> and carries no unsubscribe link, because it is the one
+/// mail that can save the person money. The date is written in the person's language.
 /// </para>
 /// <para>
 /// The three numbers are computed from the database over the last <see cref="Window"/>: comparisons decided, outfits
@@ -73,22 +76,33 @@ public sealed class RenewalRecap(
             return new Run(0, 0, pruned);
         }
 
-        // Due when ProUntil - slack - lead <= now, written the way the database can index it.
+        // Due when charge - lead <= now < charge, written the way the database can compare it: the period Stripe named,
+        // or, for an account from before that column, ProUntil - slack.
+        var chargeBy = now + Lead;
         var dueBefore = now + BillingEndpoints.RenewalSlack + Lead;
         var candidates = await db.Users
-            .Where(u => u.Plan == Plans.Pro && u.ProUntil != null && u.ProUntil > now && u.ProUntil <= dueBefore
-                && u.BillingSubscriptionId != null && u.Email != null && u.EmailVerifiedAt != null && !u.Suspended
-                && (u.RenewalRecapUntil == null || u.RenewalRecapUntil != u.ProUntil))
+            .Where(u => u.Plan == Plans.Pro && u.ProUntil != null && u.ProUntil > now
+                && u.BillingSubscriptionId != null && u.BillingRenews != false
+                && u.Email != null && u.EmailVerifiedAt != null && !u.Suspended
+                && ((u.BillingPeriodEnd != null && u.BillingPeriodEnd > now && u.BillingPeriodEnd <= chargeBy
+                        && (u.RenewalRecapUntil == null || u.RenewalRecapUntil < u.BillingPeriodEnd))
+                    || (u.BillingPeriodEnd == null && u.ProUntil <= dueBefore)))
             .ToListAsync(ct);
 
         var sent = 0;
         var skipped = 0;
         foreach (var user in candidates)
         {
+            var charge = user.BillingPeriodEnd ?? user.ProUntil!.Value - BillingEndpoints.RenewalSlack;
+            // Round 20 stamped the ProUntil, which is later than its charge, so an old stamp still covers its period.
+            if (user.RenewalRecapUntil is { } stamped && stamped >= charge)
+            {
+                continue;
+            }
+
             var numbers = await NumbersAsync(db, user.Id, now, ct);
-            var charge = user.ProUntil!.Value - BillingEndpoints.RenewalSlack;
-            var chargeDay = charge.ToString("d MMMM", CultureInfo.InvariantCulture);
             var language = Localizer.IsSupported(user.PreferredLanguage) ? user.PreferredLanguage : Localizer.DefaultLocale;
+            var chargeDay = Localizer.Day(charge, language);
             // Settings is where "Manage subscription" mints the portal session; a portal url cannot be linked to
             // directly, because Stripe makes one per person on demand.
             var body = localizer.Get(language, "email.renewal_body",
@@ -111,7 +125,7 @@ public sealed class RenewalRecap(
             }
 
             // Stamped per person, right after the send: a crash in the middle of a run never mails the same inbox twice.
-            user.RenewalRecapUntil = user.ProUntil;
+            user.RenewalRecapUntil = charge;
             await db.SaveChangesAsync(ct);
             sent++;
         }

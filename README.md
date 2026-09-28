@@ -121,12 +121,15 @@ otherwise. In the order it prints them: `origin` (the public origin mail links a
 difference between a shared link that unfurls with a picture and one that does not), `anthropic` (the key),
 `anthropic-url` (the base URL, the model, the answer ceiling and, since Round 20, the prompt cache mode: the OK line
 reads `https://api.anthropic.com, model {model}, max_tokens {n}, prompt cache {off|5m|1h}.`, and a WARN under the
-same name says `Anthropic__PromptCache is "{value}", not off, 5m or 1h: caching is off.` for any other word), `contact`
+same name says `Anthropic__PromptCache is "{value}", not off, 5m or 1h: caching is off` for any other word and that a
+ceiling below 3000 cuts verdicts off, both joined by `; ` when both hold), `contact`
 (the address the legal pages name), `email`, `billing` (the provider and the keys; since Round 20 it FAILS on a yearly
 id without the `price_` prefix and on `Plans__ProTrialDays` outside 0..730, WARNS — one line, joined by `; ` — on
-`Billing__StripeBaseUrl` pointing anywhere but `api.stripe.com`, a yearly id with no yearly amount ("offers no yearly
-plan"), a yearly amount with no id ("never shown"), a yearly amount at or above twelve months of the monthly in the
-same currency ("no saving"), the manual provider with a trial ("a trial needs Checkout") and a test key over https,
+`Billing__StripeBaseUrl` pointing anywhere but `https://api.stripe.com/` (scheme, port and path included; a value the
+app ignores, such as plain http to another machine, is named as ignored), a yearly id with no yearly amount ("offers no
+yearly plan"), a yearly amount with no id ("never shown"), a yearly amount in a currency with no monthly price (also
+"never shown": the page offers a year only beside a month), a yearly amount at or above twelve months of the monthly in
+the same currency ("no saving"), the manual provider with a trial ("a trial needs Checkout") and a test key over https,
 and reads `stripe (sk_live_…), price <id>, yearly <id|none>, trial <n> days|off, webhook secret set.` when all is
 well), `plans` (the caps against the ceiling, ending `morning push 07:30 Asia/Jerusalem` or `morning push off`, and
 warning when `Plans__TomorrowMorningPush` is on without VAPID keys or with `Plans__TomorrowEnabled` off, and when
@@ -391,7 +394,7 @@ local stand-in built to move its scores on purpose; the wrapper is how the first
 | `Billing:StripeSecretKey` / `StripePriceId` / `StripeWebhookSecret` | empty | Environment only (`Billing__StripeSecretKey`, `Billing__StripePriceId`, `Billing__StripeWebhookSecret`): the API secret key (`sk_test_…` works against Stripe's test mode), the recurring Pro price (`price_…`), and the signing secret of the webhook endpoint (`whsec_…`). Read in `Services/StripeClient.cs` and `Endpoints/BillingEndpoints.cs`; the secret key is redacted from HttpClient logging |
 | `Billing:PublicOrigin` | empty | Where Checkout returns to (`/#/pro?checkout=success` or `cancel`); the request's origin when empty |
 | `Billing:StripeYearlyPriceId` | empty | **Round 20.** The yearly recurring price (`price_…`), optional, environment only like the other keys. A year is sold only with this AND a yearly amount; with the id set the doctor also demands that the monthly price recur every month |
-| `Billing:StripeBaseUrl` | `https://api.stripe.com/` | Where Stripe is, read by the named Stripe client and by both doctor reads; blank or not an absolute `http(s)` URL falls back to the default, and a trailing slash is always added so relative paths keep their prefix. It exists so the browser test can point the app at its stub; the doctor warns on any other host, and it stays unset on a server |
+| `Billing:StripeBaseUrl` | `https://api.stripe.com/` | Where Stripe is, read by the named Stripe client and by both doctor reads; blank, not an absolute URL, or anything but `https` (plain `http` only to this machine, since every request carries the secret key) falls back to the default, and a trailing slash is always added so relative paths keep their prefix. It exists so the browser test can point the app at its stub; the doctor warns on any other address, and it stays unset on a server |
 | `Limits:ChecksPerDay` | `30` | The ceiling per account over a rolling 24 hours, whatever the plan says: `Plans:ProChecksPerDay` cannot exceed it. Counted including checks still in flight; failed calls do not count |
 | `Limits:ChecksPerDayGlobal` | `1000` | Ceiling across all users and guests over a rolling 24 hours: checks and comparisons on both routes (`Services/Spend.cs`), calls in flight counted, failed calls left out (429 `error.rate_limited_global`) |
 | `Limits:SignupsPerHourPerIp` | `50` | New accounts per client address per hour (address taken from `X-Forwarded-For` behind the tunnel) |
@@ -1673,8 +1676,9 @@ what each move is and how it fits.
 
 **Billing: replays ignored by id, a yearly price, a no-card trial, the renewal recap** (`814af1e`). `POST
 /api/billing/webhook` keeps the event ids it has handled (`StripeEvents`, pruned after 30 days) and answers a replay
-`200 { received: true, replayed: true }` without touching the account; the id is recorded after the handler and under a
-process-wide gate, so a handler that threw is retried by Stripe and a parallel burst of one id is handled once. `POST
+`200 { received: true, replayed: true }` without touching the account; the id is recorded in the handler's own save
+(since the review; it used to be a second save after it) and under a process-wide gate, so a handler that threw before
+saving is retried by Stripe, a grant never stands without its id, and a parallel burst of one id is handled once. `POST
 /api/billing/checkout?interval=year` sells the yearly price where the page could have offered it (`Billing:StripeYearlyPriceId`
 and a yearly amount in the reader's currency: `Plans:ProYearlyPriceAmount`, `Plans:ProYearlyPrices`; 400
 `error.billing_interval` otherwise), and `checkout.session.completed` grants 368 days for it (`PaidYear`) where a month
@@ -1691,9 +1695,13 @@ needed", the `timer` icon) is drawn only when `plans.billing`, `plans.proTrialDa
 (signed out, or `GET /api/billing/state` says `trialDays > 0`), and the button then reads "Start {days} free days".
 `Services/RenewalRecap.cs` (hosted `RenewalRecapService`, hourly, first pass at start) mails a Pro account three days
 before Stripe charges it — the charge date, the comparisons it decided, the outfits it planned and of them wore, the
-tips that named something it owned, in its language, with a link to `#/settings` — once per period
-(`AppUser.RenewalRecapUntil`), only with a `BillingSubscriptionId`, a confirmed address and mail configured; it is
-transactional, so it ignores `DigestOn` and carries no unsubscribe link. The doctor's `billing` and `stripe-yearly`
+tips that named something it owned, in its language (the date too), with a link to `#/settings` — once per period
+(`AppUser.RenewalRecapUntil`), only with a `BillingSubscriptionId` that will really charge, a confirmed address and mail
+configured; it is transactional, so it ignores `DigestOn` and carries no unsubscribe link. Since the review the charge
+is the period Stripe bills (`AppUser.BillingPeriodEnd`: a Checkout's month, year or trial from then, then whatever
+`customer.subscription.*` and `invoice.paid` name), not the end date, and `AppUser.BillingRenews` keeps the mail from a
+subscription set to cancel at the period end, a trial with no card and a declined renewal; an account from before
+those columns is read as Round 20 read it until Stripe's next event. The doctor's `billing` and `stripe-yearly`
 lines and `Billing:StripeBaseUrl` are described with the doctor above.
 
 **The wait and the viral day** (`b53b996`). The line under the flame on a check or a comparison now changes with the

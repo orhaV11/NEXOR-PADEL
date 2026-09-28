@@ -521,7 +521,8 @@ person confirmed** — an unverified one is as likely to be a typo as a mailbox,
 stranger — and both need `Email__*` configured. A letter that cannot be sent is logged and swallowed: Stripe still
 gets its 200, or it retries the event and everything beside the letter runs twice. Since Round 20 the event ids are
 kept for 30 days (`StripeEvents`): a replayed event answers `{ received: true, replayed: true }` and changes nothing, and
-the id is recorded only after the handler ran, so a handler that failed is retried by Stripe rather than ignored. An
+the id is recorded in the same save as the handler's work, so a handler that failed is retried by Stripe rather than
+ignored, and a delivery cut off halfway cannot grant a second period on the retry. An
 account that is Pro already cannot open a second Checkout (409). Card details never reach the
 app, and the secret key is redacted from the app's logs.
 
@@ -626,9 +627,9 @@ the paragraphs under the table before the two that cost money (`Anthropic__Promp
 | Variable | What to put |
 |---|---|
 | `Billing__StripeYearlyPriceId` | Optional, `price_…`: a **second recurring price on the same product, yearly**. Leave it out for monthly only. With it set, run `--stripe-check` again: the yearly price must recur every year and carry every currency of `Plans__ProYearlyPrices`, and the monthly one must now recur every month. Environment only, like the other keys |
-| `Plans__ProYearlyPriceAmount`, `Plans__ProYearlyPrices__<CUR>` | The yearly amount in `Plans__ProPriceCurrency`, and per currency, under the same rule as the monthly table: prices, never conversions, the same numbers Stripe charges. The Pro page shows the year only when a yearly amount exists in the reader's currency AND the id above is set, and computes "save N%" from the two numbers itself; a yearly amount at or above twelve months of the monthly is a doctor warning ("no saving"), an id with no amount ("offers no yearly plan") and an amount with no id ("never shown") are warnings too |
+| `Plans__ProYearlyPriceAmount`, `Plans__ProYearlyPrices__<CUR>` | The yearly amount in `Plans__ProPriceCurrency`, and per currency, under the same rule as the monthly table: prices, never conversions, the same numbers Stripe charges. The Pro page shows the year only when a yearly amount exists in the reader's currency AND the id above is set, and computes "save N%" from the two numbers itself; a yearly amount at or above twelve months of the monthly is a doctor warning ("no saving"), an id with no amount ("offers no yearly plan"), an amount with no id and an amount in a currency with no monthly price (both "never shown") are warnings too |
 | `Plans__ProTrialDays` | `0` (off). `7` opens Stripe Checkout's own trial: seven days of Pro before the first charge, no card asked for, once per account, to an account that never went through Checkout here (no customer id; a `--pro` gift does not disqualify). A trial that ends with no card simply ends — that arrives as `customer.subscription.deleted`, which is one more reason the webhook endpoint needs **all seven events**. The trial is Checkout's, so it **needs `Billing__Provider=stripe`**: on `manual` it means nothing and `--doctor` warns |
-| `Billing__StripeBaseUrl` | **Leave it unset.** `https://api.stripe.com/` is the default; it exists so the browser test can point the app at a stub, and `--doctor` warns on any other host, because Checkout, the portal and the doctor's own reads would all go there |
+| `Billing__StripeBaseUrl` | **Leave it unset.** `https://api.stripe.com/` is the default; it exists so the browser test can point the app at a stub, and `--doctor` warns on any other address (a port or a path counts), because Checkout, the portal and the doctor's own reads would all go there. Only `https` is taken, and plain `http` only to this machine: anything else carries the secret key in the clear, so the app ignores it, uses Stripe, and the doctor says so |
 | `Anthropic__PromptCache` | `off` (default), `5m` or `1h`. The shared rubric of a check or a comparison is written to the provider's cache once and read back at a tenth of the input price for five minutes or an hour after the last read; a write costs 1.25× (`5m`) or 2× (`1h`). Any other word counts as off and the doctor's `anthropic-url` line warns |
 | `Funnel__Sources__0`, `__1`, … | The entry links `/go/<source>` answers. Leave it out for the ten defaults: `tt`, `ig`, `wa`, `campus`, `yt`, `fb`, `x`, `qr`, `story`, `dm` (`tiktok`, `instagram`, `whatsapp`, `youtube`, `facebook` and `twitter` resolve to the short ones). A list here **replaces** the ten: a server that sets `__0=campus` alone answers `/go/campus` and sends `/go/tt` to the landing page uncounted |
 | `Plans__TomorrowMorningPush`, `Plans__TomorrowMorningHour` | `false` and `07:30`. The morning "your outfit for today is one tap away" push, local to `Board__TimeZone`. Off by default and meant to stay off for a while (below) |
@@ -1077,7 +1078,9 @@ model now carries the morning push's default (on), which Round 20's migration on
 `DEFAULT` is rewritten — on SQLite a table rebuild, the rows copied as they are — and a pilot file upgraded from the
 model comes out with the push on too. Nobody's switch changes: a row that says off stays off. The same migration
 indexes `Notifications` by type and check, for the try-tip nudge and the numbers page. Take the backup first, as for
-Round 10.
+Round 10. A second one, `20260928092150_Round21ReviewRenewal`, only adds two empty columns to `Users` (when Stripe
+charges next, and whether it will), which the webhook fills in from the next event; until then a subscriber's renewal
+mail goes on the date it went before.
 
 ### Moving your laptop pilot to the server
 

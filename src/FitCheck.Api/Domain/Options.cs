@@ -615,7 +615,7 @@ public sealed class BillingOptions
     /// <summary>Round 20: the yearly recurring price (price_...), optional. Yearly is offered only while this and a yearly amount are both set.</summary>
     public string StripeYearlyPriceId { get; set; } = "";
 
-    /// <summary>Round 20: where Stripe is (the doctor warns on any host but api.stripe.com); the browser test points it at a stub.</summary>
+    /// <summary>Round 20: where Stripe is (https, or plain http to this machine; the doctor warns on any address but Stripe's); the browser test points it at a stub.</summary>
     public string StripeBaseUrl { get; set; } = Services.StripeClient.BaseUrl;
 
     /// <summary>Signs the webhook events (whsec_...). Environment only.</summary>

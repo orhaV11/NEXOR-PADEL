@@ -338,18 +338,23 @@ public static class Doctor
 
         // Round 20: the prompt cache mode is on the same line, because it changes what the calls cost and nothing on
         // the box shows it otherwise; a value that is not one of the three words is a warning that says caching is off.
-        var cache = anthropic.CacheMode();
+        // Review of Round 20: both warnings are gathered, joined by "; " like the billing line's, so a typo in the cache
+        // word no longer hides a ceiling that cuts verdicts off, and the mode is named on every line.
+        var head = $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}, prompt cache {anthropic.CacheMode()}";
+        var warnings = new List<string>();
         if (!anthropic.PromptCacheKnown())
         {
-            lines.Add(new(DoctorStatus.Warn, "anthropic-url",
-                $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}: Anthropic__PromptCache is \"{(anthropic.PromptCache ?? "").Trim()}\", not off, 5m or 1h: caching is off."));
-            return;
+            warnings.Add($"Anthropic__PromptCache is \"{(anthropic.PromptCache ?? "").Trim()}\", not off, 5m or 1h: caching is off");
         }
 
-        lines.Add(anthropic.MaxTokens < MinimumMaxTokens
-            ? new(DoctorStatus.Warn, "anthropic-url",
-                $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}: below {MinimumMaxTokens.ToString(CultureInfo.InvariantCulture)} a full verdict does not fit and long answers are cut off, billed and discarded. Raise Anthropic__MaxTokens.")
-            : new(DoctorStatus.Ok, "anthropic-url", $"{DefaultAnthropicBaseUrl}, model {model}, max_tokens {ceiling}, prompt cache {cache}."));
+        if (anthropic.MaxTokens < MinimumMaxTokens)
+        {
+            warnings.Add($"below {MinimumMaxTokens.ToString(CultureInfo.InvariantCulture)} a full verdict does not fit and long answers are cut off, billed and discarded. Raise Anthropic__MaxTokens");
+        }
+
+        lines.Add(warnings.Count == 0
+            ? new(DoctorStatus.Ok, "anthropic-url", head + ".")
+            : new(DoctorStatus.Warn, "anthropic-url", head + ": " + string.Join("; ", warnings) + "."));
     }
 
     /// <summary>Below this a verdict with its breakdown, its accessories read and its tip does not reliably fit.</summary>
@@ -503,9 +508,16 @@ public static class Doctor
             return;
         }
 
+        // The whole address, not the host: a scheme, a port or a path prefix on api.stripe.com is somewhere else too. A
+        // value the app refuses (plain http to another machine would carry the secret key in the clear) is said as well.
         var warnings = new List<string>();
+        var configuredStripe = (billing.StripeBaseUrl ?? "").Trim();
         var stripeUrl = StripeClient.BaseAddress(billing);
-        if (!string.Equals(stripeUrl.Host, new Uri(StripeClient.BaseUrl).Host, StringComparison.OrdinalIgnoreCase))
+        if (configuredStripe.Length > 0 && StripeClient.Accepted(configuredStripe) is null)
+        {
+            warnings.Add($"Billing__StripeBaseUrl is {configuredStripe}, which is ignored: only https, or plain http to this machine, may carry the secret key, so Checkout, the portal and these checks go to {StripeClient.BaseUrl}");
+        }
+        else if (!string.Equals(stripeUrl.AbsoluteUri, StripeClient.BaseUrl, StringComparison.Ordinal))
         {
             warnings.Add($"Billing__StripeBaseUrl is {stripeUrl}, not {StripeClient.BaseUrl}: Checkout, the portal and these checks go there, not to Stripe");
         }
@@ -522,10 +534,16 @@ public static class Doctor
 
         // The saving the page computes is (1 - yearly / 12 * monthly): at or above twelve months there is none to show,
         // and a yearly plan that costs more than the year it replaces is a typo more often than a decision.
+        // Review of Round 20: the page picks the reader's currency from the monthly table alone, so a yearly amount in a
+        // currency with no monthly price is never offered to anybody.
         var monthlyTable = plans.PriceTable();
         foreach (var (currency, amount) in yearlyTable.OrderBy(entry => entry.Key, StringComparer.Ordinal))
         {
-            if (monthlyTable.TryGetValue(currency, out var monthly) && monthly > 0 && amount >= 12 * monthly)
+            if (!monthlyTable.TryGetValue(currency, out var monthly) || monthly <= 0)
+            {
+                warnings.Add($"the yearly {Money(amount, currency)} is never shown: there is no monthly price in {currency}, and the Pro page offers a year only beside a month");
+            }
+            else if (amount >= 12 * monthly)
             {
                 warnings.Add($"the yearly {Money(amount, currency)} is not below twelve months of {Money(monthly, currency)}, so the Pro page shows no saving for it");
             }

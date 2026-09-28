@@ -5,6 +5,10 @@ using System.Text.Json;
 using FitCheck.Api.Data;
 using FitCheck.Api.Domain;
 using FitCheck.Api.Services;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FitCheck.Api.Tests;
 
@@ -57,6 +61,50 @@ public sealed class YearlyStripeBillingApp : TestApp
         Settings["Plans:ProPriceCurrency"] = "ILS";
         Settings["Plans:ProPrices:EUR"] = "9.90";
         Settings["Plans:ProYearlyPriceAmount"] = "290";
+    }
+}
+
+/// <summary>
+/// Review of Round 20: the Stripe app whose database refuses, once when asked, the save that would write a webhook
+/// event's row - a delivery that died at the worst moment, between the work and the record of it.
+/// </summary>
+public sealed class FlakyStripeBillingApp : TestApp
+{
+    public FailingEventSave Interceptor { get; } = new();
+
+    public FlakyStripeBillingApp()
+    {
+        BillingProvider = "stripe";
+        StripeSecretKey = StripeBillingApp.SecretKey;
+        StripePriceId = StripeBillingApp.PriceId;
+        StripeWebhookSecret = StripeBillingApp.WebhookSecret;
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        base.ConfigureWebHost(builder);
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<DbContextOptions<AppDbContext>>();
+            services.AddDbContext<AppDbContext>(options => options.UseSqlite(ConnectionString).AddInterceptors(Interceptor));
+        });
+    }
+}
+
+/// <summary>Throws from the next save that carries a new <see cref="StripeEvent"/> row, once, as a dropped connection would.</summary>
+public sealed class FailingEventSave : SaveChangesInterceptor
+{
+    public bool FailNext { get; set; }
+
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+    {
+        if (FailNext && eventData.Context is { } context && context.ChangeTracker.Entries<StripeEvent>().Any(e => e.State == EntityState.Added))
+        {
+            FailNext = false;
+            throw new IOException("the connection went away");
+        }
+
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 }
 
@@ -1196,7 +1244,7 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
     }
 
     /// <summary>
-    /// The id is recorded after the handler, so a handler that failed leaves no row and Stripe's retry is handled;
+    /// The id is recorded with the handler's work, so a handler that failed leaves no row and Stripe's retry is handled;
     /// an event with no id at all (a hand-made one) is handled every time and recorded never; and two deliveries of
     /// one id that arrive together are handled once, because the check-handle-record run is serialised.
     /// </summary>
@@ -1231,6 +1279,128 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Equal(3, replays);
         AssertAround(UserOf(_stripe, burstId).ProUntil, DateTime.UtcNow.AddDays(35));
         Assert.Equal(1, EventRows(_stripe, "evt_burst"));
+    }
+
+    /// <summary>
+    /// Review of Round 20: the event's row is written in the same save as the grant. It used to be a second save after
+    /// it, so a delivery that died between the two left a grant with no record, and Stripe's retry granted it again.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_a_grant_and_its_event_row_are_saved_together()
+    {
+        await using var app = new FlakyStripeBillingApp();
+        var (_, id, _) = await app.NewUserAsync("bill_atomic");
+        var paid = CheckoutCompleted(id.ToString("N"), null, "cus_atomic", "sub_atomic", id: "evt_atomic");
+
+        // The save that carries the event's row fails: nothing of the delivery stands, and Stripe will retry.
+        app.Interceptor.FailNext = true;
+        Assert.Equal(HttpStatusCode.InternalServerError, (await PostEventAsync(app, paid)).StatusCode);
+        Assert.False(app.Interceptor.FailNext);
+        var untouched = UserOf(app, id);
+        Assert.Equal("free", untouched.Plan);
+        Assert.Null(untouched.ProUntil);
+        Assert.Equal(0, EventRows(app, "evt_atomic"));
+
+        // The retry grants one period and records it; the next one is a replay.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(app, paid)).StatusCode);
+        AssertAround(UserOf(app, id).ProUntil, DateTime.UtcNow.AddDays(35));
+        Assert.Equal(1, EventRows(app, "evt_atomic"));
+        Assert.True((await Json(await PostEventAsync(app, paid))).GetProperty("replayed").GetBoolean());
+        AssertAround(UserOf(app, id).ProUntil, DateTime.UtcNow.AddDays(35));
+
+        // An event no handler writes for still gets its row, in the save after the handler.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(app, new { id = "evt_atomic_ping", type = "ping" })).StatusCode);
+        Assert.Equal(1, EventRows(app, "evt_atomic_ping"));
+    }
+
+    /// <summary>
+    /// Review of Round 20: what the renewal recap reads off the events - when the followed subscription charges next,
+    /// and whether it will: a Checkout's own period (a month, a year, a trial's days from now), Stripe's period once an
+    /// event names it, and no renewal for a cancel at the period end (or a cancel_at by then), a trial with no card, a
+    /// stopped collection; another subscription's event changes nothing, and a deleted one clears both.
+    /// </summary>
+    [Fact]
+    public async Task Webhook_notes_when_the_followed_subscription_charges_and_whether_it_will()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_renews");
+        var (_, yearId, _) = await _stripe.NewUserAsync("bill_renews_year");
+        var (_, trialId, _) = await _stripe.NewUserAsync("bill_renews_trial");
+        var before = DateTime.UtcNow;
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(id.ToString("N"), "cus_renews", "sub_renews", "month", null, "paid"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(yearId.ToString("N"), "cus_renews_y", "sub_renews_y", "year", null, "paid"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(trialId.ToString("N"), "cus_renews_t", "sub_renews_t", "month", "7", "no_payment_required"))).StatusCode);
+        var month = UserOf(_stripe, id);
+        Assert.True(month.BillingRenews);
+        AssertAround(month.BillingPeriodEnd, before.AddMonths(1));
+        Assert.True(UserOf(_stripe, yearId).BillingRenews);
+        AssertAround(UserOf(_stripe, yearId).BillingPeriodEnd, before.AddYears(1));
+        Assert.False(UserOf(_stripe, trialId).BillingRenews);
+        AssertAround(UserOf(_stripe, trialId).BillingPeriodEnd, before.AddDays(7));
+
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(29);
+        object Updated(string status, object extra) => new
+        {
+            id = NewEventId(),
+            type = "customer.subscription.updated",
+            data = new { @object = Merge(new { id = "sub_renews", @object = "subscription", customer = "cus_renews", status, current_period_end = periodEnd.ToUnixTimeSeconds() }, extra) }
+        };
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { cancel_at_period_end = true }))).StatusCode);
+        var cancelling = UserOf(_stripe, id);
+        Assert.False(cancelling.BillingRenews);
+        AssertAround(cancelling.BillingPeriodEnd, periodEnd.UtcDateTime);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { cancel_at = periodEnd.AddDays(60).ToUnixTimeSeconds() }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { cancel_at = periodEnd.ToUnixTimeSeconds() }))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { cancel_at_period_end = false }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("trialing", new { default_payment_method = (string?)null }))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("trialing", new { default_payment_method = "pm_card" }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("past_due", new { }))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        // A first payment still being confirmed says nothing either way: the flag stays as the last word left it.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("incomplete", new { }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("unpaid", new { }))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated("active", new { }))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+
+        // Another subscription on the same customer says nothing about the followed one.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionUpdated("cus_renews", "past_due", periodEnd.AddDays(5), id: "sub_stranger"))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, periodEnd.UtcDateTime);
+
+        // A paid invoice moves the next charge to the end of what it paid for, never back.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renews", periodEnd: periodEnd.AddDays(30)))).StatusCode);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, periodEnd.AddDays(30).UtcDateTime);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, InvoicePaid("cus_renews", periodEnd: periodEnd))).StatusCode);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, periodEnd.AddDays(30).UtcDateTime);
+
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, SubscriptionDeleted("cus_renews", "sub_renews"))).StatusCode);
+        var ended = UserOf(_stripe, id);
+        Assert.Null(ended.BillingRenews);
+        Assert.Null(ended.BillingPeriodEnd);
+    }
+
+    /// <summary>Two anonymous objects as one JSON object, the second's fields last.</summary>
+    private static Dictionary<string, object?> Merge(object first, object second)
+    {
+        var merged = new Dictionary<string, object?>();
+        foreach (var part in new[] { first, second })
+        {
+            foreach (var property in part.GetType().GetProperties())
+            {
+                merged[property.Name] = property.GetValue(part);
+            }
+        }
+
+        return merged;
     }
 
     [Fact]

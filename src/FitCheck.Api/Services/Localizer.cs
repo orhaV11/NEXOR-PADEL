@@ -204,7 +204,7 @@ public sealed class Localizer
             ["mail.stylist_back_subject"] = "The stylist is back",
             ["mail.stylist_back_body"] = "Hi {0},\n\nThe stylist is back at work, and your look is waiting: {1}\n\nYou asked for this one note when you signed up; there will not be another.",
             ["email.renewal_subject"] = "Your OREVOSH Pro renews on {0}",
-            ["email.renewal_body"] = "Hi @{0},\n\nYour Pro renews on {1}. Here is what it did in the last 30 days:\n\n{2} comparisons decided.\n{3} outfits planned, {4} of them worn.\n{5} tips that named something you already own.\n\nManage subscription (change the card, or cancel before it renews):\n\n{6}\n\nIf you're happy, there's nothing to do.",
+            ["email.renewal_body"] = "Hi @{0},\n\nYour Pro renews on {1}. Here is what it did in the last 30 days:\n\nComparisons decided: {2}.\nOutfits planned: {3}, worn: {4}.\nTips that named something you already own: {5}.\n\nManage subscription (change the card, or cancel before it renews):\n\n{6}\n\nIf you're happy, there's nothing to do.",
             ["public.before"] = "Before",
             ["public.after"] = "After",
             ["public.one_change"] = "One change",
@@ -958,6 +958,14 @@ public sealed class Localizer
 
     public static bool IsSupported(string? locale) =>
         locale is not null && Array.IndexOf(SupportedLocales, locale) >= 0;
+
+    /// <summary>
+    /// A date the way a mail names it, in the reader's language: "11 October", "11 אוקטובר", "11 أكتوبر", "11 октября"
+    /// (the language's own month, Gregorian, Western digits: what the four neutral cultures give). An unsupported
+    /// language reads as English. The renewal recap and the card letter both say their date with it.
+    /// </summary>
+    public static string Day(DateTime when, string? locale) =>
+        when.ToString("d MMMM", CultureInfo.GetCultureInfo(IsSupported(locale) ? locale! : DefaultLocale));
 
     /// <summary>"he-IL" → "he", "fr-FR" → "en", "" → "en". Only the language subtag is compared.</summary>
     public static string Match(string? tag) => TryMatch(tag, out var locale) ? locale : DefaultLocale;

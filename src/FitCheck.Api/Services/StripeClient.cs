@@ -35,16 +35,24 @@ public sealed class StripeClient
     public const string SignatureHeader = "Stripe-Signature";
 
     /// <summary>
-    /// Round 20: where the named client and the doctor's two reads go. Billing:StripeBaseUrl when it is an absolute
-    /// http(s) address, else Stripe itself; always with the trailing slash, because relative paths are resolved against
-    /// it and "http://host/prefix" without one would drop the prefix. The browser test points this at its stub.
+    /// Round 20: where the named client and the doctor's two reads go. Billing:StripeBaseUrl when <see cref="Accepted"/>
+    /// takes it, else Stripe itself; always with the trailing slash, because relative paths are resolved against it and
+    /// "https://host/prefix" without one would drop the prefix. The browser test points this at its stub.
     /// </summary>
-    public static Uri BaseAddress(BillingOptions options)
+    public static Uri BaseAddress(BillingOptions options) => Accepted(options.StripeBaseUrl) ?? new Uri(BaseUrl);
+
+    /// <summary>
+    /// A configured Stripe address this app will send the secret key to, with its trailing slash, or null. Review of
+    /// Round 20: https anywhere, and plain http only to this machine (the browser test's stub), because every request
+    /// through it carries the key as a bearer token; "http://api.stripe.com" used to be taken as it was.
+    /// </summary>
+    public static Uri? Accepted(string? configured)
     {
-        var configured = (options.StripeBaseUrl ?? "").Trim();
-        if (configured.Length == 0 || !Uri.TryCreate(configured, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        var value = (configured ?? "").Trim();
+        if (value.Length == 0 || !Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || !(uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback)))
         {
-            return new Uri(BaseUrl);
+            return null;
         }
 
         return uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");

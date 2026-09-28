@@ -2129,7 +2129,8 @@ brake, not a product, since Round 14). Nine briefs were
 written on one skeleton (`b8cbadb`) so no two builders would touch the migration, the DTO fields, the counters or the
 i18n keys at once, and nine builders shipped them in order; the departures from the briefs are listed at the end.
 
-**Billing.** Event ids are recorded AFTER the handler, and the lookup, the handler and the record are serialised by a
+**Billing.** Event ids are recorded AFTER the handler (since the review, in the handler's own save, not a second one after
+it: Round 21, *Review fixes*), and the lookup, the handler and the record are serialised by a
 process-wide gate (`BillingEndpoints.WebhookGate`): record-after means a handler that threw answers 500, leaves no row
 and lets Stripe's retry be handled rather than ignored, and the gate is what makes a parallel burst of one id one period
 — record-after alone would have let both through, and the brief's own test demanded one period from a parallel burst. A
@@ -2142,8 +2143,9 @@ days (capped at 730) plus the slack, `metadata.interval=year` is 368 days, anyth
 `trialDays` (a full coupon, say) is granted like a paid one. Trial eligibility is the app's, not Stripe's — no
 `BillingCustomerId` — so a deleted-and-recreated account can trial again and a `--pro` grant does not disqualify. The
 renewal recap is transactional: it ignores `DigestOn` and carries no unsubscribe link, like the card and the Pro-ended
-letters; its candidates need a `BillingSubscriptionId` (something will actually renew), a confirmed address and
-`ProUntil` inside the lead; `Run.Skipped` counts failed sends, retried next hour, not ineligible accounts. The doctor
+letters; its candidates need a `BillingSubscriptionId` that will actually charge (`BillingRenews`, since the review
+below), a confirmed address and the charge inside the lead; `Run.Skipped` counts failed sends, retried next hour, not
+ineligible accounts. The doctor
 gathers every billing warning into one line joined by `; `, because five separate `billing` lines would read as five
 failures, and the manual provider with a trial is a warning that says a trial needs Checkout.
 
@@ -2501,3 +2503,29 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   each check), the morning ping's day and when it was opened, the ask to hear when the stylist is back, and, in the
   cookies section, what the browser keeps besides the language (the invite and the link until signup). The documents
   are version 6, dated 2026-09-28; every earlier sentence stays.
+- **The renewal mail goes where Stripe will charge, and names the day it will.** Round 20 read both off `ProUntil`, so
+  a portal cancel (Stripe cancels at the period end and the subscription stays active), a no-card trial and a declined
+  renewal were all told "renews ... nothing to do", and every monthly subscriber's first mail named the 35-day grant's
+  end, up to four days after the charge. Two columns now say what `ProUntil` cannot: `BillingPeriodEnd`, the period a
+  Checkout sold (a month, a year or the trial's days from then, because the account usually learns its customer id only
+  from the checkout event, after Stripe's first subscription and invoice events found nobody) until an event names
+  Stripe's own; and `BillingRenews`, false for a cancel at or before the period end, a trial with no card on the
+  subscription, and any status but active or trialing (`incomplete` leaves it as it was: the event after it decides,
+  whatever order they arrive in). Both are nullable with no default: an account from before them is read as Round 20
+  read it until Stripe's next event, which keeps the mail its subscribers were promised rather than drop one for
+  everybody. A trial with no card gets no mail at all rather than a new "your trial ends" letter; a card
+  kept only on the customer is not in the event, so such a trial reads as not renewing — the quiet side, where no mail
+  promises a renewal. The stamp is now the charge; the ProUntil Round 20 stamped is later than its charge, so it still
+  covers its period. The date is the person's language's (`Localizer.Day`, also used by the card letter), and the
+  English counts follow their nouns like the other three languages ("Comparisons decided: 1."), since four counts in one
+  body would need sixteen singular variants.
+- **A webhook event's row is saved with its work.** The row used to be a second save after the handler's, under the
+  request's token, so a delivery that died between the two left a grant with no record and Stripe's retry granted it
+  again. The row is now added before the handler and goes in the handler's own save (or in one after it, for an event
+  that writes nothing), and past the gate the work runs to its end whatever the connection does, so a retry after a
+  dropped connection is answered as a replay.
+- **Stripe's address carries the key only over https.** `Billing:StripeBaseUrl` takes https anywhere and plain http only
+  to this machine (the browser test's stub); anything else is ignored for Stripe itself, and the doctor says so. The
+  doctor compares the whole address, so a port or a path prefix on api.stripe.com is a warning that names it. It also
+  warns on a yearly amount in a currency with no monthly price (the page never shows it), and the `anthropic-url` line
+  gathers the unknown cache word and a low ceiling into one warning instead of stopping at the first.

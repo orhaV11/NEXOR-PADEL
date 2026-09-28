@@ -156,9 +156,10 @@ public class LocalizerTests
     {
         var localizer = new Localizer();
         var english = localizer.Get("en", "email.renewal_body", "noa", "14 October", "2", "3", "1", "5", "https://looks.test/#/settings");
-        Assert.Contains("2 comparisons decided", english, StringComparison.Ordinal);
-        Assert.Contains("3 outfits planned, 1 of them worn", english, StringComparison.Ordinal);
-        Assert.Contains("5 tips that named", english, StringComparison.Ordinal);
+        // Review of Round 20: each count after its noun, like the other three, so a one never reads "1 tips".
+        Assert.Contains("Comparisons decided: 2.", english, StringComparison.Ordinal);
+        Assert.Contains("Outfits planned: 3, worn: 1.", english, StringComparison.Ordinal);
+        Assert.Contains("Tips that named something you already own: 5.", english, StringComparison.Ordinal);
         Assert.Equal("Your OREVOSH Pro renews on 14 October", localizer.Get("en", "email.renewal_subject", "14 October"));
         foreach (var locale in new[] { "he", "ar", "ru" })
         {
@@ -176,6 +177,20 @@ public class LocalizerTests
             Assert.Contains("14 October", localizer.Get(locale, "email.renewal_subject", "14 October"), StringComparison.Ordinal);
         }
     }
+
+    /// <summary>
+    /// Review of Round 20: a mailed date is the reader's own language's - its month, the Gregorian calendar, Western
+    /// digits - and an unsupported language reads as English. It used to be English in all four.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "11 October")]
+    [InlineData("he", "11 אוקטובר")]
+    [InlineData("ar", "11 أكتوبر")]
+    [InlineData("ru", "11 октября")]
+    [InlineData("fr", "11 October")]
+    [InlineData(null, "11 October")]
+    public void A_mailed_date_is_in_the_readers_language(string? language, string expected) =>
+        Assert.Equal(expected, Localizer.Day(new DateTime(2026, 10, 11, 23, 30, 0, DateTimeKind.Utc), language));
 
     private static Dictionary<string, Dictionary<string, string>> Messages()
     {

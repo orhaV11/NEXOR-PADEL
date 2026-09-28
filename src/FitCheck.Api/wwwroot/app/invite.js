@@ -10,7 +10,10 @@
 //   4. Round 20 — ?src: an entry link (/go/<source>) redirects to /?src=<source>#/check. The source is kept exactly like
 //      the invite (localStorage, try/catch), sent with every guest check while it is kept (a guest may check twice, then
 //      sign up) and handed to the signup once, where it is forgotten, so one arrival attributes at most one account.
-//      Sign-out does not clear it: it is the device's arrival, not the person's. Never a cookie.
+//      Sign-out does not clear it: it is the device's arrival, not the person's. Never a cookie. Review of Round 21: a
+//      browser with somebody signed in forgets both words as soon as it knows (forgetArrival, called by core.js's
+//      loadMe): an account has nothing left for them to attribute, and the privacy page says the browser keeps them
+//      until a signup, not for as long as an existing account keeps using the phone.
 //
 // Loaded at boot because views/post.js imports it, which main.js imports; capture() runs on import, before any view.
 // Once read, ?via and ?src leave the address (the rest of the query and the hash stay), so a reload or a restored tab
@@ -84,6 +87,9 @@ export function captureSource(search) {
 
 /** The source the guest check sends, without spending it: a guest may check twice before signing up. */
 export const pendingSource = () => readSource() || null;
+
+/** Both words, gone: the invite and the source. For a browser somebody is signed in on (review of Round 21). */
+export function forgetArrival() { forget(); forgetSource(); }
 
 /** The source the signup sends; asked for once and then forgotten, so one arrival is at most one account. */
 export function takeSource() {

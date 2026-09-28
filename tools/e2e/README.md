@@ -104,6 +104,29 @@ card on `#/admin`), `14` (the money step against the Stripe stub) and `resting` 
 API, the stylist-back offer and the welcome's push step). Round 21 changed no query: every id and class the script
 reads survived the redesign.
 
+**The second look at Rounds 20 and 21** added, in the same steps: in `tomorrow`, Noa answers "It worked" on the first
+check and the next check's result carries exactly one `#taste-win` (the line fills the result's own slot), and `#tm-card`
+loses `.arrive` after `#tm-yes` (the same outfit does not rise in again); in `morning`, a visit to Tomorrow after the two
+push taps opens on the pill Noa saved, and a second window of Noa's (`pusher`), whose `/app/push.js` is answered by a
+stand-in that can subscribe and whose `/api/push/morning` offers the push, turns notifications on and sees
+`#s-push-morning` unlock in place, then off and locked again; in `today`, the strip carries `.arrive` on a fresh Home and
+not after Back from a look; in `distribution`, Maya (an English account on a Hebrew phone) keeps no `orevosh.source` or
+`orevosh.invite` once signed in, takes Home's Hebrew offer and reads a Hebrew `#today-title` at once and after leaving
+Home, crosses the free wardrobe slice on a keep with two questions still to come without the Pro moment under it (nor
+the tab marked), finds `#wardrobe-moment` on `#/wardrobe`, and signs out of a Home that showed her own verdict dots onto
+one with none; in `resting`, the same refusal drawn from a config without mail, without push keys and without either
+reads `guest.resting_offer_no_mail`, `_no_push` and `_app_only`.
+
+**When a step times out** the script now also prints, per open page, every request that started and never finished
+(method, path, resource type, the step it started in and how long ago) and what the page's own thread says (its `lang`,
+hash, how many nodes `#view` holds, the `fetch` entries of its resource timing), so a hang in the network and a hang in
+the page's code can be told apart from the log alone. The one route that aborts a call (the installed app's first
+`/api/config`) stays registered for the page's whole life and lets the later calls through: a once-only route is torn
+down as it fires, which turns the page's interception off while boot's next requests are in flight, and one caught in
+that switch never leaves the browser (the stall the distribution step used to hit about one run in five). A route the
+script adds keeps to that rule. `stalled` holds one launch's `/api/config` unanswered and expects the app drawn once
+`BOOT_WAIT_MS` (12 s) has passed.
+
 Two things about timing: the sheet kit keeps a closing panel for 170 ms after Escape, so wait for `.sheet.closing` to
 go before asserting on the page behind it; and `GET /api/items/brands` is called while a brand field is typed in (a
 failure there is silent in the UI).

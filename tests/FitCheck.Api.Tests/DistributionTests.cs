@@ -138,20 +138,30 @@ public class DistributionTests : IClassFixture<TestApp>
     {
         var before = await CounterAsync(_app, Funnel.InviteArrivals(Today));
 
-        // A person follows the link: the /go hop hands the invite on, and the page it lands on is the one arrival.
+        // A person follows the link: the /go hop counts the invite, and the page it lands on (which carries src) does not
+        // count it again.
         var person = _app.CreateClient();
         Assert.Equal(HttpStatusCode.OK, (await person.GetAsync("/go/tt?via=dana")).StatusCode);
         Assert.Equal(before + 1, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
 
-        // The hop alone counts no invite: a word off the list drops it on the way to /landing/, a fetcher unfurling the
-        // link is redirected without a tally, and a browser that stops at the redirect has arrived nowhere yet.
+        // Review of Round 21: the hop is the arrival, because the landing page is often never asked of the server. On a phone
+        // that has opened OREVOSH before, the service worker answers that navigation from its cache, as /index.html with no
+        // query; a browser that stops at the redirect is that phone, and it is counted once.
         var stopping = Stopping(_app);
-        Assert.Equal("/landing/", (await stopping.GetAsync("/go/nope?via=dana")).Headers.Location!.ToString());
         Assert.Equal("/?src=tt&via=dana#/check", (await stopping.GetAsync("/go/tt?via=dana")).Headers.Location!.ToString());
+        Assert.Equal(before + 2, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
+        // The landing address itself never counts, and a fetcher unfurling the link is redirected without a tally, as is a
+        // word off the list, which drops the invite on the way to /landing/.
+        Assert.Equal(HttpStatusCode.OK, (await Stopping(_app).GetAsync("/?src=tt&via=dana")).StatusCode);
         var crawler = Stopping(_app);
         crawler.DefaultRequestHeaders.UserAgent.ParseAdd("WhatsApp/2.23.20.0");
         Assert.Equal(HttpStatusCode.Found, (await crawler.GetAsync("/go/tt?via=dana")).StatusCode);
-        Assert.Equal(before + 1, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
+        Assert.Equal("/landing/", (await stopping.GetAsync("/go/nope?via=dana")).Headers.Location!.ToString());
+        Assert.Equal(before + 2, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
+
+        // A plain invite link (no entry link in front of it) is still counted where it lands, as since Round 13.
+        Assert.Equal(HttpStatusCode.OK, (await Stopping(_app).GetAsync("/?via=dana")).StatusCode);
+        Assert.Equal(before + 3, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
     }
 
     [Fact]
@@ -167,14 +177,15 @@ public class DistributionTests : IClassFixture<TestApp>
         Assert.Equal(HttpStatusCode.Created, bogus.StatusCode);
         var bogusId = (await bogus.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        // A signed-in check carries it too (the numbers page filters to guests, but the row says where the device came from).
+        // Review of Round 21: a signed-in check does not keep it. The numbers page reads the word off guest checks only, and
+        // the privacy page promises no more than it uses.
         var (member, memberId, _) = await app.NewUserAsync("srcmember");
         var memberCheck = await member.PostAsync("/api/checks", CheckFormWithSource("qr"));
         Assert.Equal(HttpStatusCode.Created, memberCheck.StatusCode);
 
         Assert.Equal("tt", await WithDbAsync(app, db => db.Checks.AsNoTracking().Where(c => c.Id == stampedId).Select(c => c.Source).SingleAsync()));
         Assert.Null(await WithDbAsync(app, db => db.Checks.AsNoTracking().Where(c => c.Id == bogusId).Select(c => c.Source).SingleAsync()));
-        Assert.Equal("qr", await WithDbAsync(app, db => db.Checks.AsNoTracking().Where(c => c.UserId == memberId).Select(c => c.Source).SingleAsync()));
+        Assert.Null(await WithDbAsync(app, db => db.Checks.AsNoTracking().Where(c => c.UserId == memberId).Select(c => c.Source).SingleAsync()));
         Assert.Null(await WithDbAsync(app, db => db.Users.AsNoTracking().Where(u => u.Id == memberId).Select(u => u.Source).SingleAsync()));
 
         async Task<string?> SignupWithSourceAsync(string handle, string source)
@@ -491,9 +502,12 @@ public class DistributionTests : IClassFixture<TestApp>
             "invite.js must take ?via and ?src off the address after capturing them");
         Assert.Contains("history.replaceState(", invite);
 
-        // The check sends it while it is kept; the signup sends both without spending them and spends them only once the
-        // account exists, so a refused first try (a taken handle) keeps the attribution for the next one.
-        Assert.Contains("form.append('source', source)", File.ReadAllText(Path.Combine(WebRoot, "app", "views", "check.js")));
+        // A guest's check sends it while it is kept (review of Round 21: a signed-in check does not, and the server would
+        // not keep it); the signup sends both without spending them and spends them only once the account exists, so a
+        // refused first try (a taken handle) keeps the attribution for the next one.
+        var check = File.ReadAllText(Path.Combine(WebRoot, "app", "views", "check.js"));
+        Assert.Contains("const source = state.me ? null : pendingSource();", check);
+        Assert.Contains("form.append('source', source)", check);
         var auth = File.ReadAllText(Path.Combine(WebRoot, "app", "views", "auth.js"));
         Assert.Contains("invitedBy: pendingInvite()", auth);
         Assert.Contains("source: pendingSource()", auth);
@@ -501,8 +515,12 @@ public class DistributionTests : IClassFixture<TestApp>
         var spent = auth.IndexOf("if (signup) { takeInvite(); takeSource(); }", StringComparison.Ordinal);
         Assert.True(sent > 0 && spent > sent, "the invite and the source are spent only after the signup call answered");
 
-        // The launch header rides the first call only, and the day is marked only once the server has answered.
+        // Review of Round 21: a browser somebody is signed in on keeps neither word (the privacy page: until a signup).
+        Assert.Contains("export function forgetArrival() { forget(); forgetSource(); }", invite);
         var core = File.ReadAllText(Path.Combine(WebRoot, "app", "core.js"));
+        Assert.Contains("if (state.me) import('./invite.js').then((m) => m.forgetArrival())", core);
+
+        // The launch header rides the first call only, and the day is marked only once the server has answered.
         Assert.Contains("'X-Orevosh-Launch': 'standalone'", core);
         var config = core.IndexOf("await api('GET', '/api/config'", StringComparison.Ordinal);
         var marked = core.IndexOf("savePrefs({ standaloneDay:", StringComparison.Ordinal);

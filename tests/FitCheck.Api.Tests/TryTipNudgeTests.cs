@@ -46,16 +46,20 @@ public class TryTipNudgeTests : IClassFixture<PushTests.PushApp>
     }
 
     /// <summary>A check made now, then moved to <paramref name="at"/>: the route stamps the wall clock, the tests speak the fake one.</summary>
-    private async Task<Guid> CheckAtAsync(HttpClient client, DateTime at)
+    private Task<Guid> CheckAtAsync(HttpClient client, DateTime at) => CheckAtAsync(App, client, at);
+
+    private static async Task<Guid> CheckAtAsync(TestApp app, HttpClient client, DateTime at)
     {
-        var id = await App.CheckAsync(client);
-        await MoveAsync(id, at);
+        var id = await app.CheckAsync(client);
+        await MoveAsync(app, id, at);
         return id;
     }
 
-    private async Task MoveAsync(Guid checkId, DateTime at)
+    private Task MoveAsync(Guid checkId, DateTime at) => MoveAsync(App, checkId, at);
+
+    private static async Task MoveAsync(TestApp app, Guid checkId, DateTime at)
     {
-        using var scope = App.Services.CreateScope();
+        using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Checks.Where(c => c.Id == checkId).ExecuteUpdateAsync(s => s.SetProperty(c => c.CreatedAt, at));
     }
@@ -186,45 +190,57 @@ public class TryTipNudgeTests : IClassFixture<PushTests.PushApp>
     [Fact]
     public async Task A_row_that_cannot_be_written_does_not_stop_the_next_person()
     {
-        var (first, _, _) = await App.NewUserAsync("nudge_fails");
+        // An app of its own, with a short confirmation window. The failed row's push job is already queued when its insert
+        // fails, and the worker, one job at a time, waits for that row before it drops the job: twenty looks 250 ms apart
+        // on the default window, the same five seconds the wait for the next person's push below allows, so the test
+        // raced the worker and lost most runs. Ten looks 100 ms apart (as PushTests' ghost job) drop it within a second.
+        using var app = new TestApp
+        {
+            PushPublicKey = _fixture.PublicKey, PushPrivateKey = _fixture.PrivateKey, PushConfirmAttempts = 10, PushConfirmIntervalMs = 100
+        };
+        app.Vision.Handler = _ => Payloads.Ok();
+        app.PushHandler.StatusCode = HttpStatusCode.Created;
+        var nudge = app.Services.GetRequiredService<TryTipNudge>();
+
+        var (first, _, _) = await app.NewUserAsync("nudge_fails");
         using var firstBrowser = new PushTests.Browser("nudge_fails");
         await Subscribe(first, firstBrowser);
-        var (second, _, _) = await App.NewUserAsync("nudge_after_fail");
+        var (second, _, _) = await app.NewUserAsync("nudge_after_fail");
         using var secondBrowser = new PushTests.Browser("nudge_after_fail");
         await Subscribe(second, secondBrowser);
         var t0 = new DateTime(2026, 8, 3, 8, 0, 0, DateTimeKind.Utc);
-        var secondCheck = await CheckAtAsync(second, t0);
+        var secondCheck = await CheckAtAsync(app, second, t0);
         // The newest check goes first, so the failing one is the first save of the pass.
-        var firstCheck = await CheckAtAsync(first, t0.AddHours(1));
+        var firstCheck = await CheckAtAsync(app, first, t0.AddHours(1));
 
-        await SqlAsync("""
+        await SqlAsync(app, """
             CREATE TRIGGER nudge_fails BEFORE INSERT ON "Notifications"
             WHEN NEW."Type" = 'try_tip' AND NEW."UserId" = (SELECT "Id" FROM "Users" WHERE "Handle" = 'nudge_fails')
             BEGIN SELECT RAISE(ABORT, 'this row cannot be written'); END
             """);
         try
         {
-            App.Clock.Now = t0.AddHours(26);
-            Assert.Equal(1, await Nudge.RunAsync(CancellationToken.None));
+            app.Clock.Now = t0.AddHours(26);
+            Assert.Equal(1, await nudge.RunAsync(CancellationToken.None));
             Assert.Empty(await TryTipRows(first));
             Assert.Equal(secondCheck, Assert.Single(await TryTipRows(second)).GetProperty("checkId").GetGuid());
-            Assert.Single(await Pushes.WaitForAsync(secondBrowser.Endpoint));
+            Assert.Single(await app.PushHandler.WaitForAsync(secondBrowser.Endpoint));
         }
         finally
         {
-            await SqlAsync("DROP TRIGGER IF EXISTS nudge_fails");
+            await SqlAsync(app, "DROP TRIGGER IF EXISTS nudge_fails");
         }
 
         // The next hour the check is still inside its window, and the row goes in.
-        App.Clock.Now = t0.AddHours(27);
-        Assert.Equal(1, await Nudge.RunAsync(CancellationToken.None));
+        app.Clock.Now = t0.AddHours(27);
+        Assert.Equal(1, await nudge.RunAsync(CancellationToken.None));
         Assert.Equal(firstCheck, Assert.Single(await TryTipRows(first)).GetProperty("checkId").GetGuid());
         Assert.Single(await TryTipRows(second));
     }
 
-    private async Task SqlAsync(string sql)
+    private static async Task SqlAsync(TestApp app, string sql)
     {
-        using var scope = App.Services.CreateScope();
+        using var scope = app.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlRawAsync(sql);
     }
 

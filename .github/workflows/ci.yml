@@ -58,7 +58,9 @@ jobs:
       # The Windows calibration wrapper (tools/eval/calibrate.ps1) parses and dry-runs under pwsh (ubuntu-latest ships
       # it): three --photo arguments for the three supplied looks, the masked command with the password in the
       # environment and never as an argument, the report path, no sign-in; and an empty folder is refused with exit 1.
-      # It never spends a model call.
+      # Since the review of Round 21 also: a real pass longer than a Pro day (3 photos x 11 runs = 33 > 30) stops with
+      # exit 1 before it asks for a password or signs in, and a relative -Photos is read from where it is called (the
+      # script never moves the caller's window to the repository root). It never spends a model call.
       - name: Calibration wrapper parses
         shell: bash
         run: |
@@ -70,6 +72,13 @@ jobs:
           grep -q 'tools/eval/reports/' <<<"$out"
           mkdir -p /tmp/no-photos
           if pwsh -NoProfile -File tools/eval/calibrate.ps1 -Photos /tmp/no-photos -DryRun; then echo "an empty folder must exit 1"; exit 1; fi
+          if over=$(pwsh -NoProfile -File tools/eval/calibrate.ps1 -Photos tools/brand/templates/photos -Runs 11 </dev/null 2>&1); then echo "a pass longer than a Pro day must exit 1"; exit 1; fi
+          echo "$over"
+          grep -q 'more than a Pro day' <<<"$over"
+          if grep -q 'Password for' <<<"$over"; then echo "the Pro-day stop must come before the password"; exit 1; fi
+          here=$(cd tools/brand/templates && pwsh -NoProfile -File ../../eval/calibrate.ps1 -Photos photos -DryRun)
+          echo "$here"
+          test "$(grep -o -- '--photo ' <<<"$here" | wc -l)" = 3
 
       - name: Upload test results
         if: always()

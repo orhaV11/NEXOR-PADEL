@@ -2398,7 +2398,7 @@ tax and produce documents, but it does not register you, decide whether you owe 
 ## Round 13 — the growth loop (appended; the lead folds it into 3, 3.5 and the Hebrew half)
 
 **3, the first day: a look you share now lands somewhere.** Post a look, tap *Copy link* under it, and paste that link
-into a WhatsApp group. It unfurls with the photo, the headline and the tip — no app, no account, nothing to install —
+into a WhatsApp group. It unfurls with the photo, the headline and the score — no app, no account, nothing to install —
 and the button on it says *Check yours*. Your own profile is `…/u/<yourhandle>`, the same way. This is the one thing
 to do on day one that nothing else replaces: the app cannot be seen from the outside until somebody shares a look, and
 a link that shows a grey box gets ignored. Check yours the honest way before you post it anywhere:
@@ -2429,7 +2429,7 @@ banner to click away.
 ## סבב 13 — לולאת הצמיחה (נספח; המוביל משלב ב-3, ב-3.5 ובחלק העברי)
 
 **3, היום הראשון: לוק ששיתפתם נוחת על משהו.** מפרסמים לוק, לוחצים *להעתיק קישור* מתחתיו, ומדביקים בקבוצת ווטסאפ.
-הקישור נפתח עם התמונה, הכותרת והטיפ — בלי אפליקציה, בלי חשבון, בלי להתקין — והכפתור עליו אומר *לבדוק את שלך*. הפרופיל
+הקישור נפתח עם התמונה, הכותרת והציון — בלי אפליקציה, בלי חשבון, בלי להתקין — והכפתור עליו אומר *לבדוק את שלך*. הפרופיל
 שלכם הוא `…/u/<ההאנדל-שלכם>`, באותה צורה. זה הדבר היחיד ביום הראשון ששום דבר אחר לא מחליף: אי אפשר לראות את האפליקציה
 מבחוץ עד שמישהו משתף לוק, וקישור שמראה ריבוע אפור פשוט לא נלחץ.
 

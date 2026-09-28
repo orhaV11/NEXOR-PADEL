@@ -127,9 +127,16 @@ async function person(browser, name, locale, extra = {}) {
     if (r.status() >= 400) failedUrls.push(`[${step} ${name}] ${r.request().method()} ${r.url().replace(base, '')} -> ${r.status()}`);
   });
   page.on('dialog', (d) => d.accept());
+  // Every request this page started and has not finished yet, so a step that times out names what it was waiting on.
+  const open = new Map();
+  inflight[name] = open;
+  page.on('request', (r) => open.set(r, { at: Date.now(), step }));
+  page.on('requestfinished', (r) => open.delete(r));
+  page.on('requestfailed', (r) => open.delete(r));
   pages[name] = page;
   return page;
 }
+const inflight = {};
 
 const settled = '#view h1, #view .card, #view .empty, #view .notice, #view .grid, #view .sheet, #view .person, #view form';
 async function go(page, hash) {
@@ -146,6 +153,8 @@ async function go(page, hash) {
 }
 const hash = (page) => page.evaluate(() => location.hash);
 const text = (page, sel) => page.textContent(sel).then((s) => (s || '').trim());
+// Counts, never handles, go into an assertion: a failing assert.strictEqual keeps its `actual`, and printing an
+// ElementHandle walks the whole Playwright connection (the second look saw the run's node process killed at 13 GB).
 const count = async (page, sel) => (await page.$$(sel)).length;
 const me = async (page) => { const r = await page.request.get(base + '/api/auth/me'); return r.ok() ? await r.json() : null; };
 /** Extra environment for the maintenance commands; the billing leg (Round 20) sets the Stripe keys here so --stripe-check reads them. */
@@ -333,7 +342,7 @@ function checkClientModules() {
   // prompt again in Hebrew instead of keeping the English one for ten minutes.
   await dan.waitForFunction((en) => { const n = document.getElementById('today-title'); return !!n && n.textContent !== en && /[֐-׿]/.test(n.textContent); }, promptEn);
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
-  assert.strictEqual(await dan.$('#lang-offer'), null, 'the offer goes once it is answered');
+  assert.strictEqual(await count(dan, '#lang-offer'), 0, 'the offer goes once it is answered');
   assert.strictEqual(await text(dan, '.wordmark'), 'OREVOSH');
   assert.strictEqual(await dan.getAttribute('meta[name="apple-mobile-web-app-capable"]', 'content'), 'yes');
   assert.strictEqual(await text(dan, '.tab[data-tab=home] span'), 'בית');
@@ -341,7 +350,7 @@ function checkClientModules() {
   await dan.reload();
   await dan.waitForSelector(settled);
   assert.strictEqual(await dan.getAttribute('html', 'lang'), 'he');
-  assert.strictEqual(await dan.$('#lang-offer'), null, 'answered once, never asked again');
+  assert.strictEqual(await count(dan, '#lang-offer'), 0, 'answered once, never asked again');
   assert.strictEqual(await text(dan, '.tab[data-tab=explore] span'), 'גילוי');
   assert.strictEqual(await text(dan, '#top-auth'), 'הצטרפות');
   await dan.waitForSelector('#view .empty');
@@ -1065,6 +1074,11 @@ function checkClientModules() {
   // idea, and "Wearing it? Check it" carrying the outfit's chips to the check screen. The forecast comes from the stub.
   step = 'tomorrow';
   await runCheck(noa, { intent: 'Office', buffer: await makeJpeg(noa, 900, 1200), score: 7 });
+  // Noa says this tip worked, so her next check's result opens with "last time … it worked" (below, one #taste-win).
+  await Promise.all([
+    noa.waitForResponse((r) => r.url().endsWith('/useful') && r.request().method() === 'POST' && r.status() === 200),
+    noa.click('#taste-reasons .chip[data-reason="worked"]')
+  ]);
   for (let i = 0; i < 3; i++) {
     await noa.waitForSelector('#wardrobe-keep-yes', { timeout: 10000 });
     await noa.click('#wardrobe-keep-yes');
@@ -1088,6 +1102,7 @@ function checkClientModules() {
   await shot(noa, '32-tomorrow-before-en');
   await noa.click('#tm-compose');
   await noa.waitForSelector('#tm-card', { timeout: 30000 });
+  assert.ok(await noa.$eval('#tm-card', (n) => n.classList.contains('arrive')), 'a new outfit rises in');
   assert.ok(await noa.$('#tm-one-look'), 'three pieces from one check collapse to one photo of her, not three');
   assert.strictEqual(await count(noa, '#tm-one-look li'), 3, 'the three names under it');
   assert.ok((await text(noa, '#tm-sentence')).length > 10, 'the stylist\'s sentence');
@@ -1097,6 +1112,8 @@ function checkClientModules() {
   await noa.click('#tm-yes');
   await noa.waitForSelector('#tm-thumbs .hint');
   assert.strictEqual(await noa.getAttribute('#tm-yes', 'aria-pressed'), 'true', 'the yes stays lit');
+  // Review of Round 21: the same outfit redrawn under its thumbs does not replay its entrance.
+  assert.ok(!(await noa.$eval('#tm-card', (n) => n.classList.contains('arrive'))), 'the card stays put after the yes');
   await noa.click('#tm-another');
   await noa.waitForSelector('#tm-idea', { timeout: 30000 });
   assert.strictEqual(await text(noa, '#tm-idea'), 'Idea 2', 'another idea is idea 2');
@@ -1127,6 +1144,9 @@ function checkClientModules() {
   await noa.waitForFunction(() => (document.getElementById('loading-line') || {}).textContent === 'Reading the pieces', null, { timeout: 6000 });
   await shot(noa, '33c-wait-staged-en');
   await noa.waitForSelector('#result .score', { timeout: 30000 });
+  // Review of Round 21: the line about the tip that worked fills the result's own slot, so the screen carries one #taste-win.
+  await noa.waitForSelector('#taste-win .loop-win', { timeout: 10000 });
+  assert.strictEqual(await count(noa, '[id="taste-win"]'), 1, 'one #taste-win on the screen');
   const worn = await noa.evaluate(async (id) => {
     const { api } = await import('/app/core.js');
     const plan = await api('GET', '/api/tomorrow');
@@ -1194,7 +1214,7 @@ function checkClientModules() {
   await dan.waitForSelector('#wardrobe-count');
   assert.strictEqual(await text(dan, '#wardrobe-count'), '3 מתוך 200 פריטים');
   assert.ok(!(await dan.$('#wardrobe-unkept')), 'nothing left to keep from an older look');
-  assert.strictEqual(await dan.$('#wardrobe-moment'), null, 'once per session: the same tab does not say it again');
+  assert.strictEqual(await count(dan, '#wardrobe-moment'), 0, 'once per session: the same tab does not say it again');
   assert.ok(await dan.$('#wardrobe-pro'), 'the plain Pro notice is back when the moment is not drawn');
   const dan2 = await dan.context().newPage();
   await go(dan2, '#/wardrobe');
@@ -1227,6 +1247,12 @@ function checkClientModules() {
     await noa.waitForSelector('#when .chip[data-when="today"][aria-pressed="true"]');
   }
   assert.strictEqual(await savedWhen(), 'tomorrow', 'the push opens on Today without saving it over her own choice');
+  // Review of Round 21: and for that visit only. The installed app stays alive from the morning to the evening, and the
+  // next visit that is not the push's (Tomorrow opened from Me, from the wardrobe) opens on the pill she pressed.
+  await go(noa, '#/me');
+  await go(noa, '#/tomorrow');
+  await noa.waitForSelector('#strip .tm-tile');
+  await noa.waitForSelector('#when .chip[data-when="tomorrow"][aria-pressed="true"]');
   const composesAfterMarker = (await getJson(`http://127.0.0.1:${STUB_PORT}/`)).filter((r) => r.tool === 'compose_outfit').length;
   assert.strictEqual(composesAfterMarker, composesBeforeMarker, 'opening from the push composes nothing');
   await go(noa, '#/settings');
@@ -1240,6 +1266,47 @@ function checkClientModules() {
   const morningState = await (await noa.request.get(base + '/api/push/morning')).json();
   assert.deepStrictEqual(morningState, { on: true, offered: false, hour: '07:30' }, 'the account\'s switch is on by default; the server cannot send');
   await shot(noa, '33f-settings-morning-en');
+  // Review of Round 21: the morning switch follows the notifications switch without leaving Settings. This run has no
+  // push service, so a second window of Noa's has a push.js whose browser can subscribe (the view's wiring is what is
+  // proved, not the push service) and a server answer that offers the morning push; turning notifications on unlocks the
+  // morning switch at once, and turning them off locks it again. Both routes live as long as the window.
+  const pusher = await person(browser, 'pusher', 'en-US');
+  // Granting the camera denies every permission not named, notifications included, and the switch stays locked after a
+  // change while the browser says "denied"; a phone that subscribed has said yes.
+  await pusher.context().grantPermissions(['camera', 'microphone', 'notifications'], { origin: base });
+  let pusherMorning = true;
+  await pusher.route('**/app/push.js', (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: [
+    'let sub = null;',
+    "export function pushSupport() { return 'ready'; }",
+    'export async function getPushSubscription() { return sub; }',
+    'export function madeWithCurrentKey() { return true; }',
+    'export async function dropStalePush() {}',
+    "export async function enablePush() { await new Promise((r) => setTimeout(r, 150)); sub = { endpoint: 'https://push.example.test/e2e' }; return sub; }",
+    'export async function syncPush() {}',
+    'export async function disablePush() { await new Promise((r) => setTimeout(r, 150)); sub = null; }',
+    'export async function unsubscribePush() { sub = null; }',
+    'export async function sendTestPush() {}'
+  ].join('\n') }));
+  await pusher.route('**/api/push/morning', async (route) => {
+    if (route.request().method() === 'POST') pusherMorning = JSON.parse(route.request().postData()).on;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ on: pusherMorning, offered: true, hour: '07:30' }) });
+  });
+  const pusherLogin = await pusher.request.post(base + '/api/auth/login', { headers: { 'X-Requested-With': 'Orevosh' }, data: { handle: 'noa', password: 'password123' } });
+  assert.strictEqual(pusherLogin.status(), 200, 'the second window signs in as Noa');
+  await pusher.goto(base + '/#/settings');
+  await pusher.waitForSelector('#s-push-morning');
+  await pusher.waitForFunction(() => !document.getElementById('s-push').disabled && !document.getElementById('s-push-morning-status').hidden);
+  assert.strictEqual(await pusher.isDisabled('#s-push-morning'), true, 'locked while notifications are off');
+  await pusher.click('label[for="s-push"]');
+  await pusher.waitForFunction(() => document.getElementById('s-push').checked);
+  await pusher.waitForFunction(() => !document.getElementById('s-push-morning').disabled, null, { timeout: 5000 });
+  assert.strictEqual(await pusher.isChecked('#s-push-morning'), true, 'unlocked in place, on as the account holds it');
+  assert.strictEqual(await pusher.isHidden('#s-push-morning-status'), true, 'the "turn on notifications" line goes');
+  await pusher.click('label[for="s-push"]');
+  await pusher.waitForFunction(() => !document.getElementById('s-push').checked);
+  await pusher.waitForFunction(() => document.getElementById('s-push-morning').disabled, null, { timeout: 5000 });
+  assert.strictEqual(await pusher.isChecked('#s-push-morning'), false, 'locked again once notifications are off');
+  await pusher.context().close();
   await go(dan, '#/settings');
   await dan.waitForSelector('#s-push-morning');
   assert.strictEqual(await text(dan, 'label[for="s-push-morning"] b'), 'הלוק שלך כל בוקר');
@@ -1249,6 +1316,14 @@ function checkClientModules() {
   await go(noa, '#/feed');
   await noa.reload();
   await noa.waitForSelector('#today-strip');
+  // Review of Round 21: the strip rises in when it arrives into a Home that has none, and Back from a look draws it from
+  // its cache without the entrance, as the list is.
+  assert.ok(await noa.$eval('#today-strip', (n) => n.classList.contains('arrive')), 'a fresh Home: the strip rises in');
+  await go(noa, '#/post/' + post1);
+  await noa.evaluate(() => history.back());
+  await noa.waitForFunction(() => location.hash === '#/feed');
+  await noa.waitForSelector('#today-strip');
+  assert.ok(!(await noa.$eval('#today-strip', (n) => n.classList.contains('arrive'))), 'Back from a look: the strip is simply there');
   const todayTag = await noa.$eval('#today-strip', (n) => n.dataset.tag || (n.querySelector('#today-title') && n.querySelector('#today-title').textContent) || '');
   assert.ok(todayTag, 'the strip names today\'s prompt');
   await noa.click('#today-post');
@@ -1501,6 +1576,65 @@ function checkClientModules() {
   await maya.waitForSelector('main, h1');
   assert.ok(maya.url().endsWith('/landing/'), 'an unknown source lands on the landing page: ' + maya.url());
   assert.strictEqual((await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt').arrivals, tt.arrivals, 'an unknown link moves no row');
+  // Review of Round 21, four more things on Maya's phone: an English account, signed in, on a Hebrew phone.
+  // (a) A browser somebody is signed in on keeps no entry-link word and no invite: an account has nothing left for them
+  // to attribute, and the privacy page says the browser keeps them until a signup.
+  await maya.goto(base + '/?src=qr&via=dan#/');
+  await maya.waitForSelector(settled);
+  await maya.waitForFunction(() => localStorage.getItem('orevosh.source') === null && localStorage.getItem('orevosh.invite') === null);
+  // (b) Home offers Hebrew once; taking it saves the account's language before Home asks the server again, so the Today
+  // prompt (which the server writes in the account's language) turns Hebrew at once and stays Hebrew after Back.
+  await maya.waitForSelector('#lang-offer');
+  await maya.waitForSelector('#today-title');
+  const englishPrompt = await text(maya, '#today-title');
+  assert.ok(!/[\u0590-\u05FF]/.test(englishPrompt), 'the prompt starts in English: ' + englishPrompt);
+  await maya.click('#lang-offer-yes');
+  await maya.waitForFunction(() => document.documentElement.lang === 'he');
+  await maya.waitForFunction(() => /[\u0590-\u05FF]/.test((document.getElementById('today-title') || {}).textContent || ''), null, { timeout: 10000 });
+  assert.strictEqual((await me(maya)).language, 'he', 'the account follows the offer');
+  await go(maya, '#/explore');
+  await go(maya, '#/');
+  await maya.waitForSelector('#today-title');
+  assert.match(await text(maya, '#today-title'), /[\u0590-\u05FF]/, 'no English prompt kept under the Hebrew screen');
+  // (c) The Pro moment waits for the keep that ends the row. Two pieces kept from the wardrobe (the free slice is two, so
+  // no moment yet); a Hebrew check names three new ones; the first keep crosses the slice with two questions still to
+  // come, and the moment is not drawn under it (the next question would take it away within seconds) nor marked seen,
+  // so #/wardrobe says it.
+  await go(maya, '#/wardrobe');
+  await maya.waitForSelector('#wardrobe-unkept .wardrobe-unkept-keep');
+  for (let kept = 1; kept <= 2; kept++) {
+    const before = await count(maya, '#wardrobe-unkept .wardrobe-unkept-keep');
+    await maya.click('#wardrobe-unkept .wardrobe-unkept-keep');
+    await maya.waitForFunction((n) => document.querySelectorAll('#wardrobe-unkept .wardrobe-unkept-keep').length === n, before - 1);
+  }
+  assert.ok(!(await maya.$('#wardrobe-moment')), 'two pieces are the free slice, not more');
+  await runCheck(maya, { intent: 'Party', buffer: mayaPhoto, score: 6 });   // the stub's Hebrew look is a 6
+  await maya.waitForSelector('#wardrobe-keep-all', { timeout: 10000 });
+  assert.strictEqual(await text(maya, '#wardrobe-keep-all'), 'לשמור את כל 3', 'three new pieces, in Hebrew');
+  await maya.click('#wardrobe-keep-yes');
+  await maya.waitForSelector('#wardrobe-kept-link');
+  await maya.waitForSelector('#wardrobe-kept-tomorrow, #wardrobe-kept-progress');   // the payoff has read the wardrobe
+  assert.strictEqual(await count(maya, '#wardrobe-keep-moment'), 0, 'no moment under a keep with questions still to come');
+  await maya.waitForSelector('#wardrobe-keep-skip', { timeout: 5000 });              // the next question
+  assert.strictEqual(await maya.evaluate(() => sessionStorage.getItem('orevosh.wardrobe.moment')), null, 'and not marked seen');
+  await maya.click('#wardrobe-keep-skip');
+  await maya.waitForSelector('#wardrobe-keep-skip');
+  await maya.click('#wardrobe-keep-skip');
+  await maya.waitForSelector('#wardrobe-keep', { state: 'hidden' });
+  await go(maya, '#/wardrobe');
+  await maya.waitForSelector('#wardrobe-moment');
+  // (d) Her own look on For you carries the stylist's dot on each piece; after she signs out, Home is drawn for whoever
+  // is on the phone now, not restored from the list kept for her.
+  await go(maya, '#/');
+  await maya.waitForSelector('#view .card .card-photo .chip.piece');
+  assert.ok((await count(maya, '.card .card-photo .chip.piece .dot')) > 0, 'the author sees her dots on For you');
+  await go(maya, '#/settings');
+  await maya.waitForSelector('#logout');
+  await maya.click('#logout');
+  await maya.waitForFunction(() => !!document.getElementById('top-auth'));
+  await maya.waitForFunction(() => location.hash === '#/' || location.hash === '');
+  await maya.waitForSelector('#view .card .card-photo .chip.piece');
+  assert.strictEqual(await count(maya, '.card .card-photo .chip.piece .dot'), 0, 'no verdict of hers on the signed-out Home');
   await maya.context().close();
 
   // (2) Instagram's browser: the note once, no Add to Home Screen advice, gone after "Got it" and not back on a reload.
@@ -1522,7 +1656,17 @@ function checkClientModules() {
   const installed = await person(browser, 'installed', 'en-US', { standalone: true });
   const launches = [];
   installed.on('request', (r) => { if (r.url().endsWith('/api/config')) launches.push(r.headers()['x-orevosh-launch'] || null); });
-  await installed.route('**/api/config', (route) => route.abort('internetdisconnected'), { times: 1 });
+  // The route stays for the page's whole life and lets every later call through. A once-only route ({ times: 1 }) is
+  // torn down right after it fires, which switches the page's request interception off while boot's next requests
+  // (the language files) are on their way; a request caught in that switch stays paused in the browser for good and
+  // never reaches the server, so boot hung before applyLocale in about one full run in five (review of Round 21: the
+  // same step alone hung 4 times in 80 with the teardown 0-4 ms after the abort, and 0 in 80 with the route kept).
+  let firstConfig = true;
+  await installed.route('**/api/config', (route) => {
+    if (!firstConfig) return route.continue();
+    firstConfig = false;
+    return route.abort('internetdisconnected');
+  });
   expected.push('/api/config -> net::ERR_INTERNET_DISCONNECTED');
   await installed.goto(base + '/');
   await installed.waitForSelector(settled);
@@ -1533,6 +1677,20 @@ function checkClientModules() {
   assert.deepStrictEqual(launches, ['standalone', 'standalone', null], 'the header rides the first answered call of the day only: ' + JSON.stringify(launches));
   assert.strictEqual((await metricsAs(noa)).funnel.days.at(-1).standalone, 1, 'one home-screen launch today');
   await installed.context().close();
+
+  // Review of Round 21: a launch on a network that passes no traffic. The first call is held and never answered (a
+  // route that does nothing with it), and boot goes on without it once BOOT_WAIT_MS (12 s) has passed: the dock in
+  // English and a view, with the defaults, instead of an empty screen for as long as the phone keeps the call open.
+  const stalled = await person(browser, 'stalled', 'en-US');
+  await stalled.route('**/api/config', () => { /* held: never continued, never answered */ });
+  expected.push('/api/config -> net::ERR_ABORTED');
+  const stalledAt = Date.now();
+  await stalled.goto(base + '/');
+  await stalled.waitForSelector(settled, { timeout: 30000 });
+  assert.ok(Date.now() - stalledAt >= 11000, 'boot waited for the call before going on: ' + (Date.now() - stalledAt) + ' ms');
+  assert.strictEqual(await stalled.evaluate(() => document.documentElement.lang), 'en');
+  assert.strictEqual(await text(stalled, '.tab[data-tab="home"] span'), 'Home', 'the dock is labelled');
+  await stalled.context().close();
 
   // (4) Copy link on a look page: the sentence above the address. Noa in English on her own look, Dan in Hebrew on the
   // same look, where the line is a challenge to the group and the address carries his invite.
@@ -2011,6 +2169,22 @@ function checkClientModules() {
   // This server can confirm an address, so the offer names the mail, and says the address is confirmed first.
   assert.match(await text(guest, '#resting-offer p'), /by mail if you add an address and confirm it\.$/);
   await shot(guest, '40-resting-offer-en');
+  // Review of Round 21: the offer promises only what the server can do. The same refusal again, drawn from the config a
+  // server without mail, without push keys, or without either publishes (the screen reads nothing else): no mail clause
+  // where no address can be confirmed, no phone clause where no push can be sent. Then the real config is put back.
+  const realConfig = await guest.evaluate(async () => { const { state } = await import('/app/core.js'); return { email: state.config.email, pushPublicKey: state.config.pushPublicKey }; });
+  assert.ok(realConfig.email && realConfig.pushPublicKey, 'this server has mail and push keys');
+  for (const [email, push, key] of [[false, true, 'guest.resting_offer_no_mail'], [true, false, 'guest.resting_offer_no_push'], [false, false, 'guest.resting_offer_app_only']]) {
+    const said = await guest.evaluate(async ([email, push, key, real]) => {
+      const { state, t } = await import('/app/core.js');
+      state.config = { ...state.config, email, pushPublicKey: push ? real.pushPublicKey : null };
+      return t(key);
+    }, [email, push, key, realConfig]);
+    await guest.waitForFunction(() => !document.getElementById('submit').disabled);
+    await guest.click('#submit');
+    await guest.waitForFunction((line) => (document.querySelector('#resting-offer p') || {}).textContent === line, said, { timeout: 30000 });
+  }
+  await guest.evaluate(async (real) => { const { state } = await import('/app/core.js'); state.config = { ...state.config, ...real }; }, realConfig);
   await guest.click('#resting-join');
   await guest.waitForFunction(() => location.hash === '#/signup?back=stylist');
   await guest.waitForSelector('#a-stylist-back');
@@ -2064,7 +2238,7 @@ function checkClientModules() {
   const i18nWarnings = consoleWarnings.filter((w) => w.startsWith('i18n:'));
   assert.deepStrictEqual(i18nWarnings, [], 'missing i18n keys: ' + i18nWarnings.join(' | '));
   const unexpectedUrls = failedUrls.filter((u) => !(u.includes('net::ERR_ABORTED') && [...noContent].some((k) => u.includes(k)))
-    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/fonts\/|\/api\/(today|feed|board)\b/.test(u))   // a face, like a photo, may still be loading when the page moves on
+    && !(u.includes('net::ERR_ABORTED') && /\/(image|avatar|video)|favicon|\/fonts\/|\/api\/(today|feed|board)\b|\/api\/users\/[^/?]+\/posts\?/.test(u))   // a face, like a photo, or a list's page may still be loading when the page moves on or reloads
     && !expected.some((e) => u.endsWith(e)));
   assert.deepStrictEqual(unexpectedUrls, [], 'unexpected failed requests: ' + unexpectedUrls.join(' | '));
   const realErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));
@@ -2079,7 +2253,21 @@ function checkClientModules() {
     console.error('E2E FAILED at step', step + ':', err);
     console.error('failed requests:', failedUrls);
     console.error('console errors:', consoleErrors.filter((e) => !e.includes('Failed to load resource')));
+    for (const [name, open] of Object.entries(inflight)) {
+      const now = Date.now();
+      const hung = [...open].filter(([, v]) => now - v.at > 1000)
+        .map(([r, v]) => `${r.method()} ${r.url().replace(base, '')} (${r.resourceType()}, started at step ${v.step}, ${now - v.at} ms ago)`);
+      if (hung.length && !pages[name].isClosed()) console.error(`requests ${name} started and never finished:`, hung);
+    }
     for (const [name, page] of Object.entries(pages)) {
+      if (page.isClosed()) continue;
+      // Whether the page's own thread still answers, and what it has fetched: a hang in the network and a hang in the
+      // page's code look the same on a screenshot.
+      const said = await Promise.race([
+        page.evaluate(() => ({ lang: document.documentElement.lang, hash: location.hash, view: (document.getElementById('view') || {}).childElementCount,
+          fetched: performance.getEntriesByType('resource').filter((e) => e.initiatorType === 'fetch').map((e) => e.name.replace(location.origin, '') + ' ' + Math.round(e.duration) + 'ms') })),
+        new Promise((resolve) => setTimeout(() => resolve('the page did not answer within 3 s'), 3000))]).catch((e) => e.message);
+      console.error(`page ${name}:`, JSON.stringify(said));
       try {
         await page.screenshot({ path: path.join(SHOTS, `failed-${name}.png`), fullPage: true });
         fs.writeFileSync(path.join(SHOTS, `failed-${name}.html`), await page.evaluate(() => location.hash + '\n' + document.getElementById('view').outerHTML));

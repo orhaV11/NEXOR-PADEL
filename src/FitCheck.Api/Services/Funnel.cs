@@ -107,8 +107,11 @@ public static partial class Funnel
     /// <summary>
     /// The middleware. A GET that is a page (never <c>/api</c>, never a file with an extension) counts: a landing view
     /// when it is under <c>/landing</c>, an invite arrival when the query carries a <c>via</c> that is a handle rather
-    /// than the share marker and the page is not the <c>/go/</c> redirect, whose target is the arrival. Both are one
-    /// upsert on a <see cref="Counter"/> row and neither is ever worth failing a request for.
+    /// than the share marker. Both are one upsert on a <see cref="Counter"/> row and neither is ever worth failing a
+    /// request for. An entry link's invite is not counted here but by <see cref="GoEndpoints"/> on the hop
+    /// (review of Round 21): the page it redirects to carries <c>src</c> and may never reach the server at all, since a
+    /// phone whose service worker holds the shell answers that navigation itself. So neither the <c>/go/</c> hop nor an
+    /// address with <c>src</c> on it counts an invite here: one tap, one invite, on every phone.
     /// </summary>
     public static async Task Count(HttpContext context, RequestDelegate next)
     {
@@ -129,10 +132,12 @@ public static partial class Funnel
                 var path = request.Path.Value ?? "/";
                 var landing = IsLandingPage(path);
                 var via = request.Query["via"].ToString().Trim();
-                // An entry link (/go/<source>?via=) is not the arrival: it hands the invite to the page it redirects to,
-                // which is counted here, and a word off the list lands on /landing/ without it. One tap, one invite.
+                // An entry link (/go/<source>?via=) counts its invite on the hop (GoEndpoints, which skips the unfurling
+                // fetchers), so neither the hop nor the address it redirects to (/?src=...&via=...) counts it again here,
+                // and a word off the list lands on /landing/ without it. One tap, one invite.
                 var invite = via.Length > 0
                     && !request.Path.StartsWithSegments("/go")
+                    && !request.Query.ContainsKey("src")
                     && !string.Equals(via, PublicPageEndpoints.ViaShare, StringComparison.OrdinalIgnoreCase)
                     && HandleRegex().IsMatch(via);
                 if (landing || invite)

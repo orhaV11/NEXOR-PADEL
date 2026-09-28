@@ -161,6 +161,25 @@ public class StylistBackTests
     }
 
     /// <summary>
+    /// Review of Round 21: the welcome's promise is drawn from the server's record (me.stylistBackAsked, true only while
+    /// the row above exists), never from the browser having sent the flag. The first signup above sent it on an open day
+    /// and was promised nothing on the server; a welcome that remembered its own flag promised it anyway, and so did the
+    /// next person to sign up in that tab. The e2e's one signup is on a closed day, where both readings agree, so this
+    /// pins the reading itself.
+    /// </summary>
+    [Fact]
+    public void The_welcome_reads_the_promise_off_the_account()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "app"));
+        var auth = File.ReadAllText(Path.Combine(root, "views", "auth.js"));
+        Assert.Contains("const stylistBack = !!state.me.stylistBackAsked;", auth);
+        foreach (var file in Directory.EnumerateFiles(root, "*.js", SearchOption.AllDirectories))
+        {
+            Assert.DoesNotContain("state.stylistBackAsked", File.ReadAllText(file));
+        }
+    }
+
+    /// <summary>
     /// Review fixes: the ceiling reopens at UTC midnight, the small hours in Board:TimeZone, and nobody asked for a phone
     /// that buzzes at three. The note keeps the try-tip nudge's day (Push:TryTipDayStart to TryTipDayEnd): at night the
     /// pass does nothing and the rows wait; the first pass of the morning tells, once, and mails, once.

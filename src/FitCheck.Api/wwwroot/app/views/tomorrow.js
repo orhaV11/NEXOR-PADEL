@@ -148,6 +148,9 @@ let root = null;
 let ctx = null;
 let moreOpen = null;   // the fold (details.tm-more) as the person left it during this visit; null = untouched, the default applies
 let shownId = null;    // the suggestion the card on screen shows (null: no card): only another one rises in
+// The day the person had before a morning push pressed Today for its one visit (review of Round 21): the next visit that
+// is not the push's goes back to it, unless the person pressed a pill meanwhile. null: no push visit to undo.
+let beforePush = null;
 
 function weatherPref() {
   const w = loadPrefs().weather;
@@ -203,7 +206,7 @@ function whenPills() {
   for (const when of ['today', 'tomorrow']) {
     group.appendChild(el('button', {
       type: 'button', class: 'chip', 'data-when': when, text: whenLabel(when), 'aria-pressed': String(pick.when === when),
-      onclick: () => { pick.when = when; savePrefs({ tomorrowWhen: when }); card = matching(); repaint(); }
+      onclick: () => { pick.when = when; beforePush = null; savePrefs({ tomorrowWhen: when }); card = matching(); repaint(); }
     }));
   }
   return group;
@@ -626,8 +629,10 @@ register('tomorrow', async (r, params, c) => {
   const from = fromQuery();
   if (from) history.replaceState(history.state, '', location.pathname + location.search + '#/tomorrow');
   // The morning push says "your outfit for today": its tap opens on Today whatever day was pressed last. It is not saved,
-  // so the next launch still opens on the pill the person pressed themselves.
-  if (from === 'push') pick.when = 'today';
+  // and it is for that visit only: the next launch, and the next visit in this same tab (an installed app stays alive
+  // from the morning to the evening), opens on the pill the person pressed themselves.
+  if (from === 'push') { if (beforePush === null) beforePush = pick.when; pick.when = 'today'; }
+  else if (beforePush !== null) { pick.when = beforePush; beforePush = null; }
   try {
     await load(from);
   } catch (e) {

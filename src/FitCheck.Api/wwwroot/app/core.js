@@ -130,11 +130,27 @@ function detectLocale() {
   for (const tag of tags) { const match = matchLocale(tag); if (match && match !== DEFAULT_LOCALE) return match; }
   return null;
 }
-async function loadLocale(code) {
+/**
+ * Review of Round 21: how long boot waits for each of its first calls (/api/config, then each language file) before it
+ * goes on without it. fetch has no ceiling of its own, and on a network that is associated but passes no traffic (the
+ * service worker's own case for SLOW_MS) a call hangs for a minute or more: boot drew nothing until it answered, an
+ * empty screen under a dock with no labels. Longer than sw.js's SLOW_MS (9 s), so an installed app's cached language
+ * file, which the worker hands over after that wait, still arrives; far below any phone's own timeout.
+ */
+export const BOOT_WAIT_MS = 12000;
+
+/** One language file into `messages`. waitMs (boot's) aborts a fetch that has not finished by then, body included. */
+async function loadLocale(code, waitMs) {
   if (messages[code]) return;
-  const response = await fetch('/i18n/' + code + '.json', { cache: 'no-cache' });
-  if (!response.ok) throw new Error('Could not load locale ' + code);
-  messages[code] = await response.json();
+  const controller = waitMs && typeof AbortController === 'function' ? new AbortController() : null;
+  const bell = controller ? setTimeout(() => controller.abort(), waitMs) : 0;
+  try {
+    const response = await fetch('/i18n/' + code + '.json', { cache: 'no-cache', signal: controller ? controller.signal : undefined });
+    if (!response.ok) throw new Error('Could not load locale ' + code);
+    messages[code] = await response.json();
+  } finally {
+    if (bell) clearTimeout(bell);
+  }
 }
 export function loadPrefs() { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || 'null') || {}; } catch (e) { return {}; } }
 export function savePrefs(prefs) { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...loadPrefs(), ...prefs })); } catch (e) { /* private mode */ } }
@@ -152,9 +168,16 @@ export async function switchLocale(code) {
   await loadLocale(code);
   applyLocale(code);
   savePrefs({ language: code });
+  // Review of Round 21: a signed-in account's own language is the one the server writes in (the Today prompt, the mail,
+  // the push), so it is saved before the view asks the server again. Sent after the redraw, it lost the race to the
+  // redraw's own GET /api/today, whose English answer was then kept under the new language for ten minutes.
+  // An account that already says this language (boot following it, Settings having just saved it) is not asked again.
+  if (state.me && state.me.language !== code) {
+    try { const me = await api('PATCH', '/api/users/me', { language: code }); if (me && state.me && me.id === state.me.id) state.me = me; }
+    catch (e) { /* the screen switches anyway; the account keeps what it had */ }
+  }
   renderShell();
   render(false);
-  if (state.me) api('PATCH', '/api/users/me', { language: code }).catch(() => {});
 }
 
 // ---------- formatting ----------
@@ -391,7 +414,8 @@ const failureText = (key) => (hasMessage(key) ? t(key) : key);
 /**
  * One call. `timeoutMs` is opt-in and off by default: most calls are small and a phone that has wandered out of signal
  * gets its own error from fetch soon enough. It exists for the check, which is the one call with no ceiling of its own
- * — a connection that dies mid-upload leaves fetch waiting forever behind a screen that says the stylist is looking.
+ * — a connection that dies mid-upload leaves fetch waiting forever behind a screen that says the stylist is looking —
+ * and, since the review of Round 21, for boot's /api/config (BOOT_WAIT_MS), which nothing on screen may wait on forever.
  * Any value must clear the honest worst case for that route or it would abort real work: see its caller.
  */
 export async function api(method, path, body, timeoutMs, extraHeaders) {
@@ -431,7 +455,8 @@ export async function api(method, path, body, timeoutMs, extraHeaders) {
 export const feedVersion = { n: 0 };
 
 /**
- * Upload limits and the push key. A failure keeps the defaults: the server still enforces its own limits.
+ * Upload limits and the push key. A failure keeps the defaults: the server still enforces its own limits, and so does a
+ * call that has not answered within BOOT_WAIT_MS (review of Round 21), which is aborted rather than waited on.
  * Round 20: this is the first request of every launch, so it is also where the installed app says, once a day per
  * device, that it was opened from the home screen (X-Orevosh-Launch: standalone, counted by the funnel middleware on
  * this one route). The day guard is the device's own prefs: no cookie, no route, no POST; private mode has no memory,
@@ -447,7 +472,7 @@ export async function loadConfig() {
     }
   } catch (e) { /* no header, then */ }
   try {
-    const c = await api('GET', '/api/config', undefined, undefined, headers);
+    const c = await api('GET', '/api/config', undefined, BOOT_WAIT_MS, headers);
     if (launchDay) savePrefs({ standaloneDay: launchDay });
     if (c) state.config = { ...state.config, ...c };
   } catch (e) { /* defaults stand */ }
@@ -463,6 +488,9 @@ export async function loadMe() {
   // Just signed in (or booted signed in): a check made as a guest follows the person into the account. The guest cookie is
   // HttpOnly, so there is no way to know beforehand; the call is cheap and a 0 is the usual answer.
   if (!before && state.me) claimGuestChecks();
+  // An entry link's word and an invite are for a signup; a browser somebody is signed in on keeps neither (invite.js).
+  // Already loaded (post.js imports it), so this resolves at once; nothing about it can fail a sign-in.
+  if (state.me) import('./invite.js').then((m) => m.forgetArrival()).catch(() => {});
 }
 let claiming = null;
 /**
@@ -1751,7 +1779,9 @@ export async function boot() {
   // offer below makes the other one a single tap; choosing it saves the preference, and then it is the preference that
   // decides, here, for good.
   const initial = matchLocale(prefs.language) || DEFAULT_LOCALE;
-  await Promise.all(enabledLocales().map((code) => loadLocale(code).catch((e) => console.warn(e))));
+  // Each file gets BOOT_WAIT_MS and one second try (a stalled request is usually one stuck connection; the retry goes
+  // out on its own); a file that never comes leaves its keys showing, never an app that does not start.
+  await Promise.all(enabledLocales().map((code) => loadLocale(code, BOOT_WAIT_MS).catch(() => loadLocale(code, BOOT_WAIT_MS)).catch((e) => console.warn(e))));
   if (!messages[DEFAULT_LOCALE]) messages[DEFAULT_LOCALE] = {};
   applyLocale(messages[initial] ? initial : DEFAULT_LOCALE);
   window.addEventListener('hashchange', () => render(true));

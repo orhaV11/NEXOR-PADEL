@@ -130,6 +130,27 @@ public class LanguagesTests
     }
 
     /// <summary>
+    /// Review of Round 21: Arabic makes the counted noun agree with the number in more ways than the client's n == 1 rule
+    /// can say (a dual for 2, a plural for 3 to 10, a singular for 11 and up), so "{n} قطع" is wrong for the 2 a Keep all
+    /// usually counts. The lines the reviews rewrote keep the count off the noun, after a colon or in parentheses, the
+    /// shape admin.months_n took ("عدد الأشهر: {n}"). Older lines that still count into a noun are listed as open in
+    /// DECISIONS.md; this pins the ones already mended.
+    /// </summary>
+    [Fact]
+    public void The_arabic_lines_the_reviews_mended_keep_the_count_off_the_noun()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "i18n"));
+        var ar = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "ar.json"))).RootElement;
+        var counted = new System.Text.RegularExpressions.Regex(@"\{(?:n|count|days)\} [\u0600-\u06FF]");
+        foreach (var name in new[] { "admin.months_n", "wardrobe.kept_all", "wardrobe.unkept_hint" })
+        {
+            var text = ar.GetProperty(name).GetString()!;
+            Assert.Contains("{n}", text);
+            Assert.False(counted.IsMatch(text), $"ar.json \"{name}\" counts into a noun that agrees with the number: {text}");
+        }
+    }
+
+    /// <summary>
     /// The client picks a plural form by n == 1 and nothing else, which is the whole of English and enough for Hebrew.
     /// Russian counts in three: one (1, 21, 31), a paucal (2-4) and a genitive plural (0, 5-20) - so "2 образов" reads
     /// as wrong to a Russian speaker as "2 checkses" does to an English one. The translation already answers this by

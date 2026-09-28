@@ -180,14 +180,11 @@ public sealed class Localizer
             ["error.stylist_resting"] = "The stylist is resting until tomorrow. Your look is not spent.",
             // ---- Round 13 — the growth loop: the public look page, the invite, the weekly mail ----
             ["public.look_title"] = "@{0}'s look on OREVOSH",
-            ["public.look_description"] = "{0}/10 for {1}. {2}",
             ["public.look_description_short"] = "{0}/10 for {1}.",
             // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
-            ["public.look_description_private"] = "A look for {0} on OREVOSH. {1}",
             ["public.look_description_private_short"] = "A look for {0} on OREVOSH.",
             ["public.photo_alt"] = "A look by @{0}, checked on OREVOSH",
             ["public.score_out_of"] = "{0} out of 10",
-            ["public.tip"] = "The one tip",
             ["public.check_yours"] = "Check yours",
             ["public.open_app"] = "Open in OREVOSH",
             ["public.tagline"] = "Check the look. A stylist in your pocket, and a community that lights it up.",
@@ -413,14 +410,11 @@ public sealed class Localizer
             ["error.stylist_resting"] = "הסטייליסט נח עד מחר. הלוק שלך לא נוצל.",
             // ---- Round 13 — the growth loop: the public look page, the invite, the weekly mail ----
             ["public.look_title"] = "הלוק של @{0} ב-OREVOSH",
-            ["public.look_description"] = "ציון {0}/10 · {1}. {2}",
             ["public.look_description_short"] = "ציון {0}/10 · {1}.",
             // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
-            ["public.look_description_private"] = "לוק ל{0} ב-OREVOSH. {1}",
             ["public.look_description_private_short"] = "לוק ל{0} ב-OREVOSH.",
             ["public.photo_alt"] = "לוק של @{0}, נבדק ב-OREVOSH",
             ["public.score_out_of"] = "{0} מתוך 10",
-            ["public.tip"] = "הטיפ האחד",
             ["public.check_yours"] = "לבדוק את שלך",
             ["public.open_app"] = "לפתוח ב-OREVOSH",
             ["public.tagline"] = "לבדוק את הלוק. סטייליסט בכיס, וקהילה שמדליקה.",
@@ -648,14 +642,11 @@ public sealed class Localizer
             ["error.stylist_resting"] = "المصمم يستريح حتى الغد. إطلالتك لم تُستهلك.",
             // ---- Round 13 — the growth loop: the public look page, the invite, the weekly mail ----
             ["public.look_title"] = "إطلالة @{0} على OREVOSH",
-            ["public.look_description"] = "{0}/10 لـ {1}. {2}",
             ["public.look_description_short"] = "{0}/10 لـ {1}.",
             // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
-            ["public.look_description_private"] = "إطلالة لـ {0} على OREVOSH. {1}",
             ["public.look_description_private_short"] = "إطلالة لـ {0} على OREVOSH.",
             ["public.photo_alt"] = "إطلالة لـ @{0}، مفحوصة على OREVOSH",
             ["public.score_out_of"] = "{0} من 10",
-            ["public.tip"] = "النصيحة الواحدة",
             ["public.check_yours"] = "افحص إطلالتك",
             ["public.open_app"] = "افتح في OREVOSH",
             ["public.tagline"] = "افحص الإطلالة. ستايلست في جيبك، ومجتمع يشعل الإطلالة.",
@@ -882,14 +873,11 @@ public sealed class Localizer
             ["error.stylist_resting"] = "Стилист отдыхает до завтра. Твой образ не потрачен.",
             // ---- Round 13 — the growth loop: the public look page, the invite, the weekly mail ----
             ["public.look_title"] = "Образ @{0} на OREVOSH",
-            ["public.look_description"] = "Оценка {0}/10 · {1}. {2}",
             ["public.look_description_short"] = "Оценка {0}/10 · {1}.",
             // Round 14 - post the look, keep the grade: the same page with no number in it (ar and ru plain, for native review).
-            ["public.look_description_private"] = "Образ для «{0}» в OREVOSH. {1}",
             ["public.look_description_private_short"] = "Образ для «{0}» в OREVOSH.",
             ["public.photo_alt"] = "Образ @{0}, проверенный на OREVOSH",
             ["public.score_out_of"] = "{0} из 10",
-            ["public.tip"] = "Один совет",
             ["public.check_yours"] = "Проверить свой",
             ["public.open_app"] = "Открыть в OREVOSH",
             ["public.tagline"] = "Проверь образ. Стилист в кармане и сообщество, которое зажигает.",

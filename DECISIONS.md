@@ -1537,7 +1537,8 @@ from the built app. The instance property is what makes the flip testable withou
 unfurls as the same wordmark every time and, on a cold tap, shows a blank page while a megabyte of JavaScript loads.
 So a posted look gets its own server-rendered page at `/look/{id}` — one HTML document, no script, no session, no font
 fetched from anyone — and the Open Graph description carries the score, the intent **and the tip**. The tip is the
-product; it is also the only line that makes a stranger tap.
+product; it is also the only line that makes a stranger tap. (Undone in the second look at Round 21: the post sheet had
+always told the author the tip stays theirs, so the page and its unfurl now carry neither the tip nor the notes.)
 
 **The public photo has its own door.** `/api/posts/{id}/image` already serves a look's photo, but it is the app's
 route: `Cache-Control: private`, `Cross-Origin-Resource-Policy: same-origin`, and its rules follow a viewer (a block
@@ -2182,7 +2183,8 @@ and there is no path parameter — so `NamesOn(check)` is the only list, the IDO
 409 is reserved for a request that could write nothing at all, and a check that named nothing answers 200 and writes
 nothing. The moment's truth is the server's (`WardrobeDto.proMoment`, `Plans.WardrobeProMoment`, strictly more than the
 free slice) and the client owns only once-per-tab; the tally is a POST because a hash route is never seen by the server,
-and it counts only while the moment is true, so a script cannot inflate the rate. Its Go Pro carries `?from=wardrobe`
+and it counts only while the moment is true and (since the review) at most sixty an hour per account, so a script can
+still skew go against shown within that bound, but no further. Its Go Pro carries `?from=wardrobe`
 (the brief said a plain `#/pro`) because the Pro page already tallies that word and the moment IS the wardrobe line. The
 median is over everyone active in seven days including zeros; the unkept list is a flat deduped list of pieces carrying
 the newest check that named each; the wardrobe records no refusals, so a skipped piece resurfaces; the keep row's
@@ -2486,7 +2488,10 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   "the item verdicts and notes stay private"; the post sheet: the stylist's notes on each piece stay yours).
   `PostReader` reads the feedback only for those looks, so a stranger's page parses none, and a chip with no verdict
   draws no dot at all: a hollow one would claim "neutral", a verdict nobody gave. `ItemsTests` pins the guest, another
-  account, the author and the moderator; the browser test pins both cards.
+  account, the author and the moderator; the browser test pins both cards. Since the second look the browser keeps to it
+  too: Home's ten-minute list (and the board's minute, whose `me` is the reader's own place) is kept per account, so a
+  sign-out, or another account signed in on the same phone, never has the last reader's list restored with her dots on
+  it; the browser test signs Maya out of a Home that showed hers.
 - **The morning push's default is in the model.** Round 20 turned it on for existing accounts in the hand-edited
   migration only, so the pilot-file upgrade, which adds columns from the model, would give every account there the push
   off. The model says `HasDefaultValue(true)` with `true` as the sentinel, so an explicit off is still written. The
@@ -2505,9 +2510,13 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   write time was the other way; this one keeps every number the rows already gave, mends the day's column too, and
   cannot count a check twice.
 - **The privacy page lists what Round 20 keeps:** which of our links a person arrived through (on the account and on
-  each check), the morning ping's day and when it was opened, the ask to hear when the stylist is back, and, in the
-  cookies section, what the browser keeps besides the language (the invite and the link until signup). The documents
-  are version 6, dated 2026-09-28; every earlier sentence stays.
+  each check made while the browser kept it), the morning ping's day and when it was opened, the ask to hear when the
+  stylist is back, and, in the cookies section, what the browser keeps besides the language (the invite and the link
+  until signup). The documents are version 6, dated 2026-09-28; every earlier sentence stays. Since the second look the
+  code keeps to those words: a browser somebody is signed in on forgets both words as soon as it knows (`loadMe`,
+  `invite.js` `forgetArrival`), a signed-in check does not send the source, and the server keeps it on a guest's check
+  only, the one the numbers page reads. An existing account used to carry the word on every check it made after tapping
+  a friend's link, for as long as the phone kept it.
 - **The renewal mail goes where Stripe will charge, and names the day it will.** Round 20 read both off `ProUntil`, so
   a portal cancel (Stripe cancels at the period end and the subscription stays active), a no-card trial and a declined
   renewal were all told "renews ... nothing to do", and every monthly subscriber's first mail named the 35-day grant's
@@ -2521,7 +2530,14 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   everybody. A trial with no card gets no mail at all rather than a new "your trial ends" letter; a card
   kept only on the customer is not in the event, so such a trial reads as not renewing — the quiet side, where no mail
   promises a renewal. The stamp is now the charge; the ProUntil Round 20 stamped is later than its charge, so it still
-  covers its period. The date is the person's language's (`Localizer.Day`, also used by the card letter), and the
+  covers its period. Since the second look both are taken in the order Stripe made the events, not the order they
+  arrive in: the account keeps the `created` time of the subscription event it last read them from
+  (`BillingNotedAt`, one nullable column), and an older one moves neither, so a card update retried after the renewal
+  cannot put the next charge back in the past (where the recap skips it) and a stale "renewing" arriving after the
+  cancel cannot promise a charge; the deletion is the newest word, and an update from before it notes nothing. The
+  Checkout's own estimate counts from the event's time too, so a completion Stripe could deliver only days later is
+  not promised days late. A paid invoice still only moves the charge forward. The date is the person's language's
+  (`Localizer.Day`, also used by the card letter), and the
   English counts follow their nouns like the other three languages ("Comparisons decided: 1."), since four counts in one
   body would need sixteen singular variants.
 - **A webhook event's row is saved with its work.** The row used to be a second save after the handler's, under the
@@ -2563,10 +2579,12 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   sent as kept and forgotten only once the account exists. `?via` and `?src` stayed on the address for the tab's life,
   so a reload after the signup kept the spent source again and the next signup on that phone was credited to the link;
   once read they now leave the address (`history.replaceState`, the rest of the query and the hash kept). Nothing reads
-  them from the address later, and a phone with no storage never kept them anyway. The `/go/` hop no longer counts the
-  invite it hands on: the page it lands on is the arrival, so a followed link is one invite and a word off the list
-  none. A fetcher that follows the redirect is counted on that page like any pasted invite link since Round 13; the
-  crawler rule stays the source row's, and the invite tally still never reads the user agent. The installed app marks
+  them from the address later, and a phone with no storage never kept them anyway. The invite an entry link carries is
+  counted once: since the second look on the `/go/` hop itself (not for the unfurling fetchers), and the address it
+  lands on, which carries `src`, never counts it again. The first fix counted it on that page instead, and a phone that
+  had opened OREVOSH before never showed that page to the server at all: its service worker answers every navigation
+  with the cached shell, fetched as `/index.html` with no query, so those arrivals counted nothing. A plain `/?via=` link
+  is still counted where it lands, as since Round 13, and so still misses such a phone. The installed app marks
   the day's launch only once `/api/config` has answered, so a launch with no signal leaves the header for the next one.
 - **A long name on `Funnel:Sources` is its short code's row.** The allowlist resolves `tiktok` to `tt` the way a link
   is read, so an owner who lists the words the bios carry gets the `tt` and `ig` rows; the list used to keep the long
@@ -2600,7 +2618,9 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   filter in the sender for a step most people see once. The offer and the welcome hint said the mail comes "if you add
   an address"; the pass mails only a confirmed one (Round 13's reason stands), so both now say "and confirm it", the
   hint is one sentence in that state rather than "only for password reset" followed by its contradiction, and a server
-  that cannot confirm an address offers no mail at all. The welcome draws the promise from the server's record
+  that cannot confirm an address offers no mail at all. Since the second look a server with no push keys offers no
+  phone either (the welcome never shows its push step there, and Settings says push is not set up): the offer is one of
+  four lines, by mail and by push keys (`guest.resting_offer`, `_no_mail`, `_no_push`, `_app_only`). The welcome draws the promise from the server's record
   (`me.stylistBackAsked`, the row itself) instead of the phone's memory of having sent the flag, so a signup after the
   day reopened, or the next person to sign up in the same tab, is promised nothing; and the offer appears only on the
   ceiling's own 503, which now carries `code: "stylist_resting"`, never on a proxy's during a deploy.
@@ -2630,7 +2650,9 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   hours that re-check the skipped wrote twelve.
 - **A tap on the morning push opens on Today.** The screen restored the last pill pressed, so an evening planner tapped
   "your outfit for today" and was offered tomorrow's, spending the free day's one outfit on the wrong day. The tap now
-  presses Today for that visit without saving it; the pill the person pressed stays theirs for the next launch. The
+  presses Today for that visit without saving it; the pill the person pressed stays theirs for the next launch, and
+  (since the second look) for the next visit in the same tab, which an installed app kept alive from morning to evening
+  used to open on Today too, the harm in reverse. The
   Settings hint no longer says the tap puts the outfit together: it opens the planner on today, and the outfit is made
   when the person asks. The morning switch in Settings follows the notifications switch above it as it changes, rather
   than keeping the state it read when the page opened.
@@ -2677,7 +2699,10 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   script rather than read from `/api/config`: a call to the server before the run would be the script's first, and on
   Windows PowerShell 5.1 its TLS defaults are the riskiest part of it. The stop spends nothing and `-Force` undoes it.
   The password now reaches node in `OREVOSH_EVAL_PASSWORD`, never as an argument (5.1 does not quote a `"` inside one),
-  and a relative `-Photos` is the caller's folder: the script no longer moves the window to the repository root.
+  and a relative `-Photos` is the caller's folder: the script no longer moves the window to the repository root. CI's
+  *Calibration wrapper parses* step holds both (since the second look): a 3 × 11 pass must stop with exit 1 and "more
+  than a Pro day" before any password prompt, and a dry run from `tools/brand/templates` with `-Photos photos` must
+  find the three looks.
 - **The kit shows what a stranger sees.** After a look's verdicts became its author's, the kit's screens of other
   people's looks still carried the dots. They were shot again with the tool that made them, which now lives in the
   repository (`tools/brand/shoot/kit-shoot.js` with its stub, `kit_stub.py`) instead of a scratch folder, and the kit,
@@ -2686,3 +2711,42 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   aurora), and every episode was rendered again, eleven in about four minutes; the two hand-cut teasers were not. A
   before/after's change line names the category the way the app does (`items.cat_*`, "Shoes:", "נעליים:"), not the
   stylist's raw English word.
+
+### Review fixes: the second look
+
+- **The public look page keeps the post sheet's promise.** Round 13 put the one tip in `/look/{id}`'s body and in its
+  `og:description` ("the tip is what makes people tap"), for a private grade too, while the post sheet and the privacy
+  page have said since Round 9 that the tip, like the notes on each piece, stays with the person. The first review
+  restored that promise for the verdicts and left the tip half false. The page now carries the score and the intent and
+  never the tip, and no longer reads the stored feedback at all. Rewording the promise was the other way; it would have
+  published the tips of every look posted under the old sentence, whose authors were told otherwise, and needed a new
+  version of the documents. The unfurl is a little plainer; the headline and the photo still carry it.
+- **Taking the language offer saves the account's language before Home asks again.** The server writes the Today prompt
+  in the account's language, and the switch redrew the screen before its PATCH, so a signed-in reader's redraw fetched
+  the English prompt and kept it under the Hebrew key for ten minutes (the first fix covered the guest only). The PATCH
+  is now awaited, and not sent at all when the account already says that language. The browser test takes the offer
+  as Maya, signed in, and reads a Hebrew prompt, and again after leaving Home.
+- **Two Arabic counts are written off the noun.** "Keep all"'s line and the unkept list's hint counted into a noun
+  ("{n} قطع", "آخر {n} إطلالة"), which agrees with the number in Arabic and read wrong for the 2 a keep-all usually
+  counts. They now take the shape the months line took, the count after a colon or in parentheses. About forty-five
+  older Arabic lines still count into a noun ("{n} إطلالات" and the like); they predate the reviews and are left open, since
+  mending them is either the same rewrite forty-five times or real plural categories in `t()` for the whole app.
+- **A nudge test that raced its own worker.** `TryTipNudgeTests.A_row_that_cannot_be_written_does_not_stop_the_next_person`
+  failed most runs: the failed row's push job waits in the single-reader queue for a row that never commits (twenty
+  looks 250 ms apart) and the test waited the same five seconds for the next person's push behind it. The test now
+  has an app of its own with PushTests' shorter confirmation window; the worker is unchanged, since a failed save
+  holding the queue for five seconds costs one person's pings a delay and nothing else.
+- **The browser test's boot stall was the test's own interception, and boot now has a ceiling anyway.** About one full
+  run in five, the distribution step's installed page drew its dock with blank labels and an empty view. The step's
+  once-only route (`page.route(..., { times: 1 })`, aborting the first `/api/config`) is torn down the moment it fires,
+  which switches the page's request interception off while boot's next requests, the language files, are on their way,
+  and a request caught in that switch stayed paused inside the browser for good. The server's request log shows it
+  never arrived (the other language file did), the page's own thread still answered, and the same context and route
+  alone hung 4 times in 80 when the teardown landed 0-4 ms after the abort and 0 in 80 with the route kept for the
+  page's life, which is what the step now does (it aborts the first call and lets the rest through, so it proves the
+  same thing). A step that times out now prints every request each page started and never finished, and what the
+  page's thread says, so the next hang names itself. Separately, the app could hang the same way on a real network that
+  passes no traffic: boot waited on `/api/config` (which the service worker never answers) and the language files with
+  no ceiling. Each now gets `BOOT_WAIT_MS` (12 s, longer than the worker's 9 s so an installed app's cached file still
+  arrives), a language file one second try, and boot goes on with English and the defaults; the browser test holds one
+  launch's `/api/config` unanswered and sees the app drawn after the wait.

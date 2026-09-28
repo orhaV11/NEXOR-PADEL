@@ -65,7 +65,14 @@ const CACHE_TTL = 60 * 1000;
 const DAY = 86400 * 1000;
 const RESET_KEY = 'orevosh.board.reset';
 
-let cached = null;   // { data, at }: the current week only; an archive week (?week=) is never cached
+let cached = null;   // { data, at, viewer }: the current week only; an archive week (?week=) is never cached
+/**
+ * The board as it was fetched for whoever is signed in now, or null. Its `me` is that account's own place, so a board
+ * fetched for somebody else (before a sign-out, or for the account signed in before this one) is not this reader's
+ * (review of Round 21).
+ */
+const viewerId = () => (state.me ? state.me.id : '');
+const mine = () => (cached && cached.viewer === viewerId() ? cached : null);
 const view = { tab: 'looks', intent: '' };
 
 /** The count a plural key wants: the number 1 (so the _one form fires) or the compact figure. */
@@ -74,9 +81,11 @@ const fires = (n) => t('board.fires', { n: countArg(n || 0) });
 
 /** The current week's board, from the cache while it is fresh. Throws like api() (501 while the server is not built). */
 async function loadBoard() {
-  if (cached && Date.now() - cached.at < CACHE_TTL) return cached.data;
+  const known = mine();
+  if (known && Date.now() - known.at < CACHE_TTL) return known.data;
+  const viewer = viewerId();
   const data = await api('GET', '/api/board');
-  cached = { data, at: Date.now() };
+  cached = { data, at: Date.now(), viewer };
   return data;
 }
 
@@ -290,7 +299,7 @@ register('board', async (root, params, ctx) => {
   }
   if (ctx.stale()) return;
   // When closesIn was true: just now for an archive week, the cache's own fetch time for the current one.
-  const fetchedAt = week || !cached ? Date.now() : cached.at;
+  const fetchedAt = week || !mine() ? Date.now() : mine().at;
   panelNode = panel(data, view.tab, view.tab === 'intent' ? pickIntent(data) : '', (intent) => { view.intent = intent; redraw(); });
   body.replaceChildren(head(data, fetchedAt), panelNode);
 });
@@ -366,8 +375,9 @@ export function boardStrip(ctx) {
       el('div', { class: 'board-strip-row' }, rows.map(stripTile))
     ]));
   };
-  if (cached) paint(cached.data);
-  if (!cached || Date.now() - cached.at >= CACHE_TTL) loadBoard().then((data) => { if (!ctx || !ctx.stale || !ctx.stale()) paint(data); }).catch(() => { /* nothing on the board, then */ });
+  const known = mine();
+  if (known) paint(known.data);
+  if (!known || Date.now() - known.at >= CACHE_TTL) loadBoard().then((data) => { if (!ctx || !ctx.stale || !ctx.stale()) paint(data); }).catch(() => { /* nothing on the board, then */ });
   return holder;
 }
 
@@ -398,7 +408,8 @@ export function boardResetCard(ctx, place) {
     ]);
     place(card);
   };
-  if (cached && Date.now() - cached.at < CACHE_TTL) { paint(cached.data); return; }
+  const known = mine();
+  if (known && Date.now() - known.at < CACHE_TTL) { paint(known.data); return; }
   loadBoard().then((data) => { if (!ctx || !ctx.stale || !ctx.stale()) paint(data); }).catch(() => { /* no board, no card */ });
 }
 

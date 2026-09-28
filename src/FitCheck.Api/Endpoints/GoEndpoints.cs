@@ -11,7 +11,8 @@ namespace FitCheck.Api.Endpoints;
 /// in a TikTok bio, a WhatsApp group, a campus poster's QR code. It tallies one arrival on the source's own counter row
 /// for the day (<see cref="Funnel.SourceArrivals"/>) and redirects into the check screen with the source on the query,
 /// <c>/?src={source}#/check</c>, where the client keeps it (invite.js, the same shape as <c>?via</c>) and sends it with
-/// the guest check and the signup, so the numbers page can attribute those to the link they followed.
+/// the guest check and the signup, so the numbers page can attribute those to the link they followed. An invite the link
+/// carries (<c>?via=</c>) is tallied here too, once, and handed on (review of Round 21).
 /// <para>
 /// The source is an allowlist (Funnel:Sources) and nothing else: an unknown word is redirected to the landing page and
 /// counted as nothing (the landing view that follows is a genuine one, and the funnel middleware counts it as such). A
@@ -53,13 +54,25 @@ public static class GoEndpoints
             return Results.Redirect(Landing);
         }
 
+        // The invite the link may carry (a handle, never the share marker), or "".
+        var via = PublicPageEndpoints.ViaQuery(context.Request);
+
         // A fetcher unfurling a pasted link is a paste, not a person: the same redirect, no tally. The agent is read and forgotten.
         var agent = context.Request.Headers.UserAgent.ToString();
         if (!Funnel.CrawlerRegex().IsMatch(agent))
         {
             try
             {
-                await Counters.IncrementAsync(db, Funnel.SourceArrivals(code, DateOnly.FromDateTime(DateTime.UtcNow)), ct);
+                var day = DateOnly.FromDateTime(DateTime.UtcNow);
+                await Counters.IncrementAsync(db, Funnel.SourceArrivals(code, day), ct);
+                // Review of Round 21: the invite is counted here, on the hop, and not on the page it lands on. That page is
+                // often never asked of the server at all: on a phone that has opened OREVOSH before, the service worker
+                // answers every navigation with the cached shell, fetched as /index.html without the query. The address
+                // below carries src, which tells the funnel middleware the hop has already counted it.
+                if (via.Length > 0)
+                {
+                    await Counters.IncrementAsync(db, Funnel.InviteArrivals(day), ct);
+                }
             }
             catch (Exception) when (!ct.IsCancellationRequested)
             {
@@ -67,9 +80,8 @@ public static class GoEndpoints
             }
         }
 
-        // The invite the link may carry rides along, so the next hop (the app's own address) is counted as the invite it
-        // is by the funnel middleware, and the client keeps both words. Relative, same host: no Origin() needed.
-        var via = PublicPageEndpoints.ViaQuery(context.Request);
+        // Both words ride along so the client keeps them (the source for the guest check and the signup, the invite for
+        // the signup). Relative, same host: no Origin() needed.
         var query = "?src=" + code + (via.Length == 0 ? "" : "&" + via[1..]);
         return Results.Redirect("/" + query + CheckRoute);
     }

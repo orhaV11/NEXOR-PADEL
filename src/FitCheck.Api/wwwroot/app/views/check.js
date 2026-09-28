@@ -392,11 +392,18 @@ register('check', async (root) => {
   // Round 20: a guest the resting stylist turned away is offered an account with a promise the server keeps - one note
   // when the stylist is back (StylistBack.cs), in the app always, on the phone and by mail only where those are set up.
   // The signup link carries ?back=stylist so the join form says so and sends the flag. The mail is to a confirmed
-  // address, and a server that cannot confirm one (state.config.email off) is offered without the mail at all.
+  // address, and a server that cannot confirm one (state.config.email off) is offered without the mail at all; a server
+  // with no push keys (no config.pushPublicKey: the welcome never offers the phone, Settings says push is not set up)
+  // is offered without the phone (review of Round 21).
   if (ck.resting) {
     ck.resting = false;
+    const mail = !!state.config.email;
+    const phone = !!state.config.pushPublicKey;
+    const offer = phone
+      ? (mail ? 'guest.resting_offer' : 'guest.resting_offer_no_mail')
+      : (mail ? 'guest.resting_offer_no_push' : 'guest.resting_offer_app_only');
     form.appendChild(el('div', { class: 'notice', id: 'resting-offer' }, [
-      el('p', { class: 'muted', text: t(state.config.email ? 'guest.resting_offer' : 'guest.resting_offer_no_mail') }),
+      el('p', { class: 'muted', text: t(offer) }),
       el('a', { class: 'btn-text', id: 'resting-join', href: '#/signup?back=stylist', text: t('guest.resting_join'), onclick: () => { state.returnTo = '#/check'; } })
     ]));
   }
@@ -827,8 +834,9 @@ async function submitCheck() {
     form.append('note', ck.occasion.trim());
     form.append('language', getLocale());
     // Round 20 — distribution: the entry link this device arrived through (/go/<source>), while it is kept. The server
-    // checks it against its allowlist; the numbers page attributes guest checks to it.
-    const source = pendingSource();
+    // checks it against its allowlist; the numbers page attributes guest checks to it, so a guest's check alone sends it
+    // (review of Round 21: the server keeps it on a guest's check only).
+    const source = state.me ? null : pendingSource();
     if (source) form.append('source', source);
     // Round 19: the planned outfit this photo is the person wearing, when they came from it.
     if (ck.suggestion && ck.suggestion.id) form.append('suggestionId', ck.suggestion.id);

@@ -110,6 +110,14 @@ public sealed class AppUser
     /// </summary>
     public DateTime? BillingPeriodEnd { get; set; }
 
+    /// <summary>
+    /// Review of Round 21: when Stripe created the subscription event whose snapshot <see cref="BillingPeriodEnd"/> and
+    /// <see cref="BillingRenews"/> were last taken from (the event's own <c>created</c>). Stripe promises no order and
+    /// retries a failed delivery for days, so an event older than this one is a stale snapshot and moves neither. Null
+    /// until the first such event, and for an event without a time (a hand-made one). Never shown.
+    /// </summary>
+    public DateTime? BillingNotedAt { get; set; }
+
     /// <summary>Round 20: the person's own switch for the morning push (Settings); the server flag decides whether it is offered at all.</summary>
     public bool TomorrowPushOn { get; set; } = true;
 

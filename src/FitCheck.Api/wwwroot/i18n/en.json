@@ -1182,6 +1182,8 @@
   "money.cache_1h": "1 hour",
   "guest.resting_offer": "Sign up now and we'll tell you when the stylist is back - in the app, on your phone if you turn notifications on, and by mail if you add an address and confirm it.",
   "guest.resting_offer_no_mail": "Sign up now and we'll tell you when the stylist is back - in the app, and on your phone if you turn notifications on.",
+  "guest.resting_offer_no_push": "Sign up now and we'll tell you when the stylist is back - in the app, and by mail if you add an address and confirm it.",
+  "guest.resting_offer_app_only": "Sign up now and we'll tell you in the app when the stylist is back.",
   "guest.resting_join": "Sign up and tell me",
   "auth.stylist_back_note": "We'll tell you when the stylist is back.",
   "welcome.push_title": "Hear when the stylist is back",

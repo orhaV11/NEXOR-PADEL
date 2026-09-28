@@ -15,9 +15,10 @@ namespace FitCheck.Api.Endpoints;
 /// something readable even before the app has loaded.
 /// <list type="bullet">
 /// <item><c>GET /look/{id}</c> — one posted look: the photo, the score ring (inline SVG), the handle, the stylist's
-/// headline and the one tip, "Check yours" (the app) and "Open in OREVOSH" (<c>/#/post/{id}</c>). Open Graph and
-/// Twitter tags carry the title (the headline, or "@handle's look on OREVOSH"), the description (the score, the intent
-/// and the tip — the tip is what makes people tap) and <c>og:image</c>, which is <see cref="ImagePath"/> below.</item>
+/// headline, "Check yours" (the app) and "Open in OREVOSH" (<c>/#/post/{id}</c>). Open Graph and Twitter tags carry the
+/// title (the headline, or "@handle's look on OREVOSH"), the description (the score and the intent) and <c>og:image</c>,
+/// which is <see cref="ImagePath"/> below. Never the tip (review of Round 21): the post sheet and the privacy page promise
+/// the author that the tip, like the notes on each piece, stays theirs, and this page is public and indexed.</item>
 /// <item><c>GET /look/{id}/image</c> — the look's photo, public for a posted, visible look whose author is not
 /// suspended, 404 for anything else. The photo of a check that was never posted, of a hidden look or of a suspended
 /// account never leaves through this door; <c>/api/posts/{id}/image</c> stays the app's own route with its private
@@ -162,14 +163,11 @@ public static partial class PublicPageEndpoints
         var image = origin + ImagePath(look.PostId);
         var intent = localizer.Get(language, "public.intent." + look.Intent);
         var title = look.Headline.Length > 0 ? look.Headline : localizer.Get(language, "public.look_title", look.Handle);
-        // Round 14 — post the look, keep the grade: no number in the unfurl either, and no ring on the page below.
+        // Round 14 — post the look, keep the grade: no number in the unfurl either, and no ring on the page below. Review of
+        // Round 21: never the tip, which the author was told stays theirs.
         var description = look.ScorePrivate
-            ? (look.Tip.Length > 0
-                ? localizer.Get(language, "public.look_description_private", intent, look.Tip)
-                : localizer.Get(language, "public.look_description_private_short", intent))
-            : (look.Tip.Length > 0
-                ? localizer.Get(language, "public.look_description", look.Score, intent, look.Tip)
-                : localizer.Get(language, "public.look_description_short", look.Score, intent));
+            ? localizer.Get(language, "public.look_description_private_short", intent)
+            : localizer.Get(language, "public.look_description_short", look.Score, intent);
         var alt = localizer.Get(language, "public.photo_alt", look.Handle);
 
         var body = new StringBuilder();
@@ -202,11 +200,6 @@ public static partial class PublicPageEndpoints
         }
 
         body.Append("<h1>").Append(Esc(title)).Append("</h1>");
-        if (look.Tip.Length > 0)
-        {
-            body.Append("<p class=\"tip\"><span class=\"lbl\">").Append(Esc(localizer.Get(language, "public.tip"))).Append("</span>")
-                .Append(Esc(look.Tip)).Append("</p>");
-        }
 
         body.Append("<div class=\"actions\">");
         // "#/check", not the app root: the root has no hash and core.js resolves that to the feed, so the one button on
@@ -415,12 +408,12 @@ public static partial class PublicPageEndpoints
 
     /// <summary>What the public page shows of a look, read in one query.</summary>
     /// <summary>
-    /// ScorePrivate (Round 14): the author kept the grade to themselves. The page then carries the look, the headline
-    /// and the tip with no ring and no number, and the unfurl says the same — a public address must not say what the
-    /// card in the app refuses to.
+    /// ScorePrivate (Round 14): the author kept the grade to themselves. The page then carries the look and the headline
+    /// with no ring and no number, and the unfurl says the same — a public address must not say what the card in the app
+    /// refuses to. No tip either way (review of Round 21): it stays with the author, as the post sheet says.
     /// </summary>
     private sealed record PublicLook(
-        Guid PostId, string Handle, string Headline, int Score, StyleIntent Intent, string Language, string Tip, string ImagePath,
+        Guid PostId, string Handle, string Headline, int Score, StyleIntent Intent, string Language, string ImagePath,
         bool ScorePrivate = false, PublicBefore? Before = null);
 
     /// <summary>Round 20: the earlier look this one follows (Post.BeforePostId), when it is still public and the same author's.</summary>
@@ -428,8 +421,7 @@ public static partial class PublicPageEndpoints
 
     /// <summary>
     /// The look behind a public address, or null: the post must exist and not be hidden, its author must not be
-    /// suspended, and the check must still have its photo. The tip comes out of the stored feedback, which is the only
-    /// place it lives.
+    /// suspended, and the check must still have its photo. The stored feedback is not read: nothing in it is public.
     /// </summary>
     private static async Task<PublicLook?> FindLookAsync(AppDbContext db, Guid postId, CancellationToken ct)
     {
@@ -447,7 +439,6 @@ public static partial class PublicPageEndpoints
                 pu.Post.BeforePostId,
                 pu.Post.UserId,
                 c.Language,
-                c.FeedbackJson,
                 c.ImagePath
             })
             .FirstOrDefaultAsync(ct);
@@ -467,17 +458,7 @@ public static partial class PublicPageEndpoints
                 .FirstOrDefaultAsync(ct);
         }
 
-        var tip = "";
-        try
-        {
-            tip = row.FeedbackJson is null ? "" : System.Text.Json.JsonSerializer.Deserialize<OutfitFeedback>(row.FeedbackJson, AppJson.Options)?.OneTip ?? "";
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            // A feedback document this server can no longer read is a page without a tip, not a 500.
-        }
-
-        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, tip, row.ImagePath, row.ScorePrivate, before);
+        return new PublicLook(row.Id, row.Handle, row.Headline ?? "", row.Score, row.Intent, row.Language ?? Localizer.DefaultLocale, row.ImagePath, row.ScorePrivate, before);
     }
 
     // ---------- the document ----------
@@ -630,8 +611,6 @@ main { max-inline-size:520px; margin:0 auto; padding:20px 16px 48px; }
 h1 { margin:16px 0 0; font:800 26px/1.2 var(--font-display); letter-spacing:-.02em; text-wrap:balance; unicode-bidi:plaintext; }
 h2.lbl { margin:22px 0 10px; font:700 11px/1 var(--font-body); letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
 .bio { margin:8px 0 0; color:var(--ink-2); unicode-bidi:plaintext; }
-.tip { margin:12px 0 0; padding:14px 16px; background:var(--surface); border-radius:var(--radius-sm); color:var(--ink-2); unicode-bidi:plaintext; }
-.tip .lbl { display:block; font:700 11px/1 var(--font-body); letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-block-end:6px; }
 /* Round 20: the pair the author linked, two 4:5 photos with their labels; the numbers only when both grades are public. */
 .pair { margin-block-start:18px; }
 .pair h2.lbl { margin:0 0 10px; }

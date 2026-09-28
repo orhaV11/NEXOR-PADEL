@@ -335,6 +335,9 @@ public static class BillingEndpoints
             var payload = root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
                 && data.TryGetProperty("object", out var obj) && obj.ValueKind == JsonValueKind.Object ? obj : default;
             var eventId = SubscriptionId(root, "id");
+            // Review of Round 21: when Stripe created the event, which is when what it describes happened; a delivery can
+            // come days later (Stripe retries for three) and out of order. Null for an event without one (a hand-made one).
+            var eventAt = UnixTime(root, "created");
 
             await WebhookGate.WaitAsync(ct);
             try
@@ -355,7 +358,7 @@ public static class BillingEndpoints
                     });
                 }
 
-                await HandleAsync(type, payload, db, localizer, billing.Value, logger, alerter, email, context.Request, CancellationToken.None);
+                await HandleAsync(type, payload, eventAt, db, localizer, billing.Value, logger, alerter, email, context.Request, CancellationToken.None);
                 await SaveTheRestAsync(db, eventId, type, logger);
             }
             finally
@@ -392,7 +395,7 @@ public static class BillingEndpoints
 
     /// <summary>The event handlers proper, one case per event the endpoint is subscribed to.</summary>
     private static async Task HandleAsync(
-        string type, JsonElement payload, AppDbContext db, Localizer localizer, BillingOptions billing, ILogger logger,
+        string type, JsonElement payload, DateTime? eventAt, AppDbContext db, Localizer localizer, BillingOptions billing, ILogger logger,
         Alerter alerter, IEmailSender email, HttpRequest request, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -414,11 +417,13 @@ public static class BillingEndpoints
                 // never a paid period; a session without metadata (hand-made, or from before) is a month, as before.
                 user.Plan = Plans.Pro;
                 user.ProUntil = Later(user.ProUntil, now) + GrantedBy(payload);
-                // Review of Round 20: what the renewal recap reads. The first charge is one period from now whatever was
-                // under the grant, and a trial that asked for no card has nothing to charge; the subscription's own events
+                // Review of Round 20: what the renewal recap reads. The first charge is one period from the Checkout whatever
+                // was under the grant, and a trial that asked for no card has nothing to charge; the subscription's own events
                 // correct both (the account usually learns its customer id only here, so the earlier ones found nobody).
+                // Review of Round 21: from when the Checkout completed (the event's time), not from when this delivery landed:
+                // a retry that arrives days late would otherwise promise a charge date days after Stripe's.
                 user.BillingRenews = TrialDays(payload) == 0;
-                user.BillingPeriodEnd = FirstPeriodEnd(payload, now);
+                user.BillingPeriodEnd = FirstPeriodEnd(payload, eventAt is { } completed && completed < now ? completed : now);
                 var customer = StringOrId(payload, "customer");
                 if (!string.IsNullOrWhiteSpace(customer))
                 {
@@ -468,7 +473,7 @@ public static class BillingEndpoints
                 }
 
                 // Review of Round 20: the followed subscription's period and whether it will charge, for the recap.
-                NoteRenewal(user, payload);
+                NoteRenewal(user, payload, eventAt);
                 await db.SaveChangesAsync(ct);
                 break;
             }
@@ -524,7 +529,7 @@ public static class BillingEndpoints
 
                 // Review of Round 20: the period and whether it will charge, for the recap; saved with the end date below,
                 // or, where the status leaves the end date alone, by the webhook after the handler, like an adopted id.
-                NoteRenewal(user, payload);
+                NoteRenewal(user, payload, eventAt);
 
                 var status = StringOrId(payload, "status");
                 if (status is "active" or "trialing")
@@ -594,6 +599,11 @@ public static class BillingEndpoints
                 user.BillingSubscriptionId = null;
                 user.BillingRenews = null;
                 user.BillingPeriodEnd = null;
+                // The deletion is the newest word on the subscription: a late update from before it notes nothing.
+                if (eventAt is { } deletedAt && (user.BillingNotedAt is null || deletedAt > user.BillingNotedAt))
+                {
+                    user.BillingNotedAt = deletedAt;
+                }
                 await db.SaveChangesAsync(ct);
                 logger.LogInformation("Account {Handle} left Pro (subscription deleted).", user.Handle);
                 // Round 17: only when they actually had it to lose. Stripe deletes a subscription for a cancellation
@@ -671,10 +681,10 @@ public static class BillingEndpoints
 
     /// <summary>
     /// Review of Round 20: when a completed Checkout's subscription charges first: the trial's end, or one calendar
-    /// month or year from now, which is where Stripe anchors a subscription opened without a billing anchor.
+    /// month or year from when it completed, which is where Stripe anchors a subscription opened without a billing anchor.
     /// </summary>
-    private static DateTime FirstPeriodEnd(JsonElement session, DateTime now) =>
-        TrialDays(session) is > 0 and var days ? now.AddDays(days) : SoldAYear(session) ? now.AddYears(1) : now.AddMonths(1);
+    private static DateTime FirstPeriodEnd(JsonElement session, DateTime completed) =>
+        TrialDays(session) is > 0 and var days ? completed.AddDays(days) : SoldAYear(session) ? completed.AddYears(1) : completed.AddMonths(1);
 
     /// <summary>The days of a no-card trial the session opened (payment_status no_payment_required and metadata.trialDays, capped at 730), or 0.</summary>
     private static int TrialDays(JsonElement session)
@@ -696,9 +706,26 @@ public static class BillingEndpoints
     /// such a trial reads as not renewing: the safe side, where the recap stays quiet rather than promise a renewal.
     /// "incomplete" (a first payment still being confirmed) says nothing either way and leaves the flag as it was: the
     /// event that follows it does, and Stripe does not promise the order they arrive in.
+    /// <para>
+    /// Review of Round 21: each event is a snapshot of the subscription at the moment Stripe created it, and Stripe
+    /// promises neither the order of delivery nor a prompt retry. So an event created before the snapshot already on the
+    /// row (<see cref="AppUser.BillingNotedAt"/>) changes neither field: a card update's retry landing after the renewal
+    /// would move the next charge back into the past (and the recap would skip it), and a stale "renewing" arriving after
+    /// the cancel would promise a charge that will not happen. The same second is not older: the later delivery wins.
+    /// </para>
     /// </summary>
-    private static void NoteRenewal(AppUser user, JsonElement subscription)
+    private static void NoteRenewal(AppUser user, JsonElement subscription, DateTime? eventAt)
     {
+        if (eventAt is { } at)
+        {
+            if (user.BillingNotedAt is { } noted && at < noted)
+            {
+                return;
+            }
+
+            user.BillingNotedAt = at;
+        }
+
         var end = CurrentPeriodEnd(subscription);
         if (end is not null)
         {

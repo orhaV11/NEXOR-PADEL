@@ -741,8 +741,8 @@ rule that a screen's own CSS lives in its own module. No route, setting or i18n 
 - **A posted look's verdicts are its author's** (and a moderator's in the queue), settled in the review: the post
   sheet promised the stylist's notes on each piece stay with the person, and a public number never published them.
   Anyone else's card draws the names with no dot (`DECISIONS.md`, Round 21, review fixes).
-- **Left as it is:** the share card and film draw the full ring, not the meter; the public look page's ring fills from the
-  top; a look with five or more pieces shows four chips and no count (the look page lists them all); on Tomorrow, English
+- **Left as it is:** the share card and film draw the full ring, not the meter; a look with five or more pieces shows
+  four chips and no count (the look page lists them all); on Tomorrow, English
   piece names in a Hebrew column wrap onto a second line; the Today strip is taller on a phone than the mock, with the
   tags under the words; the Today strip's and the "after the tip" picker's small rings keep their old black shadow; the
   old `.items li` list rules and a few overrides that undid the old caps `h2` are still in the files and do nothing.

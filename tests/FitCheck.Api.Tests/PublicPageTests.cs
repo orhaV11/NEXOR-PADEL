@@ -94,6 +94,12 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.Contains($"/look/{a}/image", html);
         Assert.DoesNotContain("<b class=\"pair-n\">", html);
         Assert.Equal(image, Meta(html, "property", "og:image"));
+        // The look whose own grade is private: no number and no tip, in the page or in the unfurl.
+        Assert.Equal(HttpStatusCode.OK, (await author.PatchAsJsonAsync($"/api/posts/{b}/score-privacy", new { scorePrivate = true })).StatusCode);
+        html = await Anonymous().GetStringAsync($"/look/{b}");
+        Assert.DoesNotContain("Swap the running shoes", html);
+        Assert.DoesNotContain("/10", Meta(html, "property", "og:description")!);
+        Assert.Equal(HttpStatusCode.OK, (await author.PatchAsJsonAsync($"/api/posts/{b}/score-privacy", new { scorePrivate = false })).StatusCode);
 
         // The before hidden by a moderator: no pair section, the page is still the look's, the unfurl unchanged.
         Assert.Equal(HttpStatusCode.OK, (await moderator.PostAsync($"/api/admin/posts/{a}/hide", null)).StatusCode);
@@ -136,13 +142,14 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         var html = await response.Content.ReadAsStringAsync();
 
-        // The title is the stylist's headline; the description carries the score, the intent and the tip.
+        // The title is the stylist's headline; the description carries the score and the intent. Never the tip (review of
+        // Round 21): the post sheet and the privacy page tell the author it stays theirs, and this page is public and indexed.
         Assert.Equal("Clean casual with one weak link", Meta(html, "property", "og:title"));
         var description = Meta(html, "property", "og:description");
         Assert.NotNull(description);
         Assert.Contains("7/10", description);
         Assert.Contains("Date", description);
-        Assert.Contains("Swap the running shoes", description);
+        Assert.DoesNotContain("Swap the running shoes", description);
         Assert.Equal(description, Meta(html, "name", "twitter:description"));
         Assert.Equal("summary_large_image", Meta(html, "name", "twitter:card"));
 
@@ -153,9 +160,10 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.DoesNotContain("/api/", image);
         Assert.Equal(image, Meta(html, "name", "twitter:image"));
 
-        // The body: the handle, the tip, the score, and the two ways on.
+        // The body: the handle, the score, and the two ways on; no tip, and no note on any piece.
         Assert.Contains("@" + handle, html);
-        Assert.Contains("Swap the running shoes", html);
+        Assert.DoesNotContain("Swap the running shoes", html);
+        Assert.DoesNotContain("class=\"tip\"", html);
         Assert.Contains("Check yours", html);
         Assert.Contains($"/#/post/{postId}", html);
         // Review of Round 21: the ring is the app's meter. A 7 is 7/10 of the circle (2π·26 = 163.36), drawn from the

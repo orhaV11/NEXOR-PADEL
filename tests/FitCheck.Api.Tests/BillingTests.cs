@@ -1388,6 +1388,75 @@ public class BillingTests : IClassFixture<ManualBillingApp>, IClassFixture<Strip
         Assert.Null(ended.BillingPeriodEnd);
     }
 
+    /// <summary>
+    /// Review of Round 21: Stripe promises no order and retries a failed delivery for days, and each subscription event is
+    /// a snapshot of the moment it was created. A snapshot older than the one on the row moves neither the next charge
+    /// nor the renewal: a card update retried after the renewal cannot put the charge back in the past (the recap would
+    /// skip it), and a "renewing" that arrives after the cancel cannot promise a charge that will not happen. A newer
+    /// one, or one of the same second, still does; and the deletion is the newest word, so a late update notes nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_stale_subscription_event_moves_neither_the_charge_nor_the_renewal()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_stale");
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, CheckoutCompletedWith(id.ToString("N"), "cus_stale", "sub_stale", "month", null, "paid"))).StatusCode);
+        var now = DateTimeOffset.UtcNow;
+        object Updated(DateTimeOffset created, DateTimeOffset periodEnd, bool cancelling) => Merge(new
+        {
+            id = NewEventId(),
+            type = "customer.subscription.updated",
+            data = new
+            {
+                @object = new
+                {
+                    id = "sub_stale", @object = "subscription", customer = "cus_stale", status = "active",
+                    current_period_end = periodEnd.ToUnixTimeSeconds(), cancel_at_period_end = cancelling
+                }
+            }
+        }, new { created = created.ToUnixTimeSeconds() });
+
+        // The renewal's own update (the period now ends in thirty days), then the card update from the day before it,
+        // retried late: it still names the period that has just ended.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-30), now.AddDays(30), false))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddDays(-1), now.AddHours(-1), false))).StatusCode);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, now.AddDays(30).UtcDateTime);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+
+        // The cancel (five minutes ago) arrives before the update it followed (ten minutes ago): the cancel stands.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-5), now.AddDays(30), true))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-10), now.AddDays(30), false))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        // The same second is not older: the later delivery wins. And a newer event (the person resumed) moves both.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-5), now.AddDays(30), false))).StatusCode);
+        Assert.True(UserOf(_stripe, id).BillingRenews);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-1), now.AddDays(31), true))).StatusCode);
+        Assert.False(UserOf(_stripe, id).BillingRenews);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, now.AddDays(31).UtcDateTime);
+
+        // Deleted now; an update from before the deletion, delivered after it, promises nothing.
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Merge(SubscriptionDeleted("cus_stale", "sub_stale"), new { created = now.ToUnixTimeSeconds() }))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, Updated(now.AddMinutes(-2), now.AddDays(30), false))).StatusCode);
+        Assert.Null(UserOf(_stripe, id).BillingRenews);
+        Assert.Null(UserOf(_stripe, id).BillingPeriodEnd);
+    }
+
+    /// <summary>
+    /// Review of Round 21: the first charge a Checkout promises is counted from when the Checkout completed (the event's
+    /// own time), not from when the delivery landed: a completion Stripe could only deliver two days later still charges
+    /// a month after the Checkout, and the recap must say that day, not two days after it.
+    /// </summary>
+    [Fact]
+    public async Task A_late_checkout_counts_the_first_charge_from_the_checkout()
+    {
+        var (_, id, _) = await _stripe.NewUserAsync("bill_late_checkout");
+        var completed = DateTimeOffset.UtcNow.AddDays(-2);
+        var late = Merge(CheckoutCompletedWith(id.ToString("N"), "cus_late", "sub_late", "month", null, "paid"), new { created = completed.ToUnixTimeSeconds() });
+        Assert.Equal(HttpStatusCode.OK, (await PostEventAsync(_stripe, late)).StatusCode);
+        AssertAround(UserOf(_stripe, id).BillingPeriodEnd, completed.UtcDateTime.AddMonths(1));
+        // Pro itself still runs from the delivery: paying late never costs the person days they paid for.
+        Assert.True(UserOf(_stripe, id).ProUntil > DateTime.UtcNow.AddDays(34));
+    }
+
     /// <summary>Two anonymous objects as one JSON object, the second's fields last.</summary>
     private static Dictionary<string, object?> Merge(object first, object second)
     {

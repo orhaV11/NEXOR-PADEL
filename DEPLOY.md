@@ -1086,7 +1086,9 @@ Round 10. A second one, `20260928092150_Round21ReviewRenewal`, only adds two emp
 charges next, and whether it will), which the webhook fills in from the next event; until then a subscriber's renewal
 mail goes on the date it went before. A third, `20260928104751_Round21ReviewWardrobeStylistKey`, adds one empty column
 to `WardrobeItems` (the stylist's name a piece was kept under, which a rename leaves alone); a piece kept before it
-gets the value at its next rename.
+gets the value at its next rename. The second look adds a fourth, `20260928150711_Round21ReviewBillingOrder`: one empty
+column on `Users` (when Stripe created the subscription event the renewal fields were last read from, so a late or
+out-of-order one cannot move them back); a subscriber's row takes the next event as it comes, as before.
 
 ### Moving your laptop pilot to the server
 
@@ -1449,7 +1451,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
     (`Limits__SignupsPerHourPerIp`) and the ceiling are what stop it, and a suspended account can no longer invite.
 
 31. **The funnel on `#/admin/metrics` is this server's own counting.** Landing views and invite arrivals are `Counter`
-    rows written by a middleware that sets no cookie and stores no address; guest checks, signups and first posts are
-    counted off the tables. There is no third party to configure and nothing to consent to. Fourteen days, today's
-    conversion between the steps, moderators only. If a day reads zero landing views while the page is clearly being
-    visited, something in front of the app is serving `/landing/` itself — the count is the app's, not the proxy's.
+    rows written by a middleware (an entry link's invite by the `/go/` hop itself) that sets no cookie and stores no
+    address; guest checks, signups and first posts are counted off the tables. There is no third party to configure and
+    nothing to consent to. Fourteen days, today's conversion between the steps, moderators only. If a day reads zero
+    landing views while the page is clearly being visited, something in front of the app is serving `/landing/` itself
+    — the count is the app's, not the proxy's.

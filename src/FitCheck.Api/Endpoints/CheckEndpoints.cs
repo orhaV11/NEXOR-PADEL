@@ -196,8 +196,10 @@ public static class CheckEndpoints
         }
 
         // Round 20 — distribution: the entry link (/go/<source>) the client kept; anything off the allowlist is null, never
-        // a refusal, since a source is a tally on the moderators' page and nothing the check depends on.
-        var source = funnel.Value.Normalize(form["source"].ToString());
+        // a refusal, since a source is a tally on the moderators' page and nothing the check depends on. Review of Round 21:
+        // a guest's check only. The numbers page attributes guest checks (still a guest's, or claimed later) and nothing
+        // else, so the word on a signed-in account's check was kept and never read; the client stops sending it too.
+        var source = user is null ? funnel.Value.Normalize(form["source"].ToString()) : null;
 
         var note = OutfitAnalyzer.SanitizeOccasion(form[legacy ? "occasion" : "note"].ToString());
         if (note.Length > OccasionMaxLength)

@@ -9,7 +9,9 @@ import { boardResetCard, emptyCall } from './board.js';
 import { guestsOn } from './check.js';
 
 const feedPath = (tab) => (tab === 'following' ? '#/feed/following' : '#/');
-// The last list per tab and filter, with its scroll position, so Back from a look lands where the reader was.
+// The last list per reader, tab and filter, with its scroll position, so Back from a look lands where the reader was.
+// Keyed on the account too (review of Round 21): a look's own verdicts reach its author alone, so a list kept for one
+// account is never drawn for the next person on the phone, signed out or signed in as someone else.
 const cache = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 
@@ -107,7 +109,9 @@ register('feed', async (root, params, ctx) => {
     return emptyCall(t('empty.feed_title'), t('empty.feed_body') + (!state.me && guestsOn() ? ' ' + t('empty.feed_guest') : ''), { id: 'feed-empty' });
   };
 
-  const cacheKey = () => tab + '|' + state.feed.intent;
+  // Whose list this is, taken once: a sign-out or a 401 that redraws this view must not file this reader's list under the next one's.
+  const viewer = state.me ? state.me.id : '';
+  const cacheKey = () => viewer + '|' + tab + '|' + state.feed.intent;
   const remembered = cache.get(cacheKey());
   const forced = state.forceRefresh;
   state.forceRefresh = false;

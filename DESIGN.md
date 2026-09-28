@@ -14,54 +14,66 @@ no brass, no grain, no serif, no frames and mats.
 
 ## 1. Tokens
 
+(Round 21) The stage is warm plum now. The values in this table and in the ground, shape and shadow lines under it are
+the current ones; the old values, the new tokens (glass, amber, mint, the scrim, the ring track, the fire ink, one pastel
+per occasion) and every component that changed are in **Round 21 — the look** at the end of this page, which wins
+wherever an older section gives a different number.
+
 | token | value | role |
 |---|---|---|
-| `--bg` | `#0b0b0f` | the stage |
-| `--bg-2` | `#13121a` | top of the page gradient, masthead, sticky feed head, composer |
-| `--surface` | `#15151c` | cards, dock, sheets |
-| `--surface-2` | `#1e1e27` | raised: chips at rest, the brands band, placeholders, pressed rows |
-| `--line` | `#2b2b36` | hairlines |
-| `--line-soft` | `rgba(255,255,255,.08)` | quieter hairlines (action outlines, index rows) |
-| `--ink` | `#f4f4f7` | text |
-| `--ink-2` | `#b9b9c6` | body, captions |
-| `--ink-3` | `#7f7f8e` | labels, meta |
-| `--accent` | `#b39dff` | lilac: links, #tags, @mentions, active marks, ranks 1–3, pressed chips |
+| `--bg` | `#14101e` | the stage: a warm plum-black |
+| `--bg-2` | `#1b1527` | top of the page gradient, masthead, sticky feed head, composer |
+| `--surface` | `#211a2e` | solid surfaces: the dock, sheets, the ring's inner disc (cards are glass since Round 21) |
+| `--surface-2` | `#2e2541` | raised: chips at rest, action pills, fields, the brands band, placeholders, pressed rows |
+| `--line` | `#3b3150` | hairlines |
+| `--line-soft` | `rgba(255,255,255,.09)` | quieter hairlines (action outlines, index rows) |
+| `--ink` | `#f9f5ff` | text |
+| `--ink-2` | `#d1c8e0` | body, captions |
+| `--ink-3` | `#a99ebd` | labels, meta (7.4:1 on the stage, 5.7:1 on `--surface-2`) |
+| `--accent` | `#b39dff` | lilac: links, #tags, @mentions, active marks, ranks 1–3 (a pressed chip is the gradient since Round 21) |
 | `--accent-2` | `#ff8fb1` | rose: the warm end of the gradient, brand marks |
 | `--accent-ink` | `#150f2e` | ink on the gradient |
-| `--grad` | `linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%)` | **the only gradient**: primary buttons, the score ring, the follow label, brand portrait rings, the sheet's top edge, the active dock label's dot |
-| `--accent-tint` | `rgba(179,157,255,.14)` | active dock block, unread rows, selected states |
-| `--fire` | `#ff6a2b` | **reactions only**: pressed fire, fire counts, the burst, the flame in the mark, the "weak" verdict dot |
+| `--grad` | `linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%)` | **the only gradient**: primary buttons, the score ring, pressed chips and the secondary button's outline (Round 21), the follow label, brand portrait rings, the sheet's top edge, the active dock label's dot |
+| `--accent-tint` | `rgba(179,157,255,.16)` | active dock block, unread rows, selected states |
+| `--fire` | `#ff6a2b` | **reactions only**: a lit reaction's edge, the burst, the flame in the mark, the "weak" verdict dot, the medals; fire as a word on its own wash (a lit count, the weak verdict word) is `--fire-ink` `#ff8a5a` since Round 21 |
 | `--fire-2` | `#ffa83a` | the flame's tip |
-| `--fire-tint` | `rgba(255,106,43,.12)` | fill of a pressed fire action |
-| `--ok` | `#5ee6a0` | "works" dot, success |
+| `--fire-tint` | `rgba(255,106,43,.14)` | fill of a pressed fire action |
+| `--ok` | `#6ff0ad` | "works" dot, the keep row, success |
 | `--danger` | `#ff5d7a` | report, delete, errors |
 
-Ground: `html { background: #0b0b0f; background-image: radial-gradient(90% 38% at 50% -8%, rgba(179,157,255,.16), transparent 62%); }`
-(a lilac glow at the top of every screen, nothing else). No grain, no blur except the masthead (`--bg-2` at 92% + `blur(12px)`).
+Ground (Round 21): `html { background: var(--bg) }`, and one fixed `body::before` layer that paints the aurora at the
+top of every screen (`--glow`: lilac at the top-start, rose at the top-end, a breath of amber between) and a faint rose
+glow at its foot (`--glow-2`); a second fixed layer breathes on opacity. No grain, no blur except the masthead (`--bg-2`
+at 78% + `blur(12px)`, opaque where the engine has no backdrop-filter).
 
-Shape: rounded everywhere. `--radius: 18px` (cards, tickets, the hero figure), `--radius-sm: 12px` (photos inside grids,
+Shape: rounded everywhere. `--radius: 22px` (cards, tickets, the hero figure), `--radius-sm: 14px` (photos inside grids,
 inputs, the stamp of the app icon), `--pill: 999px` (chips, segments, buttons, the dock, the follow label, product links,
 the score ring). Sheets 24px on top. Avatars are circles.
 
 Spacing: 4 · 8 · 12 · 16 · 20 · 24 · 32. Gutter 16, cards 14 from the edge with 20 between, sections 24 apart, 12 inside.
 Touch targets ≥ 44px (dock blocks 56, the mark 60, chips 40 in 44 rows, actions 42 in a 50 row, index rows 46, follow 44).
 
-Shadows: card `0 10px 30px rgba(0,0,0,.35)`; dock `0 16px 40px rgba(0,0,0,.55)`; the mark's halo
-`0 0 0 6px rgba(179,157,255,.12), 0 10px 26px rgba(179,157,255,.35)`; primary button `0 8px 24px rgba(255,143,177,.25)`.
+Shadows (Round 21: lit from above, lifted on plum rather than black): card `inset 0 1px 0 rgba(255,255,255,.07), 0 14px
+36px rgba(8,4,20,.55)`; dock `inset 0 1px 0 rgba(255,255,255,.08), 0 18px 44px rgba(8,4,20,.65)`; the mark's halo, warmed
+to rose, `0 0 0 7px rgba(179,157,255,.14), 0 12px 30px rgba(255,143,177,.4)`; primary button `inset 0 1px 0
+rgba(255,255,255,.35), 0 10px 28px rgba(255,143,177,.32)`.
 
 ## 2. Type
 
-Google Fonts: `https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap`
+Self-hosted (Round 21): `wwwroot/fonts/fonts.css` declares Outfit (500–800), Heebo and Cairo (400–800) from ten variable
+woff2 subset files on this origin, and `index.html` preloads the three the first paint draws. There is no Google Fonts link
+anywhere any more; the Round 21 section says why.
 
 | role | stack |
 |---|---|
 | `--font-display` — h1, card headline, hero headline, profile name, segments, every numeral (score, counts, stats, ranks, unread) | `"Outfit", "Heebo", system-ui, sans-serif` — Outfit 700/800; Hebrew falls to Heebo 800 |
 | `--font-body` — UI, body, captions, buttons, chips, meta | `"Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif` |
-| labels (section heads, dock, tags, stat labels, tabs, action labels) | Heebo 700 11px uppercase, tracking .08em, `--ink-3`; `[dir=rtl]` 12.5px tracking .02em |
+| labels (`h2.rule` list heads, dock, tags, stat labels, tabs, action labels) | Heebo 700 11px uppercase, tracking .08em, `--ink-3`; `[dir=rtl]` 12.5px tracking .02em. (Round 21: a plain `h2` is a real heading, 700 17px display face in `--ink`, Heebo 800 18px in Hebrew) |
 
-Scale: wordmark 22px tall in the masthead (the SVG, never text) · h1 36/1.02 (Explore, Activity, states; 40 on the result
-headline) · profile name 28/1 · card headline 21/1.15 · hero headline 22/1.12 · segments 24/1 · action count 16 · caption
-Heebo 15/1.5 `--ink-2` · meta 12.5 · score ring numeral 22 (card) / 18 (hero, wall) / 15 (grid) · statline numerals 22 ·
+Scale: wordmark 22px tall in the masthead (the SVG, never text) · h1 36/1.02 (Explore, Activity, states; the result
+headline 38, 40 in Hebrew, Round 21) · profile name 28/1 · card headline 22/1.15 (Round 21) · hero headline 22/1.12 ·
+segments 24/1 · action count 16 · caption Heebo 15/1.5 `--ink-2` · meta 12.5 · score ring numeral (Round 21) 25 (card) /
+20 (Explore hero, wall) / 16 (grid) / 82 on the result's own ring · statline numerals 22 ·
 colophon 13 · index rank 14 tabular · dock labels Heebo 700 11.5 caps (Hebrew 12.5) · CHECK 10.5.
 Numerals are `direction: ltr` everywhere. No italics (Heebo has no Hebrew italic).
 
@@ -342,16 +354,20 @@ read as one object; the pill is 52 px, never a small link.
 ## 9. Motion
 
 Ring draw + flame pop on the check control; flame breathing on the loading screen; the score count-up on the result;
-the double-tap burst; a 120ms `scale(.985)` press on buttons; segment underline slides (transform, 200ms); sheets rise
+the double-tap burst; segment underline slides (transform, 200ms); sheets rise
 220ms; the camera's ring draws while a clip records and its red dot blinks; the feed switch coin fades its fill in and pops
-its glyph; everything off under `prefers-reduced-motion`. Nothing else moves.
+its glyph; everything off under `prefers-reduced-motion`. (Round 21 replaced the 120ms `scale(.985)` press with a 2px dip
+on every control and added the rise-in entrances, the aurora's breath, the result ring's draw-on and overshoot, the lit
+flame's glow and a look's settle under a press; "Motion and reduced motion" in the Round 21 section is the list now.)
 
 ## 10. Where each rule lives
 
-`app.css` (the tokens and every shared surface, §1–§9 order), `index.html` (fonts, inlined wordmark and mark SVGs, the
-dock markup), `app/core.js` (the score ring markup inside `.score-badge`, the `lit` class on the check control, the
-flame burst), `app/views/check.js` (the loading mark), `app/views/explore.js` and `profile.js` (structure unchanged
-from the previous system), `icons/` and `manifest.webmanifest` (regenerated from `brand/mark.svg`).
+`app.css` (the tokens and every shared surface, §1–§9 order), `index.html` (the font preloads and the link to
+`fonts/fonts.css`, inlined wordmark and mark SVGs, the dock markup), `fonts/` (Round 21: the faces themselves, on this
+origin), `app/core.js` (the score ring markup inside `.score-badge` and its `--score`, the piece chips, the `lit` class
+on the check control, the flame burst), `app/views/check.js` (the loading mark, and since Round 21 the result's four
+moments), `app/views/explore.js` and `profile.js` (structure unchanged from the previous system), `icons/` and
+`manifest.webmanifest` (regenerated from `brand/mark.svg`).
 
 **A screen's own CSS is not in `app.css`.** Anything only one view draws ships as a string inside that view's module
 and is appended once, on first render, through its own `ensureStyle()` — twenty-four modules do it, from
@@ -441,3 +457,270 @@ The three Round 14 screens the sections above never described. All of them draw 
   category to pick: the category is the stylist's own word for it. The row stays `hidden` until it has something to
   ask, so a screen with nothing to offer looks exactly as it did. (`#wardrobe-offer`, beside the item list, is a
   second mount `check.js` reserves and nothing fills.)
+
+## Round 21 — the look (appended)
+
+**The direction.** Warm depth, with a playful joy grafted on. The stage is a plum-black lit by an aurora — lilac at the
+top-start, rose at the top-end, a breath of amber between, a faint rose glow at the foot — that breathes slowly. A look
+card is glass with a 1px light edge, and a card that knows its occasion sits in that occasion's glow. The score ring
+reads as a meter: its arc fills to the score, and on the result the numeral is the first thing read. The stylist's pieces
+sit on the photo as name chips, each with a dot for the verdict: works (filled mint), neutral (hollow), weak (filled
+fire). Each occasion has one pastel, used as a tint and never as a frame. The tip is the one warm panel on the result,
+with the primary *Try the tip, then show me* inside it. Two more moments of colour earn their place: the keep row in
+mint, Tomorrow's weather pill in amber. Empty states open under the mark, large and lit. Anything that is a button dips
+2px when pressed, and a screen's first content rises in. What came over from the playful direction is its joy — the big
+numeral, the chips, the pastels, the press, the mark on an empty screen — and not its grammar: no 2px ink outlines, no
+hard shadows, no cream ground.
+
+**Tokens, old → new** (`app.css` §1 as it is now).
+
+| token | before | Round 21 | note |
+|---|---|---|---|
+| `--bg` | `#0b0b0f` | `#14101e` | warm plum-black, one step up from black so daylight never reads it as black |
+| `--bg-2` | `#13121a` | `#1b1527` | the masthead, the sticky feed head, the composer |
+| `--surface` | `#15151c` | `#211a2e` | solid surfaces only: the dock, sheets, the ring's inner disc |
+| `--surface-2` | `#1e1e27` | `#2e2541` | chips at rest, action pills, fields, placeholders |
+| `--line` | `#2b2b36` | `#3b3150` | |
+| `--line-soft` | `rgba(255,255,255,.08)` | `rgba(255,255,255,.09)` | |
+| `--ink` | `#f4f4f7` | `#f9f5ff` | a hair of lilac |
+| `--ink-2` | `#b9b9c6` | `#d1c8e0` | 11.6:1 on the stage, 9.0:1 on `--surface-2` |
+| `--ink-3` | `#7f7f8e` | `#a99ebd` | 7.4:1 on the stage, 6.6:1 on `--surface`, 5.7:1 on `--surface-2` |
+| `--accent-tint` | `rgba(179,157,255,.14)` | `rgba(179,157,255,.16)` | |
+| `--fire-tint` | `rgba(255,106,43,.12)` | `rgba(255,106,43,.14)` | |
+| `--fire-ink` | — | `#ff8a5a` | new: fire as a word on its own wash (below) |
+| `--ok` | `#5ee6a0` | `#6ff0ad` | the works dot, the keep row |
+| `--ok-tint` | — | `rgba(111,240,173,.13)` | new: the keep row's ground, the works chip's wash |
+| `--amber` / `--amber-tint` | — | `#ffb46b` / `rgba(255,180,107,.13)` | new: the aurora's warm breath, the weather pill, the Today kicker; a tint, never body text |
+| `--glass` / `--glass-edge` / `--glass-hi` | — | `rgba(255,255,255,.055)` / `rgba(255,255,255,.1)` / `inset 0 1px 0 rgba(255,255,255,.09)` | new: a translucent card over the aurora (a flat fill, no backdrop-filter), its 1px edge, its top light |
+| `--scrim` | — | `rgba(20,16,30,.64)` | new: a photo's vignette in the stage colour, not black |
+| `--ring-track` | — | `rgba(255,255,255,.14)` | new: the unfilled rest of a meter |
+| `--radius` / `--radius-sm` | 18 / 12 | 22 / 14 | |
+| `--shadow-card` | `0 10px 30px rgba(0,0,0,.35)` | `inset 0 1px 0 rgba(255,255,255,.07), 0 14px 36px rgba(8,4,20,.55)` | lit from above, lifted on plum |
+| `--shadow-dock` | `0 16px 40px rgba(0,0,0,.55)` | `inset 0 1px 0 rgba(255,255,255,.08), 0 18px 44px rgba(8,4,20,.65)` | |
+| `--shadow-halo` | lilac `6px` ring + lilac lift | `0 0 0 7px rgba(179,157,255,.14), 0 12px 30px rgba(255,143,177,.4)` | the mark's halo, warmed to rose |
+| `--shadow-primary` | `0 8px 24px rgba(255,143,177,.25)` | `inset 0 1px 0 rgba(255,255,255,.35), 0 10px 28px rgba(255,143,177,.32)` | |
+| `--glow` | one lilac radial at the top centre | three radials: lilac at 18% (.30), rose at 84% (.26), amber at 52% (.14) | the aurora |
+| `--glow-2` | — | `radial-gradient(70% 26% at 50% 108%, rgba(255,143,177,.1), transparent 60%)` | new: the stage's warm foot |
+| `--tint-<occasion>` (and `-glow`, `-wash`) | — | the table below | new |
+| `--tint` / `--tint-glow` / `--tint-wash` | — | `var(--accent)` / `rgba(179,157,255,.38)` / `var(--accent-tint)` | new: the cascade trio an element reads; lilac when no occasion is known |
+
+Unchanged: `--accent` `#b39dff`, `--accent-2` `#ff8fb1`, `--accent-ink` `#150f2e`, `--grad`, `--fire` `#ff6a2b`,
+`--fire-2`, `--danger`, both font stacks, `--caps`, `--pill`, `--tabbar`, `--col`, `color-scheme: dark`.
+
+**One pastel per occasion.** Pastel on dark, each in three forms — a solid (a pressed chip's fill, a tag's text, the
+Tomorrow kicker's pill), a glow (a coloured shadow behind a card or a photo) and a wash (a faint fill under a chip at
+rest) — so no rule needs `color-mix()`.
+
+| occasion | solid | glow | wash |
+|---|---|---|---|
+| Date | rose `#ffb1c8` | .42 | .12 |
+| Office | sky `#a6c6ff` | .42 | .12 |
+| Streetwear | lemon `#ffe082` | .34 | .11 |
+| Casual and Everyday | mint `#8ef0c0` | .34 | .11 |
+| Party | lilac `#d4b7ff` | .42 | .12 |
+| Formal | ivory `#f2e8d2` | .30 | .10 |
+| Sport | aqua `#7fe4ec` | .34 | .11 |
+| OldMoney | sand `#e6cfa6` | .32 | .11 |
+
+One map in §1 sets the trio from `data-occasion` (a chip on the check and on Tomorrow, the `#asked-for` tag and the card
+head's tag, `#result`, `article.card`, `#tm-card`, the Tomorrow kicker's occasion) and from `data-intent` (the feed's
+filter chips, the check's occasion and style chips). The keys are the app's own strings, matched exactly; any other
+word — Minimal, Classic, the feed's All, No style — keeps the lilac fallback. Every pastel carries `--accent-ink` at
+10.5:1 or better, and as tag text on its own wash reads 6.3–9.0:1.
+
+**The components, by `app.css` section.**
+
+- **Ground.** `html` is flat `--bg`. `body::before` is still the one fixed layer and paints `--glow, --glow-2` (a fixed
+  layer, not `background-attachment: fixed`, which mobile Safari ignores); `body::after` adds an amber and a rose radial
+  that fade in and out on opacity over nine seconds. `.sticky-tabs` repaints the same two images by hand, as before.
+- **The label voice and §2.** A plain `h2` is now a heading: 700 17px in the display face, `--ink`. The caps and the
+  hairline moved to `h2.rule`, for a head over a list of rows (Explore's sections, the board's strip and hall, the look's
+  pieces and comments, the settings, admin and dashboard groups); a head that titles a card or a moment (the breakdown,
+  the one tip, the check's two questions) is a plain `h2`. In Hebrew, h1, h3, the headlines, the tip's words, an empty
+  state's title, the board's countdown, the Explore hero title, the Today title, the feed coins and the compare verdict
+  take Heebo 800 with no tracking; an `h2` is Heebo 800 at 18px, the result headline 40px, the card headline 22px. Arabic
+  headings take line-height 1.12 (Cairo's tall ascenders); Russian headlines lose the tight tracking. h1 tracks
+  −0.02em, h3 −0.01em.
+- **§3 the masthead.** `--bg-2` at 78% behind the 12px blur (still the app's only blur), a `--line-soft` foot, and an
+  opaque `--bg-2` where the engine has no backdrop-filter. The wordmark is untouched.
+- **§4 the dock.** The same geometry. Opaque `--surface` with a `--glass-edge` border and `--shadow-dock`, and a sheen
+  across it — lilac to rose to amber at about a tenth — under the tabs. The mark sits on a `--bg` disc with the rose halo
+  and a light along its top edge.
+- **§8 controls.** `.btn` is the gradient with `--shadow-primary`. `.btn-secondary` is a 1px gradient outline at 70% over
+  `--surface` (the `.featured` padding-box trick), lit along its top; pressed, the full gradient edge on `--surface-2`.
+  `.chip` rests on `--surface-2` with a hairline and a faint top light; pressed, it is **the gradient** with `--accent-ink`
+  and a rose glow (it was flat lilac). An occasion chip carries a 7px swatch of its pastel on a wash of it and, pressed,
+  fills with the solid pastel, the swatch turning to ink. `.tag[data-occasion]` is the pastel as text on its wash; `.tag.rose`
+  keeps its outline. Fields are raised (a top light and a hairline, which the 2px focus ring replaces); `.pill`,
+  `.switch`, `.notice` and the install banner are glass. **The press:** `.btn, .chip, .action, .segment, .pill, .vote`
+  dip 2px in 90ms (`translate: 0 2px` — the `translate` property, not `transform`, so it composes with a chip's `rotate`),
+  and the primary's shadow shortens while it is down. It replaces the old `scale(.985)`.
+- **§5 the look card.** Glass (`--glass`, a 1px `--glass-edge`, radius 22, no padding, `--shadow-card`).
+  `.card[data-occasion]` trades the plain lift for its pastel's glow — `0 22px 60px var(--tint-glow), 0 2px 18px
+  var(--tint-wash)`: rose behind a Date look, lemon behind Streetwear — a shadow, never a frame. The head and body carry
+  14px inline padding, the avatar is 38px, the headline 22px. The photo runs edge to edge between them under a vignette in
+  the stage colour (`--scrim` up from the foot, a faint one down from the top), so a dark selfie keeps a tonal foot and the
+  chips have something to sit on. The actions are raised 42px pills on `--surface-2`; a lit fire is `--fire-tint` with a
+  `--fire` edge, its glyph and count in `--fire-ink`, and a glow under it that breathes on opacity every three seconds; a
+  saved look is `--accent-tint`. A look answers a press by settling to 99% (a transform on the picture alone).
+- **Sheets, the toast, skeletons.** The sheet keeps its gradient top edge over `--surface` and gains a `--glass-edge`
+  border and a plum shadow; the backdrop is a plum veil, not black; the toast gains a shadow; skeleton cards are glass.
+- **Empty states.** `.empty` in `--ink-2` 16/1.5 under a 26px 800 title, and **`.empty-mark`**: a 136px clone of the
+  mark (`logoMark(136)`) in a rose-lilac radial with a rose drop shadow, the flame lit (dimmed, it read as mud on the
+  plum). `board.js` `emptyCall()` puts it on Home, Explore, the board and a fresh profile, and `tomorrow.js` on its three
+  empty states; the empty call sits tighter under it so the way on is in the first viewport.
+- **Over a photo.** The clip pill, the sound disc, the compare letter, the grid's private tag, the item dots, the tag
+  toggle and the count moved from `rgba(11, 11, 15, …)` to the stage colour `rgba(20, 16, 30, …)` at the same alphas.
+
+**The meter.** Every ring — the card's `.score-badge`, the grid's and the wall's, the breakdown's three, the checks
+list's `.num` and the result's `.hero` — is one element: a solid disc in the padding box (`--surface` on a card, `--bg`
+on the hero) and, in the border box, `conic-gradient(from 210deg, #b39dff 0deg, #ff8fb1 var(--arc), var(--ring-track) 0)`
+with `--arc: calc(var(--score) * 36deg)`. The arc starts at the bottom-left and runs clockwise: a 7 is 252°, the gap sits
+at the foot like a gauge's, a 10 closes the ring. `--score` is an inline style set by `core.js` `scoreStyle()` — clamped
+to 0–10, and left off when the value is not a number, which leaves the ring full — from `scoreBadge()`, `breakdownRow()`,
+the result's hero and `profile.js`'s checks list. A conic does not mirror in Hebrew and neither does a numeral: the ring
+is `direction: ltr` and keeps the photo's bottom-right corner in both languages, as it always has. Sizes: a card's ring
+48px with a 4px arc, the numeral at 25 and `/10` at 7, straddling the photo's bottom-right with a 4px stage collar and a
+rose shadow; grid 32/16; the wall and the Explore hero 40/20; the breakdown 60/28, static; the checks list 44/20. **The
+hero** is 156px with an 8px arc over `--bg` and the numeral at 82px 800 with a rose glow, `/10` at 12px under it — the
+number is the first thing read — inside a 10px stage collar, a 1px light ring, the rose halo and a lilac bloom. It draws
+its arc on over 900ms, which is why `--arc` is registered with `@property` (an animatable angle), and `.landed` —
+added by `animateScore()` on the count-up's last frame, at once when nothing counts up — plays a 200ms 5% overshoot.
+**The fallbacks:** an engine without `@property` (Safari before 16.4, Firefox before 128) cannot tween the angle, so the
+draw-on jumps from nothing to the final arc halfway through its 900ms; the final ring is right everywhere. The public look
+page keeps its own server-drawn SVG ring (recoloured to the stage, filling from the top), and the share card and film
+still draw the full gradient ring.
+
+**The pieces chips, and where their verdicts come from.** `core.js` `pieceChip(item)` draws
+`span.chip.piece[data-verdict] > span.dot.{works|neutral|weak} + span.item-name`; anything but the stylist's three words,
+or no verdict at all, is neutral. The shared rule is `app.css` §8: a 34px dark-glass pill (`rgba(22, 16, 34, .72)`, a
+light edge, Heebo 600 13px in `--ink`: 12:1 over a mid-grey photo, 8.2:1 over a light wall), a `::before` that makes
+the hit area 44px, an 8px dot — works filled mint with a mint glow, neutral a hollow `--ink-2` ring, weak filled fire with
+a fire glow — and the name as the part that ellipsises, its first letter capitalised (the server keeps names lower-case).
+**On a card** (`postCard()`) up to four sit at the photo's bottom-left, 32px, straight and quiet, `aria-hidden` like the
+count they replace (the link names the look, the look page lists the pieces); the count is drawn only when nothing names
+them. On the look page the tag toggle takes that corner once a piece has a dot, and the chips step aside for it.
+**The data:** the feed used to carry only `itemCount`. `PostItemDto` gained `Verdict` — `works`, `neutral` or `weak` —
+as its last, optional field. `PostReader` reads each check's stored feedback in the one query over the page's checks
+that already found the clips, keys the stylist's pieces by the name exactly as a look's row stores it
+(`PostItems.NormalizeName`), and gives each row the verdict for its name — a row the person retyped keeps its piece's
+verdict; a name the check never gave (a piece the person added in their own words) has none, and the field is left off
+the wire. `PATCH /api/posts/{id}/items` answers with the same verdicts. The stylist's note on a piece never travels
+with the look.
+
+**The result in four moments** (`views/check.js`, in its own CSS). `#result` carries `data-occasion`, so its tag, its
+chips and its glow take the occasion's pastel; every id stays inside `#result`.
+1. **`.result-verdict`**: the judged still (`figure.result-photo`) edge to edge under the masthead, 4:5, its bottom
+   corners rounded 28px so it sits on the stage as an object, under a stage-coloured scrim; up to four piece chips pinned
+   at its bottom-left with a static tilt (−2°, 1.5°, −1°), the hero on its bottom-right corner, and behind it the
+   occasion's glow, a radial in `--tint-glow` that the headline (38px, 40 in Hebrew), the vibe (17px, `--ink-2`) and
+   `#asked-for` sit in. A past check with no still keeps the ring in flow above the headline.
+2. **`.result-read`**: one glass panel for `#breakdown`, `#accessories` and the reads-as bar. The accessories' "add one"
+   is a quiet lilac block with no bar, so the tip stays the one warm moment.
+3. **`.result-pieces`**: the pieces again, as 40px chips on `--surface-2` with the verdict word beside the name (the works
+   chip on a mint wash, the weak one on a fire wash with its word in `--fire-ink`); a chip whose piece has a note is a
+   button, and the note opens under the row in `p.piece-note` (the first weak piece with a note starts open). Then what
+   works, `#taste-win`, and **the tip as the warmest panel**: glass tinted lilac to rose to amber (17%, 15%, 17%), a 1px
+   light edge, the card shadow and a rose bloom, the gradient bar inside it glowing 10px in from the start edge, the words
+   at 23px, and `#tried-action` — the primary *Try the tip, then show me* with its hint, the waiting line, or the pair —
+   inside `#tip`. `#taste-reasons` follows as its own glass panel, then `#wardrobe-keep`.
+4. **`.result-doors`**: Post it (`#post-open`) and *Posted · See the look* (`#post-link`) are secondary now, `#guest-keep`
+   stays the primary (it is a guest's only door), then the share row and Check another.
+
+**The keep row** (`app/wardrobe.js`): the one green surface on the result — a mint wash over glass with a mint edge, the
+bag on a mint disc with a soft glow — because keep is the works colour. The KEEP button stays the gradient.
+
+**Tomorrow** (`views/tomorrow.js`). The day pills are 44px; the occasion row scrolls edge to edge under them with no
+heading of its own (the group keeps its name for a screen reader, and the lede is read, not seen); the style row and the
+forecast fold behind one 44px *More* line (`details.tm-more`, the words of `common.more` with the picked style as a hint
+beside them), open by default only while there is an outfit to compose and the place is still a question, and left as the
+person set it on a repaint. The closet strip is prints in the gradient ring, 68px in an 80px tile. The outfit is a glass
+card lit in its occasion's glow (`#tm-card[data-occasion]`), its caps kicker holding the occasion as a solid pastel pill.
+When every piece came from one check the photo is drawn once, large (`.tm-big`: up to 168px, 4:5, in its tint's glow with
+its own vignette), beside `.tm-side`: a caps hint and the pieces as 40px name chips with the kind in `--ink-3`, one
+`ul.pieces.chips` of `li[data-item]` inside `#tm-one-look`. The sentence is 18px (600 in Hebrew). The forecast is drawn
+once, on the card, as **the amber pill** (`#weather-pill`: `--amber-tint`, an amber edge, a 10px sun that glows).
+
+**Home's Today strip** (`views/today.js`). An amber-to-rose-to-lilac wash over glass with a 1px light edge and an amber
+bloom under the card shadow; the kicker in `--amber` on one line; a 54×68 print of the first look posted to the prompt
+(`.today-print`, tilted −4° like a photo left on a table, hidden from a screen reader, which has the title's link), first
+in the head. The words keep at least 200px, so on a 390px phone the hashtag and *You're in* drop under them instead of a
+title wrapping around a pill. The Post pill stays the gradient.
+
+**The share card and the film** (`app/sharecard.js`, `app/sharevideo.js`) never read the stylesheet, so the palette is
+copied into them by hand, `drawStage()` paints the same aurora from the same numbers for both, and every dark overlay in
+the film is the stage colour at its old alpha. The chrome outside the page followed too: `theme-color`, the manifest's
+colours, the offline page and the server-rendered public pages' own tokens.
+
+**The fonts.** Outfit, Heebo and Cairo are served from this origin: `wwwroot/fonts/fonts.css` and ten woff2 files, which
+are every subset Google served for the three families — Outfit latin and latin-ext; Heebo hebrew, latin, latin-ext, math
+and symbols; Cairo arabic, latin and latin-ext — each a variable font covering its family's whole weight range, so there
+is one `@font-face` per family and subset, with `font-display: swap` and a `unicode-range` so the browser fetches only
+the subsets the text on screen needs (about 220 KB in all; an English screen fetches about 75 KB of it). `index.html`
+preloads the three the first paint draws — Outfit latin, Heebo hebrew, Heebo latin — and links `fonts/fonts.css` before
+`app.css`; the landing pages link `../fonts/fonts.css`. **The Google Fonts link was removed, not kept as a fallback:**
+Chrome matches a single-weight `@font-face` declared by Google's sheet over a local face whose range covers the same
+weight, so with both on the page the local files were never loaded. The service worker (shell `v8`) precaches
+`/fonts/fonts.css` and keeps each woff2 the first time it is fetched, so an installed app draws its own type offline.
+`fonts.js`, which flipped Google's sheet from print to all, is gone, and the security policy allows no font host:
+`style-src 'self' 'unsafe-inline'`, `font-src 'self'`.
+
+**Motion and reduced motion.** One keyframe, `rise-in` (from opacity 0 and 8px down, 320ms): a list's first page
+(`core.js` `infiniteList()` puts `.enter` on it; the first six cards 80ms apart; a page appended on scroll simply
+appears), a notice with its screen, the result's four moments (0, 80, 140, 200ms), the Tomorrow card and the Today strip.
+Then the hero's arc and its overshoot, the aurora's breath, the lit flame's glow, the 2px press and a look's settle under
+a press. All of it is opacity and transform, and nothing waits on its end. Under `prefers-reduced-motion`, §9's global
+collapse still applies (every duration to 0.01ms, so `animationend` still fires and `lit` still clears); on top of it
+the aurora's breathing layer is hidden, the press and the settle are off, and **the entrances and the hero are off
+outright**, each in the block that owns it (`app.css` §9, `check.js`, `tomorrow.js`, `today.js`): a collapsed rise-in
+still painted its first frame at opacity 0, and the hero its arc at 0°, measured. So every screen is whole the instant it
+appears.
+
+**What did not change.** The mark and the wordmark SVGs (`#mark-template`, `#wordmark-template`), the check control's
+ring-draw and flame-pop, the breathing loading mark, and the mark's left-to-right exception in Hebrew. **One
+gradient:** lilac to rose is still the only solid gradient — the primary button, the ring, a pressed chip, the
+secondary outline, the sheet's edge, the dock's dot, the closet strip's rings on Tomorrow; the aurora, the dock's
+sheen, the tip panel and the Today strip are faint washes of the same lilac and rose with the amber (10–17%), and the
+occasion pastels are never a gradient, a frame or an outline. **Fire** is still for reactions, the medals, the flame
+and the weak dot; `--fire-ink` is the same fire, lighter, for a word on its own wash. **Every id and class** the app
+and the browser test query is where it was; the new class names are additive (`.result-photo`, `.result-scrim`,
+`.result-verdict`/`-read`/`-pieces`/`-doors`, `.pieces`, `.chip.piece`, `.piece-note`, `.empty-mark`, `.today-print`,
+`.tm-side`, `.tm-more` on a `details`). Logical properties, 44px targets, the 16px gutter and 16px fields, and §10's
+rule that a screen's own CSS lives in its own module. No route, setting or i18n key was added (the fold reuses
+`common.more`).
+
+**Where the build departed from the plan, and why** (`DECISIONS.md`, Round 21, has the full list).
+- **The chips sit by physical left and right** (`left: 12px; right: 72px` on a card, `left: 16px; right: 176px` on the
+  result), not `inset-inline`. The plan assumed the ring sits at the bottom-end; it is `direction: ltr` and stays
+  bottom-right in both languages, and the first Hebrew render showed mirrored chips hidden under it. In Hebrew the row
+  still flows from the ring's side leftward.
+- **The Old money key is `OldMoney`**, the app's own string, not `Old money`.
+- **The mounts are the app's:** `#tried-action` sits inside `#tip`, `#taste-reasons` after it as its own glass panel
+  (inside, it would have made the warm panel tall), and a `#taste-win` slot above the tip, without which that line lands
+  above the photo.
+- **Tomorrow's pieces are one list:** the chips are the `ul` of `li[data-item]`, because the browser test counts three
+  `li` in `#tm-one-look` and a hidden second list would have made it six.
+- **`.tip p` became `.tip > p`**, so a door mounted inside the tip keeps the body face.
+- **The keep row's rules live in `app/wardrobe.js`**, which draws it; `[dir=rtl] .tm-sentence` lives in `tomorrow.js`.
+- **The result headline is 38px in English** on the result (40 elsewhere and in Hebrew).
+- **The proofs corrected four things:** `--fire-ink` for the weak verdict word and a lit count (4.1:1 in `--fire`, 5.1:1
+  now); the entrances and the hero off outright under reduced motion; the result's chip box eased to `right: 176px` and
+  the chip to 10px padding and 13px, so three names take two rows at 390px; the Today strip's words to a 200px basis.
+  And `occasionChips()` / `styleChips()` now load `check.js`'s rules wherever they are drawn, so Tomorrow's style row
+  keeps its spacing in a browser that never opened the check.
+- **The fonts are self-hosted with no Google fallback** (above), and the 60px card glow stayed: under a 6x CPU throttle
+  on 14 cards the feed held a 17ms frame at the 95th percentile with one frame over 50ms in 352.
+
+**Open questions, and what is left as it is.**
+- **The arc in Hebrew.** The meter fills clockwise from the bottom-left in both languages. In the Hebrew renders it reads
+  as a gauge filling up, and it was left for a Hebrew reader to judge on a real phone (`LAUNCH.md` 1.8, step 10); if it
+  reads backwards, the change is `from 150deg` under `[dir=rtl] .hero`, and only there.
+- **The landing pages** keep the old black tokens in their own `<style>` and the screenshots of the old look
+  (`landing/screens/*.jpg`) until those are re-shot; the tokens move with the screens (`LAUNCH.md` 3.2).
+- **A posted look's verdicts are public now**, on a look whose number the author kept private too. That is a product
+  and privacy question, not a design one; `DECISIONS.md`, Round 21, puts it to the founder.
+- **Left as it is:** the share card and film draw the full ring, not the meter; the public look page's ring fills from the
+  top; a look with five or more pieces shows four chips and no count (the look page lists them all); on Tomorrow, English
+  piece names in a Hebrew column wrap onto a second line; the Today strip is taller on a phone than the mock, with the
+  tags under the words; the Today strip's and the "after the tip" picker's small rings keep their old black shadow; the
+  old `.items li` list rules and a few overrides that undid the old caps `h2` are still in the files and do nothing.

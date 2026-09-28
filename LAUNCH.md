@@ -610,6 +610,15 @@ Then, on your phone, at `https://looks.example.com`:
      install step is here at 9 and not at 2 — installing first would build your whole account inside an icon you
      may throw away, and on the tunnel path it would be bound to a hostname that is gone tomorrow.
    - Then check the app opens full screen with its own icon.
+10. **Look at the look, in Hebrew, on this phone (Round 21).** Round 21 redesigned how the app looks, and it was proved
+    in a browser pretending to be a phone, never on a real one. From the new icon, switch the app to Hebrew (the globe at
+    the top) and look at three screens: **the result** of one more check, taken from the icon (it counts like any
+    check) — the photo edge to edge, the pieces as chips on it, the score ring on its corner — **the feed** on Home, and
+    **Tomorrow** (`#/tomorrow`; with fewer than two kinds of piece kept it shows its empty state under the mark, which is
+    worth seeing too). Nothing should overlap, hide under the ring or run off the edge; if something does, a screenshot
+    is the whole report. One question is open on purpose: the ring's arc fills clockwise from the bottom-left in both
+    languages, and whether that reads right in Hebrew is for a Hebrew reader to say. If it reads backwards to you, say
+    so: it is a small change in the stylesheet (`DESIGN.md`, Round 21, "Open questions").
 
 If any of those fail, section 6 is the map.
 
@@ -865,6 +874,13 @@ node tools/brand/render-kit.js store web     # or just the store screens and the
 
 `brand-kit/README.md` lists every file it writes. Do this before any store submission: Apple rejects screenshots that
 do not show the app as shipped.
+
+**Round 21 changed the look: re-shoot once it is live.** The landing page's phone screens
+(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) and the store screenshots were taken of the look before Round 21. If
+they still show the black stage and the old ring, take the captures again from the deployed app and re-run
+`node tools/brand/render-kit.js store web` as above. The landing pages carry their own copy of the colours in their
+`<style>` (they stand alone, with no app stylesheet): if that still says `--bg: #0b0b0f`, move it to `DESIGN.md` §1's
+values in the same change, so the page around the screens matches the screens.
 
 ### 3.3 Post the first ten looks yourself
 
@@ -1728,6 +1744,14 @@ curl -I https://looks.example.com/landing/      # 200          — דף הנחי
      שם אתם מבקר נפרד. בדיוק בגלל זה שלב ההתקנה כאן ב-9 ולא ב-2 — התקנה קודם הייתה בונה את כל החשבון שלכם בתוך
      אייקון שאולי תזרקו, ובמסלול המנהרה הוא היה קשור לשם מארח שייעלם מחר.
    - ואז בודקים שהאפליקציה נפתחת במסך מלא עם האייקון שלה.
+10. **מסתכלים על המראה, בעברית, בטלפון הזה (סבב 21).** סבב 21 עיצב מחדש את המראה של האפליקציה, והוא נבדק בדפדפן
+    שמתחזה לטלפון, אף פעם לא בטלפון אמיתי. מהאייקון החדש, העבירו את האפליקציה לעברית (הגלובוס למעלה) והסתכלו על שלושה
+    מסכים: **התוצאה** של עוד בדיקה אחת, מתוך האייקון (היא נספרת כמו כל בדיקה) — התמונה מקצה לקצה, הפריטים כתגיות
+    עליה, טבעת הציון בפינה שלה — **הפיד** במסך הבית, ו**מחר** (`#/tomorrow`; עם פחות משני סוגי פריטים שמורים הוא מראה
+    את המצב הריק שלו מתחת לסמל, וגם אותו שווה לראות). שום דבר לא אמור לחפוף, להסתתר מתחת לטבעת או לברוח מהקצה; אם
+    משהו כן, צילום מסך הוא כל הדיווח. שאלה אחת נשארה פתוחה בכוונה: הקשת של הטבעת מתמלאת עם כיוון השעון מהפינה
+    השמאלית-התחתונה בשתי השפות, ואם זה נקרא נכון בעברית — את זה צריך להגיד מי שקורא עברית. אם זה נראה לכם הפוך, אמרו:
+    זה שינוי קטן בגיליון הסגנונות (`DESIGN.md`, סבב 21, "Open questions").
 
 אם משהו מזה נכשל, פרק 6 הוא המפה.
 
@@ -1973,6 +1997,12 @@ node tools/brand/render-kit.js store web     # או רק מסכי החנויות
 
 `brand-kit/README.md` מפרט כל קובץ שהוא כותב. עשו את זה לפני כל הגשה לחנות: אפל דוחה צילומי מסך שלא מראים את
 האפליקציה כפי שנשלחה.
+
+**סבב 21 שינה את המראה: מצלמים מחדש כשהוא באוויר.** מסכי הטלפון בדף הנחיתה
+(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) וצילומי המסך לחנויות צולמו מהמראה שלפני סבב 21. אם הם עדיין מראים
+את הבמה השחורה ואת הטבעת הישנה, צלמו שוב מהאפליקציה הפרוסה והריצו שוב `node tools/brand/render-kit.js store web` כמו
+למעלה. לדפי הנחיתה יש עותק משלהם של הצבעים ב-`<style>` שלהם (הם עומדים לבד, בלי גיליון הסגנונות של האפליקציה): אם
+כתוב שם עדיין `--bg: #0b0b0f`, העבירו אותו לערכים של `DESIGN.md` §1 באותו שינוי, כדי שהדף סביב המסכים יתאים למסכים.
 
 ### 3.3 פרסמו בעצמכם את עשרת הלוקים הראשונים
 

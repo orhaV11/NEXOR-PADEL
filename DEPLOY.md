@@ -1160,7 +1160,7 @@ this app), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer
 (`no-referrer` on the one route a store link leaves through, `/api/items/{id}/out`, which also answers
 `Cache-Control: no-store`, refuses a hidden look and takes sixty taps a minute per address), a `Permissions-Policy`
 that keeps camera and microphone to the app itself, and a **`Content-Security-Policy`** with `script-src 'self'` (no
-`unsafe-inline`, no nonce) — see item 4 below for the two openings that remain. Store links themselves are stored
+`unsafe-inline`, no nonce) — see item 4 below for the one opening that remains. Store links themselves are stored
 only when they are `http(s)` with a host and no user info, and are never the `href` a person taps. The session
 cookie's encryption keys are persisted on the data volume beside the database, at `/data/keys`, and deliberately
 outside `Storage:Root`: without that they would live in the container and a deploy would sign everyone out. They are
@@ -1182,16 +1182,24 @@ Still missing before a public launch, in rough order of importance:
    scale, together with object storage (next).
 3. **Object storage.** Photos and clips sit on the server's disk behind `IImageStore`. An S3-compatible bucket
    (Hetzner, Backblaze, R2) makes the disk stop being the limit and the backups a bucket policy.
-4. **The fonts are still off-origin.** The Content-Security-Policy is set — that item used to say it was not, and it
-   has been since Round 13 (`Services/Security/SecurityHeaders.cs`, asserted by `SecurityTests` on `/`, `/landing/`,
-   an API answer and an error): `default-src 'self'`, **`script-src 'self'` with no `unsafe-inline` and no nonce**,
-   `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `img-src` and `media-src`
-   allowing `blob:` for the share card and the share video. Two deliberate openings remain. `style-src` keeps
-   `'unsafe-inline'` because the design system sets `style` attributes from code and appends one `<style>` per view
-   — a nonce cannot cover an attribute and a hash cannot cover a computed width, and CSS injection is not code
-   execution while every user string reaches the page as text. And `style-src`/`font-src` still name
-   `fonts.googleapis.com` and `fonts.gstatic.com`, which is a third party on every cold start. Self-hosting woff2
-   subsets under `/fonts` (Latin, Hebrew, Arabic) closes that one and lets both hosts leave the policy.
+4. **The fonts are on this origin now (Round 21).** The Content-Security-Policy is set — that item used to say it was
+   not, and it has been since Round 13 (`Services/Security/SecurityHeaders.cs`, asserted by `SecurityTests` on `/`,
+   `/landing/`, an API answer and an error): `default-src 'self'`, **`script-src 'self'` with no `unsafe-inline` and no
+   nonce**, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `img-src` and
+   `media-src` allowing `blob:` for the share card and the share video. One deliberate opening remains: `style-src`
+   keeps `'unsafe-inline'` because the design system sets `style` attributes from code and appends one `<style>` per
+   view — a nonce cannot cover an attribute and a hash cannot cover a computed width, and CSS injection is not code
+   execution while every user string reaches the page as text. The second opening this item used to name is closed.
+   Outfit, Heebo and Cairo are served from `/fonts` on this origin — `fonts/fonts.css` and ten woff2 files, built into
+   the image like every other file in `wwwroot` — and the Google Fonts link is gone from the app and both landing pages,
+   so a cold start asks no third party for anything, and `style-src` and `font-src` are `'self'` with no host off this
+   origin at all. **What it means for you: nothing to configure.** The service worker moved to `orevosh-shell-v8`, so a
+   phone with the app installed fetches the new shell and the new look the next time it is opened, keeps each face the
+   first time a screen uses it, and from then on draws its own type offline; the static files are served `Cache-Control:
+   no-cache` with ETags, so a deploy is picked up at once and costs a revalidation, not a download. One rule follows
+   from the policy: **nothing else in `wwwroot` may link to `fonts.googleapis.com`, `fonts.gstatic.com` or any other
+   host** — a stylesheet, a font or a script from another host is refused by the browser and simply does not load. A new
+   face goes under `wwwroot/fonts` with its own `@font-face` in `fonts/fonts.css`.
 5. **Brand verification is by hand** (`--verify`, or since Round 20 a moderator's Verify button on `#/admin`; no form and no process behind it), and **one process only**: the
    checks-per-day reservation, the per-address guest count and the rate limiters' windows live in memory, so run one
    `app` container (one machine on Fly). Multiple instances need a shared store.

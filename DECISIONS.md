@@ -2336,3 +2336,142 @@ Verify fix "one section up". None of these routes asks the model, so the stub is
   `changed` from the pair when both sides are pair sides; the episodes paragraph moved into `render-kit.js`'s
   `writeReadme` because the social render regenerates that README; `calibrate.ps1` exits 1 (not 2) for its own preflight
   failures and accepts `-DryRun` without a handle.
+
+## Round 21 — the look
+
+**Why a redesign now.** By Round 20 the app did what it was for — an honest number on the real outfit in fifteen seconds,
+and the before/after as the thing people share — on the stage the first design system drew: near-black, one lilac glow,
+flat cards. The founder wanted an app that is a pleasure to look at, and this round is that and nothing more: no
+feature, no route, no setting. The competitor's design was explicitly **not** the reference: the aim was OREVOSH at its
+best, not a look borrowed from the app it is up against.
+
+**How the direction was chosen.** Three directions were mocked on the app's own markup — its real selectors and each
+view's own CSS, not pictures of an app — and rendered on the same three screens (the result, the feed, Tomorrow): a
+sunlit one, a warm-depth one and a playful one. A judge panel compared them. The founder chose the warm-depth base and
+asked for the playful one's joy grafted onto it — the oversized numeral in the ring, the pieces as chips on the photo,
+a pastel per occasion, a tactile press, empty states drawn from the mark — without its grammar (2px ink outlines, hard
+shadows, a cream ground). The blend was mocked the same way, on five screens this time (the result, the feed, Tomorrow
+and an empty state, those two in Hebrew, and the result on a dim photo), and the founder approved it before any code
+was written. One plan came out of it — the tokens old to new, the rules by stylesheet section, the markup tweaks, what
+must not change, the risks and how to test them — and six commits built it, the last of them the proofs.
+
+**The rules kept.** The mark and the wordmark are untouched. The lilac-to-rose gradient is still the only solid gradient;
+everything warmer is a faint wash, and the occasion pastels are tints, never a gradient, a frame or an outline. Fire
+stays with the reactions, the medals, the flame and the weak dot. Every id and class the app and the browser test read
+stayed where it was and every new one is additive, so the browser test passed without a query changed. A screen's own
+CSS stays in its own module (`DESIGN.md` §10). Reduced motion is a rule, not a nicety: every entrance is opacity and
+transform, and nothing waits on one. No route, setting, migration or i18n key was added; the one API change is a field.
+
+**The decisions that could have gone another way.**
+- **Self-hosting the fonts, and dropping Google entirely.** The plan said self-host and keep the Google link as a
+  fallback. With both on the page the local files were never loaded: Chrome matches a single-weight `@font-face`
+  declared by Google's sheet over a local face whose weight range covers the same weight, so the page drew Google's
+  files, and an installed app offline would still have drawn system type. Keeping the fallback would have kept the
+  problem. The ten files under `wwwroot/fonts` are every subset Google served for the three families, each a variable
+  font covering the family's whole weight range, so dropping the link loses no glyph Google would have sent. The cost is
+  about 220 KB in the repository, and a font update is a download by hand.
+- **The security policy.** With no font host left, `style-src` is `'self' 'unsafe-inline'` and `font-src` is `'self'`:
+  no host off this origin anywhere in the policy. `'unsafe-inline'` for styles stays for Round 13's reason (a style
+  attribute set from code cannot carry a nonce). `SecurityTests` asserts that neither Google host appears in it, so
+  putting one back fails the build.
+- **`--fire-ink` rather than a lighter fire.** The contrast script found the weak verdict word and a lit fire count —
+  fire as text on fire's own wash — at 4.1:1. Lightening `--fire` would have moved the mark's flame and every reaction;
+  darkening the wash would have dulled the lit pill. A second token, `#ff8a5a`, is fire as a word on its wash (5.1:1),
+  and the dot, the flame and the pill's edge keep the fire itself.
+- **Glass without backdrop-filter.** A card is a flat translucent fill over the aurora with a 1px light edge, not a blur
+  of what is behind it. A blur on every card costs frames on the older phones a pilot meets, and the aurora sits at the
+  top of the screen, where there is little to blur. The masthead's 12px blur stays the only one, opaque where an engine
+  has none.
+- **The meter as a conic gradient, not an SVG ring.** One element per ring, CSS only: a disc in the padding box, the
+  conic arc in the border box, the number as an inline `--score`. Every ring in the app — the cards, the grids, the wall,
+  the breakdown, the checks list and the result's hero — became a meter without new markup, and the numeral stays text
+  that a screen reader and the browser test read. `@property` lets the hero's arc draw on; an engine without it jumps to
+  the final arc halfway through, and the final ring is right everywhere. The server-rendered public look page keeps its
+  own small SVG ring.
+- **The chips placed by physical left and right.** The plan used logical insets so Hebrew would mirror them. But the
+  ring is `direction: ltr` and keeps the photo's bottom-right in both languages (a photo does not mirror), and the first
+  Hebrew render showed the mirrored chips hidden under it. So the chips sit at the bottom-left in both, and in Hebrew the
+  row still flows from the ring's side leftward.
+- **The mount ids reconciled with Round 20's `taste.js`.** The plan named `#tried-it` and `#tip-feedback`, which Round 20
+  had replaced. The app's own are used: `#tried-action` goes inside `#tip`, so the primary *Try the tip, then show me*
+  sits in the warm panel under the words; `#taste-reasons` follows the tip as its own glass panel, because inside it would
+  have made the one warm moment tall; and a third slot, `#taste-win`, sits above the tip, because without it `taste.js`
+  would put the "last time it worked" line at the top of `#result`, above the photo.
+- **One list for Tomorrow's pieces.** The plan kept the old wrapped list in the page, hidden, beside the new chips. The
+  browser test counts three `li` in `#tm-one-look`, and two lists would have made six. The chip list is the one `ul` of
+  `li[data-item]`, so the hooks and the count survive.
+- **The 60px glow kept.** The plan's fallback was to halve the card glow's blur to 36px if the feed dropped frames.
+  Measured on 14 cards under a 6x CPU throttle: 17ms a frame at the median and at the 95th percentile, one frame over
+  50ms in 352 (133ms); at 36px, none over 50ms in 357. One long frame in a six-second scroll on a throttled machine did
+  not justify a weaker glow.
+- **The Old money key.** The plan wrote `[data-occasion="Old money"]`; the app's own string is `OldMoney` (`core.js`
+  `INTENTS`, `check.js` `STYLES`, the chips' `data-intent`), so the map keys that.
+- **The verdict on the feed, from what was already stored.** The plan offered two ways: add the names and verdicts to
+  the feed, or start the chips on the look page. The feed got them. `PostItemDto` gained an optional `Verdict`, read from
+  each check's stored feedback in the one query that already found the clips and matched by the name as a look's row
+  stores it: no column, no migration, no second query on the feed. It opens a question, below.
+
+**Left open.**
+- **Whether a posted look's verdicts should be public.** Before Round 21 a piece's works / neutral / weak stayed with the
+  check, and the README said so. Now every posted look carries each stylist piece's word to anyone who can read the look —
+  including a look whose author kept the number private (Round 14's "post the look, keep the grade"), where a weak dot
+  says part of what the number would have said. The privacy page does not list the verdict among what goes public, and
+  the post sheet's line does not mention it. The founder decides: keep it and say so on those two pages, or leave the
+  verdicts off a look whose number is private, or off every look. Either of the last two is a small change in
+  `PostReader`.
+- **The ring's arc in Hebrew.** It fills clockwise from the bottom-left in both languages and reads as a gauge in the
+  Hebrew renders; a Hebrew reader on a real phone decides (`LAUNCH.md` 1.8, step 10).
+- **The landing pages** keep the old tokens and the screenshots of the old look until they are re-shot (`LAUNCH.md` 3.2).
+
+### Where the build departed from the plan, and why
+
+- **The stage and the type (`c38f879`).** `[dir=rtl] .tm-sentence` went into `tomorrow.js`, the only file that draws
+  it, not `app.css`; every other Hebrew display rule is in `app.css` §2 as planned. The stage colour was carried beyond
+  the plan into every other copy of it — `theme-color`, the manifest, the offline page and the public pages' own tokens —
+  so the phone's chrome matches the page. The share card paints the whole aurora, not one lilac radial, and the film
+  shares it; every dark overlay in the film became the stage colour, not only the two scrims the plan named, and the
+  halo's dark lift was kept. h1 and h3 took the tighter tracking the plan's type section carried. Which `h2` is a
+  heading and which a caps list head (`h2.rule`) was decided per view: a head over a list of rows is a rule, a head that
+  titles a moment is a heading.
+- **The glass, the meter and the press (`98fceed`).** Blocks the plan gave to no step — avatars, sheets, the toast,
+  skeletons, the grids, the wall, the board's cards — were lit in the same pass so no screen came out half-lit; three
+  panels the plan placed in views' own files (`.board-reset`, `.lb-row`, `.prize`) are `app.css` rules and were changed
+  there, and a winning leaderboard row marks its border in lilac now that it has one. The photo pills moved to the stage
+  colour. The mock's 820ms delay on the ring's overshoot was dropped, because the app adds `.landed` at the count-up's
+  last frame, not at mount. The card and its head's tag both carry `data-occasion`, so the glow and the tag's pastel
+  agree. The checks list's number is a true meter too. The feed coins keep their colour fade beside the press; the small,
+  ghost and danger buttons take no press shadow; a pressed brand-page category chip is the gradient like every other.
+- **The pieces and the result (`ca3cf73`).** The chip rules shared by more than one screen are in `app.css` §8; the
+  result's own sizes, tilt and panels are in `check.js`. The keep row's mint went into `app/wardrobe.js`, which draws it.
+  `.tip p` became `.tip > p`, so a door mounted inside the tip keeps the body face. A result chip is a button only when
+  its piece has a note, and the first weak piece with a note starts open, as the old list showed every note at once. On
+  the look page the chips step aside for the tag toggle once a piece has a dot, and `PATCH /api/posts/{id}/items` answers
+  with verdicts too, at one read of the post's check. A card draws the count only when no chip names the pieces. The
+  ellipsis moved from the chip to the name, so the chip's 44px hit area is never clipped. The result's headline is 38px
+  in English. *Posted · See the look* became secondary with Post it; *Sign up to keep it and post it* stays the primary,
+  a guest's only door. On the server the verdict is the DTO's last, optional field, the feed reads the stylist's three
+  words from the same list the check does (`OutfitAnalyzer.Verdicts`), and when two pieces share a name the first wins,
+  as at posting.
+- **Tomorrow, Today and the empty states (`9e454ac`).** The fold is element-qualified (`details.tm-more`) because
+  `.tm-more` already named the strip's "+N more" tile, and its default state is new: open only while there is an outfit
+  to compose and the forecast is still a question, since the browser test taps the location button on the first visit
+  and the empty screen must fit above the fold; a repaint keeps what the person left it at, nothing is stored. The
+  kicker's pill is selected by `span[data-occasion]`, so the style and "Idea N" stay plain. The weather pill is drawn
+  only on the card. The summary reuses `common.more`, with the picked style beside it. The occasion heading is read, not
+  seen, and the row scrolls edge to edge; the lede is always read, not seen. The card keeps a 16px foot, its gutter comes
+  from one rule, and the photo column yields to 160px at 390px so the chips keep 150px, where names wrap rather than
+  ellipsise. The fold's chevron uses physical borders, which read as `<` and `>` in Hebrew with logical ones. The Today
+  print is the first look posted to the prompt, because the prompt has no image of its own; the strip's head wraps, and
+  needed `min-inline-size: 0` to stop its tags spilling past the card. The empty mark is on all three of Tomorrow's empty
+  states and in `emptyCall()`.
+- **The motion, the fonts and the shell (`c884748`).** The Google Fonts link was removed, not kept (above); `fonts.js`
+  went with it; the shell became `v8` and keeps `/fonts/`. The browser test's filter of failed requests stopped excusing
+  the Google hosts and lets a face be cut off when a page moves on. The public look page's ring track and count pill took
+  the stage colour, the last of the old black.
+- **The proofs (`901a1d4`).** `--fire-ink` (above). Under reduced motion the collapsed entrances still painted their
+  first frame at opacity 0 and the hero its arc at 0°, measured, so the entrances and the hero are off outright in their
+  own blocks. The result's chip box eased to `right: 176px` and the chip to 10px padding and 13px, so three names take
+  two rows at 390px in Heebo; the Today strip's words keep 200px, so a prompt's title never wraps around a pill on a
+  phone. The shared occasion and style rows load `check.js`'s rules wherever they are drawn, so Tomorrow's style offer
+  keeps its spacing in a browser that never opened the check. Judged and left: the 60px glow, the Hebrew arc, English
+  piece names wrapping in Tomorrow's Hebrew column, and a Today strip taller on a phone than in the mock.

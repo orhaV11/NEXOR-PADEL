@@ -221,7 +221,7 @@ block (seven), whose hint ends "Read the three together: pushed, opened, worn."
 dotnet test        # from the repository root (FitCheck.sln)
 ```
 
-892 tests, and the number is meant to be read off the run, not trusted from here: magic-byte detection for photos
+1168 tests, and the number is meant to be read off the run, not trusted from here: magic-byte detection for photos
 and clips, the disk store, analyzer mapping and clamping, locale
 matching, the Anthropic client against a scripted HTTP handler, and endpoint tests against the real app with a
 scripted vision client: signup and login rules (the date of birth and the phone's own day among them), the CSRF
@@ -267,7 +267,11 @@ keep-all, the unkept list and the Pro moment in `WardrobeTests` with the wedge n
 actions, the audit lines and the sponsor reader in `AdminTests` (with `BoardTests` for the excluded account and
 `RateLimitTests` for the per-moderator brake), the prompt-cache breakpoints in `AnthropicVisionClientTests` and
 `SpendMeterTests`, the p95 in `MetricsComputeTests`, `Round20SkeletonTests` for the seams the moves share, and the
-renderer's `tools/brand/test/before-after.test.js` under `node --test`.
+renderer's `tools/brand/test/before-after.test.js` under `node --test`. Round 21 added the verdict on a posted look's
+pieces to `ItemsTests` (a piece the stylist named carries its word on the new post, on the look as a stranger reads it
+and on the answer to a later tagging, matched by name in any case or spacing; a name the stylist never gave carries
+none) and the policy with no font host to `SecurityHeaderSetTests` in `SecurityTests` (`style-src 'self'
+'unsafe-inline';` and `font-src 'self';`, with neither `googleapis` nor `gstatic` anywhere in it).
 Two of them are policy rather than behaviour and are the reason a careless change fails the build:
 `IdorEnumerationTests.Rules` in `SecurityTests` makes every route with an `{id}` or a `{handle}` declare, in writing,
 what stops a stranger enumerating it, and `LanguagesTests` keeps the four locale files at key parity.
@@ -299,6 +303,9 @@ which answers Stripe's session POSTs, `/v1/prices/{id}` and `/v1/webhook_endpoin
 seven-day no-card trial and the signed webhook, posted twice, is ignored the second time by its id; and the before/after episode is rendered from the run's own JSON. Not driven: a real push (service
 workers are blocked, so the senders are covered by their unit tests), the service worker's `/go/` passthrough (a pin in
 `DistributionTests`), and the full Checkout → webhook → `#/compare?ready=1` chain (the landing is exercised directly).
+**Round 21 changed no query in the script**: every id and class it reads survived the redesign. Its filter of failed
+requests no longer excuses the two Google font hosts (nothing may ask them for anything now), and lets a face under
+`/fonts/` be cut off when a page moves on, as a photo may.
 
 ### Check the calibration before inviting people
 
@@ -487,12 +494,12 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `POST /api/wardrobe/keep-all` 🔒 | `{ checkId }` | **Round 20.** `200 { kept, added, skipped, full, count, max, items[] }` always on success (a batch has no single 201; `added` says how many were new): every piece the check named goes into the wardrobe in one request — known pieces gain the look and are never refused by the cap, new ones are added in the stylist's order until `Plans:WardrobeMaxItems` and the rest skipped (`full: true`). A check that named nothing (`not_outfit`, `rejected`) answers 200 with `kept: 0` and writes nothing. 400 `error.invalid_request` without a `checkId`; 404 `error.check_not_found` for a missing check, a guest's or another account's; 409 `error.wardrobe_full` only when nothing at all could be written. The server's own list of names is the only list (no names in the body, no path parameter), so the IDOR sweep is untouched and the stranger's 404 is pinned in `WardrobeTests`. Counted once per request that touched a row (`wardrobe_keep_all`) |
 | `GET /api/wardrobe/unkept` 🔒 | — | **Round 20.** `200 { pieces: [{ name, category, checkId, wornAt, postId? }], checks }` always: the pieces named on the account's last `Plans:WardrobeUnkeptChecks` OK checks that are not in its wardrobe, newest look first, each once and carrying the newest check that named it, at most 30 (`Wardrobe.UnkeptMaxPieces`); `checks` is how many checks were looked at; `postId` only where that look is a visible post. Empty with `checks: 0` when the setting is 0 or the account has no OK check. Keeping one uses the existing `POST /api/wardrobe { checkId, name }`; nothing records a refusal, so a piece passed over resurfaces |
 | `POST /api/wardrobe/moment` 🔒 | `{ step: "shown" \| "go" }` | **Round 20.** 204 either way; increments `wardrobe_moment_shown` / `wardrobe_moment_go` only while `Plans.WardrobeProMoment` is true for the caller right now, so a script cannot inflate a rate the moment never earned; 400 `error.invalid_request` for any other step. The client owns only once-per-tab (`sessionStorage`) |
-| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item verdicts and notes stay private. With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name, normalised, equals a stylist row's name (the stylist's uncut name from the check and the stored name's first forty characters count as the same) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
-| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
+| `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item notes stay private (each piece's one-word verdict travels with the look since Round 21: `GET /api/posts/{id}` below). With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name, normalised, equals a stylist row's name (the stylist's uncut name from the check and the stored name's first forty characters count as the same) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
+| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed, verdict? }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; **`verdict`** (Round 21) the stylist's `works`, `neutral` or `weak` for the piece of that name, read from the check's stored feedback in the one query that already reads the page's checks, so a card can draw the dot beside the name, and absent for a name the check never gave (the client reads that as neutral; the stylist's note on the piece never travels); `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
 | `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip. A WebM becomes `video/mp4` at the same URL once the background transcode is done (Configuration, "Clips") |
 | `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted, and so are the look's items (their search rows and store links with them) |
-| `PATCH /api/posts/{id}/items` 🔒 | `{ items: [{ id?, name?, category?, brand?, model?, url?, x?, y?, confirmed? }] }` | `200` the look's items, in the order sent. Owner only: another person's look and a hidden one answer 404 `error.post_not_found` alike. The list is the whole list, at most 12 (400 `error.items_too_many`, "Up to 12 items on a look."): a row not in it is removed, `items: []` clears the look, and a missing body or a body without the list (`{}`, `{ "items": null }`) is 400 `error.item_invalid` with nothing changed: only an explicit `[]` clears. An input with `id` keeps that row (its name and category may be left out to keep them); one without an id whose name equals a not-yet-named stylist row's name re-attaches to it; anything else is a new row with source `User`. A stylist row stays the stylist's while only its brand, model, link, dot or confirmation change and becomes the person's once its name or category does. Rules, each a 400 with nothing written: a typed name 1–40 characters after normalisation (lower-cased, one space between words; a stylist name sent back unchanged may be up to 60, and unchanged means the stored name, the stylist's uncut name from the check, or the stored name's first forty characters, none of which re-attributes the row), `category` one of the seven (a new row without one is `other`), `brand` ≤ 40, `model` ≤ 60 (`error.item_invalid`, also for a duplicate or unknown `id`); `url` absolute `http(s)`, ≤ 500, with a host and no user info, so `javascript:`, `data:`, `ftp:`, a relative path or `nike.com@evil.example` are refused (`error.item_url_invalid`); `x` and `y` both in 0..1 or both absent (`error.item_position_invalid`); `confirmed` is stored true only with a brand on a row that is still the stylist's. The stylist's `brandSeen` is never copied by the server: the client shows it as "Looks like Nike?" and sends it back as `brand` with `confirmed: true` when the person confirms, another brand with `confirmed: false` on Edit, and no brand on "Not a brand". Logs `Items: {Count} on post {PostId} by {UserId}` |
+| `PATCH /api/posts/{id}/items` 🔒 | `{ items: [{ id?, name?, category?, brand?, model?, url?, x?, y?, confirmed? }] }` | `200` the look's items, in the order sent, each with its `verdict` as `GET /api/posts/{id}` carries it (Round 21; one read of the post's check). Owner only: another person's look and a hidden one answer 404 `error.post_not_found` alike. The list is the whole list, at most 12 (400 `error.items_too_many`, "Up to 12 items on a look."): a row not in it is removed, `items: []` clears the look, and a missing body or a body without the list (`{}`, `{ "items": null }`) is 400 `error.item_invalid` with nothing changed: only an explicit `[]` clears. An input with `id` keeps that row (its name and category may be left out to keep them); one without an id whose name equals a not-yet-named stylist row's name re-attaches to it; anything else is a new row with source `User`. A stylist row stays the stylist's while only its brand, model, link, dot or confirmation change and becomes the person's once its name or category does. Rules, each a 400 with nothing written: a typed name 1–40 characters after normalisation (lower-cased, one space between words; a stylist name sent back unchanged may be up to 60, and unchanged means the stored name, the stylist's uncut name from the check, or the stored name's first forty characters, none of which re-attributes the row), `category` one of the seven (a new row without one is `other`), `brand` ≤ 40, `model` ≤ 60 (`error.item_invalid`, also for a duplicate or unknown `id`); `url` absolute `http(s)`, ≤ 500, with a host and no user info, so `javascript:`, `data:`, `ftp:`, a relative path or `nike.com@evil.example` are refused (`error.item_url_invalid`); `x` and `y` both in 0..1 or both absent (`error.item_position_invalid`); `confirmed` is stored true only with a brand on a row that is still the stylist's. The stylist's `brandSeen` is never copied by the server: the client shows it as "Looks like Nike?" and sends it back as `brand` with `confirmed: true` when the person confirms, another brand with `confirmed: false` on Edit, and no brand on "Not a brand". Logs `Items: {Count} on post {PostId} by {UserId}` |
 | `GET /api/items` | `?brand&category&q&offset&limit` | `{ brand?, category?, q?, posts, nextOffset? }`: visible looks (not hidden, author not suspended) carrying **one item row that matches every filter given** (`brand=nike&category=bottom` is a Nike bottom, not a Nike top on a look with pants), newest first, paged like a feed (`limit` 1–30, 20 by default). `brand` matches case-insensitively and comes back in the spelling most rows carry ("Nike" for `?brand=nike`); `category` is exact and one of the seven (an unknown one is an empty page); `q` matches anywhere in the name, the brand or the model, `%` and `_` literal. No filter at all is an empty page, never everything; `brand` or `q` over 40 characters is 400 `error.search_invalid`. The client shows this under `#/items/<brand>`, `#/items/<brand>/<category>` and `#/items?q=` |
 | `GET /api/items/brands` | `?q` | `{ items: [{ name, looks, account? }] }` for the brand autocomplete: brands already on visible looks, merged across case in .NET (so "Nike" and "nike" are one, in any script) with the count of distinct looks, plus brand accounts (not suspended) whose handle starts with `q` or whose name contains it, a brand account of the same name riding on the tagged brand as its `account` (a user ref, `verified` included); by looks, then accounts first, then verified, then name; at most 20. Empty `q` is the top brands plus every brand account; over 40 characters is 400 `error.search_invalid` |
 | `GET /api/items/{id}/out` | — | **The one door a store link leaves through**: `302` to the item's `url`, as stored when it is ASCII (host case kept) and in its ASCII form when it was pasted with characters outside ASCII (a Hebrew query, an accented path, a host in its own script: the host as punycode, the path, query and fragment percent-encoded, the scheme and port as they were, since a `Location` header carries printable ASCII only), with the parameters `Affiliate:Hosts` names for its host appended to that form after the link's own query and before its `#fragment` (`?tag=…` or `&tag=…`), and `Referrer-Policy: no-referrer` and `Cache-Control: no-store` on the answer, so the store learns nothing about the look or the person and every tap is counted (`itemOuts` in the metrics, incremented once the `Location` header is set, so only taps that were redirected count). 404 `error.item_not_found` ("We couldn't find this item.") for a missing item, one without a link, or one on a hidden look; a moderator reviewing a hidden look reads the raw `url` on the DTO instead. Rate limited by the `out` policy: 60 a minute per client address, a fixed window in memory, 429 `error.too_fast` with `Retry-After` beyond it. The client opens it as `<a href target="_blank" rel="noopener">` ("Shop at nike.com") with "Leaves OREVOSH" under it whenever a link exists, followed by "· This link may earn OREVOSH a commission." while `Affiliate:Disclosure` is true (the default; `/api/config` says) |
@@ -595,7 +602,8 @@ src/FitCheck.Api/
   Services/Sessions.cs            cookie sign-in and the current user id
   Services/Notifier.cs            activity rows, deduplicated per actor and target
   Services/ChallengeResolver.cs   fixes the winner exactly once when a challenge has ended
-  Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches
+  Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches;
+                                  since Round 21 each piece's verdict, read from the check's stored feedback by name
   Services/Localizer.cs           server messages in all four languages (en/he/ar/ru) and Accept-Language matching
   Services/Wardrobe.cs            the pieces a check named, the rows kept from them, and the names that travel to the stylist
                                   (on a check and, since Round 15, on a comparison)
@@ -611,7 +619,8 @@ src/FitCheck.Api/
   Services/StylistBack.cs         Round 20: the one note to a guest who signed up while the stylist was resting, once it is back
   Services/TryTipNudge.cs         Round 20: "Did you try the tip?", the day after an unanswered change tip, push only
   Services/TomorrowMorning.cs     Round 20: the morning push that never composes, one receipt row per person per day
-  Services/Security/              the headers and the CSP every response is served under, the Exif strip on every stored
+  Services/Security/              the headers and the CSP every response is served under (since Round 21 nothing off this
+                                  origin: style-src 'self' 'unsafe-inline', font-src 'self'), the Exif strip on every stored
                                   photo and clip, the per-account brake, session revocation
   Endpoints/                      auth, users, checks (+ claim), feedback (the typed reason, "I tried it", the taste card),
                                   compare, wardrobe (+ keep-all, the unkept list, the Pro moment), posts (+ comments), items
@@ -621,7 +630,10 @@ src/FitCheck.Api/
                                   the sponsor card), metrics, funnel (the Pro-page tally), the entry links (/go/{source}), the
                                   server-rendered public pages (/look, /u, /digest), health
   wwwroot/index.html, app.css     the shell (with the Open Graph and Twitter tags) and the design system: Ring of Fire, see
-                                  DESIGN.md (logical properties for RTL)
+                                  DESIGN.md (logical properties for RTL; Round 21's plum stage, glass and meter)
+  wwwroot/fonts/                  Round 21: the three faces on this origin — fonts.css and ten woff2 subsets of Outfit, Heebo
+                                  and Cairo — preloaded by index.html, linked by the landing pages, kept by the service
+                                  worker; no font host anywhere
   wwwroot/app/core.js             state, i18n, API, router, bottom sheets, gestures, look cards, the claim call, the brand mark
   wwwroot/app/views/*.js          one module per screen: feed, post, explore, challenges, check, camera, compare, pro, insights,
                                   today, activity, profile, auth, settings, admin, dashboard (the numbers), pages, legal,
@@ -636,7 +648,8 @@ src/FitCheck.Api/
   wwwroot/app/taste.js            the typed reasons under the tip, "I tried it", and the taste card in settings
   wwwroot/app/invite.js           ?via, the stored handle, the invite link and the share sheet behind it
   wwwroot/manifest.webmanifest,   the installable app; the service worker caches the shell only, never the API, and lets
-  wwwroot/sw.js, wwwroot/icons/   /landing/ navigations through to the network
+  wwwroot/sw.js, wwwroot/icons/   /landing/ navigations through to the network; the shell is orevosh-shell-v8 since Round 21,
+                                  with /fonts/fonts.css precached and each face kept the first time it is fetched
   wwwroot/offline.html            what a navigation gets when the network is gone
   wwwroot/i18n/*.json             UI strings in all four languages — en, he, ar, ru (the terms and the privacy policy among
                                   them), kept at key parity by a test; add a locale by adding a file
@@ -680,7 +693,9 @@ descriptive is dropped when the status is not `ok`.
 - **Checks are private; posting is a separate choice.** Posting publishes the photo, the intent, the score,
   the headline, your caption and the three sub-scores (fit, color, accessories), and indexes the stylist's item
   names so people can find the look in search. The tip, the notes on each item and the accessories read stay
-  private. Deleting the post makes the photo private again.
+  private. Since Round 21 each piece the stylist named also carries its one-word verdict (works, neutral, weak) on
+  the look, as the dot on its chip — on a look whose number is kept private too, which `DECISIONS.md` (Round 21) puts
+  to the founder as an open question. Deleting the post makes the photo private again.
 - **Photos are never served by path.** Check photos and avatars live under `Storage:Root`, outside `wwwroot`.
   The post image route (visible posts only), the avatar route and, since Round 19, `GET /api/checks/{id}/image` — a
   private check's own photo, to the person who may read the check (its owner, or the guest whose cookie made it), and
@@ -715,7 +730,7 @@ descriptive is dropped when the status is not `ok`.
 - **Items are indexed from the stylist's words or the person's, never from captions.** At posting, the item names of
   the check are copied onto the look (lower-cased, up to 8) unless the person tagged the pieces on the post sheet; a
   caption cannot put a look under "black boots". A row keeps saying whether the stylist or the person named it
-  (`source`), and the verdicts and notes stay private with the tip.
+  (`source`), and the notes stay private with the tip (the one-word verdict does not since Round 21: above).
 - **The stylist never publishes a brand; the person does.** Rubric v3 asks for `brand_seen` on every piece and only
   for a mark, logo or unmistakable signature that is visible (null otherwise, never a guess from style, cut or
   price); the server never copies it onto a look. The post sheet shows it as "Looks like Nike?" with Confirm, Edit
@@ -1008,8 +1023,9 @@ native reader has reviewed `wwwroot/i18n/<code>.json` and the block in `Services
 precaches all four files regardless (they are small, and enabling one needs no new shell). The landing pages stay as
 they are: English and Hebrew, the two that are live.
 
-**The last polish.** `offline.html` is precached (`orevosh-shell-v6`) and answers a navigation with no network when
-there is no cached shell to fall back on, and every `/landing/` navigation that fails: the mark, one line, *Try again*;
+**The last polish.** `offline.html` is precached (it came with `orevosh-shell-v6`; the shell is `orevosh-shell-v8`
+since Round 21) and answers a navigation with no network when there is no cached shell to fall back on, and every
+`/landing/` navigation that fails: the mark, one line, *Try again*;
 it reads the saved language and takes its three lines from the cached locale file, so it speaks Hebrew to someone who
 used the app in Hebrew, and only in a language the app last saw as live (`core.js` leaves that list in `localStorage` at
 boot, since the page cannot ask `/api/config`); an Arabic browser with no saved language gets the English page. On iOS Safari (not an in-app browser, not the installed app) the result screen shows once per
@@ -1840,3 +1856,51 @@ steadiness pass from Windows PowerShell 5.1 against the live server with a Hebre
 (`stylist.js --report <file>` keeps the rows beside the tables). Tests: `tools/brand/test/before-after.test.js`
 (`node --test`), `ExportTests.Export_check_carries_what_the_renderer_reads`, the CI steps *Calibration wrapper parses*
 and *Render the before/after cover*, and the browser test's `before-after` step against the real API.
+
+## Round 21 — the look
+
+A visual redesign, and nothing else: the plum stage and its aurora, glass cards lit in their occasion's glow, the score
+ring as a meter with the numeral read first, the stylist's pieces as name chips on the photo with their works / neutral
+/ weak dot, one pastel per occasion, the result in four moments with the tip as its one warm panel and the primary door
+inside it, the keep row in mint, Tomorrow as a lit card with the forecast as one amber pill, a warm Today strip, empty
+states under the mark, a 2px press and screens that rise in. **`DESIGN.md`, "Round 21 — the look", is the whole of it** —
+the tokens old to new, every component by stylesheet section, the meter, the fonts, the motion, what did not change and
+what is still open — and `DECISIONS.md`, Round 21, says why each choice went the way it did. Six commits: `c38f879` (the
+stage and the type), `98fceed` (the glass, the meter, the press), `ca3cf73` (the pieces and the result), `9e454ac`
+(Tomorrow, Today, the empty states), `c884748` (the motion, the fonts, the shell) and `901a1d4` (the proofs). No route,
+setting, migration or i18n key was added.
+
+**What changed outside the stylesheet.** `PostItemDto` gained `verdict` (the API table above: `GET /api/posts/{id}`, and
+every feed card, which reads the same shape), read by `PostReader` from each check's stored feedback in the query that
+already read the page's checks. The fonts are served from `/fonts` on this origin; the Google Fonts link and `fonts.js`
+are gone from the app and the landing pages. The security policy allows no host off this origin: `style-src 'self'
+'unsafe-inline'`, `font-src 'self'`. The service worker is `orevosh-shell-v8`, so an installed app takes the new shell the
+next time it is opened. `theme-color`, the manifest's colours, the offline page and the server-rendered public pages take
+the stage colour, and the share card and the film paint the same aurora.
+
+**The proofs made before the last commit.**
+- `dotnet test`: 1168 passed, none failed.
+- The browser test ran end to end (`E2E OK`) with its queries untouched.
+- Renders on a 390×844 phone screen at twice the pixels: the result, the feed, Tomorrow, the check, a look, Explore, the
+  profile, Pro and Today in English; the result, the feed, the check, Tomorrow with its fold open, Tomorrow's empty
+  state and an empty Home in Hebrew; the check, the result and Tomorrow in Arabic; the result with its photo darkened
+  like a selfie under a weak bulb; the result with every font blocked, in the system face. On the result in each
+  language, a report of the faces: only files under `/fonts` were asked for, each once, Cairo only in Arabic; and the
+  landing pages asked nothing of any other host.
+- Contrast, every text pair composited over its real ground, all at 4.5:1 or better: `--ink-3` 7.4:1 on the stage, 6.6
+  on a surface, 5.7 on a raised one; `--accent-ink` 10.5–15.1:1 on the eight pastels; a pastel as tag text on its own
+  wash 6.3–9.0:1; the weak verdict word and a lit fire count 5.1:1 in `--fire-ink`, which exists because `--fire` read
+  4.1:1 there.
+- The feed scrolled to its foot under a 6x CPU throttle with 14 cards in their 60px glow: 17ms a frame at the median and
+  at the 95th percentile, one frame over 50ms in 352. The glow stayed.
+- Reduced motion, measured the instant each screen appeared: every result section and every card at full opacity, the
+  ring's arc already at its score. Earlier runs caught the cards at opacity 0 and the arc at 0° on that first frame, and
+  that is why the entrances are off outright there.
+- The three piece chips on the result's photo fit two rows at 390px in Heebo.
+
+**Known limits.** The landing pages keep the old black stage and the screenshots of the old look until they are re-shot
+(`LAUNCH.md` 3.2); the share card and the film draw the full ring, not the meter; the public look page's ring is
+recoloured but still fills from the top; a look with five or more pieces shows four chips and no count on its card;
+whether the arc should fill from the other side in Hebrew is left for a Hebrew reader (`LAUNCH.md` 1.8, step 10). And a
+posted look's per-piece verdict is now public, on a look whose number the author kept private too: `DECISIONS.md`,
+Round 21, puts that to the founder.

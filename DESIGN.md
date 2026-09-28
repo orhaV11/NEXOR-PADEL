@@ -465,7 +465,7 @@ top-start, rose at the top-end, a breath of amber between, a faint rose glow at 
 card is glass with a 1px light edge, and a card that knows its occasion sits in that occasion's glow. The score ring
 reads as a meter: its arc fills to the score, and on the result the numeral is the first thing read. The stylist's pieces
 sit on the photo as name chips, each with a dot for the verdict: works (filled mint), neutral (hollow), weak (filled
-fire). Each occasion has one pastel, used as a tint and never as a frame. The tip is the one warm panel on the result,
+fire) — on a posted look, for its author (everyone else reads the names alone). Each occasion has one pastel, used as a tint and never as a frame. The tip is the one warm panel on the result,
 with the primary *Try the tip, then show me* inside it. Two more moments of colour earn their place: the keep row in
 mint, Tomorrow's weather pill in amber. Empty states open under the mark, large and lit. Anything that is a button dips
 2px when pressed, and a screen's first content rises in. What came over from the playful direction is its joy — the big
@@ -592,8 +592,9 @@ page keeps its own server-drawn SVG ring (recoloured to the stage, filling from 
 still draw the full gradient ring.
 
 **The pieces chips, and where their verdicts come from.** `core.js` `pieceChip(item)` draws
-`span.chip.piece[data-verdict] > span.dot.{works|neutral|weak} + span.item-name`; anything but the stylist's three words,
-or no verdict at all, is neutral. The shared rule is `app.css` §8: a 34px dark-glass pill (`rgba(22, 16, 34, .72)`, a
+`span.chip.piece[data-verdict] > span.dot.{works|neutral|weak} + span.item-name`; a piece with anything but the stylist's
+three words, or none at all, is `span.chip.piece > span.item-name` with no dot and no `data-verdict`, because a hollow dot
+would say "neutral", a verdict nobody gave (the result's own pieces always have one: `check.js` fills the neutral in). The shared rule is `app.css` §8: a 34px dark-glass pill (`rgba(22, 16, 34, .72)`, a
 light edge, Heebo 600 13px in `--ink`: 12:1 over a mid-grey photo, 8.2:1 over a light wall), a `::before` that makes
 the hit area 44px, an 8px dot — works filled mint with a mint glow, neutral a hollow `--ink-2` ring, weak filled fire with
 a fire glow — and the name as the part that ellipsises, its first letter capitalised (the server keeps names lower-case).
@@ -601,12 +602,14 @@ a fire glow — and the name as the part that ellipsises, its first letter capit
 count they replace (the link names the look, the look page lists the pieces); the count is drawn only when nothing names
 them. On the look page the tag toggle takes that corner once a piece has a dot, and the chips step aside for it.
 **The data:** the feed used to carry only `itemCount`. `PostItemDto` gained `Verdict` — `works`, `neutral` or `weak` —
-as its last, optional field. `PostReader` reads each check's stored feedback in the one query over the page's checks
-that already found the clips, keys the stylist's pieces by the name exactly as a look's row stores it
+as its last, optional field. `PostReader` reads the stored feedback of the checks behind the looks whose verdicts this
+viewer may read (one query over the page, skipped when there are none), keys the stylist's pieces by the name exactly as a look's row stores it
 (`PostItems.NormalizeName`), and gives each row the verdict for its name — a row the person retyped keeps its piece's
 verdict; a name the check never gave (a piece the person added in their own words) has none, and the field is left off
-the wire. `PATCH /api/posts/{id}/items` answers with the same verdicts. The stylist's note on a piece never travels
-with the look.
+the wire. `PATCH /api/posts/{id}/items` answers with the same verdicts. **Who reads them** (settled in the review): the
+look's author and a moderator in the queue, the people who may read the check; anyone else gets no verdict, public
+number or private, and their card shows the names with no dots. The stylist's note on a piece never travels with the
+look.
 
 **The result in four moments** (`views/check.js`, in its own CSS). `#result` carries `data-occasion`, so its tag, its
 chips and its glow take the occasion's pastel; every id stays inside `#result`.
@@ -717,8 +720,9 @@ rule that a screen's own CSS lives in its own module. No route, setting or i18n 
   reads backwards, the change is `from 150deg` under `[dir=rtl] .hero`, and only there.
 - **The landing pages** keep the old black tokens in their own `<style>` and the screenshots of the old look
   (`landing/screens/*.jpg`) until those are re-shot; the tokens move with the screens (`LAUNCH.md` 3.2).
-- **A posted look's verdicts are public now**, on a look whose number the author kept private too. That is a product
-  and privacy question, not a design one; `DECISIONS.md`, Round 21, puts it to the founder.
+- **A posted look's verdicts are its author's** (and a moderator's in the queue), settled in the review: the post
+  sheet promised the stylist's notes on each piece stay with the person, and a public number never published them.
+  Anyone else's card draws the names with no dot (`DECISIONS.md`, Round 21, review fixes).
 - **Left as it is:** the share card and film draw the full ring, not the meter; the public look page's ring fills from the
   top; a look with five or more pieces shows four chips and no count (the look page lists them all); on Tomorrow, English
   piece names in a Hebrew column wrap onto a second line; the Today strip is taller on a phone than the mock, with the

@@ -43,6 +43,15 @@ public sealed class PostReader(AppDbContext db)
     private static bool MayReadScore(Post post, Guid? viewerId, bool viewerIsModerator) =>
         !post.ScorePrivate || viewerIsModerator || (viewerId is Guid viewer && viewer == post.UserId);
 
+    /// <summary>
+    /// Round 21, settled in review: whether this viewer may read what the stylist said of each piece on a look — the
+    /// author, and a moderator in the queue, the people who may read the check it came from. Never tied to
+    /// <see cref="Post.ScorePrivate"/>: a public number never published the per-piece verdicts ("the stylist's notes on
+    /// each piece stay yours", the post sheet says), so everyone else gets none, on every look.
+    /// </summary>
+    private static bool MayReadVerdicts(Post post, Guid? viewerId, bool viewerIsModerator) =>
+        viewerIsModerator || (viewerId is Guid viewer && viewer == post.UserId);
+
     public async Task<List<PostDto>> ToDtosAsync(
         IReadOnlyList<Post> posts, Guid? viewerId, CancellationToken ct, IReadOnlyDictionary<Guid, int>? votes = null,
         bool viewerIsModerator = false)
@@ -82,15 +91,24 @@ public sealed class PostReader(AppDbContext db)
             .GroupBy(l => l.PostId)
             .ToDictionary(g => g.Key, g => g.Select(l => new ProductLinkDto(l.Label, l.Url, l.Price)).ToList());
 
-        // Which looks carry a clip, and what the stylist said of each piece (Round 21: the verdict dot beside a name on
-        // the card): one query over the page's checks, never one per post.
+        // Which looks carry a clip: one query over the page's checks, never one per post.
         var checkIds = posts.Select(p => p.CheckId).Distinct().ToList();
-        var checks = await db.Checks
-            .Where(c => checkIds.Contains(c.Id))
-            .Select(c => new { c.Id, c.VideoPath, c.Status, c.FeedbackJson })
-            .ToListAsync(ct);
-        var withClip = checks.Where(c => !string.IsNullOrEmpty(c.VideoPath)).Select(c => c.Id).ToHashSet();
-        var verdicts = checks.ToDictionary(c => c.Id, c => VerdictsOf(c.Status, c.FeedbackJson));
+        var withClip = (await db.Checks
+            .Where(c => checkIds.Contains(c.Id) && c.VideoPath != null && c.VideoPath != "")
+            .Select(c => c.Id)
+            .ToListAsync(ct)).ToHashSet();
+
+        // What the stylist said of each piece (Round 21: the verdict dot beside a name on the card), read only for the looks
+        // whose verdicts this viewer may read (MayReadVerdicts) — usually their own few, none for a stranger — so nobody
+        // else's stored feedback is even parsed for the page.
+        var readable = posts.Where(p => MayReadVerdicts(p, viewerId, viewerIsModerator)).Select(p => p.CheckId).Distinct().ToList();
+        var verdicts = readable.Count == 0
+            ? []
+            : (await db.Checks
+                .Where(c => readable.Contains(c.Id))
+                .Select(c => new { c.Id, c.Status, c.FeedbackJson })
+                .ToListAsync(ct))
+                .ToDictionary(c => c.Id, c => VerdictsOf(c.Status, c.FeedbackJson));
 
         // "After the tip": the earlier look's score and photo, one query over the page's before ids. A before look
         // under review is left off (its photo answers 404 to everyone else); one that was deleted left null behind.
@@ -157,7 +175,8 @@ public sealed class PostReader(AppDbContext db)
 
     /// <summary>
     /// One piece as the wire carries it: the raw link for the owner's sheet, its host for "Shop at {host}", and the
-    /// stylist's verdict when <paramref name="verdicts"/> (the check's, by stored name) has one for this name.
+    /// stylist's verdict when <paramref name="verdicts"/> (the check's, by stored name) has one for this name. Callers pass
+    /// verdicts only to a viewer who may read them (<see cref="MayReadVerdicts"/>; the owner's PATCH answer), else null.
     /// </summary>
     public static PostItemDto ItemDto(PostItem item, IReadOnlyDictionary<string, string>? verdicts = null) =>
         new(item.Id, item.Name, item.Category, item.Brand, item.Model, item.Url, PostItems.HostOf(item.Url), item.Source, item.X, item.Y, item.Confirmed,

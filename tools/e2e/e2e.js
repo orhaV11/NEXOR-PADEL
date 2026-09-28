@@ -584,6 +584,11 @@ function checkClientModules() {
   await go(noa, '#/u/noa');
   await noa.waitForSelector('.profile-tabs');
   assert.strictEqual(await count(noa, '.profile-tabs button'), 2, 'a featured person gets a Featured tab');
+  // Round 21, settled in review: on her own card the author reads the stylist's word on each piece as its dot.
+  await go(noa, '#/tag/datenight');
+  await noa.waitForSelector('#view .card .card-photo .chip.piece');
+  assert.ok((await count(noa, '.card .card-photo .chip.piece .dot')) > 0, 'the author sees the verdict dots');
+  assert.strictEqual(await count(noa, '.card .card-photo .chip.piece .dot'), await count(noa, '.card .card-photo .chip.piece'), 'a dot on each of the stylist\'s pieces');
 
   step = '6';
   // 6. Explore, signed out: trending tag, the brand, the top look, search, the tag page.
@@ -604,6 +609,9 @@ function checkClientModules() {
   await go(dan, '#/tag/datenight');
   await dan.waitForSelector('#view .card');
   assert.strictEqual(await count(dan, '#view .card'), 1);
+  // Somebody else's look: the pieces are named on the photo, and the stylist's word on each stays with its author.
+  assert.ok((await count(dan, '.card .card-photo .chip.piece')) > 0, 'the pieces are named on the card');
+  assert.strictEqual(await count(dan, '.card .card-photo .chip.piece .dot, .card .card-photo .chip.piece[data-verdict]'), 0, 'no verdict reaches a stranger');
   assert.strictEqual(await text(dan, '.card .featured'), 'הוצג על ידי NEXOR');
   await shot(dan, '14-tag-he');
 

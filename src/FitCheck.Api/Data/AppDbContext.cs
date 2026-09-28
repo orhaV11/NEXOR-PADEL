@@ -70,6 +70,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             user.Property(u => u.Interests).HasMaxLength(200);
             user.Property(u => u.Email).HasMaxLength(200);
             user.Property(u => u.Source).HasMaxLength(16);
+            // Round 20: the morning push is on for an account from before the column as for a new one. In the model, not
+            // only in the migration, so a pilot file (DatabaseSetup adds columns from the model) comes out on too; the
+            // sentinel makes an explicit false (the Settings switch) a value that is written, not "use the default".
+            user.Property(u => u.TomorrowPushOn).HasDefaultValue(true).HasSentinel(true);
             user.Property(u => u.Plan).HasMaxLength(16).IsRequired();
             user.Property(u => u.BillingCustomerId).HasMaxLength(100);
             user.HasIndex(u => u.BillingCustomerId);
@@ -307,6 +311,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             notification.Property(n => n.Type).HasMaxLength(16).IsRequired();
             notification.Property(n => n.ActorHandle).HasMaxLength(40).IsRequired();
             notification.HasIndex(n => new { n.UserId, n.CreatedAt });
+            // Round 20: the try-tip nudge's "not nudged about this check yet" and the numbers page's "nudged, then tried" ask by
+            // type and check with no account, once per candidate and once per pair; the type alone serves the counts beside them.
+            notification.HasIndex(n => new { n.Type, n.CheckId });
             notification.HasOne<AppUser>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

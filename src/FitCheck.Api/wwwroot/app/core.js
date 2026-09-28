@@ -1381,12 +1381,14 @@ export const pieceVerdict = (item) => (item && PIECE_VERDICTS.includes(item.verd
  * Round 21: a piece as a name chip with its verdict dot — <span class="chip piece" data-verdict="works"><span class="dot
  * works"></span><span class="item-name">Camel coat</span></span> — the same chip on a card's photo (below), on the result's
  * photo and under it (check.js, which asks for a button and appends the verdict word). The dot is the verdict: works
- * filled mint, neutral hollow, weak filled fire. app.css §8 draws it.
+ * filled mint, neutral hollow, weak filled fire. app.css §8 draws it. A piece that carries no verdict gets no dot and no
+ * data-verdict at all: on a look the server sends the words only to its author and a moderator, and a hollow dot would
+ * say "neutral", a verdict nobody gave. The check's own result always has one (check.js fills the neutral in).
  */
 export function pieceChip(item, tag, attrs) {
-  const verdict = pieceVerdict(item);
+  const verdict = item && PIECE_VERDICTS.includes(item.verdict) ? item.verdict : null;
   return el(tag || 'span', { class: 'chip piece', 'data-verdict': verdict, ...(attrs || {}) }, [
-    el('span', { class: 'dot ' + verdict, 'aria-hidden': 'true' }),
+    verdict ? el('span', { class: 'dot ' + verdict, 'aria-hidden': 'true' }) : null,
     el('span', { class: 'item-name', text: item.name })
   ]);
 }
@@ -1482,9 +1484,9 @@ export function postCard(post, opts) {
   const isClip = !!post.videoUrl;
   const media = isClip ? clipVideo(post) : el('img', { src: post.imageUrl, alt: '', loading: opts.eager ? 'eager' : 'lazy', decoding: 'async' });
   // Round 21: the pieces as name chips at the photo's bottom-left corner (the ring keeps the bottom-right in both
-  // directions: a photo does not mirror), each with the stylist's verdict as its dot; decorative, like the count they
-  // replace: the link's label names the look and the look page lists them. A payload with names but no verdicts (an
-  // older server) still draws them, every dot neutral.
+  // directions: a photo does not mirror), each with the stylist's verdict as its dot where this viewer may read it (the
+  // look's author, a moderator); decorative, like the count they replace: the link's label names the look and the look
+  // page lists them. A payload with names but no verdicts (anyone else's look, an older server) draws the names, no dots.
   const pieces = piecesChips(post.items);
   const photo = el('a', { class: 'card-photo' + (isClip ? ' is-clip' : ''), href: '#/post/' + post.id, 'aria-label': t(isClip ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(post.intent), name: user.name }) }, [
     media,

@@ -14,8 +14,11 @@ import { register, t, el, hasMessage, setTopBar, intlLocale, state } from '../co
 // provider is named, the taste summary the stylist is sent is disclosed, and so are store links and the commission.
 // Round 19 moved to 5: Tomorrow (what is kept about a planned outfit, and that the names and kinds of kept pieces are
 // sent to compose one) and the forecast (a rounded place, passed once to Open-Meteo, kept by nobody).
-const VERSION = '5';
-const DATED = '2026-09-27';
+// Round 20's review moved to 6: what Round 20 keeps is listed too — which of our links a person arrived through (on the
+// account and each check), the morning ping's day and when it was opened, the ask to hear when the stylist is back — and
+// the cookies section names what the browser keeps besides the language (the invite and the link until signup).
+const VERSION = '6';
+const DATED = '2026-09-28';
 const MAX_SECTIONS = 10;
 // A calendar date, not a moment: formatted in UTC, so it does not slip to the day before west of Greenwich.
 const dated = () => new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(DATED + 'T00:00:00Z'));

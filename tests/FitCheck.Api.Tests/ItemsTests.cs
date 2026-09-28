@@ -104,9 +104,10 @@ public class ItemsTests : IClassFixture<TestApp>
     }
 
     /// <summary>
-    /// Round 21: the card draws the stylist's verdict as a dot beside each name, so every look carries it — read back
-    /// from the check's feedback by the name as stored, whatever case or spacing the person typed it in. A piece the
-    /// person added has none, and AppJson drops the null rather than sending an empty word.
+    /// Round 21: the card draws the stylist's verdict as a dot beside each name — read back from the check's feedback by
+    /// the name as stored, whatever case or spacing the person typed it in, for the people who may read the check (the
+    /// author here; who else, below). A name the stylist never gave has none, and AppJson drops the null rather than
+    /// sending an empty word; a name typed back that matches one of the stylist's carries that piece's word.
     /// </summary>
     [Fact]
     public async Task A_piece_the_stylist_named_carries_its_verdict_and_one_the_person_added_carries_none()
@@ -129,8 +130,8 @@ public class ItemsTests : IClassFixture<TestApp>
         Assert.Equal("weak", ItemNamed(post, "running shoes").GetProperty("verdict").GetString());
         Assert.False(ItemNamed(post, "silver hoops").TryGetProperty("verdict", out _), "the person's own piece has no verdict at all");
 
-        // The same on the look as a stranger reads it, and on the answer to a later tagging (the look page's list).
-        var single = await _app.NewClient().GetFromJsonAsync<JsonElement>($"/api/posts/{postId}");
+        // The same on the look as its author reads it, and on the answer to a later tagging (the look page's list).
+        var single = await owner.GetFromJsonAsync<JsonElement>($"/api/posts/{postId}");
         Assert.Equal(["works", "weak", null], Items(single).Select(i => Text(i, "verdict")).ToList());
         var tagged = await Json(await PatchItemsAsync(owner, postId, new object[]
         {
@@ -140,6 +141,68 @@ public class ItemsTests : IClassFixture<TestApp>
         }));
         Assert.Equal(["weak", "neutral", null], tagged.EnumerateArray().Select(i => Text(i, "verdict")).ToList());
         Assert.Equal(["Stylist", "User", "User"], tagged.EnumerateArray().Select(i => i.GetProperty("source").GetString()).ToList());
+    }
+
+    /// <summary>
+    /// Round 21, settled in review: a piece's verdict is part of the check, so it goes where the check may be read — to the
+    /// author, and to a moderator judging a reported look in the queue — and to nobody else, whether the look's number is
+    /// public or kept private. A guest and another account get the names with no verdict at all, on the look, on the feed
+    /// and on the profile; the post sheet promised "the stylist's notes on each piece stay yours".
+    /// </summary>
+    [Fact]
+    public async Task A_pieces_verdict_is_read_by_the_author_and_a_moderator_and_by_nobody_else()
+    {
+        var (owner, _, _) = await _app.NewUserAsync("it_seen_owner");
+        var publicId = await _app.CheckAndPostAsync(owner);
+        var checkId = await _app.CheckAsync(owner);
+        var privateResponse = await owner.PostAsJsonAsync("/api/posts", new { checkId, scorePrivate = true });
+        Assert.Equal(HttpStatusCode.Created, privateResponse.StatusCode);
+        var privateId = (await Json(privateResponse)).GetProperty("id").GetGuid();
+        var (stranger, _, _) = await _app.NewUserAsync("it_seen_stranger");
+        var guest = _app.NewClient();
+        List<string?> VerdictsOn(JsonElement post) => Items(post).Select(i => Text(i, "verdict")).ToList();
+        void NoVerdicts(JsonElement post)
+        {
+            Assert.Equal(3, Items(post).Count);
+            Assert.All(Items(post), i => Assert.False(i.TryGetProperty("verdict", out _), "the names travel, the stylist's word does not"));
+        }
+
+        foreach (var postId in new[] { publicId, privateId })
+        {
+            Assert.Equal(["works", "neutral", "weak"], VerdictsOn(await owner.GetFromJsonAsync<JsonElement>($"/api/posts/{postId}")));
+            NoVerdicts(await guest.GetFromJsonAsync<JsonElement>($"/api/posts/{postId}"));
+            NoVerdicts(await stranger.GetFromJsonAsync<JsonElement>($"/api/posts/{postId}"));
+        }
+
+        // The feed and the profile grid are the same reader: nobody else's pieces carry a word there either.
+        var feed = await guest.GetFromJsonAsync<JsonElement>("/api/feed?tab=fresh");
+        foreach (var postId in new[] { publicId, privateId })
+        {
+            NoVerdicts(feed.GetProperty("items").EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == postId));
+        }
+
+        var theirs = await stranger.GetFromJsonAsync<JsonElement>("/api/users/it_seen_owner/posts");
+        Assert.Equal(2, theirs.GetProperty("items").GetArrayLength());
+        foreach (var post in theirs.GetProperty("items").EnumerateArray())
+        {
+            NoVerdicts(post);
+        }
+
+        var own = await owner.GetFromJsonAsync<JsonElement>("/api/users/it_seen_owner/posts");
+        Assert.All(own.GetProperty("items").EnumerateArray(), p => Assert.Equal(["works", "neutral", "weak"], VerdictsOn(p)));
+
+        // A moderator judges a reported look whole, in the queue: its number and its pieces' words.
+        var (moderator, _, _) = await _app.NewUserAsync("it_seen_mod");
+        Assert.Equal(AdminChange.Changed, await _app.PromoteAsync("it_seen_mod"));
+        for (var i = 0; i < 3; i++)
+        {
+            var reporter = (await _app.NewUserAsync("it_seen_rep" + i)).Client;
+            Assert.Equal(HttpStatusCode.NoContent, (await reporter.PostAsJsonAsync($"/api/posts/{privateId}/report", new { reason = "spam" })).StatusCode);
+        }
+
+        var queue = await moderator.GetFromJsonAsync<JsonElement>("/api/admin/queue");
+        var reported = queue.GetProperty("items").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == privateId);
+        Assert.Equal(["works", "neutral", "weak"], VerdictsOn(reported.GetProperty("post")));
     }
 
     [Fact]

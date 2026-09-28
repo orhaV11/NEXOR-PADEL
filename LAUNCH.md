@@ -179,8 +179,8 @@ the store listings, it is in the legal pages, and while billing is manual it is 
 Pro — the app tells them to, in every language ("To change or cancel, write to us."). The legal pages ship with
 `hello@orevosh.app` in them; change it to yours.
 
-**The legal review.** The app has three pages of its own: `#/terms`, `#/privacy` and `#/guidelines` (version 2, dated
-2026-09-12, in English and Hebrew, in `src/FitCheck.Api/wwwroot/app/views/legal.js`). They describe what the code
+**The legal review.** The app has three pages of its own: `#/terms` and `#/privacy` (version 6, dated 2026-09-28, in
+every language, in `src/FitCheck.Api/wwwroot/app/views/legal.js`) and `#/guidelines`. They describe what the code
 actually does, in plain words. They are **not legal advice**: the governing-law line is a placeholder, and both stores
 require the privacy policy at a public URL. Send them to a lawyer in your country before the address leaves your team,
 and change anything you would not stand behind — the version line at the bottom of the page moves with the text.
@@ -1346,8 +1346,8 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
 בדפים המשפטיים, וכל עוד החיוב ידני זה המקום שאליו אנשים כותבים כדי להתחיל או להפסיק Pro — האפליקציה אומרת להם את זה,
 בכל השפות ("כדי לשנות או לבטל, כתבו לנו."). בדפים המשפטיים כתוב היום `hello@orevosh.app`; החליפו לשלכם.
 
-**הבדיקה המשפטית.** לאפליקציה שלושה דפים משלה: `#/terms`, `#/privacy` ו-`#/guidelines` (גרסה 2, מתאריך 2026-09-12,
-בעברית ובאנגלית, בקובץ `src/FitCheck.Api/wwwroot/app/views/legal.js`). הם מתארים במילים פשוטות מה הקוד באמת עושה. הם
+**הבדיקה המשפטית.** לאפליקציה שלושה דפים משלה: `#/terms` ו-`#/privacy` (גרסה 6, מתאריך 2026-09-28, בכל השפות,
+בקובץ `src/FitCheck.Api/wwwroot/app/views/legal.js`) ו-`#/guidelines`. הם מתארים במילים פשוטות מה הקוד באמת עושה. הם
 **אינם ייעוץ משפטי**: שורת הדין החל היא מציין מקום, ושתי החנויות דורשות את מדיניות הפרטיות בכתובת ציבורית. שלחו אותם
 לעורך דין בארץ שלכם לפני שהכתובת יוצאת מהצוות, ושנו כל דבר שלא הייתם עומדים מאחוריו — שורת הגרסה בתחתית הדף זזה עם
 הטקסט.

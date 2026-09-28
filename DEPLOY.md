@@ -1072,6 +1072,13 @@ what you want to have if the box loses power in the middle. A pilot file from be
 `PostItems` table at all (it came in Round 9), so the upgrade path above simply creates it in its Round 10 shape; the
 tests cover both files.
 
+**The review of Rounds 20 and 21 rebuilds `Users` once** (`20260928084402_Round21ReviewPushDefaultAndNudgeIndex`). The
+model now carries the morning push's default (on), which Round 20's migration only wrote by hand, so the column's
+`DEFAULT` is rewritten — on SQLite a table rebuild, the rows copied as they are — and a pilot file upgraded from the
+model comes out with the push on too. Nobody's switch changes: a row that says off stays off. The same migration
+indexes `Notifications` by type and check, for the try-tip nudge and the numbers page. Take the backup first, as for
+Round 10.
+
 ### Moving your laptop pilot to the server
 
 **Stop the local app first** (Ctrl-C in the window running `dotnet run`). The database runs in WAL mode: while the app
@@ -1224,8 +1231,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 2. **A support mailbox that someone reads.** `hello@<your domain>`, on the store listing, in the legal pages, and the
    address the app tells people to write to while `Billing__Provider` is `manual` ("To change or cancel, write to
    us."). The pages ship with `hello@orevosh.app` in them; change it.
-3. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 2, dated
-   2026-09-12, in both languages) describe what the code does in plain words and are not legal advice: the
+3. **The legal pages reviewed by a lawyer, and the guidelines by you.** `#/terms` and `#/privacy` (version 6, dated
+   2026-09-28, in every language) describe what the code does in plain words and are not legal advice: the
    governing-law line is a placeholder, the contact address must be a mailbox someone reads, and the stores want both
    pages at a public URL. The guidelines page (linked from signup with the two) says what gets reported and what
    happens to a report, what deletion removes, and that the photos are the person's own. Change anything you would not

@@ -98,6 +98,9 @@ public class FunnelTests : IClassFixture<TestApp>
         // Round 20: an arrival through an entry link, per source, and a launch from the home screen.
         Assert.Equal("funnel:src:tt:20260920", Funnel.SourceArrivals("tt", day));
         Assert.Equal("funnel:standalone:20260920", Funnel.Standalone(day));
+        // Round 20 review: what the guest sweep removed, by the day the check was made, in all and per entry link.
+        Assert.Equal("funnel:guest:swept:20260920", Funnel.SweptGuestChecks(day));
+        Assert.Equal("funnel:guest:swept:tt:20260920", Funnel.SweptGuestChecks("tt", day));
     }
 
     [Fact]

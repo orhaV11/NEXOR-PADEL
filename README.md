@@ -202,7 +202,7 @@ Six blocks sit beside it, each with its own DTO and nothing shared with the tile
 |---|---|
 | `stylist` | **Did the tip land?** Yes / no / unanswered over every OK check by an account, overall, by intent and by language, plus how many photos the stylist called "no outfit" and how many it refused. The only number that says whether the stylist is any good. **Round 20** adds `triedPairs` (pairs linked, the `CheckLinks` count), `triedPer100Ok` (pairs × 100 ÷ OK checks by accounts, two decimals, absent while there is no OK check), `tryTipNudges` (notifications of type `try_tip`) and `nudgedThenTried` (pairs whose before check carries one) |
 | `spend` | **What the model cost today**, at the owner's configured prices, the day's ceiling, whether the app is resting on it, and fourteen days of it. Always an estimate, never an invoice. **Round 20:** `promptCache` is the effective mode (`off`, `5m` or `1h`); `today.cacheReadTokens` / `cacheWriteTokens` are drawn as two tiles ("Cache reads (tokens)", "Cache writes (tokens)") with the prices hint ending "Prompt cache: off / 5 minutes / 1 hour."; the estimate prices cache reads at 0.1× and cache writes at 1.25× (off or `5m`) or 2× (`1h`) of the input price, and writes are re-priced by the mode in force when the page is read, so flip the mode at midnight UTC or accept a few cents of drift |
-| `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting. **Round 20:** each `days[]` row gains `proFromCompare` and `proFromWardrobe` (the Pro page opened from a refused compare or from the wardrobe line) and `standalone` (launches from the home screen), and `sources` lists `{ source, arrivals, guestChecks, signups, firstPosts }` per allowlisted source in `Funnel:Sources` order over the fourteen-day window, zero rows included: arrivals off `funnel:src:<source>:<day>`, guest checks off `Checks.Source` (guest or claimed, not `error`), signups off `Users.Source`, first posts off each poster's `Users.Source` |
+| `funnel` | **The growth loop**: fourteen days of landing views, guest checks, signups, first posts and public-page arrivals, today's conversion between those steps, and the invites — sent, accepted, and who is inviting. **Round 20:** each `days[]` row gains `proFromCompare` and `proFromWardrobe` (the Pro page opened from a refused compare or from the wardrobe line) and `standalone` (launches from the home screen), and `sources` lists `{ source, arrivals, guestChecks, signups, firstPosts }` per allowlisted source in `Funnel:Sources` order over the fourteen-day window, zero rows included: arrivals off `funnel:src:<source>:<day>`, guest checks off `Checks.Source` (guest or claimed, not `error`), signups off `Users.Source`, first posts off each poster's `Users.Source`. An unclaimed guest check is swept a day after it was made, so the sweep leaves `funnel:guest:swept:<day>` and `funnel:guest:swept:<source>:<day>` behind (by the day it was made, in the delete's transaction) and both the day's `guestChecks` and the source's add them to the rows still there |
 | `wardrobe` | **Round 15.** The two numbers `MARKETING.md` watches. `keepRate` is `keepers` (accounts with at least one kept piece) ÷ `checkedUsers` (accounts with at least one OK check — the same number the hero tile reads, so the page cannot say two different things about who has checked), with `items` as the raw row count behind it; `dontOwnRate` is `dontOwn` ÷ `reasons`, the "I do not own that" answer over every typed answer to the tip, and it is watched **falling**, because a tip that draws it is exactly the tip a wardrobe should have prevented. `toStylistOff` counts the accounts that turned the sending off, which is what keeps a flat `dontOwnRate` readable: a wardrobe nobody sends cannot prevent anything. **A rate with nothing to divide by is absent from the JSON, not `0`.** **Round 20** adds `keepAll` (keep-all requests that touched at least one row), `momentShown` and `momentGo` (the Pro moment, counted only while it was true for that account), `momentGoRate` (go ÷ shown, absent while nothing was shown) and `piecesPerActiveMedian` (the median of kept pieces over the seven-day active set — checks, fires, comments, votes — zeros included, even counts averaged to two decimals; absent while nobody is active) |
 | `breakdownAverages` | The mean of each rubric sub-score over the checks that carry one; absent while no check does |
 | `tomorrow` | **Round 19.** Planned outfits, the worn and reuse rates, refs the model returned that were not in its list, sentences the template replaced, the reasons. **Round 20** adds `pushesSent` (morning push receipts with `SentAt` in the last 30 days), `pushesOpened` (of those, with `OpenedAt` set) and `openRate` (opened ÷ sent, four decimals, absent while nothing was sent) |
@@ -261,16 +261,17 @@ wardrobe's numbers (`WardrobeMetricsTests`) and the wardrobe reaching a comparis
 20 added the webhook replay, the yearly Checkout and the no-card trial to `BillingTests` (every event factory now stamps
 a fresh `evt_` id, and a test that means a replay passes the same one), `RenewalRecapTests`, `StylistBackTests`,
 `TryTipNudgeTests`, `TomorrowMorningTests`, `DistributionTests` (the `/go` routes, the crawler skip, the invite
-passthrough, the stamped source, the launch header, the attributed walk, `Funnel:Sources` as a setting, the redirect's
-own security headers), the two compare questions and the close call in `CompareTests` and `OutfitComparerTests`,
+passthrough, the stamped source, the launch header, the attributed walk, a swept guest check still counted,
+`Funnel:Sources` as a setting, the redirect's own security headers), the two compare questions and the close call in `CompareTests` and `OutfitComparerTests`,
 keep-all, the unkept list and the Pro moment in `WardrobeTests` with the wedge numbers in `MetricsTests`, the account
 actions, the audit lines and the sponsor reader in `AdminTests` (with `BoardTests` for the excluded account and
 `RateLimitTests` for the per-moderator brake), the prompt-cache breakpoints in `AnthropicVisionClientTests` and
 `SpendMeterTests`, the p95 in `MetricsComputeTests`, `Round20SkeletonTests` for the seams the moves share, and the
 renderer's `tools/brand/test/before-after.test.js` under `node --test`. Round 21 added the verdict on a posted look's
-pieces to `ItemsTests` (a piece the stylist named carries its word on the new post, on the look as a stranger reads it
+pieces to `ItemsTests` (a piece the stylist named carries its word on the new post, on the look as its author reads it
 and on the answer to a later tagging, matched by name in any case or spacing; a name the stylist never gave carries
-none) and the policy with no font host to `SecurityHeaderSetTests` in `SecurityTests` (`style-src 'self'
+none; and, settled in the review, a guest and another account read no verdict on the look, the feed or the profile,
+public number or private, while a moderator reads them in the queue) and the policy with no font host to `SecurityHeaderSetTests` in `SecurityTests` (`style-src 'self'
 'unsafe-inline';` and `font-src 'self';`, with neither `googleapis` nor `gstatic` anywhere in it).
 Two of them are policy rather than behaviour and are the reason a careless change fails the build:
 `IdorEnumerationTests.Rules` in `SecurityTests` makes every route with an `{id}` or a `{handle}` declare, in writing,
@@ -495,7 +496,7 @@ Wherever a person appears in a response (`user`, `mentions`, `featuredBy`, `bran
 | `GET /api/wardrobe/unkept` 🔒 | — | **Round 20.** `200 { pieces: [{ name, category, checkId, wornAt, postId? }], checks }` always: the pieces named on the account's last `Plans:WardrobeUnkeptChecks` OK checks that are not in its wardrobe, newest look first, each once and carrying the newest check that named it, at most 30 (`Wardrobe.UnkeptMaxPieces`); `checks` is how many checks were looked at; `postId` only where that look is a visible post. Empty with `checks: 0` when the setting is 0 or the account has no OK check. Keeping one uses the existing `POST /api/wardrobe { checkId, name }`; nothing records a refusal, so a piece passed over resurfaces |
 | `POST /api/wardrobe/moment` 🔒 | `{ step: "shown" \| "go" }` | **Round 20.** 204 either way; increments `wardrobe_moment_shown` / `wardrobe_moment_go` only while `Plans.WardrobeProMoment` is true for the caller right now, so a script cannot inflate a rate the moment never earned; 400 `error.invalid_request` for any other step. The client owns only once-per-tab (`sessionStorage`) |
 | `POST /api/posts` 🔒 | `{ checkId, caption?, challengeId?, products?, beforePostId?, items? }` | `201` post. The check must be yours, `ok`, and not yet posted; caption up to 140 characters, its `#tags` (first 5) and `@mentions` of existing handles (first 5) are stored and mentioned accounts are notified; a caption carrying an open challenge's hashtag enters that challenge (once per person; `challengeId` is still accepted); `products` (brands only, up to 3) are `{ label, url, price? }` with https URLs; `beforePostId` names one of your own visible looks this one improves on ("after the tip": 400 `error.before_invalid` for anyone else's look, a hidden one, or the look of this very check). Without `items`, the stylist's item names are copied onto the look, lower-cased (up to 8, 60 characters each, with their category, source `Stylist`, never a brand), so `/api/search` finds it by piece; the item notes stay private (each piece's one-word verdict travels with the look since Round 21: `GET /api/posts/{id}` below). With `items` (the post sheet's list, the same shape and rules as `PATCH /api/posts/{id}/items` below), that list is the whole list: an input without an id whose name, normalised, equals a stylist row's name (the stylist's uncut name from the check and the stored name's first forty characters count as the same) keeps that row as the stylist's, anything else is the person's own row, and an invalid list refuses the post with the same 400s before anything is written, so the check stays postable |
-| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed, verdict? }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; **`verdict`** (Round 21) the stylist's `works`, `neutral` or `weak` for the piece of that name, read from the check's stored feedback in the one query that already reads the page's checks, so a card can draw the dot beside the name, and absent for a name the check never gave (the client reads that as neutral; the stylist's note on the piece never travels); `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
+| `GET /api/posts/{id}` | — | The post: `user, intent, score, intentMatch, headline, caption, challengeId, challengeTitle, fireCount, commentCount, fired, saved, isMine, hidden, votes, products, imageUrl, videoUrl?, breakdown?, before?, createdAt, tags, mentions, featuredBy, items, itemCount`. `breakdown` is `{ fit, color, accessories }` for a rubric-v2 check; `before` is `{ postId, score, imageUrl }` of the earlier look (left off while that look is under review; the link is cleared when it is deleted). `items` (on every card, in every feed, in position order, `[]` when there are none) are `{ id, name, category, brand?, model?, url?, host?, source, x?, y?, confirmed, verdict? }`: `name` lower-cased, `category` one of `top, bottom, dress, outerwear, shoes, accessory, other`, `source` `Stylist` or `User`, `host` the link's host without `www.` for "Shop at {host}", `x`/`y` the dot on the photo as fractions of its width and height (absent when the piece is listed and not placed), `confirmed` true only for a stylist suggestion the person accepted; **`verdict`** (Round 21) the stylist's `works`, `neutral` or `weak` for the piece of that name, read from the check's stored feedback, so a card can draw the dot beside the name — **only for the look's author and for a moderator in the queue** (the people who may read the check; settled in the review, public number or private), and absent for everyone else and for a name the check never gave (the client then draws the name with no dot; the stylist's note on the piece never travels); `url` is the raw link and the client never sends anyone to it (the out door does). Hidden posts are visible to their author and to moderators only; a suspended author's posts are hidden |
 | `GET /api/posts/{id}/image` | — | The photo (`Cache-Control: private`). The only route that serves a check photo, and only for a visible post |
 | `GET /api/posts/{id}/video` | — | The clip (`video/mp4` or `video/webm`, `Cache-Control: private`, Range requests honoured so players can seek). 404 for a look without a clip. The only route that serves a clip. A WebM becomes `video/mp4` at the same URL once the background transcode is done (Configuration, "Clips") |
 | `DELETE /api/posts/{id}` 🔒 | — | 204, author only. The photo becomes private again with the check; the clip is deleted, and so are the look's items (their search rows and store links with them) |
@@ -603,7 +604,8 @@ src/FitCheck.Api/
   Services/Notifier.cs            activity rows, deduplicated per actor and target
   Services/ChallengeResolver.cs   fixes the winner exactly once when a challenge has ended
   Services/PostReader.cs          posts → DTOs with tags, mentions, featured-by, the before look and the viewer's state, in batches;
-                                  since Round 21 each piece's verdict, read from the check's stored feedback by name
+                                  since Round 21 each piece's verdict, read from the check's stored feedback by name,
+                                  for the look's author and a moderator only
   Services/Localizer.cs           server messages in all four languages (en/he/ar/ru) and Accept-Language matching
   Services/Wardrobe.cs            the pieces a check named, the rows kept from them, and the names that travel to the stylist
                                   (on a check and, since Round 15, on a comparison)
@@ -693,9 +695,10 @@ descriptive is dropped when the status is not `ok`.
 - **Checks are private; posting is a separate choice.** Posting publishes the photo, the intent, the score,
   the headline, your caption and the three sub-scores (fit, color, accessories), and indexes the stylist's item
   names so people can find the look in search. The tip, the notes on each item and the accessories read stay
-  private. Since Round 21 each piece the stylist named also carries its one-word verdict (works, neutral, weak) on
-  the look, as the dot on its chip — on a look whose number is kept private too, which `DECISIONS.md` (Round 21) puts
-  to the founder as an open question. Deleting the post makes the photo private again.
+  private. Since Round 21 each piece the stylist named shows its one-word verdict (works, neutral, weak) as the dot on
+  its chip, to the look's author and a moderator only: like the notes, the verdicts are part of the check, and they
+  stay with it for everyone else whether the number is public or private (`DECISIONS.md`, review fixes). Deleting the
+  post makes the photo private again.
 - **Photos are never served by path.** Check photos and avatars live under `Storage:Root`, outside `wwwroot`.
   The post image route (visible posts only), the avatar route and, since Round 19, `GET /api/checks/{id}/image` — a
   private check's own photo, to the person who may read the check (its owner, or the guest whose cookie made it), and
@@ -730,7 +733,8 @@ descriptive is dropped when the status is not `ok`.
 - **Items are indexed from the stylist's words or the person's, never from captions.** At posting, the item names of
   the check are copied onto the look (lower-cased, up to 8) unless the person tagged the pieces on the post sheet; a
   caption cannot put a look under "black boots". A row keeps saying whether the stylist or the person named it
-  (`source`), and the notes stay private with the tip (the one-word verdict does not since Round 21: above).
+  (`source`), and the notes stay private with the tip, as the one-word verdict does for everyone but the author and a
+  moderator (above).
 - **The stylist never publishes a brand; the person does.** Rubric v3 asks for `brand_seen` on every piece and only
   for a mark, logo or unmistakable signature that is visible (null otherwise, never a guess from style, cut or
   price); the server never copies it onto a look. The post sheet shows it as "Looks like Nike?" with Confirm, Edit
@@ -830,7 +834,7 @@ descriptive is dropped when the status is not `ok`.
   ends Pro by writing to the owner (the terms say so). With `stripe`, the Pro page and Settings carry "Manage
   subscription" — Stripe's Billing Portal (`POST /api/billing/portal`) — and that is where a subscription is changed
   or cancelled.
-- **The legal pages need a lawyer.** `#/terms` and `#/privacy` (version 2, dated 2026-09-12) are written from what
+- **The legal pages need a lawyer.** `#/terms` and `#/privacy` (version 6, dated 2026-09-28) are written from what
   the code actually does, in each language, and are not legal advice; the governing-law line is a placeholder
   ("the place where the owner is based") and the contact address `hello@orevosh.app` must exist before the pages go
   live. Have a lawyer review both before launch.
@@ -1871,8 +1875,8 @@ stage and the type), `98fceed` (the glass, the meter, the press), `ca3cf73` (the
 setting, migration or i18n key was added.
 
 **What changed outside the stylesheet.** `PostItemDto` gained `verdict` (the API table above: `GET /api/posts/{id}`, and
-every feed card, which reads the same shape), read by `PostReader` from each check's stored feedback in the query that
-already read the page's checks. The fonts are served from `/fonts` on this origin; the Google Fonts link and `fonts.js`
+every feed card, which reads the same shape), read by `PostReader` from the check's stored feedback — since the review,
+only for the looks whose author is reading, or for a moderator in the queue, so nobody else's feedback is parsed. The fonts are served from `/fonts` on this origin; the Google Fonts link and `fonts.js`
 are gone from the app and the landing pages. The security policy allows no host off this origin: `style-src 'self'
 'unsafe-inline'`, `font-src 'self'`. The service worker is `orevosh-shell-v8`, so an installed app takes the new shell the
 next time it is opened. `theme-color`, the manifest's colours, the offline page and the server-rendered public pages take
@@ -1901,6 +1905,6 @@ the stage colour, and the share card and the film paint the same aurora.
 **Known limits.** The landing pages keep the old black stage and the screenshots of the old look until they are re-shot
 (`LAUNCH.md` 3.2); the share card and the film draw the full ring, not the meter; the public look page's ring is
 recoloured but still fills from the top; a look with five or more pieces shows four chips and no count on its card;
-whether the arc should fill from the other side in Hebrew is left for a Hebrew reader (`LAUNCH.md` 1.8, step 10). And a
-posted look's per-piece verdict is now public, on a look whose number the author kept private too: `DECISIONS.md`,
-Round 21, puts that to the founder.
+whether the arc should fill from the other side in Hebrew is left for a Hebrew reader (`LAUNCH.md` 1.8, step 10). A
+posted look's per-piece verdicts reach its author and a moderator only, and anyone else's card draws the names with no
+dots: the review settled it that way (`DECISIONS.md`, Round 21, review fixes).

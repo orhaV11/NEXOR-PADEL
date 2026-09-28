@@ -70,6 +70,17 @@ public static partial class Funnel
     /// </summary>
     public static string SourceArrivals(string source, DateOnly day) => $"funnel:src:{source}:{Key(day)}";
 
+    /// <summary>
+    /// Round 20 review: the guest checks <see cref="GuestCheckSweeper"/> removed unclaimed, a day after they were made, by
+    /// the day they were made (not <c>error</c>). The table counts guest checks off the rows and looks back fourteen days,
+    /// so without these a guest check left the numbers the day it left the database; the sweeper writes them in the same
+    /// transaction as the delete, and <see cref="ComputeAsync"/> adds them to the rows still there.
+    /// </summary>
+    public static string SweptGuestChecks(DateOnly day) => $"funnel:guest:swept:{Key(day)}";
+
+    /// <summary>Round 20 review: the same, for the swept guest checks that came through the entry link <paramref name="source"/>.</summary>
+    public static string SweptGuestChecks(string source, DateOnly day) => $"funnel:guest:swept:{source}:{Key(day)}";
+
     /// <summary>Round 20: launches from the home screen, one per device-day, told by <see cref="StandaloneHeader"/> on the first call (GET /api/config).</summary>
     public static string Standalone(DateOnly day) => $"funnel:standalone:{Key(day)}";
 
@@ -189,10 +200,13 @@ public static partial class Funnel
             names.Add(ProFromCompare(day));
             names.Add(ProFromWardrobe(day));
             names.Add(Standalone(day));
-            // Round 20: the entry links, one row per allowlisted source per day (a handful times fourteen).
+            names.Add(SweptGuestChecks(day));
+            // Round 20: the entry links, one row per allowlisted source per day (a handful times fourteen), and the guest
+            // checks through each that the sweeper has since removed.
             foreach (var source in sources)
             {
                 names.Add(SourceArrivals(source, day));
+                names.Add(SweptGuestChecks(source, day));
             }
         }
 
@@ -201,6 +215,7 @@ public static partial class Funnel
 
         // A guest check is one that was made without an account: still a guest's, or claimed by the account it followed.
         // Round 20: each row carries the entry link it came through (Source), so the same reads feed the per-source table.
+        // An unclaimed one is swept a day after it was made; what the sweeper removed is in the SweptGuestChecks tallies.
         var guestRows = await db.Checks.AsNoTracking()
             .Where(c => c.CreatedAt >= from && c.Status != CheckStatus.Error && (c.GuestToken != null || c.ClaimedAt != null))
             .Select(c => new { c.CreatedAt, c.Source })
@@ -230,7 +245,7 @@ public static partial class Funnel
             rows.Add(new FunnelDayDto(
                 Day: day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 Landing: Clamp(Tally(Landing(day))),
-                GuestChecks: OnDay(guestChecks, day),
+                GuestChecks: Clamp(OnDay(guestChecks, day) + Tally(SweptGuestChecks(day))),
                 Signups: OnDay(signups, day),
                 FirstPosts: OnDay(firstPosts, day),
                 LookArrivals: Clamp(Tally(LookArrivals(day))),
@@ -249,15 +264,17 @@ public static partial class Funnel
         foreach (var source in sources)
         {
             long arrivals = 0;
+            long swept = 0;
             for (var day = first; day <= today; day = day.AddDays(1))
             {
                 arrivals += Tally(SourceArrivals(source, day));
+                swept += Tally(SweptGuestChecks(source, day));
             }
 
             perSource.Add(new FunnelSourceDto(
                 Source: source,
                 Arrivals: Clamp(arrivals),
-                GuestChecks: guestRows.Count(r => r.Source == source),
+                GuestChecks: Clamp(guestRows.Count(r => r.Source == source) + swept),
                 Signups: signupRows.Count(r => r.Source == source),
                 FirstPosts: firstPostRows.Count(r => posterSources.TryGetValue(r.UserId, out var src) && src == source)));
         }

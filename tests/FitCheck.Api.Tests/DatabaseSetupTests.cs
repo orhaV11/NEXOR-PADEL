@@ -100,6 +100,8 @@ public class DatabaseSetupTests : IDisposable
             var user = db.Users.Single(u => u.Id == userId);
             Assert.Equal("pilot_user", user.Handle);
             Assert.False(user.Suspended);
+            // Round 20: the column is added from the model, and the model says an account keeps the morning push on.
+            Assert.True(user.TomorrowPushOn, "an account from before Round 20 keeps the morning push on through the pilot path");
             Assert.Empty(db.PushSubscriptions.ToList());
             Assert.Equal(db.Database.GetMigrations().OrderBy(m => m), db.Database.GetAppliedMigrations().OrderBy(m => m));
             // The rows rode through the table rebuilds: the check and the post that references it are still there.
@@ -125,6 +127,7 @@ public class DatabaseSetupTests : IDisposable
         Assert.Contains("FK_Checks_Suggestions_SuggestionId", upgraded);
         Assert.Contains("Users.Suspended", upgraded);
         Assert.Equal("wal", Scalar(path, "PRAGMA journal_mode"));
+        Assert.Equal("1", Scalar(path, "SELECT dflt_value FROM pragma_table_info('Users') WHERE name = 'TomorrowPushOn'"));
 
         // The upgraded file takes what Round 9 writes: a guest check with no owner, and a look that names an earlier look as
         // its "before", which the new foreign key clears when that look goes.
@@ -238,11 +241,96 @@ public class DatabaseSetupTests : IDisposable
             var veteran = db.Users.Single(u => u.Id == userId);
             Assert.Equal("veteran19", veteran.Handle);
             Assert.Null(veteran.BoardExcludedAt);
+            Assert.True(veteran.TomorrowPushOn, "an account from before Round 20 keeps the morning push on through the migrations");
             Assert.Contains(db.Database.GetAppliedMigrations(), m => m.EndsWith("_Round20Wedge", StringComparison.Ordinal));
         }
 
         Assert.Contains("BoardExcludedAt", Columns(path, "Users"));
         Assert.Equal(StructureOf(Fresh("reference-round20.db")), StructureOf(path));
+        Assert.Equal("1", Scalar(path, "SELECT dflt_value FROM pragma_table_info('Users') WHERE name = 'TomorrowPushOn'"));
+    }
+
+    /// <summary>
+    /// Round 20 review: the try-tip nudge asks "was this check nudged yet" once per candidate, and the numbers page asks it
+    /// once per pair, by type and check with no account to start from; on the fastest-growing table that is an index, not
+    /// a scan.
+    /// </summary>
+    [Fact]
+    public void A_nudge_is_looked_up_by_type_and_check_through_an_index()
+    {
+        var path = Fresh("nudge-index.db");
+        using var connection = new SqliteConnection($"Data Source={path}");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "EXPLAIN QUERY PLAN SELECT 1 FROM \"Notifications\" WHERE \"Type\" = $type AND \"CheckId\" = $check";
+        command.Parameters.AddWithValue("$type", NotificationType.TryTip);
+        command.Parameters.AddWithValue("$check", Guid.NewGuid());
+        var plan = new List<string>();
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                plan.Add(reader.GetString(3));
+            }
+        }
+
+        Assert.Contains(plan, line => line.Contains("IX_Notifications_Type_CheckId", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The model's default for the morning push is the database's (an "on" at insert is left to it), so a new account is on
+    /// and an explicit off is written as off, never read as "use the default". A file whose column came in as DEFAULT 0 —
+    /// a pilot file upgraded by the Round 20 build, before the model said so — is brought to DEFAULT 1 by the review
+    /// migration, and what its rows hold stays as it was.
+    /// </summary>
+    [Fact]
+    public void The_morning_push_is_on_for_a_new_account_off_when_written_off_and_a_default_0_file_is_mended()
+    {
+        var path = Path.Combine(_root, "round20-default0.db");
+        var veteranId = Guid.NewGuid();
+        var optedOutId = Guid.NewGuid();
+        using (var db = Open(path))
+        {
+            db.GetService<IMigrator>().Migrate("Round20Wedge");
+        }
+
+        // What the Round 20 build's pilot path wrote: the column NOT NULL DEFAULT 0, one account on and one that said no.
+        Execute(path, "ALTER TABLE \"Users\" DROP COLUMN \"TomorrowPushOn\"");
+        Execute(path, "ALTER TABLE \"Users\" ADD COLUMN \"TomorrowPushOn\" INTEGER NOT NULL DEFAULT 0");
+        foreach (var (id, handle, on) in new[] { (veteranId, "veteran20", 1), (optedOutId, "optedout20", 0) })
+        {
+            Execute(path,
+                "INSERT INTO \"Users\" (\"Id\", \"Handle\", \"HandleLower\", \"PasswordHash\", \"AccountType\", \"AvatarVersion\", \"Confirmed16Plus\", " +
+                "\"PreferredLanguage\", \"StreakCount\", \"Suspended\", \"IsAdmin\", \"CreatedAt\", \"TomorrowPushOn\") " +
+                "VALUES ($id, $handle, $handle, 'x', 'Person', 0, 1, 'en', 0, 0, 0, $now, $on)",
+                ("$id", id), ("$handle", handle), ("$now", DateTime.UtcNow), ("$on", on));
+        }
+
+        Assert.Equal("0", Scalar(path, "SELECT dflt_value FROM pragma_table_info('Users') WHERE name = 'TomorrowPushOn'"));
+
+        var newId = Guid.NewGuid();
+        var offId = Guid.NewGuid();
+        using (var db = Open(path))
+        {
+            DatabaseSetup.Apply(db, NullLogger.Instance);
+            Assert.Empty(db.Database.GetPendingMigrations());
+            Assert.True(db.Users.Single(u => u.Id == veteranId).TomorrowPushOn);
+            Assert.False(db.Users.Single(u => u.Id == optedOutId).TomorrowPushOn, "a switch somebody turned off stays off");
+
+            db.Users.Add(NewUser(newId, "new_after_review"));
+            var off = NewUser(offId, "off_at_insert");
+            off.TomorrowPushOn = false;
+            db.Users.Add(off);
+            db.SaveChanges();
+        }
+
+        Assert.Equal("1", Scalar(path, "SELECT dflt_value FROM pragma_table_info('Users') WHERE name = 'TomorrowPushOn'"));
+        Assert.Equal(StructureOf(Fresh("reference-review.db")), StructureOf(path));
+        using (var db = Open(path))
+        {
+            Assert.True(db.Users.Single(u => u.Id == newId).TomorrowPushOn, "a new account is on");
+            Assert.False(db.Users.Single(u => u.Id == offId).TomorrowPushOn, "an explicit off is written, not replaced by the default");
+        }
     }
 
     [Fact]

@@ -237,6 +237,49 @@ public class DistributionTests : IClassFixture<TestApp>
         Assert.Equal(1, await StandaloneTodayAsync());
     }
 
+    /// <summary>
+    /// Round 20 review: an unclaimed guest check is swept a day after it was made, while the table looks back fourteen days
+    /// and counts guest checks off the rows. So the sweeper leaves a tally behind, and the check still counts on the day it
+    /// was made and for the link it came through once its row is gone — once, however often the sweep runs.
+    /// </summary>
+    [Fact]
+    public async Task A_guest_check_the_sweeper_removed_still_counts_on_its_day_and_for_its_source()
+    {
+        using var app = new TestApp();
+        var mod = app.NewClient();
+        await app.SignupAsync(mod, "sweptmod");
+        await app.PromoteAsync("sweptmod");
+
+        Assert.Equal(HttpStatusCode.Created, (await app.NewClient().PostAsync("/api/checks", CheckFormWithSource("tt"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await app.NewClient().PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+        var made = DateTime.UtcNow.AddHours(-30);
+        await WithDbAsync(app, async db =>
+        {
+            foreach (var row in await db.Checks.Where(c => c.UserId == null).ToListAsync())
+            {
+                row.CreatedAt = made;
+            }
+
+            return await db.SaveChangesAsync();
+        });
+
+        var sweeper = app.Services.GetRequiredService<GuestCheckSweeper>();
+        var day = DateOnly.FromDateTime(made).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        for (var sweep = 0; sweep < 2; sweep++)
+        {
+            await sweeper.SweepAsync(DateTime.UtcNow, CancellationToken.None);
+            Assert.Equal(0, await WithDbAsync(app, db => db.Checks.CountAsync(c => c.UserId == null)));
+
+            var funnel = (await (await mod.GetAsync("/api/metrics/pilot")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("funnel");
+            foreach (var row in funnel.GetProperty("sources").EnumerateArray())
+            {
+                Assert.Equal(row.GetProperty("source").GetString() == "tt" ? 1 : 0, row.GetProperty("guestChecks").GetInt32());
+            }
+
+            Assert.Equal(2, funnel.GetProperty("days").EnumerateArray().Single(d => d.GetProperty("day").GetString() == day).GetProperty("guestChecks").GetInt32());
+        }
+    }
+
     [Fact]
     public async Task Funnel_sources_is_a_setting()
     {

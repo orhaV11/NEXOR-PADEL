@@ -262,9 +262,34 @@ public sealed class GuestCheckSweeper(IServiceScopeFactory scopes, IImageStore i
             images.Delete(comparison.ImagePathB);
         }
 
+        // Round 20 review: the numbers page counts guest checks off these rows over fourteen days, so each one leaves a tally
+        // for the day it was made (and its entry link) as it goes: in the delete's own transaction, so a sweep that fails
+        // and runs again next hour neither loses a check from the table nor counts it twice.
+        var tallies = new Dictionary<string, long>(StringComparer.Ordinal);
+        void Tally(string name) => tallies[name] = tallies.GetValueOrDefault(name) + 1;
+        foreach (var check in checks.Where(c => c.Status != CheckStatus.Error))
+        {
+            var day = DateOnly.FromDateTime(check.CreatedAt);
+            Tally(Funnel.SweptGuestChecks(day));
+            if (!string.IsNullOrEmpty(check.Source))
+            {
+                Tally(Funnel.SweptGuestChecks(check.Source, day));
+            }
+        }
+
+        await using var transaction = tallies.Count > 0 ? await db.Database.BeginTransactionAsync(ct) : null;
+        foreach (var (name, by) in tallies)
+        {
+            await Counters.IncrementAsync(db, name, ct, by);
+        }
+
         db.Checks.RemoveRange(checks);
         db.Comparisons.RemoveRange(comparisons);
         await db.SaveChangesAsync(ct);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(ct);
+        }
 
         logger.LogInformation("Guest sweep: removed {Checks} unclaimed check(s) and {Comparisons} comparison(s) older than a day",
             checks.Count, comparisons.Count);

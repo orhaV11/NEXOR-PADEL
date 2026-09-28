@@ -2285,6 +2285,7 @@ Verify fix "one section up". None of these routes asks the model, so the stub is
 - **The migration's `TomorrowPushOn` default was corrected to `true`** after the admin builder's upgrade test over a
   Round 19 file showed every veteran account coming out with the morning push switched off while a new account starts
   with it on (`d7291e5`): the server flag decides whether the ping is offered at all, the person's switch only says no.
+  The model carries the default since the review, so the pilot-file upgrade agrees (Round 21, *Review fixes*).
 - **Billing:** the webhook's lookup-handle-record run is serialised by a process-wide gate (the brief's record-after
   alone would have let a parallel burst through); the yearly-at-or-above-twelve-months warning from the risks section was
   added to the `billing` line; the trial line uses the `timer` icon because `core.js` has no `gift`; `LocalizerTests` got
@@ -2408,17 +2409,10 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   `INTENTS`, `check.js` `STYLES`, the chips' `data-intent`), so the map keys that.
 - **The verdict on the feed, from what was already stored.** The plan offered two ways: add the names and verdicts to
   the feed, or start the chips on the look page. The feed got them. `PostItemDto` gained an optional `Verdict`, read from
-  each check's stored feedback in the one query that already found the clips and matched by the name as a look's row
-  stores it: no column, no migration, no second query on the feed. It opens a question, below.
+  each check's stored feedback and matched by the name as a look's row stores it: no column, no migration. Who may read
+  it was left open and settled in the review (*Review fixes*, at the end of this round).
 
 **Left open.**
-- **Whether a posted look's verdicts should be public.** Before Round 21 a piece's works / neutral / weak stayed with the
-  check, and the README said so. Now every posted look carries each stylist piece's word to anyone who can read the look —
-  including a look whose author kept the number private (Round 14's "post the look, keep the grade"), where a weak dot
-  says part of what the number would have said. The privacy page does not list the verdict among what goes public, and
-  the post sheet's line does not mention it. The founder decides: keep it and say so on those two pages, or leave the
-  verdicts off a look whose number is private, or off every look. Either of the last two is a small change in
-  `PostReader`.
 - **The ring's arc in Hebrew.** It fills clockwise from the bottom-left in both languages and reads as a gauge in the
   Hebrew renders; a Hebrew reader on a real phone decides (`LAUNCH.md` 1.8, step 10).
 - **The landing pages** keep the old tokens and the screenshots of the old look until they are re-shot (`LAUNCH.md` 3.2).
@@ -2475,3 +2469,35 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   phone. The shared occasion and style rows load `check.js`'s rules wherever they are drawn, so Tomorrow's style offer
   keeps its spacing in a browser that never opened the check. Judged and left: the 60px glow, the Hebrew arc, English
   piece names wrapping in Tomorrow's Hebrew column, and a Today strip taller on a phone than in the mock.
+
+### Review fixes (Round 20 and 21)
+
+- **A piece's verdict is its author's.** Round 21 sent each stylist piece's works / neutral / weak to every reader of a
+  posted look, a private number included. Settled by the owner: the verdict is read by the look's author and by a
+  moderator in the queue — the people who may read the check it came from — and by nobody else, and it is not tied to
+  "keep the grade", because a public number never published the per-piece verdicts either (the README before Round 21:
+  "the item verdicts and notes stay private"; the post sheet: the stylist's notes on each piece stay yours).
+  `PostReader` reads the feedback only for those looks, so a stranger's page parses none, and a chip with no verdict
+  draws no dot at all: a hollow one would claim "neutral", a verdict nobody gave. `ItemsTests` pins the guest, another
+  account, the author and the moderator; the browser test pins both cards.
+- **The morning push's default is in the model.** Round 20 turned it on for existing accounts in the hand-edited
+  migration only, so the pilot-file upgrade, which adds columns from the model, would give every account there the push
+  off. The model says `HasDefaultValue(true)` with `true` as the sentinel, so an explicit off is still written. The
+  review migration keeps the tool's rewrite of the column's `DEFAULT` (a `Users` rebuild on SQLite, as Round 9's was for
+  `Checks`): an "on" at insert is now left to the database, and a file whose column came in as `DEFAULT 0` would
+  otherwise give every new account the push off. Rows keep what they hold, because a switch somebody turned off cannot
+  be told from a default and is never turned back on. `DatabaseSetupTests` pins a veteran account on both paths, the
+  column's default, a new account and an explicit off.
+- **An index for the nudge.** `Notifications (Type, CheckId)`, in the same migration: the try-tip nudge asks "nudged
+  about this check yet" once per candidate and the numbers page once per pair, with no account to start from; the type
+  alone serves the counts beside them.
+- **A swept guest check still counts.** The funnel counts guest checks off the rows over fourteen days and the sweeper
+  deletes an unclaimed one after a day, so the per-source table (and the day's column, since Round 13) showed the
+  claimed ones and the last day beside fourteen days of arrivals. The sweeper now leaves a tally for the day each was
+  made, and for its entry link, in the delete's own transaction, and the table adds the tallies to the rows. Counting at
+  write time was the other way; this one keeps every number the rows already gave, mends the day's column too, and
+  cannot count a check twice.
+- **The privacy page lists what Round 20 keeps:** which of our links a person arrived through (on the account and on
+  each check), the morning ping's day and when it was opened, the ask to hear when the stylist is back, and, in the
+  cookies section, what the browser keeps besides the language (the invite and the link until signup). The documents
+  are version 6, dated 2026-09-28; every earlier sentence stays.

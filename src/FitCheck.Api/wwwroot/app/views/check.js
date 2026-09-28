@@ -936,7 +936,9 @@ register('result', async (root, params, ctx) => {
     scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
   ]);
   const judged = judgedPreview(result);
-  const items = namedPieces(feedback.items);
+  // The check is the person's own, so every piece has its word: anything but the stylist's three reads as neutral here
+  // (pieceChip draws no dot for a piece without one, which is what a look shows everyone but its author).
+  const items = namedPieces(feedback.items).map((item) => ({ ...item, verdict: pieceVerdict(item) }));
 
   // 1. The verdict. The judged still, edge to edge, with the pieces pinned at its foot (up to four, decorative: the row
   //    under "What you're wearing" is the one that is read) and the ring on its corner; a past check has no still here,

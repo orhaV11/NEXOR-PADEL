@@ -249,15 +249,40 @@ public class LegalVersionFourTests
 
     /// <summary>
     /// A rewritten document is a new version with a new date, or the "version and date at the bottom" promise in the terms
-    /// is broken. Round 19 moved it to 5 the same day: Tomorrow and the forecast are in the privacy policy.
+    /// is broken. Round 19 moved it to 5: Tomorrow and the forecast are in the privacy policy. Round 20's review moved it
+    /// to 6 a day later: what Round 20 keeps about a person is in it too.
     /// </summary>
     [Fact]
-    public void The_documents_carry_version_five()
+    public void The_documents_carry_version_six()
     {
         var legal = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "src", "FitCheck.Api", "wwwroot", "app", "views", "legal.js")));
-        Assert.Contains("const VERSION = '5';", legal, StringComparison.Ordinal);
-        Assert.Contains("const DATED = '2026-09-27';", legal, StringComparison.Ordinal);
+        Assert.Contains("const VERSION = '6';", legal, StringComparison.Ordinal);
+        Assert.Contains("const DATED = '2026-09-28';", legal, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Round 20's review: what Round 20 keeps is in "what we store" in every language — which of our links a person
+    /// arrived through (Users.Source, Checks.Source), the morning ping's receipt with when it was opened (TomorrowPushes),
+    /// and the ask to hear when the stylist is back (StylistBack) — and the cookies section names the link and the invite
+    /// the browser keeps until signup (invite.js), not only the language.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "links you arrived through", "morning ping", "stylist is back", "the link you arrived through")]
+    [InlineData("he", "מהקישורים שלנו הגעתם", "פינג הבוקר", "הסטייליסט חוזר", "הקישור שהביאו אתכם")]
+    [InlineData("ar", "من روابطنا وصلت", "تنبيه الصباح", "يعود المصمّم", "الرابط الذي وصلت عبره")]
+    [InlineData("ru", "из наших ссылок ты пришёл", "утреннего напоминания", "стилист вернётся", "ссылку, по которой ты пришёл")]
+    public void The_policy_lists_what_round_20_keeps(string code, string entryLink, string morningPing, string stylistBack, string kept)
+    {
+        var strings = Strings(code);
+        var stored = strings["legal.privacy_1"];
+        Assert.Contains(entryLink, stored, StringComparison.Ordinal);
+        Assert.Contains(morningPing, stored, StringComparison.Ordinal);
+        Assert.Contains(stylistBack, stored, StringComparison.Ordinal);
+        Assert.Contains(kept, strings["legal.privacy_6"], StringComparison.Ordinal);
+        // The sentences that were there stay: the store links, the planned outfit, the two cookies and "no analytics".
+        Assert.Contains("Open-Meteo", strings["legal.privacy_2"], StringComparison.Ordinal);
+        Assert.Contains("90", strings["legal.privacy_6"], StringComparison.Ordinal);
     }
 
     /// <summary>

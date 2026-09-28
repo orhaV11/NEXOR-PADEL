@@ -225,9 +225,11 @@ public sealed record BeforeDto(Guid PostId, int? Score, string ImageUrl);
 /// One piece on a look. Url is the raw store link (the client sends people through /api/items/{id}/out, never to it);
 /// Host is its host for "Shop at {host}". Source: Stylist | User. X and Y are the dot on the photo, 0..1, null when
 /// the item is listed and not placed. Confirmed: a stylist brand suggestion the person accepted. Verdict (Round 21):
-/// the stylist's works | neutral | weak for this piece, read back from the check's stored feedback by name, so a card
-/// can draw the dot beside the name; null (and absent on the wire) for a piece the person added themselves, or one the
-/// check no longer names — the client reads that as neutral.
+/// the stylist's works | neutral | weak, matched by name — the row's stored name against the check's pieces, each
+/// normalised the way PostItems stores a name — whatever the row's Source, so a piece the person typed in whose name
+/// matches one of the stylist's carries that piece's word, and a name the check never gave carries none. Only the
+/// author and a moderator in the queue (the people who may read the check) get it: for anyone else it is null, as it is
+/// for a name with no match, and absent on the wire; the client then draws the name with no dot.
 /// </summary>
 public sealed record PostItemDto(
     Guid Id, string Name, string Category, string? Brand, string? Model, string? Url, string? Host, ItemSource Source,

@@ -80,7 +80,18 @@ test('fromApp on the fixtures: 7 to 8, the tried tip, the delta and the three ce
   assert.deepEqual([ep.before.breakdown.color, ep.after.breakdown.color], [8, 8]);
   assert.deepEqual([ep.before.breakdown.accessories, ep.after.breakdown.accessories], [4, 6]);
   assert.deepEqual(ep.changes, [{ category: 'shoes', from: 'Running shoes', to: 'White leather sneakers' }]);
-  assert.deepEqual(ep.changeLines, ['shoes: Running shoes → White leather sneakers'], 'the app\'s own wording (tried.change_swap)');
+  assert.deepEqual(ep.changeLines, ['Shoes: Running shoes → White leather sneakers'], 'the app\'s own wording (tried.change_swap, items.cat_shoes)');
+});
+
+test('a change line names the category the way the app does, in the episode\'s language', () => {
+  const he = JSON.parse(fs.readFileSync(path.join(REPO, 'src/FitCheck.Api/wwwroot/i18n/he.json'), 'utf8'));
+  const ep = ba.fromApp({ before: read('check-before.json'), after: read('check-after.json'), pair: read('pair.json'), lang: 'he' });
+  assert.deepEqual(ep.changeLines, [he['tried.change_swap'].replace('{category}', he['items.cat_shoes'])
+    .replace('{from}', 'Running shoes').replace('{to}', 'White leather sneakers')], 'items.cat_shoes in Hebrew, not the English word');
+  assert.ok(ep.changeLines[0].startsWith('נעליים: '), ep.changeLines[0]);
+  const byHand = ba.fromApp({ before: read('check-before.json'), after: read('check-after.json'), lang: 'en',
+    changes: [{ category: 'accessory', from: null, to: 'Gold hoops' }, { category: 'hat', from: 'Cap', to: null }] });
+  assert.deepEqual(byHand.changeLines, ['Accessory: added Gold hoops', 'Other: Cap gone'], 'a category the app does not know reads as items.cat_other, as in taste.js');
 });
 
 test('fromApp with two pair sides takes what changed from the pair, since the sides carry no items', () => {

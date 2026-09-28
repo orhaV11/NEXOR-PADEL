@@ -1,9 +1,12 @@
 # Browser smoke test
 
-Drives the real OREVOSH client in a phone-sized Chromium against the real API. Only the Anthropic Messages API
-is replaced, by `stub_anthropic.py`, which validates the request shape the server sends (headers, forced tool
-call, base64 image block), answers 529 once to exercise the retry, and returns feedback in the requested
-language.
+Drives the real OREVOSH client in a phone-sized Chromium against the real API. What the server would call outside is
+replaced by `stub_anthropic.py`: the Anthropic Messages API (it validates the request shape the server sends —
+headers, forced tool call, base64 image block — answers 529 once to exercise the retry, and returns feedback in the
+requested language), the forecast Tomorrow dresses for (`GET /v1/forecast`, since Round 19), and in the money step
+Stripe (`/v1/checkout/sessions`, `/v1/billing_portal/sessions`, `/v1/prices/{id}`, `/v1/webhook_endpoints`, since
+Round 20). The guest-at-the-ceiling step starts a second API on the next port (`Limits__SpendPerDayUsd=0.001`), so
+the port after the API's must be free too.
 
 ```bash
 dotnet build                      # from the repository root
@@ -17,8 +20,11 @@ If a Chromium is already installed somewhere else, skip `playwright install` and
 `CHROMIUM_PATH=/path/to/chromium node e2e.js`.
 
 Screenshots land in `shots/`; on a failure the script also writes `failed-<person>.png` and `.html` for each
-open page. Three people take part in separate browser contexts: Noa (a person, English), NEXOR (a brand,
-English) and Dan (mostly browsing, Hebrew). The run covers, in order: the manifest, service worker and icons;
+open page. Three people carry the run in separate browser contexts: Noa (a person, English), NEXOR (a brand,
+English) and Dan (mostly browsing, Hebrew). Later rounds add a few more, each for one step: Lior (a free account that
+spends its day and meets the Pro nudge), Maya (an entry link on a Hebrew phone), an Instagram webview and an installed
+app (Round 20's distribution step), Eli (the yearly trial through the Stripe stub) and a guest on the second API at the
+ceiling. The run covers, in order: the manifest, service worker and icons;
 browsing signed out in Hebrew and RTL; a guest's check before any signup (below); signup with handle, password and a
 date of birth; the welcome screen (styles,
 brands to follow); settings (brand mode, display name, avatar upload and the avatar route's cache header); a
@@ -34,7 +40,8 @@ report with a reason picked from the list, hide, show again, suspend and lift; N
 command after she signs up, the way a real owner is; Round 20 adds the Accounts block on the same page - Grant Pro
 for three months through the months sheet and Remove Pro, Verify brand and its removal, Exclude from board and Put
 back, each checked against Dan's own `/me` and `GET /api/board` - and the read-only Sponsor of the week card fed by
-`Board__Sponsor__*` in the server env, the bare host shown as https and no alert since `nexor` is a verified brand);
+`Board__Sponsor__*` in the server env, the bare host shown as https and one alert, "not a verified brand yet", because
+the Round 9 steps' `--unverify` left `nexor` unverified; Noa verifies it one section up and the alert goes);
 the guidelines page; the push switch on a server without
 VAPID keys; `/healthz`, `/api/config` and the security headers; deleting a look and an account; signing out and
 back in. The service worker is blocked in the test contexts so it never masks a live request; the browser is
@@ -85,6 +92,17 @@ old, and a fire must show on the board at once). What the script drives, in the 
 - **Not driven**: a closed week (the closer has no HTTP trigger), so the hall's weeks, `#profile-badge` and the
   `board_rank` line in Activity are covered by `BoardTests` only; the moderator's exclusion by `BoardTests` and
   `Round10SkeletonTests`; the reset card `#board-reset` shows only in the first 24 hours of a week.
+
+**Rounds 19 to 21 in the script**, by the `step` names a failure prints (the main `README.md`, "Run the tests", says
+what each asserts): `try-the-tip` (the result's "Try the tip, then show me", the pair, its share and the public pair),
+the compare with slot B through the camera and the refusal that sells Pro in `10`, `tomorrow` (the wardrobe from three
+keeps, a planned outfit, and the wait told in stages), `wedge` (Keep all and the Pro moment on Dan's free Hebrew account), `morning` (the push's tap opens
+Today and composes nothing; the Settings switch is drawn locked, since this browser has no push subscription, and is
+never flipped), `before-after` (the episode converter fed the run's own JSON; nothing is rendered), `distribution`
+(Maya through `/go/tt`, the webview note, the installed app's launch header), `11b` (the account block and the sponsor
+card on `#/admin`), `14` (the money step against the Stripe stub) and `resting` (the guest at the ceiling on the second
+API, the stylist-back offer and the welcome's push step). Round 21 changed no query: every id and class the script
+reads survived the redesign.
 
 Two things about timing: the sheet kit keeps a closing panel for 170 ms after Escape, so wait for `.sheet.closing` to
 go before asserting on the page behind it; and `GET /api/items/brands` is called while a brand field is typed in (a

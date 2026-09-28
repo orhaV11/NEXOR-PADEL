@@ -13,6 +13,12 @@
       node tools/brand/render-kit.js stories store   # one or more categories: logos covers stories store social web
       node tools/brand/render-kit.js readme          # only rewrite brand-kit/README.md from the files present
 
+  The ten app screens in templates/screens/ are shot from the real app by tools/brand/shoot/kit-shoot.js, which starts
+  the API and the test stylist on this machine and walks the app as people do (its header has the details). After a
+  change to the app, from the repository root:
+
+      dotnet build src/FitCheck.Api && node tools/brand/shoot/kit-shoot.js && node tools/brand/render-kit.js
+
   Needs playwright (npm install in tools/brand, or NODE_PATH=tools/e2e/node_modules) and a Chromium: the one
   Playwright installed, or CHROMIUM_PATH=/path/to/chromium. With sharp installed (optional) the PNGs are
   palette-quantised (about a third of the size, no visible loss on these flat designs); without it they are
@@ -437,7 +443,9 @@ function writeReadme() {
     'landing page) for link previews, and `/landing/screens/*.jpg` for the landing page.', '',
     '## Before the store listings', '',
     '- **Replace the screens.** The ten screenshots are the real app (Round 21) at the phone viewport, taken in a browser',
-    '  against a local server: the people, the brand, the counts and the timestamps are a test run\'s, the stylist is the',
+    '  against a local server by `tools/brand/shoot/kit-shoot.js` (after a change to the app, from the repository root:',
+    '  `dotnet build src/FitCheck.Api`, `node tools/brand/shoot/kit-shoot.js`, then `node tools/brand/render-kit.js`).',
+    '  The people, the brand, the counts and the timestamps are a test run\'s, the stylist is the',
     '  test stub answering each of the three looks with a verdict written for that photo, and the camera is Chromium\'s',
     '  fake device playing a still of the pink look. The check and camera screens exist in English only, so the Hebrew',
     '  store set uses them for screens 1 and 5. Take real captures on a',

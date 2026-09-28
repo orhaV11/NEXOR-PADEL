@@ -608,7 +608,8 @@ their ids; `brand-kit/episodes/README.md` has the file.
 10.6s  9/10   +1
 11.0s  Camel and chocolate, done right
 12.4s  WHAT CHANGED   8 → 9   9 → 9   7 → 8
-13.0s  other: Black tights → Sheer brown tights
+13.0s  Shoes: Black ankle boots → Chocolate loafers
+       Other: Black tights → Sheer brown tights
 14.0s  orevosh.com
 ```
 

@@ -2420,7 +2420,9 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
 **Left open.**
 - **The ring's arc in Hebrew.** It fills clockwise from the bottom-left in both languages and reads as a gauge in the
   Hebrew renders; a Hebrew reader on a real phone decides (`LAUNCH.md` 1.8, step 10).
-- **The landing pages** keep the old tokens and the screenshots of the old look until they are re-shot (`LAUNCH.md` 3.2).
+- **The landing pages**, open when this was written, were closed the same day: `5e0d8e2` gave them the plum tokens and
+  screens re-shot from the Round 21 app, and the review shot them again so a stranger's look carries no verdict dots
+  (*Review fixes*, below).
 
 ### Where the build departed from the plan, and why
 
@@ -2667,3 +2669,20 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   `app.css` into `check.js`'s block (DESIGN §10); the shared `.chip.piece` stays in `app.css`. The look page draws its
   photo's chips again from the item list after an edit, and the win line on the result takes the `#taste-win` id only
   where no slot already carries it. The public look page's ring starts where the meter does, with the gap at the foot.
+- **The calibration pass counts what it spends, and stops before a day it cannot finish.** `calibrate.ps1` told the
+  founder the account needed `-Runs` checks, and a pass spends photos × runs; four photos at eight runs met the Pro
+  day's 30 on run 31, and the last photo was judged on six runs under a green line. The script now prints photos × runs
+  as the day's allowance and, when that is more than 30, stops before asking for the password; `-Force` goes on for a
+  server whose `Plans__ProChecksPerDay` and `Limits__ChecksPerDay` were raised. The 30 is the default's, written in the
+  script rather than read from `/api/config`: a call to the server before the run would be the script's first, and on
+  Windows PowerShell 5.1 its TLS defaults are the riskiest part of it. The stop spends nothing and `-Force` undoes it.
+  The password now reaches node in `OREVOSH_EVAL_PASSWORD`, never as an argument (5.1 does not quote a `"` inside one),
+  and a relative `-Photos` is the caller's folder: the script no longer moves the window to the repository root.
+- **The kit shows what a stranger sees.** After a look's verdicts became its author's, the kit's screens of other
+  people's looks still carried the dots. They were shot again with the tool that made them, which now lives in the
+  repository (`tools/brand/shoot/kit-shoot.js` with its stub, `kit_stub.py`) instead of a scratch folder, and the kit,
+  the store set and the landing screens were rendered from them. The episode renderer's sheet moved to the plum stage
+  as `base.css` had (its scrims and outlines in the stage colour, its shadows plum, the end card and the board on the
+  aurora), and every episode was rendered again, eleven in about four minutes; the two hand-cut teasers were not. A
+  before/after's change line names the category the way the app does (`items.cat_*`, "Shoes:", "נעליים:"), not the
+  stylist's raw English word.

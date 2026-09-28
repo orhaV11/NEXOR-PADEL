@@ -1320,8 +1320,8 @@ sections 1 and 2, and so on. Each item says where in this page the detail is.
 
 ### The first day (LAUNCH.md, section 3)
 
-19. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show the
-    browser test's synthetic outfit and a fake camera; take real captures on a phone and re-run
+19. **Real screenshots in the store kit.** The files in `brand-kit/store/` and `wwwroot/landing/screens/` show a test
+    run of the app (`tools/brand/shoot/kit-shoot.js`) and a fake camera; take real captures on a phone and re-run
     `tools/brand/render-kit.js` before any store submission (`brand-kit/README.md`, `STORE.md`).
 20. **Backups running and copied off the box.** On a server: the nightly cron of step 9 and a weekly copy elsewhere.
     On Fly: the daily snapshots are on, plus a weekly `--backup /data/backups/manual --keep 7` and `fly sftp get` of your own.

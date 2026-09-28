@@ -2,8 +2,8 @@
    Used only by episode.html (rendered by tools/brand/render-episode.js). It is deliberately NOT an
    import of base.css: base.css carries the phone frame and the re-drawn app screen, which an episode
    never shows, and it sizes <body> from --w/--h. What is shared is copied here on purpose — the §1
-   tokens of DESIGN.md and the two faces of §2 from the local OFL copies in fonts/, so a render never
-   touches the network.
+   tokens of DESIGN.md (the plum stage of Round 21, the values base.css carries) and the two faces of
+   §2 from the local OFL copies in fonts/, so a render never touches the network.
 
    Two grounds, one sheet:
      body.mode-photo    the look full bleed on the dark stage — the normal post
@@ -20,30 +20,33 @@
 @import url("fonts/fonts.css");
 
 :root {
-  /* DESIGN.md §1 */
-  --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
-  --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
-  --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+  /* DESIGN.md §1: the plum stage of app.css (Round 21), as in base.css */
+  --bg: #14101e; --bg-2: #1b1527; --surface: #211a2e; --surface-2: #2e2541;
+  --line: #3b3150; --line-soft: rgba(255,255,255,.09);
+  --ink: #f9f5ff; --ink-2: #d1c8e0; --ink-3: #a99ebd;
   --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
-  --accent-tint: rgba(179,157,255,.14);
+  --accent-tint: rgba(179,157,255,.16);
   --fire: #ff6a2b; --fire-2: #ffa83a;
-  /* --ok (#5ee6a0) is the one green-ish token in the system and is deliberately absent: it would key
+  /* the aurora's three lights and its warm foot (base.css body.stage), for the end card's stage */
+  --aurora-1: rgba(179,157,255,.3); --aurora-2: rgba(255,143,177,.26); --aurora-3: rgba(255,180,107,.14);
+  --aurora-foot: rgba(255,143,177,.1);
+  /* --ok (#6ff0ad) is the one green-ish token in the system and is deliberately absent: it would key
      out together with the chroma field. Nothing in an episode is green. */
   --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
 
   /* what the two grounds swap */
-  --field: #0b0b0f;                       /* the page under everything */
-  --plate: #15151c;                       /* a card, a pill, the disc inside the ring */
+  --field: #14101e;                       /* the page under everything */
+  --plate: #211a2e;                       /* a card, a pill, the disc inside the ring */
   --pill-bg: var(--accent-tint);          /* the intent pill's fill */
-  --card-shadow: 0 10px 30px rgba(0,0,0,.35);
+  --card-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 14px 36px rgba(8,4,20,.55);   /* plum, never black */
 }
 
 /* The chroma-key ground. #00B140 is broadcast green: one flat value, no gradient, no vignette, so
    CapCut's picker gets the same RGB wherever the owner taps. */
 body.mode-overlay {
   --field: #00B140;
-  --pill-bg: #241f33;                     /* opaque, the lilac tint baked onto the dark plate */
+  --pill-bg: #2d2742;                     /* opaque, the 16% lilac tint baked onto the stage */
   --card-shadow: none;                    /* a soft shadow keys out as a dark halo */
 }
 
@@ -72,7 +75,7 @@ body {
 img { display: block; }
 
 /* ---------------------------------------------------------------- the look */
-.photo { position: absolute; overflow: hidden; background: #0b0b0f; }
+.photo { position: absolute; overflow: hidden; background: var(--bg); }
 /* Real photographs, so barely anything: a hair of contrast to seat them on the dark stage. Heavy
    saturation would recolour the clothes the stylist is about to name. */
 .photo img { position: absolute; max-width: none; filter: saturate(1.04) contrast(1.02); }
@@ -80,11 +83,11 @@ img { display: block; }
 .scrim {
   position: absolute; inset: 0;
   background:
-    linear-gradient(180deg, rgba(11,11,15,.72) 0%, rgba(11,11,15,.22) 22%, rgba(11,11,15,0) 38%),
-    linear-gradient(0deg, rgba(11,11,15,.86) 0%, rgba(11,11,15,.42) 24%, rgba(11,11,15,0) 48%);
+    linear-gradient(180deg, rgba(20,16,30,.72) 0%, rgba(20,16,30,.22) 22%, rgba(20,16,30,0) 38%),
+    linear-gradient(0deg, rgba(20,16,30,.86) 0%, rgba(20,16,30,.42) 24%, rgba(20,16,30,0) 48%);
 }
 /* A full-frame dim, driven by seek, for the beats where type has to win over the picture. */
-.dim { position: absolute; inset: 0; background: #0b0b0f; }
+.dim { position: absolute; inset: 0; background: var(--bg); }
 
 /* ---------------------------------------------------------------- furniture */
 .pill {
@@ -94,10 +97,10 @@ img { display: block; }
   letter-spacing: .12em; white-space: nowrap;
 }
 [dir=rtl] .pill { letter-spacing: .03em; }
-/* Over a photograph the 14 % lilac tint of DESIGN.md §1 has nothing dark to sit on, so it gets a
+/* Over a photograph the 16 % lilac tint of DESIGN.md §1 has nothing dark to sit on, so it gets a
    stage-coloured base under it and the caps stay legible over a white wall or a pale coat. */
 body.mode-photo .pill.intent {
-  background: linear-gradient(rgba(179,157,255,.16), rgba(179,157,255,.16)), rgba(11,11,15,.62);
+  background: linear-gradient(rgba(179,157,255,.16), rgba(179,157,255,.16)), rgba(20,16,30,.62);
 }
 
 /* The score ring of DESIGN.md §3, drawn as SVG so the stroke can be laid down from seek(t): an
@@ -129,15 +132,15 @@ body.mode-photo .pill.intent {
 
 /* The 3-2-1 count is the one run of type with nothing behind it, so over a photograph it carries its
    own soft shadow and over the chroma field a hard dark outline (below). */
-body.mode-photo .outline { text-shadow: 0 10px 44px rgba(11,11,15,.65), 0 2px 10px rgba(11,11,15,.5); }
+body.mode-photo .outline { text-shadow: 0 10px 44px rgba(8,4,20,.65), 0 2px 10px rgba(8,4,20,.5); }
 
 /* Type that has to sit straight on the chroma field — the 3-2-1 count. A hard dark outline, not a
-   glow: eight offsets of the stage colour, so every edge pixel of the glyph borders on #0b0b0f and
+   glow: eight offsets of the stage colour, so every edge pixel of the glyph borders on #14101e and
    the key never eats into the numeral. */
 body.mode-overlay .outline {
   text-shadow:
-    4px 0 0 #0b0b0f, -4px 0 0 #0b0b0f, 0 4px 0 #0b0b0f, 0 -4px 0 #0b0b0f,
-    3px 3px 0 #0b0b0f, -3px 3px 0 #0b0b0f, 3px -3px 0 #0b0b0f, -3px -3px 0 #0b0b0f;
+    4px 0 0 #14101e, -4px 0 0 #14101e, 0 4px 0 #14101e, 0 -4px 0 #14101e,
+    3px 3px 0 #14101e, -3px 3px 0 #14101e, 3px -3px 0 #14101e, -3px -3px 0 #14101e;
 }
 
 /* A plate behind a run of type, used on the chroma field where there is no photo to sit on. In photo
@@ -145,10 +148,17 @@ body.mode-overlay .outline {
 .plate { position: absolute; box-sizing: border-box; border-radius: 34px; background: transparent; }
 body.mode-overlay .plate { background: var(--plate); border: 1px solid var(--line); }
 
-/* The lilac glow of the stage (DESIGN.md §1, "Ground") on the end card. Never on green: a translucent
-   lilac wash over the field is exactly the thing a chroma key cannot decide about. */
-.glow { position: absolute; left: -8%; top: -6%; width: 116%; height: 72%;
-  background: radial-gradient(52% 50% at 50% 34%, rgba(179,157,255,.30), transparent 66%); }
+/* The stage of DESIGN.md §1 ("Ground") behind the end card, versus and the board: the aurora's three
+   lights at the top and its warm foot, the four radials base.css and app.css paint, over the full
+   frame. Never on green: a translucent wash over the field is exactly the thing a chroma key cannot
+   decide about. */
+.glow { position: absolute; inset: 0;
+  background:
+    radial-gradient(70% 34% at 18% -6%, var(--aurora-1), transparent 62%),
+    radial-gradient(60% 30% at 84% -4%, var(--aurora-2), transparent 60%),
+    radial-gradient(46% 22% at 52% -2%, var(--aurora-3), transparent 60%),
+    radial-gradient(70% 26% at 50% 108%, var(--aurora-foot), transparent 60%);
+  background-repeat: no-repeat; }
 body.mode-overlay .glow { display: none !important; }
 
 /* The safe-area proof. Off unless window.__debugSafe(true); the renderer never draws it into a video. */

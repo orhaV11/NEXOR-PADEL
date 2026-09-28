@@ -94,9 +94,9 @@ Pick one community small enough to see itself in the feed and close enough to re
 fashion or design school, one city's streetwear scene. The plan below says "the campus"; swap the word.
 
 **Week 0 (prep).** Production up (`DEPLOY.md`); the domain is `orevosh.com`, written into the OG tags and the landing
-pages by `tools/deploy/fly-deploy.ps1` at every deploy; a calibration run on 30 real photos (`scripts/calibrate.py`,
-or `tools\eval\calibrate.ps1` from Windows for the steadiness pass) so the scores spread and nothing in the feedback
-breaks rule 1. Ten seed looks
+pages by `tools/deploy/fly-deploy.ps1` at every deploy; a calibration run on 30 real photos (`scripts/calibrate.py`)
+so the scores spread and nothing in the feedback breaks rule 1, and the steadiness pass (`tools\eval\calibrate.ps1`
+from Windows) on at most three of them a day at 8 runs, which fits in a Pro account's 30 checks a day. Ten seed looks
 posted by the team from real outfits, every one with its pieces tagged (the brand and the model at least; a store link
 only where there is a real one), three brand accounts (small labels the campus wears, contacted with a two-line
 message and the brand story template, verified with `--verify` once you have spoken to them), one challenge opened

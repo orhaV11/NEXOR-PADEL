@@ -282,8 +282,9 @@ Two of them are policy rather than behaviour and are the reason a careless chang
 what stops a stranger enumerating it, and `LanguagesTests` keeps the four locale files at key parity.
 
 There is also a browser test in [`tools/e2e`](tools/e2e/README.md): Playwright drives the real client in a
-phone viewport against the real API with only the Anthropic API stubbed, as three people (a person in English,
-a brand, and a person browsing in Hebrew), from a guest's check and signup with a birth date and the welcome
+phone viewport against the real API with the Anthropic API stubbed (the same stub stands in for the forecast, and for
+Stripe in the money step), around three people (a person in English, a brand, and a person browsing in Hebrew, with more joining in
+later rounds' steps), from a guest's check and signup with a birth date and the welcome
 screen through posting with tags and mentions, featuring, Explore, a challenge and its winner, the in-app camera
 with a fake device (a photo, then a clip with its frame picked), the story card, a comparison, the insights, a
 search by piece, the Pro page, Today's look and a follow-up look, verified brands, the moderation queue and a
@@ -299,15 +300,20 @@ and no compose), `Plans__WardrobeNamesToStylist=2` and a sponsor in the server e
 from the result screen, links the pair, shares it and reads the public pair; the compare step asks the two questions
 with slot A from the library and slot B through the in-app camera and meets the Pro nudge; a stubbed 4.5-second answer
 shows the staged wait; keep-all and the Pro moment run on a free Hebrew account; the morning step lands on
-`#/tomorrow?from=push` and flips the switch in Settings; a fourth person, Maya, on a Hebrew phone, follows `/go/tt` and the
+`#/tomorrow?from=push` twice, opens on Today without saving it over the pill pressed last and composes nothing, then
+finds the Settings switch drawn, locked and captioned "Turn on notifications above first." (this browser has no push
+subscription, so the switch is never flipped here; its route is covered by `TomorrowMorningTests`); a fourth person, Maya, on a Hebrew phone, follows `/go/tt` and the
 per-source table attributes her guest check and signup to TikTok (after a refused first try, and a reload does not bring
 the spent source back), an Instagram webview gets the one-time note instead
 of any install advice, and the installed app's first answered call of the day counts one launch (the first, with no
 signal, spends nothing); step 11b grants Pro and takes it back, verifies and unverifies, keeps off the
 board and puts back from `#/admin`, and watches the sponsor card's warning clear; a second API on the next port with `Limits__SpendPerDayUsd=0.001`
-plays the guest at the ceiling; the last step restarts the API with Stripe on against `tools/e2e/stub_anthropic.py`,
+plays the guest at the ceiling; the money step restarts the API with Stripe on against `tools/e2e/stub_anthropic.py`,
 which answers Stripe's session POSTs, `/v1/prices/{id}` and `/v1/webhook_endpoints`, where a fifth person buys the year on a
-seven-day no-card trial and the signed webhook, posted twice, is ignored the second time by its id; and the before/after episode is rendered from the run's own JSON. Not driven: a real push (service
+seven-day no-card trial and the signed webhook, posted twice, is ignored the second time by its id; and the before/after
+converter (`tools/brand/lib/before-after.js`) reads the run's own JSON (the two checks, the pair and the export) into the
+scores, the tip and the change line the episode would show; the episode itself is laid out only by CI's cover render of
+the sample (`006-before-after-sample.json`). Not driven: a real push (service
 workers are blocked, so the senders are covered by their unit tests), the service worker's `/go/` passthrough (a pin in
 `DistributionTests`), and the full Checkout → webhook → `#/compare?ready=1` chain (the landing is exercised directly).
 **Round 21 changed no query in the script**: every id and class it reads survived the redesign. Its filter of failed
@@ -343,7 +349,8 @@ per photo, and it exits non-zero when a spread is wider than `--max-spread` (2 b
 machine against the live server, `tools\eval\calibrate.ps1 -Photos <folder> -Occasion date -Language he` runs the
 same pass (Windows PowerShell 5.1, no `pwsh` needed), echoes every line, files a dated report under
 `tools/eval/reports/` (ignored by git: it carries the handle and the tips) and ends with one Hebrew verdict line,
-green or red; `-DryRun` prints the command without signing in. **No real-model numbers have been taken in this
+green or red; `-DryRun` prints the command without signing in. A pass longer than a Pro day (photos × runs above 30,
+so more than three photos at 8 runs) stops before signing in unless `-Force` says the server's caps were raised. **No real-model numbers have been taken in this
 repository**: the sandbox this was written in has no route to Anthropic, so the harness has only ever run against a
 local stand-in built to move its scores on purpose; the wrapper is how the first real pass is run.
 
@@ -848,9 +855,9 @@ descriptive is dropped when the status is not `ok`.
 - **Translations need a native review.** Every language after English (Hebrew, Arabic and Russian) was written by the
   builders, the terms and the privacy policy included; a native speaker should read
   each before it reaches people.
-- **The screenshots in the brand kit are test fixtures.** The store screenshots and the landing screens show the
-  browser test's synthetic outfit and Chromium's fake camera. Replace them with real captures before any store
-  submission (`brand-kit/README.md`); Apple rejects listings whose screenshots do not show the app as shipped.
+- **The screenshots in the brand kit are test fixtures.** The store screenshots and the landing screens show the three
+  real looks in a test run of the app (`tools/brand/shoot/kit-shoot.js`: its people, its counts, the test stylist's
+  words) and Chromium's fake camera. Replace them with real captures before any store submission (`brand-kit/README.md`); Apple rejects listings whose screenshots do not show the app as shipped.
 - **Password recovery needs a mail provider.** An account can carry an email (optional, confirmed by a link) and a
   forgotten password is reset by a link that lives an hour; without `Email__*` settings the app says recovery is off
   and writes the links to its log instead. A reset does not end sessions that are already signed in.
@@ -1871,7 +1878,8 @@ purpose: at the ceiling a free tap answers 503 unless a stored answer serves. Al
 can grant Pro and verify, on themselves included; the audit line and the per-moderator cap bound a stolen cookie, the
 policy is the founder's. `tools/eval/calibrate.ps1` was verified under `pwsh` 7 (a dry run, an empty folder, a run
 against a closed port) and not yet under Windows PowerShell 5.1 itself, whose choices (BOM, CRLF, the masked password)
-follow `tools/deploy/fly-deploy.ps1`. The social PNGs in `brand-kit/social` were regenerated with the local fallback
+follow `tools/deploy/fly-deploy.ps1`; since the review the password reaches node in `OREVOSH_EVAL_PASSWORD` rather than
+as an argument, which 5.1 would not have quoted. The social PNGs in `brand-kit/social` were regenerated with the local fallback
 fonts because the font host was unreachable from the sandbox, so a re-run on a connected machine may shift them by a
 pixel.
 
@@ -1931,8 +1939,9 @@ the stage colour, and the share card and the film paint the same aurora.
   that is why the entrances are off outright there.
 - The three piece chips on the result's photo fit two rows at 390px in Heebo.
 
-**Known limits.** The landing pages keep the old black stage and the screenshots of the old look until they are re-shot
-(`LAUNCH.md` 3.2); the share card and the film draw the full ring, not the meter (the public look page's SVG ring
+**Known limits.** The landing pages and the brand kit are on the new stage with screens re-shot from this app
+(`tools/brand/shoot/kit-shoot.js`, `LAUNCH.md` 3.2), but they are a test run's captures, not a phone's; the share card
+and the film draw the full ring, not the meter (the public look page's SVG ring
 became one in the review); a look with five or more pieces shows four chips and no count on its card;
 whether the arc should fill from the other side in Hebrew is left for a Hebrew reader (`LAUNCH.md` 1.8, step 10). A
 posted look's per-piece verdicts reach its author and a moderator only, and anyone else's card draws the names with no

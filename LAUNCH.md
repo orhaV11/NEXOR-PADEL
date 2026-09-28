@@ -218,7 +218,8 @@ Four decisions the wedge left with the founder, and none of them is a line of co
    pings people about a habit the numbers have not earned.
 4. **The calibration pass, before any reel carries a number.** `tools\eval\calibrate.ps1 -Photos <folder> -Occasion
    date -Language he` from a Windows machine against the live server, signed in as a **Pro** account (eight runs a photo
-   do not fit a free day; `--pro <handle> 1` on your own account first). `tools/eval/README.md` has the exact command,
+   do not fit a free day; `--pro <handle> 1` on your own account first), with at most three photos a day at eight runs:
+   a Pro day is 30 checks, and the script stops before signing in on a longer pass. `tools/eval/README.md` has the exact command,
    what a pass costs (photos × runs, about one or two US cents each) and how to read the Hebrew verdict line; the
    report lands in `tools/eval/reports/`. No real-model numbers have been taken in this repository, so this pass is the
    first.
@@ -863,8 +864,9 @@ slogan rather than a bare link. If it does not, the origin did not make it into 
 
 ### 3.2 Real screenshots in the brand kit
 
-The store screenshots and the landing page's phone screens in the repository show the **browser test's synthetic
-outfit and Chromium's fake camera**. They are placeholders. Take real captures on a phone — the check screen, the
+The store screenshots and the landing page's phone screens in the repository show **the three real looks in a test
+run in a browser** (`tools/brand/shoot/kit-shoot.js`): the people, the counts and the stylist's words are the run's, and
+the camera is Chromium's fake device. They are placeholders. Take real captures on a phone — the check screen, the
 result, a look in the feed, a featured look, the camera recording — drop them into `tools/brand/templates/screens/`
 under the names already there, and regenerate:
 
@@ -877,12 +879,13 @@ node tools/brand/render-kit.js store web     # or just the store screens and the
 `brand-kit/README.md` lists every file it writes. Do this before any store submission: Apple rejects screenshots that
 do not show the app as shipped.
 
-**Round 21 changed the look: re-shoot once it is live.** The landing page's phone screens
-(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) and the store screenshots were taken of the look before Round 21. If
-they still show the black stage and the old ring, take the captures again from the deployed app and re-run
-`node tools/brand/render-kit.js store web` as above. The landing pages carry their own copy of the colours in their
-`<style>` (they stand alone, with no app stylesheet): if that still says `--bg: #0b0b0f`, move it to `DESIGN.md` §1's
-values in the same change, so the page around the screens matches the screens.
+**Round 21 changed the look, and the screens moved with it.** The landing page's phone screens
+(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) and the store screenshots were re-shot from the Round 21 app and
+re-rendered in `5e0d8e2`, and again in the review so another person's look shows no verdict dots, as the app now draws
+it; the landing pages' own `<style>` already carries `DESIGN.md` §1's plum values. They are still a test run's captures,
+so the advice above stands: take real ones on a phone before any store submission. After a change to the app,
+`node tools/brand/shoot/kit-shoot.js` takes the ten captures again from a local run and `node tools/brand/render-kit.js`
+rebuilds the kit from them (`brand-kit/README.md`).
 
 ### 3.3 Post the first ten looks yourself
 
@@ -1384,7 +1387,8 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
    הרוויחו.
 4. **מעבר הכיול, לפני שריל כלשהו נושא מספר.** `tools\eval\calibrate.ps1 -Photos <תיקייה> -Occasion date -Language he`
    ממחשב Windows מול השרת החי, מחוברים כחשבון **Pro** (שמונה ריצות לתמונה לא נכנסות ביום של חשבון חינמי; קודם
-   `--pro <handle> 1` על החשבון שלכם). ב-`tools/eval/README.md` הפקודה המדויקת, מה מעבר עולה (תמונות × ריצות, בערך סנט
+   `--pro <handle> 1` על החשבון שלכם), ועד שלוש תמונות ביום בשמונה ריצות: יום של Pro הוא 30 בדיקות, והסקריפט עוצר
+   לפני ההתחברות אם המעבר ארוך מזה. ב-`tools/eval/README.md` הפקודה המדויקת, מה מעבר עולה (תמונות × ריצות, בערך סנט
    או שניים לכל קריאה) ואיך קוראים את שורת הפסק בעברית; הדו"ח נשמר ב-`tools/eval/reports/`. במאגר הזה עוד לא נלקחו
    מספרים ממודל אמיתי, אז המעבר הזה הוא הראשון.
 
@@ -1988,8 +1992,9 @@ tar cz backups | gpg -c -o backups-$(date +%F).tgz.gpg
 
 ### 3.2 צילומי מסך אמיתיים בערכת המותג
 
-צילומי המסך לחנויות והטלפונים בדף הנחיתה שנמצאים במאגר מראים את **הלוק הסינתטי של מבחן הדפדפן ואת המצלמה המזויפת של
-Chromium**. הם מציינים מקום. צלמו צילומים אמיתיים בטלפון — מסך הבדיקה, התוצאה, לוק בפיד, לוק מוצג, המצלמה מקליטה —
+צילומי המסך לחנויות והטלפונים בדף הנחיתה שנמצאים במאגר מראים את **שלושת הלוקים האמיתיים בהרצת בדיקה בדפדפן**
+(`tools/brand/shoot/kit-shoot.js`): האנשים, המספרים ומילות הסטייליסט הם של הרצת בדיקה, והמצלמה היא המכשיר המזויף של
+Chromium. הם מציינים מקום. צלמו צילומים אמיתיים בטלפון — מסך הבדיקה, התוצאה, לוק בפיד, לוק מוצג, המצלמה מקליטה —
 שימו אותם ב-`tools/brand/templates/screens/` תחת השמות שכבר שם, וייצרו מחדש:
 
 ```bash
@@ -2001,11 +2006,12 @@ node tools/brand/render-kit.js store web     # או רק מסכי החנויות
 `brand-kit/README.md` מפרט כל קובץ שהוא כותב. עשו את זה לפני כל הגשה לחנות: אפל דוחה צילומי מסך שלא מראים את
 האפליקציה כפי שנשלחה.
 
-**סבב 21 שינה את המראה: מצלמים מחדש כשהוא באוויר.** מסכי הטלפון בדף הנחיתה
-(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) וצילומי המסך לחנויות צולמו מהמראה שלפני סבב 21. אם הם עדיין מראים
-את הבמה השחורה ואת הטבעת הישנה, צלמו שוב מהאפליקציה הפרוסה והריצו שוב `node tools/brand/render-kit.js store web` כמו
-למעלה. לדפי הנחיתה יש עותק משלהם של הצבעים ב-`<style>` שלהם (הם עומדים לבד, בלי גיליון הסגנונות של האפליקציה): אם
-כתוב שם עדיין `--bg: #0b0b0f`, העבירו אותו לערכים של `DESIGN.md` §1 באותו שינוי, כדי שהדף סביב המסכים יתאים למסכים.
+**סבב 21 שינה את המראה, והמסכים זזו איתו.** מסכי הטלפון בדף הנחיתה
+(`src/FitCheck.Api/wwwroot/landing/screens/*.jpg`) וצילומי המסך לחנויות צולמו מחדש מהאפליקציה של סבב 21 ונוצרו מחדש
+ב-`5e0d8e2`, ושוב בסקירה, כך שלוק של מישהו אחר מופיע בלי נקודות הפסק על הפריטים, כמו שהאפליקציה מציגה אותו עכשיו; ה-`<style>`
+של דפי הנחיתה כבר נושא את ערכי השזיף של `DESIGN.md` §1. הם עדיין צילומים של הרצת בדיקה, אז העצה למעלה עומדת: לצלם בטלפון
+אמיתי לפני כל הגשה לחנות. אחרי שינוי באפליקציה, `node tools/brand/shoot/kit-shoot.js` מצלם את עשרת המסכים שוב מהרצה מקומית
+ו-`node tools/brand/render-kit.js` בונה מהם את הערכה (`brand-kit/README.md`).
 
 ### 3.3 פרסמו בעצמכם את עשרת הלוקים הראשונים
 

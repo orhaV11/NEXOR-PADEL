@@ -1434,6 +1434,7 @@ function checkClientModules() {
   assert.deepStrictEqual(episode.after.breakdown, { fit: 7, color: 8, accessories: 6 });
   assert.strictEqual(episode.changes.length, 1);
   assert.strictEqual(episode.changes[0].category, 'shoes');
+  assert.ok(episode.changeLines[0].startsWith('Shoes: '), 'the change line names the category as the app does (items.cat_shoes): ' + episode.changeLines[0]);
   assert.strictEqual(episode.before.intent, 'OFFICE', 'the pill says the app\'s own word');
   const fromExport = beforeAfter.fromExport(baExport, baBeforeId, baAfterId, 'en', 'export');
   assert.deepStrictEqual([fromExport.before.score, fromExport.after.score, fromExport.delta, fromExport.tip], [7, 8, 1, episode.tip], 'the export gives the same numbers');

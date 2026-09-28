@@ -130,7 +130,8 @@ Ten files per language in `brand-kit/store/` (`iphone-6.7-0N-{en,he}.png`, 1284�
 | 5 | Film it in the app | מצלמים בתוך האפליקציה | the camera, recording |
 
 **Before uploading, replace the screens with real captures** (`brand-kit/README.md`, "Before the store listings"):
-the files in the repository show the browser test's synthetic outfit and Chromium's fake camera, and the Hebrew set
+the files in the repository show a test run of the app (`tools/brand/shoot/kit-shoot.js`, the three real looks, its
+people and counts) and Chromium's fake camera, and the Hebrew set
 borrows the English check and camera screens. Apple rejects screenshots that do not show the app as shipped.
 
 ## Payments

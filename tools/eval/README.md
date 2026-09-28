@@ -33,7 +33,8 @@ node tools/eval/stylist.js --photo look.jpg --occasion date --style streetwear -
 ## From Windows, against orevosh.com
 
 The founder's machine is Windows with the PowerShell that ships with it (5.1; `pwsh` is a separate install and is not
-needed). `tools\eval\calibrate.ps1` is the whole pass in one command, run from anywhere in the repository:
+needed). `tools\eval\calibrate.ps1` is the whole pass in one command, run from anywhere (a relative `-Photos` is read
+from the folder you are in, and the window is left there):
 
 ```powershell
 tools\eval\calibrate.ps1 -Photos C:\looks\calibration -Occasion date -Language he
@@ -44,11 +45,17 @@ tools\eval\calibrate.ps1 -Photos C:\looks\calibration -Occasion date -Language h
   unless you say otherwise.
 - **The account.** `-Handle` or `OREVOSH_EVAL_HANDLE` names it; the password comes from `OREVOSH_EVAL_PASSWORD` or,
   when that is not set, from a masked prompt (a password typed on the command line is kept in PowerShell's history
-  file, so `-Password` is there but not recommended). That account spends one check per run out of its daily
-  allowance, so an 8-run pass needs a Pro account: `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro
-  <handle> 1"` on the server, and `Limits__SpendPerDayUsd` is the ceiling the app stops itself at either way.
+  file, so `-Password` is there but not recommended). Either way the password reaches node in
+  `OREVOSH_EVAL_PASSWORD`, never as an argument, and the window's own value is put back afterwards. That account
+  spends one check per run out of its daily allowance, so an 8-run pass needs a Pro account: `fly ssh console -u app
+  -C "dotnet /app/FitCheck.Api.dll --pro <handle> 1"` on the server, and `Limits__SpendPerDayUsd` is the ceiling the
+  app stops itself at either way.
 - **What it costs** is printed before anything is sent — `3 photos x 8 runs = 24 model calls, about 1-2 US cents
-  each` — and the run goes on: a script that stops to ask looks frozen.
+  each` and the 24 checks the account needs today — and the run goes on: a script that stops to ask looks frozen.
+  The one exception is a pass longer than a Pro day (30 checks at the server's defaults, so three photos at 8 runs):
+  it stops before asking for the password, because the runs past the 30th would be refused and the verdict read on
+  fewer runs than asked. Split the folder over days, or pass `-Force` on a server whose `Plans__ProChecksPerDay` and
+  `Limits__ChecksPerDay` were raised.
 - `-DryRun` prints the exact command with the password masked and exits 0 without signing in. It is what CI runs.
 - **The report.** Every line node prints is echoed as it comes and filed as
   `tools/eval/reports/<date>-<time>-<occasion>-<style>-<language>.txt` (the tables, the masked command, the base, the
@@ -66,9 +73,10 @@ If the Hebrew shows as boxes, the console window's font has no Hebrew glyphs; th
 and is the durable record. `node` must be on the PATH (the LTS from nodejs.org); the script checks the version first,
 because a Node older than 18 fails inside stylist.js on `fetch` with a message that names nothing.
 
-The account you sign in as spends one check per run out of its daily allowance, so an 8-run pass needs an account
-allowed at least 8 checks that day (a Pro account, or a server with `Plans__ProChecksPerDay` raised). If it runs out,
-the tool says so, on the run it happened on, instead of pretending.
+The account you sign in as spends one check per run out of its daily allowance, so a pass needs an account allowed
+photos × runs checks that day: a Pro account (30 a day, so three photos at 8 runs), or a server with
+`Plans__ProChecksPerDay` and `Limits__ChecksPerDay` raised. If it runs out, the tool says so, on the run it happened on,
+instead of pretending.
 
 ## This spends real money
 

@@ -179,12 +179,15 @@ function intentWord(intent, lang) {
   return (lang || 'en') === 'he' ? word : word.toUpperCase();
 }
 
-/** The app's own wording for one change (tried.change_swap / change_added / change_removed in i18n). */
+/**
+ * The app's own wording for one change (tried.change_swap / change_added / change_removed in i18n), with the
+ * category's label as the app prints it (items.cat_<category>, an unknown one as items.cat_other; taste.js).
+ */
 function changeLine(change, lang) {
   const t = i18n(lang || 'en');
   const key = change.from && change.to ? 'tried.change_swap' : change.to ? 'tried.change_added' : 'tried.change_removed';
   const template = t[key] || (key === 'tried.change_swap' ? '{category}: {from} → {to}' : key === 'tried.change_added' ? '{category}: added {to}' : '{category}: {from} gone');
-  const category = t['category.' + change.category] || change.category;
+  const category = t['items.cat_' + (CATEGORIES.includes(change.category) ? change.category : 'other')] || change.category;
   return template.replace('{category}', category).replace('{from}', change.from || '').replace('{to}', change.to || '');
 }
 

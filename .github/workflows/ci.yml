@@ -56,15 +56,17 @@ jobs:
         run: dotnet test -c Release --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
 
       # The Windows calibration wrapper (tools/eval/calibrate.ps1) parses and dry-runs under pwsh (ubuntu-latest ships
-      # it): three --photo arguments for the three supplied looks, the masked command, the report path, no sign-in;
-      # and an empty folder is refused with exit 1. It never spends a model call.
+      # it): three --photo arguments for the three supplied looks, the masked command with the password in the
+      # environment and never as an argument, the report path, no sign-in; and an empty folder is refused with exit 1.
+      # It never spends a model call.
       - name: Calibration wrapper parses
         shell: bash
         run: |
           out=$(pwsh -NoProfile -File tools/eval/calibrate.ps1 -Photos tools/brand/templates/photos -Language he -DryRun)
           echo "$out"
           test "$(grep -o -- '--photo ' <<<"$out" | wc -l)" = 3
-          grep -q -- '--password \*\*\*\*\*\*\*\*' <<<"$out"
+          grep -qF -- "\$env:OREVOSH_EVAL_PASSWORD = '********'; node " <<<"$out"
+          if grep -q -- '--password' <<<"$out"; then echo "the password must not be an argument"; exit 1; fi
           grep -q 'tools/eval/reports/' <<<"$out"
           mkdir -p /tmp/no-photos
           if pwsh -NoProfile -File tools/eval/calibrate.ps1 -Photos /tmp/no-photos -DryRun; then echo "an empty folder must exit 1"; exit 1; fi

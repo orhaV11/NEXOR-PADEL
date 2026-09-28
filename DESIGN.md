@@ -735,8 +735,9 @@ rule that a screen's own CSS lives in its own module. No route, setting or i18n 
 - **The arc in Hebrew.** The meter fills clockwise from the bottom-left in both languages. In the Hebrew renders it reads
   as a gauge filling up, and it was left for a Hebrew reader to judge on a real phone (`LAUNCH.md` 1.8, step 10); if it
   reads backwards, the change is `from 150deg` under `[dir=rtl] .hero`, and only there.
-- **The landing pages** keep the old black tokens in their own `<style>` and the screenshots of the old look
-  (`landing/screens/*.jpg`) until those are re-shot; the tokens move with the screens (`LAUNCH.md` 3.2).
+- **The landing pages** took the plum tokens in their own `<style>` and screens re-shot from the real Round 21 app
+  (`5e0d8e2`); the review shot them again so another person's look carries no verdict dots, and
+  `tools/brand/shoot/kit-shoot.js` takes them again after any change (`LAUNCH.md` 3.2).
 - **A posted look's verdicts are its author's** (and a moderator's in the queue), settled in the review: the post
   sheet promised the stylist's notes on each piece stay with the person, and a public number never published them.
   Anyone else's card draws the names with no dot (`DECISIONS.md`, Round 21, review fixes).

@@ -9,8 +9,9 @@
 //
 // It talks to a RUNNING OREVOSH over its real API, so every run is a real model call on a real key and costs real money
 // (see tools/eval/README.md for the arithmetic). It signs in as an account you name, because a guest gets one check a
-// day; that account needs an allowance of at least --runs (a Pro account, or a server with Plans__ProChecksPerDay
-// raised). Nothing here talks to Anthropic directly: it is the app's own answer that is measured, rubric and all.
+// day; that account needs an allowance of at least photos x --runs (a Pro account's 30 a day, or a server with
+// Plans__ProChecksPerDay and Limits__ChecksPerDay raised). Nothing here talks to Anthropic directly: it is the app's
+// own answer that is measured, rubric and all.
 //
 // Exit code 0 when every photo's spread is within --max-spread, 1 when one is not, 2 when the run could not be made.
 'use strict';

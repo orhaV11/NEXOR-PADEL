@@ -45,7 +45,9 @@ landing page) for link previews, and `/landing/screens/*.jpg` for the landing pa
 ## Before the store listings
 
 - **Replace the screens.** The ten screenshots are the real app (Round 21) at the phone viewport, taken in a browser
-  against a local server: the people, the brand, the counts and the timestamps are a test run's, the stylist is the
+  against a local server by `tools/brand/shoot/kit-shoot.js` (after a change to the app, from the repository root:
+  `dotnet build src/FitCheck.Api`, `node tools/brand/shoot/kit-shoot.js`, then `node tools/brand/render-kit.js`).
+  The people, the brand, the counts and the timestamps are a test run's, the stylist is the
   test stub answering each of the three looks with a verdict written for that photo, and the camera is Chromium's
   fake device playing a still of the pink look. The check and camera screens exist in English only, so the Hebrew
   store set uses them for screens 1 and 5. Take real captures on a
@@ -101,36 +103,36 @@ landing page) for link previews, and `/landing/screens/*.jpg` for the landing pa
 
 | file | pixels | size | use |
 |---|---|---|---|
-| `story-1-check-the-look-en.png` | 1080×1920 | 635 KB | The slogan with the check screen (English), Instagram / TikTok story or Reel cover |
+| `story-1-check-the-look-en.png` | 1080×1920 | 636 KB | The slogan with the check screen (English), Instagram / TikTok story or Reel cover |
 | `story-2-the-one-tip-en.png` | 1080×1920 | 683 KB | The result screen and the one tip (English), Instagram / TikTok story or Reel cover |
 | `story-3-brands-en.png` | 1080×1920 | 834 KB | A look a brand has just featured (English), Instagram / TikTok story or Reel cover |
-| `story-1-check-the-look-he.png` | 1080×1920 | 563 KB | The slogan with the feed (Hebrew), Instagram / TikTok story or Reel cover |
+| `story-1-check-the-look-he.png` | 1080×1920 | 564 KB | The slogan with the feed (Hebrew), Instagram / TikTok story or Reel cover |
 | `story-2-the-one-tip-he.png` | 1080×1920 | 732 KB | The result screen and the one tip (Hebrew), Instagram / TikTok story or Reel cover |
-| `story-3-brands-he.png` | 1080×1920 | 734 KB | A look with a brand tag (Hebrew), Instagram / TikTok story or Reel cover |
+| `story-3-brands-he.png` | 1080×1920 | 733 KB | A look with a brand tag (Hebrew), Instagram / TikTok story or Reel cover |
 
 ## store/
 
 | file | pixels | size | use |
 |---|---|---|---|
-| `iphone-6.7-01-en.png` | 1284×2778 | 1216 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 1: "Check the look in 10 seconds" |
+| `iphone-6.7-01-en.png` | 1284×2778 | 1218 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 1: "Check the look in 10 seconds" |
 | `iphone-6.7-02-en.png` | 1284×2778 | 1260 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 2: "Fit, color, accessories" |
-| `iphone-6.7-03-en.png` | 1284×2778 | 1336 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 3: "Post it, light it up" |
-| `iphone-6.7-04-en.png` | 1284×2778 | 792 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 4: "Brands feature the looks they love" |
+| `iphone-6.7-03-en.png` | 1284×2778 | 1337 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 3: "Post it, light it up" |
+| `iphone-6.7-04-en.png` | 1284×2778 | 793 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 4: "Brands feature the looks they love" |
 | `iphone-6.7-05-en.png` | 1284×2778 | 1826 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), English listing, screen 5: "Film it in the app" |
-| `iphone-6.7-01-he.png` | 1284×2778 | 1204 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
+| `iphone-6.7-01-he.png` | 1284×2778 | 1206 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
 | `iphone-6.7-02-he.png` | 1284×2778 | 1323 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
-| `iphone-6.7-03-he.png` | 1284×2778 | 1076 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
-| `iphone-6.7-04-he.png` | 1284×2778 | 1454 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
+| `iphone-6.7-03-he.png` | 1284×2778 | 1077 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
+| `iphone-6.7-04-he.png` | 1284×2778 | 1449 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
 | `iphone-6.7-05-he.png` | 1284×2778 | 1831 KB | App Store, iPhone 6.7" (also accepted for 6.5" and 6.9"), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
-| `android-01-en.png` | 1080×1920 | 689 KB | Google Play phone screenshot (9:16), English listing, screen 1: "Check the look in 10 seconds" |
+| `android-01-en.png` | 1080×1920 | 691 KB | Google Play phone screenshot (9:16), English listing, screen 1: "Check the look in 10 seconds" |
 | `android-02-en.png` | 1080×1920 | 860 KB | Google Play phone screenshot (9:16), English listing, screen 2: "Fit, color, accessories" |
-| `android-03-en.png` | 1080×1920 | 909 KB | Google Play phone screenshot (9:16), English listing, screen 3: "Post it, light it up" |
+| `android-03-en.png` | 1080×1920 | 910 KB | Google Play phone screenshot (9:16), English listing, screen 3: "Post it, light it up" |
 | `android-04-en.png` | 1080×1920 | 530 KB | Google Play phone screenshot (9:16), English listing, screen 4: "Brands feature the looks they love" |
 | `android-05-en.png` | 1080×1920 | 1262 KB | Google Play phone screenshot (9:16), English listing, screen 5: "Film it in the app" |
-| `android-01-he.png` | 1080×1920 | 681 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
+| `android-01-he.png` | 1080×1920 | 683 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 1: "בודקים את הלוק ב-10 שניות" |
 | `android-02-he.png` | 1080×1920 | 921 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 2: "גזרה, צבע, אקססוריז" |
-| `android-03-he.png` | 1080×1920 | 583 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
-| `android-04-he.png` | 1080×1920 | 1015 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
+| `android-03-he.png` | 1080×1920 | 585 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 3: "מפרסמים, מדליקים" |
+| `android-04-he.png` | 1080×1920 | 1011 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 4: "מותגים מציגים את הלוקים שהם אוהבים" |
 | `android-05-he.png` | 1080×1920 | 1266 KB | Google Play phone screenshot (9:16), Hebrew listing, screen 5: "מצלמים בתוך האפליקציה" |
 
 ## social/
@@ -186,9 +188,9 @@ social block in `render-kit.js`, same layouts, RTL).
 | `post-1-what-it-is-en.png` | 1080×1350 | 382 KB | First post 1 (English): what the app is |
 | `post-2-the-one-tip-en.png` | 1080×1350 | 408 KB | First post 2 (English): the result and the one tip |
 | `post-3-brands-en.png` | 1080×1350 | 435 KB | First post 3 (English): the brands |
-| `post-1-what-it-is-he.png` | 1080×1350 | 351 KB | First post 1 (Hebrew): what the app is |
+| `post-1-what-it-is-he.png` | 1080×1350 | 352 KB | First post 1 (Hebrew): what the app is |
 | `post-2-the-one-tip-he.png` | 1080×1350 | 408 KB | First post 2 (Hebrew): the result and the one tip |
-| `post-3-brands-he.png` | 1080×1350 | 412 KB | First post 3 (Hebrew): the brands |
+| `post-3-brands-he.png` | 1080×1350 | 411 KB | First post 3 (Hebrew): the brands |
 | `tiktok-cover-1-en.png` | 1080×1920 | 386 KB | TikTok cover 1 (English): the slogan over the check screen. Everything readable is out of the bottom 320 px and the right 180 px |
 | `tiktok-cover-2-en.png` | 1080×1920 | 424 KB | TikTok cover 2 (English): the verdict. Everything readable is out of the bottom 320 px and the right 180 px |
 | `tiktok-cover-1-he.png` | 1080×1920 | 357 KB | TikTok cover 1 (Hebrew): the slogan over the feed. Everything readable is out of the bottom 320 px and the right 180 px |

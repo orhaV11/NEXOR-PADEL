@@ -13,20 +13,25 @@
   spread, 1 too wide or no verdict, 2 the run could not be made.
 
   THIS SPENDS REAL MONEY. Every run is one model call on the owner's key: photos x runs calls, about one to two
-  US cents each. The account signed in as needs an allowance of at least -Runs checks a day (a Pro account:
-  fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 1"), and Limits__SpendPerDayUsd on the
-  server is the ceiling the app stops itself at. The script prints the arithmetic and goes on: a script that
-  stops to ask looks frozen.
+  US cents each, and each call is one check out of the account's day. The account signed in as needs an
+  allowance of at least photos x runs checks that day (a Pro account: fly ssh console -u app -C "dotnet
+  /app/FitCheck.Api.dll --pro <handle> 1"), and Limits__SpendPerDayUsd on the server is the ceiling the app stops
+  itself at. A Pro day is 30 checks at the server's default settings, so at 8 runs three photos fit in a day. The
+  script prints the arithmetic and goes on: a script that stops to ask looks frozen. It stops before signing in
+  only when the pass is more than a Pro day (-Force goes on, for a server whose caps were raised).
 
   The password is never taken on the command line unless you insist (-Password): a plain password there lands
-  in PSReadLine's history file. Set OREVOSH_EVAL_PASSWORD, or let the script ask for it, masked.
+  in PSReadLine's history file. Set OREVOSH_EVAL_PASSWORD, or let the script ask for it, masked. It reaches
+  node through OREVOSH_EVAL_PASSWORD too, never as an argument: 5.1 does not quote a " inside an argument, and
+  an argument is in the process list for as long as the run lasts.
 
 .EXAMPLE
   tools\eval\calibrate.ps1 -Photos C:\looks\calibration -Occasion date -Language he
 
 .EXAMPLE
   tools\eval\calibrate.ps1 -Photos .\looks -DryRun
-  Prints the exact command with the password masked and exits 0 without signing in.
+  Prints the exact command with the password masked and exits 0 without signing in. A relative -Photos is read
+  from where you are, and the script leaves you there.
 
 .NOTES
   The file is saved as UTF-8 with a byte-order mark on purpose: Windows PowerShell 5.1 reads a .ps1 without one
@@ -47,6 +52,7 @@ param(
   [string]$Password = $env:OREVOSH_EVAL_PASSWORD,
   [string]$Note = '',
   [int]$Delay = 0,
+  [switch]$Force,
   [switch]$DryRun
 )
 
@@ -63,8 +69,8 @@ function Stop-Run([string]$Message, [int]$Code = 1) {
 
 # 1. The repository root, from where this file lives, so the paths below hold wherever it is called from.
 #    Path.Combine, not a typed backslash: the same file dry-runs under pwsh on CI's Linux, where a backslash is a letter.
+#    The location is never changed: a relative -Photos is the caller's, and the caller's window stays where it was.
 $RepoRoot = (Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', '..'))).Path
-Set-Location -LiteralPath $RepoRoot
 $Stylist = [System.IO.Path]::Combine($RepoRoot, 'tools', 'eval', 'stylist.js')
 if (-not (Test-Path -LiteralPath $Stylist)) { Stop-Run "tools\eval\stylist.js is not beside this script ($RepoRoot)." }
 
@@ -79,10 +85,23 @@ if ($NodeMajor -lt 18) {
   Stop-Run "node $NodeVersion is too old. stylist.js uses fetch and FormData, which Node 18 brought; install the LTS from https://nodejs.org."
 }
 
-# 3. The photos: every .jpg in the folder, by name, so the report reads in one order every time.
+# 3. The photos: every .jpg in the folder, by name, so the report reads in one order every time. A relative
+#    folder is read from the caller's location, and the report names it in full.
 if (-not (Test-Path -LiteralPath $Photos -PathType Container)) { Stop-Run "the folder $Photos does not exist." }
+$Photos = (Resolve-Path -LiteralPath $Photos).ProviderPath
 $Files = @(Get-ChildItem -LiteralPath $Photos -File | Where-Object { $_.Extension -in '.jpg', '.jpeg' } | Sort-Object Name)
 if ($Files.Count -eq 0) { Stop-Run "no .jpg in $Photos. The pass sends JPEG photographs; put the looks in that folder." }
+
+# How many checks the pass spends. Every call is one check out of the account's rolling day, and a Pro day is
+# Plans:ProChecksPerDay (never above Limits:ChecksPerDay): 30 at the server's defaults. A pass longer than that is
+# refused part-way (429) and its verdict read on fewer runs than asked, so a real run stops here, before anyone is
+# asked for a password or signed in, unless -Force says the server's caps were raised. A dry run only says so.
+$ProDay = 30
+$Calls = $Files.Count * $Runs
+$Over = $Calls -gt $ProDay
+if ($Over -and -not $Force -and -not $DryRun) {
+  Stop-Run ("{0} photos x {1} runs = {2} checks, more than a Pro day ({3}). Split the folder, or pass -Force on a server whose Plans__ProChecksPerDay and Limits__ChecksPerDay were raised." -f $Files.Count, $Runs, $Calls, $ProDay)
+}
 
 # 4. The account. The handle is required; the password is asked for, masked, when neither -Password nor the
 #    environment gave one. A dry run signs in as nobody and needs neither.
@@ -99,12 +118,16 @@ if (-not $Password -and -not $DryRun) {
 }
 if (-not $Password) { $Password = '<password>' }
 
-# 5. What it costs, said before it is spent.
-$Calls = $Files.Count * $Runs
+# 5. What it costs, said before it is spent: the calls, and the checks they take out of the account's day.
 Write-Host ""
 Write-Host ("  {0} photos x {1} runs = {2} model calls, about 1-2 US cents each, on the owner's key." -f $Files.Count, $Runs, $Calls)
-Write-Host ("  The account {0} needs an allowance of at least {1} checks today (Pro: --pro <handle> 1 on the server)," -f $Handle, $Runs)
+Write-Host ("  The account {0} needs an allowance of at least {1} checks today (Pro: --pro <handle> 1 on the server)," -f $Handle, $Calls)
 Write-Host "  and Limits__SpendPerDayUsd is the ceiling the app stops itself at."
+if ($Over) {
+  $Fit = [Math]::Floor($ProDay / $Runs)
+  Write-Host ("  That is more than a Pro day ({0} checks at the default settings): at {1} runs, {2} photos fit in a day." -f $ProDay, $Runs, $Fit) -ForegroundColor Yellow
+}
+if ($Over -and -not $Force) { Write-Host "  a real run stops before signing in, unless -Force." -ForegroundColor Yellow }
 Write-Host ""
 
 # 6. The command. --report keeps the rows as JSON beside the text report; the tables still print.
@@ -118,19 +141,19 @@ $NodeArgs = New-Object System.Collections.ArrayList
 [void]$NodeArgs.Add($Stylist)
 foreach ($File in $Files) { [void]$NodeArgs.Add('--photo'); [void]$NodeArgs.Add($File.FullName) }
 [void]$NodeArgs.AddRange(@('--occasion', $Occasion, '--style', $Style, '--language', $Language,
-    '--runs', "$Runs", '--max-spread', "$MaxSpread", '--base', $Base, '--handle', $Handle, '--password', $Password))
+    '--runs', "$Runs", '--max-spread', "$MaxSpread", '--base', $Base, '--handle', $Handle))
 if ($Note) { [void]$NodeArgs.AddRange(@('--note', $Note)) }
 if ($Delay -gt 0) { [void]$NodeArgs.AddRange(@('--delay', "$Delay")) }
 [void]$NodeArgs.AddRange(@('--report', $ReportJson))
 
-# The same line with the password masked: printed, and written into the report.
+# The same line with the password masked: printed, and written into the report. The password is not an argument:
+# it goes to node in OREVOSH_EVAL_PASSWORD (stylist.js reads it there), so the line shows that, masked.
 $Masked = New-Object System.Collections.ArrayList
 for ($i = 0; $i -lt $NodeArgs.Count; $i++) {
-  if ($i -gt 0 -and $NodeArgs[$i - 1] -eq '--password') { [void]$Masked.Add('********') }
-  elseif ("$($NodeArgs[$i])" -match '[\s"]') { [void]$Masked.Add('"' + $NodeArgs[$i] + '"') }
+  if ("$($NodeArgs[$i])" -match '[\s"]') { [void]$Masked.Add('"' + $NodeArgs[$i] + '"') }
   else { [void]$Masked.Add($NodeArgs[$i]) }
 }
-$MaskedLine = 'node ' + ($Masked -join ' ')
+$MaskedLine = '$env:OREVOSH_EVAL_PASSWORD = ''********''; node ' + ($Masked -join ' ')
 Write-Host "  $MaskedLine"
 Write-Host ""
 
@@ -141,14 +164,23 @@ if ($DryRun) {
 }
 
 # 7. The run, every line echoed as it arrives and kept for the report. stderr lines come through as records
-#    under 2>&1; ToString() gives the text of either kind.
+#    under 2>&1; ToString() gives the text of either kind. The password rides in the environment only while node
+#    runs, and the window's own OREVOSH_EVAL_PASSWORD (set or not) is put back afterwards.
 $Lines = New-Object System.Collections.ArrayList
-& node @NodeArgs 2>&1 | ForEach-Object {
-  $Text = $_.ToString()
-  Write-Host $Text
-  [void]$Lines.Add($Text)
+$HadPassword = Test-Path Env:OREVOSH_EVAL_PASSWORD
+$PriorPassword = $env:OREVOSH_EVAL_PASSWORD
+$env:OREVOSH_EVAL_PASSWORD = $Password
+try {
+  & node @NodeArgs 2>&1 | ForEach-Object {
+    $Text = $_.ToString()
+    Write-Host $Text
+    [void]$Lines.Add($Text)
+  }
+  $Code = $LASTEXITCODE
+} finally {
+  if ($HadPassword) { $env:OREVOSH_EVAL_PASSWORD = $PriorPassword }
+  else { Remove-Item Env:OREVOSH_EVAL_PASSWORD -ErrorAction SilentlyContinue }
 }
-$Code = $LASTEXITCODE
 if ($null -eq $Code) { $Code = 2 }
 
 # 8. The report: UTF-8 without a mark (5.1's Out-File would write one), the folder created if it is missing.

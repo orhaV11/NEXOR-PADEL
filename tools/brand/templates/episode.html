@@ -106,6 +106,7 @@ const COPY = {
     changeSwap: c => c.category + ": " + c.from + " → " + c.to,
     changeAdded: c => c.category + ": added " + c.to,
     changeRemoved: c => c.category + ": " + c.from + " gone",
+    cat: { top: "Top", bottom: "Bottom", dress: "Dress", outerwear: "Outerwear", shoes: "Shoes", accessory: "Accessory", other: "Other" },
     delta: n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n)
   },
   he: {
@@ -134,15 +135,18 @@ const COPY = {
     changeSwap: c => c.category + ": " + c.from + " ← " + c.to,
     changeAdded: c => c.category + ": נוסף " + c.to,
     changeRemoved: c => c.category + ": " + c.from + " ירד",
+    cat: { top: "עליון", bottom: "תחתון", dress: "שמלה", outerwear: "מעיל", shoes: "נעליים", accessory: "אקססורי", other: "אחר" },
     delta: n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n)
   }
 };
-/* One change line in the app's wording; the category is the stylist's word for it (the app has no table of its
-   own for those, so it reads as written: shoes, top, bottom, outerwear, accessory, other). */
+/* One change line in the app's wording. render-episode.js always hands in D.changeLines, written by
+   lib/before-after.js from the app's own i18n (tried.change_* and the items.cat_* labels); this is the fallback
+   for a page opened by hand, with the same labels copied into C.cat (an unknown category reads as Other). */
 function changeLine(c) {
-  if (c.from && c.to) return C.changeSwap(c);
-  if (c.to) return C.changeAdded(c);
-  return C.changeRemoved(c);
+  const d = Object.assign({}, c, { category: C.cat[c.category] || C.cat.other });
+  if (c.from && c.to) return C.changeSwap(d);
+  if (c.to) return C.changeAdded(d);
+  return C.changeRemoved(d);
 }
 
 /* ============================================================== the layouts */
@@ -337,7 +341,7 @@ function wordmarkSvg(w, y) {
   const h = w * 350 / 1626;
   const s = el("div", "layer wordmark", "left:" + (SAFE_CX - w / 2) + "px;top:" + y + "px;width:" + w +
     "px;height:" + h + "px");
-  const L = '" fill="none" stroke="#f4f4f7" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>';
+  const L = '" fill="none" stroke="#f9f5ff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>';
   s.innerHTML =
     '<svg viewBox="0 0 1626 350" width="' + w + '" height="' + h + '" style="overflow:visible">' +
       '<g transform="translate(-28.27 20.2) scale(0.65)">' +
@@ -494,7 +498,7 @@ function creditLine(parent, cfg) {
     /* on the field the credit has no scrim and, once keyed, no known ground: a step brighter and a
        hard dark outline, so it reads over whatever he filmed */
     e.style.color = "var(--ink-2)";
-    e.style.textShadow = "2px 2px 0 #0b0b0f, -2px 2px 0 #0b0b0f, 2px -2px 0 #0b0b0f, -2px -2px 0 #0b0b0f";
+    e.style.textShadow = "2px 2px 0 #14101e, -2px 2px 0 #14101e, 2px -2px 0 #14101e, -2px -2px 0 #14101e";
   }
   fitsLine("the credit", e, SAFE_W, C.credit(D.credit));
   return e;
@@ -729,7 +733,7 @@ function buildVersus() {
   const beat = add(HOST, el("div", "beat", "display:block"));
   S.beat = beat;
   /* versus and board leave the frame's top and bottom clear, so they get the stage of DESIGN.md §1
-     behind them — the lilac glow — instead of flat black. It never moves, so it is set once. */
+     behind them — the aurora — instead of the flat stage. It never moves, so it is set once. */
   if (MODE === "photo") add(beat, el("div", "glow"));
   const A = D.photoA, B = D.photoB;
   S.sides = [];
@@ -741,7 +745,7 @@ function buildVersus() {
     [A, B].forEach((side, i) => {
       const x = x0 + i * (cd.w + cd.gap);
       const box = add(beat, makePhoto(x, cd.y, cd.w, cd.h, 34, side._photoUrl, side._focus, false));
-      box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      box.style.boxShadow = "var(--card-shadow)";
       S.sides.push({ box: box, cx: x + cd.w / 2, data: side });
     });
     S.dim = add(beat, el("div", "dim", "opacity:0"));
@@ -820,7 +824,7 @@ function buildBoard() {
       const cd = LAY.card;
       const g = {};
       g.box = add(beat, makePhoto(cd.x, cd.y, cd.w, cd.h, 34, L._photoUrl, L._focus, false));
-      g.box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      g.box.style.boxShadow = "var(--card-shadow)";
       const rcx = RTL ? (cd.x + 74) : (cd.x + cd.w - 74);
       g.ring = add(beat, makeRing(rcx, cd.y + cd.h, LAY.ring.d, LAY.ring.sw, L.score, LAY.ring.fs, LAY.ring.dfs));
       g.rank = add(beat, el("div", "layer", "left:" + (SAFE_CX - LAY.rank.d / 2) + "px;top:" +
@@ -856,7 +860,7 @@ function buildBoard() {
     slots.forEach(sl => {
       const g = {};
       g.box = add(S.pod, makePhoto(sl.x, sl.y, sl.w, sl.h, 26, sl.L._photoUrl, sl.L._focus, false));
-      g.box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+      g.box.style.boxShadow = "var(--card-shadow)";
       g.lab = add(S.pod, el("div", null, "position:absolute;left:" + sl.x + "px;top:" + pd.label.y +
         "px;width:" + sl.w + "px;text-align:center"));
       const rk = add(g.lab, el("div", "caps", "font-size:" + pd.label.fs +

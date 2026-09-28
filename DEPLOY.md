@@ -1080,7 +1080,9 @@ model comes out with the push on too. Nobody's switch changes: a row that says o
 indexes `Notifications` by type and check, for the try-tip nudge and the numbers page. Take the backup first, as for
 Round 10. A second one, `20260928092150_Round21ReviewRenewal`, only adds two empty columns to `Users` (when Stripe
 charges next, and whether it will), which the webhook fills in from the next event; until then a subscriber's renewal
-mail goes on the date it went before.
+mail goes on the date it went before. A third, `20260928104751_Round21ReviewWardrobeStylistKey`, adds one empty column
+to `WardrobeItems` (the stylist's name a piece was kept under, which a rename leaves alone); a piece kept before it
+gets the value at its next rename.
 
 ### Moving your laptop pilot to the server
 

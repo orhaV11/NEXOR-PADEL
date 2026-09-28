@@ -33,6 +33,11 @@ namespace FitCheck.Api.Services;
 /// kept (<see cref="UnkeptAsync"/>), each keepable through the same single route with the check that named it. The
 /// wardrobe records no refusals, so a piece passed over in the keep row simply appears there again.
 /// </para>
+/// <para>
+/// <b>Review of Round 20 — a piece is the row, whatever it is called.</b> A rename changes the name and its key, so each
+/// row also keeps the stylist's own key it was kept under (<see cref="WardrobeItem.StylistKey"/>): a check that names the
+/// piece again adds a look to that row, and the unkept list never offers it back as never kept.
+/// </para>
 /// </summary>
 public static class Wardrobe
 {
@@ -165,20 +170,31 @@ public static class Wardrobe
         return items.Select(i => (i, byItem[i.Id].ToList())).ToList();
     }
 
+    /// <summary>
+    /// Review of Round 20 — the row a stylist's name belongs to: the piece that carries it now, or else the piece that was
+    /// kept under it and renamed since (<see cref="WardrobeItem.StylistKey"/>). Null when this account has neither.
+    /// </summary>
+    public static async Task<WardrobeItem?> FindAsync(AppDbContext db, Guid userId, string key, CancellationToken ct)
+    {
+        var rows = await db.WardrobeItems.Where(i => i.UserId == userId && (i.NameKey == key || i.StylistKey == key)).ToListAsync(ct);
+        return rows.FirstOrDefault(i => i.NameKey == key) ?? rows.FirstOrDefault();
+    }
+
     /// <summary>How many pieces this account keeps (the fair-use brake, Plans:WardrobeMaxItems).</summary>
     public static Task<int> CountAsync(AppDbContext db, Guid userId, CancellationToken ct) =>
         db.WardrobeItems.CountAsync(i => i.UserId == userId, ct);
 
     /// <summary>
     /// Keeps one piece of one check. A piece the account already has is not kept twice: the check is added to the row it
-    /// already has and the row is marked worn, which is how "the brown tights you wore on the 4th" gets its date. Returns
-    /// the row and whether it is new; the caller has already checked the name against <see cref="NamesOn"/> and the cap.
+    /// already has and the row is marked worn, which is how "the brown tights you wore on the 4th" gets its date; a piece
+    /// the person renamed is still the piece (<see cref="FindAsync"/>). Returns the row and whether it is new; the caller
+    /// has already checked the name against <see cref="NamesOn"/> and the cap.
     /// </summary>
     public static async Task<(WardrobeItem Item, bool Added)> KeepAsync(
         AppDbContext db, Guid userId, OutfitCheck check, string name, string category, DateTime now, CancellationToken ct)
     {
         var key = KeyOf(name);
-        var item = await db.WardrobeItems.FirstOrDefaultAsync(i => i.UserId == userId && i.NameKey == key, ct);
+        var item = await FindAsync(db, userId, key, ct);
         var added = item is null;
         if (item is null)
         {
@@ -188,6 +204,7 @@ public static class Wardrobe
                 UserId = userId,
                 Name = name,
                 NameKey = key,
+                StylistKey = key,
                 Category = category,
                 CreatedAt = now,
                 LastSeenAt = check.CreatedAt
@@ -214,20 +231,35 @@ public static class Wardrobe
     /// the check, so nothing here can be free text. A known piece gets this look added to its row (and is never refused
     /// by the cap, exactly as the single route never refuses one); an unknown piece is added while the account is
     /// under <paramref name="max"/> and skipped once it is not, in the stylist's order, so what fits is the first of the
-    /// list. One read of the rows the names could already be, one count, one save. Returns the rows touched in the
-    /// stylist's order, how many were new and how many the cap kept out.
+    /// list. One read of the rows the names could already be, one count, one save. Returns the pieces of this look now in
+    /// the wardrobe in the stylist's order, how many were new, how many the cap kept out, and (review of Round 20) how
+    /// many rows were actually written — a new row, a new look on a known one, or a later "last worn" — so a repeat of
+    /// the same request, which changes nothing, can be told from one that kept something.
     /// </summary>
-    public static async Task<(List<WardrobeItem> Items, int Added, int Skipped)> KeepAllAsync(
+    public static async Task<(List<WardrobeItem> Items, int Added, int Skipped, int Wrote)> KeepAllAsync(
         AppDbContext db, Guid userId, OutfitCheck check, IReadOnlyList<WardrobeCandidate> candidates, int max, DateTime now, CancellationToken ct)
     {
         if (candidates.Count == 0)
         {
-            return ([], 0, 0);
+            return ([], 0, 0, 0);
         }
 
         var keys = candidates.Select(c => KeyOf(c.Name)).ToList();
-        var known = await db.WardrobeItems.Where(i => i.UserId == userId && keys.Contains(i.NameKey)).ToListAsync(ct);
-        var byKey = known.ToDictionary(i => i.NameKey, StringComparer.Ordinal);
+        var known = await db.WardrobeItems
+            .Where(i => i.UserId == userId && (keys.Contains(i.NameKey) || (i.StylistKey != null && keys.Contains(i.StylistKey))))
+            .ToListAsync(ct);
+        // The piece carrying the name wins over one renamed away from it, as in FindAsync.
+        var byKey = new Dictionary<string, WardrobeItem>(StringComparer.Ordinal);
+        foreach (var row in known.Where(i => i.StylistKey is not null))
+        {
+            byKey.TryAdd(row.StylistKey!, row);
+        }
+
+        foreach (var row in known)
+        {
+            byKey[row.NameKey] = row;
+        }
+
         var knownIds = known.Select(i => i.Id).ToList();
         var seenOn = (await db.WardrobeAppearances.AsNoTracking()
             .Where(a => a.CheckId == check.Id && knownIds.Contains(a.ItemId))
@@ -238,21 +270,31 @@ public static class Wardrobe
         var items = new List<WardrobeItem>();
         var added = 0;
         var skipped = 0;
+        var wrote = 0;
         foreach (var candidate in candidates)
         {
             var key = KeyOf(candidate.Name);
             if (byKey.TryGetValue(key, out var item))
             {
+                if (items.Contains(item))
+                {
+                    continue;
+                }
+
+                var touched = false;
                 if (check.CreatedAt > item.LastSeenAt)
                 {
                     item.LastSeenAt = check.CreatedAt;
+                    touched = true;
                 }
 
                 if (seenOn.Add(item.Id))
                 {
                     db.WardrobeAppearances.Add(new WardrobeAppearance { ItemId = item.Id, CheckId = check.Id, WornAt = check.CreatedAt });
+                    touched = true;
                 }
 
+                wrote += touched ? 1 : 0;
                 items.Add(item);
                 continue;
             }
@@ -269,6 +311,7 @@ public static class Wardrobe
                 UserId = userId,
                 Name = candidate.Name,
                 NameKey = key,
+                StylistKey = key,
                 Category = candidate.Category,
                 CreatedAt = now,
                 LastSeenAt = check.CreatedAt
@@ -279,18 +322,20 @@ public static class Wardrobe
             items.Add(item);
             count++;
             added++;
+            wrote++;
         }
 
         // One save for the batch; when the cap kept every new piece out and no known row was touched, it writes nothing.
         await db.SaveChangesAsync(ct);
-        return (items, added, skipped);
+        return (items, added, skipped, wrote);
     }
 
     /// <summary>
     /// Round 20 — the pieces the stylist named on the account's last <paramref name="checks"/> scored checks that are
     /// not in its wardrobe: newest look first, each piece once (carrying the newest check that named it, which is the
-    /// check the single keep route will validate it against), at most <paramref name="maxPieces"/>. Three reads: the
-    /// checks' two columns, the account's keys, the posts behind those checks. Empty, and no reads at all, when
+    /// check the single keep route will validate it against), at most <paramref name="maxPieces"/>. A piece counts as kept
+    /// under its current name and under the stylist's name it was kept as, so a rename never brings it back. Three reads:
+    /// the checks' two columns, the account's keys, the posts behind those checks. Empty, and no reads at all, when
     /// <paramref name="checks"/> is 0 or less. Returns the pieces and how many checks were looked at.
     /// </summary>
     public static async Task<(List<UnkeptPiece> Pieces, int Checks)> UnkeptAsync(
@@ -312,7 +357,10 @@ public static class Wardrobe
             return ([], 0);
         }
 
-        var kept = (await db.WardrobeItems.AsNoTracking().Where(i => i.UserId == userId).Select(i => i.NameKey).ToListAsync(ct))
+        // A piece is kept under its name and under the stylist's name it was kept as, so a renamed one is still kept.
+        var keys = await db.WardrobeItems.AsNoTracking().Where(i => i.UserId == userId)
+            .Select(i => new { i.NameKey, i.StylistKey }).ToListAsync(ct);
+        var kept = keys.Select(k => k.NameKey).Concat(keys.Where(k => k.StylistKey != null).Select(k => k.StylistKey!))
             .ToHashSet(StringComparer.Ordinal);
         var ids = recent.Select(c => c.Id).ToList();
         // The account's own visible looks only, as the wardrobe list reads them: a hidden post is a private check again.
@@ -446,10 +494,22 @@ public static class Wardrobe
         var items = await db.WardrobeItems.AsNoTracking()
             .Where(i => i.UserId == userId)
             .OrderByDescending(i => i.LastSeenAt).ThenByDescending(i => i.CreatedAt)
-            .Take(names * 3)
+            .Take(names * PromptReadFactor)
             .ToListAsync(ct);
         return PromptNames(items, names);
     }
+
+    /// <summary>How many rows <see cref="ForStylistAsync"/> reads for each name it may send.</summary>
+    public const int PromptReadFactor = 3;
+
+    /// <summary>
+    /// Review of Round 20 — how many of these pieces a prompt of <paramref name="names"/> would actually carry: the rows
+    /// <see cref="ForStylistAsync"/> reads (most recently worn first) through <see cref="PromptItems"/>, so a piece the
+    /// stylist filed as "other" or a renamed one that names a person is not counted. The Pro moment's sentence says
+    /// "all of them" only when this is every piece.
+    /// </summary>
+    public static int SeenBy(IEnumerable<WardrobeItem> items, int names) =>
+        names <= 0 ? 0 : PromptItems(items.OrderByDescending(i => i.LastSeenAt).ThenByDescending(i => i.CreatedAt).Take(names * PromptReadFactor), names).Count;
 }
 
 /// <summary>A piece a check named, offered for keeping: the cleaned name and the stylist's category.</summary>
@@ -474,6 +534,14 @@ public sealed class WardrobeItem
 
     /// <summary><see cref="Name"/> lower-cased: one row per piece per account, enforced by the unique index.</summary>
     public string NameKey { get; set; } = "";
+
+    /// <summary>
+    /// Review of Round 20: the key of the stylist's name this piece was kept under. A rename changes <see cref="Name"/>
+    /// and <see cref="NameKey"/> and never this, so a later check naming the same piece adds a look to this row and the
+    /// unkept list does not offer it again. Null on a row kept before the column that has not been renamed since (the
+    /// first rename records the key it had).
+    /// </summary>
+    public string? StylistKey { get; set; }
 
     /// <summary>One of <see cref="Wardrobe.Categories"/>. Only <see cref="Wardrobe.PromptCategories"/> travel to the stylist.</summary>
     public string Category { get; set; } = Wardrobe.OtherCategory;

@@ -453,10 +453,21 @@ The three Round 14 screens the sections above never described. All of them draw 
   work that would kill it. A free account on a server where the advice is Pro's sees the whole list and one plain
   line about what Pro adds, never a dead toggle.
 - **The keep line** (`app/wardrobe.js`, `#wardrobe-keep`, appended by `views/check.js` right under the tip): one
-  question and two controls — *Keep* and a quiet *Not this one* — for a piece this check named. One tap, no form, no
-  category to pick: the category is the stylist's own word for it. The row stays `hidden` until it has something to
-  ask, so a screen with nothing to offer looks exactly as it did. (`#wardrobe-offer`, beside the item list, is a
-  second mount `check.js` reserves and nothing fills.)
+  question for a piece this check named, and its answers — *Keep* (`#wardrobe-keep-yes`), a quiet *Not this one*
+  (`#wardrobe-keep-skip`) and, while two or more pieces are left, a quiet *Keep all {n}* (`#wardrobe-keep-all`) that
+  keeps exactly the pieces its number counts; the answers wrap on a narrow phone. One tap, no form, no category to
+  pick: the category is the stylist's own word for it. A keep turns the row into one line — the piece is in your
+  wardrobe, or after *Keep all* how many pieces from this look are — with *See it* (`#wardrobe-kept-link`), and the
+  next piece is asked a moment later. Under the keep that ends the row, and only there, the Pro moment may sit: one
+  sentence and Go Pro in a `.notice` (`#wardrobe-keep-moment`, `#wardrobe-keep-moment-go`), once per tab; a keep
+  with a question still to come never draws it, since the question would take it off the screen. The row stays
+  `hidden` until it has something to ask, so a screen with nothing to offer looks exactly as it did.
+  (`#wardrobe-offer`, beside the item list, is a second mount `check.js` reserves and nothing fills.)
+- **Keep from an older look** (`views/wardrobe.js`, `#wardrobe-unkept`): on `#/wardrobe`, after the list (before the
+  "Check a look" button on an empty wardrobe), an `h2.rule`, one hint line saying how many looks it read, and the
+  pieces those looks named that are not kept — each row the look's 44px photo, the name and its category with when
+  it was worn, and a *Keep* (`.wardrobe-unkept-keep`). The screen's own Pro moment (`#wardrobe-moment`) takes the
+  plain Pro notice's place for one paint, once per tab.
 
 ## Round 21 — the look (appended)
 

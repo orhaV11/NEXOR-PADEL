@@ -12,8 +12,9 @@
 // the result screen and the list do not ask twice.
 //
 // Round 20 — filling it faster: "Keep all N" beside Keep / Not this one when the check named more than one piece (one
-// POST /api/wardrobe/keep-all, the server keeps its own list of names), and the Pro moment under a keep: one true line
-// from the server (wardrobe.proMoment) with a Go Pro button, once per session, tallied through POST /api/wardrobe/moment.
+// POST /api/wardrobe/keep-all with the pieces still offered, which the server checks against its own list of names, so a
+// piece refused with "Not this one" stays out), and the Pro moment under the last keep: one true line from the server
+// (wardrobe.proMoment) with a Go Pro button, once per session, tallied through POST /api/wardrobe/moment.
 // The moment's memory (momentUnseen / markMoment) and its sentence (momentText) are shared with views/wardrobe.js.
 import { state, t, el, api, icon, toast } from './core.js';
 
@@ -82,13 +83,14 @@ export function markMoment() {
 }
 
 /**
- * The one line the moment says. "All of them" only while the wardrobe fits what Pro's stylist sees (wardrobe.proSees,
- * Plans:WardrobeNamesToStylistPro); past that the sentence names the number, so it never promises more than the server does.
+ * The one line the moment says. "All of them" only while Pro's stylist would see every piece (wardrobe.proSees: how many
+ * of these pieces Pro's prompt carries, which leaves out "other" and names about a person as well as what is past
+ * Plans:WardrobeNamesToStylistPro); short of that the sentence names the number, so it never promises more than the server sends.
  */
 export function momentText(data) {
   const n = ((data && data.items) || []).length;
   const pro = (data && data.proSees) || 0;
-  return pro > 0 && n > pro ? t('wardrobe.moment_many', { n, pro }) : t('wardrobe.moment', { n });
+  return pro < n ? t('wardrobe.moment_many', { n, pro }) : t('wardrobe.moment', { n });
 }
 
 /** Tell the server the moment was shown or its button tapped. A tally, never awaited and never an error on the screen. */
@@ -142,9 +144,10 @@ function ensureStyle() {
  * What a keep pays back, read from the wardrobe itself so every number is true rather than counted here. Round 19: how
  * far the closet is from its first planned outfit ("1 of 2 kinds"), or the door to it once two kinds are in. Round 20:
  * the Pro moment, when the server says the wardrobe has passed what a free account's stylist sees and this tab has not
- * shown it yet. Nothing where the row is gone from the screen.
+ * shown it yet — only under a keep that ends the row (`last`), since the next question would take it off the screen
+ * and the tab would count it as seen; otherwise it waits for #/wardrobe. Nothing where the row is gone from the screen.
  */
-async function payoff(row) {
+async function payoff(row, last) {
   const plans = (state.config && state.config.plans) || {};
   const data = await loadWardrobe(true);
   if (!data || !row.isConnected) return;
@@ -157,7 +160,7 @@ async function payoff(row) {
       ? el('a', { class: 'btn-text', id: 'wardrobe-kept-tomorrow', href: '#/tomorrow', text: t('tomorrow.from_wardrobe') })
       : el('p', { class: 'hint', id: 'wardrobe-kept-progress', text: t('tomorrow.progress', { n: kinds, of: needKinds }) }));
   }
-  if (data.proMoment && momentUnseen()) done.appendChild(momentNotice(data, { box: 'wardrobe-keep-moment', go: 'wardrobe-keep-moment-go' }));
+  if (last && data.proMoment && momentUnseen()) done.appendChild(momentNotice(data, { box: 'wardrobe-keep-moment', go: 'wardrobe-keep-moment-go' }));
 }
 
 export function wardrobeKeep(result) {
@@ -180,16 +183,18 @@ export function wardrobeKeep(result) {
     );
     // Round 19 — each keep has a visible payoff: how far the closet is from its first planned outfit, and once it is
     // there, the door to it. Read from the wardrobe itself, so the number is true rather than counted here.
-    payoff(row);
     // A moment to read it, then the next piece if there is one. Never more than one question on the screen at a time.
-    // A Pro moment drawn under a single keep goes with the row when the next piece is asked; it lives on #/wardrobe
-    // too, which the "See it" link opens, and the once-per-session mark is already set.
-    if (queue.length > 0) setTimeout(() => { if (row.isConnected && queue.length > 0) ask(); }, 2200);
+    // The Pro moment is drawn only when no next piece is coming: the next question would replace it within seconds, so
+    // until the last keep it is left unmarked for #/wardrobe, which the "See it" link opens.
+    const last = queue.length === 0;
+    payoff(row, last);
+    if (!last) setTimeout(() => { if (row.isConnected && queue.length > 0) ask(); }, 2200);
   };
 
-  // Round 20 — after "Keep all": the count the server kept, the link, and (when the cap kept some out) why the list is
-  // shorter than the check. The queue is empty by then, so nothing asks again; the payoff reads the wardrobe as after
-  // any keep, which is where the Pro moment appears when it is true.
+  // Round 20 — after "Keep all": how many of this look's pieces are now in the wardrobe (the server's count of the
+  // pieces asked for, never the wardrobe's size), the link, and (when the cap kept some out) why the list is shorter than
+  // the check. The queue is empty by then, so nothing asks again; the payoff reads the wardrobe as after the last keep,
+  // which is where the Pro moment appears when it is true.
   const doneAll = (res) => {
     const kept = (res && res.kept) || 0;
     const block = el('div', { class: 'keep-done' }, [
@@ -198,14 +203,15 @@ export function wardrobeKeep(result) {
     ]);
     if (res && res.full) block.appendChild(el('p', { class: 'hint', id: 'wardrobe-keep-all-full', text: t('wardrobe.kept_all_full', { max: res.max }) }));
     row.replaceChildren(el('span', { class: 'keep-icon', 'aria-hidden': 'true' }, [icon('check')]), block);
-    payoff(row);
+    payoff(row, true);
   };
 
-  const keepAll = async () => {
+  // `names` is what the row still offers: the piece on screen and the ones after it, never one refused with "Not this one".
+  const keepAll = async (names) => {
     if (busy) return;
     busy = true;
     try {
-      const res = await api('POST', '/api/wardrobe/keep-all', { checkId: result.id });
+      const res = await api('POST', '/api/wardrobe/keep-all', { checkId: result.id, names });
       forgetWardrobe();
       queue = [];
       doneAll(res);
@@ -237,9 +243,10 @@ export function wardrobeKeep(result) {
     const button = el('button', { type: 'button', class: 'btn btn-sm', id: 'wardrobe-keep-yes', text: t('wardrobe.keep_yes'), onclick: () => keep(name) });
     const skip = el('button', { type: 'button', class: 'btn-text keep-skip', id: 'wardrobe-keep-skip', text: t('wardrobe.keep_skip'), onclick: () => ask() });
     const answers = [button, skip];
-    // Round 20: with more than one piece left to offer, the third answer keeps them all in one request.
+    // Round 20: with more than one piece left to offer, the third answer keeps them all in one request — those left, the
+    // same pieces its count names.
     const left = 1 + queue.length;
-    if (left >= 2) answers.push(el('button', { type: 'button', class: 'btn-text keep-all', id: 'wardrobe-keep-all', text: t('wardrobe.keep_all', { n: left }), onclick: () => keepAll() }));
+    if (left >= 2) answers.push(el('button', { type: 'button', class: 'btn-text keep-all', id: 'wardrobe-keep-all', text: t('wardrobe.keep_all', { n: left }), onclick: () => keepAll([name, ...queue]) }));
     row.replaceChildren(
       el('span', { class: 'keep-icon', 'aria-hidden': 'true' }, [icon('bag')]),
       el('p', { dir: 'auto', text: t('wardrobe.keep_ask', { piece: name }) }),
@@ -248,9 +255,11 @@ export function wardrobeKeep(result) {
     row.hidden = false;
   };
 
-  // The read is quiet: until it answers there is no row, and a failure leaves none.
+  // The read is quiet: until it answers there is no row, and a failure leaves none. A piece renamed since it was kept is
+  // kept under the stylist's word too (keptAs), so it is not offered again.
   loadWardrobe().then((wardrobe) => {
-    const kept = new Set(((wardrobe && wardrobe.items) || []).map((item) => String(item.name || '').toLowerCase()));
+    const items = (wardrobe && wardrobe.items) || [];
+    const kept = new Set(items.map((item) => String(item.name || '').toLowerCase()).concat(items.filter((item) => item.keptAs).map((item) => item.keptAs)));
     queue = names.filter((name) => !kept.has(name.toLowerCase()));
     if (queue.length > 0) ask();
   });

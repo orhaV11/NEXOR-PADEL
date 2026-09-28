@@ -2175,8 +2175,8 @@ exact. The funnel tally for a Pro-page open is client-driven (a hash route never
 and a moderators' number, never a decision. The camera's handoff is cleared on every exit of the compare screen and of
 the camera, so a stale handoff can never feed a check's photo into a compare slot.
 
-**Keep.** Keep-all is a body route with the server's own name list — not a batch of names, not a path parameter — so
-`NamesOn(check)` is the only list, the IDOR sweep is unaffected and the stranger's 404 is pinned in `WardrobeTests`; its
+**Keep.** Keep-all is a body route with the server's own name list — its names (since the review) can only narrow it,
+and there is no path parameter — so `NamesOn(check)` is the only list, the IDOR sweep is unaffected and the stranger's 404 is pinned in `WardrobeTests`; its
 409 is reserved for a request that could write nothing at all, and a check that named nothing answers 200 and writes
 nothing. The moment's truth is the server's (`WardrobeDto.proMoment`, `Plans.WardrobeProMoment`, strictly more than the
 free slice) and the client owns only once-per-tab; the tally is a POST because a hash route is never seen by the server,
@@ -2184,8 +2184,8 @@ and it counts only while the moment is true, so a script cannot inflate the rate
 (the brief said a plain `#/pro`) because the Pro page already tallies that word and the moment IS the wardrobe line. The
 median is over everyone active in seven days including zeros; the unkept list is a flat deduped list of pieces carrying
 the newest check that named each; the wardrobe records no refusals, so a skipped piece resurfaces; the keep row's
-2.2-second re-ask was kept, because a moment drawn under a single keep goes with the next ask and lives on `#/wardrobe`
-too. The cap race between concurrent keep-all requests is accepted with the same exposure as the single route.
+2.2-second re-ask was kept, and since the review the moment is drawn only under the keep that ends the row, so the next
+ask never takes it away, and until then it waits for `#/wardrobe`. The cap race between concurrent keep-all requests is accepted with the same exposure as the single route.
 
 **Tried.** The loop's button moved onto the result screen because the moment of the tip is the moment to act, the
 retake path already exists, and the button had lived only on `#/checks`. The yes/no row goes because the four typed
@@ -2568,3 +2568,24 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   is read, so an owner who lists the words the bios carry gets the `tt` and `ig` rows; the list used to keep the long
   word and the link resolved past it, so the row stayed at zero. Keeping the long word as a row of its own would have
   split one surface across two rows, or left `/go/tt` unanswered.
+- **A renamed piece is still the piece.** The unkept list and both keep routes matched on the name's key, and a rename
+  rewrites it, so the stylist's name for a renamed piece came back as never kept and keeping it made a second row. Each
+  row now also keeps the stylist's key it was kept under (`WardrobeItem.StylistKey`, one nullable column), which a
+  rename never touches; both are matched, the current name first. A row kept before the column has none until its
+  first rename records the key it had then; one renamed before this change cannot be traced back to the stylist's word,
+  and stays as it was.
+- **"Keep all" keeps what it counts.** After "Not this one" the button counted the pieces left and the server kept every
+  piece on the check, the refused one included. The row now sends the pieces it still offers, and the server keeps
+  those of its own list and no others, so the body can only take names off it; a request with no names keeps every
+  piece, as Round 20 did. Sending what was offered, rather than what was refused, was chosen so a stale phone never
+  keeps a piece nobody was shown; the cost is that a piece already kept does not gain this look from a keep-all, which
+  the single keep never did either. The line after it says how many pieces from this look are in the wardrobe, in all
+  four languages (it read as the wardrobe's size, and in Russian said so). The tally and the log count a request only
+  when it wrote a row, and one that could write nothing while the cap kept a piece out is the plain 409.
+- **The Pro moment waits for a keep that ends the row.** Drawn under a keep with a question still to come, it lasted two
+  seconds before the next question replaced it, and the tab had already marked it seen, so `#/wardrobe` never showed it
+  again. It is now drawn only under the last keep or after "Keep all", and otherwise waits, unmarked, for `#/wardrobe`.
+  Its "all of them" counts what Pro's prompt would carry of this wardrobe (`Wardrobe.SeenBy`: no "other", no name about
+  a person, the Pro slice), not the slice's size, and a wardrobe Pro would carry none of has no moment. Its tally has
+  the tallies' hourly brake (the `useful` policy), so a script can add at most sixty an hour; pairing each "go" with a
+  "shown" per account would have needed a per-person row the privacy page does not list.

@@ -1105,17 +1105,20 @@ function checkClientModules() {
   await shot(dan, '33b-tomorrow-empty-he');
 
   // Round 20 — the wedge: filling the closet faster, on a free Hebrew account. The keep row offers "Keep all 3" beside
-  // Keep / Not this one; three "not this one"s keep nothing, and the wardrobe screen then lists the same pieces under
-  // "Keep from an older look" (the wardrobe records no refusals), where one tap keeps one. A second check offers the two
-  // left as "Keep all 2"; keeping them crosses the free slice (Plans__WardrobeNamesToStylist is 2), so the Pro moment
-  // appears under the kept line with its Go Pro. It is once per tab: the wardrobe screen in the same tab does not say it
-  // again, a fresh tab does, in place of the plain Pro notice, and its button opens the Pro page.
+  // Keep / Not this one, and each refusal takes one off that count; three "not this one"s keep nothing, and the wardrobe
+  // screen then lists the same pieces under "Keep from an older look" (the wardrobe records no refusals), where one tap
+  // keeps one. A second check offers the two left as "Keep all 2", which sends exactly those two; keeping them crosses
+  // the free slice (Plans__WardrobeNamesToStylist is 2), so the Pro moment appears under the kept line with its Go Pro.
+  // It is once per tab: the wardrobe screen in the same tab does not say it again, a fresh tab does, in place of the
+  // plain Pro notice, and its button opens the Pro page.
   step = 'wedge';
   await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
   await dan.waitForSelector('#wardrobe-keep-yes', { timeout: 10000 });
   await dan.waitForSelector('#wardrobe-keep-all');
   assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 3', 'the third answer names the count');
-  for (let i = 0; i < 3; i++) {
+  await dan.click('#wardrobe-keep-skip');
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 2', 'a refused piece leaves the count');
+  for (let i = 0; i < 2; i++) {
     await dan.waitForSelector('#wardrobe-keep-skip');
     await dan.click('#wardrobe-keep-skip');
   }
@@ -1133,8 +1136,16 @@ function checkClientModules() {
   await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
   await dan.waitForSelector('#wardrobe-keep-all', { timeout: 10000 });
   assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 2', 'only the two not yet kept are offered');
-  await dan.click('#wardrobe-keep-all');
+  // Review of Rounds 20 and 21: the request carries exactly the pieces the button counted, so a piece refused with
+  // "Not this one" (or already kept) is never kept by it, and the line after it counts this look's pieces, not the
+  // wardrobe's size.
+  const [keepAllRequest] = await Promise.all([
+    dan.waitForRequest((r) => r.url().endsWith('/api/wardrobe/keep-all') && r.method() === 'POST'),
+    dan.click('#wardrobe-keep-all')
+  ]);
+  assert.deepStrictEqual(keepAllRequest.postDataJSON().names, ["ג'ינס כהה", 'נעלי ריצה'], 'keep-all sends the pieces it counted');
   await dan.waitForSelector('#wardrobe-kept-link');
+  assert.strictEqual(await text(dan, '#wardrobe-keep .keep-done p[role=status]'), '2 פריטים מהלוק הזה בארון שלך.');
   await dan.waitForSelector('#wardrobe-keep-moment', { timeout: 10000 });
   assert.ok(await dan.$('#wardrobe-keep-moment-go'), 'the moment carries its Go Pro');
   assert.ok(!(await dan.$('#wardrobe-keep-all-full')), 'nothing was refused by the cap');

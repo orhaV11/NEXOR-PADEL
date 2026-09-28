@@ -411,6 +411,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             item.HasKey(i => i.Id);
             item.Property(i => i.Name).HasMaxLength(Services.Wardrobe.NameMaxLength).IsRequired();
             item.Property(i => i.NameKey).HasMaxLength(Services.Wardrobe.NameMaxLength).IsRequired();
+            // Review of Round 20: the stylist's key a piece was kept under, which a rename never changes. Nullable: a row kept
+            // before it has none until its first rename.
+            item.Property(i => i.StylistKey).HasMaxLength(Services.Wardrobe.NameMaxLength);
             item.Property(i => i.Category).HasMaxLength(16).IsRequired();
             // One row per piece per account: keeping the camel coat from a second check adds a look, never a second coat.
             item.HasIndex(i => new { i.UserId, i.NameKey }).IsUnique();

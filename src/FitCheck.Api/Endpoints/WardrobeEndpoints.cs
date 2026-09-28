@@ -34,20 +34,25 @@ namespace FitCheck.Api.Endpoints;
 /// Round 20 — filling it faster, three more doors:
 /// <list type="bullet">
 /// <item><c>POST /api/wardrobe/keep-all</c> (session): <see cref="KeepAllWardrobeRequest"/> — every piece the check
-/// named, in one request; the names are the server's own <see cref="Wardrobe.NamesOn"/>, never the client's. 200 with
+/// named, in one request; the names are the server's own <see cref="Wardrobe.NamesOn"/>, never the client's. Review of
+/// Round 20: an optional <c>names</c> narrows that list to the pieces the keep row still offered, so one refused with
+/// "Not this one" stays out; a name the check did not name is ignored, so the body is never free text. 200 with
 /// <see cref="KeepAllWardrobeDto"/> (a batch has no single 201 to give; <c>Added</c> says it): a known piece gains
 /// this look and is never refused by the cap, a new one is added while the account is under Plans:WardrobeMaxItems and
 /// skipped once it is not (<c>Full</c>). A check that named nothing keeps nothing and still answers 200. Errors:
 /// error.invalid_request (400, no check id), error.check_not_found (404, another account's or a guest's), and
-/// error.wardrobe_full (409) only when nothing at all could be written.</item>
+/// error.wardrobe_full (409) only when nothing at all could be written and the cap kept something out. Counted on
+/// <c>wardrobe_keep_all</c> only when a row was written, so a repeat of the same request moves nothing.</item>
 /// <item><c>GET /api/wardrobe/unkept</c> (session): <see cref="UnkeptWardrobeDto"/> — the pieces named on the account's
 /// last Plans:WardrobeUnkeptChecks scored checks that are not in its wardrobe, newest look first, each once with the
 /// check that named it, so keeping one goes through <c>POST /api/wardrobe</c> unchanged. Empty when the setting is 0
 /// or nothing is left. The wardrobe records no refusals, so "Not this one" in the keep row brings a piece back here.</item>
 /// <item><c>POST /api/wardrobe/moment</c> (session): <see cref="WardrobeMomentRequest"/> — the Pro moment's tally,
 /// "shown" or "go". 204 either way; the counter moves only while <see cref="Plans.WardrobeProMoment"/> is true for
-/// this account right now, so a script cannot inflate a rate the moment never earned. 400 error.invalid_request for
-/// any other step. The moment itself is <see cref="WardrobeDto"/>.ProMoment, computed here, never on the client.</item>
+/// this account right now, so a script cannot inflate a rate the moment never earned, and the route carries the
+/// tallies' per-account hourly brake (<see cref="FeedbackEndpoints.Policy"/>, 429 error.too_fast). 400
+/// error.invalid_request for any other step. The moment itself is <see cref="WardrobeDto"/>.ProMoment, computed here,
+/// never on the client.</item>
 /// </list>
 /// What the names are for lives in <see cref="Wardrobe"/>: a tip that can name a piece the wearer already owns is advice,
 /// and one that cannot is shopping.
@@ -61,7 +66,8 @@ public static class WardrobeEndpoints
         group.MapPost("/", KeepAsync);
         group.MapGet("/unkept", UnkeptAsync);
         group.MapPost("/keep-all", KeepAllAsync);
-        group.MapPost("/moment", MomentAsync);
+        // Review of Round 20: a tally the client drives, so it carries the brake the other tallies carry.
+        group.MapPost("/moment", MomentAsync).RequireRateLimiting(FeedbackEndpoints.Policy);
         group.MapPost("/stylist", StylistAsync);
         group.MapPatch("/{id:guid}", RenameAsync);
         group.MapDelete("/{id:guid}", DeleteAsync);
@@ -111,7 +117,8 @@ public static class WardrobeEndpoints
 
         // The cap is a brake on a script, not a product limit; a piece already kept is never refused by it, because
         // keeping it again only adds this look to the row it already has.
-        var known = await db.WardrobeItems.AnyAsync(i => i.UserId == me.Id && i.NameKey == Wardrobe.KeyOf(candidate.Name), ct);
+        var key = Wardrobe.KeyOf(candidate.Name);
+        var known = await db.WardrobeItems.AnyAsync(i => i.UserId == me.Id && (i.NameKey == key || i.StylistKey == key), ct);
         if (!known && await Wardrobe.CountAsync(db, me.Id, ct) >= plans.Value.WardrobeMaxItems)
         {
             return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.wardrobe_full", plans.Value.WardrobeMaxItems));
@@ -148,15 +155,23 @@ public static class WardrobeEndpoints
 
         var max = plans.Value.WardrobeMaxItems;
         var candidates = Wardrobe.NamesOn(check);
-        var (items, added, skipped) = await Wardrobe.KeepAllAsync(db, me.Id, check, candidates, max, clock.UtcNow, ct);
-        if (items.Count == 0 && skipped > 0)
+        if (body?.Names is { } names)
         {
-            // Nothing fitted and nothing known was touched: the plain refusal the single route gives, rather than a 200
-            // that says it kept nothing.
+            // Review of Round 20: the pieces the keep row still offered. The check's own list is still the only list; the
+            // body can only take names off it, so a piece refused with "Not this one" stays out.
+            var wanted = names.Take(KeepAllMaxNames).Select(n => Wardrobe.KeyOf(Wardrobe.CleanName(n))).ToHashSet(StringComparer.Ordinal);
+            candidates = candidates.Where(c => wanted.Contains(Wardrobe.KeyOf(c.Name))).ToList();
+        }
+
+        var (items, added, skipped, wrote) = await Wardrobe.KeepAllAsync(db, me.Id, check, candidates, max, clock.UtcNow, ct);
+        if (wrote == 0 && skipped > 0)
+        {
+            // Nothing fitted and nothing known was written: the plain refusal the single route gives, rather than a 200
+            // that says it kept something.
             return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.wardrobe_full", max));
         }
 
-        if (items.Count > 0)
+        if (wrote > 0)
         {
             await Counters.IncrementAsync(db, CounterName.WardrobeKeepAll, ct);
             loggers.CreateLogger(nameof(WardrobeEndpoints)).LogInformation(
@@ -167,6 +182,9 @@ public static class WardrobeEndpoints
         var dto = new KeepAllWardrobeDto(items.Count, added, skipped, skipped > 0, count, max, await DtosAsync(db, me.Id, items, ct));
         return Results.Json(dto, AppJson.Options);
     }
+
+    /// <summary>The most names keep-all reads from a body: a check names a handful of pieces, never dozens.</summary>
+    private const int KeepAllMaxNames = 40;
 
     private static async Task<IResult> UnkeptAsync(
         HttpContext context, AppDbContext db, Localizer localizer, IOptions<PlanOptions> plans, CancellationToken ct)
@@ -244,6 +262,9 @@ public static class WardrobeEndpoints
             return Error(StatusCodes.Status409Conflict, localizer.Get(lang, "error.wardrobe_full", await Wardrobe.CountAsync(db, me.Id, ct)));
         }
 
+        // The stylist's key stays with the row, so the piece is still the one a check names (a row kept before the
+        // column gets it here, from the name it had until now).
+        item.StylistKey ??= item.NameKey;
         item.Name = name;
         item.NameKey = key;
         await db.SaveChangesAsync(ct);
@@ -305,8 +326,11 @@ public static class WardrobeEndpoints
         var items = await DtosAsync(db, me.Id, rows.Select(r => r.Item).ToList(), ct);
         var setting = await db.WardrobeSettings.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == me.Id, ct);
         // Round 20: the Pro moment's truth travels with the list, so the sentence the client draws is the server's fact.
+        // Review of Round 20: ProSees is how many of THESE pieces Pro's prompt would carry (no "other", nothing that names
+        // a person), not the slice's size, so "all of them" is said only when it is so; with none to carry, no moment.
+        var proSees = Wardrobe.SeenBy(rows.Select(r => r.Item), plans.WardrobeNamesFor(true));
         return new WardrobeDto(items, plans.WardrobeMaxItems, setting?.ToStylist ?? true, Plans.WardrobeReachesStylist(me, plans, now),
-            ProMoment: Plans.WardrobeProMoment(me, plans, now, items.Count), ProSees: plans.WardrobeNamesFor(true));
+            ProMoment: proSees > 0 && Plans.WardrobeProMoment(me, plans, now, items.Count), ProSees: proSees);
     }
 
     /// <summary>
@@ -335,7 +359,8 @@ public static class WardrobeEndpoints
         var byItem = looks.ToLookup(a => a.ItemId);
         return items.Select(item => new WardrobeItemDto(
             item.Id, item.Name, item.Category, Utc(item.CreatedAt), Utc(item.LastSeenAt),
-            byItem[item.Id].Select(a => new WardrobeLookDto(a.CheckId, Utc(a.WornAt), postByCheck.TryGetValue(a.CheckId, out var postId) ? postId : null)).ToList())).ToList();
+            byItem[item.Id].Select(a => new WardrobeLookDto(a.CheckId, Utc(a.WornAt), postByCheck.TryGetValue(a.CheckId, out var postId) ? postId : null)).ToList(),
+            item.StylistKey is { } kept && kept != item.NameKey ? kept : null)).ToList();
     }
 
     private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);

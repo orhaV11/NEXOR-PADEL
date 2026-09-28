@@ -770,14 +770,21 @@ public sealed record TasteRequest(bool? Learning);
 /// lets the wardrobe reach the stylist at all, so a free account sees its own wardrobe and is told plainly what it is
 /// missing rather than shown a dead toggle. Round 20 appends the Pro moment: <c>ProMoment</c> is whether the wardrobe
 /// has passed what the stylist sees on this plan (Plans.WardrobeProMoment, the server's fact, never the client's), and
-/// <c>ProSees</c> how many pieces Pro's stylist would see, so "all of them" is only said while it is true.
+/// <c>ProSees</c> how many of these pieces Pro's stylist would see (review of Round 20: what Pro's prompt would carry of
+/// this wardrobe, not the slice's size), so "all of them" is only said while it is true.
 /// </summary>
 public sealed record WardrobeDto(List<WardrobeItemDto> Items, int Max, bool ToStylist, bool StylistAvailable, bool ProMoment = false, int ProSees = 0);
 
-/// <summary>POST /api/wardrobe/keep-all: every piece the check named, in one request.</summary>
-public sealed record KeepAllWardrobeRequest(Guid? CheckId);
+/// <summary>
+/// POST /api/wardrobe/keep-all: every piece the check named, in one request. <c>Names</c> (review of Round 20) narrows it
+/// to the pieces the keep row still offered; absent, it is every piece the check named. Only names on the check count.
+/// </summary>
+public sealed record KeepAllWardrobeRequest(Guid? CheckId, List<string>? Names = null);
 
-/// <summary>What keep-all did: rows touched, rows added, rows the cap refused, whether it refused any, the count after, and the wardrobe.</summary>
+/// <summary>
+/// What keep-all did: the pieces of this look now in the wardrobe (those asked for, less what the cap kept out), rows
+/// added, rows the cap refused, whether it refused any, the wardrobe's count after, and those pieces.
+/// </summary>
 public sealed record KeepAllWardrobeDto(int Kept, int Added, int Skipped, bool Full, int Count, int Max, List<WardrobeItemDto> Items);
 
 /// <summary>GET /api/wardrobe/unkept: pieces the stylist named on the person's latest looks that are not in the wardrobe, and how many looks were read.</summary>
@@ -789,8 +796,12 @@ public sealed record UnkeptPieceDto(string Name, string Category, Guid CheckId, 
 /// <summary>POST /api/wardrobe/moment: "shown" or "go", the Pro moment's tally.</summary>
 public sealed record WardrobeMomentRequest(string? Step);
 
-/// <summary>One kept piece: its name, the stylist's category, when it was kept and the looks it appeared in, newest first.</summary>
-public sealed record WardrobeItemDto(Guid Id, string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<WardrobeLookDto> Looks);
+/// <summary>
+/// One kept piece: its name, the stylist's category, when it was kept and the looks it appeared in, newest first.
+/// <c>KeptAs</c> (review of Round 20) is the stylist's name it was kept under, lower-cased, only on a piece renamed since,
+/// so the keep row does not offer a renamed piece again under the stylist's word.
+/// </summary>
+public sealed record WardrobeItemDto(Guid Id, string Name, string Category, DateTime KeptAt, DateTime LastSeenAt, List<WardrobeLookDto> Looks, string? KeptAs = null);
 
 /// <summary>A look a piece appeared in: the check, when it was worn, and the post when that check was published.</summary>
 public sealed record WardrobeLookDto(Guid CheckId, DateTime WornAt, Guid? PostId);

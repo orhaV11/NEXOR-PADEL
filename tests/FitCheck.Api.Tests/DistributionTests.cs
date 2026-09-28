@@ -428,6 +428,9 @@ public class DistributionTests : IClassFixture<TestApp>
             Assert.False(strings.ContainsKey("link.share_text"), $"{code}.json still carries link.share_text");
             Assert.Equal(Placeholders(en["result.share_text"]), Placeholders(strings["result.share_text"]));
             Assert.Equal(Placeholders(en["post.share_text"]), Placeholders(strings["post.share_text"]));
+            // Review of Round 21: the tip is a sentence that brings its own mark (check.js tipSentence), so no line puts one
+            // after it. The Hebrew challenge did, and every Hebrew share read "…פשוט.. מי בקבוצה".
+            Assert.DoesNotMatch(@"\{tip\}\s*[.!?…]", strings["result.share_text"]);
         }
 
         var he = Strings("he");
@@ -437,6 +440,8 @@ public class DistributionTests : IClassFixture<TestApp>
             Assert.Contains("{intent}", he[key]);
             Assert.EndsWith("?", he[key]);
         }
+        // ...and the result's Share hands the line a tip that ends in exactly one mark.
+        Assert.Contains("tip: tipSentence(feedback.oneTip)", File.ReadAllText(Path.Combine(WebRoot, "app", "views", "check.js")));
 
         // Nothing here draws link.share_text any more.
         foreach (var file in Directory.EnumerateFiles(Path.Combine(WebRoot, "app"), "*.js", SearchOption.AllDirectories))

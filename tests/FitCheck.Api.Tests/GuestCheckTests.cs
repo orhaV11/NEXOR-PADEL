@@ -629,7 +629,8 @@ public class GuestCheckTests : IClassFixture<GuestCheckTests.PlansApp>
         Assert.Equal("That's today's 2 free checks. Pro gives you 100000 a month, and the stylist sees your whole wardrobe. Or come back tomorrow.", await ErrorAsync(refused));
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
         var hebrew = await CheckAsync(client, language: "he");
-        Assert.Equal("אלה 2 הבדיקות החינמיות של היום. ב-Pro יש 100000 בחודש, והסטייליסט רואה את כל הארון. או שחוזרים מחר.", await ErrorAsync(hebrew));
+        // Review of Round 21: the Hebrew names the plan in Hebrew, as the rest of the Hebrew does (it said "ב-Pro").
+        Assert.Equal("אלה 2 הבדיקות החינמיות של היום. בפרו יש 100000 בחודש, והסטייליסט רואה את כל הארון. או שחוזרים מחר.", await ErrorAsync(hebrew));
 
         // A comparison is a stylist call too and shares the allowance; a failed one does not count, like a failed check.
         var (comparer, comparerId, _) = await _app.NewUserAsync("gc_compares");

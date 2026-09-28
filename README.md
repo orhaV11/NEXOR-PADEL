@@ -1932,8 +1932,8 @@ the stage colour, and the share card and the film paint the same aurora.
 - The three piece chips on the result's photo fit two rows at 390px in Heebo.
 
 **Known limits.** The landing pages keep the old black stage and the screenshots of the old look until they are re-shot
-(`LAUNCH.md` 3.2); the share card and the film draw the full ring, not the meter; the public look page's ring is
-recoloured but still fills from the top; a look with five or more pieces shows four chips and no count on its card;
+(`LAUNCH.md` 3.2); the share card and the film draw the full ring, not the meter (the public look page's SVG ring
+became one in the review); a look with five or more pieces shows four chips and no count on its card;
 whether the arc should fill from the other side in Hebrew is left for a Hebrew reader (`LAUNCH.md` 1.8, step 10). A
 posted look's per-piece verdicts reach its author and a moderator only, and anyone else's card draws the names with no
 dots: the review settled it that way (`DECISIONS.md`, Round 21, review fixes).

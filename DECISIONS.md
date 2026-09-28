@@ -949,7 +949,9 @@ What the review raised and the round kept as it was:
   every number would be the tiles read aloud.
 - **The Today cache edge.** The strip draws what it has and refetches in place once the cached prompt is older than
   the feed's ten minutes, so across midnight UTC yesterday's prompt can show for those minutes until a refetch or a
-  pull to refresh. A daily hashtag can carry that; a clock-aligned refetch is not worth its own timer.
+  pull to refresh. The cache belongs to one language and one account (review of Round 21): taking the language offer,
+  switching language, signing in or out asks again, since the prompt is written in the reader's language and "You're
+  in" is the account's own. A daily hashtag can carry that; a clock-aligned refetch is not worth its own timer.
 - **`--verify` on a person.** The command sets the flag on the account with the handle, whatever its type, and the
   client draws the check only inside the BRAND mark, so on a person it shows nowhere. The owner runs it by hand for
   accounts they know; a type check would be a rule for a case the owner already controls.
@@ -2391,7 +2393,7 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   the breakdown, the checks list and the result's hero — became a meter without new markup, and the numeral stays text
   that a screen reader and the browser test read. `@property` lets the hero's arc draw on; an engine without it jumps to
   the final arc halfway through, and the final ring is right everywhere. The server-rendered public look page keeps its
-  own small SVG ring.
+  own small SVG ring, turned in the review to start where the meter does, with the gap at the foot.
 - **The chips placed by physical left and right.** The plan used logical insets so Hebrew would mirror them. But the
   ring is `direction: ltr` and keeps the photo's bottom-right in both languages (a photo does not mirror), and the first
   Hebrew render showed the mirrored chips hidden under it. So the chips sit at the bottom-left in both, and in Hebrew the
@@ -2646,3 +2648,22 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
   always refuses; Lift stays on a suspended one. In Arabic the months read "عدد الأشهر: {n}", the count after a
   colon as the Russian does, because the noun agrees with the number (a dual for 2, a plural for 3 to 10, a singular
   for 11 and up) and "{n} أشهر" read "12 أشهر"; one line for every count was preferred to a key per option.
+- **The Hebrew keeps its neutral voice, and names the plans in Hebrew.** Round 20 wrote its new Hebrew in the masculine
+  singular ("נסה את הטיפ, ואז תראה לי" on the result's primary button, "בדוק לוק" in the activity feed, "אתה בדפדפן…",
+  the admin buttons), against the infinitive and impersonal forms this file settled in Phase 1, and wrote Pro and Free
+  in Latin letters beside the file's פרו and חינם. Every such line is now in the file's forms ("לנסות את הטיפ, ואז להראות
+  לי", "אפשר לבדוק לוק", "לאמת מותג"), and where a verb would have had to agree with פרו, whose gender the file already
+  gives both ways, the line is written so none has to ("יש לך פרו", "בפרו הסטייליסט רואה"). "OREVOSH Pro" stays the
+  product's name in the mail subjects, where it always was. `LocalizerTests` now fails on the words that crept in and on
+  a Latin plan name, in `he.json` and in the server's table. The Hebrew share line no longer puts a period after the tip
+  (every share read "..") and the share hands the line a tip that ends in exactly one mark; "Thank you!" lost its mark
+  in English and Hebrew, and `LanguagesTests` now holds the four client files to no exclamation marks.
+- **Entrances play once.** The Today strip rose in again on every Back from a look while the list beside it came back
+  still, and the Tomorrow card rose in again around the button just pressed. The strip now rises in only when it
+  arrives from the network into a Home that has none, and the card only when a suggestion it was not showing lands.
+  The strip's ten-minute cache belongs to one language and one account, so taking the language offer or signing in
+  asks again: a Hebrew reader kept the English prompt, and a guest who signed in never saw "You're in".
+- **The result's own chip rules are the result's.** The 40px chips, their washes and the open one's gradient moved from
+  `app.css` into `check.js`'s block (DESIGN §10); the shared `.chip.piece` stays in `app.css`. The look page draws its
+  photo's chips again from the item list after an edit, and the win line on the result takes the `#taste-win` id only
+  where no slot already carries it. The public look page's ring starts where the meter does, with the gap at the foot.

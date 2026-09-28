@@ -158,6 +158,10 @@ public class PublicPageTests : IClassFixture<TestApp>
         Assert.Contains("Swap the running shoes", html);
         Assert.Contains("Check yours", html);
         Assert.Contains($"/#/post/{postId}", html);
+        // Review of Round 21: the ring is the app's meter. A 7 is 7/10 of the circle (2π·26 = 163.36), drawn from the
+        // bottom-left (the app's 210°: SVG starts at three o'clock, so a 120° turn) with the gap at the foot.
+        Assert.Contains("stroke-dasharray=\"114.35 49.01\" transform=\"rotate(120 32 32)\"", html);
+        Assert.DoesNotContain("rotate(-90", html);
         // Nothing that needs a session, and nothing that needs a script.
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("fonts.googleapis.com", html);

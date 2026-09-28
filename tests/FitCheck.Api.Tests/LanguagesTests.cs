@@ -111,6 +111,25 @@ public class LanguagesTests
     }
 
     /// <summary>
+    /// Review of Round 21: no line the app draws shouts. The voice has no exclamation marks, ever (MARKETING.md, CONTENT.md);
+    /// the server's table was held to it (LocalizerTests), the client's four files were not, and "Thank you!" met every
+    /// reader back from a paid Checkout, in English and in Hebrew.
+    /// </summary>
+    [Fact]
+    public void No_line_in_the_four_locale_files_shouts()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "i18n"));
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            foreach (var property in JsonDocument.Parse(File.ReadAllText(Path.Combine(root, code + ".json"))).RootElement.EnumerateObject())
+            {
+                var text = property.Value.GetString() ?? "";
+                Assert.False(text.Contains('!'), $"{code}.json \"{property.Name}\" shouts: {text}");
+            }
+        }
+    }
+
+    /// <summary>
     /// The client picks a plural form by n == 1 and nothing else, which is the whole of English and enough for Hebrew.
     /// Russian counts in three: one (1, 21, 31), a paucal (2-4) and a genitive plural (0, 5-20) - so "2 образов" reads
     /// as wrong to a Russian speaker as "2 checkses" does to an English one. The translation already answers this by

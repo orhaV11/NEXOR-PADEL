@@ -1394,7 +1394,7 @@ docker compose exec app dotnet FitCheck.Api.dll --pro <handle> 3
   הגעה נספרת לפי מקור ב-`#/admin/metrics` ("מאיפה אנשים מגיעים"), ומילה לא מוכרת נוחתת על דף הנחיתה בלי להיספר, אז שגיאת הקלדה
   עולה צפייה ולא אדם. על המסך ובתגובה הנעוצה — `orevosh.com` בלבד (`CONTENT.md`).
 - **חודש חברי המייסדים.** שלושים בערך האנשים הראשונים שבאמת משתמשים באפליקציה מקבלים חודשיים של Pro ביד —
-  `--pro <handle> 2` (ב-Fly: `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 2"`), או *הענק Pro*
+  `--pro <handle> 2` (ב-Fly: `fly ssh console -u app -C "dotnet /app/FitCheck.Api.dll --pro <handle> 2"`), או *להעניק פרו*
   ב-`#/admin` — ואף אחד לא שומע הצעת Pro במשך ארבעה שבועות (`MARKETING.md`: קודם ההרגל, אחר כך המחיר). כש-Stripe
   דלוק, חשבון שקיבל את המתנה עדיין יכול להתחיל תקופת ניסיון אחר כך: מתנה לא משאירה כלום בצד של Stripe.
 

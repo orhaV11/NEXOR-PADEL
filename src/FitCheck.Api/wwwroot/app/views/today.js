@@ -3,7 +3,7 @@
 // by feed.js) is the compact form with up to eight thumbnails. "Post yours" sends the prompt into the check the way a
 // challenge does (state.check.challenge with the tag), so the caption comes pre-filled with the hashtag and the
 // server links the look by the tag alone. Everything comes from GET /api/today; nothing about the prompt lives here.
-import { register, state, t, api, el, setTopBar, scoreBadge, postGrid, emptyState, fmtDate, fmtCompact, intentLabel, navigate, feedVersion } from '../core.js';
+import { register, state, t, api, el, setTopBar, scoreBadge, postGrid, emptyState, fmtDate, fmtCompact, intentLabel, navigate, feedVersion, getLocale } from '../core.js';
 
 /** Thumbnails on the strip; the page shows the whole day. */
 const STRIP_LOOKS = 8;
@@ -14,7 +14,12 @@ const STRIP_LOOKS = 8;
  */
 const CACHE_TTL = 10 * 60 * 1000;
 
-let cached = null;   // { data, at, version }
+let cached = null;   // { data, at, version, viewer }
+/**
+ * Whose strip the cache holds: the language the prompt was asked in and the account that asked (the "You're in" tag is
+ * that account's). Taking the language offer, switching language, signing in or out asks again (review of Round 21).
+ */
+const viewerKey = () => getLocale() + '|' + (state.me ? state.me.id : '');
 
 let styled = false;
 function ensureStyle() {
@@ -26,8 +31,10 @@ function ensureStyle() {
        look posted to the prompt, tilted like a photo left on a table, first in the head */
     '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: linear-gradient(135deg, rgba(255, 180, 107, 0.14), rgba(255, 143, 177, 0.11) 60%, rgba(179, 157, 255, 0.11)), var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card), 0 16px 40px rgba(255, 180, 107, 0.1); }',
     '.install + .today-strip { margin-block-start: 12px; }',
-    '.today-strip { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* it rises in with the screen (app.css §9's keyframe) */
-    '@media (prefers-reduced-motion: reduce) { .today-strip { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
+    /* it rises in (app.css §9's keyframe) when it arrives from the network into a Home that has none; from its cache (Back
+       from a look) or over the strip already there (a stale one refreshed in place) it is simply there, as the list is */
+    '.today-strip.arrive { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',
+    '@media (prefers-reduced-motion: reduce) { .today-strip.arrive { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
     /* the head wraps: the print and the words share the first line, and the tags (the hashtag, "You're in") sit beside
        them when the column is wide enough for 200px of words, else on a line of their own at the end. A grid item:
        without min-inline-size 0 its own min-content would push the tags past the card's edge */
@@ -130,24 +137,26 @@ function stripContent(today) {
 
 /**
  * The Today strip for the top of For you. place(node) puts the built strip where the feed wants it; it is called at
- * once with whatever the cache holds for this feed version (Back from a look lands where the reader was, nothing shifts:
- * the feed restores its list and scroll position synchronously, so the strip must be there before that), and again when
- * /api/today answers if the cached prompt is older than CACHE_TTL, replacing the strip in place. opts.force skips the
- * cache (a pull to refresh, the Home tab tapped again). A failure calls nothing more: the feed goes on with what it has,
- * or as if there were no prompt. Never throws.
+ * once with whatever the cache holds for this feed version, language and account (Back from a look lands where the
+ * reader was, nothing shifts: the feed restores its list and scroll position synchronously, so the strip must be there
+ * before that), and again when /api/today answers if the cached prompt is older than CACHE_TTL, replacing the strip in
+ * place. opts.force skips the cache (a pull to refresh, the Home tab tapped again). Only a strip fetched into a Home
+ * that has none rises in (.arrive). A failure calls nothing more: the feed goes on with what it has, or as if there
+ * were no prompt. Never throws.
  */
 export function todayStrip(ctx, place, opts) {
   ensureStyle();
-  const build = (today) => el('section', { class: 'today-strip', id: 'today-strip', 'aria-labelledby': 'today-title' }, stripContent(today));
-  const known = !(opts && opts.force) && cached && cached.version === feedVersion.n ? cached : null;
-  if (known) place(build(known.data));
+  const build = (today, arrive) => el('section', { class: 'today-strip' + (arrive ? ' arrive' : ''), id: 'today-strip', 'aria-labelledby': 'today-title' }, stripContent(today));
+  const viewer = viewerKey();
+  const known = !(opts && opts.force) && cached && cached.version === feedVersion.n && cached.viewer === viewer ? cached : null;
+  if (known) place(build(known.data, false));
   if (known && Date.now() - known.at < CACHE_TTL) return;
   api('GET', '/api/today')
     .then((today) => {
       if (!today || !today.tag) return;
-      cached = { data: today, at: Date.now(), version: feedVersion.n };
+      cached = { data: today, at: Date.now(), version: feedVersion.n, viewer };
       if (ctx && ctx.stale && ctx.stale()) return;
-      place(build(today));
+      place(build(today, !known && !document.getElementById('today-strip')));
     })
     .catch(() => { /* no prompt today, then; the feed does not care */ });
 }
@@ -162,11 +171,12 @@ register('today', async (root, params, ctx) => {
   root.appendChild(skel);
 
   let today;
+  const viewer = viewerKey();
   try { today = await api('GET', '/api/today'); }
   catch (e) { if (ctx.stale()) return; skel.remove(); throw e; }
   if (ctx.stale()) return;
   skel.remove();
-  cached = { data: today, at: Date.now(), version: feedVersion.n };
+  cached = { data: today, at: Date.now(), version: feedVersion.n, viewer };
 
   const posts = today.posts || [];
   const n = posts.length;

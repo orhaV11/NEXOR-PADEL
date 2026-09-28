@@ -500,7 +500,8 @@ export function mountResult(container, check, opts) {
   // The two reads that need the network come after the screen is whole, so nothing waits on them.
   if (!state.me) return;
   loadTaste().then((card) => {
-    const line = winLine(card && card.lastWin, { ids: true });
+    // The id goes on the line only where no slot already carries it (check.js reserves div#taste-win): one #taste-win.
+    const line = winLine(card && card.lastWin, { ids: !container.querySelector('#taste-win') });
     if (line && card.lastWin.checkId !== check.id) {
       const slot = container.querySelector('#taste-win');
       if (slot) slot.replaceChildren(line); else container.insertBefore(line, container.firstChild);

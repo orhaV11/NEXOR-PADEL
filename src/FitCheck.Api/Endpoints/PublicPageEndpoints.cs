@@ -562,8 +562,11 @@ public static partial class PublicPageEndpoints
         + "<img src=\"/brand/wordmark.svg\" alt=\"OREVOSH\" width=\"1626\" height=\"350\"></a>";
 
     /// <summary>
-    /// The score ring as inline SVG: the same idea as the app's badge — a track, the lilac-to-rose arc for score ⁄ 10
-    /// drawn from the top, and the number in the middle. Inline, so the page needs no second request for it.
+    /// The score ring as inline SVG: the same idea as the app's badge — a track, the lilac-to-rose arc for score ⁄ 10,
+    /// and the number in the middle. Inline, so the page needs no second request for it. The arc starts where the app's
+    /// meter does (app.css .score-badge: from 210°, clockwise from the top), so a 7 fills round to the right and leaves
+    /// the gap at the foot like a gauge; SVG's circle starts at three o'clock, hence the 120° turn. The gradient is laid
+    /// so that, once turned, the arc goes from lilac at its start to rose at its end, as the meter's conic does.
     /// </summary>
     private static string Ring(int score, string label)
     {
@@ -574,11 +577,11 @@ public static partial class PublicPageEndpoints
         var rest = (circumference - (circumference * clamped / 10)).ToString("0.##", CultureInfo.InvariantCulture);
         return "<div class=\"ring\" role=\"img\" aria-label=\"" + Esc(label) + "\">"
             + "<svg viewBox=\"0 0 64 64\" width=\"64\" height=\"64\" aria-hidden=\"true\" focusable=\"false\">"
-            + "<defs><linearGradient id=\"ovp\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">"
+            + "<defs><linearGradient id=\"ovp\" x1=\"1\" y1=\"1\" x2=\"0\" y2=\"0\">"
             + "<stop offset=\"0\" stop-color=\"#b39dff\"/><stop offset=\"1\" stop-color=\"#ff8fb1\"/></linearGradient></defs>"
             + "<circle cx=\"32\" cy=\"32\" r=\"26\" fill=\"none\" stroke=\"#3b3150\" stroke-width=\"6\"/>"
             + "<circle cx=\"32\" cy=\"32\" r=\"26\" fill=\"none\" stroke=\"url(#ovp)\" stroke-width=\"6\" stroke-linecap=\"round\""
-            + " stroke-dasharray=\"" + arc + " " + rest + "\" transform=\"rotate(-90 32 32)\"/></svg>"
+            + " stroke-dasharray=\"" + arc + " " + rest + "\" transform=\"rotate(120 32 32)\"/></svg>"
             + "<span class=\"n\">" + clamped.ToString(CultureInfo.InvariantCulture) + "</span></div>";
     }
 

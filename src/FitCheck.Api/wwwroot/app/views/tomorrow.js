@@ -57,8 +57,10 @@ function ensureStyle() {
        card's own ground), lit from below in its occasion's tint when the card knows one */
     '.tm-card { padding: 0 0 16px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); display: grid; gap: 12px; }',
     '.tm-card[data-occasion] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 22px 60px var(--tint-glow), 0 2px 18px var(--tint-wash); }',
-    '.tm-card { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',   /* the outfit rises in when it lands (app.css §9's keyframe) */
-    '@media (prefers-reduced-motion: reduce) { .tm-card { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
+    /* the outfit rises in when it lands (app.css §9's keyframe): a new suggestion, or the screen's first paint of one; a
+       repaint of the same one (a thumbs answer, the forecast, a pill that matches it again) leaves it where it is */
+    '.tm-card.arrive { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',
+    '@media (prefers-reduced-motion: reduce) { .tm-card.arrive { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
     '.tm-card > * { margin-inline: 16px; }',
     '.tm-kicker { font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--ink-3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-block-start: 14px; }',
     '.tm-kicker > span[data-occasion] { color: var(--accent-ink); background: var(--tint); padding: 5px 10px; border-radius: var(--pill); box-shadow: 0 4px 14px var(--tint-glow); }',   /* the occasion as its pastel, solid */
@@ -145,6 +147,7 @@ let busy = false;
 let root = null;
 let ctx = null;
 let moreOpen = null;   // the fold (details.tm-more) as the person left it during this visit; null = untouched, the default applies
+let shownId = null;    // the suggestion the card on screen shows (null: no card): only another one rises in
 
 function weatherPref() {
   const w = loadPrefs().weather;
@@ -440,15 +443,16 @@ function openDontOwnSheet(suggestion) {
 /**
  * The look card: the pieces as photos of you, the sentence, the forecast, the gap, the thumbs, the two doors. The card
  * and the kicker's occasion carry data-occasion, which app.css maps to the occasion's tint (the glow, the pill).
+ * arrive: this suggestion was not on screen a moment ago, so the card rises in (repaint() decides).
  */
-function lookCard(suggestion) {
+function lookCard(suggestion, arrive) {
   const kicker = el('div', { class: 'tm-kicker' }, [
     el('span', { text: whenLabel(suggestion.when) }),
     el('span', { 'data-occasion': suggestion.occasion || null, text: occasionLabel(suggestion.occasion) }),
     suggestion.style ? el('span', { text: styleLabel(suggestion.style) }) : null,
     suggestion.seq > 1 ? el('span', { id: 'tm-idea', text: t('tomorrow.idea', { n: suggestion.seq }) }) : null
   ]);
-  const cardEl = el('article', { class: 'tm-card', id: 'tm-card', 'data-suggestion': suggestion.id, 'data-occasion': suggestion.occasion || null }, [kicker]);
+  const cardEl = el('article', { class: 'tm-card' + (arrive ? ' arrive' : ''), id: 'tm-card', 'data-suggestion': suggestion.id, 'data-occasion': suggestion.occasion || null }, [kicker]);
   if (suggestion.status === 'rejected') {
     cardEl.appendChild(el('p', { class: 'tm-sentence', text: t('tomorrow.rejected') }));
     return cardEl;
@@ -588,7 +592,9 @@ function repaint() {
   const stripBlock = strip();
   if (stripBlock) body.appendChild(stripBlock);
   body.appendChild(actionBlock());
-  if (card && !busy) body.appendChild(lookCard(card));
+  const showing = card && !busy ? card : null;
+  if (showing) body.appendChild(lookCard(showing, showing.id !== shownId));
+  shownId = showing ? showing.id : null;
   const recent = recentList();
   if (recent) body.appendChild(recent);
 }
@@ -604,6 +610,7 @@ register('tomorrow', async (r, params, c) => {
   if (plans().tomorrow === false) { root.appendChild(emptyWithMark(t('tomorrow.off_title'), t('tomorrow.off'))); return; }
 
   moreOpen = null;   // a fresh visit starts the fold from its default
+  shownId = null;    // and its first card rises in
   const body = el('div', { class: 'stack', id: 'tomorrow' });
   root.appendChild(body);
   body.appendChild(el('p', { class: 'lede tm-lede sr-only', text: t('tomorrow.lede') }));

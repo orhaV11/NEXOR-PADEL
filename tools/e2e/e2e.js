@@ -324,9 +324,14 @@ function checkClientModules() {
   await dan.waitForSelector('#lang-offer');
   assert.strictEqual(await dan.getAttribute('#lang-offer', 'dir'), 'rtl');
   assert.strictEqual(await text(dan, '#lang-offer-yes'), 'עברית');
+  await dan.waitForSelector('#today-title');
+  const promptEn = await text(dan, '#today-title');
   await shot(dan, '01a-language-offer');
   await dan.click('#lang-offer-yes');
   await dan.waitForSelector('html[lang=he]');
+  // Review of Round 21: the Today strip's cache is the language's and the account's, so taking the offer asks for the
+  // prompt again in Hebrew instead of keeping the English one for ten minutes.
+  await dan.waitForFunction((en) => { const n = document.getElementById('today-title'); return !!n && n.textContent !== en && /[֐-׿]/.test(n.textContent); }, promptEn);
   assert.strictEqual(await dan.getAttribute('html', 'dir'), 'rtl');
   assert.strictEqual(await dan.$('#lang-offer'), null, 'the offer goes once it is answered');
   assert.strictEqual(await text(dan, '.wordmark'), 'OREVOSH');
@@ -902,6 +907,21 @@ function checkClientModules() {
   assert.ok(clipType.startsWith('video/mp4'), 'the clip became MP4: ' + clipType);
   const mp4Bytes = (await get(`${base}${clipPost.videoUrl}`)).body;
   assert.strictEqual(mp4Bytes.subarray(4, 8).toString('latin1'), 'ftyp', 'an MP4 container');
+  // Review of Round 21: the photo's name chips follow the look's list. The clip look has no dots, so the chips name its
+  // pieces; Noa takes the first one out in Edit items, and the photo drops it at once, with no reload.
+  await go(noa, '#/post/' + post3);
+  await noa.waitForSelector('#view .card-photo .pieces .chip.piece');
+  const photoChips = () => noa.$$eval('#view .card-photo .pieces .chip.piece .item-name', (n) => n.map((x) => x.textContent.toLowerCase()));
+  const chipsBefore = await photoChips();
+  await noa.click('#items-edit');
+  await noa.waitForSelector('#items-sheet #items-list > li.items-row');
+  const dropped = (await noa.textContent('#items-sheet #items-list > li.items-row:first-child .txt b')).toLowerCase();
+  assert.ok(chipsBefore.length >= 2 && chipsBefore.includes(dropped), 'the photo names the pieces on the list: ' + JSON.stringify(chipsBefore) + ' / ' + dropped);
+  await noa.click('#items-sheet #items-list > li.items-row:first-child .items-remove');
+  await noa.click('#items-save');
+  await noa.waitForSelector('#items-sheet', { state: 'detached' });
+  await noa.waitForFunction((n) => document.querySelectorAll('#view .card-photo .pieces .chip.piece').length === n, chipsBefore.length - 1);
+  assert.deepStrictEqual(await photoChips(), chipsBefore.filter((name) => name !== dropped), 'the chips drop the piece taken out');
   // Home keeps its last list for ten minutes; a reload is the honest way to see what was posted since.
   await go(dan, '#/');
   await dan.reload();
@@ -1135,9 +1155,9 @@ function checkClientModules() {
   await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
   await dan.waitForSelector('#wardrobe-keep-yes', { timeout: 10000 });
   await dan.waitForSelector('#wardrobe-keep-all');
-  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 3', 'the third answer names the count');
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'לשמור את כל 3', 'the third answer names the count');
   await dan.click('#wardrobe-keep-skip');
-  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 2', 'a refused piece leaves the count');
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'לשמור את כל 2', 'a refused piece leaves the count');
   for (let i = 0; i < 2; i++) {
     await dan.waitForSelector('#wardrobe-keep-skip');
     await dan.click('#wardrobe-keep-skip');
@@ -1155,7 +1175,7 @@ function checkClientModules() {
   assert.ok(!(await dan.$('#wardrobe-moment')), 'one piece is under the free slice');
   await runCheck(dan, { intent: 'Office', buffer: await makeJpeg(dan, 900, 1200), score: 6 });
   await dan.waitForSelector('#wardrobe-keep-all', { timeout: 10000 });
-  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'שמור את כל 2', 'only the two not yet kept are offered');
+  assert.strictEqual(await text(dan, '#wardrobe-keep-all'), 'לשמור את כל 2', 'only the two not yet kept are offered');
   // Review of Rounds 20 and 21: the request carries exactly the pieces the button counted, so a piece refused with
   // "Not this one" (or already kept) is never kept by it, and the line after it counts this look's pieces, not the
   // wardrobe's size.

@@ -488,7 +488,7 @@
   "pro.manual": "Pro is switched on by hand for now. Write to us and we'll sort it.",
   "pro.current": "You're on Pro until {date}.",
   "pro.current_open": "You're on Pro.",
-  "pro.thanks": "Thank you! Pro is switching on. It can take a moment to show here.",
+  "pro.thanks": "Thank you. Pro is switching on. It can take a moment to show here.",
   "settings.plan": "Plan",
   "settings.plan_free": "Free",
   "settings.plan_until": "Until {date}",

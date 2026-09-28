@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using FitCheck.Api.Services;
 
@@ -191,6 +192,31 @@ public class LocalizerTests
     [InlineData(null, "11 October")]
     public void A_mailed_date_is_in_the_readers_language(string? language, string expected) =>
         Assert.Equal(expected, Localizer.Day(new DateTime(2026, 10, 11, 23, 30, 0, DateTimeKind.Utc), language));
+
+    /// <summary>
+    /// Review of Round 21: the Hebrew speaks to nobody as a man, and names the plans in Hebrew, in the server's table and
+    /// in the client's he.json alike. DECISIONS keeps Hebrew copy in infinitive and neutral forms, so as not to guess the
+    /// reader's gender; Round 20 slipped masculine imperatives and "you" into a primary button, the activity lines, a push
+    /// and the admin screen ("נסה את הטיפ, ואז תראה לי"), and wrote Pro and Free in Latin letters beside the file's פרו and
+    /// חינם. The words below are the ones that crept in, each only ever a masculine imperative or address, so none may come
+    /// back. "OREVOSH Pro" stays the product's name in the mail subjects.
+    /// </summary>
+    [Fact]
+    public void Hebrew_speaks_to_nobody_as_a_man_and_names_the_plans_in_hebrew()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "i18n"));
+        var client = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "he.json"))).RootElement.EnumerateObject()
+            .Select(p => (Where: "he.json " + p.Name, Text: p.Value.GetString() ?? ""));
+        var server = Messages()["he"].Select(p => (Where: "Localizer " + p.Key, Text: p.Value));
+        string[] masculine = ["נסה", "תראה", "בדוק", "הירשם", "תודיע", "מתלבט", "התחל", "אתה", "הפעל", "הענק", "הסר", "תבקש", "תפעיל", "תוסיף", "שתלחץ"];
+        var addressed = new Regex(@"(?<![\u05D0-\u05EA])ו?(?:" + string.Join("|", masculine) + @")(?![\u05D0-\u05EA])");
+        var latinPlan = new Regex(@"(?<!OREVOSH )\bPro\b|\bFree\b");
+        foreach (var (where, text) in client.Concat(server))
+        {
+            Assert.False(addressed.IsMatch(text), $"{where} addresses the reader as a man (\"{addressed.Match(text).Value}\"): {text}");
+            Assert.False(latinPlan.IsMatch(text), $"{where} names a plan in Latin letters; the Hebrew says פרו and חינם: {text}");
+        }
+    }
 
     private static Dictionary<string, Dictionary<string, string>> Messages()
     {

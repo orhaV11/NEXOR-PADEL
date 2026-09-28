@@ -343,12 +343,12 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 .chip[data-occasion][aria-pressed="true"], .chip[data-intent]:not([data-intent=""])[aria-pressed="true"] { background: var(--tint); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px var(--tint-wash); }
 .chip[data-occasion][aria-pressed="true"]::before, .chip[data-intent]:not([data-intent=""])[aria-pressed="true"]::before { background: var(--accent-ink); opacity: 0.55; box-shadow: none; }
 /* the pieces as name chips (Round 21): core.js postCard pins them at a card photo's bottom-left corner, check.js at the
-   result photo's foot and again, larger, under "What you're wearing". The dot is the stylist's verdict: works filled
-   mint, neutral hollow, weak filled fire (fire's one place outside the reactions, the medals and the flame). Over a
-   photo they are dark glass with a light edge at the photo's bottom-left, by physical left/right like the count pill
-   they replace: a photo does not mirror, and the ring (direction: ltr) keeps the bottom-right in both directions, so
-   in Hebrew the chips flow leftward from the ring's side. The ::before is the 44px hit area on a 34px chip, so the chip
-   itself never clips: the name is what ellipsises. */
+   result photo's foot and again, larger, under "What you're wearing" (those sizes and washes are check.js's own). The
+   dot is the stylist's verdict: works filled mint, neutral hollow, weak filled fire (fire's one place outside the
+   reactions, the medals and the flame). Over a photo they are dark glass with a light edge at the photo's bottom-left,
+   by physical left/right like the count pill they replace: a photo does not mirror, and the ring (direction: ltr) keeps
+   the bottom-right in both directions, so in Hebrew the chips flow leftward from the ring's side. The ::before is the
+   44px hit area on a 34px chip, so the chip itself never clips: the name is what ellipsises. */
 .pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: 44px; list-style: none; margin: 0; padding: 0; }
 .chip.piece {
   position: relative; min-block-size: 34px; padding-inline: 11px; gap: 7px; font: 600 13px/1 var(--font-body); color: var(--ink); max-inline-size: 100%;
@@ -365,17 +365,6 @@ select.pill { text-transform: none; font: 500 16px/1 var(--font-body); letter-sp
 .card-photo .pieces { position: absolute; inset-block-end: 10px; left: 12px; right: 72px; z-index: 2; min-block-size: 0; gap: 5px; }
 .card-photo .chip.piece { min-block-size: 32px; padding-inline: 10px; font-size: 12.5px; }
 .card-photo:has(.pieces) .item-count { display: none; }
-/* off the photo (the result's "What you're wearing", check.js): the same chips on the raised surface at 40px, the works
-   chip on a mint wash and the weak one on a fire wash with the verdict word in that colour; the open one, whose note
-   sits under the row, is the gradient like any pressed chip */
-.result-pieces .pieces .chip.piece { min-block-size: 40px; padding-inline: 13px; font-size: 14px; background: var(--surface-2); border-color: var(--line-soft); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-.result-pieces .pieces .chip.piece::before { inset-block: -2px; }
-.result-pieces .pieces .chip.piece[data-verdict="works"] { background: linear-gradient(var(--ok-tint), var(--ok-tint)), var(--surface-2); }
-.result-pieces .pieces .chip.piece[data-verdict="works"] .item-verdict { color: var(--ok); }
-.result-pieces .pieces .chip.piece[data-verdict="weak"] { background: linear-gradient(var(--fire-tint), var(--fire-tint)), var(--surface-2); }
-.result-pieces .pieces .chip.piece[data-verdict="weak"] .item-verdict { color: var(--fire-ink); }   /* a word on the wash: the lighter fire (--fire reads 4.1:1 there) */
-.result-pieces .pieces .chip.piece[aria-expanded="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 143, 177, 0.24); }
-.result-pieces .pieces .chip.piece[aria-expanded="true"] .item-verdict { color: var(--accent-ink); opacity: 0.8; }
 /* the feed switch: two coins named after the halves of the mark (the flame = For you, the ring = Your circle). The
    current one is lit: a gradient pill with the word on it and the flame in fire; the other waits cool beside it, no
    underline and no sliding thumb. Switching re-renders, and the newly lit coin fades its fill in and pops its glyph. */

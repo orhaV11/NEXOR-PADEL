@@ -1406,8 +1406,11 @@ export function namedPieces(items) {
   return (Array.isArray(items) ? items : []).filter((item) => item && typeof item.name === 'string' && item.name.trim());
 }
 
-/** Up to four of a look's pieces as chips for a photo's bottom-left corner; null when the look carries none. */
-function piecesChips(items) {
+/**
+ * Up to four of a look's pieces as chips for a photo's bottom-left corner; null when the look carries none. The look
+ * page (views/post.js) draws them again from its item list after an edit, so the photo names what the look now carries.
+ */
+export function piecesChips(items) {
   const named = namedPieces(items);
   if (!named.length) return null;
   return el('span', { class: 'pieces', 'aria-hidden': 'true' }, named.slice(0, 4).map((item) => pieceChip(item)));

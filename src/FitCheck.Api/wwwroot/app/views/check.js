@@ -215,7 +215,8 @@ const CSS = `
 .tip-kind { color: var(--ok); background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
 .tip.keep::before { background: var(--ok); }
 .mount:empty { display: none; }
-/* Round 21 — the result in four moments (the tokens, the ring and the chips are app.css's; these rules are the result's own).
+/* Round 21 — the result in four moments (the tokens, the ring and the chips' shared rule are app.css's; these rules
+   are the result's own).
    1. The verdict: the judged still edge to edge, its bottom corners rounded so it sits ON the stage as an object; the
    pieces pinned at its bottom-left with a slight static tilt and the ring on its bottom-right corner, both by physical
    sides in both directions (a photo does not mirror; the ring is direction: ltr, as on every card); behind and below
@@ -254,6 +255,18 @@ const CSS = `
 .result-pieces > * + * { margin-block-start: 22px; }
 .result-pieces h2, .result-pieces .tip-head { margin-block-end: 12px; }
 .result-pieces .tip-head h2 { margin-block-end: 0; }
+/* the pieces again under "What you're wearing": app.css §8's chips on the raised surface at 40px, the works chip on a
+   mint wash and the weak one on a fire wash with the verdict word in that colour; the open one, whose note sits under
+   the row, is the gradient like any pressed chip. The result's own, so here and not in the shared sheet (DESIGN §10);
+   this block is appended after app.css, and every rule is more specific than the shared .chip.piece it builds on. */
+.result-pieces .pieces .chip.piece { min-block-size: 40px; padding-inline: 13px; font-size: 14px; background: var(--surface-2); border-color: var(--line-soft); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.result-pieces .pieces .chip.piece::before { inset-block: -2px; }
+.result-pieces .pieces .chip.piece[data-verdict="works"] { background: linear-gradient(var(--ok-tint), var(--ok-tint)), var(--surface-2); }
+.result-pieces .pieces .chip.piece[data-verdict="works"] .item-verdict { color: var(--ok); }
+.result-pieces .pieces .chip.piece[data-verdict="weak"] { background: linear-gradient(var(--fire-tint), var(--fire-tint)), var(--surface-2); }
+.result-pieces .pieces .chip.piece[data-verdict="weak"] .item-verdict { color: var(--fire-ink); }   /* a word on the wash: the lighter fire (--fire reads 4.1:1 there) */
+.result-pieces .pieces .chip.piece[aria-expanded="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 143, 177, 0.24); }
+.result-pieces .pieces .chip.piece[aria-expanded="true"] .item-verdict { color: var(--accent-ink); opacity: 0.8; }
 .piece-note { margin-block-start: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-2); unicode-bidi: plaintext; }
 .piece-note b { color: var(--ink); font-weight: 700; }
 .result-pieces .working li { font-size: 16px; color: var(--ink-2); }
@@ -1327,6 +1340,16 @@ function animateScore(node, target) {
   onLeave(() => { cancelAnimationFrame(frame); node.textContent = fmtNumber(target); });
 }
 
+/**
+ * The tip as a sentence that ends in its own mark, once: the Hebrew share line goes on after {tip} with a question of
+ * its own, so the line itself puts no period there (review of Round 21: it read "…פשוט.. מי בקבוצה"), and a tip the
+ * stylist left without one gets it here.
+ */
+function tipSentence(tip) {
+  const text = String(tip || '').trim();
+  return !text || /[.!?…؟]["'”’»)\]]*$/.test(text) ? text : text + '.';
+}
+
 // Round 20: once the check is posted the sentence travels with the look's public address (the sharer's own invite link),
 // on the sheet and on the clipboard alike; unposted, the sentence alone, exactly as before.
 async function shareResult(result) {
@@ -1334,7 +1357,7 @@ async function shareResult(result) {
   state.sharing = true;
   try {
     const feedback = result.feedback || {};
-    const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: occasionLabel(askedFor(result).occasion), tip: feedback.oneTip || '' });
+    const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: occasionLabel(askedFor(result).occasion), tip: tipSentence(feedback.oneTip) });
     const postId = state.resultPostId || result.postId;
     const url = postId ? shareLookUrl(postId) : null;
     if (navigator.share) {

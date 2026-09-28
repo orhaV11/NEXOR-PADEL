@@ -8,7 +8,7 @@
 // and saves with PATCH /api/posts/{id}/items (#items-save).
 import {
   register, state, t, api, el, icon, avatar, userRow, postCard, setTopBar, navigate, requireSignIn, sheet,
-  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow, onLeave
+  emptyState, skeletonCards, errorBlock, toast, pickReportReason, relative, fmtNumber, fmtCompact, breakdownRow, onLeave, piecesChips
 } from '../core.js';
 // Round 14 - before and after: the pair's own share format (app/sharecard.js draws the card, app/sharevideo.js the film).
 import { openBeforeAfterShare } from '../sharevideo.js';
@@ -208,12 +208,16 @@ register('post', async (root, params, ctx) => {
     if (!photo) return;
     let media = photo.closest('.card-media');
     if (!media) { media = el('div', { class: 'card-media' }); photo.replaceWith(media); media.appendChild(photo); }
-    for (const old of media.querySelectorAll('.item-dots, .items-toggle, .item-count')) old.remove();
+    for (const old of media.querySelectorAll('.item-dots, .items-toggle, .item-count, .pieces')) old.remove();
     const placed = items.filter(hasDot);
-    if (!placed.length) return;
     // Round 21: the toggle takes the corner the name chips sit in (core.js postCard), and with the dots and the list under
-    // the card it says what they said; a look with nothing placed keeps its chips.
-    for (const chips of media.querySelectorAll('.pieces')) chips.remove();
+    // the card it says what they said; a look with nothing placed keeps its chips, drawn here from the list as it is now,
+    // so an edit in the sheet below renames the photo too (review of Round 21).
+    if (!placed.length) {
+      const chips = piecesChips(items);
+      if (chips) photo.appendChild(chips);
+      return;
+    }
     const layer = el('div', { class: 'item-dots', id: 'item-dots', hidden: !dotsShown }, placed.map((item) => {
       const n = items.indexOf(item) + 1;
       return el('button', {

@@ -600,8 +600,8 @@ its arc on over 900ms, which is why `--arc` is registered with `@property` (an a
 added by `animateScore()` on the count-up's last frame, at once when nothing counts up — plays a 200ms 5% overshoot.
 **The fallbacks:** an engine without `@property` (Safari before 16.4, Firefox before 128) cannot tween the angle, so the
 draw-on jumps from nothing to the final arc halfway through its 900ms; the final ring is right everywhere. The public look
-page keeps its own server-drawn SVG ring (recoloured to the stage, filling from the top), and the share card and film
-still draw the full gradient ring.
+page keeps its own server-drawn SVG ring (recoloured to the stage, and since the review a meter too: the arc starts at
+the bottom-left and leaves the gap at the foot), and the share card and film still draw the full gradient ring.
 
 **The pieces chips, and where their verdicts come from.** `core.js` `pieceChip(item)` draws
 `span.chip.piece[data-verdict] > span.dot.{works|neutral|weak} + span.item-name`; a piece with anything but the stylist's
@@ -684,7 +684,10 @@ weight, so with both on the page the local files were never loaded. The service 
 
 **Motion and reduced motion.** One keyframe, `rise-in` (from opacity 0 and 8px down, 320ms): a list's first page
 (`core.js` `infiniteList()` puts `.enter` on it; the first six cards 80ms apart; a page appended on scroll simply
-appears), a notice with its screen, the result's four moments (0, 80, 140, 200ms), the Tomorrow card and the Today strip.
+appears), a notice with its screen, the result's four moments (0, 80, 140, 200ms), the Tomorrow card when a new outfit
+lands (`.tm-card.arrive`; a repaint of the same one, after a thumbs answer or the forecast, leaves it still) and the
+Today strip when it arrives from the network into a Home that has none (`.today-strip.arrive`; drawn from its cache on
+Back from a look, or refreshed over the one on screen, it is simply there, as the restored list is).
 Then the hero's arc and its overshoot, the aurora's breath, the lit flame's glow, the 2px press and a look's settle under
 a press. All of it is opacity and transform, and nothing waits on its end. Under `prefers-reduced-motion`, §9's global
 collapse still applies (every duration to 0.01ms, so `animationend` still fires and `lit` still clears); on top of it

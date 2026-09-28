@@ -384,6 +384,9 @@ export function skeletonCards(n) {
 
 // Round 20: `code` is the one machine word the server adds to a refusal the client acts on (plan_limit); null otherwise.
 export class ApiError extends Error { constructor(status, message, code) { super(message); this.status = status; this.code = code || null; } }
+// The boot's first call (/api/config) goes out before any language file is loaded, and its failure is never shown: the
+// key is not missing then, only not loaded yet, so it is not reported as missing.
+const failureText = (key) => (hasMessage(key) ? t(key) : key);
 
 /**
  * One call. `timeoutMs` is opt-in and off by default: most calls are small and a phone that has wandered out of signal
@@ -404,7 +407,7 @@ export async function api(method, path, body, timeoutMs, extraHeaders) {
       credentials: 'same-origin', signal: controller ? controller.signal : undefined
     });
   } catch (e) {
-    throw new ApiError(0, t('error.network'));
+    throw new ApiError(0, failureText('error.network'));
   } finally {
     if (bell) clearTimeout(bell);
   }
@@ -418,7 +421,7 @@ export async function api(method, path, body, timeoutMs, extraHeaders) {
       // there, never more than one in flight, signs the person out here on the first refused action.
       else if (response.status === 403) recheckMe();
     }
-    throw new ApiError(response.status, (data && data.error) || t('error.generic'), data && data.code);
+    throw new ApiError(response.status, (data && data.error) || failureText('error.generic'), data && data.code);
   }
   if ((method === 'POST' && /^\/api\/posts\/?$/.test(path)) || (method === 'DELETE' && /^\/api\/posts\/[^/]+$/.test(path))) feedVersion.n += 1;
   return data;
@@ -432,17 +435,22 @@ export const feedVersion = { n: 0 };
  * Round 20: this is the first request of every launch, so it is also where the installed app says, once a day per
  * device, that it was opened from the home screen (X-Orevosh-Launch: standalone, counted by the funnel middleware on
  * this one route). The day guard is the device's own prefs: no cookie, no route, no POST; private mode has no memory,
- * and cannot install a PWA either.
+ * and cannot install a PWA either. The day is marked only once the server has answered, so a launch with no signal
+ * (the shell comes from the service worker, the call does not) leaves the header for the next launch that day.
  */
 export async function loadConfig() {
-  let headers;
+  let headers, launchDay;
   try {
     if (isStandalone()) {
       const day = new Date().toISOString().slice(0, 10);
-      if (loadPrefs().standaloneDay !== day) { savePrefs({ standaloneDay: day }); headers = { 'X-Orevosh-Launch': 'standalone' }; }
+      if (loadPrefs().standaloneDay !== day) { launchDay = day; headers = { 'X-Orevosh-Launch': 'standalone' }; }
     }
   } catch (e) { /* no header, then */ }
-  try { const c = await api('GET', '/api/config', undefined, undefined, headers); if (c) state.config = { ...state.config, ...c }; } catch (e) { /* defaults stand */ }
+  try {
+    const c = await api('GET', '/api/config', undefined, undefined, headers);
+    if (launchDay) savePrefs({ standaloneDay: launchDay });
+    if (c) state.config = { ...state.config, ...c };
+  } catch (e) { /* defaults stand */ }
 }
 export async function loadMe() {
   const before = state.me;

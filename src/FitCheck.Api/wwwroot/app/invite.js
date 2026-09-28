@@ -13,6 +13,8 @@
 //      Sign-out does not clear it: it is the device's arrival, not the person's. Never a cookie.
 //
 // Loaded at boot because views/post.js imports it, which main.js imports; capture() runs on import, before any view.
+// Once read, ?via and ?src leave the address (the rest of the query and the hash stay), so a reload or a restored tab
+// does not keep them again after the signup spent them.
 import { state, t, el, sheet, toast, copyText, VIA_SHARE, configuredOrigin, linkOrigin, publicLookUrl, inviteUrl, lookInviteUrl, shareLookUrl, lookShareText } from './core.js';
 
 // The link builders moved to core.js so the share button can reach them without an await (see shareLookUrl there).
@@ -174,5 +176,17 @@ export function openLookLinkSheet(post) {
   });
 }
 
+/** Takes the words just read off the address out of it, with history.replaceState: no navigation, no new entry. */
+function dropFromAddress(names) {
+  try {
+    const query = new URLSearchParams(location.search);
+    if (!names.some((name) => query.has(name))) return;
+    for (const name of names) query.delete(name);
+    const rest = query.toString();
+    history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  } catch (e) { /* the address keeps them; the signup still spends what is kept */ }
+}
+
 capture();
 captureSource();
+dropFromAddress(['via', 'src']);

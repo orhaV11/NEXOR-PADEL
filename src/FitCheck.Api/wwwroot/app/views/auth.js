@@ -7,7 +7,7 @@ import {
   register, state, t, api, el, iconButton, navigate, renderShell, setTopBar, openLanguageSheet, getLocale, INTENTS, intentLabel, userRow, toast, isMe, redirect, showAlert, resetSession, claimGuestChecks, loadMe, richText, hashQuery
 } from '../core.js';
 // Round 13 — the growth loop: the handle an invite link carried, spent once, here.
-import { takeInvite, takeSource } from '../invite.js';
+import { pendingInvite, pendingSource, takeInvite, takeSource } from '../invite.js';
 // Round 20: the welcome screen offers push to the guest who asked to hear when the stylist is back.
 import { pushSupport, enablePush } from '../push.js';
 
@@ -92,10 +92,12 @@ function authView(mode) {
       try {
         const me = signup
           // today: the phone's own calendar day, so the sixteen rule is measured on it and not on the server's UTC day.
-          // invitedBy: the handle an invite link left in this browser (Round 13), sent once and then forgotten.
-          // source: the entry link the device arrived through (Round 20), likewise sent once and forgotten here.
-          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: takeInvite(), notifyStylistBack: stylistBack, source: takeSource() })
+          // invitedBy: the handle an invite link left in this browser (Round 13). source: the entry link the device arrived
+          // through (Round 20). Both are read here and forgotten only once the account exists, so a refused first try (a
+          // taken handle, a short password) keeps them for the next one.
+          ? await api('POST', '/api/auth/signup', { handle: handle.value.trim(), password: password.value, birthDate: dob.value, today: isoToday(), language: getLocale(), invitedBy: pendingInvite(), notifyStylistBack: stylistBack, source: pendingSource() })
           : await api('POST', '/api/auth/login', { handle: handle.value.trim(), password: password.value });
+        if (signup) { takeInvite(); takeSource(); }       // spent: one arrival, one account
         state.me = me;
         if (stylistBack) state.stylistBackAsked = true;   // memory only: the welcome screen reads it once
         renderShell();

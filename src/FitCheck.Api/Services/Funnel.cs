@@ -107,8 +107,8 @@ public static partial class Funnel
     /// <summary>
     /// The middleware. A GET that is a page (never <c>/api</c>, never a file with an extension) counts: a landing view
     /// when it is under <c>/landing</c>, an invite arrival when the query carries a <c>via</c> that is a handle rather
-    /// than the share marker. Both are one upsert on a <see cref="Counter"/> row and neither is ever worth failing a
-    /// request for.
+    /// than the share marker and the page is not the <c>/go/</c> redirect, whose target is the arrival. Both are one
+    /// upsert on a <see cref="Counter"/> row and neither is ever worth failing a request for.
     /// </summary>
     public static async Task Count(HttpContext context, RequestDelegate next)
     {
@@ -129,7 +129,10 @@ public static partial class Funnel
                 var path = request.Path.Value ?? "/";
                 var landing = IsLandingPage(path);
                 var via = request.Query["via"].ToString().Trim();
+                // An entry link (/go/<source>?via=) is not the arrival: it hands the invite to the page it redirects to,
+                // which is counted here, and a word off the list lands on /landing/ without it. One tap, one invite.
                 var invite = via.Length > 0
+                    && !request.Path.StartsWithSegments("/go")
                     && !string.Equals(via, PublicPageEndpoints.ViaShare, StringComparison.OrdinalIgnoreCase)
                     && HandleRegex().IsMatch(via);
                 if (landing || invite)

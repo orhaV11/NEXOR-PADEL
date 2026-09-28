@@ -134,6 +134,27 @@ public class DistributionTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task An_entry_link_with_an_invite_is_one_invite_arrival()
+    {
+        var before = await CounterAsync(_app, Funnel.InviteArrivals(Today));
+
+        // A person follows the link: the /go hop hands the invite on, and the page it lands on is the one arrival.
+        var person = _app.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await person.GetAsync("/go/tt?via=dana")).StatusCode);
+        Assert.Equal(before + 1, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
+
+        // The hop alone counts no invite: a word off the list drops it on the way to /landing/, a fetcher unfurling the
+        // link is redirected without a tally, and a browser that stops at the redirect has arrived nowhere yet.
+        var stopping = Stopping(_app);
+        Assert.Equal("/landing/", (await stopping.GetAsync("/go/nope?via=dana")).Headers.Location!.ToString());
+        Assert.Equal("/?src=tt&via=dana#/check", (await stopping.GetAsync("/go/tt?via=dana")).Headers.Location!.ToString());
+        var crawler = Stopping(_app);
+        crawler.DefaultRequestHeaders.UserAgent.ParseAdd("WhatsApp/2.23.20.0");
+        Assert.Equal(HttpStatusCode.Found, (await crawler.GetAsync("/go/tt?via=dana")).StatusCode);
+        Assert.Equal(before + 1, await CounterAsync(_app, Funnel.InviteArrivals(Today)));
+    }
+
+    [Fact]
     public async Task The_source_is_stamped_on_the_guest_check_and_the_signup_and_a_bad_one_is_null()
     {
         // A fresh app, and one cookie jar per guest: a guest has one check a day, and the day's address cap is shared.
@@ -301,12 +322,53 @@ public class DistributionTests : IClassFixture<TestApp>
     }
 
     [Fact]
+    public async Task A_long_name_on_the_list_is_the_row_of_the_short_code_it_spells()
+    {
+        // The bio links are /go/tiktok and /go/instagram, so an owner may well list the long words: each is its short
+        // code's row, the link written either way lands on it, and the check and the signup store the short code.
+        using var app = new TestApp { Settings = { ["Funnel:Sources:0"] = "tiktok", ["Funnel:Sources:1"] = "Instagram", ["Funnel:Sources:2"] = "tt" } };
+        var mod = app.NewClient();
+        await app.SignupAsync(mod, "srcaliasmod");
+        await app.PromoteAsync("srcaliasmod");
+
+        var client = Stopping(app);
+        Assert.Equal("/?src=tt#/check", (await client.GetAsync("/go/tiktok")).Headers.Location!.ToString());
+        Assert.Equal("/?src=tt#/check", (await client.GetAsync("/go/tt")).Headers.Location!.ToString());
+        Assert.Equal("/?src=ig#/check", (await client.GetAsync("/go/instagram")).Headers.Location!.ToString());
+        Assert.Equal("/landing/", (await client.GetAsync("/go/wa")).Headers.Location!.ToString());
+
+        var check = await app.NewClient().PostAsync("/api/checks", CheckFormWithSource("tiktok"));
+        Assert.Equal(HttpStatusCode.Created, check.StatusCode);
+        var checkId = (await check.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal("tt", await WithDbAsync(app, db => db.Checks.AsNoTracking().Where(c => c.Id == checkId).Select(c => c.Source).SingleAsync()));
+        var signup = await app.NewClient().PostAsJsonAsync("/api/auth/signup",
+            new { handle = "srcalias", password = "password123", birthDate = "1990-01-01", language = "en", source = "instagram" });
+        Assert.Equal(HttpStatusCode.Created, signup.StatusCode);
+        Assert.Equal("ig", await WithDbAsync(app, db => db.Users.AsNoTracking().Where(u => u.Handle == "srcalias").Select(u => u.Source).SingleAsync()));
+
+        var sources = (await (await mod.GetAsync("/api/metrics/pilot")).Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("funnel").GetProperty("sources").EnumerateArray().ToList();
+        Assert.Equal(new[] { "tt", "ig" }, sources.Select(s => s.GetProperty("source").GetString()).ToArray());
+        Assert.Equal(2, sources[0].GetProperty("arrivals").GetInt32());
+        Assert.Equal(1, sources[0].GetProperty("guestChecks").GetInt32());
+        Assert.Equal(1, sources[1].GetProperty("arrivals").GetInt32());
+        Assert.Equal(1, sources[1].GetProperty("signups").GetInt32());
+    }
+
+    [Fact]
     public void The_allowlist_is_normalized_and_falls_back_to_the_default()
     {
         Assert.Equal(new[] { "tt", "ig", "wa", "campus", "yt", "fb", "x", "qr", "story", "dm" }, new FunnelOptions().List);
         Assert.Equal(new[] { "tt", "x" }, new FunnelOptions { Sources = ["", "TT", "tt", "bad one", "x"] }.List);
         Assert.Equal(FunnelOptions.Defaults, new FunnelOptions { Sources = [] }.List);
         Assert.Equal(FunnelOptions.Defaults, new FunnelOptions { Sources = ["bad one", "toolongtobeasourcecode"] }.List);
+        // A long name on the list is the short code it spells, once, so the link written either way finds it.
+        var spelled = new FunnelOptions { Sources = ["TikTok", "instagram", "tt", "campus"] };
+        Assert.Equal(new[] { "tt", "ig", "campus" }, spelled.List);
+        Assert.Equal("tt", spelled.Normalize("tiktok"));
+        Assert.Equal("tt", spelled.Normalize("tt"));
+        Assert.Equal("ig", spelled.Normalize("Instagram"));
+        Assert.Null(spelled.Normalize("whatsapp"));
 
         var options = new FunnelOptions();
         Assert.Equal("ig", options.Normalize("Ig "));
@@ -419,10 +481,26 @@ public class DistributionTests : IClassFixture<TestApp>
         Assert.Contains("captureSource();", invite);
         Assert.DoesNotContain("document.cookie", invite);
 
-        // The check sends it while it is kept; the signup spends it.
+        // Read once per arrival: both words leave the address after the capture, so a reload does not keep them again.
+        Assert.True(invite.IndexOf("dropFromAddress(['via', 'src']);", StringComparison.Ordinal) > invite.IndexOf("captureSource();", StringComparison.Ordinal),
+            "invite.js must take ?via and ?src off the address after capturing them");
+        Assert.Contains("history.replaceState(", invite);
+
+        // The check sends it while it is kept; the signup sends both without spending them and spends them only once the
+        // account exists, so a refused first try (a taken handle) keeps the attribution for the next one.
         Assert.Contains("form.append('source', source)", File.ReadAllText(Path.Combine(WebRoot, "app", "views", "check.js")));
-        Assert.Contains("source: takeSource()", File.ReadAllText(Path.Combine(WebRoot, "app", "views", "auth.js")));
-        // The launch header rides the first call only.
-        Assert.Contains("'X-Orevosh-Launch': 'standalone'", File.ReadAllText(Path.Combine(WebRoot, "app", "core.js")));
+        var auth = File.ReadAllText(Path.Combine(WebRoot, "app", "views", "auth.js"));
+        Assert.Contains("invitedBy: pendingInvite()", auth);
+        Assert.Contains("source: pendingSource()", auth);
+        var sent = auth.IndexOf("'/api/auth/signup'", StringComparison.Ordinal);
+        var spent = auth.IndexOf("if (signup) { takeInvite(); takeSource(); }", StringComparison.Ordinal);
+        Assert.True(sent > 0 && spent > sent, "the invite and the source are spent only after the signup call answered");
+
+        // The launch header rides the first call only, and the day is marked only once the server has answered.
+        var core = File.ReadAllText(Path.Combine(WebRoot, "app", "core.js"));
+        Assert.Contains("'X-Orevosh-Launch': 'standalone'", core);
+        var config = core.IndexOf("await api('GET', '/api/config'", StringComparison.Ordinal);
+        var marked = core.IndexOf("savePrefs({ standaloneDay:", StringComparison.Ordinal);
+        Assert.True(config > 0 && marked > config, "standaloneDay is saved after /api/config answered, not before the call");
     }
 }

@@ -2554,3 +2554,17 @@ transform, and nothing waits on one. No route, setting, migration or i18n key wa
 - **The Russian trial button counts in the file's shape**, "Начать бесплатно, дней: {days}", since "{days} бесплатных
   дн." agreed with the number and read wrong for 1 and 21. `LanguagesTests` now holds every Russian `{days}` to the
   count rule, with the abbreviation "дн." the one word allowed after it, since it reads the same for every number.
+- **One arrival, one account, one count.** The signup form spent the kept invite and entry-link source before the
+  server answered, so a refused first try (a taken handle, a short password) sent the retry unattributed; they are now
+  sent as kept and forgotten only once the account exists. `?via` and `?src` stayed on the address for the tab's life,
+  so a reload after the signup kept the spent source again and the next signup on that phone was credited to the link;
+  once read they now leave the address (`history.replaceState`, the rest of the query and the hash kept). Nothing reads
+  them from the address later, and a phone with no storage never kept them anyway. The `/go/` hop no longer counts the
+  invite it hands on: the page it lands on is the arrival, so a followed link is one invite and a word off the list
+  none. A fetcher that follows the redirect is counted on that page like any pasted invite link since Round 13; the
+  crawler rule stays the source row's, and the invite tally still never reads the user agent. The installed app marks
+  the day's launch only once `/api/config` has answered, so a launch with no signal leaves the header for the next one.
+- **A long name on `Funnel:Sources` is its short code's row.** The allowlist resolves `tiktok` to `tt` the way a link
+  is read, so an owner who lists the words the bios carry gets the `tt` and `ig` rows; the list used to keep the long
+  word and the link resolved past it, so the row stayed at zero. Keeping the long word as a row of its own would have
+  split one surface across two rows, or left `/go/tt` unanswered.

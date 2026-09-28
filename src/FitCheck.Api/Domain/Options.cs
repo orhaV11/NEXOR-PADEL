@@ -816,7 +816,11 @@ public sealed class FunnelOptions
     /// </summary>
     public List<string> Sources { get; set; } = [];
 
-    /// <summary>The allowlist as the app uses it: trimmed, lower-cased, [a-z0-9]{1,16}, each once, in order; an empty setting is the default list.</summary>
+    /// <summary>
+    /// The allowlist as the app uses it: trimmed, lower-cased, [a-z0-9]{1,16}, each once, in order; an empty setting is the
+    /// default list. A long name is kept as the short code it spells (<c>tiktok</c> is <c>tt</c>), the same way
+    /// <see cref="Normalize"/> reads a link, so an owner who lists the long word still gets its row.
+    /// </summary>
     public IReadOnlyList<string> List
     {
         get
@@ -824,7 +828,7 @@ public sealed class FunnelOptions
             var list = new List<string>();
             foreach (var entry in Sources ?? [])
             {
-                var code = (entry ?? "").Trim().ToLowerInvariant();
+                var code = Resolve((entry ?? "").Trim().ToLowerInvariant());
                 if (System.Text.RegularExpressions.Regex.IsMatch(code, "^[a-z0-9]{1,16}$") && !list.Contains(code))
                 {
                     list.Add(code);
@@ -838,14 +842,12 @@ public sealed class FunnelOptions
     /// <summary>The allowlisted source a word names (an alias resolved), or null.</summary>
     public string? Normalize(string? source)
     {
-        var code = (source ?? "").Trim().ToLowerInvariant();
-        if (Aliases.TryGetValue(code, out var alias))
-        {
-            code = alias;
-        }
-
+        var code = Resolve((source ?? "").Trim().ToLowerInvariant());
         return List.Contains(code) ? code : null;
     }
+
+    /// <summary>The short code a long name spells, or the word itself.</summary>
+    private static string Resolve(string code) => Aliases.TryGetValue(code, out var alias) ? alias : code;
 
     public bool IsSource(string? source) => Normalize(source) is not null;
 }

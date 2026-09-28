@@ -1392,10 +1392,11 @@ function checkClientModules() {
   // the day and only then; the numbers page counts one launch. (4) Copy link carries the share sentence above the
   // address on a look page (Hebrew reads as a challenge) and on the result screen once the look is posted.
   const maya = await person(browser, 'maya', 'he-IL');
-  await maya.goto(base + '/go/tt');
+  const landed = await maya.goto(base + '/go/tt');
   await maya.waitForFunction(() => location.hash === '#/check');
   await maya.waitForSelector('#occasions .chip');
-  assert.ok(maya.url().endsWith('/?src=tt#/check'), 'the entry link lands on the check screen with the source: ' + maya.url());
+  assert.ok(landed.url().endsWith('/?src=tt'), 'the entry link lands on the app with the source: ' + landed.url());
+  assert.ok(maya.url().endsWith('/#/check'), 'the source is read off the address and leaves it, the check screen stays: ' + maya.url());
   assert.ok((await count(maya, '#occasions .chip')) > 0, 'the occasion chips are up');
   assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), 'tt', 'the source is kept on the device');
   const ttBefore = (await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt');
@@ -1403,8 +1404,21 @@ function checkClientModules() {
   const mayaPhoto = await makeJpeg(maya, 800, 1000);
   await runCheck(maya, { intent: 'Party', buffer: mayaPhoto, score: 7 });
   assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), 'tt', 'a guest check does not spend the source');
+  // A refused first try (the handle is taken) keeps the source for the next one.
+  await go(maya, '#/signup');
+  await maya.waitForSelector('#a-handle');
+  await maya.fill('#a-handle', 'noa');
+  await maya.fill('#a-password', 'password123');
+  await maya.fill('#a-dob', '1990-01-01');
+  expected.push('POST /api/auth/signup -> 409');
+  await maya.click('#a-submit');
+  await maya.waitForSelector('#view .alert.danger:not([hidden])');
+  assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), 'tt', 'a refused signup does not spend the source');
   await signup(maya, 'maya', 'password123');
   assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), null, 'the signup spends the source');
+  await maya.reload();
+  await maya.waitForSelector(settled);
+  assert.strictEqual(await maya.evaluate(() => localStorage.getItem('orevosh.source')), null, 'a reload does not bring the spent source back');
   const tt = (await metricsAs(noa)).funnel.sources.find((s) => s.source === 'tt');
   assert.ok(tt.arrivals >= 1 && tt.guestChecks >= 1 && tt.signups >= 1, 'the walk is attributed to TikTok: ' + JSON.stringify(tt));
   const sourceRows = (await metricsAs(noa)).funnel.sources;
@@ -1442,15 +1456,20 @@ function checkClientModules() {
   assert.strictEqual(await count(inapp, '#inapp-hint'), 0, 'once per device');
   await inapp.context().close();
 
-  // (3) The installed app: the launch header on the first /api/config of the day, absent on the reload, one row.
+  // (3) The installed app: the launch header on the first /api/config of the day that reaches the server, absent on the
+  // reload after it, one row. The first launch here has no signal (the call never leaves the phone), so it spends nothing.
   const installed = await person(browser, 'installed', 'en-US', { standalone: true });
   const launches = [];
   installed.on('request', (r) => { if (r.url().endsWith('/api/config')) launches.push(r.headers()['x-orevosh-launch'] || null); });
+  await installed.route('**/api/config', (route) => route.abort('internetdisconnected'), { times: 1 });
+  expected.push('/api/config -> net::ERR_INTERNET_DISCONNECTED');
   await installed.goto(base + '/');
   await installed.waitForSelector(settled);
   await installed.reload();
   await installed.waitForSelector(settled);
-  assert.deepStrictEqual(launches, ['standalone', null], 'the header rides the first call of the day only: ' + JSON.stringify(launches));
+  await installed.reload();
+  await installed.waitForSelector(settled);
+  assert.deepStrictEqual(launches, ['standalone', 'standalone', null], 'the header rides the first answered call of the day only: ' + JSON.stringify(launches));
   assert.strictEqual((await metricsAs(noa)).funnel.days.at(-1).standalone, 1, 'one home-screen launch today');
   await installed.context().close();
 

@@ -70,8 +70,8 @@ const COPY = {
     cta: 'בדקו את שלכם. לינק בביו.',
     stories: [
       { id: 'check-the-look', title: 'בודקים את הלוק.', sub: '', shot: '16-home-he.png', use: 'The slogan with the feed' },
-      // The Hebrew result screen the browser test captured scored 6/10, so the headline follows the picture.
-      { id: 'the-one-tip', title: '6/10 והטיפ האחד', sub: '"שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט."', shot: '00-guest-result-he.png', use: 'The result screen and the one tip' },
+      // The Hebrew result is a guest's check of the pink look, 8/10, so the headline and the tip follow that picture.
+      { id: 'the-one-tip', title: '8/10 והטיפ האחד', sub: '"שווה להחליף את העניבה המפוספסת בעניבה ורודה חלקה, ולהשאיר את הפסים לחולצה."', shot: '00-guest-result-he.png', use: 'The result screen and the one tip' },
       { id: 'brands', title: 'אילו מותגים אתם לובשים', sub: 'מתייגים עם @. הם מציגים את הלוקים שהם אוהבים.', shot: '14-tag-he.png', use: 'A look with a brand tag' },
     ],
     store: [
@@ -89,105 +89,16 @@ const COPY = {
     cover: '14-tag-he.png',
   },
 };
-// ---------- the app screens: the real looks, in the captures ----------
+// ---------- the app screens ----------
 
-/* The three looks the owner shot (templates/photos/, used with permission) and where a 4:5 crop of each should
-   sit. The app shows an outfit at 4:5 and these are full-length frames, so every crop gives something up; the
-   position is chosen per photo, and what it loses is written down here and in brand-kit/README.md.
-     look-1  cover-cropped from the bottom: the chunky sneakers the tip talks about stay in, the white cap and the
-             head fall above the frame.
-     look-2  a little off the top: the hair is trimmed, the coat, turtleneck, skirt and the tights the tip talks
-             about are whole, and the boots come in at the hem.
-     look-3  cover-cropped from the top: the fedora, the striped shirt and the tie the tip talks about stay in,
-             the pink shoes fall below the frame. */
-const LOOKS = {
-  street: { file: 'look-1-streetwear.jpg', pos: '50% 100%' },
-  camel: { file: 'look-2-camel.jpg', pos: '50% 20%' },
-  pink: { file: 'look-3-pink.jpg', pos: '50% 12%' },
-};
-
-/* What goes into each capture, in the capture's own pixels (780×1688 = the app's 390×844 viewport at 2×, so a
-   number from app.css doubles). `photos` lay a look into the rectangle the browser test's placeholder filled;
-   `parts` fill a rectangle with the colour the app painted there and re-draw the run over it; `reveal` puts the
-   capture back on top through a rounded window, for the toast that has to stay in front. Only the lines that read
-   as a verdict on the picture are touched: a score, a headline, an intent, an occasion, the one tip. */
-const SCREEN_EDITS = {
-  // The check screen, ready to send: the camel look in the drop zone, and the occasion it was checked for.
-  '07-check-ready-en.png': {
-    photos: [{ look: 'camel', x: 34, y: 672, w: 712, h: 890, r: 36 }],
-    parts: [
-      { fill: '#1e1e27', x: 36, y: 538, w: 708, h: 92, r: 20 },
-      { cls: 'sx-field', x: 60, y: 559, w: 660, html: 'coffee and a walk' },
-    ],
-    reveal: [{ x: 58, y: 1482, w: 386, h: 58, r: 29 }],   // the app's "change photo or clip" pill, back on top
-  },
-  // The verdict for that check: the score, the headline, the occasion, the breakdown, what the accessories are
-  // and the one tip. No photo on this screen — the app keeps it below the fold.
-  '08-result-en.png': {
-    parts: [
-      { fill: '#0b0b0f', x: 90, y: 204, w: 220, h: 220 },
-      { cls: 'sx-hero', x: 32, y: 146, w: 336, h: 336, html: '<b>9</b><small>/10</small>' },
-      { fill: '#0b0b0f', x: 30, y: 505, w: 706, h: 252 },
-      { cls: 'sx-h1', x: 32, y: 512, w: 700, html: 'Camel and chocolate, done right' },
-      { fill: '#0b0b0f', x: 30, y: 768, w: 500, h: 46 },
-      { cls: 'sx-vibe', x: 32, y: 769, w: 500, html: 'coffee and a walk' },
-      { badge: 9, x: 44, y: 900, size: 88, flat: true },
-      { badge: 9, x: 212, y: 900, size: 88, flat: true },
-      { badge: 8, x: 418, y: 900, size: 88, flat: true },
-      { fill: '#0b0b0f', x: 30, y: 1100, w: 706, h: 76 },
-      { cls: 'sx-pill', x: 32, y: 1108, html: 'Gold, layered' },
-      { fill: '#0b0b0f', x: 30, y: 1188, w: 706, h: 298 },
-      { cls: 'sx-body', x: 32, y: 1188, w: 700, html: '<span class="sx-caps">Seen</span>&nbsp; Layered gold necklaces, a quilted bag, knee-high boots.' },
-      { bar: true, x: 32, y: 1280, w: 6, h: 190 },
-      { cls: 'sx-caps accent', x: 64, y: 1284, w: 660, html: 'The one tip' },
-      { cls: 'sx-tip', x: 64, y: 1316, w: 660, html: 'Swap the black tights for sheer brown and the column runs unbroken.' },
-    ],
-  },
-  // The look just posted, and a look a brand has just featured (the third one, the same one its profile grid shows).
-  '10-post-en.png': { card: { look: 'street', y: 294, body: 175, score: 8, headline: 'All grey, and it holds', tag: 'Streetwear', caption: 'Grey on grey, thoughts? <span class="t">#streetwear</span> <span class="t">@nexor</span>' } },
-  '11-featured-en.png': { card: { look: 'pink', y: 294, body: 175, score: 8, headline: 'Full pink, full commitment', tag: 'Party', caption: 'Head to toe pink, thoughts? <span class="t">#party</span> <span class="t">@nexor</span>' } },
-  // A brand's profile: the looks it has featured. The grid is where the third look shows up.
-  '12-brand-community-en.png': {
-    photos: [{ look: 'pink', x: 28, y: 1206, w: 230, h: 288, r: 24 }],
-    parts: [{ badge: 8, x: 186, y: 1450, size: 60, grid: true }],
-    reveal: [{ x: 64, y: 1400, w: 652, h: 80, r: 40 }],
-  },
-  // The Hebrew tag page: the camel look under #datenight, where the app's own copy already reads date night.
-  '14-tag-he.png': { dir: 'rtl', card: { look: 'camel', y: 334, body: 210, score: 9, headline: 'Camel and chocolate, done right', caption: 'Dinner fit, thoughts? <span class="t">#datenight</span>\n<span class="t">#DateNight</span> <span class="t">@nexor</span> @nobody' } },
-  // The Hebrew feed. The toast the capture put over the headline goes back on top of the new one.
-  '16-home-he.png': {
-    dir: 'rtl',
-    photos: [{ look: 'street', x: 48, y: 542, w: 684, h: 855, r: 28 }],
-    parts: [
-      { badge: 8, x: 616, y: 1337, size: 88 },
-      { fill: '#15151c', x: 144, y: 446, w: 220, h: 56 },
-      { cls: 'sx-tag', x: 156, y: 450, html: 'סטריטוור' },
-      { fill: '#15151c', x: 44, y: 1433, w: 692, h: 62 },
-      { fill: '#15151c', x: 44, y: 1495, w: 276, h: 58 },
-      { cls: 'sx-head', x: 56, y: 1439, w: 660, dir: 'ltr', html: 'All grey, and it holds' },
-    ],
-    reveal: [{ x: 228, y: 1400, w: 312, h: 80, r: 40 }],
-  },
-};
-
-/* The feed card of §3, the same on every screen that shows one: the photo at 4:5 with the score ring straddling
-   its bottom-end corner, then the intent chip, the headline and the caption. `y` is where the photo starts and
-   `body` how far under it the card's text runs before something else in the capture (a composer, a pill) begins:
-   the new headline is one line where the seeded one was two, so the caption rises with it. */
-function cardScreen(c) {
-  const x = 48, w = 684, h = 855, bottom = c.y + h;
-  const parts = [
-    { badge: c.score, x: x + w - 116, y: bottom - 60, size: 88 },
-    { fill: '#15151c', x: 44, y: bottom + 38, w: 692, h: c.body },
-    { cls: 'sx-stack', x: 56, y: bottom + 44, w: 660, dir: 'ltr',
-      html: `<div class="sx-head">${c.headline}</div><div class="sx-cap">${c.caption}</div>` },
-  ];
-  // the intent chip in the card's head, drawn from its end edge so a longer word grows towards the name
-  if (c.tag) parts.splice(1, 0,
-    { fill: '#15151c', x: 500, y: c.y - 96, w: 132, h: 56 },
-    { cls: 'sx-tag', right: 780 - 624, y: c.y - 92, html: c.tag });
-  return { photos: [{ look: c.look, x, y: c.y, w, h, r: 28 }], parts };
-}
+/* The ten captures in templates/screens/ are the real app (Round 21) at its 390×844 viewport at 2×, 780×1688: the
+   three looks of templates/photos/ (the owner's, used with permission) checked, posted and featured through the app's
+   own screens, with the stylist's answer written for each photo, so every score, headline, piece and tip on a screen is
+   about the clothes in it and a capture goes into its frame as it is. Which look is where:
+     look-2-camel       07 the check, 08 its result (9/10), 14 the Hebrew tag page, 13 Explore's look of the week
+     look-1-streetwear  10 the look's page, 16 the Hebrew feed (8/10)
+     look-3-pink        11 the look NEXOR featured, 12 NEXOR's featured grid, 00 the Hebrew guest result (8/10),
+                        20 the in-app camera (Chromium's fake device playing a still of it) */
 
 const STORE_SIZES = [
   { id: 'iphone-6.7', w: 1284, h: 2778, use: 'App Store, iPhone 6.7" (also accepted for 6.5" and 6.9")' },
@@ -227,34 +138,12 @@ function pngSize(file) {
 const jobs = [];
 const lang = (l) => ({ lang: l, dir: l === 'he' ? 'rtl' : 'ltr' });
 const shot = (name) => fileUrl(path.join(SCREENS, name));
-const look = (name) => fileUrl(path.join(TPL, 'photos', LOOKS[name].file));
 const brand = (name) => fileUrl(path.join(BRAND, name));
 const add = (category, file, spec) => jobs.push({ category, file, out: path.join(OUT, category, file), ...spec });
 
-// One capture pixel as a share of the screen's width, so a screen scales with the phone frame (base.css, --u).
-const u = (n) => `calc(${+n} * var(--u))`;
-const place = (p) => [p.x !== undefined ? `left:${u(p.x)}` : '', p.right !== undefined ? `right:${u(p.right)}` : '',
-  `top:${u(p.y)}`, p.w ? `width:${u(p.w)}` : '', p.h ? `height:${u(p.h)}` : ''].filter(Boolean).join(';');
-
-/* One piece laid over a capture: a rectangle of the colour the app painted there, the gradient bar of a tip, a
-   score ring, or a run of text in the app's type. */
-function piece(p) {
-  if (p.fill) return `<div style="${place(p)};background:${p.fill}${p.r ? `;border-radius:${u(p.r)}` : ''}"></div>`;
-  if (p.bar) return `<div class="sx-bar" style="${place(p)}"></div>`;
-  if (p.badge !== undefined) return `<div class="sx-badge${p.grid ? ' grid' : ''}" style="${place(p)};width:${u(p.size)};height:${u(p.size)}${p.flat ? ';box-shadow:none' : ''}"><b>${p.badge}</b><small>/10</small></div>`;
-  return `<div class="sx ${p.cls}" style="${place(p)}"${p.dir ? ` dir="${p.dir}"` : ''}>${p.html}</div>`;
-}
-
-/* The app screen a template shows: the capture, the real look in the placeholder's rectangle, the runs that read
-   as a verdict on it re-drawn, and last the capture again through a window, where a toast has to stay in front. */
+/* The app screen a template shows: the capture, whole, in the box the phone frame gives it (base.css, "the app screen"). */
 function screenHtml(file) {
-  const raw = SCREEN_EDITS[file] || {};
-  const s = raw.card ? Object.assign({ dir: raw.dir }, cardScreen(raw.card)) : raw;
-  const bits = [`<img class="cap" src="${shot(file)}" alt="">`];
-  for (const p of s.photos || []) bits.push(`<img class="look" src="${look(p.look)}" alt="" style="${place(p)};border-radius:${u(p.r || 0)};object-position:${LOOKS[p.look].pos}">`);
-  for (const p of s.parts || []) bits.push(piece(p));
-  for (const r of s.reveal || []) bits.push(`<img class="cap" src="${shot(file)}" alt="" style="clip-path:inset(${u(r.y)} ${u(780 - r.x - r.w)} ${u(1688 - r.y - r.h)} ${u(r.x)} round ${u(r.r || 0)})">`);
-  return `<div class="app"${s.dir === 'rtl' ? ' dir="rtl"' : ''}>${bits.join('')}</div>`;
+  return `<div class="app"><img class="cap" src="${shot(file)}" alt=""></div>`;
 }
 
 // Logos. The mark on its two grounds and on nothing; the wordmark; the lockup; the avatar; the monochrome pair.
@@ -285,8 +174,9 @@ for (const [name, color] of [['white', '#ffffff'], ['black', '#000000']]) {
 }
 
 // Covers.
-// A screen with one of the real looks in it must not be palette-quantised: 256 colours band a photograph.
-const hasLook = (file) => !!(SCREEN_EDITS[file] && (SCREEN_EDITS[file].photos || SCREEN_EDITS[file].card));
+// A screen with one of the real looks in it must not be palette-quantised: 256 colours band a photograph. Every capture
+// has a photograph in it now (a look, a grid of them, the camera's view), so any file that shows a screen stays lossless.
+const hasLook = (file) => !!file;
 const coverParams = (l) => ({ slogan: COPY[l].slogan, tagline: COPY[l].tagline, wordmark: brand('wordmark.svg'), screen: screenHtml(COPY[l].cover), ...lang(l) });
 const coverPhoto = (l) => ({ lossless: hasLook(COPY[l].cover) });
 add('covers', 'facebook-linkedin-1500x500.png', { template: 'cover.html', w: 1500, h: 500, ...coverPhoto('en'), params: coverParams('en'), use: 'Facebook page cover (shown 820×312 on desktop, the middle 640 px on phones) and a LinkedIn personal banner' });
@@ -354,13 +244,13 @@ const SOCIAL = {
     postCta: 'בודקים את שלכם ב־orevosh.com.',
     posts: [
       { id: 'what-it-is', title: 'בודקים את הלוק.', sub: 'עשר שניות. ציון מתוך 10, הפירוט, והטיפ האחד.', shot: '16-home-he.png', use: 'what the app is' },
-      // The Hebrew result the browser test captured scored 6/10, so the headline follows the picture (as in stories).
-      { id: 'the-one-tip', title: '6/10 והטיפ האחד', sub: '"שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט."', shot: '00-guest-result-he.png', use: 'the result and the one tip' },
+      // The Hebrew result is the pink look at 8/10, so the headline and the tip follow the picture (as in stories).
+      { id: 'the-one-tip', title: '8/10 והטיפ האחד', sub: '"שווה להחליף את העניבה המפוספסת בעניבה ורודה חלקה, ולהשאיר את הפסים לחולצה."', shot: '00-guest-result-he.png', use: 'the result and the one tip' },
       { id: 'brands', title: 'אילו מותגים אתם לובשים', sub: 'הם רואים. הם מציגים את הלוקים שהם אוהבים.', shot: '14-tag-he.png', use: 'the brands' },
     ],
     covers: [
       { title: 'בודקים את הלוק.', sub: '', shot: '16-home-he.png', use: 'the slogan over the feed' },
-      { title: '6/10 והטיפ האחד', sub: 'הציון, הפירוט, ודבר אחד לשנות.', shot: '00-guest-result-he.png', use: 'the verdict' },
+      { title: '8/10 והטיפ האחד', sub: 'הציון, הפירוט, ודבר אחד לשנות.', shot: '00-guest-result-he.png', use: 'the verdict' },
     ],
     link: { title: 'לינק בביו', sub: 'לוחצים על השם למעלה.' },
     reveal: { kicker: 'חשיפת פנים', sub: 'עוקבים. ואז המסכה יורדת.', cta: 'עוקבים כדי להיות שם.' },
@@ -476,7 +366,8 @@ async function main() {
     });
     let buf = await page.screenshot({ type: j.jpeg ? 'jpeg' : 'png', ...(j.jpeg ? { quality: 84 } : {}), omitBackground: !!j.transparent });
     if (!j.jpeg && !j.lossless && sharp) buf = await sharp(buf).png({ palette: true, quality: 92, effort: 8, compressionLevel: 9 }).toBuffer();
-    else if (!j.jpeg && sharp) buf = await sharp(buf).png({ compressionLevel: 9, effort: 8 }).toBuffer();
+    // lossless: re-deflated only. No `effort` here: in sharp it switches palette mode on, which is the quantising this branch exists to avoid.
+    else if (!j.jpeg && sharp) buf = await sharp(buf).png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
     return buf;
   }
 
@@ -514,9 +405,9 @@ function writeReadme() {
   lines.push('# OREVOSH brand kit', '',
     'Everything needed to show OREVOSH outside the app: the logos, the covers for social pages and the stores, the story',
     'templates and the store screenshots, rendered from `tools/brand/templates/` by `tools/brand/render-kit.js` with the',
-    'real brand SVGs (`src/FitCheck.Api/wwwroot/brand/`), the tokens of `DESIGN.md` and the app screenshots the browser',
-    'test takes, with one of the three real looks (`templates/photos/`, the owner\'s, used with permission) laid into the',
-    'photo slot of every screen that has one. The slogan is **Check the look.** / **בודקים את הלוק.** with the tagline',
+    'real brand SVGs (`src/FitCheck.Api/wwwroot/brand/`), the tokens of `DESIGN.md` (the plum stage of Round 21) and ten',
+    'screenshots of the real app with the three real looks (`templates/photos/`, the owner\'s, used with permission)',
+    'checked, posted and featured in it. The slogan is **Check the look.** / **בודקים את הלוק.** with the tagline',
     '*A stylist in your pocket, and a community that lights it up.* / *סטייליסט בכיס, וקהילה שמדליקה.*',
     '(`MARKETING.md` has the runners-up; the copy lives at the top of `render-kit.js`, so changing it and re-running',
     'regenerates every file).', '',
@@ -545,18 +436,19 @@ function writeReadme() {
     'two files the app serves are copied out by the script: `/brand/og-1200x630.png` (`og-1200x630-he.png` for the Hebrew',
     'landing page) for link previews, and `/landing/screens/*.jpg` for the landing page.', '',
     '## Before the store listings', '',
-    '- **Replace the screens.** The screenshots come from the browser test (`tools/e2e`), with the real looks composited',
-    '  into them and the lines that read as a verdict on a look re-drawn (`SCREEN_EDITS` in `render-kit.js`): the app around',
-    '  the photo is the test\'s own seeded data, the camera still shows Chromium\'s fake device (green), and the check and',
-    '  camera screens exist in English only, so the Hebrew store set uses them for screens 1 and 5. Take real captures on a',
+    '- **Replace the screens.** The ten screenshots are the real app (Round 21) at the phone viewport, taken in a browser',
+    '  against a local server: the people, the brand, the counts and the timestamps are a test run\'s, the stylist is the',
+    '  test stub answering each of the three looks with a verdict written for that photo, and the camera is Chromium\'s',
+    '  fake device playing a still of the pink look. The check and camera screens exist in English only, so the Hebrew',
+    '  store set uses them for screens 1 and 5. Take real captures on a',
     '  phone (1290×2796 on an iPhone with a 6.7" screen; any 9:16 Android phone), drop them into',
     '  `tools/brand/templates/screens/`, point the `COPY` table in `render-kit.js` at them, and re-run. Apple rejects',
     '  listings whose screenshots do not show the app as shipped.',
-    '- **The looks.** `look-1-streetwear` is the posted look, the feed and the community; `look-2-camel` is the check and',
-    '  its result, and the tag page; `look-3-pink` is the look a brand has featured. Each carries its own stylist copy, and',
-    '  the app shows an outfit at 4:5, so every crop gives something up: look 1 keeps its sneakers and loses the white cap',
-    '  above the frame, look 3 keeps its fedora, shirt and tie and loses the pink shoes below it, look 2 keeps the column',
-    '  from the coat to the tights and takes the boots at the hem.',
+    '- **The looks.** `look-2-camel` is the check, its result (9/10), the Hebrew tag page and Explore\'s look of the week;',
+    '  `look-1-streetwear` is the look\'s page and the Hebrew feed (8/10); `look-3-pink` is the look NEXOR featured, the',
+    '  Hebrew guest result (8/10) and the camera. The app crops an outfit to 4:5 from the centre, so each gives something',
+    '  up on a card: the camel look its face and the boots at the hem, the grey one its sneakers, the pink one the top of',
+    '  the fedora and the shoes.',
     '- **Sizes.** Apple asks for 1284×2778 or 1290×2796 for the 6.7" slot (the files here are 1284×2778, accepted for 6.5"',
     '  and 6.9" too); Google Play accepts 16:9 or 9:16 between 320 and 3840 px and wants the 1024×500 feature graphic.',
     '- **Safe zones.** Facebook shows the cover at 820×312 on desktop and the middle 640 px on phones; LinkedIn puts the',
@@ -613,4 +505,4 @@ function writeReadme() {
 
 // Required from elsewhere (a check of one screen, say), the file only offers its pieces and renders nothing.
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { COPY, LOOKS, SCREEN_EDITS, screenHtml, jobs };
+module.exports = { COPY, screenHtml, jobs };

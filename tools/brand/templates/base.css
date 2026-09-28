@@ -6,25 +6,34 @@
 @import url("fonts/fonts.css");
 
 :root {
-  --bg: #0b0b0f; --bg-2: #13121a; --surface: #15151c; --surface-2: #1e1e27;
-  --line: #2b2b36; --line-soft: rgba(255,255,255,.08);
-  --ink: #f4f4f7; --ink-2: #b9b9c6; --ink-3: #7f7f8e;
+  /* the plum stage of app.css §1 (Round 21), under the app's own names */
+  --bg: #14101e; --bg-2: #1b1527; --surface: #211a2e; --surface-2: #2e2541;
+  --line: #3b3150; --line-soft: rgba(255,255,255,.09);
+  --ink: #f9f5ff; --ink-2: #d1c8e0; --ink-3: #a99ebd;
   --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
   --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
-  --accent-tint: rgba(179,157,255,.14);
-  --fire: #ff6a2b; --fire-2: #ffa83a; --ok: #5ee6a0; --danger: #ff5d7a;
-  --glow: rgba(179,157,255,.16);
+  --accent-tint: rgba(179,157,255,.16);
+  --fire: #ff6a2b; --fire-2: #ffa83a; --ok: #6ff0ad; --danger: #ff5d7a; --amber: #ffb46b;
+  --glass: rgba(255,255,255,.055); --glass-edge: rgba(255,255,255,.1);
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,.07), 0 14px 36px rgba(8,4,20,.55);
+  --shadow-primary: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 28px rgba(255,143,177,.32);
+  --ring-track: rgba(255,255,255,.14);
+  /* the aurora's three lights (lilac top-start, rose top-end, amber between) and its warm foot; .light dims them */
+  --aurora-1: rgba(179,157,255,.3); --aurora-2: rgba(255,143,177,.26); --aurora-3: rgba(255,180,107,.14);
+  --aurora-foot: rgba(255,143,177,.1);
   --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
   --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "DejaVu Sans", sans-serif;
 }
-/* Light grounds use the deeper pair of mark-light.svg so the ring never washes out (brand/CONCEPT.md §3). */
+/* Light grounds use the deeper pair of mark-light.svg so the ring never washes out (brand/CONCEPT.md §3); the ink is
+   the stage's own plum-black. */
 .light {
   --bg: #ffffff; --bg-2: #f7f6fb; --surface: #ffffff; --surface-2: #eeedf4;
-  --line: #dcdbe6; --line-soft: rgba(11,11,15,.08);
-  --ink: #0b0b0f; --ink-2: #4a4a58; --ink-3: #7f7f8e;
+  --line: #dcdbe6; --line-soft: rgba(20,16,30,.08);
+  --ink: #14101e; --ink-2: #4a4458; --ink-3: #7a7189;
   --accent: #7d5cff; --accent-2: #ff5c92; --accent-ink: #ffffff;
   --grad: linear-gradient(135deg, #7d5cff 0%, #ff5c92 100%);
-  --glow: rgba(125,92,255,.12);
+  --aurora-1: rgba(125,92,255,.12); --aurora-2: rgba(255,92,146,.1); --aurora-3: rgba(255,180,107,.08);
+  --aurora-foot: transparent;
 }
 
 /* overflow: clip, not hidden: a decorative glow that spills past the edge must not make the document scrollable,
@@ -35,8 +44,16 @@ body {
   background: var(--bg); color: var(--ink); font-family: var(--font-body);
   -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
 }
-/* The stage: the lilac glow at the top of every screen, nothing else (DESIGN.md §1, "Ground"). */
-body.stage { background-image: radial-gradient(90% 38% at 50% -8%, var(--glow), transparent 62%); }
+/* The stage: the aurora at the top and its warm foot, the same four radials app.css paints behind every screen
+   (--glow and --glow-2 there), sized to the file being rendered. */
+body.stage {
+  background-image:
+    radial-gradient(70% 34% at 18% -6%, var(--aurora-1), transparent 62%),
+    radial-gradient(60% 30% at 84% -4%, var(--aurora-2), transparent 60%),
+    radial-gradient(46% 22% at 52% -2%, var(--aurora-3), transparent 60%),
+    radial-gradient(70% 26% at 50% 108%, var(--aurora-foot), transparent 60%);
+  background-repeat: no-repeat;
+}
 body.transparent { background: transparent; }
 
 .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.02; margin: 0; text-wrap: balance; }
@@ -55,86 +72,30 @@ img { display: block; }
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 999px; background: var(--grad); color: var(--accent-ink);
   font-family: var(--font-body); font-weight: 700; white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(255,143,177,.25);
+  box-shadow: var(--shadow-primary);
 }
 
-/* A phone, drawn in CSS: a rounded slab of --surface-2 with a hairline, the screen inside at the app's 390:844
-   viewport, the screenshot cover-fitted from the top. --pw is the phone's width; everything scales from it. */
+/* A phone, drawn in CSS: a rounded slab of the stage's --surface with the glass cards' 1px light edge and top
+   highlight, lifted on a plum shadow (never black), the screen inside at the app's 390:844 viewport, the screenshot
+   cover-fitted from the top. --pw is the phone's width; everything scales from it. */
 .phone {
   width: var(--pw); box-sizing: border-box; padding: calc(var(--pw) * .027);
-  border-radius: calc(var(--pw) * .135); background: #1a1a22;
-  box-shadow: 0 0 0 1px #2b2b36, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(0,0,0,.55);
+  border-radius: calc(var(--pw) * .135); background: #211a2e;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), inset 0 1px 0 rgba(255,255,255,.08),
+    0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(8,4,20,.6);
 }
-.light .phone { box-shadow: 0 0 0 1px #2b2b36, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(11,11,15,.28); }
+.light .phone { box-shadow: 0 0 0 1px #3b3150, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(20,16,30,.28); }
 .phone .screen {
-  aspect-ratio: 390 / 844; overflow: hidden; background: #0b0b0f;
+  aspect-ratio: 390 / 844; overflow: hidden; background: #14101e;
   border-radius: calc(var(--pw) * .11);
 }
 /* A screenshot dropped straight into the frame; the composited screen below brings its own box. */
 .phone .screen > img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 
 /* ---------- the app screen ---------- */
-/* Every capture in screens/ is the app's 390×844 viewport at 2× (780×1688), taken by the browser test with its
-   synthetic placeholder in the photo slot and its seeded verdict in the text ("7/10", "Clean casual with one weak
-   link"). render-kit.js lays one of the real looks in photos/ over exactly the rectangle the placeholder filled,
-   and re-draws the few runs that read as a verdict on that picture, so no line in the kit judges clothes it is not
-   looking at. Everything is measured in capture pixels and turned into --u, a share of the screen's own width, so
-   one screen scales to whatever the phone frame gives it (container query units: the .app box is the container).
-   The re-drawn runs copy app.css §2 at 2× and ask for the face the captures were taken with — the test blocks
-   Google Fonts, so the app fell back to the system sans — and never for Outfit or Heebo. */
-.app {
-  position: relative; width: 100%; height: 100%; container-type: size; direction: ltr;
-  --u: 0.12820513cqw;                      /* one capture pixel: 100 / 780 of the screen's width */
-  --sx-face: "DejaVu Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --sx-ink: #f4f4f7; --sx-ink-2: #b9b9c6; --sx-ink-3: #7f7f8e; --sx-accent: #b39dff; --sx-surface: #15151c;
-}
-.app, .app * { box-sizing: border-box; }                   /* a ring's border is inside its 44px, as in the app */
-.app > * { position: absolute; margin: 0; }
-.app .cap { inset: 0; width: 100%; height: 100%; }        /* the capture, and again on top where it must stay in front */
-.app .look { object-fit: cover; }                          /* the real photo, in the placeholder's rectangle */
-.app .sx { font-family: var(--sx-face); color: var(--sx-ink); font-weight: 400; }
-.app .sx b { font: inherit; }
-.app .sx .t { color: var(--sx-accent); font-weight: 600; }  /* a #tag or an @mention in a caption */
-/* app.css §2, ×2: the result headline, a card headline, a caption, the vibe line, an input's value, body copy,
-   the one tip and the label voice. */
-.app .sx-h1 { font: 800 calc(80 * var(--u))/1.02 var(--sx-face); letter-spacing: -0.01em; }
-.app .sx-head { font: 700 calc(42 * var(--u))/1.15 var(--sx-face); }
-.app .sx-cap { font: 400 calc(30 * var(--u))/1.5 var(--sx-face); color: var(--sx-ink-2); white-space: pre-line; }
-/* a card's headline and caption flow, so the caption follows however the headline wraps */
-.app .sx-stack > * + * { margin-block-start: calc(16 * var(--u)); }
-.app .sx-vibe { font: 400 calc(32 * var(--u))/1.5 var(--sx-face); color: var(--sx-ink-3); }
-.app .sx-field { font: 400 calc(32 * var(--u))/1.5 var(--sx-face); }
-.app .sx-body { font: 400 calc(30 * var(--u))/1.5 var(--sx-face); color: var(--sx-ink-2); }
-.app .sx-tip { font: 700 calc(44 * var(--u))/1.3 var(--sx-face); }
-.app .sx-caps { font: 700 calc(22 * var(--u))/1 var(--sx-face); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sx-ink-3); }
-.app[dir="rtl"] .sx-caps { font-size: calc(25 * var(--u)); letter-spacing: 0.02em; }
-.app .sx-caps.accent { color: var(--sx-accent); }
-/* §3 the intent chip and the score ring, the two pieces of app furniture the kit re-draws */
-.app .sx-tag {
-  display: inline-flex; align-items: center; min-height: calc(48 * var(--u)); padding-inline: calc(18 * var(--u));
-  border-radius: 999px; background: rgba(179,157,255,.14); color: var(--sx-accent); white-space: nowrap;
-  font: 700 calc(22 * var(--u))/1 var(--sx-face); letter-spacing: 0.08em; text-transform: uppercase;
-}
-.app[dir="rtl"] .sx-tag { font-size: calc(25 * var(--u)); letter-spacing: 0.02em; }
-.app .sx-badge {
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(2 * var(--u));
-  border-radius: 50%; border: calc(6 * var(--u)) solid transparent;
-  background: linear-gradient(var(--sx-surface), var(--sx-surface)) padding-box, var(--grad) border-box;
-  box-shadow: 0 calc(12 * var(--u)) calc(32 * var(--u)) rgba(0,0,0,.35);
-  font: 800 calc(44 * var(--u))/0.9 var(--sx-face); color: var(--sx-ink); direction: ltr;
-}
-.app .sx-badge small { font: 700 calc(16 * var(--u))/1 var(--sx-face); letter-spacing: 0.02em; color: var(--sx-ink-3); }
-.app .sx-badge.grid { border-width: calc(4 * var(--u)); font-size: calc(30 * var(--u)); gap: 0; box-shadow: 0 calc(8 * var(--u)) calc(20 * var(--u)) rgba(0,0,0,.35); }
-.app .sx-badge.grid small { font-size: calc(12 * var(--u)); }
-/* the verdict ring's numeral: the ring itself stays the capture's, only the number inside is re-drawn */
-.app .sx-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(4 * var(--u)); direction: ltr; }
-.app .sx-hero b { font: 800 calc(160 * var(--u))/1 var(--sx-face); letter-spacing: -0.03em; color: var(--sx-ink); }
-.app .sx-hero small { font: 700 calc(28 * var(--u))/1 var(--sx-face); letter-spacing: 0.04em; color: var(--sx-ink-3); }
-/* the accessories verdict pill, drawn quiet (the app's neutral variant) */
-.app .sx-pill {
-  display: inline-flex; align-items: center; min-height: calc(60 * var(--u)); padding-inline: calc(24 * var(--u));
-  border-radius: 999px; border: calc(2 * var(--u)) solid currentColor; color: var(--sx-ink-2);
-  font: 600 calc(26 * var(--u))/1 var(--sx-face);
-}
-/* the one tip: a pull quote on a gradient bar */
-.app .sx-bar { width: calc(6 * var(--u)); border-radius: 999px; background: var(--grad); }
+/* Every capture in screens/ is the real app's 390×844 viewport at 2× (780×1688): the Round 21 app on a local server,
+   the three real looks (photos/) checked, posted and featured through its own screens, the stylist's answer written
+   for each photo, so what a screen says is about the clothes in it and nothing is laid over the capture. .app is the
+   box a template's phone frame gives the screen; the capture fills it. */
+.app { position: relative; width: 100%; height: 100%; }
+.app .cap { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }

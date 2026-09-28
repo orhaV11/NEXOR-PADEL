@@ -1,0 +1,1388 @@
+// Check and result: add a photo or a clip (the camera, the library), say where the outfit is going and how you want it to
+// read, let the stylist look, read the verdict, post the look. Ported from the Phase 2 monolith onto the kit.
+//
+// Round 14, the two questions. The chips are two rows now: #occasions (.chip[data-occasion], one always pressed) and
+// #styles (.chip[data-style], including the first-class "no style" answer, data-style=""), with #style-default under
+// them when the pick differs from the saved preference (prefs.style, localStorage through core.js). Every chip also
+// carries data-intent with the one word it contributes, for the surfaces and browser tests that still speak one word.
+// The free line (#occasion) is the note now, and travels as "note"; the occasion and the style travel as their own
+// fields. On the result: #asked-for names both, the tip block is #tip (class tip keep when feedback.tipKind is "keep",
+// with its own heading and no swap verb in sight), and the mount points other modules fill: #taste-reasons and
+// #tried-action (app/taste.js mountResult, called here after the tip: the typed reasons, then "Try the tip, then show me"
+// as #tried-start — the primary next action after every change tip, Round 20 — or the pair as #tried-pair once the two
+// checks are linked) and #wardrobe-offer. Once a pair exists, #share-pair leads the share row (the before/after card and
+// film, app/sharevideo.js openCheckPairShare), ahead of the single look's video, card and text share.
+//
+// Round 21, the look: the result is four moments, each a section inside #result (no id moved out of it). .result-verdict
+// is the judged still edge to edge (figure.result-photo, only while judgedPreview() has it) with the pieces pinned at
+// its foot as name chips (physical bottom-left) and the .hero on its bottom-right corner (physical, as on every card: a
+// photo does not mirror), then the headline, the vibe and #asked-for; .result-read
+// is one glass panel for #breakdown, #accessories and the reads-as bar; .result-pieces holds the same pieces as a row of
+// button.chip.piece (the verdict word beside the name, a tap opens the stylist's note in p.piece-note), what works, the
+// tip as the warmest panel with #tried-action INSIDE #tip so the primary door sits under the words, then #taste-reasons
+// and #wardrobe-keep; .result-doors is Post it (a secondary now), the share row and Check another. #result carries
+// data-occasion, the app.css tint cascade: the tag, the chips and the glow behind the photo take the occasion's pastel.
+//
+// The ids (#photo, #submit, #occasion,
+// #check-error, #result, #post-open, #post-confirm, #post-link, #caption, #challenge-pick) and the .score/.result-headline/
+// .items/.working/.tip/.bar structure are part of the browser test contract; keep them when changing the layout. The media
+// sheet's rows are #media-camera, #media-library and #media-clip; a clip's frame slider is #clip-frame. The rubric v2
+// block is #breakdown (ul.breakdown with li[data-part=fit|color|accessories]) and #accessories (.acc-verdict.<verdict>,
+// .acc-present .chip, .acc-note, .acc-add.tip). Round 9, guests: #guest-banner sits above the form when signed out (the
+// sign-in prompt instead, and the submit stays disabled, when the server has guests switched off: config.plans.guestChecksPerDay
+// is 0), the result of a guest's check shows #guest-keep ("Sign up to keep it and post it") where #post-open would be, and
+// #post-open takes its place once the claim has run after signup; #checks-left is the signed-in cap line, with #go-pro when a
+// Free account has none left. Round 13's yes/no row (#useful) is gone from this screen since Round 20: the four typed
+// answers in #taste-reasons decide Useful on the server, and two rows asking the same thing was a wiring gap;
+// the no-outfit result is #nooutfit (h1, the guidance, the stylist's one line as #nooutfit-reason when it survived rule 1,
+// #nooutfit-free when the check did not count, and #retake, which goes back to the check screen and opens the media sheet);
+// #install-hint is the one-time iOS Safari note under the share row.
+import {
+  register, state, t, api, el, icon, setTopBar, navigate, requireSignIn, signInPrompt, sheet, toast, announce, focusHeading, onLeave, pickFile, prepareImage, frameToJpeg, fmtNumber, fmtPercent, MAX_EDGE, isBrand, isMe, loadMe, claimGuestChecks, getLocale, reducedMotion, copyText, view, $, redirect, showAlert, logoMark, breakdownRow, scoreStyle, pieceChip, pieceVerdict, namedPieces, iosInstallHint, inAppBrowserHint, loadPrefs, savePrefs, richText, stagedWaitLine, hashQuery, shareLookUrl
+} from '../core.js';
+import { pendingSource } from '../invite.js';
+import { shareCardButton, lookFromCheck } from '../sharecard.js';
+import { shareVideoButton, videoLookFromCheck, openCheckPairShare } from '../sharevideo.js';
+import { afterPicker } from '../after.js';
+// Round 14 / Round 20 — the loop on the result screen: the typed reasons, "Try the tip, then show me", the pair.
+import { mountResult, changeLines } from '../taste.js';
+// Round 14 — post the look, keep the grade: the choice at the moment of posting (the same switch the look itself carries).
+import { gradeField } from './post.js';
+import { itemsEditor } from '../items.js';
+import { wardrobeKeep } from '../wardrobe.js';
+
+const SCORE_COUNT_MS = 900;
+const ACCESSORY_VERDICTS = ['adds', 'neutral', 'missing', 'clashes'];
+
+// Round 14: two questions, two lists. Where it is going, asked every time; and how it should read, which may be nothing
+// at all - "no style" is an answer, not a blank, and the stylist is told so in words.
+export const OCCASIONS = ['Everyday', 'Date', 'Office', 'Party', 'Formal', 'Sport'];
+export const STYLES = ['Streetwear', 'OldMoney', 'Minimal', 'Classic'];
+const occasionLabel = (occasion) => t('occasion.' + occasion);
+const styleLabel = (style) => (style ? t('style.' + style) : t('style.none'));
+/** The pair behind one of the eight words the app used to ask for (a challenge still names one; the compare screen reads it for an older row). */
+export const SPLIT = {
+  Casual: ['Everyday', null], Date: ['Date', null], Office: ['Office', null], Party: ['Party', null], Sport: ['Sport', null],
+  Streetwear: ['Everyday', 'Streetwear'], OldMoney: ['Everyday', 'OldMoney'], Minimal: ['Everyday', 'Minimal']
+};
+/** The one word a chip contributes, where a surface has room for one. Formal has its own since it stopped borrowing Party's. */
+const ONE_WORD = { Everyday: 'Casual', Date: 'Date', Office: 'Office', Party: 'Party', Sport: 'Sport', Formal: 'Formal' };
+
+// What this check asks for. The occasion and the style live here rather than in state.check: the style is a preference
+// that outlives the check (prefs.style), and the occasion is a chip, not something private. The wearer's free line stays
+// in state.check.occasion, where signing out still clears it with everything else they typed.
+const pick = { occasion: null, style: null, loaded: false };
+
+// ---------- a check that was interrupted ----------
+//
+// The stylist's minute is the longest wait in the app, and a phone can take the screen away in the middle of it: iOS
+// discards a backgrounded tab, a locked phone suspends the page, an app is swiped away, a lift eats the connection while
+// the answer is on the wire. The CHECK survives all of that - the server stores the row and it is the person's - but the
+// answer was on its way to a page that no longer exists, and a guest's lost check was their ONE free look.
+//
+// So the submit leaves a marker here and the next boot asks the server for the caller's own newest check
+// (GET /api/checks/latest, which answers a guest's own row too). The marker holds the wait and the two answers, NEVER
+// the photo: a few bytes about a check, not the look itself. localStorage can be absent or refuse to write - private
+// mode, blocked site data - so every read and write is behind try/catch and the app is exactly itself without it.
+const PENDING_KEY = 'orevosh.check.pending';
+/** Older than this and it is not the check the person is standing there waiting for. */
+const PENDING_MAX_MS = 10 * 60 * 1000;
+
+function writePending() {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify({
+      startedAt: Date.now(),
+      occasion: pick.occasion,
+      style: pick.style || null,
+      // Who was waiting. A marker is only ever recovered by the same person: a phone handed on, or a session that ended
+      // in between, finds a check that is not theirs to ask about and drops the marker instead.
+      me: state.me ? state.me.id : null
+    }));
+  } catch (e) { /* private mode: the recovery is simply not available here */ }
+}
+
+/** Forgets the check in flight: it landed, it was refused, or the person started over. Exported so the shell can drop it too. */
+export function clearInterruptedCheck() {
+  try { localStorage.removeItem(PENDING_KEY); } catch (e) { /* nothing to forget */ }
+}
+
+/** The marker, when there is a fresh one. A stale, damaged or unreadable one is cleared and answers null. */
+function readPending() {
+  let raw = null;
+  try { raw = localStorage.getItem(PENDING_KEY); } catch (e) { return null; }
+  if (!raw) return null;
+  let mark = null;
+  try { mark = JSON.parse(raw); } catch (e) { mark = null; }
+  const startedAt = mark && Number(mark.startedAt);
+  if (!startedAt || !Number.isFinite(startedAt)) { clearInterruptedCheck(); return null; }
+  const waited = Date.now() - startedAt;
+  // A clock that moved between the two reads (a timezone change, a manual correction) is not a wait we can measure.
+  if (waited < 0 || waited > PENDING_MAX_MS) { clearInterruptedCheck(); return null; }
+  return {
+    waited,
+    occasion: OCCASIONS.includes(mark.occasion) ? mark.occasion : null,
+    style: STYLES.includes(mark.style) ? mark.style : null,
+    me: mark.me || null
+  };
+}
+
+/**
+ * The first screen, when a check was left in flight: the wait, resumed. The server is asked for the caller's own newest
+ * check, and told how long this phone has been waiting rather than when it started - two durations, each measured by the
+ * side that measures it, so a phone whose clock is wrong cannot be handed an older verdict as this one.
+ * <p>Three ends: the verdict (the result screen, as if the answer had arrived); nothing (the check never landed, and the
+ * two answers go back on the chips so only the photo has to come again); or no answer at all, which keeps the marker, so
+ * a person who walks back into signal gets the recovery on the next open.</p>
+ */
+async function resumeInterrupted(root, ctx) {
+  const pending = readPending();
+  // Not ours to ask about: the session ended, or this is somebody else's turn with the phone.
+  if (pending && (pending.me || null) !== (state.me ? state.me.id : null)) { clearInterruptedCheck(); redirect('#/check'); return; }
+  if (!pending) { redirect('#/check'); return; }
+
+  setTopBar({ title: t('check.title') });
+  root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
+  root.appendChild(loadingBlock('loading.resumed'));
+  announce(t('loading.resumed'));
+  focusHeading();
+
+  let found = null;
+  let answered = false;
+  const within = Math.ceil(pending.waited / 1000) + 30;   // the wait, plus a little for the seconds this call takes
+  // undefined, never null: api() sends anything that is not undefined as a JSON body, and a GET with a body is refused
+  // by fetch itself - which would arrive here as "no answer" and keep a marker whose check is sitting there, answered.
+  try { found = await api('GET', '/api/checks/latest?withinSeconds=' + within, undefined, 20000); answered = true; }
+  catch (e) { answered = !!(e && e.status); }             // a 404 is an answer ("nothing landed"); a dead connection is not
+  if (ctx && ctx.stale()) return;
+  if (answered) clearInterruptedCheck();
+
+  if (found) {
+    state.result = found;
+    state.result.guest = !state.me;        // a recovered guest look still offers "sign up to keep it"
+    state.resultAnimated = false;          // they have not seen this verdict yet: the score counts up as it would have
+    state.resultPostId = null;
+    redirect('#/result');
+    return;
+  }
+
+  const ck = state.check;
+  if (pending.occasion) { pick.occasion = pending.occasion; pick.style = pending.style; pick.loaded = true; }
+  ck.error = answered ? t('check.resume_missing') : t('error.network');
+  redirect('#/check');
+}
+
+/** The saved style preference: a name, or null for "no style", which is what an account that never set one has. Shared with the compare screen (Round 20). */
+export function preferredStyle() {
+  const saved = loadPrefs().style;
+  return STYLES.includes(saved) ? saved : null;
+}
+
+/** The planned outfit's id from #/check?suggestion=..., the query part of the hash (the router ignores it), or null. */
+function suggestionQuery() {
+  const value = hashQuery('suggestion');
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+}
+
+// The clip in the photo box, and the frame picker under it: the slider is the one control, the rest is copy. The guest
+// banner is a notice card with the display face; the cap line sits under the submit button with the private note.
+const CSS = `
+.photo video { inline-size: 100%; block-size: 100%; object-fit: cover; background: #000; }
+.guest-banner { display: grid; gap: 4px; margin-block-end: 16px; }
+.guest-banner h3 { font-family: var(--font-display); font-size: 20px; line-height: 1.15; font-weight: 800; margin: 0; }
+.guest-banner p { margin: 0; }
+.guest-banner .btn-text { min-block-size: 44px; padding-block: 0; justify-self: start; }
+.checks-left { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.checks-left .btn-text { font-size: 13px; min-block-size: 44px; padding-block: 0; }
+.clip-tools { display: flex; flex-direction: column; gap: 10px; }
+.clip-tools > label { color: var(--ink-3); }
+.clip-tools input[type="range"] { inline-size: 100%; min-block-size: 44px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.clip-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.clip-row .tag { gap: 5px; }
+.clip-row .tag svg { inline-size: 12px; block-size: 12px; }
+.clip-row .btn-text { padding-block: 0; }
+.share-row { flex-wrap: wrap; }
+.share-row > #share-video { flex-basis: 100%; }   /* "Share as video" spans the row; the card and the text share sit under it */
+.share-row > #share-pair { flex-basis: 100%; }    /* Round 20: the pair's share leads the row once there is a pair */
+/* Round 13: the no-outfit state; the install note in the flow. */
+/* Round 14: the second chip row and its preference line; what was asked for, on the result; the keep; the mount points. */
+.asked-block { display: grid; gap: 10px; }
+.asked-block .hint { margin: 0; }
+.style-default { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.style-default .btn-text { min-block-size: 44px; padding-block: 0; font-size: 13px; }
+.asked-for { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block-start: 12px; }
+.asked-for .lbl { color: var(--ink-3); font-size: 13px; }
+.tip-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tip-kind { color: var(--ok); background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+.tip.keep::before { background: var(--ok); }
+.mount:empty { display: none; }
+/* Round 21 — the result in four moments (the tokens, the ring and the chips' shared rule are app.css's; these rules
+   are the result's own).
+   1. The verdict: the judged still edge to edge, its bottom corners rounded so it sits ON the stage as an object; the
+   pieces pinned at its bottom-left with a slight static tilt and the ring on its bottom-right corner, both by physical
+   sides in both directions (a photo does not mirror; the ring is direction: ltr, as on every card); behind and below
+   the photo the occasion's glow, a radial in --tint-glow (from #result[data-occasion]) that the headline sits in. A
+   past check has no still here: the ring sits in flow above the headline, as it always did. */
+#result.stack > * + * { margin-block-start: 28px; }
+.result-verdict { position: relative; }
+.result-verdict::before { content: ""; position: absolute; inset-block: 34% -56px; inset-inline: -16px; z-index: 0; pointer-events: none; opacity: 0.72; background: radial-gradient(64% 52% at 50% 58%, var(--tint-glow), transparent 72%); }
+.result-photo { position: relative; z-index: 1; margin-inline: -16px; margin-block-start: -16px; background: var(--surface-2); border-end-start-radius: 28px; border-end-end-radius: 28px; }
+.result-photo img { display: block; inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: inherit; }
+.result-scrim { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(to top, rgba(20, 16, 30, 0.72) 0%, rgba(20, 16, 30, 0.42) 24%, transparent 56%), linear-gradient(to bottom, rgba(20, 16, 30, 0.5), transparent 22%); }
+.result-photo .pieces { position: absolute; inset-block-end: 18px; left: 16px; right: 176px; z-index: 2; min-block-size: 0; gap: 7px 6px; align-items: flex-end; align-content: flex-end; }   /* 176: the ring's collar ends at 180px from the right; measured at 390px, three short names take two rows here */
+.result-photo .chip.piece { min-block-size: 36px; padding-inline: 10px; font-size: 13px; }
+.result-photo .chip.piece:nth-child(3n+1) { rotate: -2deg; }   /* pinned on the picture: static, nothing to reduce */
+.result-photo .chip.piece:nth-child(3n+2) { rotate: 1.5deg; }
+.result-photo .chip.piece:nth-child(3n) { rotate: -1deg; }
+.result-photo .hero { position: absolute; inset-block-end: -30px; right: 14px; z-index: 2; }
+.result-verdict > .hero + h1 { margin-block-start: 16px; }
+.result-verdict > .result-photo + h1 { margin-block-start: 44px; }   /* clears the ring's overhang */
+.result-verdict > h1, .result-verdict > .vibe, .result-verdict > .asked-for { position: relative; }
+.result-verdict .result-headline { font-size: 38px; }
+[dir="rtl"] .result-verdict .result-headline { font-size: 40px; }
+.result-verdict .vibe { color: var(--ink-2); font-size: 17px; }
+/* 2. The read: one glass panel for the three rings, the accessories and the bar. */
+.result-read { padding: 18px 16px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.result-read > * + * { margin-block-start: 18px; }
+.result-read .acc-verdict { background: var(--glass); }
+.result-read .match-label { color: var(--ink-2); }
+.result-read .tip.acc-add { padding: 12px 14px; border: 0; border-radius: var(--radius-sm); background: var(--accent-tint); box-shadow: none; }   /* the accessories' "add one": a quiet block, so the tip stays the one warm moment */
+.result-read .tip.acc-add::before { display: none; }
+.result-read .tip.acc-add > p { font-size: 18px; line-height: 1.3; }
+/* 3. The pieces, what works, and the one tip as the warmest panel on the screen: lilac→rose→amber tinted glass with the
+   gradient bar inside it, the primary door (app/taste.js #tried-start) right under the words and its hint under that.
+   taste.js's .loop is a card of its own on other screens; inside the panel it is the panel's last lines. The panel is
+   #tip itself: the pair block mounts inside it, and its two sides' own .tip lines stay the plain pull quote (app.css). */
+.result-pieces > * + * { margin-block-start: 22px; }
+.result-pieces h2, .result-pieces .tip-head { margin-block-end: 12px; }
+.result-pieces .tip-head h2 { margin-block-end: 0; }
+/* the pieces again under "What you're wearing": app.css §8's chips on the raised surface at 40px, the works chip on a
+   mint wash and the weak one on a fire wash with the verdict word in that colour; the open one, whose note sits under
+   the row, is the gradient like any pressed chip. The result's own, so here and not in the shared sheet (DESIGN §10);
+   this block is appended after app.css, and every rule is more specific than the shared .chip.piece it builds on. */
+.result-pieces .pieces .chip.piece { min-block-size: 40px; padding-inline: 13px; font-size: 14px; background: var(--surface-2); border-color: var(--line-soft); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.result-pieces .pieces .chip.piece::before { inset-block: -2px; }
+.result-pieces .pieces .chip.piece[data-verdict="works"] { background: linear-gradient(var(--ok-tint), var(--ok-tint)), var(--surface-2); }
+.result-pieces .pieces .chip.piece[data-verdict="works"] .item-verdict { color: var(--ok); }
+.result-pieces .pieces .chip.piece[data-verdict="weak"] { background: linear-gradient(var(--fire-tint), var(--fire-tint)), var(--surface-2); }
+.result-pieces .pieces .chip.piece[data-verdict="weak"] .item-verdict { color: var(--fire-ink); }   /* a word on the wash: the lighter fire (--fire reads 4.1:1 there) */
+.result-pieces .pieces .chip.piece[aria-expanded="true"] { background: var(--grad); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 143, 177, 0.24); }
+.result-pieces .pieces .chip.piece[aria-expanded="true"] .item-verdict { color: var(--accent-ink); opacity: 0.8; }
+.piece-note { margin-block-start: 10px; font-size: 15px; line-height: 1.5; color: var(--ink-2); unicode-bidi: plaintext; }
+.piece-note b { color: var(--ink); font-weight: 700; }
+.result-pieces .working li { font-size: 16px; color: var(--ink-2); }
+.result-pieces .working li::before { box-shadow: 0 0 10px rgba(255, 143, 177, 0.5); }
+.result-pieces #tip { padding: 18px 18px 16px 22px; border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(135deg, rgba(179, 157, 255, 0.17), rgba(255, 143, 177, 0.15) 55%, rgba(255, 180, 107, 0.17)); box-shadow: var(--shadow-card), 0 20px 50px rgba(255, 143, 177, 0.12); }
+[dir="rtl"] .result-pieces #tip { padding-inline: 22px 18px; }
+.result-pieces #tip::before { inset-block: 16px; inset-inline-start: 10px; inline-size: 4px; box-shadow: 0 0 12px rgba(255, 143, 177, 0.6); }
+.result-pieces #tip.keep::before { background: var(--ok); box-shadow: 0 0 12px rgba(111, 240, 173, 0.5); }
+.result-pieces #tip > p { font-size: 23px; line-height: 1.28; }
+.result-pieces .tip .loop { padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 0; }
+.result-pieces .tip .loop-start { margin-block-start: 16px; }
+.result-pieces .tip .loop > .hint { margin-block-start: 10px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.result-pieces .tip .loop-pending { margin-block-start: 12px; }
+.result-pieces .tip .loop.pair { margin-block-start: 16px; padding-block-start: 14px; border-block-start: 1px solid rgba(255, 255, 255, 0.12); gap: 10px; }
+.result-pieces .loop-reasons { background: var(--glass); border: 1px solid var(--glass-edge); }   /* the tip's question, on the same glass as a notice */
+/* 4. The doors. */
+.result-doors > * + * { margin-block-start: 10px; }
+/* The four moments rise in one after the other on app.css §9's keyframe (opacity and 8px, nothing waits on them); the
+   ring's own draw-on runs inside the first. Under reduced motion every duration collapses and the screen is whole at once. */
+.result-verdict, .result-read, .result-pieces, .result-doors { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.result-read { animation-delay: 80ms; }
+.result-pieces { animation-delay: 140ms; }
+.result-doors { animation-delay: 200ms; }
+@media (prefers-reduced-motion: reduce) { .result-verdict, .result-read, .result-pieces, .result-doors { animation: none; } }   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
+.nooutfit .lede { max-inline-size: 34ch; margin-inline: auto; }
+.nooutfit-reason { margin-block-start: 12px; font-style: italic; color: var(--ink-2); }
+.nooutfit-free { margin-block-start: 10px; }
+.result-install { margin: 0; }
+`;
+let styled = false;
+function ensureStyle() {
+  if (styled) return;
+  styled = true;
+  document.head.appendChild(el('style', { text: CSS }));
+}
+
+/**
+ * Set by the screen that opens the camera, so "Use it" and the close button return with Back (no duplicate history entry).
+ * Round 20: `handoff` lets another screen borrow the camera - the compare screen sets { to, photoOnly, photo(blob),
+ * file(file) } before navigating to #/camera, the camera hands the capture (or the library fallback's file) to those
+ * callbacks instead of the check's intake, hides the clip mode when photoOnly, and clears the handoff on every way out,
+ * so an abandoned visit can never feed the next check's photo into a compare slot.
+ */
+export const cameraReturn = { fromCheck: false, handoff: null };
+
+// The frame of the current clip that is the still (ms into the clip); null until one is chosen. Module state, like the clip
+// it belongs to in state.check: it survives a trip to the camera and a language switch, and goes with the clip.
+let frameMs = null;
+let busyKind = 'photo';   // what the "preparing" label talks about while a library file is read
+let capturing = false;    // a frame is on its way to the canvas: the submit waits for it
+let retakeNext = false;   // "Take another photo" on the no-outfit screen: the check screen focuses the photo button and opens the media sheet
+let captureSeq = 0;
+let seekSeq = 0;
+
+/** How many checks a visitor gets with no account (Plans:GuestChecksPerDay from /api/config); 0 means the door is shut. */
+const guestChecks = () => Number((state.config.plans || {}).guestChecksPerDay) || 0;
+/** True when a signed-out visitor may submit a check on this server (Home's empty call reads it too, for its guest line). */
+export const guestsOn = () => guestChecks() > 0;
+
+/**
+ * The still this result was judged on, while it is still the picker's current photo: the post sheet places its dots on it
+ * and the share video is made from it. null once the photo has been replaced, and for a past check opened from "Your
+ * checks" (a check has no photo route), or the dots would land on, and the film would open with, another photo.
+ */
+function judgedPreview(result) {
+  const judged = state.check.judged;
+  return judged && judged.resultId === result.id && judged.previewUrl && judged.previewUrl === state.check.previewUrl ? state.check.previewUrl : null;
+}
+
+// ---------- check ----------
+
+register('check', async (root) => {
+  const ck = state.check;
+  setTopBar({ title: t('check.title') });
+  root.appendChild(el('h1', { class: 'sr-only', text: t('check.title') }));
+  if (ck.busy) { showLoading(root); return; }   // a check is in flight; the result view takes over when it lands
+  ensureStyle();
+
+  // Signed out is not a wall any more: a check as a guest, and the account comes after the verdict. Unless the server
+  // has guests switched off: then the wall is back, and the submit below stays disabled.
+  if (!state.me) root.appendChild(guestsOn() ? guestBanner() : signInPrompt());
+  const form = el('form', { class: 'stack', novalidate: true, onsubmit: (event) => { event.preventDefault(); submitCheck(); } });
+  root.appendChild(form);
+
+  if (ck.challenge) {
+    form.appendChild(el('div', { class: 'alert between', id: 'challenge-banner' }, [
+      el('div', {}, [
+        el('b', { text: t('check.entering', { title: ck.challenge.title }) }),
+        el('div', { class: 'muted', style: 'font-size: 13px; margin-block-start: 2px;', text: t('check.entering_hint', { tag: '#' + ck.challenge.tag }) })
+      ]),
+      el('button', { type: 'button', class: 'btn btn-secondary btn-sm', style: 'flex: none;', text: t('common.cancel'), onclick: () => { ck.challenge = null; navigate('#/check'); } })
+    ]));
+  }
+
+  // The style preference is read once per session; a challenge that named one of the old eight words preselects the pair.
+  if (!pick.loaded) { pick.style = preferredStyle(); pick.loaded = true; }
+  if (!pick.occasion && ck.intent && SPLIT[ck.intent]) { [pick.occasion, pick.style] = SPLIT[ck.intent]; }
+  // Round 19 — "Wearing it? Check it": #/check?suggestion=<id> arrives from the Tomorrow screen with the outfit's own
+  // chips, and the id travels with the photo so the server can close the loop. Anything else in the query is ignored.
+  const suggested = suggestionQuery();
+  if (suggested && ck.suggestion && ck.suggestion.id === suggested) {
+    if (OCCASIONS.includes(ck.suggestion.occasion)) pick.occasion = ck.suggestion.occasion;
+    pick.style = STYLES.includes(ck.suggestion.style) ? ck.suggestion.style : null;
+  } else if (!suggested) {
+    ck.suggestion = null;
+  }
+  form.appendChild(occasionChips());
+  form.appendChild(styleChips());
+
+  const note = el('input', {
+    type: 'text', id: 'occasion', maxlength: '120', autocomplete: 'off', enterkeyhint: 'done', placeholder: t('occasion.note_placeholder'),
+    value: ck.occasion, oninput: (event) => { ck.occasion = event.target.value; }
+  });
+  form.appendChild(el('div', { class: 'field' }, [el('label', { for: 'occasion', text: t('occasion.note_label') }), note]));
+
+  form.appendChild(el('button', { id: 'photo', class: 'photo', type: 'button', onclick: chooseMedia }));
+  // Two outfits, one verdict: the comparison has its own screen.
+  form.appendChild(el('p', { class: 'hint', style: 'text-align: center; margin-block-start: -4px;' }, [el('a', { class: 'btn-text', id: 'which-one', href: '#/compare', text: t('compare.title') })]));
+  form.appendChild(el('div', { id: 'clip-tools', class: 'clip-tools', hidden: true }));
+  const error = el('p', { id: 'check-error', class: 'alert danger', role: 'alert', hidden: true });
+  if (ck.error) { error.textContent = ck.error; error.hidden = false; ck.error = null; }
+  form.appendChild(error);
+  // Round 20: a guest the resting stylist turned away is offered an account with a promise the server keeps - one note
+  // when the stylist is back (StylistBack.cs), in the app always, on the phone and by mail only where those are set up.
+  // The signup link carries ?back=stylist so the join form says so and sends the flag. The mail is to a confirmed
+  // address, and a server that cannot confirm one (state.config.email off) is offered without the mail at all; a server
+  // with no push keys (no config.pushPublicKey: the welcome never offers the phone, Settings says push is not set up)
+  // is offered without the phone (review of Round 21).
+  if (ck.resting) {
+    ck.resting = false;
+    const mail = !!state.config.email;
+    const phone = !!state.config.pushPublicKey;
+    const offer = phone
+      ? (mail ? 'guest.resting_offer' : 'guest.resting_offer_no_mail')
+      : (mail ? 'guest.resting_offer_no_push' : 'guest.resting_offer_app_only');
+    form.appendChild(el('div', { class: 'notice', id: 'resting-offer' }, [
+      el('p', { class: 'muted', text: t(offer) }),
+      el('a', { class: 'btn-text', id: 'resting-join', href: '#/signup?back=stylist', text: t('guest.resting_join'), onclick: () => { state.returnTo = '#/check'; } })
+    ]));
+  }
+  form.appendChild(el('button', { id: 'submit', class: 'btn', type: 'submit', text: t('check.submit') }));
+  const left = checksLeftLine();
+  if (left) form.appendChild(left);
+  form.appendChild(el('p', { class: 'hint', text: t('check.private_note') }));
+  renderPhoto();
+  updateSubmit();
+  // Back from a no-outfit answer: the photo button is the thing to do next, so focus goes there and the media sheet opens
+  // on it (closing the sheet hands focus back to the button, not to the heading).
+  if (retakeNext) {
+    retakeNext = false;
+    requestAnimationFrame(() => { const photo = $('photo'); if (!photo) return; photo.setAttribute('tabindex', '0'); photo.focus({ preventScroll: true }); chooseMedia(); });
+  }
+});
+
+/**
+ * Where it is going: nothing can be checked until one of these is pressed, and from then on exactly one always is. Each
+ * chip also carries the one word it contributes (data-intent), for the surfaces and the browser tests that still speak
+ * one word.
+ */
+// Round 19: the two chip rows are shared with the Tomorrow screen (views/tomorrow.js), which passes its own
+// { occasion, style } object and a repaint callback; on this screen the defaults make them byte for byte what they were.
+export function occasionChips(picked = pick, onPick = updateSubmit) {
+  ensureStyle();   // Tomorrow draws these rows too, in a browser that may never have opened the check screen
+  const chips = el('div', { class: 'chips', id: 'occasions', role: 'group', 'aria-label': t('a11y.intent_group') });
+  for (const occasion of OCCASIONS) {
+    chips.appendChild(el('button', {
+      type: 'button', class: 'chip', 'data-occasion': occasion, 'data-intent': ONE_WORD[occasion], text: occasionLabel(occasion),
+      'aria-pressed': String(picked.occasion === occasion),
+      onclick: () => { picked.occasion = occasion; paintOccasions(picked); onPick(); }
+    }));
+  }
+
+  return el('div', { class: 'asked-block' }, [el('h2', { text: t('occasion.title') }), chips]);
+}
+
+/** Lights the chosen occasion, wherever the row currently is on screen. */
+function paintOccasions(picked = pick) {
+  const row = $('occasions');
+  if (!row) return;
+  for (const chip of row.children) chip.setAttribute('aria-pressed', String(chip.dataset.occasion === picked.occasion));
+}
+
+/**
+ * How it should read: the wearer's saved preference, pressed, and changeable for this check alone. "No style" is the
+ * first chip and a real answer - the stylist is told there is none and judges the look on its own terms. When the pick
+ * differs from what is saved, one line offers to make it the new preference.
+ */
+export function styleChips(picked = pick, onPick = updateSubmit) {
+  ensureStyle();   // the offer line under the row (.style-default) is this file's rule
+  const chips = el('div', { class: 'chips', id: 'styles', role: 'group', 'aria-label': t('style.title') });
+  const offer = el('p', { class: 'hint style-default', id: 'style-default' });
+  const paint = () => {
+    for (const chip of chips.children) chip.setAttribute('aria-pressed', String((chip.dataset.style || null) === picked.style));
+    offer.innerHTML = '';
+    if (picked.style === preferredStyle()) { offer.hidden = true; return; }
+    offer.hidden = false;
+    offer.appendChild(el('span', { text: t('style.this_check') }));
+    offer.appendChild(el('button', {
+      type: 'button', class: 'btn-text', id: 'style-save', text: t('style.make_mine'),
+      onclick: () => { savePrefs({ style: picked.style || '' }); paint(); toast(t('style.saved', { style: styleLabel(picked.style) })); }
+    }));
+  };
+  for (const style of [null, ...STYLES]) {
+    chips.appendChild(el('button', {
+      type: 'button', class: 'chip', 'data-style': style || '', 'data-intent': style, text: styleLabel(style),
+      'aria-pressed': 'false', onclick: () => {
+        picked.style = style;
+        // A style with nowhere to go is what the old list called Streetwear, OldMoney or Minimal: a style worn
+        // everyday. Asking for one before saying where means that, so Everyday lights up and can still be changed.
+        if (style && !picked.occasion) { picked.occasion = 'Everyday'; paintOccasions(picked); }
+        paint();
+        onPick();
+      }
+    }));
+  }
+
+  paint();
+  return el('div', { class: 'asked-block' }, [
+    el('h2', { text: t('style.title') }), chips, offer, el('p', { class: 'hint', text: t('style.hint') })
+  ]);
+}
+
+/** "Try it first": the server's number of free checks, no account; signing up keeps them. A join link for the visitor who already used it. */
+function guestBanner() {
+  return el('div', { class: 'notice guest-banner', id: 'guest-banner' }, [
+    el('h3', { text: t('guest.title') }),
+    el('p', { class: 'muted', text: t('guest.hint', { n: guestChecks() }) }),
+    // Round 18. A visitor with no account can send a photo of a real person to a company in another country, and
+    // until now nothing on this screen said so - the age line and the disclosure lived only on the signup form, which
+    // a guest never sees. One line, before the button, with the two documents in it.
+    el('p', { class: 'hint guest-disclosure', id: 'guest-disclosure' }, richText('guest.disclosure', {
+      terms: el('a', { href: '#/terms', text: t('auth.agree_terms') }),
+      privacy: el('a', { href: '#/privacy', text: t('auth.agree_privacy') })
+    })),
+    el('a', { class: 'btn-text', id: 'guest-join', href: '#/signup', text: t('auth.signup'), onclick: () => { state.returnTo = '#/check'; } })
+  ]);
+}
+
+/**
+ * How many are left, of the allowance that means something to this person. Two real bounds run at once - the day
+ * (MeDto.checksToday / checksPerDay) and the month (callsThisMonth / callsPerMonth) - and a screen has one line.
+ *
+ * Round 16: it used to quote the day always, which told a Pro subscriber "27 of 30 checks left today" when what Pro
+ * sells is the month; the day is a burst brake they will almost never feel. So each plan's headline allowance is the
+ * one quoted - the month on Pro, the day on Free, where two a day IS the offer and the month is the backstop - and
+ * the other one only speaks when it is the one that has actually run out, because then it is the sentence that helps:
+ * come back tomorrow, or come back next month. A cap of 0 means the server did not send that bound; with no day cap
+ * at all there is nothing honest to say and the line stays out.
+ *
+ * At zero left the way to more is the Pro screen, unless the person is on Pro already: at their own ceiling they just
+ * hear the number.
+ */
+function checksLeftLine() {
+  const me = state.me;
+  if (!me || !(me.checksPerDay > 0)) return null;
+  const dayCap = me.checksPerDay;
+  const dayLeft = Math.max(0, dayCap - (me.checksToday || 0));
+  const monthCap = me.callsPerMonth || 0;
+  const monthLeft = monthCap > 0 ? Math.max(0, monthCap - (me.callsThisMonth || 0)) : null;
+  const isPro = me.plan === 'pro';
+  // Pro: the month, unless the day is the one that stopped them. Free: the day, unless the month ran out first.
+  const month = monthLeft !== null && (isPro ? !(dayLeft === 0 && monthLeft > 0) : monthLeft === 0);
+  const n = month ? monthLeft : dayLeft;
+  const cap = month ? monthCap : dayCap;
+  return el('p', { class: 'hint checks-left', id: 'checks-left' }, [
+    el('span', { text: t(month ? 'check.left_month' : 'check.left', { n, cap: fmtNumber(cap) }) }),
+    n === 0 && !isPro ? el('a', { class: 'btn-text', id: 'go-pro', href: '#/pro', text: t('check.go_pro') }) : null
+  ]);
+}
+
+/** While the stylist looks: the mark at 96px with its flame breathing (app.css animates .breathing); the pulse dot when index.html has no #mark-template. */
+/**
+ * The wait. With a clip it is really two waits — the upload, then the model — and on a phone's uplink the first can be
+ * the longer one, so the line says "sending" until the bytes are gone and only then "looking". One static sentence for
+ * both made a slow upload look like a hung stylist.
+ */
+function loadingBlock(line) {
+  const mark = logoMark(96);
+  return el('div', { class: 'loading', role: 'status' }, [
+    el('div', {}, [
+      mark ? el('div', { class: 'mark breathing', 'aria-hidden': 'true' }, [mark]) : el('div', { class: 'loading-mark', 'aria-hidden': 'true' }),
+      el('p', { id: 'loading-line', text: t(line || 'loading.line'), tabindex: '-1' })
+    ])
+  ]);
+}
+
+/**
+ * Round 20: the block, on the page, with its line told in stages from ck.startedAt (core.js stagedWaitLine) - "looking",
+ * "reading the pieces", "weighing the occasion", and after fifteen seconds the one line that says what is really
+ * happening. While a clip is still uploading the line is the fixed "sending" one and the stages start at the swap, so
+ * they count only the wait that can be the model's. The <p> stays inside the role="status" region, so a screen reader
+ * hears each stage politely; the one-off announce() at submit is unchanged. A text swap is content, not motion: it runs
+ * under reduced motion too, where the flame's breathing is already stilled by the stylesheet.
+ */
+function showLoading(root) {
+  const ck = state.check;
+  const sending = !!(ck.clip && ck.sending);
+  root.appendChild(loadingBlock(sending ? 'loading.sending' : null));
+  waitLine = $('loading-line');
+  if (!sending) stagedWaitLine(waitLine, ck.startedAt, 'loading.stage_look');
+}
+/** The check's wait line as last drawn by showLoading; the clip's swap starts the stages on this one (compare's is its own). */
+let waitLine = null;
+
+/** Paints the photo button from state: empty prompt, "preparing", the photo, or the clip paused on its chosen frame (with the picker under it). */
+function renderPhoto() {
+  const photo = $('photo');
+  if (!photo) return;
+  const ck = state.check;
+  const hasMedia = !!(ck.previewUrl || ck.clipUrl);
+  const label = ck.photoBusy ? t(busyKind === 'clip' ? 'check.clip_processing' : 'check.photo_processing') : t(hasMedia ? 'check.media_replace' : 'check.media_add');
+  photo.classList.toggle('has-image', hasMedia);
+  photo.classList.toggle('has-clip', !!ck.clipUrl);
+  photo.setAttribute('aria-label', label);
+  photo.setAttribute('aria-busy', String(ck.photoBusy));
+  photo.innerHTML = '';
+  if (ck.clipUrl) {
+    const video = el('video', { src: ck.clipUrl, muted: true, playsinline: true, 'webkit-playsinline': true, preload: 'auto', 'aria-label': t('a11y.photo_preview') });
+    video.muted = true;
+    photo.appendChild(video);
+    photo.appendChild(el('span', { class: 'photo-replace', text: label }));
+  } else if (ck.previewUrl) {
+    photo.appendChild(el('img', { src: ck.previewUrl, alt: t('a11y.photo_preview') }));
+    photo.appendChild(el('span', { class: 'photo-replace', text: label }));
+  } else {
+    photo.appendChild(el('span', { class: 'photo-empty' }, [
+      ck.photoBusy ? el('span', { class: 'loading-mark', 'aria-hidden': 'true', style: 'margin-block-end: 0;' }) : icon('camera'),
+      el('strong', { text: label }),
+      ck.photoBusy ? null : el('span', { class: 'hint', text: t('check.photo_hint') })
+    ]));
+  }
+  renderClipTools();
+}
+
+const seconds = (ms) => fmtNumber(Math.round(ms / 100) / 10);
+/** 40% into a clip longer than two seconds (people are usually posed by then), else the first frame. */
+const preselectMs = (clipMs) => (clipMs > 2000 ? Math.round(clipMs * 0.4) : 0);
+
+/**
+ * The frame picker: the clip sits in the photo box, paused on the chosen frame; the slider seeks it, and on release the
+ * frame goes to a canvas and becomes the still the stylist judges (and the clip's poster). Moving the slider only seeks;
+ * a capture that a newer one overtakes lands nowhere.
+ */
+function renderClipTools() {
+  const tools = $('clip-tools');
+  if (!tools) return;
+  const ck = state.check;
+  tools.innerHTML = '';
+  tools.hidden = !ck.clipUrl;
+  if (!ck.clipUrl) return;
+  const video = $('photo').querySelector('video');
+  const max = Math.max(100, Math.round(ck.clipMs));
+  if (frameMs === null) frameMs = preselectMs(ck.clipMs);
+  frameMs = Math.min(frameMs, max);
+  const range = el('input', { type: 'range', id: 'clip-frame', min: '0', max: String(max), step: '50', value: String(frameMs), 'aria-valuetext': t('check.clip_ready', { s: seconds(frameMs) }) });
+  range.addEventListener('input', () => { frameMs = Number(range.value); range.setAttribute('aria-valuetext', t('check.clip_ready', { s: seconds(frameMs) })); seekVideo(video, frameMs); });
+  range.addEventListener('change', () => { frameMs = Number(range.value); captureFrame(video, frameMs); });
+  tools.appendChild(el('label', { for: 'clip-frame', text: t('check.clip_frame') }));
+  tools.appendChild(range);
+  tools.appendChild(el('p', { class: 'hint', text: t('check.clip_frame_hint') }));
+  tools.appendChild(el('div', { class: 'clip-row' }, [
+    el('span', { class: 'tag' }, [icon('clip'), t('check.clip_ready', { s: seconds(ck.clipMs) })]),
+    el('button', { type: 'button', class: 'btn-text', id: 'clip-remove', text: t('check.clip_remove'), onclick: removeClip })
+  ]));
+  tools.appendChild(el('p', { class: 'hint', text: t('check.clip_note') }));
+  // Land on the frame: capture it when there is no still yet (a fresh clip), otherwise just show it.
+  const needStill = !ck.photo;
+  primeVideo(video).then(() => {
+    if (!document.contains(video)) return null;
+    return needStill ? captureFrame(video, frameMs) : seekVideo(video, frameMs);
+  }).catch(() => { if (document.contains(video)) showError(t('error.video_read')); });
+}
+
+/** Waits for the clip's metadata; a MediaRecorder webm has no duration until the browser has scanned it (the far seek does that). */
+async function primeVideo(video) {
+  if (video.readyState < 1) {
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadedmetadata', resolve, { once: true });
+      video.addEventListener('error', () => reject(new Error('video')), { once: true });
+      setTimeout(() => reject(new Error('timeout')), 15000);
+    });
+  }
+  if (!isFinite(video.duration)) {
+    await new Promise((resolve) => {
+      const done = () => { video.removeEventListener('durationchange', done); resolve(); };
+      video.addEventListener('durationchange', done);
+      setTimeout(done, 2000);
+      video.currentTime = 1e101;
+    });
+    video.currentTime = 0;
+  }
+  // Some browsers only paint frames onto a canvas after the element has played once; muted inline play is always allowed.
+  try { await video.play(); video.pause(); } catch (e) { /* frames draw anyway on the rest */ }
+}
+/** Seeks and resolves once the frame is there (false when a newer seek overtook this one). Never hangs on a broken file. */
+function seekVideo(video, ms) {
+  const mine = ++seekSeq;
+  return new Promise((resolve) => {
+    const limit = isFinite(video.duration) ? Math.max(0, video.duration * 1000 - 40) : ms;   // the very last frame is often blank
+    const target = Math.min(ms, limit) / 1000;
+    if (video.readyState >= 2 && Math.abs(video.currentTime - target) < 0.01 && !video.seeking) { resolve(mine === seekSeq); return; }
+    let settled = false;
+    const done = () => { if (settled) return; settled = true; video.removeEventListener('seeked', done); resolve(mine === seekSeq); };
+    video.addEventListener('seeked', done);
+    setTimeout(done, 4000);
+    try { video.currentTime = target; } catch (e) { done(); }
+  });
+}
+/** The chosen frame becomes the still: ck.photo (what the stylist judges) and ck.previewUrl (the clip's poster). */
+async function captureFrame(video, ms) {
+  const ck = state.check;
+  const mine = ++captureSeq;
+  capturing = true;
+  updateSubmit();
+  try {
+    const landed = await seekVideo(video, ms);
+    if (!landed || mine !== captureSeq || !document.contains(video)) return;
+    const blob = await frameToJpeg(video);
+    if (mine !== captureSeq || video.src !== ck.clipUrl) return;   // the clip changed under us
+    if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
+    ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob);
+  } catch (e) {
+    if (mine === captureSeq) showError(t('error.video_read'));
+  } finally {
+    if (mine === captureSeq) { capturing = false; updateSubmit(); }
+  }
+}
+
+function updateSubmit() {
+  const submit = $('submit');
+  const ck = state.check;
+  if (submit) submit.disabled = !(pick.occasion && ck.photo) || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn());
+}
+function showError(message) {
+  const node = $('check-error');   // looked up fresh: the view may have been re-rendered during a decode
+  if (node) { node.textContent = message; node.hidden = false; } else state.check.error = message;
+}
+function clearError() { const node = $('check-error'); if (node) node.hidden = true; }
+/** Drops the photo and the clip (and their URLs); the token retires any decode still running. */
+function clearMedia(ck) {
+  ck.photoToken += 1;
+  if (ck.previewUrl) URL.revokeObjectURL(ck.previewUrl);
+  if (ck.clipUrl) URL.revokeObjectURL(ck.clipUrl);
+  ck.photo = null; ck.previewUrl = null; ck.clip = null; ck.clipUrl = null; ck.clipMs = 0; ck.source = null; ck.photoBusy = false;
+  frameMs = null; capturing = false; captureSeq += 1; seekSeq += 1;
+}
+
+/** The photo button: the camera, a photo from the library, or a clip from the library. */
+function chooseMedia() {
+  if (state.check.busy) return;
+  const list = el('div', { class: 'sheet-list' });
+  const s = sheet({ title: t(state.check.previewUrl || state.check.clipUrl ? 'check.media_replace' : 'check.media_add'), content: list });
+  // Closing first, then acting: the picker's input.click() must run inside the tap that chose the row.
+  const row = (id, name, text, onclick) => el('button', { type: 'button', id, onclick: () => { s.close(); onclick(); } }, [icon(name), text]);
+  // Round 17: offered to everybody, signed in or not. The guest check is the whole funnel - a visitor's one free look
+  // is the thing that turns them into an account - and it used to send them to a file picker, because the camera
+  // bounced anyone without a session. A person standing in front of a mirror has no file to pick.
+  list.appendChild(row('media-camera', 'camera', t('check.open_camera'), () => { cameraReturn.fromCheck = true; cameraReturn.handoff = null; navigate('#/camera'); }));
+  list.appendChild(row('media-library', 'image', t('check.from_library'), async () => { const file = await pickFile('file'); if (file) takePhotoFile(file); }));
+  list.appendChild(row('media-clip', 'clip', t('camera.clip') + ' · ' + t('check.from_library'), async () => { const file = await pickFile('clip-file'); if (file) takeClipFile(file); }));
+}
+
+/**
+ * A photo from the library (or the camera's fallback): downscaled before it is kept. photoToken guards the race: a second
+ * pick, a sign-out or "check another" while the first decode is still running makes the first result land nowhere.
+ */
+export async function takePhotoFile(file) {
+  const ck = state.check;
+  clearError();
+  clearMedia(ck);
+  const token = ck.photoToken;
+  busyKind = 'photo'; ck.photoBusy = true;
+  renderPhoto(); updateSubmit();
+  let blob = null;
+  try { blob = await prepareImage(file, MAX_EDGE); } catch (e) { blob = null; }
+  // prepareImage hands back the original when it cannot decode it; a file that is not an image is no use to anyone.
+  if (blob === file && file.type && !file.type.startsWith('image/')) blob = null;
+  if (token !== ck.photoToken) return false;
+  ck.photoBusy = false;
+  if (blob) { ck.photo = blob; ck.previewUrl = URL.createObjectURL(blob); ck.source = 'library'; }
+  else showError(t('error.image_read'));
+  renderPhoto(); updateSubmit();
+  return !!blob;
+}
+/** A clip from the library: within the byte cap, readable, within the seconds cap. Then the frame picker, 40% in. */
+export async function takeClipFile(file) {
+  const ck = state.check;
+  clearError();
+  clearMedia(ck);
+  const token = ck.photoToken;
+  busyKind = 'clip'; ck.photoBusy = true;
+  renderPhoto(); updateSubmit();
+  const maxSeconds = state.config.maxVideoSeconds;
+  let problem = null; let ms = 0; let url = null;
+  if (file.size > state.config.maxVideoBytes) problem = t('check.clip_too_large', { mb: fmtNumber(Math.round(state.config.maxVideoBytes / (1024 * 1024))) });
+  else {
+    url = URL.createObjectURL(file);
+    try { ms = await readClipDuration(url); } catch (e) { problem = t('error.video_read'); }
+    if (!problem && ms > maxSeconds * 1000 + 500) problem = t('check.clip_too_long', { s: seconds(ms), max: fmtNumber(maxSeconds) });
+  }
+  if (token !== ck.photoToken) { if (url) URL.revokeObjectURL(url); return false; }
+  ck.photoBusy = false;
+  if (problem) { if (url) URL.revokeObjectURL(url); showError(problem); renderPhoto(); updateSubmit(); return false; }
+  ck.clip = file; ck.clipUrl = url; ck.clipMs = Math.round(ms); ck.source = 'library';
+  frameMs = preselectMs(ck.clipMs);
+  renderPhoto(); updateSubmit();
+  return true;
+}
+/** The camera hands over a photo (a JPEG blob) or a clip (blob + its length); a clip's first frame is preselected. */
+export function receiveCapture(capture) {
+  const ck = state.check;
+  clearMedia(ck);
+  ck.error = null;
+  if (capture.clip) { ck.clip = capture.clip; ck.clipUrl = URL.createObjectURL(capture.clip); ck.clipMs = Math.round(capture.clipMs || 0); frameMs = 0; }
+  else { ck.photo = capture.photo; ck.previewUrl = URL.createObjectURL(capture.photo); }
+  ck.source = 'camera';
+}
+/** The clip's length from its metadata, in ms. Rejects what the browser cannot read. */
+function readClipDuration(url) {
+  return new Promise((resolve, reject) => {
+    const probe = document.createElement('video');
+    probe.preload = 'metadata'; probe.muted = true; probe.playsInline = true;
+    let settled = false;
+    const finish = (ok, value) => { if (settled) return; settled = true; probe.removeAttribute('src'); probe.load(); if (ok) resolve(value); else reject(new Error('video')); };
+    probe.addEventListener('error', () => finish(false), { once: true });
+    probe.addEventListener('loadedmetadata', () => {
+      if (isFinite(probe.duration) && probe.duration > 0) { finish(true, probe.duration * 1000); return; }
+      // no duration in the container (a recorded webm): a far seek makes the browser find it
+      probe.addEventListener('durationchange', () => { if (isFinite(probe.duration) && probe.duration > 0) finish(true, probe.duration * 1000); });
+      setTimeout(() => finish(false), 5000);
+      probe.currentTime = 1e101;
+    }, { once: true });
+    setTimeout(() => finish(false), 15000);
+    probe.src = url;
+  });
+}
+function removeClip() {
+  clearError();
+  clearMedia(state.check);
+  renderPhoto(); updateSubmit();
+}
+/** The upload name tells the server what to expect; the bytes are what it trusts. */
+function clipName(blob) { return /mp4|quicktime/i.test(blob.type || '') ? 'clip.mp4' : 'clip.webm'; }
+
+async function submitCheck() {
+  const ck = state.check;
+  if (!pick.occasion || !ck.photo || ck.busy || ck.photoBusy || capturing || (!state.me && !guestsOn())) return;
+  ck.busy = true;
+  ck.startedAt = Date.now();
+  // With a clip the wait opens on "sending": the stages start at the swap below, not under the first frame.
+  ck.sending = !!ck.clip;
+  updateSubmit();
+  const root = view();
+  root.innerHTML = '';
+  showLoading(root);
+  announce(t('loading.line'));
+  focusHeading();
+  const wasSignedIn = !!state.me;
+  try {
+    const form = new FormData();
+    // The two questions and the free line. No "intent": that field is how the server knows it is talking to a client
+    // from before the split, and this one is not.
+    form.append('occasion', pick.occasion);
+    form.append('style', pick.style || '');
+    form.append('note', ck.occasion.trim());
+    form.append('language', getLocale());
+    // Round 20 — distribution: the entry link this device arrived through (/go/<source>), while it is kept. The server
+    // checks it against its allowlist; the numbers page attributes guest checks to it, so a guest's check alone sends it
+    // (review of Round 21: the server keeps it on a guest's check only).
+    const source = state.me ? null : pendingSource();
+    if (source) form.append('source', source);
+    // Round 19: the planned outfit this photo is the person wearing, when they came from it.
+    if (ck.suggestion && ck.suggestion.id) form.append('suggestionId', ck.suggestion.id);
+    form.append('image', ck.photo, 'outfit.jpg');
+    if (ck.clip) form.append('video', ck.clip, clipName(ck.clip));   // the still stays the judged image; the clip is posted with the look
+    // From here the check belongs to the server whatever happens to this page. The marker is what the next boot has to
+    // find it by; it goes the moment the answer is in hand, either way.
+    writePending();
+    // While a clip is on its way the screen says so, and swaps to "the stylist is looking" once it can only be the
+    // model we are waiting for. There is no upload-progress event on fetch, so the swap is timed off the clip's size at
+    // a deliberately pessimistic 1 Mbps: early is fine (the next line is the true one anyway), late would be the lie.
+    let swap = 0;
+    if (ck.clip) {
+      // Round 20: the stages count from the swap, the moment only the model can be the wait. The line is the one on
+      // screen when it fires (waitLine): a re-render during the upload (the Check tab tapped again, a language switch)
+      // drew a new "sending" line, and the node from the submit is gone by then.
+      swap = setTimeout(() => { ck.sending = false; ck.startedAt = Date.now(); if (waitLine && waitLine.isConnected) stagedWaitLine(waitLine, ck.startedAt, 'loading.stage_look'); },
+        Math.min(45000, Math.max(2000, Math.round(ck.clip.size / 125000) * 1000)));
+    }
+    try {
+      // Three minutes. The honest worst case is about two minutes of server time (two attempts at the model with the
+      // backoff between them) plus a 6 MiB upload on a poor connection, so this only ever fires on something that is
+      // never going to answer — and then the person gets the error, and the line above telling them it cost nothing,
+      // instead of a breathing logo for as long as they are willing to watch it.
+      state.result = await api('POST', '/api/checks', form, 180000);
+    } finally {
+      if (swap) clearTimeout(swap);
+      ck.sending = false;
+    }
+    // Which still this result came from: the post sheet places its dots on the preview only while it is this one (the
+    // result may later be an older check opened from "Your checks", or the photo may have been replaced since).
+    clearInterruptedCheck();
+    ck.judged = { resultId: state.result.id, previewUrl: ck.previewUrl };
+    // A guest's check: the server named it by the guest cookie; it becomes the account's once the person signs up (the result screen claims it).
+    state.result.guest = !wasSignedIn;
+    state.resultAnimated = false;
+    state.resultPostId = null;
+    ck.busy = false;
+    if (wasSignedIn) loadMe();   // streak and today's count may have moved
+    navigate('#/result');
+  } catch (e) {
+    ck.busy = false;
+    ck.sending = false;
+    // A cut that lands while the model is being asked leaves nothing stored and nothing counted (CheckEndpoints), and
+    // "did that just cost me my only look?" is the first thing a person wonders. Only for a connection that died: a 429
+    // or a 413 carries its own sentence and this would contradict it.
+    const lostConnection = e && !e.status;
+    // The server answered (429, 413, 502, a refusal): there is nothing on its way, so the marker goes. A connection that
+    // died is the other case - the check may have landed after this page stopped listening - and the marker stays, for
+    // the next open to ask about within its ten minutes.
+    if (!lostConnection) clearInterruptedCheck();
+    // Round 20: a guest met the day's spend ceiling (503 error.stylist_resting). The form shows the sentence as it did,
+    // and under it the offer to be told when the stylist is back. Signed-in accounts keep the sentence alone. Only the
+    // ceiling's own refusal (code stylist_resting): a proxy's 503 during a deploy is no reason to promise a note.
+    if (e && e.status === 503 && e.code === 'stylist_resting' && !wasSignedIn) ck.resting = true;
+    ck.error = e && e.status === 401 && wasSignedIn ? null
+      : ((e && e.message ? e.message : t('error.generic')) + (lostConnection ? ' ' + t('error.nothing_counted') : ''));   // a lost session already re-rendered
+    // Back to the form with the planned outfit still attached, so the retry closes the loop the failed try could not.
+    navigate(ck.suggestion && ck.suggestion.id ? '#/check?suggestion=' + encodeURIComponent(ck.suggestion.id) : '#/check');
+  }
+}
+
+/** Back to a fresh check. "Try another photo" keeps the challenge; "Check another" drops it. */
+function checkAnother(keepChallenge) {
+  const ck = state.check;
+  clearInterruptedCheck();
+  state.result = null; state.resultPostId = null; state.resultAnimated = false;
+  clearMedia(ck);
+  ck.error = null;
+  if (!keepChallenge) ck.challenge = null;
+  navigate('#/check');
+}
+
+// ---------- result ----------
+
+register('result', async (root, params, ctx) => {
+  const result = state.result;
+  // Nothing in hand: either this address was opened cold (back to the check screen), or a check was left in flight and
+  // the answer is still on the server, waiting to be asked for.
+  if (!result) { await resumeInterrupted(root, ctx); return; }
+  setTopBar({ title: t('result.title') });
+  const feedback = result.feedback || {};
+  const status = feedback.status || result.status;
+  const asked = askedFor(result);
+  const intent = occasionLabel(asked.occasion);
+  // Round 21: the occasion on #result is the tint cascade (app.css §1): the tag, the chips and the glow behind the photo.
+  const container = el('div', { id: 'result', class: 'stack', 'data-occasion': asked.occasion });
+  root.appendChild(container);
+
+  if (status === 'rejected') {
+    if (!state.resultAnimated) announce(t('result.rejected_title'));
+    state.resultAnimated = true;
+    container.appendChild(el('div', { class: 'state' }, [
+      el('h1', { text: t('result.rejected_title') }),
+      el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: t('result.rejected_body') }),
+      el('button', { type: 'button', class: 'btn', style: 'margin-block-start: 24px;', text: t('result.try_again'), onclick: () => checkAnother(true) })
+    ]));
+    return;
+  }
+  if (status !== 'ok') {
+    // Round 13, no outfit in the photo: no score, no share, nothing about anyone. The heading and the guidance are the
+    // app's; the stylist's one line about the photo rides under them when the server let it through (rule 1 drops one
+    // that names a person, and then there is none); "didn't count" when the server said so; then a retake.
+    ensureStyle();
+    if (!state.resultAnimated) announce(t('nooutfit.title'));
+    state.resultAnimated = true;
+    container.appendChild(el('div', { class: 'state nooutfit', id: 'nooutfit' }, [
+      el('h1', { text: t('nooutfit.title') }),
+      el('p', { class: 'lede', style: 'margin-block-start: 12px;', text: t('nooutfit.body') }),
+      feedback.message ? el('p', { class: 'nooutfit-reason', id: 'nooutfit-reason', dir: 'auto', text: feedback.message }) : null,
+      result.counted === false ? el('p', { class: 'hint nooutfit-free', id: 'nooutfit-free', text: t('nooutfit.not_counted') }) : null,
+      el('button', { type: 'button', class: 'btn', id: 'retake', style: 'margin-block-start: 24px;', onclick: () => { retakeNext = true; checkAnother(true); } }, [icon('camera'), t('nooutfit.retake')]),
+      el('button', { type: 'button', class: 'btn btn-ghost', style: 'margin-block-start: 8px;', text: t('result.again'), onclick: () => checkAnother(false) })
+    ]));
+    return;
+  }
+
+  const animate = !state.resultAnimated && !reducedMotion();
+  if (!state.resultAnimated) announce(t('a11y.score', { score: fmtNumber(feedback.score) }) + '. ' + feedback.headline);
+  state.resultAnimated = true;
+  ensureStyle();
+  const scoreNode = el('span', { class: 'score', text: animate ? fmtNumber(0) : fmtNumber(feedback.score) });
+  const fill = el('div', { class: 'bar-fill', style: animate ? 'inline-size: 0%;' : 'transition: none; inline-size: ' + feedback.intentMatch + '%;' });
+  // Round 21: the ring is a meter (--score, app.css §5) that draws its arc on; .landed is the count-up's last frame
+  // (animateScore below), or there from the start when nothing counts up (reduced motion, a screen drawn again).
+  const hero = el('div', { class: 'hero' + (animate ? '' : ' landed'), role: 'img', 'aria-label': t('a11y.score', { score: fmtNumber(feedback.score) }), style: scoreStyle(feedback.score) }, [
+    scoreNode, el('span', { class: 'score-out', 'aria-hidden': 'true', text: t('result.out_of') })
+  ]);
+  const judged = judgedPreview(result);
+  // The check is the person's own, so every piece has its word: anything but the stylist's three reads as neutral here
+  // (pieceChip draws no dot for a piece without one, which is what a look shows everyone but its author).
+  const items = namedPieces(feedback.items).map((item) => ({ ...item, verdict: pieceVerdict(item) }));
+
+  // 1. The verdict. The judged still, edge to edge, with the pieces pinned at its foot (up to four, decorative: the row
+  //    under "What you're wearing" is the one that is read) and the ring on its corner; a past check has no still here,
+  //    and the ring sits in flow above the headline as it always did. Then the headline, the vibe and, Round 14, both
+  //    questions in the wearer's own words, so the score is read against what was actually asked.
+  container.appendChild(el('section', { class: 'result-verdict' }, [
+    judged
+      ? el('figure', { class: 'result-photo' }, [
+        el('img', { src: judged, alt: t('a11y.photo_preview'), decoding: 'async' }),
+        el('span', { class: 'result-scrim', 'aria-hidden': 'true' }),
+        items.length ? el('div', { class: 'pieces', 'aria-hidden': 'true' }, items.slice(0, 4).map((item) => pieceChip(item))) : null,
+        hero
+      ])
+      : hero,
+    el('h1', { class: 'result-headline', text: feedback.headline }),
+    feedback.vibe ? el('p', { class: 'vibe', text: feedback.vibe }) : null,
+    el('div', { class: 'asked-for', id: 'asked-for' }, [
+      el('span', { class: 'lbl', text: t('occasion.asked') }),
+      el('span', { class: 'tag', 'data-occasion': asked.occasion, text: occasionLabel(asked.occasion) }),
+      el('span', { class: 'tag' + (asked.style ? '' : ' rose'), 'data-style': asked.style || '', text: styleLabel(asked.style) })
+    ])
+  ]));
+
+  // 2. The read: rubric v2's three rings, then the accessories (a check from before v2 has neither and shows neither),
+  //    then how far it reads as what was asked.
+  const read = el('section', { class: 'result-read' });
+  container.appendChild(read);
+  if (feedback.breakdown) {
+    read.appendChild(el('div', { id: 'breakdown' }, [
+      el('h2', { text: t('result.breakdown') }),
+      el('div', { style: 'margin-block-start: 12px;' }, [breakdownRow(feedback.breakdown)])
+    ]));
+  }
+  if (feedback.accessories) read.appendChild(accessoriesSection(feedback.accessories));
+  read.appendChild(el('div', {}, [
+    el('div', { class: 'match-label' }, [el('span', { text: t('result.intent_match', { intent }) }), el('span', { text: fmtPercent(feedback.intentMatch / 100) })]),
+    el('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(feedback.intentMatch), 'aria-label': t('result.intent_match', { intent }) }, [fill])
+  ]));
+
+  // 3. The pieces and the tip.
+  const pieces = el('section', { class: 'result-pieces' });
+  container.appendChild(pieces);
+  if (items.length) pieces.appendChild(piecesBlock(items));
+  if (feedback.working && feedback.working.length) {
+    pieces.appendChild(el('div', {}, [
+      el('h2', { text: t('result.working') }),
+      el('ul', { class: 'working' }, feedback.working.map((line) => el('li', { text: line })))
+    ]));
+  }
+  // The tip, and everything that is ABOUT the tip, under one condition on purpose: asking "did it land?" about a tip
+  // that is not on the screen is nonsense. The server no longer lets an ok verdict through without one (OutfitAnalyzer),
+  // so this is the belt to that braces — and if it ever does happen, the notice below says so instead of the screen
+  // simply ending early, which is what it used to do.
+  if (feedback.oneTip) {
+    // MOUNTS, in the order they are read: "last time it worked" above the tip, the primary "Try the tip, then show me"
+    // (or the pair) inside the tip's panel, then the typed answer to the tip. app/taste.js fills them once the screen is whole (below).
+    pieces.appendChild(el('div', { class: 'mount', id: 'taste-win' }));
+    pieces.appendChild(tipBlock(feedback));
+    pieces.appendChild(el('div', { class: 'mount', id: 'taste-reasons' }));
+  } else if (feedback.status === 'ok') {
+    pieces.appendChild(el('p', { class: 'notice', id: 'tip-missing', text: t('result.no_tip') }));
+  }
+  // Round 14 — the wardrobe that builds itself (app/wardrobe.js): the documented mount point, #wardrobe-keep, one quiet
+  // line under the tip — "keep the camel coat in your wardrobe?", one tap, no form. It stays hidden until it has a piece
+  // to offer (signed out, or every piece kept already), so a screen that has nothing to ask looks exactly as it did.
+  pieces.appendChild(wardrobeKeep(result));
+
+  // 4. The doors: Post it, the shares, Check another.
+  const doors = el('section', { class: 'result-doors' });
+  container.appendChild(doors);
+  const postArea = el('div');
+  doors.appendChild(postArea);
+  renderPostArea(postArea, result);
+  // The 12-second video (app/sharevideo.js): the share card brought to life, made on the phone from the judged still, so only
+  // while that still is here; a past check from "Your checks" has no photo and gets no #share-video (a video of a look is
+  // never made without the look). #share-video is busy while it renders.
+  doors.appendChild(el('div', { class: 'row share-row' }, [
+    judged ? shareVideoButton(videoLookFromCheck(result, judged)) : null,
+    shareCardButton(lookFromCheck(result, state.check.previewUrl)),
+    el('button', { type: 'button', class: 'btn btn-secondary', id: 'result-share', onclick: () => shareResult(result) }, [icon('share'), t('result.share')])
+  ]));
+  // Round 20 — the loop, now that the screen is whole: the typed reasons and "Try the tip, then show me" into their
+  // mounts; a tap arms the attempt and takes the retake path into the media sheet (startAttempt); the pair, once it is
+  // known, puts the before/after share first (paintPairShare) and is kept on the result for the post sheet's preselect.
+  if (feedback.oneTip) {
+    mountResult(container, result, {
+      afterUrl: judged,
+      onStart: () => startAttempt(result),
+      onPair: (pair) => { result.pair = pair; paintPairShare(container, pair, result); }
+    });
+  }
+  // Round 13: on iOS Safari, once per device, the note that the app can live on the home screen, now that the value has landed.
+  // Round 20: or, inside another app's browser, the note to open it in Safari or Chrome; whichever renders first marks it seen.
+  const installHint = iosInstallHint() || inAppBrowserHint();
+  if (installHint) { installHint.classList.add('result-install'); doors.appendChild(installHint); }
+  doors.appendChild(el('button', { type: 'button', class: 'btn btn-ghost', text: t('result.again'), onclick: () => checkAnother(false) }));
+
+  if (animate) {
+    requestAnimationFrame(() => { fill.style.inlineSize = feedback.intentMatch + '%'; });
+    animateScore(scoreNode, feedback.score);
+  }
+});
+
+/**
+ * Round 21 — "What you're wearing": the stylist's pieces as a row of name chips, the verdict as the dot and the word
+ * (the .item-verdict the browser test reads, in the stylist's order), and one note under the row: a tap on a chip that
+ * has one opens the stylist's line about that piece in p.piece-note (the open chip is aria-expanded, the gradient), a
+ * second tap closes it, another chip's tap swaps it. The first weak piece with a note starts open — it is the piece the
+ * tip is about. A piece with no note is a plain chip. #wardrobe-offer stays the documented mount beside the pieces.
+ */
+function piecesBlock(items) {
+  const note = el('p', { class: 'piece-note', id: 'piece-note', hidden: true });
+  const noteOf = (item) => (typeof item.note === 'string' ? item.note.trim() : '');
+  const row = el('div', { class: 'pieces chips' });
+  const open = (chip, item) => {
+    const was = chip.getAttribute('aria-expanded') === 'true';
+    for (const other of row.querySelectorAll('[aria-expanded]')) other.setAttribute('aria-expanded', 'false');
+    if (was) { note.hidden = true; note.replaceChildren(); return; }
+    chip.setAttribute('aria-expanded', 'true');
+    note.replaceChildren(el('b', { text: item.name + '.' }), ' ' + noteOf(item));
+    note.hidden = false;
+  };
+  const chips = items.map((item) => {
+    const has = !!noteOf(item);
+    const chip = pieceChip(item, has ? 'button' : 'span', has ? { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'piece-note' } : null);
+    chip.appendChild(el('span', { class: 'item-verdict', text: t('verdict.' + pieceVerdict(item)) }));
+    if (has) chip.addEventListener('click', () => open(chip, item));
+    return chip;
+  });
+  for (const chip of chips) row.appendChild(chip);
+  const first = items.findIndex((item) => pieceVerdict(item) === 'weak' && noteOf(item));
+  if (first >= 0) open(chips[first], items[first]);
+  return el('div', {}, [
+    el('h2', { text: t('result.items') }),
+    row,
+    note,
+    // MOUNT: the wardrobe offer, beside the pieces it is about. Empty, and invisible while empty (.mount:empty).
+    el('div', { class: 'mount', id: 'wardrobe-offer' })
+  ]);
+}
+
+/**
+ * What this check asked for. The server sends both on every check; a result held over from an older client, or an older
+ * stored check read back, carries only the one word, and that word says which pair it stood for.
+ */
+function askedFor(result) {
+  if (result.occasion) return { occasion: result.occasion, style: STYLES.includes(result.style) ? result.style : null };
+  const [occasion, style] = SPLIT[result.intent] || ['Everyday', null];
+  return { occasion, style };
+}
+
+/**
+ * The one tip, in the kind it came in. A change is the pull quote it has always been. A keep says so: its own heading,
+ * its own label, the green accent of a piece that works - and not one word about swapping anything, because there is
+ * nothing to swap. Anything the stylist sends that is not "keep" is a change, so a keep is never shown by accident.
+ */
+function tipBlock(feedback) {
+  const keep = feedback.tipKind === 'keep';
+  return el('div', {}, [
+    el('div', { class: 'tip-head' }, [
+      el('h2', { text: t(keep ? 'tip.keep_title' : 'result.tip') }),
+      keep ? el('span', { class: 'tag tip-kind', id: 'tip-keep', text: t('tip.keep_label') }) : null
+    ]),
+    el('div', { class: 'tip' + (keep ? ' keep' : ''), id: 'tip' }, [
+      el('p', { text: feedback.oneTip }),
+      // MOUNT (Round 21): the door is inside the panel. app/taste.js mountResult fills it with "Try the tip, then show me"
+      // (#tried-start, the one primary on the screen) and its hint, the waiting line once tapped, or the pair (#tried-pair)
+      // once the two checks are linked; a keep-tip has nothing to try and it stays empty.
+      el('div', { class: 'mount', id: 'tried-action' })
+    ]),
+    keep ? el('p', { class: 'hint', style: 'margin-block-start: 8px;', text: t('tip.keep_hint') }) : null
+  ]);
+}
+
+/**
+ * Round 20 — "Try the tip, then show me": the attempt is armed (app/taste.js did that before calling here); this is the
+ * result screen's own way into the second photo. It is the no-outfit screen's retake path: the result goes, the media goes,
+ * the challenge and the occasion/style pick stay (the second look is for the same occasion), and the check screen focuses
+ * the photo button and opens the media sheet on arrival — one tap from the camera. The second check then goes through
+ * POST /api/checks unchanged: nothing of the first travels with it.
+ */
+function startAttempt(result) {
+  const ck = state.check;
+  clearInterruptedCheck();
+  if (state.result === result) { state.result = null; state.resultPostId = null; state.resultAnimated = false; }
+  clearMedia(ck);
+  ck.error = null;
+  retakeNext = true;
+  navigate('#/check');
+}
+
+/**
+ * Once a pair exists, sharing it is the first share: #share-pair (the primary `btn`) leads the share row, ahead of the
+ * single look's video, card and text share, which stay secondary. The after side's photo is the judged still while it is
+ * here (the pair's after is this result), else the private photo route; the sheet is app/sharevideo.js openCheckPairShare.
+ */
+function paintPairShare(container, pair, result) {
+  const row = container.querySelector('.share-row');
+  if (!row || row.querySelector('#share-pair')) return;
+  const share = el('button', {
+    type: 'button', class: 'btn', id: 'share-pair',
+    onclick: () => openCheckPairShare(pair, { afterUrl: pair.after.id === result.id ? judgedPreview(result) : null, change: changeLines(pair).join(' · ') })
+  }, [icon('card'), t('share.before_after_action')]);
+  row.insertBefore(share, row.firstChild);
+}
+
+/**
+ * The accessories read: the verdict as a pill, the pieces the stylist saw as chips ("No accessories seen." when the list
+ * is empty), the one-sentence note, and the one to add as a tip block when the stylist named one.
+ */
+function accessoriesSection(acc) {
+  const verdict = ACCESSORY_VERDICTS.includes(acc.verdict) ? acc.verdict : 'neutral';
+  const present = (Array.isArray(acc.present) ? acc.present : []).filter((piece) => typeof piece === 'string' && piece.trim());
+  return el('section', { id: 'accessories', 'aria-labelledby': 'accessories-title' }, [
+    el('h2', { id: 'accessories-title', text: t('accessories.title') }),
+    el('div', { class: 'acc-body', style: 'margin-block-start: 12px;' }, [
+      el('span', { class: 'acc-verdict ' + verdict, text: t('accessories.' + verdict) }),
+      el('div', { class: 'acc-present' }, [
+        el('span', { class: 'lbl', text: t('accessories.present') }),
+        ...(present.length ? present.map((piece) => el('span', { class: 'chip', text: piece })) : [el('span', { class: 'none', text: t('accessories.none_seen') })])
+      ]),
+      acc.note ? el('p', { class: 'acc-note', text: acc.note }) : null,
+      acc.addOne ? el('div', { class: 'tip acc-add' }, [el('span', { class: 'lbl', text: t('accessories.add_one') }), el('p', { text: acc.addOne })]) : null
+    ])
+  ]);
+}
+
+/**
+ * "Post it" until the check is public, then the link to the look. A guest's check cannot be posted: "Sign up to keep it and
+ * post it" takes them to join with #/result as the way back, and once they are signed in the check is claimed and refreshed
+ * here, so Post it appears on the same result.
+ */
+function renderPostArea(area, result) {
+  area.innerHTML = '';
+  const postId = state.resultPostId || result.postId;
+  if (postId) {
+    area.appendChild(el('a', { class: 'btn btn-secondary', id: 'post-link', href: '#/post/' + encodeURIComponent(postId) }, [icon('check'), t('result.posted') + ' · ' + t('result.view_post')]));
+    return;
+  }
+  if (result.guest) {
+    if (!state.me) {
+      area.appendChild(el('button', { type: 'button', class: 'btn', id: 'guest-keep', text: t('guest.keep'), onclick: () => requireSignIn('#/result', true) }));
+      return;
+    }
+    // Signed in since: Post it shows disabled while the claim runs, then for real. The claim is one promise on the result,
+    // so a view drawn again meanwhile (a tab and Back) repaints its own button when the same claim settles.
+    area.appendChild(el('button', { type: 'button', class: 'btn btn-secondary', id: 'post-open', text: t('result.post'), disabled: true, 'aria-busy': 'true' }));
+    claimGuestResult(result).then(() => { if (document.contains(area)) renderPostArea(area, result); });
+    return;
+  }
+  // Round 21: a secondary door; the screen's one primary is "Try the tip, then show me" inside the tip.
+  area.appendChild(el('button', { type: 'button', class: 'btn btn-secondary', id: 'post-open', text: t('result.post'), onclick: () => openPostSheet(area, result) }));
+}
+
+/**
+ * The guest's check follows the person into the account: claim (idempotent; the signup or login already did it, and so
+ * does loadMe at boot, which is why the "Saved to your account" toast lives in auth.js with the count), then read the
+ * check back so its ownership and postId are the server's. Whatever happens, the result stops being a guest's once this
+ * settles: a claim that did not land shows Post it anyway and the server's own answer says why when it is tapped. One
+ * promise per result, kept on it, so every render that finds the claim in flight waits for the same one.
+ */
+function claimGuestResult(result) {
+  if (!result.claimPromise) {
+    result.claimPromise = (async () => {
+      try {
+        await claimGuestChecks();
+        const fresh = await api('GET', '/api/checks/' + encodeURIComponent(result.id));
+        if (state.result === result) Object.assign(result, fresh);
+      } catch (e) { /* the server answers for itself when Post it is tapped */ }
+      result.guest = false;
+    })();
+  }
+  return result.claimPromise;
+}
+
+/**
+ * The post sheet: caption, an open challenge of the same intent (the one the check was started from is preselected),
+ * product links for brands. Posting makes the photo, intent, score, sub-scores and headline public and lets the look be
+ * found in search by the stylist's item names; the tip, the notes on each item and the accessories read stay private.
+ */
+function openPostSheet(area, result) {
+  if (!requireSignIn('#/result')) return;
+  // Entering a challenge is just its hashtag in the caption; the server links the look while the challenge is open.
+  const pending = state.check.challenge;
+  const caption = el('textarea', { id: 'caption', maxlength: '140', rows: '3', autocomplete: 'off', placeholder: t('result.caption_placeholder') });
+  if (pending && pending.tag) caption.value = '#' + pending.tag + ' ';
+
+  const productRows = [];
+  let productsField = null;
+  if (isBrand()) {
+    const grid = el('div', { class: 'products-grid' });
+    for (let i = 0; i < 3; i++) {
+      const row = {
+        label: el('input', { type: 'text', maxlength: '60', autocomplete: 'off', placeholder: t('result.product_label'), 'aria-label': t('result.product_label') }),
+        url: el('input', { type: 'url', maxlength: '500', inputmode: 'url', autocapitalize: 'off', autocomplete: 'off', placeholder: t('result.product_url'), 'aria-label': t('result.product_url') }),
+        price: el('input', { type: 'text', maxlength: '20', autocomplete: 'off', placeholder: t('result.product_price'), 'aria-label': t('result.product_price') })
+      };
+      productRows.push(row);
+      grid.appendChild(row.label); grid.appendChild(row.url); grid.appendChild(row.price);
+    }
+    productsField = el('div', { class: 'field' }, [el('span', { class: 'label', text: t('result.products') }), grid]);
+  }
+
+  const error = el('p', { class: 'alert danger', role: 'alert', hidden: true });
+  const confirm = el('button', { type: 'button', class: 'btn', id: 'post-confirm', text: t('result.confirm_post') });
+  const cancel = el('button', { type: 'button', class: 'btn btn-ghost', text: t('common.cancel'), onclick: () => s.close() });
+  // "After the tip": the caller's last looks to mark this one as a follow-up of (hidden until they are in; none for a first
+  // look). Round 20: when this result is the after of an "I tried it" pair whose before was posted, that look starts picked.
+  const after = afterPicker(result, { preselect: result.pair && result.pair.after.id === result.id ? result.pair.before.postId || null : null });
+  // Round 10, the items: the stylist's pieces as chips (a brand it saw waits for Confirm / Edit / Not a brand), the person's
+  // own additions, and the dot on the preview; value() goes with the post as items. The preview is handed over only when
+  // it is the still this result was judged on (judgedPreview: a past check from "Your checks" gets the editor without a
+  // photo box, the rows and no dots), or the dots would land on another photo.
+  const items = itemsEditor(result, judgedPreview(result));
+  // Round 14: "post the look, keep the grade" — one switch under the caption. Off is what posting has always done.
+  const grade = gradeField();
+  const content = el('div', { class: 'stack' }, [
+    el('p', { class: 'muted', text: t('result.post_intro') }),
+    el('div', { class: 'field' }, [el('label', { for: 'caption', text: t('result.caption') }), caption, el('span', { class: 'hint', text: t('result.caption_hint') })]),
+    after.node,
+    grade.node,
+    items.node,
+    productsField,
+    error,
+    el('div', { class: 'row' }, [confirm, cancel])
+  ]);
+  const s = sheet({ title: t('result.post_title'), content });
+
+  confirm.addEventListener('click', async () => {
+    confirm.disabled = true; error.hidden = true;
+    const products = productRows
+      .filter((r) => r.label.value.trim() || r.url.value.trim())
+      .map((r) => ({ label: r.label.value.trim(), url: r.url.value.trim(), price: r.price.value.trim() || null }));
+    try {
+      const post = await api('POST', '/api/posts', {
+        checkId: result.id, caption: caption.value, products, beforePostId: after.value(), items: items.value(),
+        scorePrivate: grade.value()
+      });
+      state.resultPostId = post.id;
+      result.postId = post.id;
+      // The pair's shares (#share-pair, the pair block's .pair-share) read the after's public address off the pair the
+      // loop handed over, which was linked before this look was posted: the card and the film now name /look/<id>.
+      if (result.pair) {
+        if (result.pair.after.id === result.id) result.pair.after.postId = post.id;
+        if (result.pair.before.id === result.id) result.pair.before.postId = post.id;
+      }
+      state.check.challenge = null;
+      s.close();
+      toast(t('result.posted'));
+      renderPostArea(area, result);
+      const link = $('post-link');
+      if (link) link.focus({ preventScroll: true });
+    } catch (e) {
+      error.textContent = e && e.message ? e.message : t('error.generic');
+      error.hidden = false;
+      confirm.disabled = false;
+    }
+  });
+
+  // The caption is deliberately NOT focused. Focusing it raises the keyboard the moment the sheet opens, and on a phone
+  // the keyboard covers the bottom of a sheet that is anchored to the bottom — which is where "Post it" is. The person
+  // taps the caption when they want to write; the sheet gets out of the keyboard's way when they do (sheet(), core.js).
+}
+
+function animateScore(node, target) {
+  const start = performance.now();
+  const hero = node.closest('.hero');
+  let frame = 0;
+  const tick = (now) => {
+    const progress = Math.min(1, (now - start) / SCORE_COUNT_MS);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    node.textContent = fmtNumber(Math.round(eased * target));
+    if (progress < 1) frame = requestAnimationFrame(tick);
+    else if (hero) hero.classList.add('landed');   // Round 21: the last frame; the ring answers with its small overshoot (app.css .hero.landed)
+  };
+  frame = requestAnimationFrame(tick);
+  onLeave(() => { cancelAnimationFrame(frame); node.textContent = fmtNumber(target); });
+}
+
+/**
+ * The tip as a sentence that ends in its own mark, once: the Hebrew share line goes on after {tip} with a question of
+ * its own, so the line itself puts no period there (review of Round 21: it read "…פשוט.. מי בקבוצה"), and a tip the
+ * stylist left without one gets it here.
+ */
+function tipSentence(tip) {
+  const text = String(tip || '').trim();
+  return !text || /[.!?…؟]["'”’»)\]]*$/.test(text) ? text : text + '.';
+}
+
+// Round 20: once the check is posted the sentence travels with the look's public address (the sharer's own invite link),
+// on the sheet and on the clipboard alike; unposted, the sentence alone, exactly as before.
+async function shareResult(result) {
+  if (state.sharing) return;
+  state.sharing = true;
+  try {
+    const feedback = result.feedback || {};
+    const text = t('result.share_text', { score: fmtNumber(feedback.score), intent: occasionLabel(askedFor(result).occasion), tip: tipSentence(feedback.oneTip) });
+    const postId = state.resultPostId || result.postId;
+    const url = postId ? shareLookUrl(postId) : null;
+    if (navigator.share) {
+      try { await navigator.share(url ? { title: t('app.name'), text, url } : { text }); return; }
+      catch (e) { if (e && (e.name === 'AbortError' || e.name === 'InvalidStateError')) return; }
+    }
+    await copyText(url ? text + '\n' + url : text, t('result.copied'));
+  } finally { state.sharing = false; }
+}
+
+// ---------- the first screen after an interruption ----------
+//
+// main.js imports every view before boot() runs, so this is the last chance to say what the first render should be. A
+// fresh marker means a check was left in flight and its answer is still on the server: the app opens on the result
+// address, where resumeInterrupted() asks for it, instead of drawing the feed as though nothing had been asked. Only
+// over the addresses an interrupted person actually lands on - the installed app's start_url, a reopened home screen,
+// the check screen a restored tab comes back to - never over a link somebody tapped to get somewhere specific.
+if (/^(#\/?|#\/check\/?)?$/.test(location.hash) && readPending()) {
+  location.replace(location.pathname + location.search + '#/result');
+}

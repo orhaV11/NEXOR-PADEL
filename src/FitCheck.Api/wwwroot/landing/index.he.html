@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#14101e">
+  <title>OREVOSH — בודקים את הלוק.</title>
+  <meta name="description" content="בודקים את הלוק. סטייליסט בכיס, וקהילה שמדליקה.">
+  <!-- Link previews. og:url is deliberately absent: every crawler falls back to the URL it actually fetched, so the
+       address is right on any host — a tunnel, a staging name, the real domain — with nothing to configure and nothing
+       to get wrong. og:image cannot do that (the spec wants it absolute, and relative resolution is unreliable in
+       exactly the unfurlers this is for), so it still carries the production origin: run
+       `node tools/brand/set-origin.js https://<your domain>` before a deploy, and `--doctor` warns while any is left. -->
+  <link rel="canonical" href="https://looks.example.com/landing/index.he.html">
+  <link rel="alternate" hreflang="en" href="https://looks.example.com/landing/">
+  <link rel="alternate" hreflang="he" href="https://looks.example.com/landing/index.he.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OREVOSH">
+  <meta property="og:title" content="OREVOSH — בודקים את הלוק.">
+  <meta property="og:description" content="סטייליסט בכיס, וקהילה שמדליקה.">
+  <meta property="og:image" content="https://looks.example.com/brand/og-1200x630-he.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OREVOSH — בודקים את הלוק. טלפון עם בדיקת לוק שקיבלה 9/10.">
+  <meta property="og:locale" content="he_IL">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OREVOSH — בודקים את הלוק.">
+  <meta name="twitter:description" content="סטייליסט בכיס, וקהילה שמדליקה.">
+  <meta name="twitter:image" content="https://looks.example.com/brand/og-1200x630-he.png">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../fonts/fonts.css">
+  <style>
+    /* The landing page: static, no app JS, the Ring of Fire tokens of DESIGN.md inlined so it stands on its own:
+       the plum stage, the aurora over the hero, glass cards lit from above (app.css §1). */
+    :root {
+      --bg: #14101e; --bg-2: #1b1527; --surface: #211a2e; --surface-2: #2e2541;
+      --line: #3b3150; --line-soft: rgba(255,255,255,.09);
+      --ink: #f9f5ff; --ink-2: #d1c8e0; --ink-3: #a99ebd;
+      --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+      --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
+      --fire: #ff6a2b; --radius: 22px; --radius-sm: 14px; --pill: 999px;
+      --glass: rgba(255,255,255,.055); --glass-edge: rgba(255,255,255,.10);
+      --shadow-card: inset 0 1px 0 rgba(255,255,255,.07), 0 14px 36px rgba(8,4,20,.55);
+      --shadow-primary: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 28px rgba(255,143,177,.32);
+      /* the aurora: lilac at the top-start, rose at the top-end, a breath of amber between; and the warm foot */
+      --glow: radial-gradient(70% 34% at 18% -6%, rgba(179,157,255,.3), transparent 62%),
+              radial-gradient(60% 30% at 84% -4%, rgba(255,143,177,.26), transparent 60%),
+              radial-gradient(46% 22% at 52% -2%, rgba(255,180,107,.14), transparent 60%);
+      --glow-2: radial-gradient(70% 26% at 50% 108%, rgba(255,143,177,.1), transparent 60%);
+      --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", sans-serif;
+      --col: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body { position: relative; margin: 0; color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    /* The aurora behind the hero (the first screen of the page, as app.css's body::before paints the app's) and its
+       warm foot behind the footer; z-index -1 keeps both under the content and over html's flat plum. */
+    body::before, body::after { content: ""; position: absolute; inset-inline: 0; z-index: -1; pointer-events: none; background-repeat: no-repeat; }
+    body::before { top: 0; height: max(100vh, 640px); background-image: var(--glow); }
+    body::after { bottom: 0; height: 100vh; background-image: var(--glow-2); }
+    a { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+    h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.05; margin: 0; text-wrap: balance; }
+    [dir=rtl] h1, [dir=rtl] h2, [dir=rtl] h3 { letter-spacing: 0; line-height: 1.15; }
+    p { margin: 0; }
+    .wrap { max-width: var(--col); margin: 0 auto; padding-inline: 16px; }
+
+    /* The masthead: the wordmark at the start edge (a logo, it never mirrors), the language switch and Open at the end. */
+    .top { position: sticky; top: 0; z-index: 2; background: rgba(27,21,39,.8); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .top { background: var(--bg-2); } }
+    .top .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 56px; gap: 12px; }
+    .wordmark { display: inline-flex; align-items: center; min-height: 44px; direction: ltr; }
+    .wordmark img { height: 22px; width: auto; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .lang { font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 8px 12px; min-height: 44px; display: inline-flex; align-items: center; }
+    .lang:hover { color: var(--ink); }
+    .btn, .btn-sm { display: inline-flex; align-items: center; justify-content: center; border-radius: var(--pill); font-family: var(--font-body); font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .btn { min-height: 52px; padding: 0 28px; font-size: 16px; background: var(--grad); color: var(--accent-ink); box-shadow: var(--shadow-primary); }
+    .btn:active { transform: scale(.985); }
+    .btn-sm { min-height: 44px; padding: 0 18px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--glass-edge); background: var(--glass); box-shadow: inset 0 1px 0 rgba(255,255,255,.07); color: var(--ink); }
+    [dir=rtl] .btn-sm { letter-spacing: .02em; font-size: 12.5px; }
+
+    /* The hero: the slogan, the tagline, the CTA, three phones. */
+    .hero { padding-block: 40px 24px; display: grid; gap: 32px; align-items: center; }
+    .kicker { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 12px; }
+    [dir=rtl] .kicker { letter-spacing: .02em; font-size: 12.5px; }
+    .hero h1 { font-size: clamp(44px, 9vw, 76px); }
+    .tagline { font-size: clamp(18px, 2.4vw, 22px); color: var(--ink-2); margin-top: 16px; max-width: 30em; }
+    .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .note { margin-top: 14px; font-size: 14px; color: var(--ink-3); max-width: 34em; }
+    .phones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: start; padding-top: 24px; }
+    .phone { padding: 3.5%; border-radius: 14% / 8%; background: var(--surface); box-shadow: 0 0 0 1px var(--glass-edge), inset 0 1px 0 rgba(255,255,255,.08), 0 18px 44px rgba(8,4,20,.6); }
+    .phone.lift { transform: translateY(-24px); }
+    .phone .screen { aspect-ratio: 390 / 844; overflow: hidden; border-radius: 11% / 6%; background: var(--bg); }
+    .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+    /* Three feature blocks: the stylist; the community and the brands; clips and the camera. */
+    .features { display: grid; gap: 16px; padding-block: 24px; }
+    .feature { background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); padding: 22px 20px; box-shadow: var(--shadow-card); }
+    .feature .ico { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2); box-shadow: inset 0 1px 0 rgba(255,255,255,.09); display: grid; place-items: center; margin-bottom: 14px; }
+    .feature .ico svg { width: 26px; height: 26px; }
+    .feature h2 { font-size: 22px; margin-bottom: 8px; }
+    .feature p { color: var(--ink-2); font-size: 15px; }
+    .feature strong { color: var(--ink); font-weight: 600; }
+
+    /* Add to home screen, and the second CTA. */
+    .install { margin-block: 24px 40px; padding: 24px 20px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card); display: grid; gap: 16px; }
+    .install h2 { font-size: 24px; }
+    .install ol { margin: 0; padding-inline-start: 20px; color: var(--ink-2); display: grid; gap: 8px; font-size: 15px; }
+    .install li::marker { color: var(--accent); font-weight: 700; }
+    .install .actions { margin-top: 4px; }
+
+    footer { border-top: 1px solid var(--line-soft); padding-block: 24px 40px; color: var(--ink-3); font-size: 13px; }
+    footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; }
+    footer a { color: var(--ink-2); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+    footer a:hover { color: var(--ink); }
+
+    @media (min-width: 900px) {
+      .hero { grid-template-columns: 1.05fr 1fr; gap: 48px; padding-block: 72px 48px; }
+      .phones { gap: 16px; padding-top: 0; }
+      .phone.lift { transform: translateY(-40px); }
+      .features { grid-template-columns: repeat(3, 1fr); gap: 20px; padding-block: 32px; }
+      .feature { padding: 28px 24px; }
+      .install { grid-template-columns: 1fr auto; align-items: center; padding: 32px; }
+      .install ol { grid-column: 1; }
+      .install .actions { grid-column: 2; grid-row: 1 / span 2; }
+    }
+    @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="wordmark" href="/" aria-label="OREVOSH"><img src="../brand/wordmark.svg" alt="OREVOSH" width="1626" height="350"></a>
+      <nav class="top-actions" aria-label="שפה ואפליקציה">
+        <a class="lang" href="index.html" lang="en" hreflang="en">English</a>
+        <a class="btn-sm" href="/">לפתוח</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="kicker">אפליקציה חברתית ללוקים</p>
+        <h1>בודקים את הלוק.</h1>
+        <p class="tagline">סטייליסט בכיס, וקהילה שמדליקה.</p>
+        <div class="actions"><a class="btn" href="/">פתחו את OREVOSH</a></div>
+        <p class="note">חינם, בדפדפן, בלי חנות אפליקציות. מוסיפים למסך הבית וזה רץ במסך מלא, כמו כל אפליקציה. לגילאי 16 ומעלה.</p>
+      </div>
+      <div class="phones" aria-hidden="true">
+        <div class="phone"><div class="screen"><img src="screens/result-he.jpg" alt="" width="780" height="1688"></div></div>
+        <div class="phone lift"><div class="screen"><img src="screens/feed-he.jpg" alt="" width="780" height="1688"></div></div>
+        <div class="phone"><div class="screen"><img src="screens/tag-he.jpg" alt="" width="780" height="1688"></div></div>
+      </div>
+    </section>
+
+    <section class="features" aria-label="מה זה עושה">
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#b39dff" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="8"/></svg></div>
+        <h2>הסטייליסט</h2>
+        <p>בוחרים לאן הלוק הולך: דייט, משרד, סטריט. מוסיפים תמונה. עשר שניות אחר כך יש ציון מתוך 10, הפירוט ל<strong>גזרה, צבע ואקססוריז</strong>, והטיפ האחד. הוא שופט בגדים, אף פעם לא אתכם. הבדיקה פרטית עד שמפרסמים.</p>
+      </article>
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#ff6a2b"><path d="M12 2c.6 3.2 2.5 4.6 4 6.6 1.5 2 2.4 4 1.8 6.6-.7 3.3-3.3 5.3-6.2 5.6-3.6.3-6.6-2.2-6.9-5.6-.2-2.4.9-4 2-5.4-.1 1.2.3 2.1 1.1 2.7.4-2.7 1.6-4.4 3-6 .5-.6.9-1.6 1.2-4.5z"/></svg></div>
+        <h2>הקהילה והמותגים</h2>
+        <p>מפרסמים את הלוק והוא נכנס לפיד: אש, תגובות, שמירות, עוקבים. מתייגים את המותגים שאתם לובשים עם <strong>@</strong>, ומותגים מציגים את הלוקים שהם אוהבים, פותחים אתגרים עם פרס ומתייגים מוצרים על הלוקים שלהם.</p>
+      </article>
+      <article class="feature">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#b39dff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg></div>
+        <h2>קליפים והמצלמה</h2>
+        <p>מצלמים קליפ קצר בתוך האפליקציה, בוחרים את הפריים שהסטייליסט שופט, ומפרסמים את הקליפ עם הלוק. <strong>כרטיס סטורי</strong> לוקח את הציון לאינסטגרם ולטיקטוק.</p>
+      </article>
+    </section>
+
+    <section class="install">
+      <h2>מוסיפים למסך הבית</h2>
+      <ol>
+        <li><strong>אייפון:</strong> פותחים את OREVOSH בספארי, לוחצים על שיתוף ואז על "הוסף למסך הבית".</li>
+        <li><strong>אנדרואיד:</strong> פותחים בכרום ולוחצים "התקנה" כשמוצע, או תפריט ואז "הוספה למסך הבית".</li>
+      </ol>
+      <div class="actions"><a class="btn" href="/">פתחו את OREVOSH</a></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <nav class="links" aria-label="משפטי">
+        <a href="/#/guidelines">הנחיות הקהילה</a>
+        <a href="/#/terms">תנאים</a>
+        <a href="/#/privacy">פרטיות</a>
+        <a href="index.html" lang="en" hreflang="en">English</a>
+      </nav>
+      <p>OREVOSH שופט בגדים, אף פעם לא את האדם. לגילאי 16 ומעלה.</p>
+    </div>
+  </footer>
+  <!-- Round 13: an invite link (/?via=<handle>) that lands here is kept for the signup and carried on the links in. -->
+  <script type="module" src="via.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "intent": "Office",
+  "note": "after work drinks",
+  "language": "en",
+  "createdAt": "2026-09-20T18:30:00Z",
+  "latencyMs": 1710,
+  "status": "ok",
+  "score": 8,
+  "feedback": {
+    "status": "ok",
+    "score": 8,
+    "intentMatch": 80,
+    "headline": "Same look, the shoes fixed",
+    "vibe": "relaxed weekend",
+    "items": [
+      { "name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple." },
+      { "name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job." },
+      { "name": "White leather sneakers", "category": "shoes", "verdict": "works", "note": "Clean, and they let the rest speak." }
+    ],
+    "working": ["The palette is tight", "The shoes now match the register"],
+    "oneTip": "Keep it. One thin gold chain and it is finished.",
+    "tipKind": "keep",
+    "breakdown": { "fit": 7, "color": 8, "accessories": 6 },
+    "accessories": { "verdict": "missing", "present": [], "note": "Still nothing on.", "addOne": "One thin gold chain." }
+  },
+  "occasion": "Office"
+}

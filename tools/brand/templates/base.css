@@ -1,0 +1,101 @@
+/* Shared by every template in this folder: the tokens of DESIGN.md §1, the two faces of §2 (Google Fonts when
+   reachable, the local copies in fonts/ otherwise), the stage, the phone frame the covers, stories and store
+   screenshots put the app screenshots in, and the app screen itself (§ "the app screen", at the end). The
+   templates set --w and --h to the size of the file being rendered and size everything from those, so one
+   template serves several formats. */
+@import url("fonts/fonts.css");
+
+:root {
+  /* the plum stage of app.css §1 (Round 21), under the app's own names */
+  --bg: #14101e; --bg-2: #1b1527; --surface: #211a2e; --surface-2: #2e2541;
+  --line: #3b3150; --line-soft: rgba(255,255,255,.09);
+  --ink: #f9f5ff; --ink-2: #d1c8e0; --ink-3: #a99ebd;
+  --accent: #b39dff; --accent-2: #ff8fb1; --accent-ink: #150f2e;
+  --grad: linear-gradient(135deg, #b39dff 0%, #ff8fb1 100%);
+  --accent-tint: rgba(179,157,255,.16);
+  --fire: #ff6a2b; --fire-2: #ffa83a; --ok: #6ff0ad; --danger: #ff5d7a; --amber: #ffb46b;
+  --glass: rgba(255,255,255,.055); --glass-edge: rgba(255,255,255,.1);
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,.07), 0 14px 36px rgba(8,4,20,.55);
+  --shadow-primary: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 28px rgba(255,143,177,.32);
+  --ring-track: rgba(255,255,255,.14);
+  /* the aurora's three lights (lilac top-start, rose top-end, amber between) and its warm foot; .light dims them */
+  --aurora-1: rgba(179,157,255,.3); --aurora-2: rgba(255,143,177,.26); --aurora-3: rgba(255,180,107,.14);
+  --aurora-foot: rgba(255,143,177,.1);
+  --font-display: "Outfit", "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
+  --font-body: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", "DejaVu Sans", sans-serif;
+}
+/* Light grounds use the deeper pair of mark-light.svg so the ring never washes out (brand/CONCEPT.md §3); the ink is
+   the stage's own plum-black. */
+.light {
+  --bg: #ffffff; --bg-2: #f7f6fb; --surface: #ffffff; --surface-2: #eeedf4;
+  --line: #dcdbe6; --line-soft: rgba(20,16,30,.08);
+  --ink: #14101e; --ink-2: #4a4458; --ink-3: #7a7189;
+  --accent: #7d5cff; --accent-2: #ff5c92; --accent-ink: #ffffff;
+  --grad: linear-gradient(135deg, #7d5cff 0%, #ff5c92 100%);
+  --aurora-1: rgba(125,92,255,.12); --aurora-2: rgba(255,92,146,.1); --aurora-3: rgba(255,180,107,.08);
+  --aurora-foot: transparent;
+}
+
+/* overflow: clip, not hidden: a decorative glow that spills past the edge must not make the document scrollable,
+   or an RTL page is captured scrolled to its end and everything shifts. */
+html, body { margin: 0; padding: 0; overflow: clip; }
+body {
+  width: var(--w); height: var(--h); position: relative;
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+/* The stage: the aurora at the top and its warm foot, the same four radials app.css paints behind every screen
+   (--glow and --glow-2 there), sized to the file being rendered. */
+body.stage {
+  background-image:
+    radial-gradient(70% 34% at 18% -6%, var(--aurora-1), transparent 62%),
+    radial-gradient(60% 30% at 84% -4%, var(--aurora-2), transparent 60%),
+    radial-gradient(46% 22% at 52% -2%, var(--aurora-3), transparent 60%),
+    radial-gradient(70% 26% at 50% 108%, var(--aurora-foot), transparent 60%);
+  background-repeat: no-repeat;
+}
+body.transparent { background: transparent; }
+
+.display { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.02; margin: 0; text-wrap: balance; }
+[dir=rtl] .display { font-family: "Heebo", var(--font-display); letter-spacing: 0; line-height: 1.12; }
+.tagline { font-family: var(--font-body); font-weight: 500; color: var(--ink-2); line-height: 1.35; margin: 0; }
+.caps { font-family: var(--font-body); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+/* Numerals are direction: ltr everywhere (DESIGN.md §2), or "04 / 05" reads as "05 / 04" in Hebrew. */
+.num { direction: ltr; unicode-bidi: isolate; }
+[dir=rtl] .caps { letter-spacing: .02em; }
+img { display: block; }
+/* The wordmark is a logo: it never mirrors (DESIGN.md §3). */
+.wordmark { direction: ltr; }
+
+/* The primary button of §8 as a static pill, for a CTA line. */
+.pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--grad); color: var(--accent-ink);
+  font-family: var(--font-body); font-weight: 700; white-space: nowrap;
+  box-shadow: var(--shadow-primary);
+}
+
+/* A phone, drawn in CSS: a rounded slab of the stage's --surface with the glass cards' 1px light edge and top
+   highlight, lifted on a plum shadow (never black), the screen inside at the app's 390:844 viewport, the screenshot
+   cover-fitted from the top. --pw is the phone's width; everything scales from it. */
+.phone {
+  width: var(--pw); box-sizing: border-box; padding: calc(var(--pw) * .027);
+  border-radius: calc(var(--pw) * .135); background: #211a2e;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), inset 0 1px 0 rgba(255,255,255,.08),
+    0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(8,4,20,.6);
+}
+.light .phone { box-shadow: 0 0 0 1px #3b3150, 0 calc(var(--pw) * .06) calc(var(--pw) * .16) rgba(20,16,30,.28); }
+.phone .screen {
+  aspect-ratio: 390 / 844; overflow: hidden; background: #14101e;
+  border-radius: calc(var(--pw) * .11);
+}
+/* A screenshot dropped straight into the frame; the composited screen below brings its own box. */
+.phone .screen > img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+/* ---------- the app screen ---------- */
+/* Every capture in screens/ is the real app's 390×844 viewport at 2× (780×1688): the Round 21 app on a local server,
+   the three real looks (photos/) checked, posted and featured through its own screens, the stylist's answer written
+   for each photo, so what a screen says is about the clothes in it and nothing is laid over the capture. .app is the
+   box a template's phone frame gives the screen; the capture fills it. */
+.app { position: relative; width: 100%; height: 100%; }
+.app .cap { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }

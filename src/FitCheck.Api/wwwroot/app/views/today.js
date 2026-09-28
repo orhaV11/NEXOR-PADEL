@@ -1,0 +1,198 @@
+// "Today's look": the daily prompt, a hashtag a day, and the looks posted with it. The page (#/today) is the prompt,
+// its hint, the grid of today's looks with the tag and the way in; the strip at the top of For you (todayStrip, drawn
+// by feed.js) is the compact form with up to eight thumbnails. "Post yours" sends the prompt into the check the way a
+// challenge does (state.check.challenge with the tag), so the caption comes pre-filled with the hashtag and the
+// server links the look by the tag alone. Everything comes from GET /api/today; nothing about the prompt lives here.
+import { register, state, t, api, el, setTopBar, scoreBadge, postGrid, emptyState, fmtDate, fmtCompact, intentLabel, navigate, feedVersion, getLocale } from '../core.js';
+
+/** Thumbnails on the strip; the page shows the whole day. */
+const STRIP_LOOKS = 8;
+/**
+ * How long a fetched prompt is trusted on the strip before it is fetched again: the same ten minutes feed.js keeps a list
+ * and its scroll position for (its CACHE_TTL), so the two age together. Whatever the strip has is drawn at once anyway
+ * (below), so a restored list never moves under the reader while the strip is on its way.
+ */
+const CACHE_TTL = 10 * 60 * 1000;
+
+let cached = null;   // { data, at, version, viewer }
+/**
+ * Whose strip the cache holds: the language the prompt was asked in and the account that asked (the "You're in" tag is
+ * that account's). Taking the language offer, switching language, signing in or out asks again (review of Round 21).
+ */
+const viewerKey = () => getLocale() + '|' + (state.me ? state.me.id : '');
+
+let styled = false;
+function ensureStyle() {
+  if (styled) return;
+  styled = true;
+  document.head.appendChild(el('style', { text: [
+    /* the strip on Home: a warm card in the feed's rhythm (Round 21): an amber-to-rose-to-lilac wash over glass with a
+       1px light edge and an amber bloom under the card shadow, the kicker in amber on one line, and a little print of a
+       look posted to the prompt, tilted like a photo left on a table, first in the head */
+    '.today-strip { display: grid; gap: 12px; margin: 0 14px 20px; padding: 14px 14px 12px; background: linear-gradient(135deg, rgba(255, 180, 107, 0.14), rgba(255, 143, 177, 0.11) 60%, rgba(179, 157, 255, 0.11)), var(--glass); border: 1px solid var(--glass-edge); border-radius: var(--radius); box-shadow: var(--shadow-card), 0 16px 40px rgba(255, 180, 107, 0.1); }',
+    '.install + .today-strip { margin-block-start: 12px; }',
+    /* it rises in (app.css §9's keyframe) when it arrives from the network into a Home that has none; from its cache (Back
+       from a look) or over the strip already there (a stale one refreshed in place) it is simply there, as the list is */
+    '.today-strip.arrive { animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }',
+    '@media (prefers-reduced-motion: reduce) { .today-strip.arrive { animation: none; } }',   /* off outright: a collapsed rise-in still paints its first frame at opacity 0 */
+    /* the head wraps: the print and the words share the first line, and the tags (the hashtag, "You're in") sit beside
+       them when the column is wide enough for 200px of words, else on a line of their own at the end. A grid item:
+       without min-inline-size 0 its own min-content would push the tags past the card's edge */
+    '.today-strip .today-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-inline-size: 0; }',
+    '.today-strip .today-head > div { min-inline-size: 0; }',
+    '.today-strip .today-head > div:not(.today-side) { flex: 1 1 200px; }',   /* 200: on a 390px phone the tags always drop under the words, so a prompt's title never wraps around a pill */
+    '.today-strip .today-side { flex: 0 1 auto; max-inline-size: 100%; margin-inline-start: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }',
+    '.today-print { position: relative; flex: none; display: block; inline-size: 54px; block-size: 68px; border-radius: 12px; overflow: hidden; background: var(--surface-2); rotate: -4deg; margin-inline-end: 4px; box-shadow: 0 8px 18px rgba(8, 4, 20, 0.5); }',
+    '.today-print img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }',
+    '.today-print::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }',   /* the 1px inner light edge, over the photo */
+    '.today-kicker { display: block; font: var(--caps); letter-spacing: var(--caps-track); text-transform: uppercase; color: var(--amber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
+    '[dir="rtl"] .today-kicker { font-size: 12.5px; }',
+    '.today-title { display: block; margin-block-start: 6px; font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }',
+    '.today-hint { margin-block-start: 4px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }',
+    '.today-looks { display: flex; gap: 8px; overflow-x: auto; padding-block: 2px 8px; margin-inline: -2px; padding-inline: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }',
+    '.today-looks::-webkit-scrollbar { display: none; }',
+    '.today-looks a { flex: none; position: relative; display: block; inline-size: 72px; block-size: 90px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--glass-edge); text-decoration: none; }',
+    '.today-looks img { inline-size: 100%; block-size: 100%; object-fit: cover; border-radius: inherit; display: block; }',
+    '.today-looks .score-badge { inline-size: 26px; block-size: 26px; border-width: 2px; font-size: 13px; gap: 0; inset-block-end: -6px; inset-inline-end: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }',
+    '.today-looks .score-badge small { font-size: 5px; }',
+    '.today-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }',
+    '.today-actions .btn-sm { min-block-size: 44px; }',
+    '.today-actions .btn-text { padding-block: 0; }',
+    /* the page */
+    '.today-front { display: grid; gap: 8px; padding-block-end: 16px; border-block-end: 1px solid var(--line); }',
+    '.today-front .today-title { font-size: 28px; line-height: 1.05; font-weight: 800; margin-block-start: 0; }',
+    '.today-front .today-hint { font-size: 16px; }',
+    '.today-front .today-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 4px; }',
+    '.today-front .today-tags .tag { min-block-size: 32px; }',
+    '.today-page .today-cta { display: grid; gap: 8px; }',
+    '.today-page .today-count { font-size: 14px; color: var(--ink-3); }',
+    '.today-page .grid { padding-inline: 0; }',
+    '.today-skel { block-size: 132px; border-radius: var(--radius); }'
+  ].join('\n') }));
+}
+
+/** "Post yours": the prompt goes into the check the way a challenge does; the caption comes pre-filled with its hashtag. */
+export function postYours(today) {
+  state.check.challenge = { title: today.title, tag: today.tag, daily: true };
+  if (!state.check.intent && today.intent) state.check.intent = today.intent;
+  navigate('#/check');
+}
+
+/** The kicker line: TODAY · the date (the reader's own; the prompt itself turns over at midnight UTC). */
+function kicker() {
+  return el('span', { class: 'today-kicker', text: t('today.kicker') + ' · ' + fmtDate(new Date().toISOString()) });
+}
+
+function hashtag(today) {
+  return el('a', { class: 'tag accent', href: '#/tag/' + encodeURIComponent(today.tag) }, [el('bdi', { dir: 'ltr', text: '#' + today.tag })]);
+}
+
+/** Up to eight of today's looks as small prints with their score rings; null when nobody has posted yet. */
+function looksRow(today) {
+  const posts = (today.posts || []).slice(0, STRIP_LOOKS);
+  if (!posts.length) return null;
+  return el('div', { class: 'today-looks', 'aria-label': t('today.looks_label') }, posts.map((p) => el('a', {
+    href: '#/post/' + p.id, 'aria-label': t(p.videoUrl ? 'a11y.clip_by' : 'a11y.look_by', { intent: intentLabel(p.intent), name: p.user.name })
+  }, [
+    el('img', { src: p.imageUrl, alt: '', loading: 'lazy', decoding: 'async' }),
+    scoreBadge(p.score)
+  ])));
+}
+
+function postButton(today, id) {
+  return el('button', { type: 'button', class: 'btn btn-sm', id, text: t('today.post'), onclick: () => postYours(today) });
+}
+
+/**
+ * A little print of the first look posted to the prompt (the prompt has no picture of its own); null while nobody has
+ * posted. Decorative: the title beside it is the link a reader meets, so this one is hidden from the tree and the tab order.
+ */
+function printOf(today) {
+  const first = (today.posts || [])[0];
+  if (!first || !first.imageUrl) return null;
+  return el('a', { class: 'today-print', href: '#/post/' + first.id, 'aria-hidden': 'true', tabindex: '-1' }, [
+    el('img', { src: first.imageUrl, alt: '', loading: 'lazy', decoding: 'async' })
+  ]);
+}
+
+/** The strip's content for one prompt. */
+function stripContent(today) {
+  return [
+    el('div', { class: 'today-head' }, [
+      printOf(today),
+      el('div', {}, [
+        kicker(),
+        el('a', { class: 'today-title', id: 'today-title', href: '#/today', text: today.title }),
+        el('p', { class: 'today-hint', text: today.hint })
+      ]),
+      el('div', { class: 'today-side' }, [hashtag(today), today.posted ? el('span', { class: 'tag', text: t('today.posted') }) : null])
+    ]),
+    looksRow(today),
+    el('div', { class: 'today-actions' }, [
+      postButton(today, 'today-post'),
+      el('a', { class: 'btn-text', href: '#/today', text: t('today.all') })
+    ])
+  ];
+}
+
+/**
+ * The Today strip for the top of For you. place(node) puts the built strip where the feed wants it; it is called at
+ * once with whatever the cache holds for this feed version, language and account (Back from a look lands where the
+ * reader was, nothing shifts: the feed restores its list and scroll position synchronously, so the strip must be there
+ * before that), and again when /api/today answers if the cached prompt is older than CACHE_TTL, replacing the strip in
+ * place. opts.force skips the cache (a pull to refresh, the Home tab tapped again). Only a strip fetched into a Home
+ * that has none rises in (.arrive). A failure calls nothing more: the feed goes on with what it has, or as if there
+ * were no prompt. Never throws.
+ */
+export function todayStrip(ctx, place, opts) {
+  ensureStyle();
+  const build = (today, arrive) => el('section', { class: 'today-strip' + (arrive ? ' arrive' : ''), id: 'today-strip', 'aria-labelledby': 'today-title' }, stripContent(today));
+  const viewer = viewerKey();
+  const known = !(opts && opts.force) && cached && cached.version === feedVersion.n && cached.viewer === viewer ? cached : null;
+  if (known) place(build(known.data, false));
+  if (known && Date.now() - known.at < CACHE_TTL) return;
+  api('GET', '/api/today')
+    .then((today) => {
+      if (!today || !today.tag) return;
+      cached = { data: today, at: Date.now(), version: feedVersion.n, viewer };
+      if (ctx && ctx.stale && ctx.stale()) return;
+      place(build(today, !known && !document.getElementById('today-strip')));
+    })
+    .catch(() => { /* no prompt today, then; the feed does not care */ });
+}
+
+// ---------- the page ----------
+
+register('today', async (root, params, ctx) => {
+  setTopBar({ back: '#/', title: t('today.title') });
+  root.appendChild(el('h1', { class: 'sr-only', text: t('today.title') }));
+  ensureStyle();
+  const skel = el('div', { class: 'skel today-skel', 'aria-hidden': 'true' });
+  root.appendChild(skel);
+
+  let today;
+  const viewer = viewerKey();
+  try { today = await api('GET', '/api/today'); }
+  catch (e) { if (ctx.stale()) return; skel.remove(); throw e; }
+  if (ctx.stale()) return;
+  skel.remove();
+  cached = { data: today, at: Date.now(), version: feedVersion.n, viewer };
+
+  const posts = today.posts || [];
+  const n = posts.length;
+  root.appendChild(el('div', { class: 'stack today-page' }, [
+    el('div', { class: 'today-front' }, [
+      kicker(),
+      el('p', { class: 'today-title', text: today.title }),
+      el('p', { class: 'today-hint', text: today.hint }),
+      el('div', { class: 'today-tags' }, [hashtag(today), today.intent ? el('span', { class: 'tag', text: intentLabel(today.intent) }) : null])
+    ]),
+    el('div', { class: 'today-cta' }, [
+      today.posted ? el('span', { class: 'tag', style: 'justify-self: start;', text: t('today.posted') }) : null,
+      postButton(today, 'today-post'),
+      el('p', { class: 'hint', text: t('check.entering_hint', { tag: '#' + today.tag }) })
+    ]),
+    n ? el('p', { class: 'today-count', text: t('today.looks', { n: n === 1 ? 1 : fmtCompact(n) }) }) : null,
+    n ? el('div', { id: 'today-grid' }, [postGrid(posts)]) : emptyState(t('today.empty'))
+  ]));
+});

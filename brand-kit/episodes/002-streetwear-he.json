@@ -1,0 +1,11 @@
+{
+  "variant": "verdict",
+  "lang": "he",
+  "photo": "../../tools/brand/templates/photos/look-1-streetwear.jpg",
+  "intent": "סטריטוור",
+  "score": 8,
+  "headline": "הכול אפור, וזה מחזיק",
+  "occasion": "יום בחוץ",
+  "breakdown": { "fit": 8, "color": 8, "accessories": 7 },
+  "tip": "מקפלים את המכפלת פעם אחת כדי שהסניקרס ייראו."
+}

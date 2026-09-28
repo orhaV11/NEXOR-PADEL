@@ -1,0 +1,436 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
+using FitCheck.Api.Endpoints;
+
+namespace FitCheck.Api.Tests;
+
+public class MetricsComputeTests
+{
+    private static MetricsEndpoints.MetricRow Row(Guid user, int day, int score = 6, int latency = 3000, string lang = "en", string version = "v1") =>
+        new(user, new DateTime(2026, 9, 1, 12, 0, 0, DateTimeKind.Utc).AddDays(day), score, latency, lang, version);
+
+    [Fact]
+    public void Empty_dataset_is_all_zero()
+    {
+        var m = MetricsEndpoints.Compute([]);
+        Assert.Equal(0, m.TotalChecks);
+        Assert.Equal(0, m.UsersWithAtLeastOneCheck);
+        Assert.Equal(0, m.UsersWithSecondCheckWithin7Days);
+        Assert.Equal(0.0, m.ReturnRate);
+        Assert.Equal(0, m.AvgLatencyMs);
+        Assert.Equal(0, m.P95LatencyMs);
+        Assert.Equal(10, m.ScoreDistribution.Count);
+        Assert.All(m.ScoreDistribution.Values, v => Assert.Equal(0, v));
+    }
+
+    [Fact]
+    public void Return_rate_counts_only_second_checks_within_seven_days_of_the_first()
+    {
+        var a = Guid.NewGuid(); // returns on day 3
+        var b = Guid.NewGuid(); // second check on day 10: too late
+        var c = Guid.NewGuid(); // single check
+        var d = Guid.NewGuid(); // returns exactly on day 7 (inclusive), third check irrelevant
+
+        var m = MetricsEndpoints.Compute(
+        [
+            Row(a, 0, score: 7, latency: 2000), Row(a, 3, score: 5, latency: 4000, lang: "he"),
+            Row(b, 10, score: 6), Row(b, 0, score: 6), // out of order on purpose
+            Row(c, 1, score: 9, version: "v2"),
+            Row(d, 0, score: 4), Row(d, 7, score: 6), Row(d, 20, score: 8)
+        ]);
+
+        Assert.Equal(8, m.TotalChecks);
+        Assert.Equal(4, m.UsersWithAtLeastOneCheck);
+        Assert.Equal(2, m.UsersWithSecondCheckWithin7Days);
+        Assert.Equal(0.5, m.ReturnRate);
+        Assert.Equal(3000, m.AvgLatencyMs);
+        Assert.Equal(1, m.ScoreDistribution["7"]);
+        Assert.Equal(1, m.ScoreDistribution["5"]);
+        Assert.Equal(3, m.ScoreDistribution["6"]);
+        Assert.Equal(0, m.ScoreDistribution["10"]);
+        Assert.Equal(7, m.ByLanguage["en"]);
+        Assert.Equal(1, m.ByLanguage["he"]);
+        Assert.Equal(7, m.ByPromptVersion["v1"]);
+        Assert.Equal(1, m.ByPromptVersion["v2"]);
+        Assert.Null(m.BreakdownAverages);
+    }
+
+    /// <summary>
+    /// Round 20: the slow tail. Nearest rank (sorted ascending, index ceil(0.95 n) - 1) over exactly the rows the
+    /// average is over: twenty latencies 100..2000 give 1900 for the p95 and 1050 for the mean; one row is its own
+    /// p95; nothing is 0.
+    /// </summary>
+    [Fact]
+    public void P95_is_the_nearest_rank_over_the_same_checks_as_the_average()
+    {
+        var user = Guid.NewGuid();
+        var twenty = MetricsEndpoints.Compute(Enumerable.Range(1, 20).Select(i => Row(user, i % 5, latency: i * 100)));
+        Assert.Equal(1900, twenty.P95LatencyMs);
+        Assert.Equal(1050, twenty.AvgLatencyMs);
+
+        var one = MetricsEndpoints.Compute([Row(user, 0, latency: 4321)]);
+        Assert.Equal(4321, one.P95LatencyMs);
+        Assert.Equal(4321, one.AvgLatencyMs);
+
+        Assert.Equal(0, MetricsEndpoints.Compute([]).P95LatencyMs);
+    }
+
+    [Fact]
+    public void Breakdown_averages_cover_only_the_checks_that_carry_one()
+    {
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+        var m = MetricsEndpoints.Compute(
+        [
+            Row(a, 0, score: 7) with { Breakdown = new ScoreBreakdown { Fit = 7, Color = 8, Accessories = 4 } },
+            Row(b, 0, score: 8, version: "v2") with { Breakdown = new ScoreBreakdown { Fit = 6, Color = 9, Accessories = 3 } },
+            Row(b, 1, score: 5, version: "v2") with { Breakdown = new ScoreBreakdown { Fit = 5, Color = 5, Accessories = 10 } },
+            Row(a, 2, score: 6)   // a v1 check: no breakdown, not in the averages, still in the totals
+        ]);
+
+        Assert.Equal(4, m.TotalChecks);
+        var averages = Assert.IsType<BreakdownAveragesDto>(m.BreakdownAverages);
+        Assert.Equal(3, averages.Checks);
+        Assert.Equal(6.0, averages.AvgFit);
+        Assert.Equal(7.33, averages.AvgColor);
+        Assert.Equal(5.67, averages.AvgAccessories);
+    }
+
+    [Fact]
+    public void Breakdown_is_read_out_of_the_stored_feedback()
+    {
+        Assert.Null(MetricsEndpoints.BreakdownOf(null));
+        Assert.Null(MetricsEndpoints.BreakdownOf(""));
+        Assert.Null(MetricsEndpoints.BreakdownOf("not json"));
+        Assert.Null(MetricsEndpoints.BreakdownOf("""{"status":"ok","score":6}"""));
+        var breakdown = MetricsEndpoints.BreakdownOf("""{"status":"ok","score":6,"breakdown":{"fit":7,"color":8,"accessories":4}}""");
+        Assert.Equal((7, 8, 4), (breakdown!.Fit, breakdown.Color, breakdown.Accessories));
+    }
+}
+
+/// <summary>Own fixture: the gate test signs accounts up, which would move the other class's social counts.</summary>
+public class MetricsGateTests : IClassFixture<MetricsGateTests.GateApp>
+{
+    public sealed class GateApp : TestApp;
+
+    private readonly GateApp _app;
+
+    public MetricsGateTests(GateApp app) => _app = app;
+
+    [Fact]
+    public async Task The_pilot_numbers_are_for_moderators_only()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _app.NewClient().GetAsync("/api/metrics/pilot")).StatusCode);
+
+        var (person, _, _) = await _app.NewUserAsync("gate_person");
+        var forbidden = await person.GetAsync("/api/metrics/pilot");
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        Assert.Equal("Only OREVOSH moderators can do that.", (await forbidden.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+
+        var (hebrew, _, _) = await _app.NewUserAsync("gate_mod", language: "he");
+        var forbiddenHe = await hebrew.GetAsync("/api/metrics/pilot");
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenHe.StatusCode);
+        Assert.Equal("רק צוות OREVOSH יכול לעשות את זה.", (await forbiddenHe.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+
+        // The flag on the row is the gate, the same one /api/admin uses; it works from the next request on, and off again when lifted.
+        await _app.PromoteAsync("gate_mod");
+        var metrics = await hebrew.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        Assert.Equal(0, metrics.GetProperty("totalChecks").GetInt32());
+        Assert.Equal(2, metrics.GetProperty("social").GetProperty("users").GetInt32());
+        Assert.False(metrics.TryGetProperty("breakdownAverages", out _));   // no v2 check yet: null, so absent on the wire
+
+        await _app.DemoteAsync("gate_mod");
+        Assert.Equal(HttpStatusCode.Forbidden, (await hebrew.GetAsync("/api/metrics/pilot")).StatusCode);
+    }
+}
+
+/// <summary>Own fixture: metrics are global, so this class must not share a database with the other endpoint tests.</summary>
+public class MetricsEndpointTests : IClassFixture<MetricsEndpointTests.MetricsApp>
+{
+    public sealed class MetricsApp : TestApp;
+
+    private readonly MetricsApp _app;
+
+    public MetricsEndpointTests(MetricsApp app) => _app = app;
+
+    [Fact]
+    public async Task Endpoint_ignores_non_ok_checks_computes_return_rate_and_reports_the_social_loop()
+    {
+        // The one check made through the API is a rubric v4 check; the rows inserted below are v1 rows without feedback.
+        _app.Vision.Handler = _ => V2Payloads.Ok(fit: 7, color: 8, accessories: 4);
+        var (returningClient, returning, _) = await _app.NewUserAsync("returning", language: "he");
+        var (oneOffClient, oneOff, _) = await _app.NewUserAsync("oneoff");
+        var (_, late, _) = await _app.NewUserAsync("late");
+        var (_, errorsOnly, _) = await _app.NewUserAsync("errors");
+        var (brandClient, _, _) = await _app.NewUserAsync("metricbrand", accountType: "Brand");
+        var (moderator, _, _) = await _app.NewUserAsync("metricmod");
+        await _app.PromoteAsync("metricmod");
+
+        using (var scope = _app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var t0 = DateTime.UtcNow.AddDays(-20);
+            void Add(Guid user, double days, string status, int? score, string lang = "en", int latency = 2500) =>
+                db.Checks.Add(new OutfitCheck { Id = Guid.NewGuid(), UserId = user, Intent = StyleIntent.Date, Language = lang, Status = status, Score = score, LatencyMs = latency, PromptVersion = "v1", CreatedAt = t0.AddDays(days) });
+
+            Add(returning, 0, CheckStatus.Ok, 6, "he");
+            Add(returning, 2.5, CheckStatus.Ok, 8, "he", 3500);
+            Add(oneOff, 0, CheckStatus.Ok, 5);
+            Add(oneOff, 1, CheckStatus.NotOutfit, null);   // not an OK check: does not count as a return
+            Add(oneOff, 2, CheckStatus.Error, null);
+            Add(late, 0, CheckStatus.Ok, 7);
+            Add(late, 7.5, CheckStatus.Ok, 7);
+            Add(errorsOnly, 0, CheckStatus.Error, null);
+            Add(errorsOnly, 0.1, CheckStatus.Rejected, null);
+            await db.SaveChangesAsync();
+        }
+
+        // A little social activity on top: one post, one fire, one comment, one follow, one open challenge.
+        var postId = await _app.CheckAndPostAsync(returningClient);
+        await oneOffClient.PostAsync($"/api/posts/{postId}/fire", null);
+        await oneOffClient.PostAsJsonAsync($"/api/posts/{postId}/comments", new { text = "clean" });
+        await oneOffClient.PostAsync("/api/users/returning/follow", null);
+        await brandClient.PostAsJsonAsync("/api/challenges", new { title = "T", brief = "B", intent = "Date", prize = "P", endsAt = DateTime.UtcNow.AddDays(2) });
+
+        var m = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+
+        Assert.Equal(6, m.GetProperty("totalChecks").GetInt32());
+        // Round 20: the p95 rides beside the average over the same ok checks; the fixture's ok rows are 2500 but one at
+        // 3500, so the nearest rank over six is the 3500 - and a non-ok row (none of which has a latency that counts)
+        // cannot move it.
+        Assert.Equal(3500, m.GetProperty("p95LatencyMs").GetInt32());
+        Assert.Equal(3, m.GetProperty("usersWithAtLeastOneCheck").GetInt32());
+        Assert.Equal(1, m.GetProperty("usersWithSecondCheckWithin7Days").GetInt32());
+        Assert.Equal(0.3333, m.GetProperty("returnRate").GetDouble(), precision: 4);
+        Assert.Equal(2, m.GetProperty("byLanguage").GetProperty("he").GetInt32());
+        Assert.Equal(5, m.GetProperty("byPromptVersion").GetProperty("v1").GetInt32());
+        Assert.Equal(1, m.GetProperty("byPromptVersion").GetProperty("v5").GetInt32());
+
+        // The sub-score averages cover the one check that has a breakdown; the v1 rows carry none.
+        var averages = m.GetProperty("breakdownAverages");
+        Assert.Equal(1, averages.GetProperty("checks").GetInt32());
+        Assert.Equal(7.0, averages.GetProperty("avgFit").GetDouble());
+        Assert.Equal(8.0, averages.GetProperty("avgColor").GetDouble());
+        Assert.Equal(4.0, averages.GetProperty("avgAccessories").GetDouble());
+
+        var social = m.GetProperty("social");
+        Assert.Equal(6, social.GetProperty("users").GetInt32());
+        Assert.Equal(1, social.GetProperty("brands").GetInt32());
+        Assert.Equal(1, social.GetProperty("posts").GetInt32());
+        Assert.Equal(1, social.GetProperty("fires").GetInt32());
+        Assert.Equal(1, social.GetProperty("comments").GetInt32());
+        Assert.Equal(1, social.GetProperty("follows").GetInt32());
+        Assert.Equal(1, social.GetProperty("challengesOpen").GetInt32());
+        Assert.Equal(0, social.GetProperty("challengesEnded").GetInt32());
+        Assert.Equal(2, social.GetProperty("activeUsers7d").GetInt32());
+    }
+}
+
+// ---- Round 15 — the wardrobe, counted: MARKETING.md's two numbers on /api/metrics/pilot ----
+
+/// <summary>
+/// The wardrobe's own block. What these lock: the keep rate is people with a kept piece over people with an ok check
+/// (the same denominator the hero tile reads), the "I do not own that" rate is that reason over every typed reason, both
+/// are null rather than 0 while there is nothing to divide by, and the account that turned the wardrobe off for the
+/// stylist is counted — a wardrobe nobody sends cannot prevent the tip the second number is watching.
+/// Own fixture: these numbers are global, like every other number on this page.
+/// </summary>
+public class WardrobeMetricsTests : IClassFixture<WardrobeMetricsTests.WardrobeMetricsApp>
+{
+    public sealed class WardrobeMetricsApp : TestApp;
+
+    private readonly WardrobeMetricsApp _app;
+
+    public WardrobeMetricsTests(WardrobeMetricsApp app) => _app = app;
+
+    private void MakePro(Guid id)
+    {
+        using var scope = _app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = db.Users.Single(u => u.Id == id);
+        user.Plan = "pro";
+        user.ProUntil = DateTime.UtcNow.AddDays(30);
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public void A_share_with_nothing_under_it_is_null_not_zero()
+    {
+        Assert.Null(MetricsEndpoints.Rate(0, 0));
+        Assert.Null(MetricsEndpoints.Rate(3, 0));
+        Assert.Equal(0.0, MetricsEndpoints.Rate(0, 7));
+        Assert.Equal(0.4286, MetricsEndpoints.Rate(3, 7));
+        Assert.Equal(1.0, MetricsEndpoints.Rate(7, 7));
+    }
+
+    [Fact]
+    public async Task An_empty_pilot_reports_no_rate_rather_than_a_zero_that_reads_as_failure()
+    {
+        using var app = new TestApp();
+        var (moderator, _, _) = await app.NewUserAsync("wm_empty_mod");
+        await app.PromoteAsync("wm_empty_mod");
+
+        var wardrobe = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("wardrobe");
+        Assert.Equal(0, wardrobe.GetProperty("items").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("reasons").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("toStylistOff").GetInt32());
+        // A null rate is left off the wire entirely (AppJson drops nulls), which reads as "no number yet" on the page
+        // rather than as a zero percent nobody earned.
+        Assert.False(wardrobe.TryGetProperty("keepRate", out _));
+        Assert.False(wardrobe.TryGetProperty("dontOwnRate", out _));
+        // Round 20: the tallies are zero, the go rate has nothing under it, and a median over nobody active is no number.
+        Assert.Equal(0, wardrobe.GetProperty("keepAll").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("momentShown").GetInt32());
+        Assert.Equal(0, wardrobe.GetProperty("momentGo").GetInt32());
+        Assert.False(wardrobe.TryGetProperty("momentGoRate", out _));
+        Assert.False(wardrobe.TryGetProperty("piecesPerActiveMedian", out _));
+
+        // Round 20: the loop's numbers on the stylist block start at zero, and pairs per hundred ok checks has no number
+        // while there is no ok check to divide by.
+        var stylist = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("stylist");
+        Assert.Equal(0, stylist.GetProperty("triedPairs").GetInt32());
+        Assert.Equal(0, stylist.GetProperty("tryTipNudges").GetInt32());
+        Assert.Equal(0, stylist.GetProperty("nudgedThenTried").GetInt32());
+        Assert.False(stylist.TryGetProperty("triedPer100Ok", out _));
+    }
+
+    [Fact]
+    public async Task The_wedge_numbers_are_on_the_page()
+    {
+        // Its own app: the median is over everyone active this week, so it cannot share a database with the test above
+        // without the two reading each other's people. The free slice is two so one check's three pieces cross it.
+        using var app = new TestApp { Settings = { ["Plans:WardrobeNamesToStylist"] = "2" } };
+        var (all, _, _) = await app.NewUserAsync("wd_all");
+        var (one, _, _) = await app.NewUserAsync("wd_one");
+        var (none, _, _) = await app.NewUserAsync("wd_none");
+        var (moderator, _, _) = await app.NewUserAsync("wd_mod");
+        await app.PromoteAsync("wd_mod");
+
+        // Three people check this week, so three are active: one keeps all three in one tap, one keeps one, one none.
+        var allCheck = await app.CheckAsync(all);
+        Assert.True((await all.PostAsJsonAsync("/api/wardrobe/keep-all", new { checkId = allCheck })).IsSuccessStatusCode);
+        var oneCheck = await app.CheckAsync(one);
+        Assert.True((await one.PostAsJsonAsync("/api/wardrobe", new { checkId = oneCheck, name = "White tee" })).IsSuccessStatusCode);
+        await app.CheckAsync(none);
+
+        // The free account past the slice sees the moment twice (two tabs, say) and takes it once.
+        foreach (var step in new[] { "shown", "shown", "go" })
+        {
+            Assert.Equal(HttpStatusCode.NoContent, (await all.PostAsJsonAsync("/api/wardrobe/moment", new { step })).StatusCode);
+        }
+
+        var metrics = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        var wardrobe = metrics.GetProperty("wardrobe");
+        Assert.Equal(1, wardrobe.GetProperty("keepAll").GetInt32());
+        Assert.Equal(2, wardrobe.GetProperty("momentShown").GetInt32());
+        Assert.Equal(1, wardrobe.GetProperty("momentGo").GetInt32());
+        Assert.Equal(0.5, wardrobe.GetProperty("momentGoRate").GetDouble(), precision: 4);
+        // Three, one and none: the middle one is 1. The moderator never checked, so it is not active and not counted.
+        Assert.Equal(3, metrics.GetProperty("social").GetProperty("activeUsers7d").GetInt32());
+        Assert.Equal(1.0, wardrobe.GetProperty("piecesPerActiveMedian").GetDouble(), precision: 4);
+
+        // Round 15's number is untouched by any of this: two keepers over three who checked.
+        Assert.Equal(4, wardrobe.GetProperty("items").GetInt32());
+        Assert.Equal(2, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0.6667, wardrobe.GetProperty("keepRate").GetDouble(), precision: 4);
+    }
+
+    [Fact]
+    public async Task The_two_numbers_marketing_watches_are_on_the_page()
+    {
+        // Three people check. Two keep a piece; one of the two also turns the wardrobe off for the stylist. The
+        // moderator never checks, so it is 2 keepers over 3 who checked, not over 4 accounts.
+        var (keeper, _, _) = await _app.NewUserAsync("wm_keeper");
+        var (quitter, quitterId, _) = await _app.NewUserAsync("wm_quitter");
+        var (empty, _, _) = await _app.NewUserAsync("wm_empty");
+        var (moderator, _, _) = await _app.NewUserAsync("wm_mod");
+        await _app.PromoteAsync("wm_mod");
+
+        var keeperCheck = await _app.CheckAsync(keeper);
+        Assert.True((await keeper.PostAsJsonAsync("/api/wardrobe", new { checkId = keeperCheck, name = "White tee" })).IsSuccessStatusCode);
+        Assert.True((await keeper.PostAsJsonAsync("/api/wardrobe", new { checkId = keeperCheck, name = "Dark jeans" })).IsSuccessStatusCode);
+
+        var quitterCheck = await _app.CheckAsync(quitter);
+        Assert.True((await quitter.PostAsJsonAsync("/api/wardrobe", new { checkId = quitterCheck, name = "White tee" })).IsSuccessStatusCode);
+        // Only an account the wardrobe reaches the stylist for can turn it off, so this one is on Pro (the switch is
+        // what Pro buys, Plans:WardrobeNeedsPro).
+        MakePro(quitterId);
+        Assert.True((await quitter.PostAsJsonAsync("/api/wardrobe/stylist", new { on = false })).IsSuccessStatusCode);
+
+        var emptyCheck = await _app.CheckAsync(empty);
+
+        // Three typed answers to the tip, one of them "I do not own that": the second number is 1 in 3.
+        Assert.True((await keeper.PostAsJsonAsync($"/api/checks/{keeperCheck}/useful", new { reason = TipReason.Worked })).IsSuccessStatusCode);
+        Assert.True((await quitter.PostAsJsonAsync($"/api/checks/{quitterCheck}/useful", new { reason = TipReason.DontOwn })).IsSuccessStatusCode);
+        Assert.True((await empty.PostAsJsonAsync($"/api/checks/{emptyCheck}/useful", new { reason = TipReason.NotMyStyle })).IsSuccessStatusCode);
+
+        var metrics = await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot");
+        var wardrobe = metrics.GetProperty("wardrobe");
+
+        Assert.Equal(3, wardrobe.GetProperty("items").GetInt32());          // two pieces and one
+        Assert.Equal(2, wardrobe.GetProperty("keepers").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("checkedUsers").GetInt32());
+        Assert.Equal(0.6667, wardrobe.GetProperty("keepRate").GetDouble(), precision: 4);
+        Assert.Equal(1, wardrobe.GetProperty("dontOwn").GetInt32());
+        Assert.Equal(3, wardrobe.GetProperty("reasons").GetInt32());
+        Assert.Equal(0.3333, wardrobe.GetProperty("dontOwnRate").GetDouble(), precision: 4);
+        Assert.Equal(1, wardrobe.GetProperty("toStylistOff").GetInt32());
+
+        // The denominator is the hero tile's own number, so the page cannot say two different things about who checked.
+        Assert.Equal(metrics.GetProperty("usersWithAtLeastOneCheck").GetInt32(), wardrobe.GetProperty("checkedUsers").GetInt32());
+    }
+}
+
+// ---- Round 20 — the loop, counted: pairs per hundred ok checks and the nudge's own conversion ----
+
+/// <summary>
+/// The stylist block's loop numbers. What these lock: the denominator of "pairs per 100 ok checks" is the same rows the
+/// useful split reads (ok checks by accounts; a guest's rows wait for the claim), the rate is two decimals, a nudge is
+/// counted once it is a row, and "nudged then tried" is a pair whose BEFORE carries a nudge — the nudge's conversion, not
+/// pairs in general. Own app: these numbers are global.
+/// </summary>
+public class StylistLoopMetricsTests
+{
+    [Fact]
+    public async Task The_stylist_block_counts_pairs_per_100_ok_checks_and_the_nudges_conversion()
+    {
+        using var app = new TestApp();
+        app.Vision.Handler = _ => Payloads.Ok();
+        var (moderator, _, _) = await app.NewUserAsync("loop_mod");
+        await app.PromoteAsync("loop_mod");
+        var (person, personId, handle) = await app.NewUserAsync("loop_person");
+
+        // Four ok checks by an account; a guest's fifth stays out of every number on this page until it is claimed.
+        var before = await app.CheckAsync(person);
+        var after = await app.CheckAsync(person);
+        await app.CheckAsync(person);
+        await app.CheckAsync(moderator);
+        Assert.Equal(HttpStatusCode.Created, (await app.NewClient().PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()))).StatusCode);
+
+        // One pair, whose before was nudged the day before; one more pair nobody was nudged about would not count as converted.
+        Assert.Equal(HttpStatusCode.Created, (await person.PostAsJsonAsync($"/api/checks/{after}/tried", new { beforeId = before })).StatusCode);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(), UserId = personId, Type = NotificationType.TryTip, ActorHandle = handle, CheckId = before, CreatedAt = DateTime.UtcNow.AddDays(-1)
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var stylist = (await moderator.GetFromJsonAsync<JsonElement>("/api/metrics/pilot")).GetProperty("stylist");
+        Assert.Equal(1, stylist.GetProperty("triedPairs").GetInt32());
+        Assert.Equal(25.0, stylist.GetProperty("triedPer100Ok").GetDouble());
+        Assert.Equal(1, stylist.GetProperty("tryTipNudges").GetInt32());
+        Assert.Equal(1, stylist.GetProperty("nudgedThenTried").GetInt32());
+        // The split it sits beside reads the same four rows.
+        Assert.Equal(4, stylist.GetProperty("useful").GetProperty("unanswered").GetInt32());
+    }
+}

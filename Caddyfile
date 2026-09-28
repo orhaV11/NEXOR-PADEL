@@ -1,0 +1,7 @@
+# The public entrance. Caddy gets a Let's Encrypt certificate for DOMAIN (from .env) on first start and renews it,
+# redirects http to https, and passes X-Forwarded-For and X-Forwarded-Proto to the app, which its rate limiters, its
+# Secure cookie and its HSTS header read.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8080
+}

@@ -1,0 +1,16 @@
+{
+  "variant": "versus",
+  "lang": "en",
+  "photoA": {
+    "photo": "../../../tools/brand/templates/photos/look-1-streetwear.jpg",
+    "label": "A",
+    "intent": "STREETWEAR",
+    "score": 8
+  },
+  "photoB": {
+    "photo": "../../../tools/brand/templates/photos/look-3-pink.jpg",
+    "label": "B",
+    "intent": "PARTY",
+    "score": 8
+  }
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- The logo files: the mark alone, the wordmark alone, the lockup (mark, wordmark, slogan, tagline) and the
+     social avatar. One template, four layouts picked by the body class; the colours come from base.css and the
+     .light class; the SVGs are the real ones under src/FitCheck.Api/wwwroot/brand/. -->
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<title>OREVOSH — {{layout}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --w: {{w}}px; --h: {{h}}px; }
+  body { display: grid; place-items: center; }
+  main { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  img { max-width: none; }
+
+  /* The mark fills its file: mark.svg already carries its own air around the ring and the flame. */
+  .layout-mark .mark { width: var(--w); height: var(--h); }
+  .layout-mark .wordmark, .layout-mark .slogan, .layout-mark .tagline { display: none; }
+
+  /* The avatar: the mark at 66% of the tile, so a circular crop keeps the whole ring and the flame's tip. */
+  .layout-avatar .mark { width: calc(var(--w) * .66); }
+  .layout-avatar .wordmark, .layout-avatar .slogan, .layout-avatar .tagline { display: none; }
+
+  /* The wordmark 2000 wide with 4% of air on each side. */
+  .layout-wordmark .wordmark { width: calc(var(--w) * .92); }
+  .layout-wordmark .mark, .layout-wordmark .slogan, .layout-wordmark .tagline { display: none; }
+
+  /* The lockup: the mark above the wordmark, the slogan under it, the tagline last. Sizes are fractions of the
+     height so the same rules hold for any wide format. */
+  .layout-lockup .mark { width: calc(var(--h) * .27); margin-bottom: calc(var(--h) * .03); }
+  .layout-lockup .wordmark { width: calc(var(--w) * .42); }
+  .layout-lockup .slogan { font-size: calc(var(--h) * .085); margin-top: calc(var(--h) * .055); }
+  .layout-lockup .tagline { font-size: calc(var(--h) * .034); margin-top: calc(var(--h) * .02); max-width: calc(var(--w) * .7); }
+</style>
+</head>
+<body class="{{bodyClass}} layout-{{layout}}">
+  <main>
+    <img class="mark" src="{{mark}}" alt="">
+    <img class="wordmark" src="{{wordmark}}" alt="OREVOSH">
+    <h1 class="display slogan">{{slogan}}</h1>
+    <p class="tagline">{{tagline}}</p>
+  </main>
+</body>
+</html>

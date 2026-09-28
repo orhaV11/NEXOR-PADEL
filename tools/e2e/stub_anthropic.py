@@ -1,0 +1,508 @@
+"""Stub of the Anthropic Messages API for end-to-end runs without a real key.
+
+Validates the request shape OREVOSH sends (headers, forced tool call, base64 image block) and answers
+with a tool_use block in the requested language (English, Hebrew, Arabic or Russian). The very first request answers 529 so the client's
+single retry is exercised too. Anything malformed gets a 400 with the reason, so mistakes are loud.
+
+Three tools are understood: submit_outfit_feedback (a check: one image block, then the text), pick_outfit
+(a "which one?" comparison: the label "Outfit A:", the first image, the label "Outfit B:", the second image,
+then the text) and, since Round 19, compose_outfit (Tomorrow: text only, no image; the schema's ref enum is the
+wardrobe, and the answer is its first three refs with a sentence in the requested language). A comparison is
+answered with B winning, 6 to 8, in the requested language.
+
+GET /v1/forecast answers as Open-Meteo would (three days of daily figures), so an end-to-end run can point
+Weather__BaseUrl here and never leave the machine - and, since Round 20, Stripe's two session POSTs
+(/v1/checkout/sessions answers with the form's own success_url, /v1/billing_portal/sessions with its return_url,
+both recorded with their form fields and read back from GET /stripe) plus the two reads --stripe-check makes
+(GET /v1/prices/{id}: a recurring month or year in USD by the id's suffix; GET /v1/webhook_endpoints: one endpoint
+for the API origin given as the second argument, subscribed to every event), so the billing leg never leaves
+the machine either.
+"""
+import base64
+import json
+import sys
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qsl
+
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5099
+API_ORIGIN = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:5088"
+REQUESTS = []
+STRIPE = []
+# Round 20: GET /__delay/<ms> makes the NEXT /v1/messages answer wait that long, once, so the e2e can watch the staged
+# wait copy change under a slow stylist. Zero again after it fires.
+DELAY_MS = 0
+WEBHOOK_EVENTS = [
+    "checkout.session.completed", "customer.subscription.created", "customer.subscription.updated",
+    "customer.subscription.deleted", "invoice.paid", "charge.refunded", "charge.dispute.created",
+]
+
+EN = {
+    "status": "ok", "score": 7, "intent_match": 72,
+    "headline": "Clean casual with one weak link",
+    "vibe": "relaxed weekend",
+    # rubric v3: brand_seen is null unless a mark is visible; the swoosh on the running shoes is the one the e2e asserts
+    "items": [
+        {"name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple.", "brand_seen": None},
+        {"name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job.", "brand_seen": None},
+        {"name": "Running shoes", "category": "shoes", "verdict": "weak", "note": "Too sporty for the rest.", "brand_seen": "Nike"},
+    ],
+    "working": ["The palette is tight", "Proportions are balanced"],
+    "one_tip": "Swap the running shoes for plain white leather sneakers.",
+    # rubric v2: the three sub-scores and the accessories read
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Nothing on, so the look stops at the clothes and never quite finishes.",
+        "add_one": "A thin black leather belt.",
+    },
+}
+
+# Round 20: the look after the tip was taken, answered when the wearer's note says so ("after the tip" reaches the
+# stub as user text). The shoes are the one piece named differently, so the pair's "what changed" has exactly one row
+# and the before/after episode (tools/brand/lib/before-after.js) has a 7 → 8 to draw.
+EN_AFTER = {
+    "status": "ok", "score": 8, "intent_match": 80,
+    "headline": "Same look, the shoes fixed",
+    "vibe": "relaxed weekend",
+    "items": [
+        {"name": "White tee", "category": "top", "verdict": "works", "note": "Crisp and simple.", "brand_seen": None},
+        {"name": "Dark jeans", "category": "bottom", "verdict": "neutral", "note": "Fine, does the job.", "brand_seen": None},
+        {"name": "White leather sneakers", "category": "shoes", "verdict": "works", "note": "Clean, and they let the rest speak.", "brand_seen": None},
+    ],
+    "working": ["The palette is tight", "The shoes now match the register"],
+    "one_tip": "Keep it. One thin gold chain and it is finished.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 6},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Still nothing on, so the finish is the one thing left.",
+        "add_one": "One thin gold chain.",
+    },
+}
+
+HE = {
+    "status": "ok", "score": 6, "intent_match": 58,
+    "headline": "קז'ואל נקי עם חוליה חלשה אחת",
+    "vibe": "סופ\"ש רגוע",
+    "items": [
+        {"name": "טישרט לבנה", "category": "top", "verdict": "works", "note": "נקייה ופשוטה.", "brand_seen": None},
+        {"name": "ג'ינס כהה", "category": "bottom", "verdict": "neutral", "note": "בסדר, עושה את העבודה.", "brand_seen": None},
+        {"name": "נעלי ריצה", "category": "shoes", "verdict": "weak", "note": "ספורטיביות מדי לשאר הלוק.", "brand_seen": None},
+    ],
+    "working": ["הפלטה מצומצמת", "הפרופורציות מאוזנות"],
+    "one_tip": "שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "בלי אקססוריז הלוק נעצר בבגדים ולא ממש נסגר.",
+        "add_one": "חגורת עור שחורה דקה.",
+    },
+}
+
+AR = {
+    "status": "ok", "score": 6, "intent_match": 58,
+    "headline": "كاجوال نظيف بحلقة ضعيفة واحدة",
+    "vibe": "عطلة هادئة",
+    "items": [
+        {"name": "تيشيرت أبيض", "category": "top", "verdict": "works", "note": "نظيف وبسيط.", "brand_seen": None},
+        {"name": "جينز داكن", "category": "bottom", "verdict": "neutral", "note": "لا بأس، يؤدي الغرض.", "brand_seen": None},
+        {"name": "حذاء ركض", "category": "shoes", "verdict": "weak", "note": "رياضي أكثر من اللازم لبقية الإطلالة.", "brand_seen": None},
+    ],
+    "working": ["الألوان منسجمة", "النسب متوازنة"],
+    "one_tip": "الأفضل تبديل حذاء الركض بسنيكرز جلد أبيض بسيط.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "من دون إكسسوارات تتوقف الإطلالة عند الملابس ولا تكتمل.",
+        "add_one": "حزام جلد أسود رفيع.",
+    },
+}
+
+RU = {
+    "status": "ok", "score": 6, "intent_match": 58,
+    "headline": "Чистый кэжуал с одним слабым звеном",
+    "vibe": "спокойные выходные",
+    "items": [
+        {"name": "Белая футболка", "category": "top", "verdict": "works", "note": "Чисто и просто.", "brand_seen": None},
+        {"name": "Тёмные джинсы", "category": "bottom", "verdict": "neutral", "note": "Нормально, своё дело делают.", "brand_seen": None},
+        {"name": "Беговые кроссовки", "category": "shoes", "verdict": "weak", "note": "Слишком спортивные для остального.", "brand_seen": None},
+    ],
+    "working": ["Палитра собранная", "Пропорции сбалансированы"],
+    "one_tip": "Стоит заменить беговые кроссовки на простые белые кожаные кеды.",
+    "breakdown": {"fit": 7, "color": 8, "accessories": 4},
+    "accessories": {
+        "verdict": "missing", "present": [],
+        "note": "Без аксессуаров образ останавливается на одежде и не дотягивает до конца.",
+        "add_one": "Тонкий чёрный кожаный ремень.",
+    },
+}
+
+NOT_OUTFIT_EN = {
+    "status": "not_outfit", "score": 1, "intent_match": 0, "headline": "", "vibe": "",
+    "items": [], "working": [], "one_tip": "",
+    "message": "This looks like a photo of a wall. Try one where the clothes are visible.",
+}
+
+# "Which one?": B wins, 6 to 8, with the reason and the tip.
+COMPARE_EN = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "Safe casual, a little flat",
+    "headline_b": "Sharper lines, clearer intent",
+    "reason": "Outfit B reads as the intent from across the room: the cropped jacket and the straight trousers give it a line, and the loafers finish it. Outfit A is fine, but the running shoes and the loose tee pull it toward the gym. B wins on coherence.",
+    "one_tip": "For Outfit A, swap the running shoes for plain white leather sneakers and tuck the tee.",
+}
+
+COMPARE_HE = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "קז'ואל בטוח, קצת שטוח",
+    "headline_b": "קווים חדים, כוונה ברורה",
+    "reason": "לוק B נקרא כמו הכוונה כבר מרחוק: הז'קט הקצר והמכנסיים הישרים נותנים לו קו, והלואפרים סוגרים אותו. לוק A בסדר, אבל נעלי הריצה והטישרט הרפויה מושכות אותו לכיוון חדר הכושר. B מנצח על קוהרנטיות.",
+    "one_tip": "בלוק A שווה להחליף את נעלי הריצה בסניקרס עור לבן פשוט ולהכניס את הטישרט.",
+}
+
+COMPARE_AR = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "كاجوال آمن، مسطّح قليلًا",
+    "headline_b": "خطوط أوضح، وجهة أوضح",
+    "reason": "الإطلالة B تُقرأ كالوجهة من بعيد: الجاكيت القصير والبنطال المستقيم يمنحانها خطًا، واللوفرز تكملها. الإطلالة A لا بأس بها، لكن حذاء الركض والتيشيرت الفضفاض يسحبانها نحو النادي الرياضي. B تفوز بالانسجام.",
+    "one_tip": "في الإطلالة A، الأفضل تبديل حذاء الركض بسنيكرز جلد أبيض بسيط وإدخال التيشيرت في البنطال.",
+}
+
+COMPARE_RU = {
+    "status": "ok", "winner": "b", "score_a": 6, "score_b": 8,
+    "headline_a": "Безопасный кэжуал, чуть плоский",
+    "headline_b": "Чётче линии, яснее направление",
+    "reason": "Образ B читается как направление издалека: укороченная куртка и прямые брюки дают ему линию, а лоферы завершают. Образ A нормальный, но беговые кроссовки и свободная футболка тянут его в сторону спортзала. B выигрывает за цельность.",
+    "one_tip": "В образе A стоит заменить беговые кроссовки на простые белые кожаные кеды и заправить футболку.",
+}
+
+# Round 20: a close call, 7 to 7, chosen when the wearer's note says "close call": the reason opens with "Both work", as the
+# prompt asks, and B still edges it for the occasion. The server marks it close off the scores; this payload has no such field.
+COMPARE_CLOSE_EN = {
+    "status": "ok", "winner": "b", "score_a": 7, "score_b": 7,
+    "headline_a": "Easy, sure of itself",
+    "headline_b": "Same ease, one sharper line",
+    "reason": "Both work. Outfit B edges it for the rooftop because the straight trousers hold their line once the wind picks up, where the wide leg of A starts to billow. The tops are a draw.",
+    "one_tip": "For Outfit A, swap the wide trousers for a straight pair and it is level with B.",
+}
+
+COMPARE_NOT_OUTFIT_EN = {
+    "status": "not_outfit", "winner": "a", "score_a": 1, "score_b": 1,
+    "headline_a": "", "headline_b": "", "reason": "", "one_tip": "",
+    "message": "Photo A looks like a wall. Try one where the clothes are visible.",
+}
+
+IMAGE_TYPES = ("image/jpeg", "image/png", "image/webp")
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args):  # quiet
+        pass
+
+    def _fail(self, status, reason):
+        body = json.dumps({"type": "error", "error": {"type": "invalid_request_error", "message": reason}}).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    @staticmethod
+    def _image(block, problems, label):
+        """Decodes one image block, noting what is wrong with it. Returns (bytes, media_type)."""
+        if block.get("type") != "image":
+            problems.append("%s is not an image block" % label)
+            return b"", ""
+        src = block.get("source", {})
+        media_type = src.get("media_type", "")
+        if src.get("type") != "base64" or media_type not in IMAGE_TYPES:
+            problems.append("%s source malformed" % label)
+        try:
+            image_bytes = base64.b64decode(src.get("data", ""))
+        except Exception:  # noqa: BLE001
+            problems.append("%s not base64" % label)
+            image_bytes = b""
+        if media_type == "image/jpeg" and image_bytes[:3] != b"\xff\xd8\xff":
+            problems.append("%s media_type says jpeg but bytes are not" % label)
+        return image_bytes, media_type
+
+    def _json(self, status, payload):
+        out = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def do_POST(self):
+        if self.path in ("/v1/checkout/sessions", "/v1/billing_portal/sessions"):
+            # Round 20: Stripe's two session POSTs. The form is recorded as sent and the answer's url is the address the
+            # form itself named, so the browser lands where the real Stripe would send it.
+            length = int(self.headers.get("Content-Length", "0"))
+            form = dict(parse_qsl(self.rfile.read(length).decode("utf-8"), keep_blank_values=True))
+            if not (self.headers.get("Authorization") or "").startswith("Bearer sk_"):
+                return self._fail(401, "no bearer key")
+            STRIPE.append({"path": self.path, "form": form})
+            sys.stderr.write("STUB STRIPE %s %s\n" % (self.path, json.dumps(form)))
+            if self.path == "/v1/checkout/sessions":
+                return self._json(200, {"id": "cs_e2e", "object": "checkout.session", "url": form.get("success_url", "")})
+            return self._json(200, {"id": "bps_e2e", "object": "billing_portal.session", "url": form.get("return_url", "")})
+        if self.path != "/v1/messages":
+            return self._fail(404, "unknown path " + self.path)
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length)
+        try:
+            body = json.loads(raw)
+        except Exception as e:  # noqa: BLE001
+            return self._fail(400, "bad json: %s" % e)
+
+        problems = []
+        if not self.headers.get("x-api-key"):
+            problems.append("missing x-api-key")
+        if self.headers.get("anthropic-version") != "2023-06-01":
+            problems.append("bad anthropic-version")
+        if "model" not in body or "max_tokens" not in body or "system" not in body:
+            problems.append("missing model/max_tokens/system")
+        tools = body.get("tools") or []
+        tool_name = tools[0].get("name") if len(tools) == 1 else None
+        compare = tool_name == "pick_outfit"
+        compose = tool_name == "compose_outfit"
+        refs = []
+        if len(tools) != 1 or "input_schema" not in tools[0] or tool_name not in ("submit_outfit_feedback", "pick_outfit", "compose_outfit"):
+            problems.append("tools malformed")
+        else:
+            required = (tools[0].get("input_schema") or {}).get("required") or []
+            if compose:
+                # Round 19: the enum of ref IS the wardrobe; an answer outside it would be dropped by the server.
+                props = (tools[0].get("input_schema") or {}).get("properties") or {}
+                refs = ((((props.get("pieces") or {}).get("items") or {}).get("properties") or {}).get("ref") or {}).get("enum") or []
+                if "pieces" not in required or "sentence" not in required or not refs:
+                    problems.append("compose_outfit schema lacks pieces/sentence or the ref enum")
+            elif compare:
+                for field in ("status", "winner", "score_a", "score_b", "headline_a", "headline_b", "reason", "one_tip"):
+                    if field not in required:
+                        problems.append("pick_outfit schema lacks " + field)
+            # Rubric v2: the schema must ask for the breakdown and the accessories read, or the answer below would be ignored.
+            elif "breakdown" not in required or "accessories" not in required:
+                problems.append("schema lacks the v2 fields (breakdown, accessories)")
+            else:
+                # Rubric v3: every item asks for brand_seen (string or null), or the "Nike" below would never reach the post sheet.
+                item_schema = (((tools[0].get("input_schema") or {}).get("properties") or {}).get("items") or {}).get("items") or {}
+                if "brand_seen" not in (item_schema.get("properties") or {}) or "brand_seen" not in (item_schema.get("required") or []):
+                    problems.append("schema lacks the v3 field (items[].brand_seen)")
+        tc = body.get("tool_choice") or {}
+        if tc.get("type") != "tool" or tc.get("name") != tool_name:
+            problems.append("tool_choice not forced")
+        # Round 20: the system prompt is a string (before) or a list of text blocks (since the wedge). A cache_control
+        # may sit on the first block only, as {"type": "ephemeral"} or with ttl "1h"; a compose (its tool carries the
+        # wearer's wardrobe, so nothing before the rubric is shared) must not carry one at all. A wrong shape is a 400,
+        # so the run fails loudly instead of quietly paying a write premium on every call.
+        system = body.get("system")
+        cache_control = None
+        if isinstance(system, str):
+            system_blocks = [system]
+        elif isinstance(system, list) and system:
+            system_blocks = [b.get("text", "") for b in system if isinstance(b, dict) and b.get("type") == "text"]
+            if len(system_blocks) != len(system):
+                problems.append("a system block is not a text block")
+            for i, block in enumerate(system):
+                cc = block.get("cache_control") if isinstance(block, dict) else None
+                if cc is None:
+                    continue
+                if i != 0:
+                    problems.append("cache_control on system block %d, not the first" % i)
+                elif cc.get("type") != "ephemeral":
+                    problems.append("cache_control type %r" % cc.get("type"))
+                elif "ttl" in cc and cc.get("ttl") != "1h":
+                    problems.append("cache_control ttl %r" % cc.get("ttl"))
+            cache_control = system[0].get("cache_control") if isinstance(system[0], dict) else None
+            if compose and cache_control is not None:
+                problems.append("compose_outfit carries a cache_control: its tool is per wearer, nothing before the rubric is shared")
+        else:
+            system_blocks = []
+            problems.append("system is neither a string nor a list of text blocks")
+        system_text = "\n".join(system_blocks)
+        msgs = body.get("messages") or []
+        if len(msgs) != 1 or msgs[0].get("role") != "user":
+            problems.append("messages malformed")
+        content = msgs[0].get("content", []) if msgs else []
+        image_bytes = b""
+        media_type = ""
+        image_bytes_b = b""
+        media_type_b = ""
+        user_text = ""
+        if compose:
+            # Tomorrow: text only, no photograph at all.
+            if len(content) != 1 or content[0].get("type") != "text":
+                problems.append("compose content must be one text block, got %d" % len(content))
+            else:
+                user_text = content[0].get("text", "")
+                if "Pieces (refer to them ONLY by their ref)" not in user_text:
+                    problems.append("compose text lacks the pieces list")
+                if "@" in user_text:
+                    problems.append("compose text carries a handle or an address")
+        elif compare:
+            # A comparison: "Outfit A:", image A, "Outfit B:", image B, the task text.
+            if len(content) != 5:
+                problems.append("comparison content must be 5 blocks, got %d" % len(content))
+            else:
+                if content[0].get("type") != "text" or content[0].get("text") != "Outfit A:":
+                    problems.append("block 0 must be the text 'Outfit A:'")
+                if content[2].get("type") != "text" or content[2].get("text") != "Outfit B:":
+                    problems.append("block 2 must be the text 'Outfit B:'")
+                if content[4].get("type") != "text":
+                    problems.append("block 4 must be the task text")
+                image_bytes, media_type = self._image(content[1], problems, "image A")
+                image_bytes_b, media_type_b = self._image(content[3], problems, "image B")
+                user_text = content[4].get("text", "")
+        else:
+            if len(content) != 2 or content[0].get("type") != "image" or content[1].get("type") != "text":
+                problems.append("content blocks malformed")
+            if content and content[0].get("type") == "image":
+                image_bytes, media_type = self._image(content[0], problems, "image")
+            user_text = content[1].get("text", "") if len(content) > 1 else ""
+        if problems:
+            sys.stderr.write("STUB REJECTED: %s\n" % problems)
+            return self._fail(400, "; ".join(problems))
+
+        record = {
+            "model": body["model"], "max_tokens": body["max_tokens"], "thinking": body.get("thinking"), "tool": tool_name,
+            "system_head": system_text[:80], "language_line": [l for l in system_text.splitlines() if l.startswith("Write every")],
+            "system_blocks": len(system_blocks), "cache_control": cache_control,
+            "user_text": user_text, "media_type": media_type, "image_len": len(image_bytes),
+        }
+        if compare:
+            record["media_type_b"] = media_type_b
+            record["image_len_b"] = len(image_bytes_b)
+        REQUESTS.append(record)
+        sys.stderr.write("STUB REQUEST #%d (%s): %s bytes %s%s | %s\n" % (
+            len(REQUESTS), tool_name, len(image_bytes), media_type,
+            (" + %s bytes %s" % (len(image_bytes_b), media_type_b)) if compare else "", user_text[:70]))
+
+        # First request: simulate an overloaded API so the single retry gets exercised.
+        if len(REQUESTS) == 1:
+            return self._fail(529, "Overloaded")
+
+        # Round 20: the one-shot delay, after the record so the request is counted whatever the browser does meanwhile.
+        global DELAY_MS
+        if DELAY_MS > 0:
+            delay, DELAY_MS = DELAY_MS, 0
+            sys.stderr.write("STUB DELAY %d ms\n" % delay)
+            time.sleep(delay / 1000.0)
+
+        # The system prompt names the language ("Write every user-facing field ... in Hebrew (he)"); answer in it. A
+        # compose names it in the figures instead ("Language to write in: Hebrew").
+        system = system_text
+        if compose:
+            line = [l for l in user_text.splitlines() if l.startswith("Language to write in:")]
+            language = line[0].split(":", 1)[1].strip() if line else "English"
+            sentence = {
+                "Hebrew": "החולצה עם הג'ינס והנעליים: פשוט, נקי ומתאים ליום.",
+                "Arabic": "القميص مع الجينز والحذاء: بسيط ونظيف ومناسب لليوم.",
+                "Russian": "Футболка с джинсами и кроссовками: просто, чисто и по случаю.",
+            }.get(language, "The tee with the jeans and the shoes: easy, clean and right for the day.")
+            payload = {"pieces": [{"ref": r} for r in refs[:3]], "sentence": sentence}
+            if "gap" in ((tools[0].get("input_schema") or {}).get("properties") or {}):
+                payload["gap"] = None
+            response = {
+                "id": "msg_stub", "type": "message", "role": "assistant", "model": body["model"],
+                "stop_reason": "tool_use", "stop_sequence": None,
+                "content": [{"type": "tool_use", "id": "toolu_stub", "name": tool_name, "input": payload}],
+                "usage": {"input_tokens": 700, "output_tokens": 120},
+            }
+            out = json.dumps(response, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+            return
+        if "in Hebrew (he)" in system:
+            answers, compare_answers = HE, COMPARE_HE
+        elif "in Arabic (ar)" in system:
+            answers, compare_answers = AR, COMPARE_AR
+        elif "in Russian (ru)" in system:
+            answers, compare_answers = RU, COMPARE_RU
+        else:
+            answers, compare_answers = EN, COMPARE_EN
+        if compare:
+            payload = compare_answers
+            # A tiny image (a few KB) on either side stands in for a "not an outfit" photo.
+            if len(image_bytes) < 3000 or len(image_bytes_b) < 3000:
+                payload = COMPARE_NOT_OUTFIT_EN
+            # Round 20: the wearer's note asks for a close call; the note travels quoted in the task text.
+            elif "close call" in user_text.lower():
+                payload = COMPARE_CLOSE_EN
+        else:
+            payload = answers
+            if len(image_bytes) < 3000:
+                payload = NOT_OUTFIT_EN
+            # Round 20: the look after the tip, in English only (the before/after step is Noa's).
+            elif answers is EN and "after the tip" in user_text:
+                payload = EN_AFTER
+        response = {
+            "id": "msg_stub", "type": "message", "role": "assistant", "model": body["model"],
+            "stop_reason": "tool_use", "stop_sequence": None,
+            "content": [{"type": "tool_use", "id": "toolu_stub", "name": tool_name, "input": payload}],
+            "usage": {"input_tokens": 1000, "output_tokens": 300},
+        }
+        out = json.dumps(response, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def do_GET(self):
+        if self.path == "/stripe":
+            return self._json(200, STRIPE)
+        if self.path.startswith("/__delay/"):
+            global DELAY_MS
+            DELAY_MS = int(self.path[len("/__delay/"):].split("?")[0] or "0")
+            return self._json(200, {"delay_ms": DELAY_MS})
+        if self.path.startswith("/v1/prices/"):
+            # Round 20: --stripe-check reads both prices back. The id says which cadence it is; the amounts are the
+            # ones the e2e configures (USD 29 a month, USD 290 a year).
+            price_id = self.path[len("/v1/prices/"):].split("?")[0]
+            yearly = price_id.endswith("year")
+            return self._json(200, {
+                "id": price_id, "object": "price", "active": True, "type": "recurring",
+                "currency": "usd", "unit_amount": 29000 if yearly else 2900,
+                "recurring": {"interval": "year" if yearly else "month", "interval_count": 1},
+            })
+        if self.path.startswith("/v1/webhook_endpoints"):
+            return self._json(200, {"object": "list", "data": [{
+                "id": "we_e2e", "object": "webhook_endpoint", "status": "enabled",
+                "url": API_ORIGIN + "/api/billing/webhook", "enabled_events": WEBHOOK_EVENTS,
+            }]})
+        if self.path.startswith("/v1/forecast"):
+            # Round 19: Open-Meteo's daily block for today and the two days after; tomorrow is clear, 24/17, a 10% chance of rain.
+            import datetime
+            # The machine's own calendar, which is the browser's: the phone sends its local "today" and the server
+            # asks for the day after, so a UTC date here would hand it the wrong entry for three hours a day in Israel.
+            start = datetime.date.today()
+            days = [(start + datetime.timedelta(days=i)).isoformat() for i in range(3)]
+            forecast = {
+                "latitude": 32.08, "longitude": 34.78, "timezone": "Asia/Jerusalem",
+                "daily": {"time": days, "weather_code": [3, 0, 61], "temperature_2m_max": [29.1, 24.0, 22.5],
+                          "temperature_2m_min": [21.0, 17.0, 16.0], "precipitation_probability_max": [0, 10, 65]},
+            }
+            sys.stderr.write("STUB FORECAST %s\n" % self.path)
+            out = json.dumps(forecast).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+            return
+        out = json.dumps(REQUESTS, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+
+if __name__ == "__main__":
+    sys.stderr.write("stub anthropic listening on %d\n" % PORT)
+    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

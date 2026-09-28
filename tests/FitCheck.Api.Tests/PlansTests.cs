@@ -1,0 +1,412 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using FitCheck.Api.Data;
+using FitCheck.Api.Domain;
+using FitCheck.Api.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FitCheck.Api.Tests;
+
+/// <summary>
+/// Round 14 — Pro worth paying for. Two things are locked here.
+/// <para>
+/// <b>The page may not promise what the server cannot do.</b> <see cref="Every_promise_on_the_pro_page_maps_to_something_that_exists"/>
+/// reads <c>wwwroot/app/views/pro.js</c>, pulls out every benefit it can draw and matches each one against
+/// <see cref="Promises"/>: the flag from /api/config that gates it and the thing in the server that makes it true. A
+/// benefit added to that page without a row here fails the build, and so does a row whose guard stopped matching. This is
+/// the round's whole point: Pro sold a bigger number and nothing else, and the way back to that is an invented promise.
+/// </para>
+/// <para>
+/// <b>Pro's day is two buckets.</b> Its comparisons have their own allowance, so deciding between two outfits never
+/// spends a check; a free account keeps the one bucket it always had.
+/// </para>
+/// </summary>
+public class PlansTests
+{
+    private static string ProPageSource()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "app", "views", "pro.js"));
+        Assert.True(File.Exists(path), "the Pro page is not where PlansTests looks for it: " + path);
+        return File.ReadAllText(path);
+    }
+
+    private static Dictionary<string, string> Strings(string code)
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "i18n", code + ".json"));
+        return JsonDocument.Parse(File.ReadAllText(path)).RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
+    }
+
+    /// <summary>
+    /// What the Pro page is allowed to claim, and why each claim is true. <c>Guard</c> is the flag from /api/config that
+    /// must gate the benefit on the page, "" for one that is true of every Pro account on every server. <c>Why</c> names
+    /// the thing in the code that delivers it — if you cannot write that sentence, the benefit does not belong on the page.
+    /// </summary>
+    private static readonly Dictionary<string, (string Guard, string Why)> Promises = new(StringComparer.Ordinal)
+    {
+        ["pro.benefit_which"] = ("",
+            "Pro's comparisons have their own rolling-day allowance (Plans:ProComparesPerDay, Plans.CompareCapFor, Allowance.Compares), counted apart from its checks on every server"),
+        ["pro.benefit_taste"] = ("plans.tasteNeedsPro",
+            "the taste profile reaching the stylist, which is Pro's exactly where Plans:TasteNeedsPro is on - Plans:TasteProfile only says the server has it built, and guarding on that listed a benefit every free account already had"),
+        ["pro.benefit_wardrobe"] = ("plans.wardrobe",
+            "the wardrobe reaching the stylist (Wardrobe.ForStylistAsync), which is Pro's where Plans:WardrobeNeedsPro is on"),
+        ["pro.benefit_insights"] = ("plans.compareNeedsPro",
+            "GET /api/users/me/insights, refused to a free account exactly where Plans:CompareNeedsPro is on"),
+        // Round 20 — the no-card trial.
+        ["pro.benefit_trial"] = ("plans.billing && plans.proTrialDays > 0 && trialOffered",
+            "POST /api/billing/checkout sends subscription_data[trial_period_days]=Plans:ProTrialDays with payment_method_collection=if_required exactly where Stripe is live, Plans:ProTrialDays > 0 and the account has no Stripe customer yet (BillingStateDto.TrialDays, BillingEndpoints.TrialDaysFor), and the webhook grants the trial days rather than a paid period"),
+        // Round 19 — Tomorrow.
+        ["pro.benefit_tomorrow"] = ("plans.tomorrow && plans.proSuggestionsPerDay > 0 && (plans.tomorrowNeedsPro || plans.freeSuggestionsPerDay <= 0)",
+            "POST /api/tomorrow answers 403 error.pro_required to a free account exactly where Plans:TomorrowNeedsPro is on (Plans.TomorrowReachesStylist), or refuses free every tap where Plans:FreeSuggestionsPerDay is 0, while Plans:TomorrowEnabled is on and Pro's own cap (Plans.ProSuggestionCap, as /api/config publishes it) is above 0"),
+        ["pro.benefit_tomorrow_daily"] = ("plans.tomorrow && plans.proSuggestionsPerDay > 0 && !plans.tomorrowNeedsPro && plans.freeSuggestionsPerDay > 0",
+            "a Pro account composes in its own rolling-day bucket (Plans:ProSuggestionsPerDay, Allowance.Suggestions, Plans.ProSuggestionCap) from WardrobeNamesFor(true) pieces, while free composes Plans:FreeSuggestionsPerDay a day inside its shared day from WardrobeNamesToStylist pieces - both numbers as /api/config publishes them and both above 0, never a stand-in for a 0")
+    };
+
+    /// <summary>The benefit lines of the page, as (guard, the keys on that line). One benefit per line, by construction.</summary>
+    private static List<(string Guard, List<string> Keys)> BenefitLines(string source)
+    {
+        var lines = new List<(string, List<string>)>();
+        foreach (var raw in source.Split('\n'))
+        {
+            var line = raw.Trim();
+            // The helper's own definition and any prose about it are not benefits.
+            if (line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith("function benefit", StringComparison.Ordinal) || !line.Contains("benefit(", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var call = line.IndexOf("benefit(", StringComparison.Ordinal);
+            var guard = line[..call].Trim().TrimEnd('?').Trim();
+            var keys = Regex.Matches(line, @"'(pro\.benefit_[a-z_]+)'").Select(m => m.Groups[1].Value).ToList();
+            lines.Add((guard, keys));
+        }
+
+        return lines;
+    }
+
+    [Fact]
+    public void Every_promise_on_the_pro_page_maps_to_something_that_exists()
+    {
+        var source = ProPageSource();
+        var en = Strings("en");
+        var benefits = BenefitLines(source);
+        Assert.True(benefits.Count >= 3, $"only {benefits.Count} benefit lines were found; the Pro page's shape changed and this assertion no longer reads it");
+
+        var drawn = new List<string>();
+        foreach (var (guard, keys) in benefits)
+        {
+            Assert.NotEmpty(keys);
+            // The title is the claim; the rest of the line is its hint (and its alternative wording).
+            var title = keys[0];
+            drawn.Add(title);
+            Assert.True(Promises.ContainsKey(title),
+                $"the Pro page promises \"{en.GetValueOrDefault(title, title)}\" ({title}) and PlansTests.Promises does not say what in the server makes that true. " +
+                "Nothing on that page may claim a feature this app does not have: add the row, or take the promise off the page.");
+            var (expectedGuard, why) = Promises[title];
+            Assert.True(guard == expectedGuard,
+                $"{title} is gated on \"{guard}\" but it is only true when \"{expectedGuard}\" ({why}).");
+            foreach (var key in keys)
+            {
+                Assert.True(en.ContainsKey(key), $"the Pro page draws {key} and en.json has no such string");
+            }
+        }
+
+        var stale = Promises.Keys.Except(drawn).ToList();
+        Assert.True(stale.Count == 0, "PlansTests.Promises has rows for benefits the Pro page no longer draws: " + string.Join(", ", stale));
+
+        // A promise left in the copy after the code stopped drawing it is still a promise somebody can ship by mistake.
+        var orphaned = en.Keys.Where(k => k.StartsWith("pro.benefit_", StringComparison.Ordinal))
+            .Select(k => k.Replace("_hint_only", "").Replace("_hint", ""))
+            .Distinct()
+            .Where(k => !drawn.Contains(k))
+            .ToList();
+        Assert.True(orphaned.Count == 0, "en.json still carries Pro benefits the page does not draw: " + string.Join(", ", orphaned));
+    }
+
+    /// <summary>
+    /// Round 20: the trial line is a promise about money, so its guard is pinned by name - Stripe live, a trial
+    /// configured, and the server's own word that this account is eligible. Anything looser would promise free days
+    /// to someone Checkout is about to charge.
+    /// </summary>
+    [Fact]
+    public void The_trial_line_is_drawn_only_behind_stripe_and_the_setting()
+    {
+        Assert.StartsWith("plans.billing && plans.proTrialDays > 0", Promises["pro.benefit_trial"].Guard, StringComparison.Ordinal);
+        var line = Assert.Single(BenefitLines(ProPageSource()), l => l.Keys.Contains("pro.benefit_trial"));
+        Assert.Equal(Promises["pro.benefit_trial"].Guard, line.Guard);
+        Assert.Contains("pro.benefit_trial_hint", line.Keys);
+        // The button says what the line promised, and only then.
+        Assert.Contains("t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
+        Assert.Contains("trialOffered && plans.proTrialDays > 0 ? t('pro.go_trial'", ProPageSource(), StringComparison.Ordinal);
+
+        // Review of Round 20: the price after the trial is the one Checkout will sell. With Yearly pressed that is the
+        // year, so the hint is built from the interval the toggle stands on and repainted when it moves; with no price
+        // published it names none (the hint is left out) rather than read "Then  a month".
+        var source = ProPageSource();
+        Assert.Contains("t('pro.benefit_trial_hint', { price: trialThen() })", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("t('pro.benefit_trial_hint', { price: priceText })", source, StringComparison.Ordinal);
+        Assert.Contains("interval === 'year' && yearlyText ? t('pro.per_year', { price: yearlyText }) : priceText ? t('pro.per_month', { price: priceText }) : ''", source, StringComparison.Ordinal);
+        Assert.Contains("if (trialHint) trialHint.textContent = t('pro.benefit_trial_hint', { price: trialThen() });", source, StringComparison.Ordinal);
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            // The interval is in {price} now ("$29 a month", "$290 a year"), so the sentence itself may not name one.
+            var hint = Strings(code)["pro.benefit_trial_hint"];
+            foreach (var month in new[] { "a month", "לחודש", "في الشهر", "شهري", "в месяц" })
+            {
+                Assert.DoesNotContain(month, hint, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void The_cap_is_mentioned_once_and_last_and_is_not_sold_as_a_benefit()
+    {
+        var source = ProPageSource();
+        var en = Strings("en");
+
+        // One fair-use line, drawn once.
+        Assert.Single(Regex.Matches(source, @"'pro\.fair_use'"));
+        // After every benefit: the cap is the footnote, not the pitch.
+        var lastBenefit = source.LastIndexOf("benefit(", StringComparison.Ordinal);
+        Assert.True(source.IndexOf("'pro.fair_use'", StringComparison.Ordinal) > lastBenefit, "the fair-use line has to come after the benefits");
+        // And it is not a benefit row itself.
+        Assert.DoesNotContain(Promises.Keys, key => key.Contains("fair", StringComparison.Ordinal));
+        // It names both allowances, because Pro's day is two buckets.
+        Assert.Contains("{checks}", en["pro.fair_use"], StringComparison.Ordinal);
+        Assert.Contains("{compares}", en["pro.fair_use"], StringComparison.Ordinal);
+        foreach (var code in new[] { "he", "ar", "ru" })
+        {
+            var text = Strings(code)["pro.fair_use"];
+            Assert.Contains("{checks}", text, StringComparison.Ordinal);
+            Assert.Contains("{compares}", text, StringComparison.Ordinal);
+        }
+    }
+
+    private static string CheckPageSource()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "wwwroot", "app", "views", "check.js"));
+        Assert.True(File.Exists(path), "the check screen is not where PlansTests looks for it: " + path);
+        return File.ReadAllText(path);
+    }
+
+    /// <summary>
+    /// Round 16. Pro's allowance is the month; its day is a burst brake. The check screen used to quote the day at
+    /// everybody — a Pro subscriber opened the app and read "27 of 30 checks left today", which is the old pitch, the
+    /// one Pro is no longer sold on, in the one place a subscriber looks every single day. It was the fourth screen
+    /// found saying it, and each of the first three was fixed alone because the tests asserted the NUMBER and not the
+    /// SENTENCE: change 30 to something else and they all still passed.
+    ///
+    /// So this asserts the sentence. The line has to read the month from MeDto (callsPerMonth / callsThisMonth) and
+    /// have a month string to say it with, in every language. A rewrite that goes back to quoting only the day fails
+    /// here whatever the numbers are.
+    /// </summary>
+    [Fact]
+    public void The_check_screen_can_quote_the_month_not_only_the_day()
+    {
+        var source = CheckPageSource();
+        var line = Regex.Match(source, @"function checksLeftLine\(\)\s*\{.*?\n\}", RegexOptions.Singleline);
+        Assert.True(line.Success, "checksLeftLine is not in check.js under that name any more — this test guards it and needs to follow it");
+        var body = line.Value;
+
+        Assert.Contains("callsPerMonth", body, StringComparison.Ordinal);
+        Assert.Contains("callsThisMonth", body, StringComparison.Ordinal);
+        Assert.Contains("check.left_month", body, StringComparison.Ordinal);
+        Assert.Contains("check.left", body, StringComparison.Ordinal);
+
+        // MeDto has to carry both, or the line above reads undefined and silently falls back to the day.
+        var dto = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "FitCheck.Api", "Endpoints", "Dtos.cs")));
+        var me = Regex.Match(dto, @"record MeDto\((?:.|\n)*?\);");
+        Assert.True(me.Success, "MeDto is not where this test looks for it");
+        Assert.Contains("CallsPerMonth", me.Value, StringComparison.Ordinal);
+        Assert.Contains("CallsThisMonth", me.Value, StringComparison.Ordinal);
+
+        // And a sentence to say it in, everywhere, with both blanks — a missing one prints "{cap}" at a paying subscriber.
+        foreach (var code in new[] { "en", "he", "ar", "ru" })
+        {
+            var strings = Strings(code);
+            foreach (var key in new[] { "check.left_month", "check.left_month_one" })
+            {
+                Assert.True(strings.ContainsKey(key), $"{code}.json has no {key}");
+            }
+            Assert.Contains("{n}", strings["check.left_month"], StringComparison.Ordinal);
+            Assert.Contains("{cap}", strings["check.left_month"], StringComparison.Ordinal);
+            // The "one" form spells the 1 out, so it must not also carry the {n} blank.
+            Assert.DoesNotContain("{n}", strings["check.left_month_one"]);
+            Assert.Contains("{cap}", strings["check.left_month_one"], StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Round 19 — Tomorrow's numbers on /api/config are the ones the routes enforce, clamped like the check caps.</summary>
+    [Fact]
+    public async Task Config_publishes_the_tomorrow_numbers_as_enforced()
+    {
+        using var app = new TestApp
+        {
+            ChecksPerDay = 5,
+            Settings = { ["Plans:ProSuggestionsPerDay"] = "40", ["Plans:FreeSuggestionsPerDay"] = "9", ["Plans:FreeChecksPerDay"] = "2" }
+        };
+        var config = await (await app.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>();
+        var plans = config.GetProperty("plans");
+        Assert.True(plans.GetProperty("tomorrow").GetBoolean());
+        Assert.False(plans.GetProperty("tomorrowNeedsPro").GetBoolean());
+        Assert.Equal(5, plans.GetProperty("proSuggestionsPerDay").GetInt32());
+        // Free's brake can never be more than free's day.
+        Assert.Equal(2, plans.GetProperty("freeSuggestionsPerDay").GetInt32());
+        Assert.Equal(2, plans.GetProperty("suggestionMinPieces").GetInt32());
+        Assert.Equal(2, plans.GetProperty("suggestionMinCategories").GetInt32());
+        // Round 20: the morning push is off by default and its hour is published as the sender reads it.
+        Assert.False(plans.GetProperty("tomorrowMorningPush").GetBoolean());
+        Assert.Equal("07:30", plans.GetProperty("tomorrowMorningHour").GetString());
+
+        using var walled = new TestApp { Settings = { ["Plans:TomorrowNeedsPro"] = "true", ["Plans:TomorrowEnabled"] = "false", ["Plans:TomorrowMorningPush"] = "true" } };
+        var off = (await (await walled.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("plans");
+        Assert.False(off.GetProperty("tomorrow").GetBoolean());
+        Assert.True(off.GetProperty("tomorrowNeedsPro").GetBoolean());
+        Assert.Equal(10, off.GetProperty("proSuggestionsPerDay").GetInt32());
+        Assert.Equal(1, off.GetProperty("freeSuggestionsPerDay").GetInt32());
+        // The flag is on but Tomorrow is off: a tap would 404, so the client is told the morning push is off too.
+        Assert.False(off.GetProperty("tomorrowMorningPush").GetBoolean());
+
+        using var morning = new TestApp { Settings = { ["Plans:TomorrowMorningPush"] = "true", ["Plans:TomorrowMorningHour"] = "06:45" } };
+        var on = (await (await morning.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("plans");
+        Assert.True(on.GetProperty("tomorrowMorningPush").GetBoolean());
+        Assert.Equal("06:45", on.GetProperty("tomorrowMorningHour").GetString());
+    }
+
+    [Fact]
+    public async Task Config_publishes_the_allowances_as_the_server_really_enforces_them()
+    {
+        // Both plan numbers above the ceiling: what is published has to be what a Pro account actually gets.
+        using var app = new TestApp
+        {
+            ChecksPerDay = 12,
+            Settings = { ["Plans:ProChecksPerDay"] = "40", ["Plans:ProComparesPerDay"] = "40" }
+        };
+        var config = await (await app.NewClient().GetAsync("/api/config")).Content.ReadFromJsonAsync<JsonElement>();
+        var plans = config.GetProperty("plans");
+        Assert.Equal(12, plans.GetProperty("proChecksPerDay").GetInt32());
+        Assert.Equal(12, plans.GetProperty("proComparesPerDay").GetInt32());
+        // Both are Pro's by default, and both are things this server really has: the wardrobe is Services/Wardrobe.cs and
+        // the taste profile is Services/Taste.cs. A server that turns either off stops claiming it on the Pro page.
+        Assert.True(plans.GetProperty("wardrobe").GetBoolean());
+        Assert.True(plans.GetProperty("tasteProfile").GetBoolean());
+    }
+
+    /// <summary>
+    /// Round 16 fixed what this test was pinning. Plans:TasteProfile says the server HAS the taste profile built; it
+    /// never said the profile was Pro's, and it is not — every signed-in account gets the advisory. So the Pro page,
+    /// which lists a benefit wherever its flag is true, was selling a third of its pitch to people who already had it
+    /// for nothing, and a subscriber could disprove it by cancelling. The page now asks Plans:TasteNeedsPro, which is
+    /// off, so the benefit is off the page until somebody decides to gate it.
+    /// </summary>
+    [Fact]
+    public void The_taste_profile_is_claimed_only_where_it_is_actually_pros()
+    {
+        // The feature exists on this server (Services/Taste.cs, Round 14)...
+        Assert.True(new PlanOptions().TasteProfile);
+        // ...and is given to free accounts too, so it is not a thing to sell.
+        Assert.False(new PlanOptions().TasteNeedsPro);
+        Assert.Equal("plans.tasteNeedsPro", Promises["pro.benefit_taste"].Guard);
+    }
+
+    [Fact]
+    public void Pro_splits_its_day_and_free_keeps_the_one_bucket()
+    {
+        var now = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var plans = new PlanOptions { FreeChecksPerDay = 3, ProChecksPerDay = 30, ProComparesPerDay = 10 };
+        var limits = new LimitsOptions { ChecksPerDay = 20 };
+        var free = new AppUser { Plan = Plans.Free };
+        var pro = new AppUser { Plan = Plans.Pro, ProUntil = now.AddDays(1) };
+        var lapsed = new AppUser { Plan = Plans.Pro, ProUntil = now.AddMinutes(-1) };
+
+        Assert.Equal(Allowance.Together, Plans.CheckAllowanceFor(free, now));
+        Assert.Equal(Allowance.Together, Plans.CompareAllowanceFor(free, now));
+        Assert.Equal(Allowance.Checks, Plans.CheckAllowanceFor(pro, now));
+        Assert.Equal(Allowance.Compares, Plans.CompareAllowanceFor(pro, now));
+        // A guest has one look, not two buckets; a lapsed Pro is a free account again.
+        Assert.Equal(Allowance.Together, Plans.CheckAllowanceFor(null, now));
+        Assert.Equal(Allowance.Together, Plans.CheckAllowanceFor(lapsed, now));
+
+        // A free account's comparison cap IS its check cap: the same allowance, as before Round 14.
+        Assert.Equal(3, Plans.CompareCapFor(free, plans, limits, now));
+        Assert.Equal(3, Plans.CapFor(free, plans, limits, now));
+        // Pro's two numbers, each clamped to the ceiling.
+        Assert.Equal(20, Plans.CapFor(pro, plans, limits, now));
+        Assert.Equal(10, Plans.CompareCapFor(pro, plans, limits, now));
+        Assert.Equal(10, Plans.ProCompareCap(plans, limits));
+        Assert.Equal(5, Plans.ProCompareCap(plans, new LimitsOptions { ChecksPerDay = 5 }));
+    }
+
+    [Fact]
+    public void The_wardrobe_reaches_the_stylist_only_for_the_plan_that_bought_it()
+    {
+        var now = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var sold = new PlanOptions { WardrobeNeedsPro = true };
+        var given = new PlanOptions { WardrobeNeedsPro = false };
+        var free = new AppUser { Plan = Plans.Free };
+        var pro = new AppUser { Plan = Plans.Pro, ProUntil = now.AddDays(1) };
+
+        Assert.False(Plans.WardrobeReachesStylist(free, sold, now));
+        Assert.True(Plans.WardrobeReachesStylist(pro, sold, now));
+        Assert.True(Plans.WardrobeReachesStylist(free, given, now));
+        // A guest has no wardrobe on any server.
+        Assert.False(Plans.WardrobeReachesStylist(null, given, now));
+    }
+
+    [Fact]
+    public async Task A_pro_comparison_never_comes_out_of_the_days_checks()
+    {
+        using var app = new TestApp
+        {
+            ChecksPerDay = 20,
+            Settings = { ["Plans:ProChecksPerDay"] = "2", ["Plans:ProComparesPerDay"] = "2" }
+        };
+        var (client, id, _) = await app.NewUserAsync("plan_pro");
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var user = db.Users.Single(u => u.Id == id);
+            user.Plan = Plans.Pro;
+            user.ProUntil = DateTime.UtcNow.AddDays(30);
+            await db.SaveChangesAsync();
+        }
+
+        app.Vision.Handler = request => request.HasSecondImage ? OutfitComparerTests.Pick() : Payloads.Ok();
+
+        // Two comparisons fill the comparison bucket and touch nothing else.
+        for (var i = 0; i < 2; i++)
+        {
+            Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()))).StatusCode);
+        }
+
+        var thirdCompare = await client.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.TooManyRequests, thirdCompare.StatusCode);
+
+        // The day's checks are untouched by all of that: this is what the Pro page promises.
+        var me = await (await client.GetAsync("/api/auth/me")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(0, me.GetProperty("checksToday").GetInt32());
+        Assert.Equal(2, me.GetProperty("checksPerDay").GetInt32());
+        await app.CheckAsync(client);
+        await app.CheckAsync(client);
+        var full = await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.TooManyRequests, full.StatusCode);
+        Assert.Equal("You've reached today's limit of 2 checks. Come back tomorrow.", await SecurityFixtures.ErrorAsync(full));
+    }
+
+    [Fact]
+    public async Task A_free_accounts_comparison_still_spends_a_check()
+    {
+        using var app = new TestApp { FreeChecksPerDay = 2, ChecksPerDay = 20 };
+        var (client, _, _) = await app.NewUserAsync("plan_free");
+        app.Vision.Handler = request => request.HasSecondImage ? OutfitComparerTests.Pick() : Payloads.Ok();
+
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/compare", CompareTests.CompareForm(TestImages.Jpeg(), TestImages.Jpeg()))).StatusCode);
+        var me = await (await client.GetAsync("/api/auth/me")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, me.GetProperty("checksToday").GetInt32());
+
+        await app.CheckAsync(client);
+        var full = await client.PostAsync("/api/checks", TestApp.CheckForm(TestImages.Jpeg()));
+        Assert.Equal(HttpStatusCode.TooManyRequests, full.StatusCode);
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "appId": "app.orevosh.mobile",
+  "appName": "OREVOSH",
+  "webDir": "www",
+  "server": {
+    "url": "https://looks.example.com",
+    "cleartext": false,
+    "allowNavigation": ["looks.example.com"]
+  },
+  "backgroundColor": "#0b0b0f",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0b0b0f",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "android": {
+    "backgroundColor": "#0b0b0f",
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 600,
+      "backgroundColor": "#0b0b0f",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0b0b0f"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+# OREVOSH on Fly.io: one small machine built from the repository's Dockerfile, one volume for the database and the
+# photo/clip folder, HTTPS from Fly's edge. The walkthrough is DEPLOY.md, "Fly.io in 15 minutes". `fly launch --copy-config`
+# reads this file and replaces the app name below with yours.
+
+app = "orevosh-yourname"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# The same three settings the Dockerfile sets, spelled out so a glance at this file says where the data is. Secrets
+# (ANTHROPIC_API_KEY, Push__*, Email__*) never go here: `fly secrets set`, see DEPLOY.md.
+[env]
+  ASPNETCORE_URLS = "http://0.0.0.0:8080"
+  ConnectionStrings__Default = "Data Source=/data/orevosh.db"
+  Storage__Root = "/data/storage"
+
+# The volume, created once with `fly volumes create data --size 3 --region fra`. Everything people give the app is on it.
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+# Fly terminates HTTPS and forwards to Kestrel on 8080 with X-Forwarded-For and X-Forwarded-Proto, which the app's rate
+# limiters, its Secure cookie and its HSTS header read. The machine is never stopped for idleness: the app is one process
+# with one SQLite file, and a cold start would drop the in-flight check reservations.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+# /healthz answers ok when the database does; Fly stops routing to a machine that fails it.
+[checks]
+  [checks.health]
+    port = 8080
+    type = "http"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/healthz"
+
+# One shared CPU and 512 MB is plenty for a pilot (the app idles around 150 MB). Never more than one machine: see
+# "Single process, single SQLite file" in the README's limitations.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

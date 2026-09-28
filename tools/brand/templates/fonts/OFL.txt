@@ -1,0 +1,8 @@
+Outfit (Copyright 2021 The Outfit Project Authors, https://github.com/Outfitio/Outfit-Fonts) and
+Heebo (Copyright 2020 The Heebo Project Authors, https://github.com/OdedEzer/heebo) are licensed under the
+SIL Open Font License, Version 1.1: https://openfontlicense.org/open-font-license-official-text/
+
+The files in this folder are the woff2 subsets Google Fonts serves for the two families (latin for Outfit
+and Heebo, hebrew for Heebo), copied here so tools/brand/render-kit.js renders the kit with the real faces
+on a machine without internet. They are used only to render the marketing kit; the app itself loads the
+fonts from Google Fonts (index.html).

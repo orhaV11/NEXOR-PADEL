@@ -1,0 +1,7 @@
+{
+  "name": "orevosh-brand-kit",
+  "private": true,
+  "description": "Renders the OREVOSH brand kit (brand-kit/), the Open Graph card and the landing page screens from tools/brand/templates",
+  "scripts": { "render": "node render-kit.js" },
+  "devDependencies": { "playwright": "1.55.0", "sharp": "0.33.5" }
+}

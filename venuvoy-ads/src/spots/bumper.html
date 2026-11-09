@@ -12,7 +12,12 @@
   #h1, #h2 { position: absolute; left: 0; right: 0; top: 300px; text-align: center; font-size: 118px; white-space: nowrap; }
   #h2 { color: var(--gold); }
   #ph { left: 230px; top: 470px; }
-  .okBig { position: absolute; left: 90px; right: 90px; top: 1120px; display: flex; align-items: center; gap: 20px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink);
+  #demo .tag { inset-inline-start: 36px; font-size: 26px; }
+  .rh { font: 800 26px "Assistant", sans-serif; color: var(--soft); margin: 6px 6px 12px; }
+  .mini { display: flex; gap: 12px; align-items: center; padding: 12px 0 0; border-top: 2px solid var(--line); margin-top: 10px; font: 700 21px "Assistant", sans-serif; }
+  .mini i { font-style: normal; font-size: 24px; }
+  .plan.ghost { height: 120px; opacity: 0.9; }
+  .okBig { position: absolute; z-index: 25; left: 90px; right: 90px; top: 1120px; display: flex; align-items: center; gap: 20px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink);
     font: 800 44px/1.2 "Assistant", sans-serif; box-shadow: 0 0 0 4px #2c6544, 0 26px 50px -20px rgba(0, 0, 0, 0.55); }
   .okBig .v { flex: none; width: 70px; height: 70px; border-radius: 50%; background: #2c6544; color: #fff; display: grid; place-items: center; font: 900 44px "Assistant", sans-serif; }
 </style>
@@ -28,9 +33,13 @@
       <div class="appbar"><i class="crest"></i><b>VENUVOY</b></div>
       <div id="askView"><div class="ask"><div class="lab" data-t="lab"></div><div class="field"><span id="typed"></span><i class="caret" id="caret"></i></div></div></div>
       <div id="results" style="position:absolute;left:0;right:0;top:160px;padding:0 26px">
+        <div class="rh" data-t="rh"></div>
         <div class="plan"><div class="band"><span class="on" data-t="t1"></span><span data-t="t2"></span><span data-t="t3"></span></div>
           <div class="pb"><div class="pt" data-t="pt" data-html="1"></div><div class="pm" data-t="pm"></div>
-            <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div></div></div>
+            <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div>
+            <div class="mini"><i>🚆</i><span data-t="tr"></span></div>
+            <div class="mini"><i>🏟</i><span data-t="lv" data-html="1"></span></div></div></div>
+        <div class="plan ghost"><div class="band"><span data-t="t1"></span><span class="on" data-t="t2"></span><span data-t="t3"></span></div></div>
       </div>
     </div></div>
     <div class="okBig" id="ok"><span class="v">✓</span><span data-t="ok"></span></div>
@@ -40,7 +49,7 @@
     <div class="abs crestBox" id="crest"><i class="crest" data-variant="gilt"></i></div>
     <div class="abs cx word" id="word">VENUVOY</div>
     <h1 class="abs cx h tagline" id="tagline" data-t="tagline" data-html="1"></h1>
-    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span></div>
+    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span><span class="fine" id="fine" data-t="fine"></span></div>
   </section>
   <div id="leak"></div><div id="flash"></div><div id="vig"></div><div id="grainov"></div>
 </div>
@@ -50,43 +59,48 @@
   if (RTL) document.getElementById("ctaArrow").dataset.icon = "arrow";
   const T = txt({
     en: { h1: "One sentence.", h2: "Whole trip.", lab: "Your trip in one sentence", sentence: "Munich in late January, a Champions League night",
-      t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
+      rh: "3 plans for you", t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
+      tr: "Airport → city: about 40 min on the S-Bahn", lv: 'Leave for the stadium by <span class="ltr">19:35</span> · U6 to Fröttmaning',
       dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena', ok: "Real fixture. Confirmed.",
-      illus: "Illustration", tagline: "The world is<br>your stadium.", cta: "Plan your trip free" },
+      illus: "Illustration", tagline: "One sentence.<br>Whole trip.", cta: "Plan your trip free", fine: "Free to plan · Full plan: one payment per trip" },
     he: { h1: "משפט אחד.", h2: "טיול שלם.", lab: "הטיול שלכם במשפט אחד", sentence: "מינכן בסוף ינואר, ערב של ליגת האלופות",
-      t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
+      rh: "3 תוכניות בשבילכם", t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
+      tr: "שדה התעופה ← העיר: כ־40 דק׳ ברכבת", lv: 'לצאת לאצטדיון עד <span class="ltr">19:35</span> · קו U6 לפרטמנינג',
       dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה', ok: "משחק אמיתי. מאושר.",
-      illus: "המחשה", tagline: "העולם הוא<br>האצטדיון שלכם.", cta: "לתכנון טיול בחינם" },
+      illus: "המחשה", tagline: "משפט אחד.<br>טיול שלם.", cta: "לתכנון טיול בחינם", fine: "התכנון בחינם · תוכנית מלאה: תשלום אחד לטיול" },
   });
   const $ = (id) => document.getElementById(id);
-  const S = { demo: [0, 3.2], end: [3.2, 6] };
+  // the end card gets the last 2.4 s; the confirmed plan holds for 1.75 s before it
+  const S = { demo: [0, 3.6], end: [3.6, 6] };
   window.DURATION = 6;
   window.SCORE = { script: "bumper.py" };
-  window.CUES = [{ t: 0.15, type: "typing", dur: 1.4 }, { t: 1.7, type: "press" }, { t: 1.85, type: "swish" }, { t: 2.3, type: "ding" }, { t: 3.2, type: "logo" }];
+  window.CUES = [{ t: 0.1, type: "typing", dur: 1.2 }, { t: 1.35, type: "press" }, { t: 1.45, type: "swish" }, { t: 1.85, type: "ding" }, { t: 3.6, type: "logo" }];
   function show(id, t) { const [a, b] = S[id]; const on = t >= a && t < b + (id === "end" ? 1 : 0); $(id).style.display = on ? "block" : "none"; return on; }
   window.seek = function (t) {
-    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 3.2) / 0.22) * 0.55;
+    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 3.6) / 0.22) * 0.55;
     if (show("demo", t)) {
-      const swap = E.inOut(P(t, 1.75, 0.25));
+      const swap = E.in(P(t, 1.33, 0.12));
       put($("h1"), { op: 1 - swap, y: -swap * 50, s: lerp(1.03, 1, E.out(P(t, 0, 0.3))) });
-      put($("h2"), { ...slam(t, 1.78, 0.26), op: slam(t, 1.78, 0.26).op });
-      $("ph").style.transform = `scale(${lerp(1, 0.9, E.inOut(P(t, 1.8, 0.4)))})`; $("ph").style.transformOrigin = "50% 0%";
-      const tp = clamp(0.2 + 0.8 * P(t, 0.15, 1.4));
+      const hold = E.inOut(P(t, 1.9, 1.7)); // a slow push-in while the confirmed plan holds
+      const h2 = slam(t, 1.42, 0.26); put($("h2"), { ...h2, s: h2.s * (1 + 0.04 * hold) });
+      $("ph").style.transform = `scale(${lerp(1, 0.9, E.inOut(P(t, 1.42, 0.4))) * (1 + 0.05 * hold)})`; $("ph").style.transformOrigin = "50% 0%";
+      const tp = clamp(0.2 + 0.8 * P(t, 0.1, 1.2));
       $("typed").textContent = T.sentence.slice(0, Math.round(T.sentence.length * tp));
       $("caret").style.opacity = tp < 1 || Math.floor(t * 4) % 2 === 0 ? 1 : 0;
-      $("askView").style.opacity = 1 - E.out(P(t, 1.72, 0.18));
-      const r = E.out(P(t, 1.82, 0.35)); put($("results"), { op: r, y: (1 - r) * 300 });
-      const k = slam(t, 2.28, 0.22, 1.5); put($("ok"), { ...k, r: -2 });
+      $("askView").style.opacity = 1 - E.out(P(t, 1.34, 0.18));
+      const r = E.out(P(t, 1.44, 0.35)); put($("results"), { op: r, y: (1 - r) * 300 });
+      const k = slam(t, 1.83, 0.22, 1.5); put($("ok"), { ...k, s: k.s * (1 + 0.05 * hold), y: 40 * hold, r: -2 + 1.2 * hold });
     }
     if (show("end", t)) {
-      const te = t - 3.2;
-      const cr = E.elastic(P(te, 0, 0.9));
+      const te = t - 3.6;
+      const cr = E.elastic(P(te, 0, 0.75));
       put($("crest"), { op: clamp(P(te, 0, 0.12)), s: cr, r: (1 - cr) * 25 });
-      const wm = E.out(P(te, 0.2, 0.45)); put($("word"), { op: wm, y: (1 - wm) * 50 }); $("word").style.letterSpacing = `${lerp(0.6, 0.3, wm)}em`;
-      put($("tagline"), slam(te, 0.4, 0.3));
-      const cb = pop(te, 0.7, 0.4); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
-      $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 1.1) / 0.8)) / 2}px 0`;
-      put($("url"), { op: E.out(P(te, 0.9, 0.4)) });
+      const wm = E.out(P(te, 0.1, 0.35)); put($("word"), { op: wm, y: (1 - wm) * 50 }); $("word").style.letterSpacing = `${lerp(0.6, 0.3, wm)}em`;
+      put($("tagline"), slam(te, 0.2, 0.28));
+      const cb = pop(te, 0.35, 0.35); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
+      $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 0.8) / 0.8)) / 2}px 0`;
+      put($("url"), { op: E.out(P(te, 0.5, 0.35)) });
+      put($("fine"), { op: E.out(P(te, 0.6, 0.35)) });
     }
   };
   window.__ready = window.__ready.then(() => fontsReady()).then(() => { VV.hydrate(); window.seek(0); return true; });

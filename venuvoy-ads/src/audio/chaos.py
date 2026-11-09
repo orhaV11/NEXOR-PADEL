@@ -52,15 +52,21 @@ for k in range(9):
     if k % 2 == 0:
         m.add(kick(110, 46, 0.4, 0.15), tb, 0.55)
     else:
-        m.add(lp(snare(200 + k), 3500), tb, 0.2, room=0.35)
+        m.add(lp(snare(200 + k), 3500), tb, 0.32, room=0.35)
+        m.add(clap(210 + k), tb, 0.3, room=0.35)
     for s in range(2):
-        m.add(shaker(300 + k * 2 + s), tb + s * BT / 2, 0.12, pan=0.35)
+        m.add(shaker(300 + k * 2 + s), tb + s * BT / 2, 0.22, pan=0.35)
+        m.add(hat(False, 320 + k * 2 + s), tb + s * BT / 2 + BT / 4, 0.12, pan=-0.3)
 for bar in range(3):
     tb = B0 + bar * 4 * BT
     ch = CHORDS[bar % 4]
     for off in (0.0, 1.5 * BT, 2.5 * BT):
         if tb + off < 12.0:
-            m.add(keys([n + 12 for n in ch], 0.9, 0.8, 400 + bar), tb + off, 0.32, pan=-0.15, room=0.4)
+            m.add(keys([n + 12 for n in ch], 0.9, 1.0, 400 + bar), tb + off, 0.52, pan=-0.15, room=0.4)
+    for q in range(8):  # a plucked line keeps the calm section present on small speakers
+        tq = tb + q * BT / 2
+        if tq < 12.0:
+            m.add(pluck(ch[(0, 2, 1, 3, 2, 1, 3, 2)[q]] + 24, 0.3), tq, 0.34, pan=0.25, hall=0.2)
     for off in (0.0, 2 * BT):
         if tb + off < 12.0:
             m.add(sub(ROOTS[bar % 4], 1.0), tb + off, 0.4)
@@ -69,7 +75,7 @@ for k, (tb, n) in enumerate([(8.6, 84), (9.0, 88), (9.4, 91)]):  # the checklist
 m.add(choir([(0.0, 1.8, 60, "a"), (0.0, 1.8, 64, "a"), (0.0, 1.8, 67, "a")], voices=18, crowd=0.0, seed=8), 9.95, 0.3, hall=0.6)
 
 # ------------------------------------------------------------------ end card
-m.add(sonic_logo(), 12.0, 1.0, hall=0.3)
+m.add(sonic_logo(), 12.0, 0.7, hall=0.3)
 m.add(pad([48, 55, 60, 64], DUR - 12.0, 2200, 98), 12.1, 0.9, hall=0.4)
 m.add(strings([60, 64, 67, 72], DUR - 12.0, 97), 12.05, 0.5, hall=0.4)
 for k, n in enumerate((79, 76, 84, 79)):
@@ -92,7 +98,7 @@ FX = {
     "whoosh": lambda c: [(whoosh(0.45), -0.1, 0.32, {})],
     "press": lambda c: [(thump(), 0, 0.55, {})],
     "swish": lambda c: [(whoosh(0.3, True, 61), 0, 0.25, {})],
-    "ding": lambda c: [(ding((84 + 4 * c.get("n", 0), 91 + 4 * c.get("n", 0))), 0, 0.45, dict(hall=0.2))],
+    "ding": lambda c: [(ding((84 + 4 * c.get("n", 0), 91 + 4 * c.get("n", 0))), 0, 0.8, dict(hall=0.2))],
     "done": lambda c: [(ding((96, 100)), 0, 0.35, dict(hall=0.3)), (bell(84, 2.0), 0, 0.25, dict(hall=0.4))],
     "logo": lambda c: [],
 }

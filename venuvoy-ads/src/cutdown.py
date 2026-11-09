@@ -74,7 +74,7 @@ def anthem_cut(lang):
         run([sys.executable, SRC / "audio" / "master.py", tmp / "raw.wav", tmp / "music.wav"])
         run(["ffmpeg", "-y", "-loglevel", "error", "-i", cut, "-i", tmp / "music.wav", "-map", "0:v", "-map", "1:a", "-c:v", "copy",
              "-c:a", "aac", "-b:a", "192k", "-t", dur, "-movflags", "+faststart", out])
-        run(["ffmpeg", "-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:285", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
              "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", str(out).replace("_9x16_1080x1920", "_4x5_1080x1350")])
     print(f"cutdown: {out} (+ 4:5)")
 

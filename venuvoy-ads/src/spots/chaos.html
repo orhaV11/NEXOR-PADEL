@@ -53,13 +53,13 @@
   .spinner { position: absolute; width: 150px; height: 150px; border-radius: 50%; border: 16px solid rgba(255, 255, 255, 0.25); border-top-color: #fff; }
 
   /* calm */
-  #calm { background: radial-gradient(110% 80% at 50% 35%, #fbf7ee 0%, #f4eee1 55%, #e9dfc8 100%); color: var(--ink); }
+  #calm { z-index: 5; background: radial-gradient(110% 80% at 50% 35%, #fbf7ee 0%, #f4eee1 55%, #e9dfc8 100%); color: var(--ink); }
   #calm .meme { color: #fff; }
   #cph { left: 230px; top: 470px; }
   .check { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; gap: 22px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink); font: 800 44px/1.2 "Assistant", sans-serif;
     box-shadow: 0 0 0 4px #2c6544, 0 26px 50px -20px rgba(0, 0, 0, 0.55); }
   .check .v { flex: none; width: 72px; height: 72px; border-radius: 50%; background: #2c6544; color: #fff; display: grid; place-items: center; font: 900 46px "Assistant", sans-serif; }
-  #done { top: 1360px; font: 900 italic 190px/1 "Playfair", serif; color: #2c6544; }
+  #done { top: 1265px; font-size: 160px !important; font: 900 italic 190px/1 "Playfair", serif; color: #2c6544; }
   [lang="he"] #done { font: 900 190px/1 "FRL", serif; }
 </style>
 </head>
@@ -89,9 +89,9 @@
             <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div></div></div>
       </div>
     </div></div>
-    <div class="check" id="k1" style="top:900px"><span class="v">✓</span><span data-t="k1"></span></div>
-    <div class="check" id="k2" style="top:1050px"><span class="v">✓</span><span data-t="k2"></span></div>
-    <div class="check" id="k3" style="top:1200px"><span class="v">✓</span><span data-t="k3"></span></div>
+    <div class="check" id="k1" style="top:860px"><span class="v">✓</span><span data-t="k1"></span></div>
+    <div class="check" id="k2" style="top:1000px"><span class="v">✓</span><span data-t="k2"></span></div>
+    <div class="check" id="k3" style="top:1140px"><span class="v">✓</span><span data-t="k3"></span></div>
     <div class="abs cx" id="done" data-t="done"></div>
     <span class="tag on-light" data-t="illus"></span>
   </section>
@@ -100,10 +100,10 @@
     <div class="abs crestBox" id="crest"><i class="crest" data-variant="gilt"></i></div>
     <div class="abs cx word" id="word">VENUVOY</div>
     <h1 class="abs cx h tagline" id="tagline" data-t="tagline" data-html="1"></h1>
-    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span></div>
+    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span><span class="fine" id="fine" data-t="fine"></span></div>
   </section>
 
-  <div class="meme" id="cap1" style="top:290px" data-t="cap1"></div>
+  <div class="meme" id="cap1" style="top:290px" data-t="cap1" data-html="1"></div>
   <div class="meme" id="cap2" style="top:330px;font-size:150px" data-t="cap2"></div>
   <div class="meme" id="cap3" style="top:300px" data-t="cap3"></div>
   <div id="leak"></div><div id="flash"></div><div id="vig"></div><div id="grainov"></div>
@@ -115,7 +115,7 @@
   if (RTL) document.getElementById("ctaArrow").dataset.icon = "arrow";
   const T = txt({
     en: {
-      cap1: "Planning a football trip abroad be like:", cap2: "…or:", cap3: "With Venuvoy:",
+      cap1: "Planning a football trip abroad be like:", cap2: "Or:", cap3: "With Venuvoy:", chatName: "⚽ Trip 2027 🍻", arena: "Allianz Arena",
       addr: "search or type a web address",
       search: "is this ticket site legit??", hurry: "⚠ HURRY!", last: "LAST 2 TICKETS!!!", left: "09:58 left", buy: "BUY NOW",
       fx: "Saturday · Kick-off:", tbc: "TBC???",
@@ -126,25 +126,25 @@
       t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
       dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena',
       k1: "A real fixture, confirmed", k2: "The official ticket route first", k3: "Alerts if anything moves", done: "Done.",
-      illus: "Illustration", tagline: "One sentence.<br>Whole trip.", cta: "Plan your trip free",
+      illus: "Illustration", tagline: "One sentence.<br>Whole trip.", cta: "Plan your trip free", fine: "Free to plan · Full plan: one payment per trip",
     },
     he: {
-      cap1: "לתכנן טיול כדורגל בחו״ל, בערך ככה:", cap2: "…או:", cap3: "עם Venuvoy:",
+      cap1: "לתכנן טיול כדורגל בחו״ל,<br>בערך ככה:", cap2: "או:", cap3: "עם Venuvoy:", chatName: "⚽ טיול 2027 🍻", arena: "אליאנץ ארנה",
       addr: "חיפוש או כתובת אתר",
       search: "האתר הזה אמין??", hurry: "⚠ מהר!", last: "נשארו 2 כרטיסים!!!", left: "נשארו 09:58", buy: "קנו עכשיו",
       fx: "שבת · שעת פתיחה:", tbc: "טרם נקבע???",
       chat: ["איזה משחק?? 🤔", "זה בכלל מאושר?", "התאריך זז!!!", "מי מזמין מלון?", "פאונד או יורו???"], who: ["דן", "מאיה", "תום", "נועה", "בן"],
-      calc: "£38 + עמלות + טיסה + ??? =", map: "מלון ← אצטדיון: 47 דק׳??", cal: ["שבת", "16:30", "ראשון??", "17:30??"], sheet: "טרם נקבע",
+      calc: "£38 + עמלות + טיסה + ??? =", map: "מלון ← אצטדיון: 47 דק׳??", cal: ["שבת", "16:30", "ראשון??", '<span class="ltr">17:30??</span>'], sheet: "טרם נקבע",
       toasts: ["יותר מדי טאבים פתוחים", "המשחק לא מאושר", "התשלום נכשל"],
       lab: "הטיול שלכם במשפט אחד", sentence: "מינכן בסוף ינואר, ערב של ליגת האלופות",
       t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
       dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה',
       k1: "משחק אמיתי, מאושר", k2: "קודם הדרך הרשמית לכרטיסים", k3: "התראה אם משהו זז", done: "סגור.",
-      illus: "המחשה", tagline: "משפט אחד.<br>טיול שלם.", cta: "לתכנון טיול בחינם",
+      illus: "המחשה", tagline: "משפט אחד.<br>טיול שלם.", cta: "לתכנון טיול בחינם", fine: "התכנון בחינם · תוכנית מלאה: תשלום אחד לטיול",
     },
   });
   const $ = (id) => document.getElementById(id);
-  const S = { desk: [0, 6.55], calm: [6.55, 12], end: [12, 15] };
+  const S = { desk: [0, 6.95], calm: [6.55, 12], end: [12, 15] };
   window.DURATION = 15;
   window.SCORE = { script: "chaos.py" };
 
@@ -161,15 +161,15 @@
   };
   const gags = [
     { t: -0.25, el: W("g1", 70, 640, 940, -2, "", `<div class="q">🔍 <span id="q1"></span><i class="caret" style="background:#1d2026"></i></div>`) },
-    { t: 1.0, el: W("g2", 110, 800, 860, -5, T.hurry, `<div class="hot" id="hot">${T.last}</div><div class="price ltr" style="display:block">€899</div><div class="timer" id="timer">${T.left}</div><div class="buy" id="buy">${T.buy}</div>`, "sketch") },
-    { t: 1.5, el: W("g3", 60, 1200, 960, 3, "", `<div class="fx">${T.fx} <span style="color:#9aa3b5">——</span><small>Allianz Arena</small></div><div class="stampR" id="tbc" style="top:40px;inset-inline-end:36px;transform:rotate(-12deg)">${T.tbc}</div>`) },
+    { t: -0.15, el: W("g2", 110, 800, 860, -5, T.hurry, `<div class="hot" id="hot">${T.last}</div><div class="price ltr" style="display:block">€899</div><div class="timer" id="timer">${T.left}</div><div class="buy" id="buy">${T.buy}</div>`, "sketch") },
+    { t: 1.5, el: W("g3", 60, 1200, 960, 3, "", `<div class="fx">${T.fx} <span style="color:#9aa3b5">——</span><small>${T.arena}</small></div><div class="stampR" id="tbc" style="top:40px;inset-inline-end:36px;transform:rotate(-12deg)">${T.tbc}</div>`) },
     { t: 3.0, el: W("g5", 60, 600, 700, -6, "", `<div class="fx" style="font-size:38px">${T.calc}</div><div class="calc"><div class="num ltr" id="num" style="display:block">€1,4??</div></div>`, "calc") },
     { t: 3.5, el: W("g6", 330, 980, 700, 5, "", `<div class="map"><svg viewBox="0 0 700 300" style="position:absolute;inset:0;width:100%;height:100%"><path d="M40 250 C 160 60, 230 290, 330 150 S 520 40, 640 90" fill="none" stroke="#e0262f" stroke-width="10" stroke-dasharray="22 14" stroke-linecap="round"/><circle cx="640" cy="90" r="22" fill="#e0262f"/><circle cx="40" cy="250" r="16" fill="#1d4fa0"/></svg></div><div class="fx" style="margin-top:14px;font-size:38px">${T.map}</div>`) },
     { t: 4.0, el: W("g7", 400, 560, 620, 7, "", `<div class="cal"><span class="x">${T.cal[0]}</span><span class="x ltr" style="display:block">${T.cal[1]}</span><span>${T.cal[2]}</span><span class="ltr" style="display:block">${T.cal[3]}</span></div><div class="scrawl">${T.cal[2]} ${T.cal[3]}</div>`) },
     { t: 4.5, el: W("g8", 40, 1180, 760, -4, "", `<div class="sheet">${Array.from({ length: 9 }, (_, i) => `<span class="${i % 2 ? "r" : ""}">${i % 2 ? T.sheet : "?"}</span>`).join("")}</div>`) },
   ];
   // the group chat
-  const chat = W("chat", 0, 0, 0, 2, "⚽ Trip 2027 🍻", "");
+  const chat = W("chat", 0, 0, 0, 2, T.chatName, "");
   chat.style.cssText = "";
   const bubTimes = [2.05, 2.25, 2.45, 2.65, 2.85];
   const cols = ["#1d4fa0", "#c8102e", "#2c6544", "#b8955a", "#7a3fa0"];
@@ -189,7 +189,7 @@
   const toasts = T.toasts.map((s, i) => { const d = document.createElement("div"); d.className = "toast"; d.textContent = s; d.style.top = [520, 1460, 1000][i] + "px"; d.style.left = [120, 260, 80][i] + "px"; deskIn.appendChild(d); return { el: d, t: 5.1 + i * 0.25 }; });
   const spin = document.createElement("div"); spin.className = "spinner"; spin.style.left = "465px"; spin.style.top = "880px"; deskIn.appendChild(spin);
 
-  const TAB_AT = [[0, 12], [0.35, 13], [1.0, 16], [1.5, 19], [2.0, 23], [3.0, 27], [3.5, 31], [4.0, 35], [4.5, 39], [5.0, 43]];
+  const TAB_AT = [[0, 16], [0.5, 17], [1.0, 18], [1.5, 21], [2.0, 24], [3.0, 28], [3.5, 31], [4.0, 35], [4.5, 39], [5.0, 43]];
   const tabNames = ["Fixtures", "Tickets", "Hotels", "Flights", "Is it legit", "Members", "Ballot", "Currency", "Map", "Kick-off", "Forum", "Reviews"];
   let lastTabs = 0;
   function tabs(n) {
@@ -200,13 +200,13 @@
   }
 
   window.CUES = [
-    { t: 0.0, type: "pop" }, { t: 0.35, type: "typing", dur: 0.6, fast: 1 },
-    { t: 1.0, type: "alarm" }, { t: 1.5, type: "stamp" }, { t: 1.55, type: "bonk" },
+    { t: 0.0, type: "alarm" }, { t: 0.05, type: "typing", dur: 0.7, fast: 1 },
+    { t: 1.0, type: "pop" }, { t: 1.5, type: "stamp" }, { t: 1.55, type: "bonk" },
     ...bubTimes.map((t) => ({ t, type: "notif" })), { t: 2.1, type: "buzz" }, { t: 2.6, type: "buzz" },
     { t: 3.0, type: "beeps" }, { t: 3.5, type: "pop" }, { t: 4.0, type: "scribble" }, { t: 4.5, type: "bonk" },
     { t: 5.0, type: "alarm" }, { t: 5.1, type: "error" }, { t: 5.35, type: "error" }, { t: 5.6, type: "error" }, { t: 5.75, type: "glitch" },
     { t: 6.0, type: "scratch" },
-    { t: 6.6, type: "whoosh" }, { t: 6.95, type: "typing", dur: 1.0 }, { t: 8.05, type: "press" }, { t: 8.2, type: "swish" },
+    { t: 6.55, type: "whoosh" }, { t: 6.95, type: "typing", dur: 1.0 }, { t: 8.05, type: "press" }, { t: 8.2, type: "swish" },
     { t: 8.6, type: "ding", n: 0 }, { t: 9.0, type: "ding", n: 1 }, { t: 9.4, type: "ding", n: 2 }, { t: 9.95, type: "done" },
     { t: 12.0, type: "logo" },
   ];
@@ -216,7 +216,7 @@
   window.seek = function (t) {
     // freeze: from the scratch on, the chaos stops dead where it is
     const tc = Math.min(t, 6.0), frozen = t >= 6.0;
-    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 6.6) / 0.25) * 0.6 + Math.max(0, 1 - Math.abs(t - 12) / 0.22) * 0.5;
+    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 12) / 0.22) * 0.5;
     put($("cap1"), { op: (t < 6.0 ? 1 : 0), ...(t < 0.3 ? { s: lerp(1.04, 1, E.out(P(t, 0, 0.3))) } : {}) });
     put($("cap2"), { ...pop(t, 6.02, 0.3), op: t >= 6.02 && t < 6.55 ? 1 : 0 });
     put($("cap3"), { op: t >= 6.6 && t < 12 ? clamp(P(t, 6.6, 0.2) * 3) : 0 });
@@ -229,8 +229,8 @@
       // shake grows with the mess
       const lvl = clamp((tc - 1) / 5);
       const hits = gags.map((g) => g.t).concat([5.0, 5.1, 5.35, 5.6, 5.75]);
-      const sh = shake(tc, hits, 10 + 22 * lvl, 0.45);
-      const jitter = frozen ? 0 : Math.sin(tc * 61) * 6 * lvl;
+      const sh = shake(tc, hits, 8 + 12 * lvl, 0.45);
+      const jitter = frozen ? 0 : Math.sin(tc * 61) * 3 * lvl;
       const zoom = frozen ? lerp(1, 1.07, E.out(P(t, 6.0, 0.5))) : 1;
       deskIn.style.transform = `translate(${sh.x + jitter}px, ${sh.y}px) rotate(${sh.r * 1.5}deg) scale(${zoom})`;
       $("desk").style.filter = frozen ? `grayscale(${clamp(P(t, 6.0, 0.08))}) contrast(1.12)` : "";
@@ -244,7 +244,7 @@
       const fl = Math.floor(tc * 8) % 2;
       $("hot").style.color = fl ? "#e0262f" : "#111"; $("hot").style.background = fl ? "#ffe14d" : "transparent";
       $("buy").style.transform = `scale(${1 + 0.06 * Math.sin(tc * 16)}) rotate(${Math.sin(tc * 11) * 2}deg)`;
-      const secs = Math.max(0, 598 - Math.floor((tc - 1) * 7)); $("timer").textContent = (LANG === "he" ? "נשארו " : "") + `0${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` + (LANG === "he" ? "" : " left");
+      const secs = Math.max(0, 598 - Math.floor((tc + 0.15) * 7)); $("timer").textContent = (LANG === "he" ? "נשארו " : "") + `0${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` + (LANG === "he" ? "" : " left");
       put($("tbc"), { ...slam(tc, 1.55, 0.2, 2.6), r: -12 });
       put(chat, { op: clamp(P(tc, 1.95, 0.08) * 3), y: (1 - E.out(P(tc, 1.95, 0.25))) * 500, r: 2 });
       bubTimes.forEach((bt, i) => { const p = pop(tc, bt, 0.22); put($("bub" + i), { op: p.op, s: p.s }); });
@@ -279,6 +279,7 @@
       const cb = pop(te, 0.85, 0.4); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
       $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 1.3) / 0.8)) / 2}px 0`;
       put($("url"), { op: E.out(P(te, 1.1, 0.4)) });
+      put($("fine"), { op: E.out(P(te, 1.3, 0.4)) });
     }
   };
 

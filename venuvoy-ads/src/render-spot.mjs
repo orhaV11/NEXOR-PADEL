@@ -94,8 +94,8 @@ if (NOAUDIO || !score) {
     "-t", t1 - t0, "-movflags", "+faststart", out]);
 }
 if (!partial) {
-  // 4:5 for the feed: the spots keep their key content between y 285 and 1635, so a centre crop holds it
-  run("ffmpeg", ["-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:285", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+  // 4:5 for the feed: the spots keep their key content between y 290 and 1560, so a crop of y 250-1600 holds it with room at the top
+  run("ffmpeg", ["-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
     "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", join(outDir, `${base}_4x5_1080x1350.mp4`)]);
   rmSync(tmp, { recursive: true, force: true });
   console.log(`spot: ${out} (+ 4:5)`);

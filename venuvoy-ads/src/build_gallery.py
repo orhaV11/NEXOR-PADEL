@@ -545,7 +545,7 @@ if __name__ == "__main__":
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.6", "-i", str(ADS / REEL_EN), "-frames:v", "1", "-q:v", "3", str(poster_en)], check=True)
     for sp in CAMP["spots"]:
         for l in ("en", "he"):
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.5", "-i", str(ADS / spot_mp4(sp, l)), "-frames:v", "1", "-q:v", "3", str(ADS / sp["folder"] / f"poster-{l}.jpg")], check=True)
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(sp.get("posterAt", 0.5)), "-i", str(ADS / spot_mp4(sp, l)), "-frames:v", "1", "-q:v", "3", str(ADS / sp["folder"] / f"poster-{l}.jpg")], check=True)
     build_repo_page()
     build_readme()
     if "--publish-dir" in sys.argv:

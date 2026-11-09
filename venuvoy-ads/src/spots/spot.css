@@ -11,7 +11,7 @@ body { margin: 0; background: #000; }
 .gold { color: var(--gold); }
 .shadow { text-shadow: 0 8px 40px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.5); }
 .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
-.tag { position: absolute; z-index: 30; top: 1500px; inset-inline-start: 80px; font: 700 30px "Assistant", sans-serif; letter-spacing: 0.03em; padding: 6px 18px; border-radius: 8px; color: var(--ink); background: rgba(244, 238, 225, 0.94); }
+.tag { position: absolute; z-index: 30; top: 1460px; inset-inline-start: 80px; font: 700 30px "Assistant", sans-serif; letter-spacing: 0.03em; padding: 6px 18px; border-radius: 8px; color: var(--ink); background: rgba(244, 238, 225, 0.94); }
 .tag.on-light { color: var(--cream); background: rgba(22, 57, 43, 0.92); }
 /* the meme caption: white with a black outline, the way people caption their own videos */
 .meme { position: absolute; left: 60px; right: 60px; text-align: center; font: 900 66px/1.15 "Assistant", sans-serif; color: #fff; z-index: 60;
@@ -61,3 +61,5 @@ body { margin: 0; background: #000; }
 .cta { display: inline-flex; align-items: center; gap: 18px; font: 800 60px "Assistant", sans-serif; padding: 30px 52px; border-radius: 18px; background: linear-gradient(180deg, #f7f1e3, #ece2cb); color: var(--green); box-shadow: 0 0 0 3px var(--gold), 0 0 0 14px rgba(230, 196, 122, 0.2), 0 30px 60px -20px rgba(0, 0, 0, 0.7); }
 .cta .ico { width: 56px; height: 56px; }
 .url { font: 600 46px "Playfair", serif; letter-spacing: 0.16em; color: var(--gold); }
+/* what is free and what is not, under every call to action */
+.fine { font: 700 36px/1.3 "Assistant", sans-serif; color: rgba(244, 238, 225, 0.9); text-align: center; padding: 0 80px; }

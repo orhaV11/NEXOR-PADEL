@@ -9,14 +9,21 @@
 <script src="spot.js"></script>
 <style>
   .sp { position: absolute; inset: 0; display: none; overflow: hidden; }
-  .sp .name { position: absolute; left: 0; right: 0; top: 300px; text-align: center; white-space: nowrap; font-size: 190px; color: #fff; text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+  .sp::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(70% 45% at 50% 48%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 60%), radial-gradient(120% 90% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.45) 100%); }
+  .sp .name { position: absolute; left: 0; right: 0; top: 300px; text-align: center; white-space: nowrap; font-size: 190px; color: #fff; z-index: 3;
+    text-shadow: 0 6px 0 rgba(0, 0, 0, 0.22), 0 12px 0 rgba(0, 0, 0, 0.12), 0 24px 50px rgba(0, 0, 0, 0.45); }
   [lang="he"] .sp .name { font-size: 210px; }
-  .sp svg.obj { position: absolute; overflow: visible; }
-  .num { position: absolute; left: 0; right: 0; top: 1500px; text-align: center; direction: ltr; font: 800 40px "Assistant", sans-serif; letter-spacing: 0.3em; color: rgba(255, 255, 255, 0.85); }
+  .sp svg.obj { position: absolute; overflow: visible; z-index: 2; }
+  .burst { position: absolute; z-index: 2; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; border: 10px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 40px rgba(255, 255, 255, 0.6); opacity: 0; }
+  .lockup { position: absolute; left: 0; right: 0; top: 1420px; z-index: 40; display: flex; justify-content: center; direction: ltr; }
+  .lockup .pill { display: flex; align-items: center; gap: 18px; padding: 12px 40px 12px 16px; border-radius: 70px; background: rgba(7, 19, 14, 0.5); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); }
+  .lockup .crest { width: 84px; height: 84px; }
+  .lockup b { font: 500 58px/1 "Playfair", serif; letter-spacing: 0.26em; color: #fff; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5); }
   #intro { background: radial-gradient(90% 60% at 50% 45%, #f0d48f 0%, #e6c47a 45%, #b8955a 100%); }
-  #intro .h { position: absolute; left: 0; right: 0; text-align: center; color: var(--green); }
-  #i1 { top: 560px; font-size: 150px; } #i2 { top: 720px; font-size: 230px; color: var(--ox) !important; }
-  [lang="he"] #i1 { font-size: 170px; } [lang="he"] #i2 { font-size: 230px; }
+  #intro .h { position: absolute; left: 0; right: 0; text-align: center; color: var(--green); white-space: nowrap; }
+  #i1 { top: 520px; font-size: 150px; } #i2 { top: 680px; font-size: 250px; color: var(--ox) !important; }
+  [lang="he"] #i1 { font-size: 170px; } [lang="he"] #i2 { font-size: 250px; }
+  #ring svg { position: absolute; width: 130px; height: 130px; overflow: visible; filter: drop-shadow(0 10px 14px rgba(60, 40, 0, 0.35)); }
   #sp0 { background: repeating-linear-gradient(115deg, #2d7a44 0 140px, #286e3d 140px 280px); }
   #sp1 { background: repeating-linear-gradient(90deg, #d08442 0 60px, #c97b39 60px 62px, #cc803e 62px 120px, #c4752f 120px 122px); }
   #sp2 { background: radial-gradient(90% 70% at 50% 55%, #d0623a 0%, #b9502c 70%, #9d4223 100%); }
@@ -24,63 +31,89 @@
   #sp4 { background: repeating-linear-gradient(0deg, #2b2f35 0 8px, #2e3238 8px 16px); }
   #sp5 { background: radial-gradient(100% 70% at 50% 30%, #2a6a3f 0%, #1b4d2e 60%, #12361f 100%); }
   .speed { position: absolute; height: 10px; border-radius: 5px; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.85)); }
-  #stats { background: var(--green); }
+  #stats { background: radial-gradient(90% 70% at 50% 40%, #1e4d38 0%, #16392b 60%, #0d2a1e 100%); }
   #stats .srow { position: absolute; left: 0; right: 0; text-align: center; }
-  #stats .srow b { display: block; font: 900 italic 210px/0.95 "Playfair", serif; color: var(--gold); }
-  #stats .srow span { display: block; font: 800 50px "Assistant", sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+  #stats .srow b { display: block; font: 900 italic 210px/1.05 "Playfair", serif; color: var(--gold); font-feature-settings: "lnum" 1; }
+  #stats .srow span { display: block; margin-top: 10px; font: 800 50px "Assistant", sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
   [lang="he"] #stats .srow span { letter-spacing: 0.02em; }
-  #line { background: radial-gradient(110% 80% at 50% 35%, #fbf7ee 0%, #f4eee1 55%, #e9dfc8 100%); color: var(--ink); }
-  #line .h { position: absolute; left: 0; right: 0; text-align: center; color: var(--green2); }
-  #line .h { white-space: nowrap; }
-  #l1 { top: 380px; font-size: 140px; } #l2 { top: 560px; font-size: 140px; } #l3 { top: 820px; font-size: 140px; color: var(--ink) !important; } #l4 { top: 1010px; font-size: 210px; color: var(--ox) !important; }
+  #demo { background: radial-gradient(90% 60% at 50% 40%, #1d4d38 0%, #0d2a1e 55%, #06140e 100%); }
+  #d1, #d2 { position: absolute; left: 0; right: 0; top: 300px; text-align: center; font-size: 112px; white-space: nowrap; z-index: 20; }
+  #d2 { color: var(--gold); }
+  #ph { left: 230px; top: 470px; z-index: 10; }
+  #demo .tag { inset-inline-start: 36px; font-size: 26px; }
+  .rh { font: 800 26px "Assistant", sans-serif; color: var(--soft); margin: 6px 6px 12px; }
+  .mini { display: flex; gap: 12px; align-items: center; padding: 12px 0 0; border-top: 2px solid var(--line); margin-top: 10px; font: 700 21px "Assistant", sans-serif; }
+  .mini i { font-style: normal; font-size: 24px; }
+  .plan.ghost { height: 120px; opacity: 0.9; }
+  .okBig { position: absolute; z-index: 25; left: 90px; right: 90px; top: 1130px; display: flex; align-items: center; gap: 20px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink);
+    font: 800 44px/1.2 "Assistant", sans-serif; box-shadow: 0 0 0 4px #2c6544, 0 26px 50px -20px rgba(0, 0, 0, 0.55); }
+  .okBig .v { flex: none; width: 70px; height: 70px; border-radius: 50%; background: #2c6544; color: #fff; display: grid; place-items: center; font: 900 44px "Assistant", sans-serif; }
 </style>
 </head>
 <body>
 <div id="stage">
-  <section class="scene" id="intro"><h1 class="h" id="i1" data-t="i1"></h1><h1 class="h" id="i2" data-t="i2"></h1></section>
+  <section class="scene" id="intro"><div id="ring"></div><h1 class="h" id="i1" data-t="i1"></h1><h1 class="h" id="i2" data-t="i2"></h1></section>
 
   <section class="scene" id="sports">
     <div class="sp" id="sp0"><h1 class="h name" data-t="n0"></h1>
       <svg class="obj" id="o0" viewBox="-60 -60 120 120" width="230" height="230"><circle r="58" fill="#fff" stroke="#111" stroke-width="3"/><path d="M0 -20 19 -6 12 16 -12 16 -19 -6Z" fill="#111"/><path d="M0 -20V-56M19 -6 52 -18M12 16 32 46M-12 16 -32 46M-19 -6 -52 -18" stroke="#111" stroke-width="4"/><path d="M-10 -58 0 -50 10 -58M48 -32 52 -18 56 -30M44 44 32 46 38 56M-44 44 -32 46 -38 56M-48 -32 -52 -18 -56 -30" fill="#111"/></svg>
-      <div class="num">01 / 06</div></div>
+      <i class="burst" id="b0"></i></div>
     <div class="sp" id="sp1"><h1 class="h name" data-t="n1"></h1>
       <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M240 1920 V1360 H840 V1920" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="10"/><circle cx="540" cy="1360" r="180" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="10"/><rect x="380" y="610" width="320" height="220" fill="none" stroke="#fff" stroke-width="10"/><rect x="440" y="700" width="200" height="110" fill="none" stroke="#e8542c" stroke-width="8"/><path d="M450 830h180" stroke="#e8542c" stroke-width="14"/><path id="net" d="M455 838 l20 120 M495 838 l14 120 M540 838 v120 M585 838 l-14 120 M625 838 l-20 120 M462 880 h156 M470 920 h140" stroke="#fff" stroke-width="5" fill="none"/></svg>
       <svg class="obj" id="o1" viewBox="-60 -60 120 120" width="210" height="210"><circle r="58" fill="#e06f1f" stroke="#2b1408" stroke-width="3"/><path d="M-58 0H58M0 -58V58M-40 -42C-12 -14 -12 14 -40 42M40 -42C12 -14 12 14 40 42" stroke="#2b1408" stroke-width="4" fill="none"/></svg>
-      <div class="num">02 / 06</div></div>
+      <i class="burst" id="b1"></i></div>
     <div class="sp" id="sp2"><h1 class="h name" data-t="n2"></h1>
-      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M120 1920 L300 900 H780 L960 1920" fill="none" stroke="#fff" stroke-width="12"/><path d="M230 1300 H850 M540 1300 V1920" stroke="#fff" stroke-width="10"/><path id="skid" d="M560 1150 l150 70" stroke="rgba(255,255,255,.55)" stroke-width="26" stroke-linecap="round"/></svg>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M120 1920 L300 900 H780 L960 1920" fill="none" stroke="#fff" stroke-width="12"/><path d="M230 1300 H850 M540 1300 V1920" stroke="#fff" stroke-width="10"/><path d="M60 1080 H1020" stroke="rgba(255,255,255,.9)" stroke-width="8"/></svg>
       <svg class="obj" id="o2" viewBox="-60 -60 120 120" width="150" height="150"><circle r="58" fill="#d8ea4c"/><path d="M-42 -40 C-10 -10 -10 10 -42 40 M42 -40 C10 -10 10 10 42 40" stroke="#fff" stroke-width="7" fill="none"/></svg>
-      <div class="num">03 / 06</div></div>
-    <div class="sp" id="sp3"><h1 class="h name" data-t="n3" style="color:#16392b;text-shadow:none"></h1>
-      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><ellipse cx="760" cy="1240" rx="60" ry="16" fill="#1b3015"/><path d="M780 1240 V820" stroke="#f4f4f4" stroke-width="10"/><path id="flag" d="M785 822 L930 870 L785 920 Z" fill="#c8102e"/><path id="arc" d="M160 1420 Q 470 560 760 1236" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="8" stroke-dasharray="18 16"/></svg>
-      <svg class="obj" id="o3" viewBox="-20 -20 40 40" width="56" height="56"><circle r="18" fill="#fff" stroke="#bbb" stroke-width="2"/></svg>
-      <div class="num" style="color:#16392b">04 / 06</div></div>
+      <i class="burst" id="b2"></i></div>
+    <div class="sp" id="sp3"><h1 class="h name" data-t="n3" style="color:#16392b;text-shadow:0 6px 0 rgba(255,255,255,.35)"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><ellipse cx="760" cy="1240" rx="60" ry="16" fill="#1b3015"/><path d="M780 1240 V820" stroke="#f4f4f4" stroke-width="10"/><path id="flag" d="M785 822 L930 870 L785 920 Z" fill="#c8102e"/><path id="arc" d="M200 1400 Q 470 560 760 1236" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="8" stroke-dasharray="18 16"/></svg>
+      <svg class="obj" id="o3" viewBox="-20 -20 40 40" width="64" height="64"><circle r="18" fill="#fff" stroke="#bbb" stroke-width="2"/></svg>
+      <i class="burst" id="b3"></i></div>
     <div class="sp" id="sp4"><h1 class="h name" data-t="n4"></h1>
-      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M0 1500 H1080" stroke="#fff" stroke-width="8" stroke-dasharray="60 40"/><g id="curb"><path d="M0 1640 H1080" stroke="#d7262e" stroke-width="44"/><path d="M0 1640 H1080" stroke="#fff" stroke-width="44" stroke-dasharray="70 70"/></g></svg>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M0 1500 H1080" stroke="#fff" stroke-width="8" stroke-dasharray="60 40"/><g id="curb"><path d="M0 1640 H1180" stroke="#d7262e" stroke-width="44"/><path d="M0 1640 H1180" stroke="#fff" stroke-width="44" stroke-dasharray="70 70"/></g></svg>
       <div id="lines"></div>
-      <svg class="obj" id="o4" viewBox="-170 -60 340 120" width="560" height="200"><path d="M-160 -12 L-120 -36 H120 Q170 -36 170 0 Q170 36 120 36 H-120 L-160 12Z" fill="#d7262e"/><path d="M-60 -36 H90" stroke="#fff" stroke-width="10"/><rect x="-150" y="-58" width="30" height="116" rx="6" fill="#141414"/><rect x="130" y="-50" width="26" height="100" rx="6" fill="#141414"/><rect x="-100" y="-62" width="60" height="26" rx="8" fill="#141414"/><rect x="-100" y="36" width="60" height="26" rx="8" fill="#141414"/><rect x="60" y="-62" width="56" height="24" rx="8" fill="#141414"/><rect x="60" y="38" width="56" height="24" rx="8" fill="#141414"/><ellipse cx="10" cy="0" rx="34" ry="16" fill="#111"/><circle cx="10" cy="0" r="9" fill="#e6c47a"/></svg>
-      <div class="num">05 / 06</div></div>
+      <svg class="obj" id="o4" viewBox="-170 -60 340 120" width="560" height="200"><path d="M-160 -12 L-120 -36 H120 Q170 -36 170 0 Q170 36 120 36 H-120 L-160 12Z" fill="#d7262e"/><path d="M-60 -36 H90" stroke="#fff" stroke-width="10"/><rect x="-150" y="-58" width="30" height="116" rx="6" fill="#141414"/><rect x="130" y="-50" width="26" height="100" rx="6" fill="#141414"/><rect x="-100" y="-62" width="60" height="26" rx="8" fill="#141414"/><rect x="-100" y="36" width="60" height="26" rx="8" fill="#141414"/><rect x="60" y="-62" width="56" height="24" rx="8" fill="#141414"/><rect x="60" y="38" width="56" height="24" rx="8" fill="#141414"/><ellipse cx="10" cy="0" rx="34" ry="16" fill="#111"/><circle cx="10" cy="0" r="9" fill="#e6c47a"/></svg></div>
     <div class="sp" id="sp5"><h1 class="h name" data-t="n5"></h1>
       <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M330 600 V1500 M750 600 V1500 M330 1080 H750" stroke="#fff" stroke-width="16"/><path d="M0 1500 H1080" stroke="rgba(255,255,255,.6)" stroke-width="8"/></svg>
       <svg class="obj" id="o5" viewBox="-70 -45 140 90" width="220" height="140"><ellipse rx="66" ry="40" fill="#8b4a2b"/><path d="M-30 0 H30 M-20 -7 V7 M-7 -7 V7 M7 -7 V7 M20 -7 V7" stroke="#fff" stroke-width="5"/></svg>
-      <div class="num">06 / 06</div></div>
+      <i class="burst" id="b5"></i></div>
+    <div class="lockup" id="lock"><span class="pill"><i class="crest" data-variant="gilt"></i><b>VENUVOY</b></span></div>
   </section>
 
   <section class="scene" id="stats">
     <div class="srow" id="r1" style="top:330px"><b>13</b><span data-t="s1"></span></div>
-    <div class="srow" id="r2" style="top:740px"><b>56</b><span data-t="s2"></span></div>
-    <div class="srow" id="r3" style="top:1150px"><b class="ltr" style="display:block">11,700+</b><span data-t="s3"></span></div>
+    <div class="srow" id="r2" style="top:730px"><b>56</b><span data-t="s2"></span></div>
+    <div class="srow" id="r3" style="top:1130px"><b class="ltr" style="display:block">11,700+</b><span data-t="s3"></span></div>
   </section>
 
-  <section class="scene" id="line">
-    <h1 class="h" id="l1" data-t="l1"></h1><h1 class="h" id="l2" data-t="l2"></h1><h1 class="h" id="l3" data-t="l3"></h1><h1 class="h" id="l4" data-t="l4"></h1>
+  <section class="scene" id="demo">
+    <h1 class="h shadow" id="d1" data-t="d1"></h1>
+    <h1 class="h shadow" id="d2" data-t="d2"></h1>
+    <div class="phone" id="ph"><div class="screen">
+      <i class="island"></i>
+      <div class="status"><span class="ltr">9:41</span><span class="ltr">5G ▮▮▮</span></div>
+      <div class="appbar"><i class="crest"></i><b>VENUVOY</b></div>
+      <div id="askView"><div class="ask"><div class="lab" data-t="lab"></div><div class="field"><span id="typed"></span><i class="caret" id="caret"></i></div></div></div>
+      <div id="results" style="position:absolute;left:0;right:0;top:160px;padding:0 26px">
+        <div class="rh" data-t="rh"></div>
+        <div class="plan"><div class="band"><span class="on" data-t="t1"></span><span data-t="t2"></span><span data-t="t3"></span></div>
+          <div class="pb"><div class="pt" data-t="pt" data-html="1"></div><div class="pm" data-t="pm"></div>
+            <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div>
+            <div class="mini"><i>🚆</i><span data-t="tr"></span></div>
+            <div class="mini"><i>🏟</i><span data-t="lv" data-html="1"></span></div></div></div>
+        <div class="plan ghost"><div class="band"><span data-t="t1"></span><span class="on" data-t="t2"></span><span data-t="t3"></span></div></div>
+      </div>
+    </div></div>
+    <div class="okBig" id="ok"><span class="v">✓</span><span data-t="ok"></span></div>
+    <span class="tag" data-t="illus"></span>
   </section>
 
   <section class="scene endcard" id="end">
     <div class="abs crestBox" id="crest"><i class="crest" data-variant="gilt"></i></div>
     <div class="abs cx word" id="word">VENUVOY</div>
     <h1 class="abs cx h tagline" id="tagline" data-t="tagline" data-html="1"></h1>
-    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span></div>
+    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span><span class="fine" id="fine" data-t="fine"></span></div>
   </section>
   <div id="leak"></div><div id="flash"></div><div id="vig"></div><div id="grainov"></div>
 </div>
@@ -90,74 +123,104 @@
   Object.assign(VV.icons, { arrowR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>' });
   if (RTL) document.getElementById("ctaArrow").dataset.icon = "arrow";
   // the six sports the app's own home page offers; the totals are the catalogue's
-  txt({
+  const T = txt({
     en: { i1: "Pick your", i2: "sport.", n0: "Football", n1: "Basketball", n2: "Tennis", n3: "Golf", n4: "Motorsport", n5: "Rugby",
-      s1: "sports", s2: "countries", s3: "events", l1: "Your sport.", l2: "Your city.", l3: "One sentence.", l4: "Whole trip.",
-      tagline: "The world is<br>your stadium.", cta: "Plan your trip free" },
+      s1: "sports", s2: "countries", s3: "events", d1: "Your sport. Your city.", d2: "One sentence.",
+      lab: "Your trip in one sentence", sentence: "Munich in late January, a Champions League night",
+      rh: "3 plans for you", t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
+      tr: "Airport → city: about 40 min on the S-Bahn", lv: 'Leave for the stadium by <span class="ltr">19:35</span> · U6 to Fröttmaning',
+      dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena', ok: "A whole trip, around a real fixture.",
+      illus: "Illustration", tagline: "The world is<br>your stadium.", cta: "Plan your trip free", fine: "Free to plan · Full plan: one payment per trip" },
     he: { i1: "בחרו", i2: "ענף.", n0: "כדורגל", n1: "כדורסל", n2: "טניס", n3: "גולף", n4: "מוטוספורט", n5: "ראגבי",
-      s1: "ענפי ספורט", s2: "מדינות", s3: "אירועים", l1: "הענף שלכם.", l2: "העיר שלכם.", l3: "משפט אחד.", l4: "טיול שלם.",
-      tagline: "העולם הוא<br>האצטדיון שלכם.", cta: "לתכנון טיול בחינם" },
+      s1: "ענפי ספורט", s2: "מדינות", s3: "אירועים", d1: "הענף שלכם. העיר שלכם.", d2: "משפט אחד.",
+      lab: "הטיול שלכם במשפט אחד", sentence: "מינכן בסוף ינואר, ערב של ליגת האלופות",
+      rh: "3 תוכניות בשבילכם", t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
+      tr: "שדה התעופה ← העיר: כ־40 דק׳ ברכבת", lv: 'לצאת לאצטדיון עד <span class="ltr">19:35</span> · קו U6 לפרטמנינג',
+      dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה', ok: "טיול שלם, סביב משחק אמיתי.",
+      illus: "המחשה", tagline: "העולם הוא<br>האצטדיון שלכם.", cta: "לתכנון טיול בחינם", fine: "התכנון בחינם · תוכנית מלאה: תשלום אחד לטיול" },
   });
   const $ = (id) => document.getElementById(id);
-  const S = { intro: [0, 1], sports: [1, 7], stats: [7, 9], line: [9, 12], end: [12, 15] };
+  // 120 BPM: every cut on the half-second grid
+  const S = { intro: [0, 0.5], sports: [0.5, 6.5], stats: [6.5, 8.5], demo: [8.5, 12], end: [12, 15] };
   window.DURATION = 15;
   window.SCORE = { script: "sports.py" };
   window.CUES = [
     { t: 0.0, type: "hit" },
-    { t: 1.05, type: "kickball" }, { t: 1.0, type: "whoosh" },
-    { t: 2.0, type: "dribble" }, { t: 2.25, type: "dribble" }, { t: 2.7, type: "swish" },
-    { t: 3.05, type: "pock" }, { t: 3.3, type: "pock", g: 0.6 },
-    { t: 4.0, type: "golf" }, { t: 4.72, type: "plop" }, { t: 4.8, type: "ooh" },
-    { t: 5.0, type: "engine" },
-    { t: 6.05, type: "rugby" }, { t: 6.45, type: "roar", dur: 1.4 },
-    { t: 7.0, type: "thud" }, { t: 7.5, type: "thud" }, { t: 8.0, type: "thud" },
-    { t: 9.0, type: "stomp" }, { t: 9.5, type: "stomp" }, { t: 10.0, type: "stomp" }, { t: 10.75, type: "hit" },
+    { t: 0.53, type: "kickball" }, { t: 0.55, type: "whoosh" },
+    { t: 1.5, type: "dribble" }, { t: 1.75, type: "dribble" }, { t: 2.2, type: "swish" },
+    { t: 2.56, type: "pock" }, { t: 3.05, type: "pock", g: 0.8 },
+    { t: 3.5, type: "golf" }, { t: 4.2, type: "plop" }, { t: 4.28, type: "ooh" },
+    { t: 4.5, type: "engine" },
+    { t: 5.53, type: "rugby" }, { t: 6.0, type: "roar", dur: 1.2 },
+    { t: 6.5, type: "thud" }, { t: 7.0, type: "thud" }, { t: 7.5, type: "thud" },
+    { t: 8.75, type: "typing", dur: 1.1 }, { t: 9.95, type: "press" }, { t: 10.1, type: "swish2" }, { t: 10.55, type: "ding" },
     { t: 12.0, type: "logo" },
   ];
-  // speed lines for the race car
   $("lines").innerHTML = Array.from({ length: 9 }, (_, i) => `<i class="speed" style="top:${900 + i * 70}px;width:${300 + (i * 97) % 300}px"></i>`).join("");
+  // the intro: the six sports orbiting the title
+  $("ring").innerHTML = [0, 1, 2, 3, 4, 5].map((i) => { const o = $("o" + i); return `<svg viewBox="${o.getAttribute("viewBox")}">${o.innerHTML}</svg>`; }).join("");
 
   function show(id, t) { const [a, b] = S[id]; const on = t >= a && t < b + (id === "end" ? 1 : 0); $(id).style.display = on ? "block" : "none"; return on; }
   const SP_ORDER = ["sp0", "sp1", "sp2", "sp3", "sp4", "sp5"];
+  function burst(id, tk, t0, x, y) { const el = $(id); if (!el) return; const p = P(tk, t0, 0.3); el.style.left = x + "px"; el.style.top = y + "px"; el.style.opacity = p > 0 && p < 1 ? 1 - p : 0; el.style.transform = `scale(${lerp(0.2, 1.6, E.out(p))})`; }
 
   window.seek = function (t) {
-    $("flash").style.opacity = Math.max(0, 1 - Math.abs(t - 7) / 0.08) * 0.5;
+    $("flash").style.opacity = Math.max(0, 1 - Math.abs(t - 6.5) / 0.08) * 0.5;
     $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 12) / 0.22) * 0.5;
     if (show("intro", t)) {
       const sh = shake(t, [0.0], 14);
-      put($("i1"), { ...slam(t, -0.12, 0.28), x: sh.x, y: sh.y });
-      put($("i2"), { ...slam(t, 0.3, 0.26, 2), x: sh.x, y: sh.y, r: -3 });
+      put($("i1"), { ...slam(t, -0.14, 0.28), x: sh.x, y: sh.y });
+      put($("i2"), { ...slam(t, -0.08, 0.26, 1.6), x: sh.x, y: sh.y, r: -3 });
+      [...$("ring").children].forEach((el, i) => { const a = (i / 6) * Math.PI * 2 + t * 2.2, r = 400 + 30 * Math.sin(t * 6 + i); el.style.left = 540 + Math.cos(a) * r - 65 + "px"; el.style.top = 860 + Math.sin(a) * r * 1.2 - 65 + "px"; el.style.transform = `scale(${0.8 + 0.2 * Math.sin(t * 9 + i)})`; });
     }
     if (show("sports", t)) {
-      const ts = t - 1, k = Math.min(5, Math.floor(ts)), tk = ts - k;
+      const ts = t - 0.5, k = Math.min(5, Math.floor(ts)), tk = ts - k;
       SP_ORDER.forEach((id, i) => { $(id).style.display = i === k ? "block" : "none"; });
       const sc = $(SP_ORDER[k]);
-      // each sport punches in with a quick zoom
-      sc.style.transform = `scale(${lerp(1.12, 1, E.out5(P(tk, 0, 0.18)))})`;
-      put(sc.querySelector(".name"), { ...slam(tk, 0.02, 0.22, 1.6), x: shake(tk, [0.03], 12).x });
-      put(sc.querySelector(".num"), { op: E.out(P(tk, 0.1, 0.2)) });
+      sc.style.transform = `scale(${lerp(1.12, 1, E.out5(P(tk, 0, 0.18))) * (1 + 0.03 * tk)})`;
+      put(sc.querySelector(".name"), { ...slam(tk, 0.0, 0.2, 1.6), x: shake(tk, [0.02], 12).x });
+      put($("lock"), { op: 1, s: 1 + 0.04 * Math.max(0, 1 - tk / 0.2) });
       const o = sc.querySelector("svg.obj[id^='o']");
       const W = (x, y, s = 1, r = 0, op = 1) => { o.style.left = x - o.width.baseVal.value / 2 + "px"; o.style.top = y - o.height.baseVal.value / 2 + "px"; o.style.transform = `scale(${s}) rotate(${r}deg)`; o.style.opacity = op; };
-      if (k === 0) { const p = P(tk, 0.03, 0.95), q = E.out(p); const x = lerp(80, 1250, p ** 1.15); W((RTL ? 1080 - x : x), lerp(1720, 560, q) - Math.sin(Math.PI * p) * 160, lerp(1.5, 0.6, q), tk * 900); }
+      const mx = (x) => (RTL ? 1080 - x : x);
+      if (k === 0) { const p = P(tk, 0.03, 0.9), q = E.out(p); W(mx(lerp(140, 980, p)), lerp(1650, 600, q) - Math.sin(Math.PI * p) * 140, lerp(1.4, 0.7, q), tk * 900); burst("b0", tk, 0.03, mx(150), 1660); }
       if (k === 1) {
         const b1 = Math.abs(Math.sin(Math.PI * P(tk, 0, 0.5) * 2));
         if (tk < 0.5) W(540, 1500 - b1 * 600, 1, tk * 200);
-        else { const p = E.in(P(tk, 0.5, 0.25)), q = P(tk, 0.75, 0.25); W(540, tk < 0.75 ? lerp(1300, 620, p) : lerp(640, 900, E.out(q)), tk < 0.75 ? 1 : 0.85, tk * 200, tk > 0.95 ? 0 : 1); }
+        else { const p = E.in(P(tk, 0.5, 0.22)), q = P(tk, 0.72, 0.28); W(540, tk < 0.72 ? lerp(1300, 640, p) : lerp(660, 1000, E.out(q)), tk < 0.72 ? 1 : 0.85, tk * 200); }
+        burst("b1", tk, 0.0, 540, 1600); if (tk > 0.25) burst("b1", tk, 0.25, 540, 1600); if (tk > 0.7) burst("b1", tk, 0.7, 540, 840);
         $("net").style.transform = tk > 0.7 ? `scaleY(${1 + 0.18 * Math.sin((tk - 0.7) * 30) * Math.exp(-(tk - 0.7) * 6)})` : "";
         $("net").style.transformOrigin = "540px 838px";
       }
-      if (k === 2) { const p = E.in(P(tk, 0, 0.06)), q = E.out(P(tk, 0.06, 0.8)); W(tk < 0.06 ? lerp(160, 560, p) : lerp(560, 1200, q), tk < 0.06 ? lerp(200, 1150, p) : lerp(1150, 700, q) - Math.sin(Math.PI * q) * 200, lerp(1.6, 0.6, q), tk * 1400); $("skid").style.opacity = tk > 0.06 ? 1 - P(tk, 0.3, 0.6) : 0; }
-      if (k === 3) { const p = P(tk, 0.05, 0.65), path = $("arc"); const pt = path.getPointAtLength(path.getTotalLength() * E.inOut(p)); W(pt.x, pt.y, tk > 0.72 ? 0.6 : 1, 0, tk > 0.74 ? 0 : 1); path.style.strokeDashoffset = 0; $("flag").style.transform = `skewY(${Math.sin(tk * 12) * 4}deg)`; $("flag").style.transformOrigin = "785px 870px"; }
-      if (k === 4) { const p = E.inOut(P(tk, 0, 0.75)); W(lerp(-400, 1500, p) * (RTL ? -1 : 1) + (RTL ? 1080 : 0), 1140, 1, RTL ? 180 : 0); document.querySelectorAll("#lines .speed").forEach((l, i) => { l.style.left = (lerp(1200, -700, (tk * 2.6 + i * 0.13) % 1) * (RTL ? -1 : 1) + (RTL ? 1080 - 300 : 0)) + "px"; }); $("curb").style.transform = `translateX(${-(tk * 2400) % 140}px)`; }
-      if (k === 5) { const p = E.out(P(tk, 0.05, 0.7)); W(lerp(540, 540, p), lerp(1750, 760, p), lerp(1.3, 0.55, p), tk * 1100); }
+      if (k === 2) {
+        // a rally: smash, bounce, return, bounce: the ball never leaves the court
+        const pts = [[180, 260, 0], [560, 1180, 0.06], [880, 640, 0.5], [420, 1240, 0.78], [300, 760, 1.0]];
+        let i = 0; while (i < pts.length - 2 && tk > pts[i + 1][2]) i++;
+        const [x0, y0, a] = pts[i], [x1, y1, b] = pts[i + 1], p = clamp((tk - a) / (b - a));
+        W(mx(lerp(x0, x1, p)), lerp(y0, y1, p) - (i === 1 || i === 3 ? Math.sin(Math.PI * p) * 120 : 0), 1, tk * 1400);
+        burst("b2", tk, 0.06, mx(560), 1180); if (tk > 0.5) burst("b2", tk, 0.5, mx(880), 640);
+      }
+      if (k === 3) { const p = P(tk, 0.05, 0.62), path = $("arc"); const pt = path.getPointAtLength(path.getTotalLength() * E.inOut(p)); W(pt.x, pt.y, tk > 0.69 ? 0.5 : 1, 0, tk > 0.72 ? 0 : 1); $("flag").style.transform = `skewY(${Math.sin(tk * 12) * 4}deg)`; $("flag").style.transformOrigin = "785px 870px"; burst("b3", tk, 0.7, 760, 1236); }
+      if (k === 4) { const p = P(tk, 0, 1.0); W(mx(lerp(-200, 1300, p)), 1140, 1, RTL ? 180 : 0); document.querySelectorAll("#lines .speed").forEach((l, i) => { l.style.left = (lerp(1200, -700, (tk * 2.6 + i * 0.13) % 1) * (RTL ? -1 : 1) + (RTL ? 1080 - 300 : 0)) + "px"; }); $("curb").style.transform = `translateX(${-(tk * 2400) % 140}px)`; }
+      if (k === 5) { const p = E.out(P(tk, 0.03, 0.8)); W(540, lerp(1750, 720, p), lerp(1.3, 0.6, p), tk * 1100); burst("b5", tk, 0.03, 540, 1720); if (tk > 0.45) burst("b5", tk, 0.45, 540, 1080); }
     }
     if (show("stats", t)) {
-      const tq = t - 7;
+      const tq = t - 6.5;
       [["r1", 0], ["r2", 0.5], ["r3", 1.0]].forEach(([id, s0]) => { const p = slam(tq, s0, 0.24, 1.8); put($(id), { ...p, x: shake(tq, [s0], 10).x }); });
     }
-    if (show("line", t)) {
-      const tl = t - 9;
-      [["l1", 0], ["l2", 0.5], ["l3", 1.0], ["l4", 1.75]].forEach(([id, s0]) => { const p = slam(tl, s0, 0.24, id === "l4" ? 2.2 : 1.6); put($(id), { ...p, r: id === "l4" ? -3 : 0, x: shake(tl, [s0], id === "l4" ? 16 : 8).x }); });
+    if (show("demo", t)) {
+      const td = t - 8.5;
+      const swap = E.in(P(td, 1.33, 0.12));
+      put($("d1"), { ...slam(td, 0.0, 0.26), op: slam(td, 0.0, 0.26).op * (1 - swap), y: -swap * 50 });
+      put($("d2"), slam(td, 1.44, 0.26));
+      const ph = E.out(P(td, 0, 0.4));
+      $("ph").style.transform = `translateY(${(1 - ph) * 600}px) scale(${lerp(1, 0.9, E.inOut(P(td, 1.6, 0.4)))})`; $("ph").style.transformOrigin = "50% 0%";
+      const tp = clamp(P(td, 0.25, 1.1));
+      $("typed").textContent = T.sentence.slice(0, Math.round(T.sentence.length * tp));
+      $("caret").style.opacity = tp < 1 || Math.floor(t * 4) % 2 === 0 ? 1 : 0;
+      $("askView").style.opacity = 1 - E.out(P(td, 1.5, 0.18));
+      const r = E.out(P(td, 1.6, 0.35)); put($("results"), { op: r, y: (1 - r) * 300 });
+      const k = slam(td, 2.05, 0.22, 1.5); put($("ok"), { ...k, r: -2 });
     }
     if (show("end", t)) {
       const te = t - 12;
@@ -168,15 +231,16 @@
       const cb = pop(te, 0.85, 0.4); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
       $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 1.3) / 0.8)) / 2}px 0`;
       put($("url"), { op: E.out(P(te, 1.1, 0.4)) });
+      put($("fine"), { op: E.out(P(te, 1.3, 0.4)) });
     }
   };
   /** Shrink a headline until its text (not its full-width box) fits the frame. */
   function fit(el, max = 980) { const r = document.createRange(); r.selectNodeContents(el); let fs = parseFloat(getComputedStyle(el).fontSize); while (r.getBoundingClientRect().width > max && fs > 60) { fs -= 4; el.style.fontSize = fs + "px"; } }
   window.__ready = window.__ready.then(() => fontsReady()).then(() => {
     VV.hydrate();
-    for (const id of ["sports", "line", "intro"]) $(id).style.display = "block";
+    for (const id of ["sports", "intro", "demo"]) $(id).style.display = "block";
     document.querySelectorAll(".sp").forEach((s) => { s.style.display = "block"; fit(s.querySelector(".name")); s.style.display = "none"; });
-    document.querySelectorAll("#line .h, #intro .h").forEach((el) => fit(el));
+    document.querySelectorAll("#intro .h, #demo .h").forEach((el) => fit(el));
     window.seek(0); return true;
   });
 </script>

@@ -40,15 +40,34 @@
     return tex;
   }
 
+  /** LED ribbon: the line repeated a whole number of times, so the texture wraps without a seam. */
   function ledTexture(text, colors) {
-    const c = document.createElement("canvas"); c.width = 4096; c.height = 64;
+    const font = "800 44px Assistant, 'Playfair', sans-serif";
+    const probe = document.createElement("canvas").getContext("2d");
+    probe.font = font;
+    const w = probe.measureText(text).width;
+    const n = Math.max(1, Math.round(4096 / w));
+    const c = document.createElement("canvas"); c.width = Math.ceil(n * w); c.height = 64;
     const g = c.getContext("2d");
     g.fillStyle = "#04140d"; g.fillRect(0, 0, c.width, c.height);
-    g.font = "800 44px Assistant, 'Playfair', sans-serif"; g.textBaseline = "middle";
-    let x = 0, i = 0;
-    while (x < c.width) { g.fillStyle = colors[i % colors.length]; g.fillText(text, x, 34); x += g.measureText(text).width; i++; }
+    g.font = font; g.textBaseline = "middle";
+    for (let i = 0; i < n; i++) { g.fillStyle = colors[i % colors.length]; g.fillText(text, i * w, 34); }
     const tex = new T.CanvasTexture(c);
     tex.colorSpace = T.SRGBColorSpace; tex.wrapS = T.RepeatWrapping;
+    tex.repeatLen = c.width;
+    return tex;
+  }
+
+  /** A fan: head and shoulders in white (the head a shade darker), tinted per instance by shirt colour. */
+  function fanTexture() {
+    const c = document.createElement("canvas"); c.width = 64; c.height = 96;
+    const g = c.getContext("2d");
+    g.fillStyle = "#ffffff";
+    g.beginPath(); g.moveTo(6, 96); g.lineTo(6, 58); g.quadraticCurveTo(8, 40, 32, 38); g.quadraticCurveTo(56, 40, 58, 58); g.lineTo(58, 96); g.closePath(); g.fill();
+    g.fillStyle = "#c9c2b8";
+    g.beginPath(); g.arc(32, 22, 15, 0, Math.PI * 2); g.fill();
+    const tex = new T.CanvasTexture(c);
+    tex.colorSpace = T.SRGBColorSpace;
     return tex;
   }
 
@@ -194,16 +213,13 @@
         }
       }
     }
-    const fanGeo = new T.PlaneGeometry(0.58, 0.76);
-    const fans = new T.InstancedMesh(fanGeo, new T.MeshBasicMaterial({ side: T.DoubleSide }), seats.length);
+    const fanGeo = new T.PlaneGeometry(0.62, 0.93);
+    // silhouettes, not squares: alpha-to-coverage keeps the edges smooth with MSAA
+    const fans = new T.InstancedMesh(fanGeo, new T.MeshBasicMaterial({ side: T.DoubleSide, map: fanTexture(), alphaTest: 0.5, alphaToCoverage: true }), seats.length);
     const m4 = new T.Matrix4(), q = new T.Quaternion(), v3 = new T.Vector3(), sc = new T.Vector3(1, 1, 1), up = new T.Vector3(0, 1, 0), col = new T.Color();
     seats.forEach((st, i) => { col.set(st.col).multiplyScalar(st.lum); fans.setColorAt(i, col); st.yaw = Math.atan2(-st.nx, -st.nz); });
     scene.add(fans);
-    // heads: a smaller quad above each body turns a mosaic into people
-    const heads = new T.InstancedMesh(new T.PlaneGeometry(0.27, 0.3), new T.MeshBasicMaterial({ side: T.DoubleSide }), seats.length);
-    const skin = ["#c99a7a", "#a87657", "#7a5038", "#e0b897", "#3a2a22", "#2a1e18", "#d8a888"];
-    seats.forEach((st, i) => { col.set(skin[(i * 7 + st.row) % skin.length]).multiplyScalar(0.55 + 0.3 * ((i * 13) % 10) / 10); heads.setColorAt(i, col); });
-    scene.add(heads);
+
 
     // phones lighting up in the stands
     const flashIdx = seats.map((_, i) => i).filter(() => r() < 0.012);
@@ -242,12 +258,12 @@
 
     // fireworks and confetti
     const spark = glowSprite();
-    const FW_N = 220;
+    const FW_N = 300;
     const fwGeo = new T.BufferGeometry();
-    const fwMax = 12;
+    const fwMax = 14;
     const fwPos = new Float32Array(FW_N * fwMax * 3), fwCol = new Float32Array(FW_N * fwMax * 3);
     fwGeo.setAttribute("position", new T.BufferAttribute(fwPos, 3)); fwGeo.setAttribute("color", new T.BufferAttribute(fwCol, 3));
-    const fw = new T.Points(fwGeo, new T.PointsMaterial({ size: 2.6, map: spark, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }));
+    const fw = new T.Points(fwGeo, new T.PointsMaterial({ size: 3.4, map: spark, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }));
     fw.frustumCulled = false; scene.add(fw);
     const CONF_N = 1400;
     const conf = new T.InstancedMesh(new T.PlaneGeometry(0.09, 0.05), new T.MeshBasicMaterial({ side: T.DoubleSide, toneMapped: false }), CONF_N);
@@ -263,19 +279,19 @@
       // fans: idle sway, a travelling wave, and a jump on big moments
       const L = loop.total, wavePos = o.wave ? (t * o.wave * 1.0) % L : -1e9;
       const jump = o.jump || 0;
+      const near = o.hideNear, r2 = near ? near.r * near.r : 0;
       seats.forEach((st, i) => {
         let y = st.y + 0.05 * Math.sin(t * 5 + st.ph);
         if (o.wave) { let d = Math.abs(st.s - wavePos); d = Math.min(d, L - d); y += 0.55 * Math.exp(-(d * d) / 40); }
         if (jump) y += jump * Math.max(0, Math.sin(t * 9 + st.ph * 0.3)) * 0.35;
         q.setFromAxisAngle(up, st.yaw);
-        m4.compose(v3.set(st.x, y, st.z), q, sc.set(st.sz, st.sz, st.sz));
+        // nobody sits within a few metres of a camera skimming the stands: flat quads up close read as boxes
+        const hid = near && (st.x - near.p.x) ** 2 + (st.y - near.p.y) ** 2 + (st.z - near.p.z) ** 2 < r2 ? 0 : 1;
+        m4.compose(v3.set(st.x, y + 0.08, st.z), q, sc.set(st.sz * hid, st.sz * hid, st.sz * hid));
         fans.setMatrixAt(i, m4);
-        m4.compose(v3.set(st.x - st.nx * 0.02, y + 0.52 * st.sz, st.z - st.nz * 0.02), q, sc);
-        heads.setMatrixAt(i, m4);
       });
       sc.set(1, 1, 1);
       fans.instanceMatrix.needsUpdate = true;
-      heads.instanceMatrix.needsUpdate = true;
       const fr = Math.floor(t * 7);
       flashIdx.forEach((si, k) => {
         const st = seats[si], on = hash(k, fr) < (o.phones ?? 0.4) ? 1 : 0;
@@ -296,7 +312,7 @@
         if (tau < 0 || tau > 2.4 || n >= fwMax) continue;
         const rb = rng(Math.floor(t0 * 1000) + 1), base = new T.Color(c);
         for (let i = 0; i < FW_N; i++) {
-          const th = rb() * Math.PI * 2, ph = Math.acos(2 * rb() - 1), sp = 14 + rb() * 6;
+          const th = rb() * Math.PI * 2, ph = Math.acos(2 * rb() - 1), sp = 18 + rb() * 8;
           const k = (1 - Math.exp(-tau * 2.2)) / 2.2;
           const idx = (n * FW_N + i) * 3;
           fwPos[idx] = x + Math.sin(ph) * Math.cos(th) * sp * k;

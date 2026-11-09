@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · Pick your sport (montage, 9:16)</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="spot.css" />
+<script src="../brand.js"></script>
+<script src="spot.js"></script>
+<style>
+  .sp { position: absolute; inset: 0; display: none; overflow: hidden; }
+  .sp .name { position: absolute; left: 0; right: 0; top: 300px; text-align: center; white-space: nowrap; font-size: 190px; color: #fff; text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+  [lang="he"] .sp .name { font-size: 210px; }
+  .sp svg.obj { position: absolute; overflow: visible; }
+  .num { position: absolute; left: 0; right: 0; top: 1500px; text-align: center; direction: ltr; font: 800 40px "Assistant", sans-serif; letter-spacing: 0.3em; color: rgba(255, 255, 255, 0.85); }
+  #intro { background: radial-gradient(90% 60% at 50% 45%, #f0d48f 0%, #e6c47a 45%, #b8955a 100%); }
+  #intro .h { position: absolute; left: 0; right: 0; text-align: center; color: var(--green); }
+  #i1 { top: 560px; font-size: 150px; } #i2 { top: 720px; font-size: 230px; color: var(--ox) !important; }
+  [lang="he"] #i1 { font-size: 170px; } [lang="he"] #i2 { font-size: 230px; }
+  #sp0 { background: repeating-linear-gradient(115deg, #2d7a44 0 140px, #286e3d 140px 280px); }
+  #sp1 { background: repeating-linear-gradient(90deg, #d08442 0 60px, #c97b39 60px 62px, #cc803e 62px 120px, #c4752f 120px 122px); }
+  #sp2 { background: radial-gradient(90% 70% at 50% 55%, #d0623a 0%, #b9502c 70%, #9d4223 100%); }
+  #sp3 { background: linear-gradient(180deg, #8ec5e8 0%, #cfe7f2 38%, #5fae4d 38.2%, #3f8f37 100%); }
+  #sp4 { background: repeating-linear-gradient(0deg, #2b2f35 0 8px, #2e3238 8px 16px); }
+  #sp5 { background: radial-gradient(100% 70% at 50% 30%, #2a6a3f 0%, #1b4d2e 60%, #12361f 100%); }
+  .speed { position: absolute; height: 10px; border-radius: 5px; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.85)); }
+  #stats { background: var(--green); }
+  #stats .srow { position: absolute; left: 0; right: 0; text-align: center; }
+  #stats .srow b { display: block; font: 900 italic 210px/0.95 "Playfair", serif; color: var(--gold); }
+  #stats .srow span { display: block; font: 800 50px "Assistant", sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+  [lang="he"] #stats .srow span { letter-spacing: 0.02em; }
+  #line { background: radial-gradient(110% 80% at 50% 35%, #fbf7ee 0%, #f4eee1 55%, #e9dfc8 100%); color: var(--ink); }
+  #line .h { position: absolute; left: 0; right: 0; text-align: center; color: var(--green2); }
+  #line .h { white-space: nowrap; }
+  #l1 { top: 380px; font-size: 140px; } #l2 { top: 560px; font-size: 140px; } #l3 { top: 820px; font-size: 140px; color: var(--ink) !important; } #l4 { top: 1010px; font-size: 210px; color: var(--ox) !important; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <section class="scene" id="intro"><h1 class="h" id="i1" data-t="i1"></h1><h1 class="h" id="i2" data-t="i2"></h1></section>
+
+  <section class="scene" id="sports">
+    <div class="sp" id="sp0"><h1 class="h name" data-t="n0"></h1>
+      <svg class="obj" id="o0" viewBox="-60 -60 120 120" width="230" height="230"><circle r="58" fill="#fff" stroke="#111" stroke-width="3"/><path d="M0 -20 19 -6 12 16 -12 16 -19 -6Z" fill="#111"/><path d="M0 -20V-56M19 -6 52 -18M12 16 32 46M-12 16 -32 46M-19 -6 -52 -18" stroke="#111" stroke-width="4"/><path d="M-10 -58 0 -50 10 -58M48 -32 52 -18 56 -30M44 44 32 46 38 56M-44 44 -32 46 -38 56M-48 -32 -52 -18 -56 -30" fill="#111"/></svg>
+      <div class="num">01 / 06</div></div>
+    <div class="sp" id="sp1"><h1 class="h name" data-t="n1"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M240 1920 V1360 H840 V1920" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="10"/><circle cx="540" cy="1360" r="180" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="10"/><rect x="380" y="610" width="320" height="220" fill="none" stroke="#fff" stroke-width="10"/><rect x="440" y="700" width="200" height="110" fill="none" stroke="#e8542c" stroke-width="8"/><path d="M450 830h180" stroke="#e8542c" stroke-width="14"/><path id="net" d="M455 838 l20 120 M495 838 l14 120 M540 838 v120 M585 838 l-14 120 M625 838 l-20 120 M462 880 h156 M470 920 h140" stroke="#fff" stroke-width="5" fill="none"/></svg>
+      <svg class="obj" id="o1" viewBox="-60 -60 120 120" width="210" height="210"><circle r="58" fill="#e06f1f" stroke="#2b1408" stroke-width="3"/><path d="M-58 0H58M0 -58V58M-40 -42C-12 -14 -12 14 -40 42M40 -42C12 -14 12 14 40 42" stroke="#2b1408" stroke-width="4" fill="none"/></svg>
+      <div class="num">02 / 06</div></div>
+    <div class="sp" id="sp2"><h1 class="h name" data-t="n2"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M120 1920 L300 900 H780 L960 1920" fill="none" stroke="#fff" stroke-width="12"/><path d="M230 1300 H850 M540 1300 V1920" stroke="#fff" stroke-width="10"/><path id="skid" d="M560 1150 l150 70" stroke="rgba(255,255,255,.55)" stroke-width="26" stroke-linecap="round"/></svg>
+      <svg class="obj" id="o2" viewBox="-60 -60 120 120" width="150" height="150"><circle r="58" fill="#d8ea4c"/><path d="M-42 -40 C-10 -10 -10 10 -42 40 M42 -40 C10 -10 10 10 42 40" stroke="#fff" stroke-width="7" fill="none"/></svg>
+      <div class="num">03 / 06</div></div>
+    <div class="sp" id="sp3"><h1 class="h name" data-t="n3" style="color:#16392b;text-shadow:none"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><ellipse cx="760" cy="1240" rx="60" ry="16" fill="#1b3015"/><path d="M780 1240 V820" stroke="#f4f4f4" stroke-width="10"/><path id="flag" d="M785 822 L930 870 L785 920 Z" fill="#c8102e"/><path id="arc" d="M160 1420 Q 470 560 760 1236" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="8" stroke-dasharray="18 16"/></svg>
+      <svg class="obj" id="o3" viewBox="-20 -20 40 40" width="56" height="56"><circle r="18" fill="#fff" stroke="#bbb" stroke-width="2"/></svg>
+      <div class="num" style="color:#16392b">04 / 06</div></div>
+    <div class="sp" id="sp4"><h1 class="h name" data-t="n4"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M0 1500 H1080" stroke="#fff" stroke-width="8" stroke-dasharray="60 40"/><g id="curb"><path d="M0 1640 H1080" stroke="#d7262e" stroke-width="44"/><path d="M0 1640 H1080" stroke="#fff" stroke-width="44" stroke-dasharray="70 70"/></g></svg>
+      <div id="lines"></div>
+      <svg class="obj" id="o4" viewBox="-170 -60 340 120" width="560" height="200"><path d="M-160 -12 L-120 -36 H120 Q170 -36 170 0 Q170 36 120 36 H-120 L-160 12Z" fill="#d7262e"/><path d="M-60 -36 H90" stroke="#fff" stroke-width="10"/><rect x="-150" y="-58" width="30" height="116" rx="6" fill="#141414"/><rect x="130" y="-50" width="26" height="100" rx="6" fill="#141414"/><rect x="-100" y="-62" width="60" height="26" rx="8" fill="#141414"/><rect x="-100" y="36" width="60" height="26" rx="8" fill="#141414"/><rect x="60" y="-62" width="56" height="24" rx="8" fill="#141414"/><rect x="60" y="38" width="56" height="24" rx="8" fill="#141414"/><ellipse cx="10" cy="0" rx="34" ry="16" fill="#111"/><circle cx="10" cy="0" r="9" fill="#e6c47a"/></svg>
+      <div class="num">05 / 06</div></div>
+    <div class="sp" id="sp5"><h1 class="h name" data-t="n5"></h1>
+      <svg class="obj" viewBox="0 0 1080 1920" width="1080" height="1920" style="left:0;top:0"><path d="M330 600 V1500 M750 600 V1500 M330 1080 H750" stroke="#fff" stroke-width="16"/><path d="M0 1500 H1080" stroke="rgba(255,255,255,.6)" stroke-width="8"/></svg>
+      <svg class="obj" id="o5" viewBox="-70 -45 140 90" width="220" height="140"><ellipse rx="66" ry="40" fill="#8b4a2b"/><path d="M-30 0 H30 M-20 -7 V7 M-7 -7 V7 M7 -7 V7 M20 -7 V7" stroke="#fff" stroke-width="5"/></svg>
+      <div class="num">06 / 06</div></div>
+  </section>
+
+  <section class="scene" id="stats">
+    <div class="srow" id="r1" style="top:330px"><b>13</b><span data-t="s1"></span></div>
+    <div class="srow" id="r2" style="top:740px"><b>56</b><span data-t="s2"></span></div>
+    <div class="srow" id="r3" style="top:1150px"><b class="ltr" style="display:block">11,700+</b><span data-t="s3"></span></div>
+  </section>
+
+  <section class="scene" id="line">
+    <h1 class="h" id="l1" data-t="l1"></h1><h1 class="h" id="l2" data-t="l2"></h1><h1 class="h" id="l3" data-t="l3"></h1><h1 class="h" id="l4" data-t="l4"></h1>
+  </section>
+
+  <section class="scene endcard" id="end">
+    <div class="abs crestBox" id="crest"><i class="crest" data-variant="gilt"></i></div>
+    <div class="abs cx word" id="word">VENUVOY</div>
+    <h1 class="abs cx h tagline" id="tagline" data-t="tagline" data-html="1"></h1>
+    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span></div>
+  </section>
+  <div id="leak"></div><div id="flash"></div><div id="vig"></div><div id="grainov"></div>
+</div>
+
+<script>
+  const { LANG, RTL, DIRX, clamp, P, lerp, E, put, pop, slam, shake, kinetic, txt, fontsReady } = SPOT;
+  Object.assign(VV.icons, { arrowR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>' });
+  if (RTL) document.getElementById("ctaArrow").dataset.icon = "arrow";
+  // the six sports the app's own home page offers; the totals are the catalogue's
+  txt({
+    en: { i1: "Pick your", i2: "sport.", n0: "Football", n1: "Basketball", n2: "Tennis", n3: "Golf", n4: "Motorsport", n5: "Rugby",
+      s1: "sports", s2: "countries", s3: "events", l1: "Your sport.", l2: "Your city.", l3: "One sentence.", l4: "Whole trip.",
+      tagline: "The world is<br>your stadium.", cta: "Plan your trip free" },
+    he: { i1: "בחרו", i2: "ענף.", n0: "כדורגל", n1: "כדורסל", n2: "טניס", n3: "גולף", n4: "מוטוספורט", n5: "ראגבי",
+      s1: "ענפי ספורט", s2: "מדינות", s3: "אירועים", l1: "הענף שלכם.", l2: "העיר שלכם.", l3: "משפט אחד.", l4: "טיול שלם.",
+      tagline: "העולם הוא<br>האצטדיון שלכם.", cta: "לתכנון טיול בחינם" },
+  });
+  const $ = (id) => document.getElementById(id);
+  const S = { intro: [0, 1], sports: [1, 7], stats: [7, 9], line: [9, 12], end: [12, 15] };
+  window.DURATION = 15;
+  window.SCORE = { script: "sports.py" };
+  window.CUES = [
+    { t: 0.0, type: "hit" },
+    { t: 1.05, type: "kickball" }, { t: 1.0, type: "whoosh" },
+    { t: 2.0, type: "dribble" }, { t: 2.25, type: "dribble" }, { t: 2.7, type: "swish" },
+    { t: 3.05, type: "pock" }, { t: 3.3, type: "pock", g: 0.6 },
+    { t: 4.0, type: "golf" }, { t: 4.72, type: "plop" }, { t: 4.8, type: "ooh" },
+    { t: 5.0, type: "engine" },
+    { t: 6.05, type: "rugby" }, { t: 6.45, type: "roar", dur: 1.4 },
+    { t: 7.0, type: "thud" }, { t: 7.5, type: "thud" }, { t: 8.0, type: "thud" },
+    { t: 9.0, type: "stomp" }, { t: 9.5, type: "stomp" }, { t: 10.0, type: "stomp" }, { t: 10.75, type: "hit" },
+    { t: 12.0, type: "logo" },
+  ];
+  // speed lines for the race car
+  $("lines").innerHTML = Array.from({ length: 9 }, (_, i) => `<i class="speed" style="top:${900 + i * 70}px;width:${300 + (i * 97) % 300}px"></i>`).join("");
+
+  function show(id, t) { const [a, b] = S[id]; const on = t >= a && t < b + (id === "end" ? 1 : 0); $(id).style.display = on ? "block" : "none"; return on; }
+  const SP_ORDER = ["sp0", "sp1", "sp2", "sp3", "sp4", "sp5"];
+
+  window.seek = function (t) {
+    $("flash").style.opacity = Math.max(0, 1 - Math.abs(t - 7) / 0.08) * 0.5;
+    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 12) / 0.22) * 0.5;
+    if (show("intro", t)) {
+      const sh = shake(t, [0.0], 14);
+      put($("i1"), { ...slam(t, -0.12, 0.28), x: sh.x, y: sh.y });
+      put($("i2"), { ...slam(t, 0.3, 0.26, 2), x: sh.x, y: sh.y, r: -3 });
+    }
+    if (show("sports", t)) {
+      const ts = t - 1, k = Math.min(5, Math.floor(ts)), tk = ts - k;
+      SP_ORDER.forEach((id, i) => { $(id).style.display = i === k ? "block" : "none"; });
+      const sc = $(SP_ORDER[k]);
+      // each sport punches in with a quick zoom
+      sc.style.transform = `scale(${lerp(1.12, 1, E.out5(P(tk, 0, 0.18)))})`;
+      put(sc.querySelector(".name"), { ...slam(tk, 0.02, 0.22, 1.6), x: shake(tk, [0.03], 12).x });
+      put(sc.querySelector(".num"), { op: E.out(P(tk, 0.1, 0.2)) });
+      const o = sc.querySelector("svg.obj[id^='o']");
+      const W = (x, y, s = 1, r = 0, op = 1) => { o.style.left = x - o.width.baseVal.value / 2 + "px"; o.style.top = y - o.height.baseVal.value / 2 + "px"; o.style.transform = `scale(${s}) rotate(${r}deg)`; o.style.opacity = op; };
+      if (k === 0) { const p = P(tk, 0.03, 0.95), q = E.out(p); const x = lerp(80, 1250, p ** 1.15); W((RTL ? 1080 - x : x), lerp(1720, 560, q) - Math.sin(Math.PI * p) * 160, lerp(1.5, 0.6, q), tk * 900); }
+      if (k === 1) {
+        const b1 = Math.abs(Math.sin(Math.PI * P(tk, 0, 0.5) * 2));
+        if (tk < 0.5) W(540, 1500 - b1 * 600, 1, tk * 200);
+        else { const p = E.in(P(tk, 0.5, 0.25)), q = P(tk, 0.75, 0.25); W(540, tk < 0.75 ? lerp(1300, 620, p) : lerp(640, 900, E.out(q)), tk < 0.75 ? 1 : 0.85, tk * 200, tk > 0.95 ? 0 : 1); }
+        $("net").style.transform = tk > 0.7 ? `scaleY(${1 + 0.18 * Math.sin((tk - 0.7) * 30) * Math.exp(-(tk - 0.7) * 6)})` : "";
+        $("net").style.transformOrigin = "540px 838px";
+      }
+      if (k === 2) { const p = E.in(P(tk, 0, 0.06)), q = E.out(P(tk, 0.06, 0.8)); W(tk < 0.06 ? lerp(160, 560, p) : lerp(560, 1200, q), tk < 0.06 ? lerp(200, 1150, p) : lerp(1150, 700, q) - Math.sin(Math.PI * q) * 200, lerp(1.6, 0.6, q), tk * 1400); $("skid").style.opacity = tk > 0.06 ? 1 - P(tk, 0.3, 0.6) : 0; }
+      if (k === 3) { const p = P(tk, 0.05, 0.65), path = $("arc"); const pt = path.getPointAtLength(path.getTotalLength() * E.inOut(p)); W(pt.x, pt.y, tk > 0.72 ? 0.6 : 1, 0, tk > 0.74 ? 0 : 1); path.style.strokeDashoffset = 0; $("flag").style.transform = `skewY(${Math.sin(tk * 12) * 4}deg)`; $("flag").style.transformOrigin = "785px 870px"; }
+      if (k === 4) { const p = E.inOut(P(tk, 0, 0.75)); W(lerp(-400, 1500, p) * (RTL ? -1 : 1) + (RTL ? 1080 : 0), 1140, 1, RTL ? 180 : 0); document.querySelectorAll("#lines .speed").forEach((l, i) => { l.style.left = (lerp(1200, -700, (tk * 2.6 + i * 0.13) % 1) * (RTL ? -1 : 1) + (RTL ? 1080 - 300 : 0)) + "px"; }); $("curb").style.transform = `translateX(${-(tk * 2400) % 140}px)`; }
+      if (k === 5) { const p = E.out(P(tk, 0.05, 0.7)); W(lerp(540, 540, p), lerp(1750, 760, p), lerp(1.3, 0.55, p), tk * 1100); }
+    }
+    if (show("stats", t)) {
+      const tq = t - 7;
+      [["r1", 0], ["r2", 0.5], ["r3", 1.0]].forEach(([id, s0]) => { const p = slam(tq, s0, 0.24, 1.8); put($(id), { ...p, x: shake(tq, [s0], 10).x }); });
+    }
+    if (show("line", t)) {
+      const tl = t - 9;
+      [["l1", 0], ["l2", 0.5], ["l3", 1.0], ["l4", 1.75]].forEach(([id, s0]) => { const p = slam(tl, s0, 0.24, id === "l4" ? 2.2 : 1.6); put($(id), { ...p, r: id === "l4" ? -3 : 0, x: shake(tl, [s0], id === "l4" ? 16 : 8).x }); });
+    }
+    if (show("end", t)) {
+      const te = t - 12;
+      const cr = E.elastic(P(te, 0, 0.9));
+      put($("crest"), { op: clamp(P(te, 0, 0.12)), s: cr, r: (1 - cr) * 25 });
+      const wm = E.out(P(te, 0.25, 0.5)); put($("word"), { op: wm, y: (1 - wm) * 50 }); $("word").style.letterSpacing = `${lerp(0.6, 0.3, wm)}em`;
+      put($("tagline"), slam(te, 0.45, 0.3));
+      const cb = pop(te, 0.85, 0.4); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
+      $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 1.3) / 0.8)) / 2}px 0`;
+      put($("url"), { op: E.out(P(te, 1.1, 0.4)) });
+    }
+  };
+  /** Shrink a headline until its text (not its full-width box) fits the frame. */
+  function fit(el, max = 980) { const r = document.createRange(); r.selectNodeContents(el); let fs = parseFloat(getComputedStyle(el).fontSize); while (r.getBoundingClientRect().width > max && fs > 60) { fs -= 4; el.style.fontSize = fs + "px"; } }
+  window.__ready = window.__ready.then(() => fontsReady()).then(() => {
+    VV.hydrate();
+    for (const id of ["sports", "line", "intro"]) $(id).style.display = "block";
+    document.querySelectorAll(".sp").forEach((s) => { s.style.display = "block"; fit(s.querySelector(".name")); s.style.display = "none"; });
+    document.querySelectorAll("#line .h, #intro .h").forEach((el) => fit(el));
+    window.seek(0); return true;
+  });
+</script>
+</body>
+</html>

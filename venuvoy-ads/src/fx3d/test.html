@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../brand.css">
+<style>body{margin:0;background:#000}canvas{display:block}</style>
+<script src="../vendor/three-bundle.js"></script><script src="../vendor/geo-bundle.js"></script>
+<script src="stadium3d.js"></script><script src="globe3d.js"></script></head>
+<body><canvas id="gl" width="1080" height="1920"></canvas>
+<script>
+  const canvas = document.getElementById("gl");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1); renderer.setSize(1080, 1920, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+  const { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = THREE_POST;
+  const composer = new EffectComposer(renderer);
+  const st = VV3D.stadium({ anisotropy: renderer.capabilities.getMaxAnisotropy() });
+  const gb = VV3D.globe();
+  gb.arc("lon", [34.78, 32.08], [-0.13, 51.51], 0xffe7b0, 0.25);
+  gb.arc("mun", [34.78, 32.08], [11.58, 48.14]);
+  const rp = new RenderPass(st.scene, st.camera); composer.addPass(rp);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(540, 960), 0.7, 0.45, 0.9); composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  window.frame = (which, t) => {
+    const t0 = performance.now();
+    if (which === "stadium") {
+      st.update(t, { wave: 40, jump: t > 5 ? 1 : 0, fireworks: [[5.2, -30, 48, -62, "#ffd27a"], [5.5, 10, 54, -66, "#ff6a7e"], [5.75, -55, 44, -40, "#fff1c9"]], confetti: t > 5 ? 1 : 0, confettiT: t - 5, confettiAt: { x: 20, y: 0, z: 18 } });
+      if (t < 5) st.shoot(t, [[0, [92, 29, 4], [0, 2, 0], 55], [2, [40, 8, 2], [-30, 3, 0], 42]]); else st.shoot(t, [[5, [34, 1.7, 22], [-12, 22, -42], 62], [7, [26, 1.7, 26], [-18, 24, -40], 60]]);
+      rp.scene = st.scene; rp.camera = st.camera;
+    } else {
+      gb.update(t, { face: [20, 40], dist: 5.6, arcs: { lon: t / 1.5, mun: (t - 0.3) / 1.5 }, allPins: true });
+      rp.scene = gb.scene; rp.camera = gb.camera;
+    }
+    composer.render();
+    return performance.now() - t0;
+  };
+  window.__ok = true;
+</script></body></html>

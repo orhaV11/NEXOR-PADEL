@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · Planning a football trip be like (comedy, 9:16)</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="spot.css" />
+<script src="../brand.js"></script>
+<script src="spot.js"></script>
+<style>
+  #desk { background: radial-gradient(90% 70% at 50% 45%, #333c4a 0%, #222832 60%, #161a21 100%); }
+  #desk::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 54px 54px; }
+  #deskIn { position: absolute; inset: 0; transform-origin: 50% 55%; }
+  #redPulse { position: absolute; inset: 0; z-index: 55; pointer-events: none; background: radial-gradient(80% 60% at 50% 50%, rgba(255, 30, 30, 0) 40%, rgba(255, 30, 30, 0.55) 100%); opacity: 0; }
+  .win { position: absolute; background: #fbfbfc; color: #1d2026; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 60px -18px rgba(0, 0, 0, 0.75), 0 0 0 2px rgba(0, 0, 0, 0.25); transform-origin: 50% 50%; }
+  .bar { height: 54px; background: #e7e9ee; display: flex; align-items: center; gap: 12px; padding: 0 20px; font: 800 26px "Assistant", sans-serif; color: #4b5260; }
+  .bar i { width: 18px; height: 18px; border-radius: 50%; background: #c9ccd3; display: inline-block; }
+  .body { padding: 24px 28px; }
+  #browser { left: 40px; top: 470px; width: 1000px; height: 1060px; }
+  #tabs { height: 58px; background: #d9dce3; display: flex; align-items: flex-end; padding: 0 10px; gap: 3px; overflow: hidden; }
+  #tabs b { flex: 0 0 auto; height: 44px; border-radius: 10px 10px 0 0; background: #eef0f4; display: flex; align-items: center; gap: 6px; padding: 0 8px; font: 700 17px "Assistant", sans-serif; color: #4b5260; overflow: hidden; white-space: nowrap; }
+  #tabs b::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--c, #9aa3b5); }
+  #addr { margin: 12px 18px; height: 54px; border-radius: 27px; background: #eef0f4; display: flex; align-items: center; padding: 0 24px; font: 700 26px "Assistant", sans-serif; color: #6b7280; }
+  #count { position: absolute; z-index: 40; right: 22px; top: 438px; min-width: 96px; height: 96px; padding: 0 18px; border-radius: 48px; background: #e0262f; color: #fff; display: grid; place-items: center; font: 900 52px "Assistant", sans-serif; box-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.7), 0 0 0 5px #fff; }
+  [dir="rtl"] #count { right: auto; left: 22px; }
+  .q { font: 800 40px "Assistant", sans-serif; }
+  .sketch { background: #fffbe8; }
+  .sketch .bar { background: #e0262f; color: #fff; }
+  .hot { font: 900 64px/1.05 "Assistant", sans-serif; color: #e0262f; text-align: center; }
+  .price { font: 900 110px/1 "Assistant", sans-serif; text-align: center; color: #111; }
+  .timer { text-align: center; font: 800 40px "Assistant", sans-serif; color: #e0262f; margin-top: 6px; }
+  .buy { margin: 18px auto 4px; width: 80%; text-align: center; padding: 22px 0; border-radius: 16px; background: #17b34a; color: #fff; font: 900 56px "Assistant", sans-serif; box-shadow: 0 8px 0 #0c7a30; }
+  .stampR { position: absolute; padding: 10px 26px; border: 8px solid #e0262f; border-radius: 14px; color: #e0262f; font: 900 76px "Assistant", sans-serif; background: rgba(255, 255, 255, 0.85); }
+  .fx { font: 800 42px "Assistant", sans-serif; }
+  .fx small { display: block; font: 700 30px "Assistant", sans-serif; color: #6b7280; margin-top: 6px; }
+  #chat { left: 400px; top: 880px; width: 640px; height: 660px; background: #efe7dc; }
+  [dir="rtl"] #chat { left: 40px; }
+  #chat .bar { background: #2f3a46; color: #fff; }
+  .bub { position: absolute; left: 18px; right: 70px; padding: 14px 20px; border-radius: 20px; background: #fff; font: 800 34px/1.2 "Assistant", sans-serif; box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.3); }
+  .bub i { display: block; font-style: normal; font: 800 22px "Assistant", sans-serif; margin-bottom: 2px; }
+  .calc .num { font: 900 92px "Assistant", sans-serif; text-align: end; color: #111; }
+  .map { height: 300px; border-radius: 12px; background: linear-gradient(135deg, #e4ecdf 0%, #d9e6f2 100%); position: relative; overflow: hidden; }
+  .cal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .cal span { padding: 14px 6px; border-radius: 10px; background: #eef0f4; text-align: center; font: 800 30px "Assistant", sans-serif; }
+  .cal span.x { position: relative; color: #9aa3b5; }
+  .cal span.x::after { content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 6px; background: #e0262f; transform: rotate(-12deg); border-radius: 3px; }
+  .scrawl { font: 900 italic 58px "Assistant", sans-serif; color: #e0262f; margin-top: 16px; transform: rotate(-4deg); }
+  .sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .sheet span { padding: 12px; background: #f1f3f6; font: 800 28px "Assistant", sans-serif; text-align: center; }
+  .sheet span.r { background: #ffd9d9; color: #c4161f; }
+  .toast { position: absolute; padding: 18px 28px; border-radius: 16px; background: #1d2026; color: #fff; font: 800 38px "Assistant", sans-serif; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7); white-space: nowrap; }
+  .toast::before { content: "⚠ "; color: #ffcc33; }
+  .spinner { position: absolute; width: 150px; height: 150px; border-radius: 50%; border: 16px solid rgba(255, 255, 255, 0.25); border-top-color: #fff; }
+
+  /* calm */
+  #calm { background: radial-gradient(110% 80% at 50% 35%, #fbf7ee 0%, #f4eee1 55%, #e9dfc8 100%); color: var(--ink); }
+  #calm .meme { color: #fff; }
+  #cph { left: 230px; top: 470px; }
+  .check { position: absolute; left: 70px; right: 70px; display: flex; align-items: center; gap: 22px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink); font: 800 44px/1.2 "Assistant", sans-serif;
+    box-shadow: 0 0 0 4px #2c6544, 0 26px 50px -20px rgba(0, 0, 0, 0.55); }
+  .check .v { flex: none; width: 72px; height: 72px; border-radius: 50%; background: #2c6544; color: #fff; display: grid; place-items: center; font: 900 46px "Assistant", sans-serif; }
+  #done { top: 1360px; font: 900 italic 190px/1 "Playfair", serif; color: #2c6544; }
+  [lang="he"] #done { font: 900 190px/1 "FRL", serif; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <section class="scene" id="desk">
+    <div id="deskIn">
+      <div class="win" id="browser">
+        <div id="tabs"></div>
+        <div id="addr"><span class="ltr" style="margin-inline-end:12px">🔒</span><span data-t="addr"></span></div>
+        <div id="skel" style="padding:150px 40px 0"><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:92%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:70%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:84%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:58%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:88%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:64%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:76%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:50%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:82%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:66%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:72%"></i><i style="display:block;height:26px;margin:22px 0;border-radius:13px;background:#e4e7ed;width:54%"></i></div>
+      </div>
+    </div>
+    <div id="count">12</div>
+    <div id="redPulse"></div>
+  </section>
+
+  <section class="scene" id="calm">
+    <div class="phone" id="cph"><div class="screen">
+      <i class="island"></i>
+      <div class="status"><span class="ltr">9:41</span><span class="ltr">5G ▮▮▮</span></div>
+      <div class="appbar"><i class="crest"></i><b>VENUVOY</b></div>
+      <div id="askView"><div class="ask"><div class="lab" data-t="lab"></div><div class="field"><span id="typed"></span><i class="caret" id="caret"></i></div></div></div>
+      <div id="results" style="position:absolute;left:0;right:0;top:160px;padding:0 26px">
+        <div class="plan"><div class="band"><span class="on" data-t="t1"></span><span data-t="t2"></span><span data-t="t3"></span></div>
+          <div class="pb"><div class="pt" data-t="pt" data-html="1"></div><div class="pm" data-t="pm"></div>
+            <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div></div></div>
+      </div>
+    </div></div>
+    <div class="check" id="k1" style="top:900px"><span class="v">✓</span><span data-t="k1"></span></div>
+    <div class="check" id="k2" style="top:1050px"><span class="v">✓</span><span data-t="k2"></span></div>
+    <div class="check" id="k3" style="top:1200px"><span class="v">✓</span><span data-t="k3"></span></div>
+    <div class="abs cx" id="done" data-t="done"></div>
+    <span class="tag on-light" data-t="illus"></span>
+  </section>
+
+  <section class="scene endcard" id="end">
+    <div class="abs crestBox" id="crest"><i class="crest" data-variant="gilt"></i></div>
+    <div class="abs cx word" id="word">VENUVOY</div>
+    <h1 class="abs cx h tagline" id="tagline" data-t="tagline" data-html="1"></h1>
+    <div class="abs cx ctaWrap"><span class="cta" id="cta"><span data-t="cta"></span><i class="ico" id="ctaArrow" data-icon="arrowR"></i></span><span class="url" id="url">VENUVOY.APP</span></div>
+  </section>
+
+  <div class="meme" id="cap1" style="top:290px" data-t="cap1"></div>
+  <div class="meme" id="cap2" style="top:330px;font-size:150px" data-t="cap2"></div>
+  <div class="meme" id="cap3" style="top:300px" data-t="cap3"></div>
+  <div id="leak"></div><div id="flash"></div><div id="vig"></div><div id="grainov"></div>
+</div>
+
+<script>
+  const { LANG, RTL, DIRX, clamp, P, lerp, E, put, pop, slam, rnd, shake, kinetic, txt, fontsReady } = SPOT;
+  Object.assign(VV.icons, { arrowR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>' });
+  if (RTL) document.getElementById("ctaArrow").dataset.icon = "arrow";
+  const T = txt({
+    en: {
+      cap1: "Planning a football trip abroad be like:", cap2: "…or:", cap3: "With Venuvoy:",
+      addr: "search or type a web address",
+      search: "is this ticket site legit??", hurry: "⚠ HURRY!", last: "LAST 2 TICKETS!!!", left: "09:58 left", buy: "BUY NOW",
+      fx: "Saturday · Kick-off:", tbc: "TBC???",
+      chat: ["which match?? 🤔", "is it even confirmed", "THE DATE MOVED", "who's booking the hotel", "pounds or euros???"], who: ["Dan", "Maya", "Tom", "Noa", "Ben"],
+      calc: "£38 + fees + flights + ??? =", map: "Hotel → stadium: 47 min??", cal: ["SAT", "16:30", "SUN??", "17:30??"], sheet: "TBC",
+      toasts: ["Too many tabs open", "Fixture not confirmed", "Payment failed"],
+      lab: "Your trip in one sentence", sentence: "Munich in late January, a Champions League night",
+      t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
+      dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena',
+      k1: "A real fixture, confirmed", k2: "The official ticket route first", k3: "Alerts if anything moves", done: "Done.",
+      illus: "Illustration", tagline: "One sentence.<br>Whole trip.", cta: "Plan your trip free",
+    },
+    he: {
+      cap1: "לתכנן טיול כדורגל בחו״ל, בערך ככה:", cap2: "…או:", cap3: "עם Venuvoy:",
+      addr: "חיפוש או כתובת אתר",
+      search: "האתר הזה אמין??", hurry: "⚠ מהר!", last: "נשארו 2 כרטיסים!!!", left: "נשארו 09:58", buy: "קנו עכשיו",
+      fx: "שבת · שעת פתיחה:", tbc: "טרם נקבע???",
+      chat: ["איזה משחק?? 🤔", "זה בכלל מאושר?", "התאריך זז!!!", "מי מזמין מלון?", "פאונד או יורו???"], who: ["דן", "מאיה", "תום", "נועה", "בן"],
+      calc: "£38 + עמלות + טיסה + ??? =", map: "מלון ← אצטדיון: 47 דק׳??", cal: ["שבת", "16:30", "ראשון??", "17:30??"], sheet: "טרם נקבע",
+      toasts: ["יותר מדי טאבים פתוחים", "המשחק לא מאושר", "התשלום נכשל"],
+      lab: "הטיול שלכם במשפט אחד", sentence: "מינכן בסוף ינואר, ערב של ליגת האלופות",
+      t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
+      dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה',
+      k1: "משחק אמיתי, מאושר", k2: "קודם הדרך הרשמית לכרטיסים", k3: "התראה אם משהו זז", done: "סגור.",
+      illus: "המחשה", tagline: "משפט אחד.<br>טיול שלם.", cta: "לתכנון טיול בחינם",
+    },
+  });
+  const $ = (id) => document.getElementById(id);
+  const S = { desk: [0, 6.55], calm: [6.55, 12], end: [12, 15] };
+  window.DURATION = 15;
+  window.SCORE = { script: "chaos.py" };
+
+  /* ---------- the chaos, built once ---------- */
+  const deskIn = $("deskIn");
+  const W = (id, x, y, w, rot, title, html, cls = "") => {
+    const el = document.createElement("div");
+    el.className = "win " + cls; el.id = id;
+    el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;`;
+    el.innerHTML = `<div class="bar"><i></i><i></i><i></i><span>${title}</span></div><div class="body">${html}</div>`;
+    el.dataset.rot = rot;
+    deskIn.appendChild(el);
+    return el;
+  };
+  const gags = [
+    { t: -0.25, el: W("g1", 70, 640, 940, -2, "", `<div class="q">🔍 <span id="q1"></span><i class="caret" style="background:#1d2026"></i></div>`) },
+    { t: 1.0, el: W("g2", 110, 800, 860, -5, T.hurry, `<div class="hot" id="hot">${T.last}</div><div class="price ltr" style="display:block">€899</div><div class="timer" id="timer">${T.left}</div><div class="buy" id="buy">${T.buy}</div>`, "sketch") },
+    { t: 1.5, el: W("g3", 60, 1200, 960, 3, "", `<div class="fx">${T.fx} <span style="color:#9aa3b5">——</span><small>Allianz Arena</small></div><div class="stampR" id="tbc" style="top:40px;inset-inline-end:36px;transform:rotate(-12deg)">${T.tbc}</div>`) },
+    { t: 3.0, el: W("g5", 60, 600, 700, -6, "", `<div class="fx" style="font-size:38px">${T.calc}</div><div class="calc"><div class="num ltr" id="num" style="display:block">€1,4??</div></div>`, "calc") },
+    { t: 3.5, el: W("g6", 330, 980, 700, 5, "", `<div class="map"><svg viewBox="0 0 700 300" style="position:absolute;inset:0;width:100%;height:100%"><path d="M40 250 C 160 60, 230 290, 330 150 S 520 40, 640 90" fill="none" stroke="#e0262f" stroke-width="10" stroke-dasharray="22 14" stroke-linecap="round"/><circle cx="640" cy="90" r="22" fill="#e0262f"/><circle cx="40" cy="250" r="16" fill="#1d4fa0"/></svg></div><div class="fx" style="margin-top:14px;font-size:38px">${T.map}</div>`) },
+    { t: 4.0, el: W("g7", 400, 560, 620, 7, "", `<div class="cal"><span class="x">${T.cal[0]}</span><span class="x ltr" style="display:block">${T.cal[1]}</span><span>${T.cal[2]}</span><span class="ltr" style="display:block">${T.cal[3]}</span></div><div class="scrawl">${T.cal[2]} ${T.cal[3]}</div>`) },
+    { t: 4.5, el: W("g8", 40, 1180, 760, -4, "", `<div class="sheet">${Array.from({ length: 9 }, (_, i) => `<span class="${i % 2 ? "r" : ""}">${i % 2 ? T.sheet : "?"}</span>`).join("")}</div>`) },
+  ];
+  // the group chat
+  const chat = W("chat", 0, 0, 0, 2, "⚽ Trip 2027 🍻", "");
+  chat.style.cssText = "";
+  const bubTimes = [2.05, 2.25, 2.45, 2.65, 2.85];
+  const cols = ["#1d4fa0", "#c8102e", "#2c6544", "#b8955a", "#7a3fa0"];
+  T.chat.forEach((s, i) => {
+    const b = document.createElement("div"); b.className = "bub"; b.id = "bub" + i;
+    b.style.top = 74 + i * 112 + "px";
+    b.innerHTML = `<i style="color:${cols[i]}">${T.who[i]}</i>${s}`;
+    chat.querySelector(".body").appendChild(b);
+  });
+  // the pile-up at the end of the chaos: echoes of the worst popups, toasts and a spinner
+  const echoes = [];
+  [["g2", 5.0, 160, -120, -9], ["g3", 5.2, -60, 160, 6], ["g2", 5.45, -140, 60, 8], ["g5", 5.6, 220, 260, -7]].forEach(([src, t, dx, dy, r], i) => {
+    const c = $(src).cloneNode(true); c.id = src + "e" + i; c.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+    c.style.left = parseFloat($(src).style.left) + dx + "px"; c.style.top = parseFloat($(src).style.top) + dy + "px";
+    deskIn.appendChild(c); echoes.push({ el: c, t, r });
+  });
+  const toasts = T.toasts.map((s, i) => { const d = document.createElement("div"); d.className = "toast"; d.textContent = s; d.style.top = [520, 1460, 1000][i] + "px"; d.style.left = [120, 260, 80][i] + "px"; deskIn.appendChild(d); return { el: d, t: 5.1 + i * 0.25 }; });
+  const spin = document.createElement("div"); spin.className = "spinner"; spin.style.left = "465px"; spin.style.top = "880px"; deskIn.appendChild(spin);
+
+  const TAB_AT = [[0, 12], [0.35, 13], [1.0, 16], [1.5, 19], [2.0, 23], [3.0, 27], [3.5, 31], [4.0, 35], [4.5, 39], [5.0, 43]];
+  const tabNames = ["Fixtures", "Tickets", "Hotels", "Flights", "Is it legit", "Members", "Ballot", "Currency", "Map", "Kick-off", "Forum", "Reviews"];
+  let lastTabs = 0;
+  function tabs(n) {
+    if (n === lastTabs) return; lastTabs = n;
+    const w = Math.max(18, Math.floor((980 - n * 3) / n));
+    $("tabs").innerHTML = Array.from({ length: n }, (_, i) => `<b style="width:${w}px;--c:${cols[i % 5]}">${w > 70 ? tabNames[i % tabNames.length] : ""}</b>`).join("");
+    $("count").textContent = n;
+  }
+
+  window.CUES = [
+    { t: 0.0, type: "pop" }, { t: 0.35, type: "typing", dur: 0.6, fast: 1 },
+    { t: 1.0, type: "alarm" }, { t: 1.5, type: "stamp" }, { t: 1.55, type: "bonk" },
+    ...bubTimes.map((t) => ({ t, type: "notif" })), { t: 2.1, type: "buzz" }, { t: 2.6, type: "buzz" },
+    { t: 3.0, type: "beeps" }, { t: 3.5, type: "pop" }, { t: 4.0, type: "scribble" }, { t: 4.5, type: "bonk" },
+    { t: 5.0, type: "alarm" }, { t: 5.1, type: "error" }, { t: 5.35, type: "error" }, { t: 5.6, type: "error" }, { t: 5.75, type: "glitch" },
+    { t: 6.0, type: "scratch" },
+    { t: 6.6, type: "whoosh" }, { t: 6.95, type: "typing", dur: 1.0 }, { t: 8.05, type: "press" }, { t: 8.2, type: "swish" },
+    { t: 8.6, type: "ding", n: 0 }, { t: 9.0, type: "ding", n: 1 }, { t: 9.4, type: "ding", n: 2 }, { t: 9.95, type: "done" },
+    { t: 12.0, type: "logo" },
+  ];
+
+  function show(id, t) { const [a, b] = S[id]; const on = t >= a && t < b + (id === "end" ? 1 : 0); $(id).style.display = on ? "block" : "none"; return on; }
+
+  window.seek = function (t) {
+    // freeze: from the scratch on, the chaos stops dead where it is
+    const tc = Math.min(t, 6.0), frozen = t >= 6.0;
+    $("leak").style.opacity = Math.max(0, 1 - Math.abs(t - 6.6) / 0.25) * 0.6 + Math.max(0, 1 - Math.abs(t - 12) / 0.22) * 0.5;
+    put($("cap1"), { op: (t < 6.0 ? 1 : 0), ...(t < 0.3 ? { s: lerp(1.04, 1, E.out(P(t, 0, 0.3))) } : {}) });
+    put($("cap2"), { ...pop(t, 6.02, 0.3), op: t >= 6.02 && t < 6.55 ? 1 : 0 });
+    put($("cap3"), { op: t >= 6.6 && t < 12 ? clamp(P(t, 6.6, 0.2) * 3) : 0 });
+
+    if (show("desk", t)) {
+      let n = 12; for (const [tt, k] of TAB_AT) if (tc >= tt) n = k;
+      tabs(n);
+      const cb = 1 + 0.25 * Math.max(0, 1 - (tc - TAB_AT.filter(([tt]) => tc >= tt).pop()[0]) / 0.18);
+      put($("count"), { s: cb });
+      // shake grows with the mess
+      const lvl = clamp((tc - 1) / 5);
+      const hits = gags.map((g) => g.t).concat([5.0, 5.1, 5.35, 5.6, 5.75]);
+      const sh = shake(tc, hits, 10 + 22 * lvl, 0.45);
+      const jitter = frozen ? 0 : Math.sin(tc * 61) * 6 * lvl;
+      const zoom = frozen ? lerp(1, 1.07, E.out(P(t, 6.0, 0.5))) : 1;
+      deskIn.style.transform = `translate(${sh.x + jitter}px, ${sh.y}px) rotate(${sh.r * 1.5}deg) scale(${zoom})`;
+      $("desk").style.filter = frozen ? `grayscale(${clamp(P(t, 6.0, 0.08))}) contrast(1.12)` : "";
+      $("redPulse").style.opacity = frozen ? 0 : clamp((tc - 4.4) / 1.2) * (0.6 + 0.4 * Math.sin(tc * 18));
+      gags.forEach(({ t: t0, el }) => {
+        const p = E.back(P(tc, t0, 0.24)), op = clamp(P(tc, t0, 0.06) * 3);
+        put(el, { op, s: tc < t0 ? 0.6 : lerp(0.6, 1, clamp(p)) * (p > 1 ? p : 1), r: +el.dataset.rot + (1 - clamp(p)) * 12 });
+      });
+      $("q1").textContent = T.search.slice(0, Math.round(T.search.length * clamp(0.25 + 0.75 * P(tc, 0.05, 0.7))));
+      // the sketchy site flashes
+      const fl = Math.floor(tc * 8) % 2;
+      $("hot").style.color = fl ? "#e0262f" : "#111"; $("hot").style.background = fl ? "#ffe14d" : "transparent";
+      $("buy").style.transform = `scale(${1 + 0.06 * Math.sin(tc * 16)}) rotate(${Math.sin(tc * 11) * 2}deg)`;
+      const secs = Math.max(0, 598 - Math.floor((tc - 1) * 7)); $("timer").textContent = (LANG === "he" ? "נשארו " : "") + `0${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` + (LANG === "he" ? "" : " left");
+      put($("tbc"), { ...slam(tc, 1.55, 0.2, 2.6), r: -12 });
+      put(chat, { op: clamp(P(tc, 1.95, 0.08) * 3), y: (1 - E.out(P(tc, 1.95, 0.25))) * 500, r: 2 });
+      bubTimes.forEach((bt, i) => { const p = pop(tc, bt, 0.22); put($("bub" + i), { op: p.op, s: p.s }); });
+      $("num").textContent = tc < 3.0 ? "" : ["€1,4??", "€2,1??", "€9??", "€1,7??", "€???"][Math.floor(tc * 9) % 5];
+      echoes.forEach(({ el, t: t0, r }) => { const p = E.back(P(tc, t0, 0.2)); put(el, { op: clamp(P(tc, t0, 0.05) * 3), s: tc < t0 ? 0.5 : lerp(0.5, 1, clamp(p)), r: r + (1 - clamp(p)) * 10 }); });
+      toasts.forEach(({ el, t: t0 }) => { const p = E.out(P(tc, t0, 0.18)); put(el, { op: p, y: (1 - p) * 60 }); });
+      put(spin, { op: clamp(P(tc, 5.3, 0.15)), r: tc * 520, s: 1 });
+    }
+
+    if (show("calm", t)) {
+      const tk = t - 6.55;
+      const sl = E.out5(P(tk, 0, 0.35));
+      $("calm").style.transform = `translateY(${(1 - sl) * 1920}px)`;
+      const ph = E.out(P(tk, 0.1, 0.45));
+      $("cph").style.transform = `perspective(2200px) translateY(${(1 - ph) * 500}px) rotateX(${(1 - ph) * 20}deg) scale(${lerp(1, 0.86, E.inOut(P(tk, 1.6, 0.5)))})`;
+      $("cph").style.transformOrigin = "50% 0%";
+      const tp = P(tk, 0.4, 1.0);
+      $("typed").textContent = T.sentence.slice(0, Math.round(T.sentence.length * tp));
+      $("caret").style.opacity = (tp > 0 && tp < 1) || Math.floor(t * 4) % 2 === 0 ? 1 : 0;
+      $("askView").style.opacity = 1 - E.out(P(tk, 1.55, 0.2));
+      const res = E.out(P(tk, 1.62, 0.4)); put($("results"), { op: res, y: (1 - res) * 300 });
+      [["k1", 2.05], ["k2", 2.45], ["k3", 2.85]].forEach(([id, s0], i) => { const p = slam(tk, s0, 0.22, 1.5); put($(id), { op: p.op, s: p.s, blur: p.blur * 0.5, r: [-2, 1.5, -1][i] }); });
+      put($("done"), { ...slam(tk, 3.4, 0.26, 2.2), r: -6 });
+    }
+
+    if (show("end", t)) {
+      const te = t - 12;
+      const cr = E.elastic(P(te, 0, 0.9));
+      put($("crest"), { op: clamp(P(te, 0, 0.12)), s: cr, r: (1 - cr) * 25 });
+      const wm = E.out(P(te, 0.25, 0.5)); put($("word"), { op: wm, y: (1 - wm) * 50 }); $("word").style.letterSpacing = `${lerp(0.6, 0.3, wm)}em`;
+      put($("tagline"), slam(te, 0.45, 0.3));
+      const cb = pop(te, 0.85, 0.4); put($("cta"), { op: cb.op, s: cb.s * (1 + 0.012 * Math.sin(te * 4)) });
+      $("ctaArrow").style.translate = `${(RTL ? -1 : 1) * 7 * (1 - Math.cos(2 * Math.PI * Math.max(0, te - 1.3) / 0.8)) / 2}px 0`;
+      put($("url"), { op: E.out(P(te, 1.1, 0.4)) });
+    }
+  };
+
+  window.__ready = window.__ready.then(() => fontsReady()).then(() => { VV.hydrate(); window.seek(0); return true; });
+</script>
+</body>
+</html>

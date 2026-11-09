@@ -1,9 +1,85 @@
 {
   "campaign": {
-    "name": "קמפיין Venuvoy",
-    "tagline": "טיול ספורט שאפשר לסמוך עליו.",
-    "url": "venuvoy.app",
-    "language": "עברית, RTL"
+    "title": "The World Is Your Stadium",
+    "titleHe": "העולם הוא האצטדיון שלכם",
+    "spots": [
+      {
+        "id": "anthem",
+        "folder": "10-anthem",
+        "name": "הסרט הראשי · The World Is Your Stadium",
+        "length": "28 שניות",
+        "angle": "סטדיון לילי בתלת־ממד עם קהל, זיקוקים ומוזיקה מקורית בסגנון שירת יציע. גלובוס עם קווי טיסה, הדגמה של משפט אחד שהופך לתוכנית, ארבע סיבות בקצב של שנייה, ומחיר הוגן.",
+        "en": {
+          "primary": "Your team. Their stadium. Tell Venuvoy your trip in one sentence and get real plans around real fixtures. Planning is free.",
+          "headline": "The world is your stadium",
+          "description": "venuvoy.app",
+          "cta": "Learn More"
+        },
+        "he": {
+          "primary": "הקבוצה שלכם. האצטדיון שלהם. משפט אחד, ו־Venuvoy בונה טיול סביב משחקים אמיתיים, עם מקור לכל משחק. התכנון בחינם.",
+          "headline": "העולם הוא האצטדיון שלכם",
+          "description": "venuvoy.app",
+          "cta": "מידע נוסף (Learn More)"
+        }
+      },
+      {
+        "id": "chaos",
+        "folder": "11-chaos",
+        "name": "קומדיה · ״לתכנן טיול כדורגל בחו״ל, בערך ככה״",
+        "length": "15 שניות",
+        "angle": "פורמט מם שכולם מכירים: 43 טאבים, אתר כרטיסים מפוקפק, ״טרם נקבע״ וצ׳אט קבוצתי בוער, עם מוזיקה שמאיצה. שריטת תקליט, הכול קופא, ״…או:״, ואז משפט אחד ב־Venuvoy ו״סגור.״",
+        "en": {
+          "primary": "43 tabs, a sketchy ticket site and a group chat on fire. Or one sentence in Venuvoy: real fixtures, official routes, alerts.",
+          "headline": "One sentence. Whole trip.",
+          "description": "venuvoy.app",
+          "cta": "Learn More"
+        },
+        "he": {
+          "primary": "43 טאבים, אתר כרטיסים מפוקפק וצ׳אט קבוצתי בוער. או משפט אחד ב־Venuvoy: משחקים אמיתיים, הדרך הרשמית לכרטיסים והתראות.",
+          "headline": "משפט אחד. טיול שלם.",
+          "description": "venuvoy.app",
+          "cta": "מידע נוסף (Learn More)"
+        }
+      },
+      {
+        "id": "sports",
+        "folder": "12-sports",
+        "name": "מונטאז׳ ענפים · Pick your sport",
+        "length": "15 שניות",
+        "angle": "ענף בכל שנייה, כל אחד בצבע ובסאונד שלו: בעיטה, כדרור וסל, חבטת טניס, כדור גולף שנופל לגומה, מכונית מרוץ וראגבי בין הקורות. אחר כך המספרים, ו״הענף שלכם. העיר שלכם. משפט אחד.״",
+        "en": {
+          "primary": "Football, basketball, tennis, golf, motorsport, rugby. 13 sports, 56 countries, 11,700+ events. Say where; we plan it.",
+          "headline": "Your sport. Your city. One sentence.",
+          "description": "venuvoy.app",
+          "cta": "Learn More"
+        },
+        "he": {
+          "primary": "כדורגל, כדורסל, טניס, גולף, מוטוספורט, ראגבי. 13 ענפים, 56 מדינות, 11,700+ אירועים. אומרים לנו לאן, ואנחנו מתכננים.",
+          "headline": "הענף שלכם. העיר שלכם. משפט אחד.",
+          "description": "venuvoy.app",
+          "cta": "מידע נוסף (Learn More)"
+        }
+      },
+      {
+        "id": "bumper",
+        "folder": "13-bumper",
+        "name": "באמפר · 6 שניות",
+        "length": "6 שניות",
+        "angle": "לפרסומות קצרות שאי אפשר לדלג עליהן וליוטיוב: הטלפון כבר באמצע משפט בפריים הראשון, התוכנית קופצת עם ״מאושר״, ולוגו עם החתימה הצלילית.",
+        "en": {
+          "primary": "One sentence in, a whole sports trip out. Real fixtures, confirmed. Planning is free.",
+          "headline": "One sentence. Whole trip.",
+          "description": "venuvoy.app",
+          "cta": "Learn More"
+        },
+        "he": {
+          "primary": "משפט אחד נכנס, טיול ספורט שלם יוצא. משחקים אמיתיים ומאושרים. התכנון בחינם.",
+          "headline": "משפט אחד. טיול שלם.",
+          "description": "venuvoy.app",
+          "cta": "מידע נוסף (Learn More)"
+        }
+      }
+    ]
   },
   "concepts": [
     {

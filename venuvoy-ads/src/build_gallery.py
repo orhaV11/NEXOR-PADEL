@@ -30,6 +30,11 @@ REEL_15 = "07-reel-he/venuvoy-reel-he-15s_9x16_1080x1920.mp4"
 REEL_EN = "08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4"
 REEL_EN_15 = "08-reel-en/venuvoy-reel-en-15s_9x16_1080x1920.mp4"
 VID_FORMATS = [("story", "9:16", 1080, 1920), ("feed", "4:5", 1080, 1350)]
+CAMP = COPY["campaign"]
+
+
+def spot_mp4(sp, lang, fmt="9x16_1080x1920"):
+    return f"{sp['folder']}/venuvoy-{sp['id']}-{lang}_{fmt}.mp4"
 
 
 def mp4(cid, fmt):
@@ -37,6 +42,9 @@ def mp4(cid, fmt):
     return f"ads/{cid}/{cid}_{fmt}_{w}x{h}.mp4"
 
 NOTES = [
+    ("הקמפיין הבינלאומי: הנתונים", "המשחק בסרטונים, באיירן מינכן נגד ריאל בטיס, ליגת האלופות, יום ד׳ 27.1.2027 ב־21:00 באליאנץ ארנה, מאושר מול uefa.com (נבדק 24.10), לקוח מהקטלוג של Venuvoy. הדרך מהשדה (כ־40 דק׳ ברכבת) וקו U6 לפרטמנינג הם מידע כללי על מינכן. כל מסך של המוצר מסומן ״המחשה״."),
+    ("הקמפיין הבינלאומי: הסאונד", "שירת היציע היא מנגינה מקורית בלי מילים (״הו״ ו״אה״), ולא ציטוט של שיר קיים. החתימה הצלילית (נשיפה של כלי נשיפה, ״היי!״ של הקהל ופעמונים) זהה בכל הסרטונים, כדי שהמותג יישמע אותו דבר בכל מקום."),
+    ("הקמפיין הבינלאומי: הקומדיה", "אתר הכרטיסים המפוקפק, הצ׳אט והמסמכים בסרטון הקומי הם בדיוניים וגנריים, בלי לוגו או שם של אתר אמיתי."),
     ("הדומיין", "המודעות מציגות VENUVOY.APP, הדומיין שמוגדר בקוד (src/lib/brand.ts). כדאי לוודא שהוא חי לפני שמעלים."),
     ("תאריכים", "המשחקים במודעות הם מינואר עד מרץ 2027, כרטיס השבת הוא ללונדון ב־19-25.11.2026, והסרטונים הראשיים מראים את לונדון ב־22-29.11.2026. אחרי התאריכים האלה מחליפים לנתונים חדשים ומרנדרים מחדש."),
     ("מדיניות Meta", "אין טרגוט לפי דת, ולכן מודעת השבת וסצנת השבת בסרטון רצות על קהל רחב. הטקסטים לא פונים לגולש לפי מאפיין אישי (למשל ״שומרים שבת?״), כדי לעמוד בכללים."),
@@ -201,7 +209,7 @@ def copy_rows(prefix, meta):
         count = f"{len(text)}/{lim}" if lim else en
         out.append(
             f'<div><dt>{e(he)}<small><span class="ltr">{e(count)}</span></small></dt>'
-            f'<dd id="{rid}">{e(text)}</dd>'
+            f'<dd id="{rid}" dir="auto">{e(text)}</dd>'
             f'<span class="act"><button type="button" class="cp" data-for="{rid}">העתקה</button></span></div>'
         )
     return '<dl class="copy">' + "".join(out) + "</dl>"
@@ -215,17 +223,19 @@ def reel_videos(full, short, poster, lang):
             "</div>")
 
 
-def body(img_src, full_src, vid_src, reels):
-    """reels: (he_full, he_15, he_poster, en_full, en_15, en_poster)"""
+def body(img_src, full_src, vid_src, reels, camp_src=None, camp_poster=None):
+    """reels: (he_full, he_15, he_poster, en_full, en_15, en_poster); camp_*: (spot, lang) -> path"""
+    camp_src = camp_src or (lambda sp, l: f"ads/{spot_mp4(sp, l)}")
+    camp_poster = camp_poster or (lambda sp, l: f"ads/{sp['folder']}/poster-{l}.jpg")
     c = COPY
     parts = []
     parts.append(
         f'<header class="mast"><span class="lockup">{CREST}<span class="wordmark">Venuvoy</span></span>'
-        f'<span class="meta">2 סרטונים ראשיים + גרסאות 15 ש׳ · 6 מודעות · עברית ואנגלית</span></header>'
+        f'<span class="meta">קמפיין בינלאומי · 2 סרטונים ראשיים · 6 מודעות · עברית ואנגלית</span></header>'
     )
     parts.append(
         '<h1>ערכת הקמפיין של <span class="g ltr">Venuvoy</span></h1>'
-        '<p class="lede">סרטון ראשי בעברית ובאנגלית (35 שניות, וגרסה של 15 שניות לכל אחד), ושש מודעות וידאו בעברית (9:16 ו־4:5, 8 שניות). '
+        '<p class="lede">קמפיין בינלאומי של ארבעה סרטונים באנגלית ובעברית, סרטון ראשי בעברית ובאנגלית (35 שניות, וגרסה של 15 שניות לכל אחד), ושש מודעות וידאו בעברית (9:16 ו־4:5, 8 שניות). '
         "לכל הסרטונים מוזיקה מקורית. כל מודעה קיימת גם כתמונה בארבעה גדלים. כל משחק, מחיר ושעה לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים. "
         "מתחת לכל מודעה יש את הטקסטים ל־Meta, מוכנים להעתקה.</p>"
     )
@@ -235,7 +245,29 @@ def body(img_src, full_src, vid_src, reels):
         + '<li>וידאו 9:16 <span>1080×1920</span></li><li>וידאו 4:5 <span>1080×1350</span></li></ul>'
     )
 
-    # The two flagship reels first: they are the pieces most people will see.
+    # The international campaign first: the newest and strongest pieces.
+    parts.append(
+        '<section class="entry" aria-labelledby="h-camp"><div class="entry-h"><span class="no">★</span>'
+        f'<h2 id="h-camp">קמפיין בינלאומי · <span class="ltr">{e(CAMP["title"])}</span></h2><span class="onimg">{e(CAMP["titleHe"])}</span></div>'
+        '<p class="angle">ארבעה סרטונים, כל אחד באנגלית ובעברית, ב־9:16 וב־4:5: סרט ראשי עם סטדיון וגלובוס בתלת־ממד, קומדיה, מונטאז׳ ענפים ובאמפר של 6 שניות. '
+        "לכל אחד מוזיקה ואפקטים מקוריים, וכולם נגמרים באותה חתימה צלילית.</p></section>"
+    )
+    for sp in CAMP["spots"]:
+        vids = "".join(
+            f'<figure><video src="{e(camp_src(sp, l))}" poster="{e(camp_poster(sp, l))}" controls playsinline loop preload="metadata"></video>'
+            f'<figcaption>{"English" if l == "en" else "עברית"} · <span class="ltr">9:16</span></figcaption></figure>' for l in ("en", "he"))
+        parts.append(
+            f'<section class="entry" aria-labelledby="h-{sp["id"]}"><div class="entry-h"><span class="no">{sp["folder"][:2]}</span>'
+            f'<h2 id="h-{sp["id"]}">{e(sp["name"])}</h2><span class="onimg">{e(sp["length"])}</span></div>'
+            f'<p class="angle">{e(sp["angle"])}</p>'
+            f'<div class="reel"><div class="rv">{vids}</div><div>'
+            '<p class="sub-h" style="margin-top:0">English · Meta</p>' + copy_rows(f"{sp['id']}-en", sp["en"])
+            + '<p class="sub-h">עברית · Meta</p>' + copy_rows(f"{sp['id']}-he", sp["he"])
+            + '<p class="basis">כל גרסה קיימת גם ב־4:5 (<span class="ltr">1080×1350</span>) לפיד, באותה תיקייה.</p>'
+            + "</div></div></section>"
+        )
+
+    # The two flagship reels next.
     he_full, he_15, he_poster, en_full, en_15, en_poster = reels
     r = c["reel"]
     parts.append(
@@ -325,6 +357,27 @@ def build_readme():
              "כל משחק, מחיר ושעה במודעות לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים.")
     L.append("")
     L.append("לצפייה נוחה: פתחו את `index.html` בדפדפן. כל התמונות והווידאו נמצאים ב־`ads/`.")
+    L.append("")
+    L.append(f"## קמפיין בינלאומי · {CAMP['title']}")
+    L.append("")
+    L.append("ארבעה סרטונים, באנגלית ובעברית, ב־9:16 (1080×1920) וב־4:5 (1080×1350). מוזיקה ואפקטים מקוריים שהולחנו בקוד, סטדיון וגלובוס בתלת־ממד, וחתימה צלילית אחת לכולם.")
+    L.append("")
+    L.append("| סרטון | אורך | קבצים |")
+    L.append("|---|---|---|")
+    for sp in CAMP["spots"]:
+        L.append(f"| {sp['name']} | {sp['length']} | `ads/{sp['folder']}/venuvoy-{sp['id']}-{{en,he}}_{{9x16_1080x1920,4x5_1080x1350}}.mp4` |")
+    L.append("")
+    for sp in CAMP["spots"]:
+        L.append(f"### {sp['name']}")
+        L.append("")
+        L.append(sp["angle"])
+        L.append("")
+        L.append("| Meta | English | עברית |")
+        L.append("|---|---|---|")
+        for k, lbl in (("primary", "Primary text"), ("headline", "Headline"), ("description", "Description"), ("cta", "CTA")):
+            L.append(f"| {lbl} | {sp['en'][k]} | {sp['he'][k]} |")
+        L.append("")
+    L.append("רינדור: `node src/render-spot.mjs anthem en` (וגם chaos, sports, bumper; en או he). הסצנות ב־`src/spots/`, התלת־ממד ב־`src/fx3d/`, המוזיקה ב־`src/audio/anthem.py`, `chaos.py`, `sports.py`, `bumper.py` ו־`kit.py`.")
     L.append("")
     L.append("## הקבצים")
     L.append("")
@@ -467,11 +520,17 @@ def build_publish(dirpath):
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ROOT / mp4(x["id"], vf)), "-vf", "scale=720:-2", *web, str(d / "vid" / f'{x["id"]}_{vf}.mp4')], check=True)
     for src, name in ((REEL, "reel.mp4"), (REEL_15, "reel-15.mp4"), (REEL_EN, "reel-en.mp4"), (REEL_EN_15, "reel-en-15.mp4")):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / src), "-vf", "scale=720:-2", *web, str(d / name)], check=True)
+    for sp in CAMP["spots"]:
+        for l in ("en", "he"):
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / spot_mp4(sp, l)), "-vf", "scale=720:-2", *web, str(d / "vid" / f'{sp["id"]}-{l}.mp4')], check=True)
+            subprocess.run(["cp", str(ADS / sp["folder"] / f"poster-{l}.jpg"), str(d / "vid" / f'{sp["id"]}-{l}.jpg')], check=True)
     page = body(
         lambda c, f: f"thumb/{c}_{f}.jpg",
         lambda c, f: f"img/{c}_{f}.jpg",
         lambda c, f: f"vid/{c}_{f}.mp4",
         ("reel.mp4", "reel-15.mp4", "poster.jpg", "reel-en.mp4", "reel-en-15.mp4", "poster-en.jpg"),
+        lambda sp, l: f"vid/{sp['id']}-{l}.mp4",
+        lambda sp, l: f"vid/{sp['id']}-{l}.jpg",
     )
     (d / "index.html").write_text(HEAD + STYLE + page + SCRIPT, encoding="utf-8")
 
@@ -482,6 +541,9 @@ if __name__ == "__main__":
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.6", "-i", str(ADS / REEL), "-frames:v", "1", "-q:v", "3", str(poster)], check=True)
     poster_en = ADS / "08-reel-en" / "poster.jpg"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.6", "-i", str(ADS / REEL_EN), "-frames:v", "1", "-q:v", "3", str(poster_en)], check=True)
+    for sp in CAMP["spots"]:
+        for l in ("en", "he"):
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.5", "-i", str(ADS / spot_mp4(sp, l)), "-frames:v", "1", "-q:v", "3", str(ADS / sp["folder"] / f"poster-{l}.jpg")], check=True)
     build_repo_page()
     build_readme()
     if "--publish-dir" in sys.argv:

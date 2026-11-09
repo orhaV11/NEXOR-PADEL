@@ -1,45 +1,59 @@
-"""Original soundtrack for the English reel: an upbeat 120 BPM pop-house cue plus sound effects
-placed on the video's own cue times. Everything is synthesized here, so there is nothing to license.
+"""Original music and sound effects for the Venuvoy videos: a 120 BPM pop-house cue, synthesized here
+(nothing to license), arranged bar by bar from a form so the music is written to each cut's length
+instead of being sliced out of a longer track.
 
-    python3 src/audio/compose.py out.wav
+    python3 src/audio/compose.py out.wav --form "hook,lift,groove*3,..." --dur 35 --outro 31 --cues cues.json
+    python3 src/audio/compose.py out.wav --form "pulse,lift,groove*2" --dur 8 --outro 6 --cues cues.json --sparse
 
-Structure (one bar = 2 s): intro 0-4 s, drop 4 s, groove to 16 s, breakdown 16-20 s, drop 20 s,
-final chorus 26-31 s, last hit at 31 s with its tail to 32 s.
+One bar is 2 s; NAME*3 repeats a section, and the last section repeats to fill --dur.
+  intro    soft kicks and darker stabs; the bed is low-passed until the first full bar
+  hush     pads, a long bass note, soft bells and hats, no kick: room for a quiet picture
+  pulse    hush plus a muted heartbeat kick on every beat: anticipation
+  hook     drums, bass and stabs at full energy, no lead: something to hear on the first frame
+  lift     hook plus the lead, with a crash and a boom on the downbeat
+  groove   drums, bass, stabs and the lead
+  groove2  groove plus a shaker
+  break    drums out: pad, long bass, quiet hats; the next bar gets a riser and a snare build
+  drop     groove2 with a crash and a boom on the downbeat
+  final    groove2, with a crash on the first final bar
+--outro T  drums, bass and lead stop at T on a stinger (stab, kick, crash, boom) and a quiet pad holds
+           under the call to action; without it the last 0.6 s fade out.
+--cues     one effect per visible event from the page's own list (see place_cues); --sparse thins an
+           8 s ad's list to the first slam, stamps, typing and the call to action.
 """
+import json
+import math
 import sys
 
 import numpy as np
 from scipy.io import wavfile
 from scipy.signal import butter, fftconvolve, sosfilt
 
-# CLI: compose.py OUT.wav                       full 32 s reel with its sound effects
-#      compose.py OUT.wav --cues cues.json --outro 28
-#                                                full reel, effects from the page's own cue list, music
-#                                                stopping on a stinger at 28 s with a pad under the CTA
-#      compose.py OUT.wav --cut START DUR [--cues cues.json]
-#                                                a slice of the music bed, with effects placed on the
-#                                                given animation cues ({t, type, dur}) instead
 ARGS = sys.argv[1:]
 OUT = ARGS[0] if ARGS and not ARGS[0].startswith("--") else "music.wav"
-CUT = None
-CUES = []
-if "--cut" in ARGS:
-    i = ARGS.index("--cut")
-    CUT = (float(ARGS[i + 1]), float(ARGS[i + 2]))
-OUTRO = float(ARGS[ARGS.index("--outro") + 1]) if "--outro" in ARGS else None
-# --splice 1-13,28-31 : join spans of the full mix (on bar lines) into a shorter cut; cues are on the cut's timeline
-SPLICE = [tuple(map(float, x.split("-"))) for x in ARGS[ARGS.index("--splice") + 1].split(",")] if "--splice" in ARGS else None
+opt = lambda name, dflt=None: ARGS[ARGS.index(name) + 1] if name in ARGS else dflt
+OUTRO = float(opt("--outro")) if "--outro" in ARGS else None
 SPARSE = "--sparse" in ARGS
-if "--cues" in ARGS:
-    import json
-
-    CUES = json.load(open(ARGS[ARGS.index("--cues") + 1]))
+CUES = json.load(open(opt("--cues"))) if "--cues" in ARGS else []
 
 SR = 44100
 BPM = 120
 BEAT = 60 / BPM
 BAR = 4 * BEAT
-DUR = 32.0
+
+
+def parse_form(text):
+    out = []
+    for part in text.split(","):
+        name, _, n = part.strip().partition("*")
+        out += [name.strip()] * (int(n) if n else 1)
+    return out
+
+
+# the original 32 s reel: two intro bars, a drop at 4 s, a breakdown at 16-20 s and a final chorus
+FORM = parse_form(opt("--form", "intro*2,drop,groove*2,groove2*3,break*2,drop,groove2*2,final*3"))
+DUR = float(opt("--dur", len(FORM) * BAR))
+FORM += [FORM[-1]] * max(0, math.ceil(DUR / BAR) - len(FORM))
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 
@@ -73,6 +87,8 @@ class Bus:
         i = int(round(t * SR))
         if i >= N:
             return
+        if i < 0:  # starts before 0 s: keep only the part that is audible
+            sig, i = sig[-i:], 0
         if sig.ndim == 1:
             a = (pan + 1) * np.pi / 4
             sig = np.stack([sig * np.cos(a), sig * np.sin(a)], axis=1) * np.sqrt(2)
@@ -188,6 +204,14 @@ def pluck(m, d=0.3):
     return lp(y, 5200) * env * 0.55
 
 
+def bell(m, d=1.6):
+    """Soft glass bell for quiet bars: a few inharmonic partials with a long decay."""
+    t = tt(d)
+    f = mtof(m)
+    y = sum(a * np.sin(2 * np.pi * f * r * t) * np.exp(-t / (0.7 / r ** 0.5)) for r, a in ((1, 1.0), (2.76, 0.32), (5.4, 0.12)))
+    return y * np.minimum(t / 0.004, 1) * 0.5
+
+
 # ---------------------------------------------------------------- sound effects
 def pop(f0=900, f1=320, d=0.09):
     t = tt(d)
@@ -294,121 +318,127 @@ CH = {
     "C": [60, 64, 67, 72], "G": [59, 62, 67, 71], "Am": [57, 60, 64, 69], "F": [57, 60, 65, 69],
 }
 ROOT = {"C": 36, "G": 31, "Am": 33, "F": 29}
-PROG = ["F", "G", "C", "G", "Am", "F", "C", "G", "Am", "F", "C", "G", "Am", "F", "C", "G"]
 HOOK = {
     "C": [76, None, 79, None, 81, 79, 76, None],
     "G": [74, None, 79, None, 83, 81, 79, None],
     "Am": [72, None, 76, None, 81, 79, 76, None],
     "F": [77, None, 81, None, 84, 81, 79, None],
 }
+FULL = {"hook", "lift", "groove", "groove2", "drop", "final"}
+LEAD = {"lift", "groove", "groove2", "drop", "final"}
+SHAKE = {"groove2", "drop", "final"}
+QUIET = {"hush", "pulse", "break"}
+# C G Am F, turned so the first arrival (lift or drop) lands on C: the bar before it is F, a plagal lean in
+LOOP = ["C", "G", "Am", "F"]
+ARRIVE = next((i for i, f in enumerate(FORM) if f in ("lift", "drop")), 0)
+PROG = [LOOP[(i - ARRIVE) % 4] for i in range(len(FORM))]
 
 drums, music, lead, fx, verb = Bus(), Bus(), Bus(), Bus(), Bus()
 K, CL, SN, HC, HO, SH = kick(), clap(), snare(), hat(), hat(True), shaker()
 kick_times = []
 
 
-def bar_time(b):
-    return b * BAR
-
-
 def live(ts):
-    return OUTRO is None or ts < OUTRO - 1e-6
+    return ts < DUR - 1e-6 and (OUTRO is None or ts < OUTRO - 1e-6)
 
 
-for b in range(16):
-    t0 = bar_time(b)
+for b, sec in enumerate(FORM):
+    t0 = b * BAR
+    if t0 >= DUR:
+        break
     ch = PROG[b]
-    intro = b < 2
-    breakdown = b in (8, 9)
-    groove_b = b in (5, 6, 7, 11, 12)
-    final = b >= 13
     # ---- drums
     for beat in range(4):
         tb = t0 + beat * BEAT
-        if b == 15 and tb >= 31.0:
-            continue
         if not live(tb):
             continue
-        if intro:
-            if b == 0 and beat in (0, 2):
+        if sec == "intro":
+            if beat in (0, 2):
                 drums.add(lp(K, 600), tb, 0.6)
                 kick_times.append(tb)
-        elif not breakdown:
+        elif sec == "pulse":
+            drums.add(lp(K, 420), tb, 0.55)
+            kick_times.append(tb)
+        elif sec in FULL:
             drums.add(K, tb, 0.78)
             kick_times.append(tb)
             if beat in (1, 3):
                 drums.add(CL, tb, 0.42, pan=0.05)
             drums.add(HO, tb + BEAT / 2, 0.22, pan=0.25)
         for s16 in range(4):
-            if intro and b == 0:
+            if sec == "intro" and b == 0:
+                continue
+            if sec in ("hush", "pulse") and s16 % 2:
                 continue
             ts = tb + s16 * BEAT / 4
+            if not live(ts):
+                continue
             vel = 0.13 if s16 % 2 else 0.2
-            drums.add(HC, ts, vel * (0.6 if breakdown else 1), pan=-0.3)
-            if groove_b or final:
+            drums.add(HC, ts, vel * {"break": 0.6, "hush": 0.4, "pulse": 0.5}.get(sec, 1.0), pan=-0.3)
+            if sec in SHAKE:
                 drums.add(SH, ts + 0.01, 0.12, pan=0.45)
-    # ---- music
-    if breakdown:
-        music.add(pad(CH[ch], BAR), t0, 0.32)
-        music.add(bass_long(ROOT[ch] + 12, BAR - 0.05), t0, 0.35)
-        verb.add(pad(CH[ch], BAR), t0, 0.12)
+    # ---- harmony
+    if sec in QUIET:
+        d = min(BAR, (OUTRO if OUTRO is not None else DUR) - t0)
+        if d > 0.2:
+            music.add(pad(CH[ch], d), t0, {"hush": 0.3, "pulse": 0.3, "break": 0.22}[sec])
+            music.add(bass_long(ROOT[ch] + 12, d - 0.05), t0, 0.28 if sec == "break" else 0.35)
+            verb.add(pad(CH[ch], d), t0, 0.12)
+        if sec in ("hush", "pulse"):  # slow bells keep a quiet bar moving
+            for slot, m in ((0, CH[ch][-1] + 12), (4, CH[ch][1] + 12)):
+                ts = t0 + slot * BEAT / 2
+                if live(ts):
+                    p = bell(m)
+                    music.add(p, ts, 0.2, pan=-0.2 if slot else 0.2)
+                    verb.add(p, ts, 0.16)
     else:
-        bright = 0.45 if intro else 1.0
+        bright = 0.45 if sec == "intro" else 1.0
         for slot in (0, 3, 6):
             ts = t0 + slot * BEAT / 2
-            if (b == 15 and ts >= 31.0) or not live(ts):
+            if not live(ts):
                 continue
-            g = 0.22 if intro else 0.3
-            s = stab(CH[ch], 0.4, bright)
-            music.add(lp(s, 900) if intro else s, ts, g, pan=-0.15)
-            verb.add(s, ts, 0.06)
-        if not intro:
+            st = stab(CH[ch], 0.4, bright)
+            music.add(lp(st, 900) if sec == "intro" else st, ts, 0.22 if sec == "intro" else 0.3, pan=-0.15)
+            verb.add(st, ts, 0.06)
+        if sec != "intro":
             for slot in (1, 3, 5, 7):
                 ts = t0 + slot * BEAT / 2
-                if (b == 15 and ts >= 31.0) or not live(ts):
-                    continue
-                music.add(bass_note(ROOT[ch] + (12 if slot == 5 else 0)), ts, 0.42)
+                if live(ts):
+                    music.add(bass_note(ROOT[ch] + (12 if slot == 5 else 0)), ts, 0.42)
     # ---- hook lead
-    if b in (3, 4, 5, 6, 7) or b >= 10:
-        pat = HOOK[ch]
-        for slot, m in enumerate(pat):
-            if m is None:
-                continue
+    if sec in LEAD:
+        for slot, m in enumerate(HOOK[ch]):
             ts = t0 + slot * BEAT / 2
-            if (b == 15 and ts >= 31.0) or not live(ts):
+            if m is None or not live(ts):
                 continue
             p = pluck(m)
             lead.add(p, ts, 0.3, pan=0.1)
             lead.add(p, ts + 0.375, 0.12, pan=-0.6)  # dotted-eighth echo
             lead.add(p, ts + 0.75, 0.05, pan=0.6)
             verb.add(p, ts, 0.08)
+    # ---- arrivals: a crash and a boom on the downbeat, and a build in the bar before
+    prev = FORM[b - 1] if b else None
+    if sec in ("lift", "drop") and live(t0):
+        drums.add(crash(), t0, 0.55)
+        fx.add(boom(), t0, 0.6)
+        if prev in ("intro", "hush", "pulse", "break"):
+            fx.add(riser(1.45), t0 - 1.5, 0.32)
+            for k in range(16):
+                drums.add(SN, t0 - 1.0 + k * BEAT / 8 * 0.96, 0.06 + 0.012 * k)
+            fx.add(rev_cymbal(0.6), t0 - 0.6, 0.4)
+        elif prev is not None:
+            for k in range(4):
+                drums.add(SN, t0 - BEAT + k * BEAT / 4, 0.12 + 0.05 * k)
+            fx.add(rev_cymbal(0.5), t0 - 0.5, 0.35)
+    if sec == "final" and prev != "final" and live(t0):
+        drums.add(crash(), t0, 0.5)
 
-# intro build and drops
-for k in range(8):
-    drums.add(SN, 2.0 + k * BEAT / 2, 0.08 + 0.02 * k)
-for k in range(12):
-    drums.add(SN, 3.0 + k * BEAT / 4, 0.18 + 0.02 * k)
-fx.add(riser(1.95), 2.0, 0.5)
-fx.add(rev_cymbal(0.75), 3.25, 0.5)
-for td in (4.0, 20.0, 26.0, 28.0):
-    if live(td):
-        drums.add(crash(), td, 0.55)
-fx.add(boom(), 4.0, 0.7)
-# breakdown build back into 20 s
-fx.add(riser(1.45), 18.5, 0.45)
-for k in range(16):
-    drums.add(SN, 19.0 + k * BEAT / 8 * 0.96, 0.1 + 0.015 * k)
-fx.add(rev_cymbal(0.6), 19.4, 0.45)
-
-if OUTRO is None:
-    # final hit at 31 s: stab + boom + crash, with a long tail
-    music.add(stab(CH["C"], 1.4), 31.0, 0.45)
-    verb.add(stab(CH["C"], 1.4), 31.0, 0.25)
-    drums.add(K, 31.0, 0.95)
-    drums.add(crash(1.0), 31.0, 0.5)
-    fx.add(boom(1.0), 31.0, 0.5)
-    kick_times.append(31.0)
-else:
+if OUTRO is not None and FORM[min(int(OUTRO // BAR), len(FORM) - 1)] in QUIET:
+    # a quiet piece ends quietly: a bell chord over the pad, no kick, crash or boom
+    for k, m in enumerate([72, 76, 79, 84]):
+        music.add(bell(m, 2.4), OUTRO + k * 0.06, 0.22)
+        verb.add(bell(m, 2.4), OUTRO + k * 0.06, 0.2)
+elif OUTRO is not None:
     # the music lands on the end card: one stinger, then a quiet pad so the call to action sits in clear air
     music.add(stab(CH["C"], 1.8), OUTRO, 0.5)
     verb.add(stab(CH["C"], 1.8), OUTRO, 0.3)
@@ -416,9 +446,17 @@ else:
     drums.add(crash(2.6), OUTRO, 0.55)
     fx.add(boom(1.2), OUTRO, 0.55)
     kick_times.append(OUTRO)
+if OUTRO is not None:
     tail = DUR - OUTRO
-    music.add(pad(CH["C"] + [48], tail), OUTRO + 0.05, 0.18)
-    verb.add(pad(CH["C"], tail), OUTRO + 0.05, 0.08)
+    if tail > 0.3:
+        # about 6 LU under the body: present enough to carry the end card, quiet enough to read over
+        music.add(pad(CH["C"] + [48], tail), OUTRO + 0.05, 0.5)
+        verb.add(pad(CH["C"], tail), OUTRO + 0.05, 0.2)
+        for k, m in enumerate([79, 76, 84, 79, 72, 76]):
+            ts = OUTRO + 1.0 + k * 0.5
+            if ts < DUR - 0.5:
+                music.add(bell(m), ts, 0.14, pan=(-0.3, 0.3)[k % 2])
+                verb.add(bell(m), ts, 0.12)
 
 def crowd(d):
     """A stadium roar: many amplitude-wobbling vocal-range bands, spread across the stereo field."""
@@ -436,14 +474,14 @@ def crowd(d):
 
 
 def place_cues(bus, cues, sparse=False):
-    """Effects from a page's cue list. Each one is tied to something visible; sparse keeps only the
-    first slam, the stamp, typing and the last pop (the call to action)."""
+    """Effects from a page's cue list ({t, type, dur}); each one is tied to something on screen.
+    sparse (8 s ads) keeps only the first slam, the stamps, typing and the call to action."""
     slams = [c for c in cues if c["type"] == "slam"]
     pops = [c for c in cues if c["type"] == "pop"]
     for c in cues:
         t0, kind, dur = c["t"], c["type"], c.get("dur", 0.4)
         if kind == "open":
-            bus.add(whoosh(0.7), max(0.0, t0 - 0.05), 0.22)
+            bus.add(whoosh(0.7), max(0.0, t0 - 0.05), 0.16)
         elif kind == "slam":
             if sparse and c is not slams[0]:
                 continue
@@ -453,6 +491,7 @@ def place_cues(bus, cues, sparse=False):
             if sparse:
                 if c is pops[-1]:
                     bus.add(ding((84, 91), 0.7), t0, 0.32)
+                    bus.add(boom(0.5), t0, 0.18)
                 continue
             bus.add(pop(950 + 200 * rng.random(), 340), t0, 0.26)
         elif kind == "tick":
@@ -463,10 +502,11 @@ def place_cues(bus, cues, sparse=False):
         elif kind == "whoosh":
             bus.add(whoosh(0.6), t0, 0.3)
         elif kind == "typing":
+            # one soft keyboard texture, not a click per letter
             k = 0.0
             while k < dur:
-                bus.add(click(), t0 + k, 0.2 + 0.08 * rng.random(), pan=0.2)
-                k += 0.055
+                bus.add(lp(click(0.016, 1200, 5000), 4200), t0 + k, 0.1 + 0.05 * rng.random(), pan=0.2)
+                k += 0.06 + 0.03 * rng.random()
         elif kind == "click":
             bus.add(click(0.02, 800, 3000), t0, 0.6)
         elif kind == "boom":
@@ -477,83 +517,27 @@ def place_cues(bus, cues, sparse=False):
             bus.add(ding((84, 91)), t0, 0.42)
         elif kind == "ding":
             bus.add(ding(), t0, 0.5)
+        elif kind == "cta":
+            bus.add(ding((84, 91), 0.7), t0, 0.34)
+            bus.add(boom(0.5), t0, 0.2)
         elif kind == "flaps":
+            # the board settling: one short clatter that thins out, not a burst per row
             k = 0.0
             while k < dur:
-                bus.add(flap_clatter(0.33), t0 + k, 0.4, pan=-0.3 + 0.6 * k / max(dur, 0.1))
-                k += 0.25
+                bus.add(click(0.02, 900, 4500), t0 + k, 0.3 * (1 - 0.6 * k / max(dur, 0.1)), pan=-0.3 + 0.6 * k / max(dur, 0.1))
+                k += 0.045 + 0.02 * rng.random()
         elif kind == "sparkle":
-            bus.add(sparkle(), t0, 0.55)
+            bus.add(sparkle(), t0, 0.3)
+        elif kind == "crowd":
+            bus.add(crowd(dur), t0, 0.3)
+        elif kind == "crash":
+            bus.add(crash(1.6), t0, 0.4)
         elif kind == "swell":
             # untuned reversed cymbal whose peak lands exactly on the cut, well under the music
             bus.add(rev_cymbal(0.8), max(0.0, t0 - 0.8), 0.28)
 
 
-fx.add(crowd(2.6), 3.6, 0.55)
-fx.add(crowd(3.2), 27.9, 0.5)
-if CUT is None and SPLICE is None and CUES:
-    place_cues(fx, CUES)
-elif CUT is None and SPLICE is None:
-    fx.add(whoosh(0.4), 5.7, 0.35)
-
-    # ---------------------------------------------------------------- SFX on the video's cues
-    B = lambda n: n * 0.5
-    for i, tp in enumerate([B(2), B(2.5), B(3), B(3.5), B(4), B(4.5), B(5), B(5.5)]):
-        fx.add(pop(800 + 60 * i, 300 + 20 * i), tp, 0.33, pan=(-0.5 if i % 2 else 0.5))
-    fx.add(stamp(), B(6), 0.5)
-    fx.add(whoosh(0.5, up=False), 3.5, 0.4)
-    # C: typing, chips, button, plan
-    sentence_len = len("A week in London, end of November, Arsenal twice")
-    for k in range(0, sentence_len, 2):
-        fx.add(click(), 6.3 + 1.5 * k / sentence_len, 0.22 + 0.08 * rng.random(), pan=0.2)
-    for i, tp in enumerate([7.9, 8.025, 8.15, 8.275]):
-        fx.add(pop(1000 + 80 * i, 420), tp, 0.28, pan=0.3)
-    fx.add(click(0.02, 800, 3000), 8.5, 0.6)
-    fx.add(whoosh(0.4), 8.55, 0.3)
-    for tp in (8.95, 9.2):
-        fx.add(tick(), tp, 0.35)
-    # D: tickets
-    fx.add(whoosh(0.35), 9.85, 0.35)
-    for i in range(5):
-        fx.add(tick(), 10.75 + i * 0.25, 0.4)
-    fx.add(stamp(), 11.75, 0.55)
-    link_len = len("tickets-arsenal-•••.shop")
-    for k in range(0, link_len, 2):
-        fx.add(click(), 12.65 + 0.65 * k / link_len, 0.22, pan=-0.2)
-    fx.add(buzz(), 13.4, 0.55)
-    fx.add(ding((84, 91)), 14.1, 0.45)
-    fx.add(whoosh(0.35), 14.35, 0.3)
-    for i, tp in enumerate([14.7, 14.85, 15.0]):
-        fx.add(pop(700 + 100 * i, 300), tp, 0.25)
-    # E: alerts
-    fx.add(whoosh(0.4, up=False), 15.85, 0.35)
-    fx.add(ding(), 17.0, 0.55)
-    fx.add(ding((86, 93)), 18.0, 0.5)
-    fx.add(click(0.02, 800, 3000), 18.75, 0.5)
-    # F: on the day
-    fx.add(whoosh(0.35), 19.85, 0.3)
-    for k in range(10):
-        fx.add(tick(), 20.3 + k * 0.12, 0.18)
-    for i, tp in enumerate([20.5, 20.75, 21.0, 21.25]):
-        fx.add(pop(900 + 70 * i, 350), tp, 0.3, pan=(-0.4 + 0.27 * i))
-    # G1: counters
-    fx.add(whoosh(0.35), 21.85, 0.3)
-    for i, tp in enumerate([22.0, 22.5, 23.0, 23.5]):
-        fx.add(boom(0.5), tp, 0.35)
-        fx.add(pop(600 + 80 * i, 200), tp, 0.25)
-    # G2: split-flap rows
-    fx.add(whoosh(0.35), 23.85, 0.3)
-    for i in range(6):
-        fx.add(flap_clatter(0.33), 24.15 + i * 0.25, 0.45, pan=(-0.3 + 0.12 * i))
-    # H1: price
-    fx.add(whoosh(0.35), 25.85, 0.3)
-    for i, tp in enumerate([27.0, 27.25, 27.5]):
-        fx.add(pop(1100 + 120 * i, 500), tp, 0.32)
-    fx.add(stamp(), 27.75, 0.45)
-    # H2: end card + confetti
-    fx.add(boom(), 28.0, 0.55)
-    fx.add(sparkle(), 28.05, 0.6, pan=0.0)
-    fx.add(ding((91, 96)), 29.1, 0.25)
+place_cues(fx, CUES, sparse=SPARSE)
 
 # ---------------------------------------------------------------- mix
 def duck_env():
@@ -583,46 +567,19 @@ wet = np.stack([fftconvolve(verb.y[:, c], ir[:, c])[: len(verb.y)] for c in rang
 fx_wet = np.stack([fftconvolve(fx.y[:, c], ir[:, c])[: len(fx.y)] for c in range(2)], axis=1)
 
 bed = drums.y * 1.0 + music_y * 1.0 + lead_y * 1.0 + wet * 0.55
-# the bed stays a little darker until the drop; effects stay crisp
-lpf = np.stack([lp(bed[:, c], 2200) for c in range(2)], axis=1)
-xf = np.clip((np.arange(len(bed)) / SR - 3.0) / 1.0, 0, 1)[:, None]
-bed = lpf * (1 - xf) + bed * xf
+# an intro stays darker until the first full bar; effects stay crisp
+n_intro = next((i for i, f in enumerate(FORM) if f != "intro"), len(FORM))
+if n_intro:
+    lpf = np.stack([lp(bed[:, c], 2200) for c in range(2)], axis=1)
+    edge = n_intro * BAR
+    xf = np.clip((np.arange(len(bed)) / SR - (edge - 1.0)) / 1.0, 0, 1)[:, None]
+    bed = lpf * (1 - xf) + bed * xf
 mix = bed + fx.y * 0.9 + fx_wet * 0.12
-mix = hp(mix.T, 35).T
-
-if SPLICE:
-    xf = int(0.015 * SR)
-    parts = [mix[int(a * SR) : int(b * SR)].copy() for a, b in SPLICE]
-    out = parts[0]
-    for nxt in parts[1:]:
-        ramp = np.linspace(0, 1, xf)[:, None]
-        out = np.concatenate([out[:-xf], out[-xf:] * (1 - ramp) + nxt[:xf] * ramp, nxt[xf:]])
-    n = len(out)
-    sfx = Bus()
-    place_cues(sfx, CUES)
-    out += sfx.y[:n] * 0.9
-    fout = np.clip((n / SR - np.arange(n) / SR) / 0.5, 0, 1) ** 1.3
-    mix = out * fout[:, None]
-    N = n
-elif CUT is None:
-    mix = mix[:N]
-    # fade the last half second after the final hit
-    fade = np.ones(N)
-    fade[int(31.4 * SR) :] = np.linspace(1, 0, N - int(31.4 * SR)) ** 1.5
-    mix *= fade[:, None]
-else:
-    s0, d = CUT
-    n = int(d * SR)
-    mix = mix[int(s0 * SR) : int(s0 * SR) + n].copy()
-    sfx = Bus()
-    place_cues(sfx, CUES, sparse=SPARSE)
-    mix += sfx.y[:n] * 0.9
-    fin = np.minimum(np.arange(n) / (0.015 * SR), 1)
-    fout = np.clip((d - np.arange(n) / SR) / 0.7, 0, 1) ** 1.3
-    mix *= (fin * fout)[:, None]
-    N = n
-# glue + limiter-ish
-mix = np.tanh(1.25 * mix / np.max(np.abs(mix)) * 1.6) / np.tanh(1.25 * 1.6)
+mix = hp(mix.T, 35).T[:N]
+fade = np.clip((DUR - np.arange(N) / SR) / 0.6, 0, 1) ** 1.5
+mix *= fade[:, None]
+# gentle glue only: loudness and peaks are master.py's job, so keep the transients that make it move
+mix = np.tanh(1.4 * mix / np.max(np.abs(mix))) / np.tanh(1.4)
 mix *= 10 ** (-1.0 / 20) / np.max(np.abs(mix))
 
 wavfile.write(OUT, SR, (mix * 32767).astype(np.int16))

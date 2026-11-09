@@ -98,18 +98,29 @@
     }
   ],
   "reel": {
-    "id": "07-reel",
-    "name": "וידאו 9:16",
-    "length": "17 שניות, 1080×1920, 30fps, H.264, בלי פס קול",
+    "id": "07-reel-he",
+    "name": "סרטון ראשי בעברית 9:16",
+    "length": "35 שניות, 1080×1920, 30fps, H.264, מוזיקה מקורית · וגרסה של 15 שניות לקמפיינים ממומנים",
     "scenes": [
-      "0-3 ש׳: הזרקורים נדלקים · ״קודם המשחק. אחר כך הטיסה.״",
-      "3-7 ש׳: המשפט מוקלד · ״משפט אחד.״",
-      "7-10 ש׳: התוכנית עולה עם ציונים ומקורות · ״טיול שלם.״",
-      "10-14 ש׳: המשחק זז, החלופה נבחרת · ״משחק זז? יש לכם חלופה.״",
-      "14-17 ש׳: כרטיס סיום · ״טיול ספורט שאפשר לסמוך עליו.״ + לתכנון טיול בחינם"
+      "0-2 ש׳: ״טסים למשחק בחו״ל?״ ו־17 טאבים פתוחים, והמספר רק עולה",
+      "2-4 ש׳: הדרופ · Venuvoy, טיולי ספורט סביב משחקים אמיתיים",
+      "4-10 ש׳: משפט אחד נכנס, טיול שלם יוצא · זום על המקור ותאריך הבדיקה של כל משחק",
+      "10-18 ש׳: כרטיסים, בלי סיפורים: כמה קשה להשיג (5 מתוך 5), קישור מחקה נתפס, קודם הרשמי · ״אנחנו לא מוכרים כרטיסים.״",
+      "18-21 ש׳: המשחק זז? טופל. התראה וחלופה",
+      "21-23 ש׳: ביום המשחק: לצאת עד 15:05, עובד בלי אינטרנט, יומן, וואטסאפ, PDF",
+      "23-28 ש׳: 56 מדינות, 558 ערים, 13 ענפים, 11,700+ אירועים · שבת? מסודר.",
+      "28-35 ש׳: התכנון בחינם, משלמים פעם אחת לטיול (₪49 / ₪99 / ₪129), בלי מנוי · כרטיס סיום"
+    ],
+    "cut15": [
+      "0-2 ש׳: ההוק",
+      "2-3.5 ש׳: המותג",
+      "3.5-6.5 ש׳: משפט אחד, טיול שלם, זום על המקור",
+      "6.5-9 ש׳: קישור מחקה נתפס",
+      "9-12 ש׳: המשחק זז? טופל.",
+      "12-15 ש׳: כרטיס סיום"
     ],
     "meta": {
-      "primary": "יש לכם תאריכים? כותבים משפט אחד ומקבלים טיול ספורט שלם סביב משחקים אמיתיים. משחק זז? יש לכם חלופה. התכנון בחינם.",
+      "primary": "טסים למשחק בחו״ל? משפט אחד, ומקבלים טיול שלם סביב משחקים אמיתיים, עם מקור לכל משחק והתראה כשמשהו זז. התכנון בחינם.",
       "headline": "טיול ספורט שאפשר לסמוך עליו",
       "description": "venuvoy.app",
       "cta": "מידע נוסף (Learn More)"
@@ -136,22 +147,30 @@
   "reelEn": {
     "id": "08-reel-en",
     "name": "English video 9:16",
-    "length": "32 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM",
+    "length": "35 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM · plus a 15-second cut for paid placements",
     "scenes": [
-      "0-4 s: “Sports trip abroad?” and 17 tabs of chaos",
-      "4-6 s: the drop · Venuvoy, sports trips built around real fixtures",
-      "6-10 s: one sentence in, real plans out (Arsenal v Dortmund, Arsenal v Man City, both confirmed)",
-      "10-16 s: tickets, the honest version: difficulty 5 of 5, members' ballot, lookalike link caught, official sites first",
-      "16-20 s: kick-off moved? Handled. Autopilot and replacements",
-      "20-22 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF",
-      "22-26 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way",
-      "26-32 s: free to plan, pay once per trip ($15 / $29 / $39), no subscription · end card"
+      "0-2 s: “Off to a match abroad?” and 17 tabs open, and counting",
+      "2-4 s: the lift · Venuvoy, sports trips built around real fixtures",
+      "4-10 s: one sentence in, real plans out · push-in on each match's source and check date",
+      "10-18 s: tickets, the honest version: 5 of 5 difficulty, members' ballot, a lookalike link caught, official first · “We never sell tickets.”",
+      "18-21 s: kick-off moved? Handled. The alert and a replacement",
+      "21-23 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF",
+      "23-28 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way",
+      "28-35 s: planning is free, pay once per trip ($15 / $29 / $39), no subscription · end card"
     ],
     "meta": {
-      "primary": "One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Free to plan.",
+      "primary": "One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Planning is free.",
       "headline": "A sports trip you can trust",
       "description": "venuvoy.app",
       "cta": "Learn More"
-    }
+    },
+    "cut15": [
+      "0-2 s: the hook",
+      "2-3.5 s: the brand",
+      "3.5-6.5 s: one sentence in, real plans out, the source",
+      "6.5-9 s: a lookalike link caught",
+      "9-12 s: kick-off moved? Handled.",
+      "12-15 s: end card"
+    ]
   }
 }

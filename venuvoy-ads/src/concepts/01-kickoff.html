@@ -33,7 +33,9 @@
   [data-format="story"] .eyebrow { font-size: 31px; }
   [data-format="story"] .h1 { font-size: 142px; }
   [data-format="story"] .sub { font-size: 38px; max-width: 860px; }
-  [data-format="story"] .foot { top: 1452px; font-size: 42px; }
+  [data-format="story"] .foot { top: 1046px; font-size: 42px; }
+  /* the sports list sits under the pitch; the button and the address stay well above the Stories reply bar */
+  [data-format="story"] .sports { position: absolute; top: 400px; }
   [data-format="story"] .url { font-size: 25px; }
   [data-format="story"] .sports { font-size: 27px; }
 
@@ -60,30 +62,30 @@
   [data-format="landscape"] .foot .url { align-self: center; font-size: 15px; }
 </style>
 </head>
-<body data-duration="8">
+<body data-duration="8" data-music="pulse,lift,groove*2" data-outro="6">
 <div class="ad leather grain vignette">
   <div class="stage" id="stage"></div>
   <div class="shade" data-only="landscape"></div>
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
-  <div class="top" data-in="0.45,fade"><div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div></div>
+  <div class="top" data-in="-0.3,fade"><div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div></div>
 
   <div class="copy">
-    <div class="eyebrow" data-in="0.8,up">מתכנן טיולי ספורט</div>
+    <div class="eyebrow" data-in="-0.2,up">מתכנן טיולי ספורט</div>
     <h1 class="h1 lift" data-guard="headline">
-      <span class="line" data-in="1.0,slam">קודם המשחק.</span>
-      <span class="line gilt" data-in="1.4,slam">אחר כך הטיסה.</span>
+      <span class="line" data-in="-0.1,slam">קודם המשחק.</span>
+      <span class="line gilt" data-in="0.35,slam">אחר כך הטיסה.</span>
     </h1>
-    <p class="sub" data-guard="sub" data-in="1.95,up">
+    <p class="sub" data-guard="sub" data-in="0.95,up">
       בוחרים יעד ותאריכים, ו־<bdi>Venuvoy</bdi> בונה <span class="ltr">2–3</span> תוכניות טיול סביב משחקים אמיתיים — עם נסיעות, עלויות משוערות ומקור לכל משחק.
     </p>
   </div>
 
   <div class="foot">
-    <div class="sports" data-only="story" data-in="2.45,up"><span>כדורגל</span><span>כדורסל</span><span>טניס</span><span>גולף</span><span>מוטוספורט</span><span>ראגבי</span></div>
-    <span class="cta" data-guard="cta" data-in="2.8,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-    <span class="url" data-in="3.15,fade">VENUVOY.APP</span>
+    <div class="sports" data-only="story" data-in="2.6,up"><span>כדורגל</span><span>כדורסל</span><span>טניס</span><span>גולף</span><span>מוטוספורט</span><span>ראגבי</span></div>
+    <span class="cta" data-guard="cta" data-in="4.0,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+    <span class="url" data-in="4.3,fade">VENUVOY.APP</span>
   </div>
 </div>
 <script>
@@ -100,21 +102,19 @@
   }[F];
   document.getElementById("stage").innerHTML = VVStadium.stadium({ ...P, id: "k" });
 
-  // Motion: floodlights clunk on, a slow push-in, the pin drops onto the centre spot and pulses.
+  // Motion: lit from the first frame, a slow pull-back, the pin drops onto the centre spot on the lift and pulses.
+  window.MORE_CUES = [{ t: 1.6, type: "crowd", dur: 2.8 }];
   const STP = P;
   window.onSeek = (t, h) => {
-    const keys = [[0, 0], [0.25, 0], [0.32, 0.8], [0.38, 0.15], [0.46, 0.95], [0.52, 0.4], [0.64, 1], [99, 1]];
-    let lamp = 1;
-    for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) { const [t0, v0] = keys[i - 1], [t1, v1] = keys[i]; lamp = h.lerp(v0, v1, (t - t0) / (t1 - t0)); break; }
-    const key = Math.round(lamp * 40) / 40;
+    const key = 1; // the floodlights are already on at frame 0
     const stage = document.getElementById("stage");
     if (key !== window.__lamp) { window.__lamp = key; stage.innerHTML = VVStadium.stadium({ ...STP, id: "k", lamp: Math.max(0.001, key) }); }
     stage.style.transformOrigin = "50% 70%";
-    stage.style.transform = `scale(${h.lerp(1.08, 1, h.E.out(h.P(t, 0, 8)))})`;
+    stage.style.transform = `scale(${h.lerp(1.08, 1, h.P(t, 0, 8))})`; // a slow, even pull-back for all 8 s
     const drop = document.querySelector(".pin-drop");
-    if (drop) { const p = h.P(t, 2.2, 0.6); drop.setAttribute("transform", `translate(0 ${p <= 0 ? -700 : (1 - h.E.back(p)) * -700})`); drop.style.opacity = p > 0 ? 1 : 0; }
+    if (drop) { const p = h.P(t, 1.4, 0.6); drop.setAttribute("transform", `translate(0 ${p <= 0 ? -700 : (1 - h.E.back(p)) * -700})`); drop.style.opacity = p > 0 ? 1 : 0; }
     const rings = document.querySelector(".pin-rings");
-    if (rings) { const on = t > 2.75, ph = ((t - 2.75) % 1.3) / 1.3; rings.style.opacity = on ? 1 - ph * 0.7 : 0; rings.style.transform = on ? `scale(${1 + ph * 0.6})` : "scale(0.6)"; }
+    if (rings) { const on = t > 2.0, ph = ((t - 2.0) % 1.3) / 1.3; rings.style.opacity = on ? 1 - ph * 0.7 : 0; rings.style.transform = on ? `scale(${1 + ph * 0.6})` : "scale(0.6)"; }
   };
 </script>
 </body>

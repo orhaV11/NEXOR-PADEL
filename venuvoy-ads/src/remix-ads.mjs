@@ -1,5 +1,5 @@
-// Re-score the animated ads without re-rendering pictures: read each page's cues, compose a sparse
-// mix (only the hits that matter), master it to -14 LUFS / -1 dBTP, and swap the audio track.
+// Re-score the animated ads without re-rendering pictures: read each page's score (window.MUSIC) and cues,
+// compose a sparse mix (only the hits that matter), master it to -14 LUFS / -1 dBTP, and swap the audio track.
 //   node src/remix-ads.mjs [concept-filter]
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
@@ -12,7 +12,6 @@ const { chromium } = createRequire(import.meta.url)("playwright");
 const SRC = dirname(fileURLToPath(import.meta.url));
 const ADS = join(SRC, "..", "ads");
 const FORMATS = { story: [1080, 1920], feed: [1080, 1350] };
-const MUSIC_FROM = { "01-kickoff": 4, "02-sentence": 6, "03-alert": 8, "04-trust": 20, "05-shabbat": 22, "06-offer": 24 };
 const filter = process.argv[2] || "";
 const run = (cmd, args) => { const r = spawnSync(cmd, args, { stdio: ["ignore", "inherit", "inherit"] }); if (r.status !== 0) throw new Error(cmd + " failed"); };
 
@@ -24,12 +23,12 @@ for (const file of readdirSync(join(SRC, "concepts")).filter((f) => f.endsWith("
     await page.goto(pathToFileURL(join(SRC, "concepts", file)).href + "#" + fmt, { waitUntil: "load" });
     await page.evaluate(() => window.__ready);
     await page.evaluate(() => window.seek(0));
-    const { dur, cues } = await page.evaluate(() => ({ dur: window.DURATION, cues: window.CUES }));
+    const { dur, cues, music } = await page.evaluate(() => ({ dur: window.DURATION, cues: window.CUES, music: window.MUSIC }));
     await page.close();
     const tmp = join(tmpdir(), `vv-remix-${id}-${fmt}`);
     mkdirSync(tmp, { recursive: true });
     writeFileSync(join(tmp, "cues.json"), JSON.stringify(cues));
-    run("python3", [join(SRC, "audio", "compose.py"), join(tmp, "raw.wav"), "--cut", String(MUSIC_FROM[id] ?? 4), String(dur), "--cues", join(tmp, "cues.json"), "--sparse"]);
+    run("python3", [join(SRC, "audio", "compose.py"), join(tmp, "raw.wav"), "--form", music.form, "--dur", String(dur), "--outro", String(music.outro), "--cues", join(tmp, "cues.json"), "--sparse"]);
     run("python3", [join(SRC, "audio", "master.py"), join(tmp, "raw.wav"), join(tmp, "music.wav")]);
     const mp4 = join(ADS, id, `${id}_${fmt}_${w}x${h}.mp4`);
     const next = join(tmp, "out.mp4");

@@ -1,6 +1,6 @@
 # ערכת הקמפיין של Venuvoy
 
-שש מודעות בעברית, כל אחת בארבעה גדלים, ווידאו 9:16 של 17 שניות, בשפה העיצובית של Venuvoy (ירוק מרוצים, נייר שמנת, פליז ובורדו; Frank Ruhl Libre, Playfair Display ו־Assistant). כל משחק, מחיר ושעה במודעות לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים.
+שש מודעות בעברית, כל אחת בארבעה גדלים וכווידאו של 8 שניות, ושני סרטונים ראשיים (עברית ואנגלית, 35 שניות וגרסה של 15), בשפה העיצובית של Venuvoy (ירוק מרוצים, נייר שמנת, פליז ובורדו; Frank Ruhl Libre, Playfair Display ו־Assistant). כל משחק, מחיר ושעה במודעות לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים.
 
 לצפייה נוחה: פתחו את `index.html` בדפדפן. כל התמונות והווידאו נמצאים ב־`ads/`.
 
@@ -14,18 +14,19 @@
 | רוחבי 1.91:1 | 1200×628 | פייסבוק (קישור), Google Display, לינקדאין |
 | וידאו 9:16 (כל מודעה) | 1080×1920, 8 ש׳, עם מוזיקה | ריילז, סטוריז, טיקטוק |
 | וידאו 4:5 (כל מודעה) | 1080×1350, 8 ש׳, עם מוזיקה | פיד באינסטגרם ובפייסבוק |
-| סרטון ראשי בעברית | 1080×1920, 17 ש׳ | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
-| סרטון באנגלית | 1080×1920, 32 ש׳, מוזיקה מקורית | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
+| סרטון ראשי בעברית | 1080×1920, 35 ש׳ + גרסת 15 ש׳, מוזיקה מקורית | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
+| סרטון ראשי באנגלית | 1080×1920, 35 ש׳ + גרסת 15 ש׳, מוזיקה מקורית | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
 
 ```
 ads/01-kickoff … ads/06-offer   כל מודעה: <id>_<format>_<WxH>.png וגם .mp4 ל־story ו־feed
-ads/07-reel/venuvoy-reel_9x16_1080x1920.mp4
-ads/08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4   + פס הקול לבד: venuvoy-reel-en_soundtrack.m4a
-src/motion.js                   השכבה שמנפישה את המודעות (data-in על כל אלמנט)
-src/video-en/reel-en.html       הסרטון באנגלית
-src/audio/compose.py            המוזיקה והאפקטים, מסונתזים בקוד
+ads/07-reel-he/venuvoy-reel-he_9x16_1080x1920.mp4       + venuvoy-reel-he-15s_9x16_1080x1920.mp4
+ads/08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4       + venuvoy-reel-en-15s_9x16_1080x1920.mp4
+src/video-fun/reel.html         הסרטון הראשי, עברית ואנגלית (?lang=he|en), ציר זמן מדויק לפריים
 src/concepts/*.html             המודעות עצמן (HTML/CSS), אחת לכל רעיון
-src/video/reel.html             הווידאו, ציר זמן מדויק לפריים
+src/motion.js                   השכבה שמנפישה את המודעות (data-in על כל אלמנט, data-music על ה־body)
+src/audio/compose.py            המוזיקה והאפקטים, מסונתזים בקוד ומעובדים לאורך של כל סרטון
+src/audio/master.py             מאסטר: ‎-14 LUFS ושיא מתחת ל־‎-1 dBTP, נמדד על הקידוד שיוצא
+src/cutdown.py                  גרסאות 15 השניות (video-use render.py + מוזיקה חדשה)
 src/copy.json                   כל הטקסטים ל־Meta ול־Google
 ```
 
@@ -131,39 +132,46 @@ src/copy.json                   כל הטקסטים ל־Meta ול־Google
 
 **על מה זה מבוסס:** פתיחה ₪49, מעקב ₪99, חבילה ₪129, חד־פעמי לטיול ולא מנוי: src/features/pricing/priceBook.ts ועמוד המחירים. ״Venuvoy לא מוכרת כרטיסים״: דף הבית ושאלות נפוצות.
 
-## 07 · וידאו 9:16
+## 07 · סרטון ראשי בעברית 9:16
 
-17 שניות, 1080×1920, 30fps, H.264, בלי פס קול.
+35 שניות, 1080×1920, 30fps, H.264, מוזיקה מקורית · וגרסה של 15 שניות לקמפיינים ממומנים.
 
-- 0-3 ש׳: הזרקורים נדלקים · ״קודם המשחק. אחר כך הטיסה.״
-- 3-7 ש׳: המשפט מוקלד · ״משפט אחד.״
-- 7-10 ש׳: התוכנית עולה עם ציונים ומקורות · ״טיול שלם.״
-- 10-14 ש׳: המשחק זז, החלופה נבחרת · ״משחק זז? יש לכם חלופה.״
-- 14-17 ש׳: כרטיס סיום · ״טיול ספורט שאפשר לסמוך עליו.״ + לתכנון טיול בחינם
+- 0-2 ש׳: ״טסים למשחק בחו״ל?״ ו־17 טאבים פתוחים, והמספר רק עולה
+- 2-4 ש׳: הדרופ · Venuvoy, טיולי ספורט סביב משחקים אמיתיים
+- 4-10 ש׳: משפט אחד נכנס, טיול שלם יוצא · זום על המקור ותאריך הבדיקה של כל משחק
+- 10-18 ש׳: כרטיסים, בלי סיפורים: כמה קשה להשיג (5 מתוך 5), קישור מחקה נתפס, קודם הרשמי · ״אנחנו לא מוכרים כרטיסים.״
+- 18-21 ש׳: המשחק זז? טופל. התראה וחלופה
+- 21-23 ש׳: ביום המשחק: לצאת עד 15:05, עובד בלי אינטרנט, יומן, וואטסאפ, PDF
+- 23-28 ש׳: 56 מדינות, 558 ערים, 13 ענפים, 11,700+ אירועים · שבת? מסודר.
+- 28-35 ש׳: התכנון בחינם, משלמים פעם אחת לטיול (₪49 / ₪99 / ₪129), בלי מנוי · כרטיס סיום
+
+15 s: 0-2 ש׳: ההוק · 2-3.5 ש׳: המותג · 3.5-6.5 ש׳: משפט אחד, טיול שלם, זום על המקור · 6.5-9 ש׳: קישור מחקה נתפס · 9-12 ש׳: המשחק זז? טופל. · 12-15 ש׳: כרטיס סיום
 
 | שדה ב־Meta | טקסט |
 |---|---|
-| טקסט ראשי (112/125) | יש לכם תאריכים? כותבים משפט אחד ומקבלים טיול ספורט שלם סביב משחקים אמיתיים. משחק זז? יש לכם חלופה. התכנון בחינם. |
+| טקסט ראשי (114/125) | טסים למשחק בחו״ל? משפט אחד, ומקבלים טיול שלם סביב משחקים אמיתיים, עם מקור לכל משחק והתראה כשמשהו זז. התכנון בחינם. |
 | כותרת | טיול ספורט שאפשר לסמוך עליו |
 | תיאור | venuvoy.app |
 | כפתור | מידע נוסף (Learn More) |
 
 ## 08 · English video 9:16
 
-32 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM.
+35 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM · plus a 15-second cut for paid placements.
 
-- 0-4 s: “Sports trip abroad?” and 17 tabs of chaos
-- 4-6 s: the drop · Venuvoy, sports trips built around real fixtures
-- 6-10 s: one sentence in, real plans out (Arsenal v Dortmund, Arsenal v Man City, both confirmed)
-- 10-16 s: tickets, the honest version: difficulty 5 of 5, members' ballot, lookalike link caught, official sites first
-- 16-20 s: kick-off moved? Handled. Autopilot and replacements
-- 20-22 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF
-- 22-26 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way
-- 26-32 s: free to plan, pay once per trip ($15 / $29 / $39), no subscription · end card
+- 0-2 s: “Off to a match abroad?” and 17 tabs open, and counting
+- 2-4 s: the lift · Venuvoy, sports trips built around real fixtures
+- 4-10 s: one sentence in, real plans out · push-in on each match's source and check date
+- 10-18 s: tickets, the honest version: 5 of 5 difficulty, members' ballot, a lookalike link caught, official first · “We never sell tickets.”
+- 18-21 s: kick-off moved? Handled. The alert and a replacement
+- 21-23 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF
+- 23-28 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way
+- 28-35 s: planning is free, pay once per trip ($15 / $29 / $39), no subscription · end card
+
+15 s: 0-2 s: the hook · 2-3.5 s: the brand · 3.5-6.5 s: one sentence in, real plans out, the source · 6.5-9 s: a lookalike link caught · 9-12 s: kick-off moved? Handled. · 12-15 s: end card
 
 | Meta field | Text |
 |---|---|
-| Primary text (113/125) | One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Free to plan. |
+| Primary text (117/125) | One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Planning is free. |
 | Headline | A sports trip you can trust |
 | Description | venuvoy.app |
 | CTA | Learn More |
@@ -190,27 +198,29 @@ src/copy.json                   כל הטקסטים ל־Meta ול־Google
 ## לפני שעולים לאוויר
 
 - **הדומיין:** המודעות מציגות VENUVOY.APP, הדומיין שמוגדר בקוד (src/lib/brand.ts). כדאי לוודא שהוא חי לפני שמעלים.
-- **תאריכים:** המשחקים במודעות הם מינואר עד מרץ 2027, וכרטיס השבת הוא ללונדון ב־19-25.11.2026. אחרי התאריכים האלה מחליפים לנתונים חדשים ומרנדרים מחדש.
-- **מדיניות Meta:** אין טרגוט לפי דת, ולכן מודעת השבת רצה על קהל רחב. הטקסטים לא פונים לגולש לפי מאפיין אישי (למשל ״שומרים שבת?״), כדי לעמוד בכללים.
-- **שקיפות:** מסך ההתראה מסומן ״המחשה״. המעקב בתשלום, וזה כתוב בתיאור של המודעה. שמות קבוצות מופיעים רק כשמות משחקים, בלי סמלים.
-- **מוזיקה:** לסרטון באנגלית ולשש מודעות הווידאו יש מוזיקה מקורית שהולחנה בקוד, בלי זכויות של צד שלישי. לסרטון הראשי בעברית אין פס קול.
-- **שפות בסרטון האנגלי:** בסרטון כתוב שאנגלית ועברית זמינות היום ו־4 שפות בדרך. רוסית, ערבית, צרפתית וספרדית מוגדרות בקוד כ״מתוכננות״ ועוד לא פתוחות למשתמשים. אם לא רוצים להתחייב לזה בפומבי, צריך להוריד את השורה.
-- **מחירים בסרטון האנגלי:** מוצגים בדולרים ($15, $29, $39), לפי ספר המחירים של המוצר.
-- **בדיקה ראשונה:** להתחיל ב־01, 02 ו־03 מול קהל רחב של אוהדי כדורגל שטסים לחו״ל, ואת 06 להפעיל כריטרגטינג. מודדים עלות לתוכנית שנבנתה, לא רק הקלקות.
+- **תאריכים:** המשחקים במודעות הם מינואר עד מרץ 2027, כרטיס השבת הוא ללונדון ב־19-25.11.2026, והסרטונים הראשיים מראים את לונדון ב־22-29.11.2026. אחרי התאריכים האלה מחליפים לנתונים חדשים ומרנדרים מחדש.
+- **מדיניות Meta:** אין טרגוט לפי דת, ולכן מודעת השבת וסצנת השבת בסרטון רצות על קהל רחב. הטקסטים לא פונים לגולש לפי מאפיין אישי (למשל ״שומרים שבת?״), כדי לעמוד בכללים.
+- **שקיפות:** כל מסך של המוצר בסרטונים מסומן ״המחשה״ (Illustration) באות קריאה. המעקב בתשלום, וזה כתוב בסרטונים ובתיאור של המודעה. שמות קבוצות מופיעים רק כשמות משחקים, בלי סמלים.
+- **מוזיקה:** לכל הסרטונים יש מוזיקה מקורית שהולחנה בקוד, בלי זכויות של צד שלישי. כל סרטון מקבל עיבוד באורך שלו, לא חיתוך של שיר ארוך: אנרגיה מהפריים הראשון, אפקט אחד לכל דבר שקורה על המסך, ונחיתה על אקורד סיום עם רקע שקט מתחת לכפתור. הכול מאוזן ל־‎-14 LUFS עם שיא מתחת ל־‎-1 dBTP, כפי שהוא נשמע אחרי הקידוד.
+- **15 שניות:** לכל סרטון ראשי יש גרסה של 15 שניות לקמפיינים ממומנים: הוק, מותג, תוכנית, קישור מחקה, התראה וסיום. היא נחתכה עם video-use (render.py) והמוזיקה שלה הולחנה מחדש לאורך הזה.
+- **אזור בטוח:** בכל הסטוריז, הכפתור והכתובת נגמרים מעל גובה 1,565 פיקסלים, מחוץ לפס התחתון שהממשק של סטוריז מכסה. בסרטונים הראשיים כל הטקסט החשוב נמצא בין 270 ל־1,580.
+- **שפות בסרטון האנגלי:** בסרטון כתוב שאנגלית ועברית זמינות היום ו־4 שפות בדרך. רוסית, ערבית, צרפתית וספרדית מוגדרות בקוד כ״מתוכננות״ ועוד לא פתוחות למשתמשים. אם לא רוצים להתחייב לזה בפומבי, צריך להוריד את הסצנה.
+- **מחירים:** בסרטון האנגלי בדולרים ($15, $29, $39) ובעברי בשקלים (₪49, ₪99, ₪129), לפי ספר המחירים של המוצר. ״התכנון בחינם״ ו״תשלום על התוכנית המלאה״ מופיעים יחד, כדי שלא תהיה סתירה.
+- **בדיקה ראשונה:** להתחיל בגרסאות ה־15 שניות וב־01, 02 ו־03 מול קהל רחב של אוהדי כדורגל שטסים לחו״ל, ואת 06 להפעיל כריטרגטינג. מודדים עלות לתוכנית שנבנתה, לא רק הקלקות.
 
 ## עריכה ורינדור מחדש
 
-צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow, numpy ו־scipy.
+צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow, numpy ו־scipy. לגרסאות 15 השניות צריך גם את video-use (https://github.com/browser-use/video-use) ב־‎~/.claude/skills/video-use או ב־$VIDEO_USE.
 
 ```bash
 node src/render.mjs                 # כל המודעות, כל הגדלים -> ads/
 node src/render.mjs alert story     # רק מודעה אחת בגודל אחד
 node src/render-motion.mjs          # שש מודעות הווידאו (9:16 ו־4:5) עם מוזיקה
-node src/render-video.mjs           # הסרטון הראשי -> ads/07-reel/
-node src/render-video.mjs --page video-en/reel-en.html --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4 \
-    --audio ads/08-reel-en/venuvoy-reel-en_music.wav   # הסרטון באנגלית
-python3 src/audio/compose.py ads/08-reel-en/venuvoy-reel-en_music.wav   # פס הקול
+node src/render-video.mjs --score   # הסרטון הראשי בעברית, עם המוזיקה שהעמוד מבקש -> ads/07-reel-he/
+node src/render-video.mjs --page "video-fun/reel.html?lang=en" --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4 --score
+python3 src/cutdown.py he && python3 src/cutdown.py en   # גרסאות 15 השניות
+node src/remix-ads.mjs              # רק פס קול חדש לשש המודעות, בלי לרנדר תמונה
 python3 src/build_gallery.py        # index.html ו־README.md מתוך src/copy.json
 ```
 
-הגופנים ב־`fonts/` הם Frank Ruhl Libre, Assistant ו־Playfair Display, כולם ברישיון SIL Open Font License.
+הגופנים ב־`fonts/` הם Frank Ruhl Libre, Assistant, Playfair Display, Noto Sans Arabic ו־Noto Sans (קירילית), כולם ברישיון SIL Open Font License.

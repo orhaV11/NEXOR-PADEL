@@ -1,11 +1,12 @@
 // Render a reel frame by frame (deterministic seek(t)) and encode H.264 with ffmpeg.
-//   node src/render-video.mjs                                   # Hebrew reel (src/video/reel.html)
-//   node src/render-video.mjs --page video-en/reel-en.html --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4
-//   node src/render-video.mjs --page video-en/reel-en.html --stills 0.5,2,4.4   # review stills only
+//   node src/render-video.mjs --score                           # Hebrew flagship reel -> ads/07-reel-he/
+//   node src/render-video.mjs --page "video-fun/reel.html?lang=en" --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4 --score
+//   node src/render-video.mjs --page "video-fun/reel.html?lang=en" --stills 0.5,2,4.4   # review stills only
 //   add --audio path/to/track.wav to mux a soundtrack (AAC 192k)
+//   add --remux to keep the picture already at --out and only swap its soundtrack (with --score or --audio)
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -19,13 +20,15 @@ const arg = (name, dflt) => {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : dflt;
 };
-const PAGE = arg("--page", "video/reel.html");
-const OUTREL = arg("--out", "07-reel/venuvoy-reel_9x16_1080x1920.mp4");
+const PAGE = arg("--page", "video-fun/reel.html?lang=he");
+const OUTREL = arg("--out", "07-reel-he/venuvoy-reel-he_9x16_1080x1920.mp4");
 const STILLS = arg("--stills", null);
 const AUDIO = arg("--audio", null);
-/** --score: compose the soundtrack from the page's own window.CUES (music stops on a stinger at --outro), master it, mux it. */
+/** --score: compose the soundtrack the page asks for (window.MUSIC form and outro, window.CUES effects), master it, mux it.
+    --outro T overrides where the music lands on its stinger. */
 const SCORE = process.argv.includes("--score");
-const OUTRO = arg("--outro", "28");
+const OUTRO = arg("--outro", null);
+const REMUX = process.argv.includes("--remux");
 const FPS = 30;
 const W = 1080, H = 1920;
 
@@ -50,16 +53,32 @@ if (STILLS) {
 } else {
   let audio = AUDIO;
   if (SCORE) {
-    const cues = await page.evaluate(() => window.CUES || []);
-    const tmp = join(tmpdir(), "vv-score");
+    const { cues, music } = await page.evaluate(() => ({ cues: window.CUES || [], music: window.MUSIC || {} }));
+    const tmp = join(tmpdir(), `vv-score-${process.pid}`);
     mkdirSync(tmp, { recursive: true });
     writeFileSync(join(tmp, "cues.json"), JSON.stringify(cues));
     const raw = join(tmp, "raw.wav");
-    const r1 = spawnSync("python3", [join(SRC, "audio", "compose.py"), raw, "--cues", join(tmp, "cues.json"), "--outro", OUTRO], { stdio: "inherit" });
+    const cargs = [join(SRC, "audio", "compose.py"), raw, "--cues", join(tmp, "cues.json"), "--dur", String(duration)];
+    if (music.form) cargs.push("--form", music.form);
+    const outro = OUTRO ?? music.outro;
+    if (outro != null) cargs.push("--outro", String(outro));
+    const r1 = spawnSync("python3", cargs, { stdio: "inherit" });
     if (r1.status !== 0) throw new Error("compose failed");
     audio = out.replace(/\.mp4$/, "_music.wav");
     const r2 = spawnSync("python3", [join(SRC, "audio", "master.py"), raw, audio], { stdio: "inherit" });
     if (r2.status !== 0) throw new Error("master failed");
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  if (REMUX) {
+    if (!audio) throw new Error("--remux needs --score or --audio");
+    const next = out.replace(/\.mp4$/, ".remux.mp4");
+    const r = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-i", out, "-i", audio, "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+      "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", next], { stdio: "inherit" });
+    if (r.status !== 0) throw new Error("remux failed");
+    renameSync(next, out);
+    console.log(`re-scored: ${out}`);
+    await browser.close();
+    process.exit(0);
   }
   const silent = audio ? out.replace(/\.mp4$/, ".video.mp4") : out;
   const ff = spawn("ffmpeg", [

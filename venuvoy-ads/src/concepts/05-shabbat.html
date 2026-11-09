@@ -57,10 +57,10 @@
   [data-format="story"] .col .brand { font-size: 30px; }
   [data-format="story"] .h1 { font-size: 128px; }
   [data-format="story"] .sub { font-size: 36px; max-width: 900px; }
-  [data-format="story"] .sc { top: 900px; right: 76px; }
+  [data-format="story"] .sc { top: 840px; right: 76px; }
   [data-format="story"] .candles { left: 30px; top: 760px; width: 330px; height: 900px; }
   [data-format="story"] .bg-glow { width: 900px; height: 900px; left: -200px; top: 520px; }
-  [data-format="story"] .ctas { position: absolute; z-index: 20; right: 76px; top: 1520px; flex-direction: column; align-items: flex-start; gap: 22px; font-size: 40px; }
+  [data-format="story"] .ctas { position: absolute; z-index: 20; right: 76px; top: 1446px; flex-direction: row; align-items: center; gap: 28px; font-size: 40px; }
   [data-format="story"] .ctas .url { margin-right: 8px; }
   [data-format="story"] .ctas .url { font-size: 23px; }
 
@@ -91,26 +91,26 @@
   [data-format="landscape"] .bg-glow { width: 600px; height: 600px; left: -170px; top: -60px; }
 </style>
 </head>
-<body data-duration="8">
+<body data-duration="8" data-music="hush*4" data-outro="6">
 <div class="ad night grain vignette">
   <div class="bg-glow"></div>
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
   <div class="col">
-    <div class="brand" data-in="0.4,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="brand" data-in="-0.3,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
     <h1 class="h1 lift" data-guard="headline">
-      <span class="line" data-in="0.6,slam">גם השבת</span>
-      <span class="line gilt" data-in="1.0,slam">חלק מהתוכנית.</span>
+      <span class="line" data-in="-0.1,slam">גם השבת</span>
+      <span class="line gilt" data-in="0.35,slam">חלק מהתוכנית.</span>
     </h1>
-    <p class="sub" data-guard="sub" data-in="1.5,up">מסמנים ״שבת וחגים״, ו־<bdi>Venuvoy</bdi> לא מתכננת כלום מהדלקת הנרות ועד צאת השבת או החג — לפי השעון של כל עיר.</p>
+    <p class="sub" data-guard="sub" data-in="0.9,up">מסמנים ״שבת וחגים״, ו־<bdi>Venuvoy</bdi> לא מתכננת כלום מהדלקת הנרות ועד צאת השבת או החג — לפי השעון של כל עיר.</p>
   </div>
 
-  <svg class="candles" id="candles" aria-hidden="true" data-in="0.1,fade"></svg>
+  <svg class="candles" id="candles" aria-hidden="true" data-in="-0.5,fade"></svg>
 
   <!-- Real London fixtures from the Venuvoy catalog; Shabbat times from the app's own sunset rule
        (candle lighting = sunset − 18 min, havdalah = sunset + 40 min, London, 20–21.11.2026). -->
-  <div class="sc card" data-guard="card" data-in="2.0,up">
+  <div class="sc card" data-guard="card" data-in="1.5,up">
     <div class="sc-band"><b>לונדון · <span class="ltr">19–25.11</span></b><span class="on"><i data-icon="check" style="width:1em;height:1em;display:inline-block"></i>שבת וחגים שמורים</span></div>
     <div class="sc-body">
       <div class="shab">
@@ -125,8 +125,8 @@
   </div>
 
   <div class="ctas">
-    <span class="cta" data-guard="cta" data-in="4.1,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-    <span class="url" data-in="4.4,fade">VENUVOY.APP</span>
+    <span class="cta" data-guard="cta" data-in="4.0,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+    <span class="url" data-in="4.3,fade">VENUVOY.APP</span>
   </div>
 </div>
 <script>
@@ -182,8 +182,8 @@
   });
 
   // Motion: the rows of the week arrive in order; the flames and their glow flicker the whole time.
-  [...document.querySelectorAll(".sc .tr")].forEach((r, i) => r.setAttribute("data-in", `${(2.35 + i * 0.25).toFixed(2)},row`));
-  const note = document.querySelector(".sc-note"); if (note) note.setAttribute("data-in", "3.8,fade");
+  [...document.querySelectorAll(".sc .tr")].forEach((r, i) => r.setAttribute("data-in", `${(1.85 + i * 0.25).toFixed(2)},row`));
+  const note = document.querySelector(".sc-note"); if (note) note.setAttribute("data-in", "3.3,fade");
   window.onSeek = (t, h) => {
     document.querySelectorAll(".flame").forEach((f, i) => {
       f.style.transformBox = "fill-box"; f.style.transformOrigin = "50% 100%";

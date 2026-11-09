@@ -14,8 +14,6 @@ const SRC = dirname(fileURLToPath(import.meta.url));
 const ADS = join(SRC, "..", "ads");
 const FPS = 30;
 const FORMATS = { story: [1080, 1920], feed: [1080, 1350] };
-/** Where each ad's 8-second slice of the soundtrack starts (all on bar lines, none in the breakdown). */
-const MUSIC_FROM = { "01-kickoff": 4, "02-sentence": 6, "03-alert": 8, "04-trust": 20, "05-shabbat": 22, "06-offer": 24 };
 
 const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--stills");
 const [conceptFilter = "", formatFilter = ""] = pos;
@@ -37,7 +35,7 @@ for (const file of concepts) {
     await page.goto(pathToFileURL(join(SRC, "concepts", file)).href + "#" + fmt, { waitUntil: "load" });
     await page.evaluate(() => window.__ready);
     await page.evaluate(() => window.seek(0));
-    const { dur, cues } = await page.evaluate(() => ({ dur: window.DURATION, cues: window.CUES }));
+    const { dur, cues, music } = await page.evaluate(() => ({ dur: window.DURATION, cues: window.CUES, music: window.MUSIC }));
     if (STILLS) {
       const dir = join(ADS, id, "stills");
       mkdirSync(dir, { recursive: true });
@@ -68,7 +66,7 @@ for (const file of concepts) {
     writeFileSync(cuesPath, JSON.stringify(cues));
     const wav = join(tmp, "music.wav");
     const raw = join(tmp, "raw.wav");
-    run("python3", [join(SRC, "audio", "compose.py"), raw, "--cut", String(MUSIC_FROM[id] ?? 4), String(dur), "--cues", cuesPath, "--sparse"]);
+    run("python3", [join(SRC, "audio", "compose.py"), raw, "--form", music.form, "--dur", String(dur), "--outro", String(music.outro), "--cues", cuesPath, "--sparse"]);
     run("python3", [join(SRC, "audio", "master.py"), raw, wav]);
     const out = join(ADS, id, `${id}_${fmt}_${w}x${h}.mp4`);
     run("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",

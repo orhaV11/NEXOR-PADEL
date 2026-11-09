@@ -76,10 +76,10 @@
   [data-format="story"] .brand { font-size: 29px; }
   [data-format="story"] .eyebrow { font-size: 27px; margin-top: 44px; }
   [data-format="story"] .h1 { font-size: 116px; margin-top: 18px; }
-  [data-format="story"] .ledger { margin-top: 196px; }
+  [data-format="story"] .ledger { margin-top: 160px; }
   [data-format="story"] .stamp { left: calc(var(--u) * 10px); top: calc(var(--u) * 26px); }
-  [data-format="story"] .principles { margin-top: 48px; }
-  [data-format="story"] .foot { margin-top: 52px; font-size: 38px; }
+  [data-format="story"] .principles { margin-top: 30px; }
+  [data-format="story"] .foot { margin-top: 40px; font-size: 38px; }
   [data-format="story"] .url { font-size: 22px; }
 
   /* square 1080×1080 */
@@ -110,18 +110,18 @@
   [data-format="landscape"] .stamp { left: calc(var(--u) * -30px); top: calc(var(--u) * -80px); }
 </style>
 </head>
-<body data-duration="8">
+<body data-duration="8" data-music="hook*2,lift,groove" data-outro="6">
 <div class="ad paper grain vignette">
   <div class="ruled"></div>
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
   <div class="col">
-    <div class="brand" data-in="0.3,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
-    <div class="eyebrow" data-in="0.5,up">איך אנחנו בודקים</div>
+    <div class="brand" data-in="-0.3,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="eyebrow" data-in="-0.2,up">איך אנחנו בודקים</div>
     <h1 class="h1" data-guard="headline">
-      <span class="line" data-in="0.7,slam">אנחנו לא מנחשים.</span>
-      <span class="line green" data-in="1.1,slam">אנחנו בודקים.</span>
+      <span class="line" data-in="-0.1,slam">אנחנו לא מנחשים.</span>
+      <span class="line green" data-in="0.35,slam">אנחנו בודקים.</span>
     </h1>
     <p class="sub" data-only="landscape">ליד כל משחק: מקור, תאריך בדיקה וסטטוס. רק בדיקה אנושית מול האתר הרשמי מסמנת ״מאושר״, והערכות מופיעות תמיד עם ≈.</p>
     <div class="vis-slot"></div>
@@ -131,14 +131,14 @@
       <div><span class="n">3</span><b>הערכות מסומנות</b><span>נסיעה, המרת מטבע ומחיר משוערים מופיעים תמיד עם ≈.</span></div>
     </div>
     <div class="foot">
-      <span class="cta green" data-guard="cta" data-in="4.5,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-      <span class="url" data-in="4.8,fade">VENUVOY.APP</span>
+      <span class="cta green" data-guard="cta" data-in="4.0,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url" data-in="4.3,fade">VENUVOY.APP</span>
     </div>
   </div>
 
   <!-- Real catalog rows (Venuvoy showcase, generated 8.11.2026): status, source host and check date as shipped. -->
   <div class="vis" id="vis">
-    <div class="ledger card" data-guard="ledger" data-in="1.6,up">
+    <div class="ledger card" data-guard="ledger" data-in="0.5,up">
       <div class="lh"><span class="c-main">משחק</span><span class="c-st">סטטוס</span><span class="c-src">מקור ובדיקה</span></div>
       <div class="lr">
         <div class="c-main"><b>באיירן מינכן נגד ריאל בטיס</b><span>ד׳ 27.1 · <span class="ltr">21:00</span> · אליאנץ ארנה</span></div>
@@ -161,15 +161,15 @@
         <div class="c-src"><span class="chip ghost">≈ הערכה</span></div>
       </div>
     </div>
-    <div class="stamp" data-in="3.25,stamp"><span class="s1">נבדק</span><span class="s2">מול המקור</span></div>
+    <div class="stamp" data-in="2.5,stamp"><span class="s1">נבדק</span><span class="s2">מול המקור</span></div>
   </div>
 </div>
 <script>
   if (VV.format !== "landscape") document.querySelector(".vis-slot").replaceWith(document.getElementById("vis"));
   document.getElementById("vis").style.position = VV.format === "landscape" ? "absolute" : "relative";
 
-  [...document.querySelectorAll(".ledger .lr")].forEach((r, i) => r.setAttribute("data-in", `${(2.0 + i * 0.25).toFixed(2)},row`));
-  [...document.querySelectorAll(".principles > div")].forEach((r, i) => r.setAttribute("data-in", `${(3.7 + i * 0.2).toFixed(2)},up`));
+  [...document.querySelectorAll(".ledger .lr")].forEach((r, i) => r.setAttribute("data-in", `${(1.2 + i * 0.25).toFixed(2)},row`));
+  [...document.querySelectorAll(".principles > div")].forEach((r, i) => r.setAttribute("data-in", `${(3.0 + i * 0.2).toFixed(2)},up`));
 </script>
 </body>
 </html>

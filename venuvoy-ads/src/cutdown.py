@@ -48,8 +48,9 @@ def run(cmd):
     subprocess.run([str(c) for c in cmd], check=True)
 
 
-# The hero spot's 15 s cut: picture and its own mix are cut together, every join on the 120 BPM beat grid
-# (0.5 s), so the music keeps its pulse and every effect stays on its frame; 30 ms fades at each join.
+# The hero spot's 15 s cut: the picture is cut with render.py and the sound from the spot's own mix at the same
+# ranges, every join on the 120 BPM beat grid (0.5 s), so the music keeps its pulse and every effect stays on its
+# frame; 30 ms fades at each join.
 ANTHEM_RANGES = [
     (0.0, 4.0, "stadium open and the globe: your team, their stadium, one sentence away"),
     (5.5, 8.0, "the plan arrives and the push-in on the confirmed fixture"),
@@ -70,12 +71,22 @@ def anthem_cut(lang):
         cut = tmp / "cut.mp4"
         run([sys.executable, render_py, tmp / "edl.json", "-o", cut, "--fps", "30", "--no-subtitles", "--no-loudnorm"])
         dur = sum(b - a for a, b, _ in ANTHEM_RANGES)
-        run(["ffmpeg", "-y", "-loglevel", "error", "-i", cut, "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", tmp / "raw.wav"])
+        # The sound is cut sample-exact from the full spot's own track, with the same 30 ms edge fades. render.py's
+        # sound is not used: each of its AAC segments carries encoder priming, and the concat adds it up, so by
+        # the last range its audio lagged the picture by about 0.14 s.
+        chains = "".join(f"[0:a]atrim=start={a}:end={b},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.03,"
+                         f"afade=t=out:st={b - a - 0.03:.3f}:d=0.03[a{i}];" for i, (a, b, _) in enumerate(ANTHEM_RANGES))
+        joins = "".join(f"[a{i}]" for i in range(len(ANTHEM_RANGES)))
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-filter_complex", f"{chains}{joins}concat=n={len(ANTHEM_RANGES)}:v=0:a=1[out]",
+             "-map", "[out]", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", tmp / "raw.wav"])
         run([sys.executable, SRC / "audio" / "master.py", tmp / "raw.wav", tmp / "music.wav"])
-        run(["ffmpeg", "-y", "-loglevel", "error", "-i", cut, "-i", tmp / "music.wav", "-map", "0:v", "-map", "1:a", "-c:v", "copy",
-             "-c:a", "aac", "-b:a", "192k", "-t", dur, "-movflags", "+faststart", out])
+        # render.py's picture starts a little after zero (the same priming); shift it back so frame 0 meets sample 0
+        start = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=start_time", "-of", "csv=p=0", str(cut)],
+                               capture_output=True, text=True, check=True).stdout.strip()
+        run(["ffmpeg", "-y", "-loglevel", "error", "-itsoffset", f"-{float(start or 0):.6f}", "-i", cut, "-i", tmp / "music.wav", "-map", "0:v", "-map", "1:a",
+             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", dur, "-movflags", "+faststart", out])
         run(["ffmpeg", "-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
-             "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", str(out).replace("_9x16_1080x1920", "_4x5_1080x1350")])
+             "-pix_fmt", "yuv420p", "-c:a", "copy", "-t", dur, "-movflags", "+faststart", str(out).replace("_9x16_1080x1920", "_4x5_1080x1350")])
     print(f"cutdown: {out} (+ 4:5)")
 
 

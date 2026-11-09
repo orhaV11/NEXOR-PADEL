@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · התכנון בחינם</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="../ui.css" />
+<script src="../brand.js"></script>
+<style>
+  .ad { --seal-bg: #3a0c15; }
+  .col { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .eyebrow { color: var(--gilt-hi); }
+  .price { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.12em; line-height: 0.82; direction: ltr; }
+  .price .cur { font-family: "Assistant"; font-weight: 300; font-size: 0.34em; align-self: flex-start; margin-top: 0.2em; margin-right: 0.04em; }
+  .price .zero { font-family: "Playfair", serif; font-weight: 600; font-feature-settings: "lnum" 1; }
+  .price .rule { position: absolute; top: 50%; width: 0.55em; height: 0.035em; border-top: 0.012em solid rgba(230, 207, 152, 0.7); border-bottom: 0.012em solid rgba(230, 207, 152, 0.45); }
+  .price .rule.l { right: calc(100% + 0.3em); }
+  .price .rule.r { left: calc(100% + 0.3em); }
+  .offer-line { font-family: var(--f-he-display); font-weight: 700; color: var(--paper); line-height: 1.1; }
+  .sub { color: rgba(243, 236, 220, 0.84); }
+
+  /* tariff card: a club price list */
+  .tariff { width: calc(var(--u) * 860px); text-align: right; background: var(--ivory); color: var(--ink); border-radius: 3px;
+            box-shadow: 0 0 0 1px rgba(205, 174, 114, 0.7), 0 0 0 calc(var(--u) * 8px) rgba(243, 236, 220, 0.06), 0 40px 70px -30px rgba(0, 0, 0, 0.75); }
+  .tariff-h { display: flex; align-items: baseline; justify-content: space-between; padding: calc(var(--u) * 20px) calc(var(--u) * 30px) calc(var(--u) * 14px); border-bottom: calc(var(--u) * 4px) double var(--rule); }
+  .tariff-h b { font-family: var(--f-he-display); font-weight: 700; font-size: calc(var(--u) * 32px); color: var(--ox-700); }
+  .tariff-h span { font-family: var(--f-text); font-weight: 700; font-size: calc(var(--u) * 19px); color: var(--brass-ink); }
+  .trow { display: flex; align-items: baseline; gap: calc(var(--u) * 14px); padding: calc(var(--u) * 16px) calc(var(--u) * 30px); border-bottom: 1px solid var(--hairline); }
+  .trow .nm { flex: none; font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 27px); color: var(--ink); }
+  .trow .ds { display: block; font-family: var(--f-text); font-weight: 500; font-size: calc(var(--u) * 19px); color: var(--ink-soft); margin-top: calc(var(--u) * 3px); }
+  .trow .lead { flex: 1; align-self: flex-end; margin-bottom: calc(var(--u) * 9px); border-bottom: calc(var(--u) * 2.5px) dotted rgba(126, 97, 39, 0.45); min-width: calc(var(--u) * 30px); }
+  .trow .pr { flex: none; font-family: "Playfair", "FRL", serif; font-weight: 700; font-size: calc(var(--u) * 34px); color: var(--ink); font-feature-settings: "lnum" 1; direction: ltr; }
+  .trow .pr.free { font-family: var(--f-he-display); color: var(--ok); }
+  .trow.best { background: linear-gradient(90deg, rgba(205, 174, 114, 0.1), rgba(205, 174, 114, 0.22)); }
+  .tag { display: inline-block; vertical-align: middle; margin-right: calc(var(--u) * 10px); font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 15px); color: var(--paper); background: var(--ox-700); padding: calc(var(--u) * 4px) calc(var(--u) * 8px); border-radius: 2px; }
+  .tariff-f { padding: calc(var(--u) * 14px) calc(var(--u) * 30px) calc(var(--u) * 18px); font-family: var(--f-text); font-weight: 600; font-size: calc(var(--u) * 18px); color: var(--ink-soft); }
+  .tariff-f b { color: var(--ink); font-weight: 800; }
+  .ctas { display: flex; align-items: center; justify-content: center; gap: 26px; }
+
+  /* feed 1080×1350 */
+  [data-format="feed"] .ad { --u: 0.92; }
+  [data-format="feed"] .col { padding-top: 72px; }
+  [data-format="feed"] .brand { font-size: 26px; }
+  [data-format="feed"] .eyebrow { font-size: 25px; margin-top: 36px; }
+  [data-format="feed"] .price { font-size: 300px; margin-top: 18px; }
+  [data-format="feed"] .offer-line { font-size: 70px; margin-top: 10px; }
+  [data-format="feed"] .sub { display: none; }
+  [data-format="feed"] .tariff { margin-top: 40px; }
+  [data-format="feed"] .ctas { margin-top: 38px; font-size: 33px; }
+  [data-format="feed"] .ctas .url { font-size: 20px; }
+
+  /* story 1080×1920 */
+  [data-format="story"] .ad { --u: 1; }
+  [data-format="story"] .col { padding-top: 262px; }
+  [data-format="story"] .brand { font-size: 30px; }
+  [data-format="story"] .eyebrow { font-size: 28px; margin-top: 44px; }
+  [data-format="story"] .price { font-size: 360px; margin-top: 24px; }
+  [data-format="story"] .offer-line { font-size: 84px; margin-top: 12px; }
+  [data-format="story"] .sub { font-size: 32px; max-width: 880px; margin-top: 22px; }
+  [data-format="story"] .tariff { margin-top: 46px; }
+  [data-format="story"] .ctas { margin-top: 46px; font-size: 38px; flex-direction: column; gap: 22px; }
+  [data-format="story"] .ctas .url { font-size: 22px; }
+
+  /* square 1080×1080 */
+  [data-format="square"] .ad { --u: 0.82; }
+  [data-format="square"] .col { padding-top: 60px; }
+  [data-format="square"] .brand { font-size: 23px; }
+  [data-format="square"] .eyebrow { display: none; }
+  [data-format="square"] .price { font-size: 230px; margin-top: 30px; }
+  [data-format="square"] .offer-line { font-size: 60px; margin-top: 8px; }
+  [data-format="square"] .sub { display: none; }
+  [data-format="square"] .tariff { margin-top: 34px; }
+  [data-format="square"] .trow .ds { display: none; }
+  [data-format="square"] .tariff-f { display: none; }
+  [data-format="square"] .ctas { margin-top: 32px; font-size: 30px; }
+  [data-format="square"] .ctas .url { font-size: 18px; }
+
+  /* landscape 1200×628 */
+  [data-format="landscape"] .ad { --u: 0.56; }
+  [data-format="landscape"] .col { inset: 0 64px 0 auto; width: 520px; align-items: flex-start; text-align: right; padding-top: 54px; }
+  [data-format="landscape"] .brand { font-size: 18px; }
+  [data-format="landscape"] .eyebrow { font-size: 16px; margin-top: 26px; }
+  [data-format="landscape"] .eyebrow::after { display: none; }
+  [data-format="landscape"] .price { font-size: 170px; margin-top: 14px; }
+  [data-format="landscape"] .price .rule { display: none; }
+  [data-format="landscape"] .offer-line { font-size: 44px; margin-top: 6px; }
+  [data-format="landscape"] .sub { font-size: 19px; margin-top: 12px; max-width: 480px; }
+  [data-format="landscape"] .ctas { margin-top: 24px; font-size: 22px; gap: 20px; }
+  [data-format="landscape"] .ctas .url { font-size: 14px; }
+  [data-format="landscape"] .vis { position: absolute; z-index: 10; left: 64px; top: 50%; transform: translateY(-50%); }
+  [data-format="landscape"] .trow .ds { display: none; }
+</style>
+</head>
+<body>
+<div class="ad oxblood grain vignette">
+  <div class="frame"></div>
+  <i class="seal s-top"></i><i class="seal s-bottom"></i>
+
+  <div class="col">
+    <div class="brand"><i class="crest" data-variant="ox"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="eyebrow">בלי מנוי · חד־פעמי, לכל טיול</div>
+    <div class="price gilt-wrap lift">
+      <span class="rule l"></span>
+      <span class="cur gilt">₪</span><span class="zero gilt">0</span>
+      <span class="rule r"></span>
+    </div>
+    <div class="offer-line" data-guard="headline">לתכנן טיול ספורט שלם.</div>
+    <p class="sub" data-guard="sub"><span class="ltr">2–3</span> תוכניות עם מסלול, מפה, עלויות ומקורות — בחינם. משלמים רק כשרוצים לערוך, לקבל מדריכי כרטיסים ומעקב, פעם אחת לטיול.</p>
+    <div class="vis-slot"></div>
+    <div class="ctas">
+      <span class="cta gilt-fill" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url">VENUVOY.APP</span>
+    </div>
+  </div>
+
+  <!-- Prices from the app's price book (src/features/pricing/priceBook.ts, ILS). -->
+  <div class="vis" id="vis">
+    <div class="tariff" data-guard="tariff">
+      <div class="tariff-h"><b>המחירון</b><span>תשלום חד־פעמי לטיול</span></div>
+      <div class="trow"><div class="nm">תכנון<span class="ds"><span class="ltr">2–3</span> תוכניות, מסלול, מפה, עלויות ומקורות</span></div><span class="lead"></span><span class="pr free">חינם</span></div>
+      <div class="trow"><div class="nm">פתיחת התוכנית<span class="ds">עריכה, מדריכי כרטיסים, צ׳קליסט וייצוא</span></div><span class="lead"></span><span class="pr">₪49</span></div>
+      <div class="trow"><div class="nm">מעקב<span class="ds">התראות על שינויים עם חלופות, עד יום אחרי הטיול</span></div><span class="lead"></span><span class="pr">₪99</span></div>
+      <div class="trow best"><div class="nm">חבילה<span class="tag">מומלץ</span><span class="ds">פתיחה ומעקב יחד, במחיר נמוך יותר</span></div><span class="lead"></span><span class="pr">₪129</span></div>
+      <div class="tariff-f"><b>לא מנוי.</b> <bdi>Venuvoy</bdi> לא מוכרת כרטיסים: הרכישה אצל הגופים הרשמיים.</div>
+    </div>
+  </div>
+</div>
+<script>
+  if (VV.format !== "landscape") document.querySelector(".vis-slot").replaceWith(document.getElementById("vis"));
+</script>
+</body>
+</html>

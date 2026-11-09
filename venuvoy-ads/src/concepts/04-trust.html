@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · אנחנו לא מנחשים</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="../ui.css" />
+<script src="../brand.js"></script>
+<style>
+  .ad { --seal-bg: #f3ecdf; }
+  .ruled { position: absolute; inset: 0; z-index: 1;
+    background-image: repeating-linear-gradient(180deg, transparent 0 55px, rgba(126, 97, 39, 0.075) 55px 56px); }
+  .margin { position: absolute; z-index: 2; top: 0; bottom: 0; width: 7px; border-left: 1.5px solid rgba(111, 29, 41, 0.3); border-right: 1.5px solid rgba(111, 29, 41, 0.3); }
+  .col { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+  .brand .wordmark { color: var(--g-700); }
+  .h1 { color: var(--ink); text-align: center; }
+  .h1 .green { color: var(--g-600); }
+
+  /* the ledger */
+  .ledger { position: relative; width: calc(var(--u) * 900px); text-align: right; }
+  .lh { display: flex; gap: calc(var(--u) * 18px); padding: calc(var(--u) * 16px) calc(var(--u) * 28px) calc(var(--u) * 12px);
+        font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 17px); color: var(--brass-ink); letter-spacing: 0.02em;
+        border-bottom: calc(var(--u) * 4px) double var(--rule); background: var(--parchment); }
+  .lr { display: flex; align-items: center; gap: calc(var(--u) * 18px); padding: calc(var(--u) * 18px) calc(var(--u) * 28px); border-bottom: 1px solid var(--hairline); }
+  .lr:last-child { border-bottom: 0; }
+  .c-main { flex: 1; min-width: 0; }
+  .c-st { flex: none; width: calc(var(--u) * 190px); }
+  .c-src { flex: none; width: calc(var(--u) * 200px); text-align: left; direction: rtl; }
+  .lr .c-main b { display: block; font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 27px); line-height: 1.2; color: var(--ink); white-space: nowrap; }
+  .lr .c-main > span { display: block; margin-top: calc(var(--u) * 4px); font-family: var(--f-text); font-weight: 500; font-size: calc(var(--u) * 20px); color: var(--ink-soft); white-space: nowrap; }
+  .lr .chip { font-size: calc(var(--u) * 19px); }
+  .chip .ring-mark { width: 0.6em; height: 0.6em; border-radius: 50%; border: 0.14em solid currentColor; flex: none; }
+  .host { display: block; font-family: "Playfair", serif; font-style: italic; font-weight: 500; font-size: calc(var(--u) * 20px); color: var(--info); direction: ltr; text-align: left; }
+  .chk { display: block; margin-top: calc(var(--u) * 3px); font-family: var(--f-text); font-weight: 700; font-size: calc(var(--u) * 17px); color: var(--ink-soft); text-align: left; }
+  .est-v { font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 26px); color: var(--ink); }
+
+  .stamp {
+    position: absolute; z-index: 30;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ox-600);
+    border: calc(var(--u) * 5px) solid currentColor; border-radius: calc(var(--u) * 10px);
+    box-shadow: inset 0 0 0 calc(var(--u) * 4px) #fbf8f1, inset 0 0 0 calc(var(--u) * 6px) currentColor;
+    padding: calc(var(--u) * 16px) calc(var(--u) * 26px) calc(var(--u) * 14px);
+    transform: rotate(-11deg);
+    mix-blend-mode: multiply; opacity: 0.86;
+    background: rgba(138, 35, 49, 0.035);
+  }
+  .stamp::after { content: ""; position: absolute; inset: calc(var(--u) * -8px); background-image: url(../assets/speckle.png); background-size: 180px 180px; pointer-events: none; }
+  .stamp .s1 { font-family: "FRL"; font-weight: 900; font-size: calc(var(--u) * 58px); line-height: 1; }
+  .stamp .s2 { font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 19px); margin-top: calc(var(--u) * 6px); letter-spacing: 0.04em; }
+
+  .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 26px); width: calc(var(--u) * 900px); text-align: right; }
+  .principles .n { font-family: "Playfair", serif; font-style: italic; font-weight: 600; color: var(--brass); font-size: calc(var(--u) * 40px); line-height: 1; }
+  .principles b { display: block; margin-top: calc(var(--u) * 6px); font-family: var(--f-he-display); font-weight: 700; font-size: calc(var(--u) * 28px); color: var(--g-700); }
+  .principles span { display: block; margin-top: calc(var(--u) * 6px); font-family: var(--f-text); font-weight: 500; font-size: calc(var(--u) * 21px); line-height: 1.35; color: var(--ink-soft); }
+  .foot { display: flex; align-items: center; gap: 28px; }
+
+  /* feed 1080×1350 */
+  [data-format="feed"] .ad { --u: 0.94; }
+  [data-format="feed"] .margin { right: 70px; }
+  [data-format="feed"] .col { padding-top: 76px; }
+  [data-format="feed"] .brand { font-size: 27px; }
+  [data-format="feed"] .eyebrow { font-size: 25px; margin-top: 40px; }
+  [data-format="feed"] .h1 { font-size: 104px; margin-top: 14px; }
+  [data-format="feed"] .ledger { margin-top: 48px; }
+  [data-format="feed"] .stamp { left: calc(var(--u) * -40px); top: calc(var(--u) * -70px); }
+  [data-format="feed"] .principles { margin-top: 44px; }
+  [data-format="feed"] .foot { margin-top: 44px; font-size: 34px; }
+  [data-format="feed"] .url { font-size: 21px; }
+
+  /* story 1080×1920 */
+  [data-format="story"] .ad { --u: 0.96; }
+  [data-format="story"] .margin { right: 70px; }
+  [data-format="story"] .col { padding-top: 260px; }
+  [data-format="story"] .brand { font-size: 29px; }
+  [data-format="story"] .eyebrow { font-size: 27px; margin-top: 44px; }
+  [data-format="story"] .h1 { font-size: 116px; margin-top: 18px; }
+  [data-format="story"] .ledger { margin-top: 196px; }
+  [data-format="story"] .stamp { left: calc(var(--u) * 10px); top: calc(var(--u) * 26px); }
+  [data-format="story"] .principles { margin-top: 48px; }
+  [data-format="story"] .foot { margin-top: 52px; font-size: 38px; }
+  [data-format="story"] .url { font-size: 22px; }
+
+  /* square 1080×1080 */
+  [data-format="square"] .ad { --u: 0.8; }
+  [data-format="square"] .margin { right: 64px; }
+  [data-format="square"] .col { padding-top: 60px; }
+  [data-format="square"] .brand { font-size: 23px; }
+  [data-format="square"] .eyebrow { display: none; }
+  [data-format="square"] .h1 { font-size: 92px; margin-top: 26px; }
+  [data-format="square"] .ledger { margin-top: 40px; }
+  [data-format="square"] .lr.est { display: none; }
+  [data-format="square"] .stamp { left: calc(var(--u) * -150px); top: calc(var(--u) * -50px); }
+  [data-format="square"] .foot { margin-top: 38px; font-size: 30px; }
+  [data-format="square"] .url { font-size: 18px; }
+
+  /* landscape 1200×628 */
+  [data-format="landscape"] .ad { --u: 0.52; }
+  [data-format="landscape"] .margin { right: 40px; }
+  [data-format="landscape"] .col { inset: 0 70px 0 auto; width: 500px; align-items: flex-start; padding-top: 56px; }
+  [data-format="landscape"] .brand { font-size: 18px; }
+  [data-format="landscape"] .eyebrow { font-size: 16px; margin-top: 28px; }
+  [data-format="landscape"] .eyebrow::after { display: none; }
+  [data-format="landscape"] .h1 { font-size: 64px; margin-top: 10px; text-align: right; }
+  [data-format="landscape"] .sub { font-size: 20px; margin-top: 14px; max-width: 480px; }
+  [data-format="landscape"] .foot { margin-top: 28px; font-size: 22px; gap: 20px; }
+  [data-format="landscape"] .url { font-size: 14px; }
+  [data-format="landscape"] .vis { position: absolute; z-index: 10; left: 60px; top: 50%; transform: translateY(-46%); }
+  [data-format="landscape"] .stamp { left: calc(var(--u) * -30px); top: calc(var(--u) * -80px); }
+</style>
+</head>
+<body>
+<div class="ad paper grain vignette">
+  <div class="ruled"></div>
+  <div class="frame"></div>
+  <i class="seal s-top"></i><i class="seal s-bottom"></i>
+
+  <div class="col">
+    <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="eyebrow">איך אנחנו בודקים</div>
+    <h1 class="h1" data-guard="headline">
+      <span class="line">אנחנו לא מנחשים.</span>
+      <span class="line green">אנחנו בודקים.</span>
+    </h1>
+    <p class="sub" data-only="landscape">ליד כל משחק: מקור, תאריך בדיקה וסטטוס. רק בדיקה אנושית מול האתר הרשמי מסמנת ״מאושר״, והערכות מופיעות תמיד עם ≈.</p>
+    <div class="vis-slot"></div>
+    <div class="principles" data-only="story feed">
+      <div><span class="n">1</span><b>מקור לכל שורה</b><span>כל משחק ומחיר נכנסים עם קישור למקור ותאריך בדיקה.</span></div>
+      <div><span class="n">2</span><b>אדם מאשר</b><span>רק בדיקה אנושית מול האתר הרשמי מעלה שורה ל״מאושר״.</span></div>
+      <div><span class="n">3</span><b>הערכות מסומנות</b><span>נסיעה, המרת מטבע ומחיר משוערים מופיעים תמיד עם ≈.</span></div>
+    </div>
+    <div class="foot">
+      <span class="cta green" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url">VENUVOY.APP</span>
+    </div>
+  </div>
+
+  <!-- Real catalog rows (Venuvoy showcase, generated 8.11.2026): status, source host and check date as shipped. -->
+  <div class="vis" id="vis">
+    <div class="ledger card" data-guard="ledger">
+      <div class="lh"><span class="c-main">משחק</span><span class="c-st">סטטוס</span><span class="c-src">מקור ובדיקה</span></div>
+      <div class="lr">
+        <div class="c-main"><b>באיירן מינכן נגד ריאל בטיס</b><span>ד׳ 27.1 · <span class="ltr">21:00</span> · אליאנץ ארנה</span></div>
+        <div class="c-st"><span class="chip ok"><i class="dot"></i>מאושר</span></div>
+        <div class="c-src"><span class="host">uefa.com</span><span class="chk">נבדק 24.10</span></div>
+      </div>
+      <div class="lr">
+        <div class="c-main"><b>באיירן מינכן נגד שאלקה</b><span>ש׳ 30.1 · <span class="ltr">18:30</span> · אליאנץ ארנה</span></div>
+        <div class="c-st"><span class="chip warn"><i class="ring-mark"></i>עשוי להשתנות</span></div>
+        <div class="c-src"><span class="host">fcbayern.com</span><span class="chk">נבדק 10.10</span></div>
+      </div>
+      <div class="lr">
+        <div class="c-main"><b>מנצ׳סטר סיטי נגד מנצ׳סטר יונייטד</b><span>ש׳ 20.3 · <span class="ltr">15:00</span> · אצטדיון האתיחאד</span></div>
+        <div class="c-st"><span class="chip warn"><i class="dot"></i>זמני</span></div>
+        <div class="c-src"><span class="host">premierleague.com</span><span class="chk">נבדק 10.10</span></div>
+      </div>
+      <div class="lr est">
+        <div class="c-main"><b>כרטיס לדרבי של מנצ׳סטר</b><span>טווח מחירים לפי המקור</span></div>
+        <div class="c-st"><span class="est-v ltr">≈ £40–120</span></div>
+        <div class="c-src"><span class="chip ghost">≈ הערכה</span></div>
+      </div>
+    </div>
+    <div class="stamp"><span class="s1">נבדק</span><span class="s2">מול המקור</span></div>
+  </div>
+</div>
+<script>
+  if (VV.format !== "landscape") document.querySelector(".vis-slot").replaceWith(document.getElementById("vis"));
+  document.getElementById("vis").style.position = VV.format === "landscape" ? "absolute" : "relative";
+</script>
+</body>
+</html>

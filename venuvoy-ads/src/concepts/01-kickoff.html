@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · קודם המשחק</title>
+<link rel="stylesheet" href="../brand.css" />
+<script src="../brand.js"></script>
+<script src="../stadium.js"></script>
+<style>
+  .ad { --seal-bg: #0b1c14; }
+  .stage { position: absolute; inset: 0; z-index: 1; }
+  .top { position: absolute; z-index: 10; left: 0; right: 0; display: flex; justify-content: center; }
+  .copy { position: absolute; z-index: 10; left: 0; right: 0; text-align: center; padding: 0 96px; }
+  .copy .eyebrow { margin-bottom: 0.9em; }
+  .copy .sub { margin: 0.75em auto 0; }
+  .foot { position: absolute; z-index: 10; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 0.9em; }
+  .sports { color: rgba(230, 207, 152, 0.8); font-weight: 600; letter-spacing: 0.01em; }
+  .sports span + span::before { content: "·"; margin: 0 0.55em; opacity: 0.6; }
+
+  /* feed 1080×1350 */
+  [data-format="feed"] .top { top: 84px; font-size: 30px; }
+  [data-format="feed"] .copy { top: 214px; }
+  [data-format="feed"] .eyebrow { font-size: 27px; }
+  [data-format="feed"] .h1 { font-size: 128px; }
+  [data-format="feed"] .sub { font-size: 33px; max-width: 840px; }
+  [data-format="feed"] .foot { top: 1132px; font-size: 38px; }
+  [data-format="feed"] .url { font-size: 23px; }
+
+  /* story 1080×1920 (UI-safe area ~270–1580) */
+  [data-format="story"] .top { top: 300px; font-size: 34px; }
+  [data-format="story"] .copy { top: 448px; }
+  [data-format="story"] .eyebrow { font-size: 31px; }
+  [data-format="story"] .h1 { font-size: 142px; }
+  [data-format="story"] .sub { font-size: 38px; max-width: 860px; }
+  [data-format="story"] .foot { top: 1452px; font-size: 42px; }
+  [data-format="story"] .url { font-size: 25px; }
+  [data-format="story"] .sports { font-size: 27px; }
+
+  /* square 1080×1080 */
+  [data-format="square"] .top { top: 70px; font-size: 26px; }
+  [data-format="square"] .copy { top: 166px; }
+  [data-format="square"] .eyebrow { font-size: 24px; margin-bottom: 0.7em; }
+  [data-format="square"] .h1 { font-size: 106px; }
+  [data-format="square"] .sub { font-size: 29px; max-width: 800px; }
+  [data-format="square"] .foot { top: 900px; font-size: 34px; gap: 0.7em; }
+  [data-format="square"] .url { font-size: 20px; }
+
+  /* landscape 1200×628 */
+  [data-format="landscape"] .shade { position: absolute; inset: 0; z-index: 5;
+    background: linear-gradient(270deg, rgba(6,19,13,.97) 0%, rgba(6,19,13,.92) 38%, rgba(6,19,13,.5) 50%, rgba(6,19,13,0) 60%); }
+  [data-format="landscape"] .top { top: 54px; right: 70px; left: auto; font-size: 19px; }
+  [data-format="landscape"] .copy { top: 112px; right: 70px; left: auto; width: 540px; padding: 0; text-align: right; }
+  [data-format="landscape"] .eyebrow { font-size: 17px; margin-bottom: 0.7em; }
+  [data-format="landscape"] .eyebrow::after { display: none; }
+  [data-format="landscape"] .eyebrow::before { width: 1.6em; }
+  [data-format="landscape"] .h1 { font-size: 66px; }
+  [data-format="landscape"] .sub { font-size: 20px; margin-top: 0.8em; max-width: 520px; margin-right: 0; }
+  [data-format="landscape"] .foot { top: 470px; right: 70px; left: auto; align-items: flex-start; flex-direction: row; gap: 22px; font-size: 22px; }
+  [data-format="landscape"] .foot .url { align-self: center; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="ad leather grain vignette">
+  <div class="stage" id="stage"></div>
+  <div class="shade" data-only="landscape"></div>
+  <div class="frame"></div>
+  <i class="seal s-top"></i><i class="seal s-bottom"></i>
+
+  <div class="top"><div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div></div>
+
+  <div class="copy">
+    <div class="eyebrow">מתכנן טיולי ספורט</div>
+    <h1 class="h1 lift" data-guard="headline">
+      <span class="line">קודם המשחק.</span>
+      <span class="line gilt">אחר כך הטיסה.</span>
+    </h1>
+    <p class="sub" data-guard="sub">
+      בוחרים יעד ותאריכים, ו־<bdi>Venuvoy</bdi> בונה <span class="ltr">2–3</span> תוכניות טיול סביב משחקים אמיתיים — עם נסיעות, עלויות משוערות ומקור לכל משחק.
+    </p>
+  </div>
+
+  <div class="foot">
+    <div class="sports" data-only="story"><span>כדורגל</span><span>כדורסל</span><span>טניס</span><span>גולף</span><span>מוטוספורט</span><span>ראגבי</span></div>
+    <span class="cta" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+    <span class="url">VENUVOY.APP</span>
+  </div>
+</div>
+<script>
+  const F = VV.format;
+  const P = {
+    feed: { W: 1080, H: 1350, farY: 820, nearY: 2050, farHalf: 230, nearHalf: 1400, standH: 92,
+      banks: [{ x: 150, y: 118, s: 0.86, dir: 1, beam: [[-0.75, 0.18], [0.3, 0.86]] }, { x: 930, y: 118, s: 0.86, dir: -1, beam: [[0.75, 0.18], [-0.3, 0.86]] }] },
+    story: { W: 1080, H: 1920, farY: 1130, nearY: 2800, farHalf: 250, nearHalf: 1650, standH: 110,
+      banks: [{ x: 150, y: 210, s: 0.95, dir: 1, beam: [[-0.75, 0.15], [0.3, 0.86]] }, { x: 930, y: 210, s: 0.95, dir: -1, beam: [[0.75, 0.15], [-0.3, 0.86]] }] },
+    square: { W: 1080, H: 1080, farY: 655, nearY: 1640, farHalf: 215, nearHalf: 1300, standH: 78,
+      banks: [{ x: 128, y: 100, s: 0.7, dir: 1, beam: [[-0.75, 0.18], [0.3, 0.86]] }, { x: 952, y: 100, s: 0.7, dir: -1, beam: [[0.75, 0.18], [-0.3, 0.86]] }] },
+    landscape: { W: 1200, H: 628, cx: 300, farY: 290, nearY: 1000, farHalf: 120, nearHalf: 760, standH: 54, pinScale: 0.62,
+      banks: [{ x: 66, y: 70, s: 0.5, dir: 1, beam: [[-0.8, 0.2], [0.3, 0.85]] }, { x: 534, y: 70, s: 0.5, dir: -1, beam: [[0.8, 0.2], [-0.3, 0.85]] }] },
+  }[F];
+  document.getElementById("stage").innerHTML = VVStadium.stadium({ ...P, id: "k" });
+</script>
+</body>
+</html>

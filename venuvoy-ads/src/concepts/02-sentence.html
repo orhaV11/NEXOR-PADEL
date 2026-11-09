@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · משפט אחד, טיול שלם</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="../ui.css" />
+<script src="../brand.js"></script>
+<style>
+  .ad { --seal-bg: #f3ecdf; }
+  .col { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+  .brand .wordmark { color: var(--g-700); }
+  .h1 { color: var(--ink); text-align: center; }
+  .h1 .green { color: var(--g-600); position: relative; display: inline-block; }
+  .swash { position: absolute; left: -2%; right: -2%; bottom: -0.16em; height: 0.24em; width: 104%; }
+  .sub { text-align: center; }
+  .vis { display: flex; flex-direction: column; align-items: center; }
+  .connector { width: 2px; background: repeating-linear-gradient(180deg, var(--brass) 0 6px, transparent 6px 13px); }
+  .foot { display: flex; align-items: center; gap: 28px; }
+  .watermark { position: absolute; z-index: 2; font-family: "FRL"; font-weight: 900; color: rgba(126, 97, 39, 0.07); line-height: 1; }
+
+  /* feed 1080×1350 */
+  [data-format="feed"] .ad { --u: 0.94; }
+  [data-format="feed"] .col { padding: 78px 0 0; }
+  [data-format="feed"] .brand { font-size: 28px; }
+  [data-format="feed"] .h1 { font-size: 112px; margin-top: 34px; }
+  [data-format="feed"] .intake { margin-top: 40px; }
+  [data-format="feed"] .connector { height: 26px; }
+  [data-format="feed"] .foot { margin-top: 30px; font-size: 34px; }
+  [data-format="feed"] .url { font-size: 21px; }
+  [data-format="feed"] .watermark { font-size: 900px; top: 240px; left: -60px; }
+
+  /* story 1080×1920 */
+  [data-format="story"] .ad { --u: 0.96; }
+  [data-format="story"] .col { padding: 250px 0 0; }
+  [data-format="story"] .brand { font-size: 30px; }
+  [data-format="story"] .h1 { font-size: 124px; margin-top: 40px; }
+  [data-format="story"] .sub { font-size: 34px; max-width: 860px; margin-top: 22px; }
+  [data-format="story"] .intake { margin-top: 44px; }
+  [data-format="story"] .connector { height: 34px; }
+  [data-format="story"] .foot { margin-top: 40px; font-size: 38px; }
+  [data-format="story"] .url { font-size: 22px; }
+  [data-format="story"] .watermark { font-size: 1200px; top: 420px; left: -90px; }
+
+  /* square 1080×1080 */
+  [data-format="square"] .ad { --u: 0.76; }
+  [data-format="square"] .col { padding: 60px 0 0; }
+  [data-format="square"] .brand { font-size: 23px; }
+  [data-format="square"] .h1 { font-size: 92px; margin-top: 24px; }
+  [data-format="square"] .intake { margin-top: 30px; }
+  [data-format="square"] .connector { height: 18px; }
+  [data-format="square"] .foot { margin-top: 26px; font-size: 30px; }
+  [data-format="square"] .url { font-size: 18px; }
+  [data-format="square"] .rows li:nth-child(2) { display: none; }
+  [data-format="square"] .watermark { font-size: 760px; top: 180px; left: -40px; }
+
+  /* landscape 1200×628 */
+  [data-format="landscape"] .ad { --u: 0.5; }
+  [data-format="landscape"] .col { inset: 0 64px 0 auto; width: 520px; align-items: flex-start; padding-top: 54px; }
+  [data-format="landscape"] .brand { font-size: 18px; }
+  [data-format="landscape"] .h1 { font-size: 66px; margin-top: 26px; text-align: right; }
+  [data-format="landscape"] .sub { font-size: 20px; margin-top: 16px; text-align: right; max-width: 500px; }
+  [data-format="landscape"] .foot { margin-top: 30px; font-size: 22px; gap: 20px; }
+  [data-format="landscape"] .url { font-size: 14px; }
+  [data-format="landscape"] .vis { position: absolute; z-index: 10; left: 58px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; }
+  [data-format="landscape"] .vis .connector { height: 14px; }
+  [data-format="landscape"] .watermark { font-size: 640px; top: 40px; left: 560px; }
+</style>
+</head>
+<body>
+<div class="ad paper grain vignette">
+  <div class="frame"></div>
+  <i class="seal s-top"></i><i class="seal s-bottom"></i>
+
+  <div class="col">
+    <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <h1 class="h1" data-guard="headline">
+      <span class="line">משפט אחד.</span>
+      <span class="line"><span class="green">טיול שלם.<svg class="swash" viewBox="0 0 400 24" preserveAspectRatio="none"><path d="M4 16C80 6 170 4 250 8S360 18 396 10" fill="none" stroke="#b8955a" stroke-width="5" stroke-linecap="round"/></svg></span></span>
+    </h1>
+    <p class="sub" data-only="story landscape" data-guard="sub">
+      כותבים מה בא לכם, ו־<bdi>Venuvoy</bdi> מוצאת את המשחקים בתאריכים שלכם ובונה <span class="ltr">2–3</span> תוכניות שונות באמת.
+    </p>
+
+    <div class="vis-slot"></div>
+
+    <div class="foot" data-only="feed story square">
+      <span class="cta green" data-guard="cta">לנסות בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url">VENUVOY.APP</span>
+    </div>
+    <div class="foot" data-only="landscape">
+      <span class="cta green">לנסות בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url">VENUVOY.APP</span>
+    </div>
+  </div>
+
+  <!-- The product, as it looks: sentence in, a real engine plan out (Venuvoy showcase, generated 8.11.2026). -->
+  <div class="vis" id="vis">
+    <div class="intake card" data-guard="intake">
+      <div class="intake-label">הטיול שלכם במשפט אחד</div>
+      <div class="intake-field">מילאנו וטורינו באמצע פברואר, הדרבי ויובנטוס<i class="caret"></i></div>
+      <div class="intake-foot">
+        <div class="understood" data-only="story">
+          <span class="u-label">מה שזיהינו:</span>
+          <span class="chip">מילאנו · טורינו</span>
+          <span class="chip"><span class="ltr">12–22.2</span></span>
+          <span class="chip">כדורגל</span>
+        </div>
+        <span class="btn" style="margin-right:auto">מה יש בתאריכים שלי <i class="i-arrow" data-icon="arrow"></i></span>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="plan card" data-guard="plan">
+      <div class="plan-band">
+        <div class="tabs"><span class="tab on">המשחקים הגדולים</span><span class="tab">מאוזן</span><span class="tab">בקצב רגוע</span></div>
+        <span class="count">3 גרסאות</span>
+      </div>
+      <div class="plan-body">
+        <div class="plan-head">
+          <div>
+            <div class="plan-title">מילאנו וטורינו: הדרבי ויובנטוס</div>
+            <div class="plan-meta"><span>11 ימים</span><span>2 ערים</span><span>2 משחקים</span></div>
+          </div>
+          <div class="scores">
+            <div class="ring" data-v="76" data-c="#1e4d38"><span class="lbl">ישימות</span></div>
+            <div class="ring" data-v="86" data-c="#8a6a2e"><span class="lbl">התאמה</span></div>
+          </div>
+        </div>
+        <ol class="rows">
+          <li>
+            <span class="day"><span class="wd">א׳</span><span class="dt">14.2</span></span>
+            <div class="what"><b>אינטר נגד מילאן</b><span>סן סירו · <span class="ltr">15:00</span></span></div>
+            <span class="chip warn"><i class="dot"></i>זמני</span>
+          </li>
+          <li>
+            <span class="day"><span class="wd">ד׳</span><span class="dt">17.2</span></span>
+            <div class="what"><b>מילאנו ← טורינו</b><span>רכבת · 50 דק׳</span></div>
+            <i class="leg-ico" data-icon="train"></i>
+          </li>
+          <li>
+            <span class="day"><span class="wd">א׳</span><span class="dt">21.2</span></span>
+            <div class="what"><b>יובנטוס נגד בולוניה</b><span>אליאנץ סטדיום · <span class="ltr">15:00</span></span></div>
+            <span class="chip warn"><i class="dot"></i>זמני</span>
+          </li>
+        </ol>
+        <div class="prov"><i data-icon="link"></i>לכל משחק: מקור, תאריך בדיקה וסטטוס</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // Score rings like the app's ScoreRing.
+  document.querySelectorAll(".ring").forEach((el) => {
+    const v = +el.dataset.v, c = el.dataset.c, r = 27, C = 2 * Math.PI * r;
+    el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 66 66"><circle cx="33" cy="33" r="${r}" fill="none" stroke="#e7dfcc" stroke-width="6"/>
+      <circle cx="33" cy="33" r="${r}" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C * v) / 100} ${C}" transform="rotate(-90 33 33)"/>
+      <text x="33" y="34" text-anchor="middle" dominant-baseline="central" font-family="Playfair" font-weight="700" font-size="22" fill="#26221c" style="font-feature-settings:'lnum' 1">${v}</text></svg>`);
+  });
+  // In portrait formats the product sits inside the column; in landscape it floats left.
+  if (VV.format !== "landscape") document.querySelector(".vis-slot").replaceWith(document.getElementById("vis"));
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · גם השבת חלק מהתוכנית</title>
+<link rel="stylesheet" href="../brand.css" />
+<link rel="stylesheet" href="../ui.css" />
+<script src="../brand.js"></script>
+<style>
+  .ad { --seal-bg: #0a1712; }
+  .bg-glow { position: absolute; z-index: 1; pointer-events: none; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 196, 108, 0.32), rgba(255, 170, 80, 0.1) 55%, rgba(255, 170, 80, 0) 100%); }
+  .candles { position: absolute; z-index: 6; overflow: visible; }
+  .col { position: absolute; z-index: 10; left: 0; right: 0; text-align: center; padding: 0 90px; }
+  .col .brand { margin-bottom: 34px; }
+  .col .sub { margin: 0.7em auto 0; }
+  .ctas { display: flex; align-items: center; justify-content: center; gap: 26px; }
+
+  /* the Shabbat card, in the product's words */
+  .sc { position: absolute; z-index: 12; width: calc(var(--u) * 680px); text-align: right; overflow: hidden; }
+  .sc-band { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 12px); padding: calc(var(--u) * 18px) calc(var(--u) * 24px); background: var(--g-700); color: var(--paper); border-bottom: calc(var(--u) * 4px) double var(--brass); }
+  .sc-band b { font-family: var(--f-he-display); font-weight: 700; font-size: calc(var(--u) * 30px); }
+  .sc-band .on { display: inline-flex; align-items: center; gap: calc(var(--u) * 8px); font-family: var(--f-text); font-weight: 800; font-size: calc(var(--u) * 18px); color: var(--g-850); background: var(--gilt-hi); padding: calc(var(--u) * 7px) calc(var(--u) * 12px); border-radius: 2px; white-space: nowrap; }
+  .sc-body { padding: calc(var(--u) * 8px) calc(var(--u) * 24px) calc(var(--u) * 18px); }
+  .tr { display: flex; align-items: center; gap: calc(var(--u) * 16px); padding: calc(var(--u) * 14px) 0; border-bottom: 1px solid var(--hairline); font-family: var(--f-text); }
+  .tr .d { flex: none; width: calc(var(--u) * 92px); font-weight: 800; font-size: calc(var(--u) * 20px); color: var(--g-600); }
+  .tr .t { flex: 1; min-width: 0; }
+  .tr .t b { display: block; font-weight: 800; font-size: calc(var(--u) * 24px); color: var(--ink); line-height: 1.2; white-space: nowrap; }
+  .tr .t > span { display: block; font-weight: 500; font-size: calc(var(--u) * 18px); color: var(--ink-soft); margin-top: calc(var(--u) * 2px); white-space: nowrap; }
+  .tr .tm { flex: none; font-weight: 800; font-size: calc(var(--u) * 22px); color: var(--ink); }
+  .tr .ok { flex: none; width: calc(var(--u) * 30px); height: calc(var(--u) * 30px); border-radius: 50%; background: var(--ok); color: #fff; padding: calc(var(--u) * 6px); }
+  .shab { background: linear-gradient(90deg, rgba(205, 174, 114, 0.16), rgba(205, 174, 114, 0.26)); margin: 0 calc(var(--u) * -24px); padding: 0 calc(var(--u) * 24px);
+          box-shadow: inset calc(var(--u) * -5px) 0 0 var(--gilt); }
+  .shab .tr { border-bottom-color: rgba(184, 149, 90, 0.35); }
+  .shab .d { color: var(--brass-ink); }
+  .flame-ico { flex: none; width: calc(var(--u) * 30px); height: calc(var(--u) * 30px); }
+  .out .t b { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: rgba(102, 93, 76, 0.7); }
+  .out .why { flex: none; font-weight: 800; font-size: calc(var(--u) * 17px); color: var(--brass-ink); background: var(--parchment); padding: calc(var(--u) * 6px) calc(var(--u) * 10px); border-radius: 2px; }
+  .sc-note { margin-top: calc(var(--u) * 12px); font-family: var(--f-text); font-weight: 600; font-size: calc(var(--u) * 17px); color: var(--ink-soft); }
+
+  /* feed 1080×1350 */
+  [data-format="feed"] .ad { --u: 1; }
+  [data-format="feed"] .col { top: 72px; }
+  [data-format="feed"] .col .brand { font-size: 26px; }
+  [data-format="feed"] .h1 { font-size: 110px; }
+  [data-format="feed"] .sub { font-size: 30px; max-width: 880px; }
+  [data-format="feed"] .sc { top: 560px; right: 90px; }
+  [data-format="feed"] .candles { left: 46px; top: 490px; width: 300px; height: 760px; }
+  [data-format="feed"] .bg-glow { width: 760px; height: 760px; left: -150px; top: 260px; }
+  [data-format="feed"] .ctas { position: absolute; z-index: 20; right: 90px; top: 1180px; justify-content: flex-start; font-size: 34px; }
+  [data-format="feed"] .ctas .url { font-size: 20px; }
+
+  /* story 1080×1920 */
+  [data-format="story"] .ad { --u: 1.04; }
+  [data-format="story"] .col { top: 262px; }
+  [data-format="story"] .col .brand { font-size: 30px; }
+  [data-format="story"] .h1 { font-size: 128px; }
+  [data-format="story"] .sub { font-size: 36px; max-width: 900px; }
+  [data-format="story"] .sc { top: 900px; right: 76px; }
+  [data-format="story"] .candles { left: 30px; top: 760px; width: 330px; height: 900px; }
+  [data-format="story"] .bg-glow { width: 900px; height: 900px; left: -200px; top: 520px; }
+  [data-format="story"] .ctas { position: absolute; z-index: 20; right: 76px; top: 1520px; flex-direction: column; align-items: flex-start; gap: 22px; font-size: 40px; }
+  [data-format="story"] .ctas .url { margin-right: 8px; }
+  [data-format="story"] .ctas .url { font-size: 23px; }
+
+  /* square 1080×1080 */
+  [data-format="square"] .ad { --u: 0.84; }
+  [data-format="square"] .col { top: 60px; }
+  [data-format="square"] .col .brand { font-size: 23px; margin-bottom: 24px; }
+  [data-format="square"] .h1 { font-size: 92px; }
+  [data-format="square"] .sub { display: none; }
+  [data-format="square"] .sc { top: 380px; right: 74px; }
+  [data-format="square"] .sc .hide-sq { display: none; }
+  [data-format="square"] .candles { left: 38px; top: 330px; width: 260px; height: 660px; }
+  [data-format="square"] .bg-glow { width: 640px; height: 640px; left: -140px; top: 140px; }
+  [data-format="square"] .ctas { position: absolute; z-index: 20; left: 0; right: 0; top: 934px; font-size: 30px; }
+  [data-format="square"] .ctas .url { font-size: 18px; }
+
+  /* landscape 1200×628 */
+  [data-format="landscape"] .ad { --u: 0.6; }
+  [data-format="landscape"] .col { top: 54px; right: 70px; left: auto; width: 520px; padding: 0; text-align: right; }
+  [data-format="landscape"] .col .brand { font-size: 18px; margin-bottom: 24px; }
+  [data-format="landscape"] .h1 { font-size: 68px; }
+  [data-format="landscape"] .sub { font-size: 20px; margin-right: 0; max-width: 500px; }
+  [data-format="landscape"] .ctas { position: absolute; z-index: 20; right: 70px; top: 420px; justify-content: flex-start; font-size: 22px; gap: 20px; }
+  [data-format="landscape"] .ctas .url { font-size: 14px; }
+  [data-format="landscape"] .sc { top: 92px; left: 210px; }
+  [data-format="landscape"] .sc .hide-sq { display: none; }
+  [data-format="landscape"] .candles { left: 44px; top: 70px; width: 190px; height: 520px; }
+  [data-format="landscape"] .bg-glow { width: 600px; height: 600px; left: -170px; top: -60px; }
+</style>
+</head>
+<body>
+<div class="ad night grain vignette">
+  <div class="bg-glow"></div>
+  <div class="frame"></div>
+  <i class="seal s-top"></i><i class="seal s-bottom"></i>
+
+  <div class="col">
+    <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <h1 class="h1 lift" data-guard="headline">
+      <span class="line">גם השבת</span>
+      <span class="line gilt">חלק מהתוכנית.</span>
+    </h1>
+    <p class="sub" data-guard="sub">מסמנים ״שבת וחגים״, ו־<bdi>Venuvoy</bdi> לא מתכננת כלום מהדלקת הנרות ועד צאת השבת או החג — לפי השעון של כל עיר.</p>
+  </div>
+
+  <svg class="candles" id="candles" aria-hidden="true"></svg>
+
+  <!-- Real London fixtures from the Venuvoy catalog; Shabbat times from the app's own sunset rule
+       (candle lighting = sunset − 18 min, havdalah = sunset + 40 min, London, 20–21.11.2026). -->
+  <div class="sc card" data-guard="card">
+    <div class="sc-band"><b>לונדון · <span class="ltr">19–25.11</span></b><span class="on"><i data-icon="check" style="width:1em;height:1em;display:inline-block"></i>שבת וחגים שמורים</span></div>
+    <div class="sc-body">
+      <div class="shab">
+        <div class="tr"><span class="d">ו׳ 20.11</span><span class="flame-ico" data-flame></span><div class="t"><b>הדלקת נרות</b><span>מכאן לא מתכננים כלום</span></div><span class="tm ltr">15:46</span></div>
+        <div class="tr out hide-sq"><span class="d">ש׳ 21.11</span><div class="t"><b>צ׳לסי נגד לידס</b><span>סטמפורד ברידג׳ · <span class="ltr">15:00</span></span></div><span class="why">לא נכנס: בתוך השבת</span></div>
+        <div class="tr"><span class="d">ש׳ 21.11</span><span class="flame-ico" data-flame></span><div class="t"><b>צאת שבת</b><span>התוכנית ממשיכה</span></div><span class="tm ltr">16:43</span></div>
+      </div>
+      <div class="tr"><span class="d">ב׳ 23.11</span><div class="t"><b>ברנטפורד נגד אברטון</b><span>פרמייר ליג · <span class="ltr">20:00</span></span></div><i class="ok" data-icon="check"></i></div>
+      <div class="tr"><span class="d">ג׳ 24.11</span><div class="t"><b>ארסנל נגד בורוסיה דורטמונד</b><span>ליגת האלופות · <span class="ltr">20:00</span></span></div><i class="ok" data-icon="check"></i></div>
+      <div class="sc-note hide-sq">הזמנים מוערכים לפי השקיעה בלונדון.</div>
+    </div>
+  </div>
+
+  <div class="ctas">
+    <span class="cta" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+    <span class="url">VENUVOY.APP</span>
+  </div>
+</div>
+<script>
+  // Two gilt candlesticks with live flames, drawn as vectors.
+  function candlestick(x, baseY, h, s, id) {
+    const g = (y) => baseY - y * s;
+    const cx = x;
+    const stemTop = g(h);
+    const parts = [];
+    // base: stepped foot
+    parts.push(`<ellipse cx="${cx}" cy="${g(0)}" rx="${62 * s}" ry="${12 * s}" fill="url(#gilt-${id})"/>`);
+    parts.push(`<path d="M${cx - 62 * s},${g(0)} C${cx - 58 * s},${g(26)} ${cx - 24 * s},${g(30)} ${cx - 14 * s},${g(44)} L${cx + 14 * s},${g(44)} C${cx + 24 * s},${g(30)} ${cx + 58 * s},${g(26)} ${cx + 62 * s},${g(0)} Z" fill="url(#gilt-${id})"/>`);
+    // stem with knops
+    parts.push(`<rect x="${cx - 8 * s}" y="${stemTop}" width="${16 * s}" height="${g(44) - stemTop}" fill="url(#gilt-${id})"/>`);
+    for (const k of [0.32, 0.58, 0.82]) {
+      const ky = g(44 + (h - 44) * k);
+      parts.push(`<ellipse cx="${cx}" cy="${ky}" rx="${20 * s}" ry="${11 * s}" fill="url(#gilt-${id})"/>`);
+      parts.push(`<ellipse cx="${cx}" cy="${ky - 3 * s}" rx="${12 * s}" ry="${3 * s}" fill="#fff4cf" opacity=".45"/>`);
+    }
+    // drip pan
+    parts.push(`<path d="M${cx - 44 * s},${stemTop} Q${cx},${stemTop + 26 * s} ${cx + 44 * s},${stemTop} Z" fill="url(#gilt-${id})"/>`);
+    parts.push(`<ellipse cx="${cx}" cy="${stemTop}" rx="${44 * s}" ry="${7 * s}" fill="url(#gilt-${id})"/>`);
+    // candle
+    const ch = 150 * s;
+    parts.push(`<rect x="${cx - 15 * s}" y="${stemTop - ch}" width="${30 * s}" height="${ch}" rx="${3 * s}" fill="url(#wax)"/>`);
+    parts.push(`<path d="M${cx + 6 * s},${stemTop - ch + 2} q${4 * s},${18 * s} ${1 * s},${34 * s} q${-3 * s},${8 * s} ${-5 * s},${0}" fill="#fff8e8" opacity=".8"/>`);
+    // wick + flame
+    const fy = stemTop - ch;
+    parts.push(`<path d="M${cx},${fy} l${1.5 * s},${-10 * s}" stroke="#3a2a18" stroke-width="${2.2 * s}"/>`);
+    parts.push(`<circle cx="${cx}" cy="${fy - 34 * s}" r="${150 * s}" fill="url(#halo)"/>`);
+    parts.push(`<path d="M${cx},${fy - 78 * s} C${cx + 18 * s},${fy - 46 * s} ${cx + 17 * s},${fy - 16 * s} ${cx},${fy - 8 * s} C${cx - 17 * s},${fy - 16 * s} ${cx - 18 * s},${fy - 46 * s} ${cx},${fy - 78 * s} Z" fill="url(#flame)" filter="url(#soft)"/>`);
+    parts.push(`<path d="M${cx},${fy - 48 * s} C${cx + 7 * s},${fy - 32 * s} ${cx + 6 * s},${fy - 18 * s} ${cx},${fy - 13 * s} C${cx - 6 * s},${fy - 18 * s} ${cx - 7 * s},${fy - 32 * s} ${cx},${fy - 48 * s} Z" fill="#ffffff" opacity=".92"/>`);
+    return parts.join("");
+  }
+  const svg = document.getElementById("candles");
+  const W = svg.clientWidth, H = svg.clientHeight;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const s = W / 300;
+  const defs = `<defs>
+    ${["a", "b"].map((id) => `<linearGradient id="gilt-${id}" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#6e5222"/><stop offset=".22" stop-color="#c9a865"/><stop offset=".42" stop-color="#f3e2b0"/>
+      <stop offset=".6" stop-color="#b8955a"/><stop offset=".85" stop-color="#7e6127"/><stop offset="1" stop-color="#5a4219"/></linearGradient>`).join("")}
+    <linearGradient id="wax" x1="0" x2="1"><stop offset="0" stop-color="#d9cfbb"/><stop offset=".45" stop-color="#fbf6ea"/><stop offset="1" stop-color="#c8bca5"/></linearGradient>
+    <radialGradient id="flame" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#fff6d6"/><stop offset=".45" stop-color="#ffcf6b"/><stop offset=".8" stop-color="#ff9a3c" stop-opacity=".85"/><stop offset="1" stop-color="#ff7a2a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#ffd58a" stop-opacity=".55"/><stop offset=".3" stop-color="#ffc06a" stop-opacity=".2"/><stop offset="1" stop-color="#ffb050" stop-opacity="0"/></radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${1.4 * s}"/></filter>
+  </defs>`;
+  svg.innerHTML = defs + candlestick(W * 0.3, H - 20 * s, 430, s, "a") + candlestick(W * 0.72, H - 20 * s, 390, s, "b");
+
+  // small flame glyph for the rows
+  document.querySelectorAll("[data-flame]").forEach((el) => {
+    el.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C15 7 18 9 18 14a6 6 0 0 1-12 0c0-3 2-5 3-7 1 2 2 3 3 3 0-3-1-5 0-8z" fill="#b07a1c"/><path d="M12 11c1.6 2 2.6 3 2.6 4.6a2.6 2.6 0 0 1-5.2 0c0-1.3.9-2.4 2.6-4.6z" fill="#ffe6a8"/></svg>`;
+  });
+</script>
+</body>
+</html>

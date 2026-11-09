@@ -3,3 +3,5 @@ ads/**/*.wav
 # review stills from --stills runs
 ads/**/stills/
 ads/**/*.video.mp4
+__pycache__/
+*.pyc

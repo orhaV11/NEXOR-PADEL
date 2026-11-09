@@ -263,7 +263,9 @@ def body(img_src, full_src, vid_src, reels, camp_src=None, camp_poster=None):
             f'<div class="reel"><div class="rv">{vids}</div><div>'
             '<p class="sub-h" style="margin-top:0">English · Meta</p>' + copy_rows(f"{sp['id']}-en", sp["en"])
             + '<p class="sub-h">עברית · Meta</p>' + copy_rows(f"{sp['id']}-he", sp["he"])
-            + '<p class="basis">כל גרסה קיימת גם ב־4:5 (<span class="ltr">1080×1350</span>) לפיד, באותה תיקייה.</p>'
+            + '<p class="basis">כל גרסה קיימת גם ב־4:5 (<span class="ltr">1080×1350</span>) לפיד, באותה תיקייה.'
+            + (' לסרט הראשי יש גם גרסה של 15 שניות לקמפיינים ממומנים (<span class="ltr">-15s</span>), שנחתכה עם video-use.' if sp["id"] == "anthem" else "")
+            + "</p>"
             + "</div></div></section>"
         )
 

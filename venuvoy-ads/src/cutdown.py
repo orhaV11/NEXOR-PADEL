@@ -2,6 +2,7 @@
 
     python3 src/cutdown.py en      # ads/08-reel-en/venuvoy-reel-en-15s_9x16_1080x1920.mp4
     python3 src/cutdown.py he      # ads/07-reel-he/venuvoy-reel-he-15s_9x16_1080x1920.mp4
+    python3 src/cutdown.py anthem en   # ads/10-anthem/venuvoy-anthem-en-15s_9x16_1080x1920.mp4 (+ 4:5)
 
 The picture is cut from the full reel with video-use's render.py (frame-accurate extract per range,
 30 ms edge fades, lossless concat). Ranges start and end on the reel's own beats, and every range
@@ -47,7 +48,40 @@ def run(cmd):
     subprocess.run([str(c) for c in cmd], check=True)
 
 
+# The hero spot's 15 s cut: picture and its own mix are cut together, every join on the 120 BPM beat grid
+# (0.5 s), so the music keeps its pulse and every effect stays on its frame; 30 ms fades at each join.
+ANTHEM_RANGES = [
+    (0.0, 4.0, "stadium open and the globe: your team, their stadium, one sentence away"),
+    (5.5, 8.0, "the plan arrives and the push-in on the confirmed fixture"),
+    (8.0, 10.0, "real fixtures, honest tickets"),
+    (16.0, 19.5, "the peak: be there, the world is your stadium"),
+    (23.0, 26.0, "end card with the sonic logo"),
+]
+
+
+def anthem_cut(lang):
+    src = ADS / "10-anthem" / f"venuvoy-anthem-{lang}_9x16_1080x1920.mp4"
+    out = ADS / "10-anthem" / f"venuvoy-anthem-{lang}-15s_9x16_1080x1920.mp4"
+    render_py = VIDEO_USE / "helpers" / "render.py"
+    with tempfile.TemporaryDirectory(prefix=f"vv-acut-{lang}-") as tmp:
+        tmp = Path(tmp)
+        edl = {"sources": {"hero": str(src)}, "ranges": [{"source": "hero", "start": a, "end": b, "beat": n} for a, b, n in ANTHEM_RANGES]}
+        (tmp / "edl.json").write_text(json.dumps(edl, indent=2))
+        cut = tmp / "cut.mp4"
+        run([sys.executable, render_py, tmp / "edl.json", "-o", cut, "--fps", "30", "--no-subtitles", "--no-loudnorm"])
+        dur = sum(b - a for a, b, _ in ANTHEM_RANGES)
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", cut, "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", tmp / "raw.wav"])
+        run([sys.executable, SRC / "audio" / "master.py", tmp / "raw.wav", tmp / "music.wav"])
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", cut, "-i", tmp / "music.wav", "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+             "-c:a", "aac", "-b:a", "192k", "-t", dur, "-movflags", "+faststart", out])
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", out, "-vf", "crop=1080:1350:0:285", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+             "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", str(out).replace("_9x16_1080x1920", "_4x5_1080x1350")])
+    print(f"cutdown: {out} (+ 4:5)")
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] == "anthem":
+        return anthem_cut(sys.argv[2])
     lang = sys.argv[1] if len(sys.argv) > 1 else "en"
     folder = {"en": "08-reel-en", "he": "07-reel-he"}[lang]
     full = ADS / folder / f"venuvoy-reel-{lang}_9x16_1080x1920.mp4"

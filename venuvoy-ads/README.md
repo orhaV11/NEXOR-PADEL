@@ -12,11 +12,18 @@
 | סטורי / ריל 9:16 | 1080×1920 | סטוריז, ריילז, טיקטוק |
 | ריבוע 1:1 | 1080×1080 | פיד, קרוסלה, רשת המדיה של Google |
 | רוחבי 1.91:1 | 1200×628 | פייסבוק (קישור), Google Display, לינקדאין |
-| וידאו 9:16 | 1080×1920, 17 ש׳ | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
+| וידאו 9:16 (כל מודעה) | 1080×1920, 8 ש׳, עם מוזיקה | ריילז, סטוריז, טיקטוק |
+| וידאו 4:5 (כל מודעה) | 1080×1350, 8 ש׳, עם מוזיקה | פיד באינסטגרם ובפייסבוק |
+| סרטון ראשי בעברית | 1080×1920, 17 ש׳ | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
+| סרטון באנגלית | 1080×1920, 32 ש׳, מוזיקה מקורית | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |
 
 ```
-ads/01-kickoff … ads/06-offer   כל מודעה: <id>_<format>_<WxH>.png
+ads/01-kickoff … ads/06-offer   כל מודעה: <id>_<format>_<WxH>.png וגם .mp4 ל־story ו־feed
 ads/07-reel/venuvoy-reel_9x16_1080x1920.mp4
+ads/08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4   + פס הקול לבד: venuvoy-reel-en_soundtrack.m4a
+src/motion.js                   השכבה שמנפישה את המודעות (data-in על כל אלמנט)
+src/video-en/reel-en.html       הסרטון באנגלית
+src/audio/compose.py            המוזיקה והאפקטים, מסונתזים בקוד
 src/concepts/*.html             המודעות עצמן (HTML/CSS), אחת לכל רעיון
 src/video/reel.html             הווידאו, ציר זמן מדויק לפריים
 src/copy.json                   כל הטקסטים ל־Meta ול־Google
@@ -141,6 +148,26 @@ src/copy.json                   כל הטקסטים ל־Meta ול־Google
 | תיאור | venuvoy.app |
 | כפתור | מידע נוסף (Learn More) |
 
+## 08 · English video 9:16
+
+32 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM.
+
+- 0-4 s: “Sports trip abroad?” and 17 tabs of chaos
+- 4-6 s: the drop · Venuvoy, sports trips built around real fixtures
+- 6-10 s: one sentence in, real plans out (Arsenal v Dortmund, Arsenal v Man City, both confirmed)
+- 10-16 s: tickets, the honest version: difficulty 5 of 5, members' ballot, lookalike link caught, official sites first
+- 16-20 s: kick-off moved? Handled. Autopilot and replacements
+- 20-22 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF
+- 22-26 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way
+- 26-32 s: free to plan, pay once per trip ($15 / $29 / $39), no subscription · end card
+
+| Meta field | Text |
+|---|---|
+| Primary text (113/125) | One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Free to plan. |
+| Headline | A sports trip you can trust |
+| Description | venuvoy.app |
+| CTA | Learn More |
+
 ## Google Ads · מודעה רספונסיבית
 
 כותרות קצרות (עד 30 תווים):
@@ -166,17 +193,23 @@ src/copy.json                   כל הטקסטים ל־Meta ול־Google
 - **תאריכים:** המשחקים במודעות הם מינואר עד מרץ 2027, וכרטיס השבת הוא ללונדון ב־19-25.11.2026. אחרי התאריכים האלה מחליפים לנתונים חדשים ומרנדרים מחדש.
 - **מדיניות Meta:** אין טרגוט לפי דת, ולכן מודעת השבת רצה על קהל רחב. הטקסטים לא פונים לגולש לפי מאפיין אישי (למשל ״שומרים שבת?״), כדי לעמוד בכללים.
 - **שקיפות:** מסך ההתראה מסומן ״המחשה״. המעקב בתשלום, וזה כתוב בתיאור של המודעה. שמות קבוצות מופיעים רק כשמות משחקים, בלי סמלים.
-- **הווידאו:** בלי פס קול. אפשר להוסיף מוזיקה ברישיון ב־Ads Manager או ב־CapCut.
+- **מוזיקה:** לסרטון באנגלית ולשש מודעות הווידאו יש מוזיקה מקורית שהולחנה בקוד, בלי זכויות של צד שלישי. לסרטון הראשי בעברית אין פס קול.
+- **שפות בסרטון האנגלי:** בסרטון כתוב שאנגלית ועברית זמינות היום ו־4 שפות בדרך. רוסית, ערבית, צרפתית וספרדית מוגדרות בקוד כ״מתוכננות״ ועוד לא פתוחות למשתמשים. אם לא רוצים להתחייב לזה בפומבי, צריך להוריד את השורה.
+- **מחירים בסרטון האנגלי:** מוצגים בדולרים ($15, $29, $39), לפי ספר המחירים של המוצר.
 - **בדיקה ראשונה:** להתחיל ב־01, 02 ו־03 מול קהל רחב של אוהדי כדורגל שטסים לחו״ל, ואת 06 להפעיל כריטרגטינג. מודדים עלות לתוכנית שנבנתה, לא רק הקלקות.
 
 ## עריכה ורינדור מחדש
 
-צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow.
+צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow, numpy ו־scipy.
 
 ```bash
 node src/render.mjs                 # כל המודעות, כל הגדלים -> ads/
 node src/render.mjs alert story     # רק מודעה אחת בגודל אחד
-node src/render-video.mjs           # הווידאו -> ads/07-reel/
+node src/render-motion.mjs          # שש מודעות הווידאו (9:16 ו־4:5) עם מוזיקה
+node src/render-video.mjs           # הסרטון הראשי -> ads/07-reel/
+node src/render-video.mjs --page video-en/reel-en.html --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4 \
+    --audio ads/08-reel-en/venuvoy-reel-en_music.wav   # הסרטון באנגלית
+python3 src/audio/compose.py ads/08-reel-en/venuvoy-reel-en_music.wav   # פס הקול
 python3 src/build_gallery.py        # index.html ו־README.md מתוך src/copy.json
 ```
 

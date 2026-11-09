@@ -13,6 +13,9 @@ from scipy.io import wavfile
 from scipy.signal import butter, fftconvolve, sosfilt
 
 # CLI: compose.py OUT.wav                       full 32 s reel with its sound effects
+#      compose.py OUT.wav --cues cues.json --outro 28
+#                                                full reel, effects from the page's own cue list, music
+#                                                stopping on a stinger at 28 s with a pad under the CTA
 #      compose.py OUT.wav --cut START DUR [--cues cues.json]
 #                                                a slice of the music bed, with effects placed on the
 #                                                given animation cues ({t, type, dur}) instead
@@ -23,6 +26,10 @@ CUES = []
 if "--cut" in ARGS:
     i = ARGS.index("--cut")
     CUT = (float(ARGS[i + 1]), float(ARGS[i + 2]))
+OUTRO = float(ARGS[ARGS.index("--outro") + 1]) if "--outro" in ARGS else None
+# --splice 1-13,28-31 : join spans of the full mix (on bar lines) into a shorter cut; cues are on the cut's timeline
+SPLICE = [tuple(map(float, x.split("-"))) for x in ARGS[ARGS.index("--splice") + 1].split(",")] if "--splice" in ARGS else None
+SPARSE = "--sparse" in ARGS
 if "--cues" in ARGS:
     import json
 
@@ -304,6 +311,10 @@ def bar_time(b):
     return b * BAR
 
 
+def live(ts):
+    return OUTRO is None or ts < OUTRO - 1e-6
+
+
 for b in range(16):
     t0 = bar_time(b)
     ch = PROG[b]
@@ -315,6 +326,8 @@ for b in range(16):
     for beat in range(4):
         tb = t0 + beat * BEAT
         if b == 15 and tb >= 31.0:
+            continue
+        if not live(tb):
             continue
         if intro:
             if b == 0 and beat in (0, 2):
@@ -343,7 +356,7 @@ for b in range(16):
         bright = 0.45 if intro else 1.0
         for slot in (0, 3, 6):
             ts = t0 + slot * BEAT / 2
-            if b == 15 and ts >= 31.0:
+            if (b == 15 and ts >= 31.0) or not live(ts):
                 continue
             g = 0.22 if intro else 0.3
             s = stab(CH[ch], 0.4, bright)
@@ -352,7 +365,7 @@ for b in range(16):
         if not intro:
             for slot in (1, 3, 5, 7):
                 ts = t0 + slot * BEAT / 2
-                if b == 15 and ts >= 31.0:
+                if (b == 15 and ts >= 31.0) or not live(ts):
                     continue
                 music.add(bass_note(ROOT[ch] + (12 if slot == 5 else 0)), ts, 0.42)
     # ---- hook lead
@@ -362,7 +375,7 @@ for b in range(16):
             if m is None:
                 continue
             ts = t0 + slot * BEAT / 2
-            if b == 15 and ts >= 31.0:
+            if (b == 15 and ts >= 31.0) or not live(ts):
                 continue
             p = pluck(m)
             lead.add(p, ts, 0.3, pan=0.1)
@@ -378,7 +391,8 @@ for k in range(12):
 fx.add(riser(1.95), 2.0, 0.5)
 fx.add(rev_cymbal(0.75), 3.25, 0.5)
 for td in (4.0, 20.0, 26.0, 28.0):
-    drums.add(crash(), td, 0.55)
+    if live(td):
+        drums.add(crash(), td, 0.55)
 fx.add(boom(), 4.0, 0.7)
 # breakdown build back into 20 s
 fx.add(riser(1.45), 18.5, 0.45)
@@ -386,13 +400,25 @@ for k in range(16):
     drums.add(SN, 19.0 + k * BEAT / 8 * 0.96, 0.1 + 0.015 * k)
 fx.add(rev_cymbal(0.6), 19.4, 0.45)
 
-# final hit at 31 s: stab + boom + crash, with a long tail
-music.add(stab(CH["C"], 1.4), 31.0, 0.45)
-verb.add(stab(CH["C"], 1.4), 31.0, 0.25)
-drums.add(K, 31.0, 0.95)
-drums.add(crash(1.0), 31.0, 0.5)
-fx.add(boom(1.0), 31.0, 0.5)
-kick_times.append(31.0)
+if OUTRO is None:
+    # final hit at 31 s: stab + boom + crash, with a long tail
+    music.add(stab(CH["C"], 1.4), 31.0, 0.45)
+    verb.add(stab(CH["C"], 1.4), 31.0, 0.25)
+    drums.add(K, 31.0, 0.95)
+    drums.add(crash(1.0), 31.0, 0.5)
+    fx.add(boom(1.0), 31.0, 0.5)
+    kick_times.append(31.0)
+else:
+    # the music lands on the end card: one stinger, then a quiet pad so the call to action sits in clear air
+    music.add(stab(CH["C"], 1.8), OUTRO, 0.5)
+    verb.add(stab(CH["C"], 1.8), OUTRO, 0.3)
+    drums.add(K, OUTRO, 0.95)
+    drums.add(crash(2.6), OUTRO, 0.55)
+    fx.add(boom(1.2), OUTRO, 0.55)
+    kick_times.append(OUTRO)
+    tail = DUR - OUTRO
+    music.add(pad(CH["C"] + [48], tail), OUTRO + 0.05, 0.18)
+    verb.add(pad(CH["C"], tail), OUTRO + 0.05, 0.08)
 
 def crowd(d):
     """A stadium roar: many amplitude-wobbling vocal-range bands, spread across the stereo field."""
@@ -409,9 +435,65 @@ def crowd(d):
     return out * env[:, None] / 6
 
 
+def place_cues(bus, cues, sparse=False):
+    """Effects from a page's cue list. Each one is tied to something visible; sparse keeps only the
+    first slam, the stamp, typing and the last pop (the call to action)."""
+    slams = [c for c in cues if c["type"] == "slam"]
+    pops = [c for c in cues if c["type"] == "pop"]
+    for c in cues:
+        t0, kind, dur = c["t"], c["type"], c.get("dur", 0.4)
+        if kind == "open":
+            bus.add(whoosh(0.7), max(0.0, t0 - 0.05), 0.22)
+        elif kind == "slam":
+            if sparse and c is not slams[0]:
+                continue
+            bus.add(whoosh(0.3, up=False), max(0.0, t0 - 0.12), 0.28)
+            bus.add(boom(0.45), t0 + 0.02, 0.22)
+        elif kind == "pop":
+            if sparse:
+                if c is pops[-1]:
+                    bus.add(ding((84, 91), 0.7), t0, 0.32)
+                continue
+            bus.add(pop(950 + 200 * rng.random(), 340), t0, 0.26)
+        elif kind == "tick":
+            if not sparse:
+                bus.add(tick(), t0, 0.28)
+        elif kind == "stamp":
+            bus.add(stamp(), t0 + 0.04, 0.5)
+        elif kind == "whoosh":
+            bus.add(whoosh(0.6), t0, 0.3)
+        elif kind == "typing":
+            k = 0.0
+            while k < dur:
+                bus.add(click(), t0 + k, 0.2 + 0.08 * rng.random(), pan=0.2)
+                k += 0.055
+        elif kind == "click":
+            bus.add(click(0.02, 800, 3000), t0, 0.6)
+        elif kind == "boom":
+            bus.add(boom(0.8), t0, 0.45)
+        elif kind == "buzz":
+            bus.add(buzz(), t0, 0.5)
+        elif kind == "chime":
+            bus.add(ding((84, 91)), t0, 0.42)
+        elif kind == "ding":
+            bus.add(ding(), t0, 0.5)
+        elif kind == "flaps":
+            k = 0.0
+            while k < dur:
+                bus.add(flap_clatter(0.33), t0 + k, 0.4, pan=-0.3 + 0.6 * k / max(dur, 0.1))
+                k += 0.25
+        elif kind == "sparkle":
+            bus.add(sparkle(), t0, 0.55)
+        elif kind == "swell":
+            # untuned reversed cymbal whose peak lands exactly on the cut, well under the music
+            bus.add(rev_cymbal(0.8), max(0.0, t0 - 0.8), 0.28)
+
+
 fx.add(crowd(2.6), 3.6, 0.55)
 fx.add(crowd(3.2), 27.9, 0.5)
-if CUT is None:
+if CUT is None and SPLICE is None and CUES:
+    place_cues(fx, CUES)
+elif CUT is None and SPLICE is None:
     fx.add(whoosh(0.4), 5.7, 0.35)
 
     # ---------------------------------------------------------------- SFX on the video's cues
@@ -508,7 +590,21 @@ bed = lpf * (1 - xf) + bed * xf
 mix = bed + fx.y * 0.9 + fx_wet * 0.12
 mix = hp(mix.T, 35).T
 
-if CUT is None:
+if SPLICE:
+    xf = int(0.015 * SR)
+    parts = [mix[int(a * SR) : int(b * SR)].copy() for a, b in SPLICE]
+    out = parts[0]
+    for nxt in parts[1:]:
+        ramp = np.linspace(0, 1, xf)[:, None]
+        out = np.concatenate([out[:-xf], out[-xf:] * (1 - ramp) + nxt[:xf] * ramp, nxt[xf:]])
+    n = len(out)
+    sfx = Bus()
+    place_cues(sfx, CUES)
+    out += sfx.y[:n] * 0.9
+    fout = np.clip((n / SR - np.arange(n) / SR) / 0.5, 0, 1) ** 1.3
+    mix = out * fout[:, None]
+    N = n
+elif CUT is None:
     mix = mix[:N]
     # fade the last half second after the final hit
     fade = np.ones(N)
@@ -519,26 +615,7 @@ else:
     n = int(d * SR)
     mix = mix[int(s0 * SR) : int(s0 * SR) + n].copy()
     sfx = Bus()
-    for c in CUES:
-        t0, kind, dur = c["t"], c["type"], c.get("dur", 0.4)
-        if kind == "open":
-            sfx.add(whoosh(0.7), max(0.0, t0 - 0.05), 0.25)
-        elif kind == "slam":
-            sfx.add(whoosh(0.3, up=False), max(0.0, t0 - 0.12), 0.28)
-            sfx.add(boom(0.45), t0 + 0.02, 0.22)
-        elif kind == "pop":
-            sfx.add(pop(950 + 200 * rng.random(), 340), t0, 0.26)
-        elif kind == "tick":
-            sfx.add(tick(), t0, 0.28)
-        elif kind == "stamp":
-            sfx.add(stamp(), t0 + 0.04, 0.5)
-        elif kind == "whoosh":
-            sfx.add(whoosh(0.6), t0, 0.3)
-        elif kind == "typing":
-            k = 0.0
-            while k < dur:
-                sfx.add(click(), t0 + k, 0.2 + 0.08 * rng.random(), pan=0.2)
-                k += 0.055
+    place_cues(sfx, CUES, sparse=SPARSE)
     mix += sfx.y[:n] * 0.9
     fin = np.minimum(np.arange(n) / (0.015 * SR), 1)
     fout = np.clip((d - np.arange(n) / SR) / 0.7, 0, 1) ** 1.3

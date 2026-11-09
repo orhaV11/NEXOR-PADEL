@@ -5,7 +5,9 @@
 //   add --audio path/to/track.wav to mux a soundtrack (AAC 192k)
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -21,6 +23,9 @@ const PAGE = arg("--page", "video/reel.html");
 const OUTREL = arg("--out", "07-reel/venuvoy-reel_9x16_1080x1920.mp4");
 const STILLS = arg("--stills", null);
 const AUDIO = arg("--audio", null);
+/** --score: compose the soundtrack from the page's own window.CUES (music stops on a stinger at --outro), master it, mux it. */
+const SCORE = process.argv.includes("--score");
+const OUTRO = arg("--outro", "28");
 const FPS = 30;
 const W = 1080, H = 1920;
 
@@ -29,7 +34,8 @@ mkdirSync(dirname(out), { recursive: true });
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-await page.goto(pathToFileURL(join(SRC, PAGE)).href + "#story", { waitUntil: "load" });
+const [pagePath, query] = PAGE.split("?");
+await page.goto(pathToFileURL(join(SRC, pagePath)).href + (query ? "?" + query : "") + "#story", { waitUntil: "load" });
 await page.evaluate(() => window.__ready);
 const duration = await page.evaluate(() => window.DURATION);
 
@@ -42,7 +48,20 @@ if (STILLS) {
   }
   console.log(`stills -> ${dir}`);
 } else {
-  const silent = AUDIO ? out.replace(/\.mp4$/, ".video.mp4") : out;
+  let audio = AUDIO;
+  if (SCORE) {
+    const cues = await page.evaluate(() => window.CUES || []);
+    const tmp = join(tmpdir(), "vv-score");
+    mkdirSync(tmp, { recursive: true });
+    writeFileSync(join(tmp, "cues.json"), JSON.stringify(cues));
+    const raw = join(tmp, "raw.wav");
+    const r1 = spawnSync("python3", [join(SRC, "audio", "compose.py"), raw, "--cues", join(tmp, "cues.json"), "--outro", OUTRO], { stdio: "inherit" });
+    if (r1.status !== 0) throw new Error("compose failed");
+    audio = out.replace(/\.mp4$/, "_music.wav");
+    const r2 = spawnSync("python3", [join(SRC, "audio", "master.py"), raw, audio], { stdio: "inherit" });
+    if (r2.status !== 0) throw new Error("master failed");
+  }
+  const silent = audio ? out.replace(/\.mp4$/, ".video.mp4") : out;
   const ff = spawn("ffmpeg", [
     "-y", "-loglevel", "error",
     "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-",
@@ -58,13 +77,14 @@ if (STILLS) {
   }
   ff.stdin.end();
   await new Promise((r, j) => ff.on("close", (c) => (c === 0 ? r() : j(new Error("ffmpeg " + c)))));
-  if (AUDIO) {
+  if (audio) {
     await new Promise((r, j) => {
-      const mux = spawn("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-i", AUDIO, "-map", "0:v", "-map", "1:a",
+      const mux = spawn("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-i", audio, "-map", "0:v", "-map", "1:a",
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out], { stdio: "inherit" });
       mux.on("close", (c) => (c === 0 ? r() : j(new Error("mux " + c))));
     });
   }
+  if (audio) spawnSync("rm", ["-f", silent]);
   console.log(`video: ${out} (${frames} frames)`);
 }
 await browser.close();

@@ -67,7 +67,9 @@ for (const file of concepts) {
     const cuesPath = join(tmp, "cues.json");
     writeFileSync(cuesPath, JSON.stringify(cues));
     const wav = join(tmp, "music.wav");
-    run("python3", [join(SRC, "audio", "compose.py"), wav, "--cut", String(MUSIC_FROM[id] ?? 4), String(dur), "--cues", cuesPath]);
+    const raw = join(tmp, "raw.wav");
+    run("python3", [join(SRC, "audio", "compose.py"), raw, "--cut", String(MUSIC_FROM[id] ?? 4), String(dur), "--cues", cuesPath, "--sparse"]);
+    run("python3", [join(SRC, "audio", "master.py"), raw, wav]);
     const out = join(ADS, id, `${id}_${fmt}_${w}x${h}.mp4`);
     run("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
       "-shortest", "-movflags", "+faststart", out]);

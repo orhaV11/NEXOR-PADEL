@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="../brand.css" />
 <link rel="stylesheet" href="../ui.css" />
 <script src="../brand.js"></script>
+<script src="../motion.js"></script>
 <style>
   .ad { --seal-bg: #07150f; }
   .glow { position: absolute; z-index: 1; border-radius: 50%; filter: blur(60px); pointer-events: none; }
@@ -64,30 +65,30 @@
   [data-format="landscape"] .glow { left: -160px !important; top: 120px !important; }
 </style>
 </head>
-<body>
+<body data-duration="8">
 <div class="ad night grain vignette">
   <div class="glow" style="width:900px;height:600px;left:90px;top:520px;background:radial-gradient(closest-side,rgba(205,174,114,.28),rgba(205,174,114,0));"></div>
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
   <div class="copy">
-    <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="brand" data-in="0.3,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
     <h1 class="h1 lift" data-guard="headline">
-      <span class="line">המשחק זז.</span>
-      <span class="line gilt">הטיול לא מתפרק.</span>
+      <span class="line" data-in="0.5,slam">המשחק זז.</span>
+      <span class="line gilt" data-in="0.95,slam">הטיול לא מתפרק.</span>
     </h1>
-    <p class="sub" data-guard="sub">
+    <p class="sub" data-guard="sub" data-in="1.5,up">
       <bdi>Venuvoy</bdi> עוקבת אחרי כל משחק בתוכנית עד יום אחרי הטיול. כשמשהו משתנה, מקבלים התראה במייל ובאפליקציה — עם חלופות.
     </p>
     <div class="ctas">
-      <span class="cta" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-      <span class="url">VENUVOY.APP</span>
+      <span class="cta" data-guard="cta" data-in="2.0,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url" data-in="2.25,fade">VENUVOY.APP</span>
     </div>
   </div>
 
-  <span class="illus">המחשה</span>
+  <span class="illus" data-in="2.7,fade">המחשה</span>
 
-  <div class="phone-wrap">
+  <div class="phone-wrap" data-in="2.2,rise">
     <div class="phone">
       <div class="screen">
         <div class="scr">
@@ -96,21 +97,21 @@
             <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
             <span class="bell"><i data-icon="bell" style="display:block;width:100%;height:100%"></i><b>1</b></span>
           </div>
-          <div class="strip"><span>שינוי אחד דורש החלטה</span><u>להציג</u></div>
+          <div class="strip" data-in="3.1,fade"><span>שינוי אחד דורש החלטה</span><u>להציג</u></div>
           <div class="sheet">
-            <div class="meta-row"><span class="chip change"><i class="dot"></i>תאריך הוזז</span><span>זוהה היום · מקור: האתר הרשמי</span></div>
-            <div class="ev-title">יובנטוס נגד בולוניה</div>
+            <div class="meta-row" data-in="3.3,fade"><span class="chip change"><i class="dot"></i>תאריך הוזז</span><span>זוהה היום · מקור: האתר הרשמי</span></div>
+            <div class="ev-title" data-in="3.4,fade">יובנטוס נגד בולוניה</div>
             <div class="ba">
               <div class="old"><span class="k">לפני</span><span class="v">א׳ 21.2</span></div>
               <i class="arr" data-icon="arrow"></i>
-              <div class="new"><span class="k">אחרי</span><span class="v">ב׳ 22.2 · <span class="ltr">20:45</span></span></div>
+              <div class="new" data-in="3.8,pop"><span class="k">אחרי</span><span class="v">ב׳ 22.2 · <span class="ltr">20:45</span></span></div>
             </div>
-            <div class="impact"><span><b>ההשפעה על התוכנית:</b> הנסיעה חזרה כבר לא מתאימה.</span></div>
+            <div class="impact" data-in="4.2,fade"><span><b>ההשפעה על התוכנית:</b> הנסיעה חזרה כבר לא מתאימה.</span></div>
             <div class="sugg-h"><h4>חלופות</h4><span>באותו יום, בטווח הנסיעה</span></div>
-            <div class="sugg on"><div class="t"><b>מילאן נגד ג׳נואה</b><span>סן סירו, מילאנו · 50 דק׳ ברכבת · שעה טרם נקבעה</span></div><span class="pick">נבחר</span></div>
-            <div class="sugg"><div class="t"><b>קומו נגד טורינו</b><span>סטדיו סיניגליה, קומו · שעה טרם נקבעה</span></div><span class="pick">בחירה</span></div>
-            <div class="acts"><span class="go">אישור והחלפה</span><span class="keep">להשאיר</span></div>
-            <div class="peek">
+            <div class="sugg on" data-in="4.6,row"><div class="t"><b>מילאן נגד ג׳נואה</b><span>סן סירו, מילאנו · 50 דק׳ ברכבת · שעה טרם נקבעה</span></div><span class="pick">נבחר</span></div>
+            <div class="sugg" data-in="4.85,row"><div class="t"><b>קומו נגד טורינו</b><span>סטדיו סיניגליה, קומו · שעה טרם נקבעה</span></div><span class="pick">בחירה</span></div>
+            <div class="acts" data-in="5.1,fade"><span class="go">אישור והחלפה</span><span class="keep">להשאיר</span></div>
+            <div class="peek" data-in="5.4,fade">
               <div class="peek-h">התוכנית · מילאנו וטורינו</div>
               <div class="prow"><span class="pd">א׳ 14.2</span><b>אינטר נגד מילאן</b><span class="chip warn"><i class="dot"></i>זמני</span></div>
               <div class="prow"><span class="pd">ד׳ 17.2</span><b>מילאנו ← טורינו</b><span class="pi">רכבת · 50 דק׳</span></div>

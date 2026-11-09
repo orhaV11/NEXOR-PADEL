@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="../brand.css" />
 <link rel="stylesheet" href="../ui.css" />
 <script src="../brand.js"></script>
+<script src="../motion.js"></script>
 <style>
   .ad { --seal-bg: #0a1712; }
   .bg-glow { position: absolute; z-index: 1; pointer-events: none; border-radius: 50%;
@@ -90,26 +91,26 @@
   [data-format="landscape"] .bg-glow { width: 600px; height: 600px; left: -170px; top: -60px; }
 </style>
 </head>
-<body>
+<body data-duration="8">
 <div class="ad night grain vignette">
   <div class="bg-glow"></div>
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
   <div class="col">
-    <div class="brand"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="brand" data-in="0.4,fade"><i class="crest"></i><span class="wordmark">Venuvoy</span></div>
     <h1 class="h1 lift" data-guard="headline">
-      <span class="line">גם השבת</span>
-      <span class="line gilt">חלק מהתוכנית.</span>
+      <span class="line" data-in="0.6,slam">גם השבת</span>
+      <span class="line gilt" data-in="1.0,slam">חלק מהתוכנית.</span>
     </h1>
-    <p class="sub" data-guard="sub">מסמנים ״שבת וחגים״, ו־<bdi>Venuvoy</bdi> לא מתכננת כלום מהדלקת הנרות ועד צאת השבת או החג — לפי השעון של כל עיר.</p>
+    <p class="sub" data-guard="sub" data-in="1.5,up">מסמנים ״שבת וחגים״, ו־<bdi>Venuvoy</bdi> לא מתכננת כלום מהדלקת הנרות ועד צאת השבת או החג — לפי השעון של כל עיר.</p>
   </div>
 
-  <svg class="candles" id="candles" aria-hidden="true"></svg>
+  <svg class="candles" id="candles" aria-hidden="true" data-in="0.1,fade"></svg>
 
   <!-- Real London fixtures from the Venuvoy catalog; Shabbat times from the app's own sunset rule
        (candle lighting = sunset − 18 min, havdalah = sunset + 40 min, London, 20–21.11.2026). -->
-  <div class="sc card" data-guard="card">
+  <div class="sc card" data-guard="card" data-in="2.0,up">
     <div class="sc-band"><b>לונדון · <span class="ltr">19–25.11</span></b><span class="on"><i data-icon="check" style="width:1em;height:1em;display:inline-block"></i>שבת וחגים שמורים</span></div>
     <div class="sc-body">
       <div class="shab">
@@ -124,8 +125,8 @@
   </div>
 
   <div class="ctas">
-    <span class="cta" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-    <span class="url">VENUVOY.APP</span>
+    <span class="cta" data-guard="cta" data-in="4.1,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+    <span class="url" data-in="4.4,fade">VENUVOY.APP</span>
   </div>
 </div>
 <script>
@@ -155,9 +156,9 @@
     // wick + flame
     const fy = stemTop - ch;
     parts.push(`<path d="M${cx},${fy} l${1.5 * s},${-10 * s}" stroke="#3a2a18" stroke-width="${2.2 * s}"/>`);
-    parts.push(`<circle cx="${cx}" cy="${fy - 34 * s}" r="${150 * s}" fill="url(#halo)"/>`);
-    parts.push(`<path d="M${cx},${fy - 78 * s} C${cx + 18 * s},${fy - 46 * s} ${cx + 17 * s},${fy - 16 * s} ${cx},${fy - 8 * s} C${cx - 17 * s},${fy - 16 * s} ${cx - 18 * s},${fy - 46 * s} ${cx},${fy - 78 * s} Z" fill="url(#flame)" filter="url(#soft)"/>`);
-    parts.push(`<path d="M${cx},${fy - 48 * s} C${cx + 7 * s},${fy - 32 * s} ${cx + 6 * s},${fy - 18 * s} ${cx},${fy - 13 * s} C${cx - 6 * s},${fy - 18 * s} ${cx - 7 * s},${fy - 32 * s} ${cx},${fy - 48 * s} Z" fill="#ffffff" opacity=".92"/>`);
+    parts.push(`<circle class="halo" cx="${cx}" cy="${fy - 34 * s}" r="${150 * s}" fill="url(#halo)"/>`);
+    parts.push(`<path d="M${cx},${fy - 78 * s} C${cx + 18 * s},${fy - 46 * s} ${cx + 17 * s},${fy - 16 * s} ${cx},${fy - 8 * s} C${cx - 17 * s},${fy - 16 * s} ${cx - 18 * s},${fy - 46 * s} ${cx},${fy - 78 * s} Z" fill="url(#flame)" filter="url(#soft)" class="flame"/>`);
+    parts.push(`<path d="M${cx},${fy - 48 * s} C${cx + 7 * s},${fy - 32 * s} ${cx + 6 * s},${fy - 18 * s} ${cx},${fy - 13 * s} C${cx - 6 * s},${fy - 18 * s} ${cx - 7 * s},${fy - 32 * s} ${cx},${fy - 48 * s} Z" fill="#ffffff" opacity=".92" class="flame core"/>`);
     return parts.join("");
   }
   const svg = document.getElementById("candles");
@@ -179,6 +180,19 @@
   document.querySelectorAll("[data-flame]").forEach((el) => {
     el.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C15 7 18 9 18 14a6 6 0 0 1-12 0c0-3 2-5 3-7 1 2 2 3 3 3 0-3-1-5 0-8z" fill="#b07a1c"/><path d="M12 11c1.6 2 2.6 3 2.6 4.6a2.6 2.6 0 0 1-5.2 0c0-1.3.9-2.4 2.6-4.6z" fill="#ffe6a8"/></svg>`;
   });
+
+  // Motion: the rows of the week arrive in order; the flames and their glow flicker the whole time.
+  [...document.querySelectorAll(".sc .tr")].forEach((r, i) => r.setAttribute("data-in", `${(2.35 + i * 0.25).toFixed(2)},row`));
+  const note = document.querySelector(".sc-note"); if (note) note.setAttribute("data-in", "3.8,fade");
+  window.onSeek = (t, h) => {
+    document.querySelectorAll(".flame").forEach((f, i) => {
+      f.style.transformBox = "fill-box"; f.style.transformOrigin = "50% 100%";
+      const sx = 1 + 0.05 * Math.sin(t * 23 + i * 1.7), sy = 1 + 0.08 * Math.sin(t * 17 + i * 1.3) + 0.03 * Math.sin(t * 41 + i);
+      f.style.transform = `scale(${sx}, ${sy}) skewX(${2.5 * Math.sin(t * 11 + i)}deg)`;
+    });
+    document.querySelectorAll(".halo").forEach((g, i) => { g.style.opacity = 0.82 + 0.18 * Math.sin(t * 13 + i * 2); });
+    const glow = document.querySelector(".bg-glow"); if (glow) glow.style.opacity = 0.88 + 0.12 * Math.sin(t * 7.3);
+  };
 </script>
 </body>
 </html>

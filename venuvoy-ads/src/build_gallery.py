@@ -26,13 +26,22 @@ FORMATS = [
     ("landscape", "רוחבי", "1.91:1", 1200, 628),
 ]
 REEL = "07-reel/venuvoy-reel_9x16_1080x1920.mp4"
+REEL_EN = "08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4"
+VID_FORMATS = [("story", "9:16", 1080, 1920), ("feed", "4:5", 1080, 1350)]
+
+
+def mp4(cid, fmt):
+    w, h = next((w, h) for f, _, w, h in VID_FORMATS if f == fmt)
+    return f"ads/{cid}/{cid}_{fmt}_{w}x{h}.mp4"
 
 NOTES = [
     ("הדומיין", "המודעות מציגות VENUVOY.APP, הדומיין שמוגדר בקוד (src/lib/brand.ts). כדאי לוודא שהוא חי לפני שמעלים."),
     ("תאריכים", "המשחקים במודעות הם מינואר עד מרץ 2027, וכרטיס השבת הוא ללונדון ב־19-25.11.2026. אחרי התאריכים האלה מחליפים לנתונים חדשים ומרנדרים מחדש."),
     ("מדיניות Meta", "אין טרגוט לפי דת, ולכן מודעת השבת רצה על קהל רחב. הטקסטים לא פונים לגולש לפי מאפיין אישי (למשל ״שומרים שבת?״), כדי לעמוד בכללים."),
     ("שקיפות", "מסך ההתראה מסומן ״המחשה״. המעקב בתשלום, וזה כתוב בתיאור של המודעה. שמות קבוצות מופיעים רק כשמות משחקים, בלי סמלים."),
-    ("הווידאו", "בלי פס קול. אפשר להוסיף מוזיקה ברישיון ב־Ads Manager או ב־CapCut."),
+    ("מוזיקה", "לסרטון באנגלית ולשש מודעות הווידאו יש מוזיקה מקורית שהולחנה בקוד, בלי זכויות של צד שלישי. לסרטון הראשי בעברית אין פס קול."),
+    ("שפות בסרטון האנגלי", "בסרטון כתוב שאנגלית ועברית זמינות היום ו־4 שפות בדרך. רוסית, ערבית, צרפתית וספרדית מוגדרות בקוד כ״מתוכננות״ ועוד לא פתוחות למשתמשים. אם לא רוצים להתחייב לזה בפומבי, צריך להוריד את השורה."),
+    ("מחירים בסרטון האנגלי", "מוצגים בדולרים ($15, $29, $39), לפי ספר המחירים של המוצר."),
     ("בדיקה ראשונה", "להתחיל ב־01, 02 ו־03 מול קהל רחב של אוהדי כדורגל שטסים לחו״ל, ואת 06 להפעיל כריטרגטינג. מודדים עלות לתוכנית שנבנתה, לא רק הקלקות."),
 ]
 
@@ -114,6 +123,9 @@ button.cp:hover { border-color: var(--accent); }
 button.cp:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .basis { margin: 12px 0 0; font-size: 14px; color: var(--muted); max-width: 80ch; }
 .basis b { color: var(--fg); }
+.vids { display: grid; grid-template-columns: 0.5625fr 0.8fr; gap: 12px; margin-top: 18px; max-width: 640px; align-items: start; }
+.vids figure video { width: 100%; height: auto; display: block; border-radius: 3px; background: #0d2219; box-shadow: 0 0 0 1px var(--line), 0 14px 30px -18px var(--shade); }
+.sub-h { margin: 26px 0 0; font: 800 13px var(--f-text); letter-spacing: 0.08em; color: var(--brass-ink); }
 .reel { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
 .reel video { width: 100%; height: auto; display: block; border-radius: 3px; background: #0d2219; box-shadow: 0 0 0 1px var(--line), 0 20px 40px -24px var(--shade); }
 .scenes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
@@ -190,22 +202,23 @@ def copy_rows(prefix, meta):
     return '<dl class="copy">' + "".join(out) + "</dl>"
 
 
-def body(img_src, full_src, video_src, poster_src):
+def body(img_src, full_src, video_src, poster_src, vid_src, en_src, en_poster):
     c = COPY
     parts = []
     parts.append(
         f'<header class="mast"><span class="lockup">{CREST}<span class="wordmark">Venuvoy</span></span>'
-        f'<span class="meta">6 מודעות · 4 גדלים · וידאו 9:16</span></header>'
+        f'<span class="meta">8 סרטונים · 6 מודעות · עברית ואנגלית</span></header>'
     )
     parts.append(
         '<h1>ערכת הקמפיין של <span class="g ltr">Venuvoy</span></h1>'
-        '<p class="lede">שש מודעות בעברית, כל אחת בארבעה גדלים, ווידאו של 17 שניות. כל משחק, מחיר ושעה במודעות לקוחים מהמוצר עצמו: '
-        "תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים. מתחת לכל מודעה יש את הטקסטים ל־Meta, מוכנים להעתקה.</p>"
+        '<p class="lede">סרטון ראשי בעברית, סרטון באנגלית עם מוזיקה מקורית, ושש מודעות וידאו בעברית (9:16 ו־4:5, 8 שניות, עם מוזיקה). '
+        "כל מודעה קיימת גם כתמונה בארבעה גדלים. כל משחק, מחיר ושעה לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים. "
+        "מתחת לכל מודעה יש את הטקסטים ל־Meta, מוכנים להעתקה.</p>"
     )
     parts.append(
         '<ul class="specs">'
         + "".join(f'<li>{e(lbl)} <span>{w}×{h}</span></li>' for _, lbl, _, w, h in FORMATS)
-        + '<li>וידאו <span>1080×1920 · 17s</span></li></ul>'
+        + '<li>וידאו 9:16 <span>1080×1920</span></li><li>וידאו 4:5 <span>1080×1350</span></li></ul>'
     )
 
     # Reel first: it is the piece most people will see.
@@ -217,6 +230,15 @@ def body(img_src, full_src, video_src, poster_src):
         f'<div class="reel"><video src="{e(video_src)}" poster="{e(poster_src)}" controls playsinline muted loop preload="metadata"></video>'
         '<div><ol class="scenes">' + "".join(f"<li>{e(s)}</li>" for s in r["scenes"]) + "</ol>"
         + copy_rows("reel", r["meta"]) + "</div></div></section>"
+    )
+    r2 = c["reelEn"]
+    parts.append(
+        f'<section class="entry" aria-labelledby="h-reel-en"><div class="entry-h"><span class="no">08</span>'
+        f'<h2 id="h-reel-en">{e(r2["name"])}</h2><span class="onimg ltr">A sports trip you can trust.</span></div>'
+        f'<p class="angle"><span class="ltr">{e(r2["length"])}</span>. קצבי וכיפי, עם מוזיקה מקורית ואפקטים שמסונכרנים לכל תנועה. המוזיקה הולחנה בקוד, כך שאין בה זכויות של אף אחד אחר.</p>'
+        f'<div class="reel"><video src="{e(en_src)}" poster="{e(en_poster)}" controls playsinline loop preload="metadata"></video>'
+        '<div><ol class="scenes" dir="ltr" lang="en">' + "".join(f"<li>{e(s)}</li>" for s in r2["scenes"]) + "</ol>"
+        + copy_rows("reel-en", r2["meta"]) + "</div></div></section>"
     )
 
     for i, x in enumerate(c["concepts"], start=1):
@@ -234,7 +256,13 @@ def body(img_src, full_src, video_src, poster_src):
             f'<section class="entry" aria-labelledby="h-{cid}"><div class="entry-h"><span class="no">{i:02d}</span>'
             f'<h2 id="h-{cid}">{e(x["name"])}</h2><span class="onimg">{e(x["onImage"])}</span></div>'
             f'<p class="angle">{e(x["angle"])}</p>'
-            f'<div class="formats">{"".join(figs)}</div>'
+            '<p class="sub-h">וידאו · 8 שניות, עם מוזיקה</p>'
+            + '<div class="vids">' + "".join(
+                f'<figure><video src="{e(vid_src(cid, vf))}" poster="{e(img_src(cid, vf))}" controls playsinline loop preload="none" width="{vw}" height="{vh}"></video>'
+                f'<figcaption>{"סטורי / ריל" if vf == "story" else "פיד"} · <span class="ltr">{vr}</span> · <span class="ltr">{vw}×{vh}</span></figcaption></figure>'
+                for vf, vr, vw, vh in VID_FORMATS) + '</div>'
+            + '<p class="sub-h">תמונות · ארבעה גדלים</p>'
+            + f'<div class="formats">{"".join(figs)}</div>'
             + copy_rows(cid, x["meta"])
             + f'<p class="basis"><b>קהל:</b> {e(x["audience"])}</p>'
             f'<p class="basis"><b>על מה זה מבוסס:</b> {e(x["basis"])}</p></section>'
@@ -288,11 +316,18 @@ def build_readme():
     uses = {"feed": "פיד באינסטגרם ובפייסבוק (הכי יעיל בפיד)", "story": "סטוריז, ריילז, טיקטוק", "square": "פיד, קרוסלה, רשת המדיה של Google", "landscape": "פייסבוק (קישור), Google Display, לינקדאין"}
     for f, lbl, ratio, w, h in FORMATS:
         L.append(f"| {lbl} {ratio} | {w}×{h} | {uses[f]} |")
-    L.append("| וידאו 9:16 | 1080×1920, 17 ש׳ | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |")
+    L.append("| וידאו 9:16 (כל מודעה) | 1080×1920, 8 ש׳, עם מוזיקה | ריילז, סטוריז, טיקטוק |")
+    L.append("| וידאו 4:5 (כל מודעה) | 1080×1350, 8 ש׳, עם מוזיקה | פיד באינסטגרם ובפייסבוק |")
+    L.append("| סרטון ראשי בעברית | 1080×1920, 17 ש׳ | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |")
+    L.append("| סרטון באנגלית | 1080×1920, 32 ש׳, מוזיקה מקורית | ריילז, סטוריז, טיקטוק, יוטיוב שורטס |")
     L.append("")
     L.append("```")
-    L.append("ads/01-kickoff … ads/06-offer   כל מודעה: <id>_<format>_<WxH>.png")
+    L.append("ads/01-kickoff … ads/06-offer   כל מודעה: <id>_<format>_<WxH>.png וגם .mp4 ל־story ו־feed")
     L.append("ads/07-reel/venuvoy-reel_9x16_1080x1920.mp4")
+    L.append("ads/08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4   + פס הקול לבד: venuvoy-reel-en_soundtrack.m4a")
+    L.append("src/motion.js                   השכבה שמנפישה את המודעות (data-in על כל אלמנט)")
+    L.append("src/video-en/reel-en.html       הסרטון באנגלית")
+    L.append("src/audio/compose.py            המוזיקה והאפקטים, מסונתזים בקוד")
     L.append("src/concepts/*.html             המודעות עצמן (HTML/CSS), אחת לכל רעיון")
     L.append("src/video/reel.html             הווידאו, ציר זמן מדויק לפריים")
     L.append("src/copy.json                   כל הטקסטים ל־Meta ול־Google")
@@ -332,6 +367,21 @@ def build_readme():
     L.append(f"| תיאור | {r['meta']['description']} |")
     L.append(f"| כפתור | {r['meta']['cta']} |")
     L.append("")
+    r2 = c["reelEn"]
+    L.append("## 08 · English video 9:16")
+    L.append("")
+    L.append(r2["length"] + ".")
+    L.append("")
+    for sc in r2["scenes"]:
+        L.append(f"- {sc}")
+    L.append("")
+    L.append("| Meta field | Text |")
+    L.append("|---|---|")
+    L.append(f"| Primary text ({len(r2['meta']['primary'])}/125) | {r2['meta']['primary']} |")
+    L.append(f"| Headline | {r2['meta']['headline']} |")
+    L.append(f"| Description | {r2['meta']['description']} |")
+    L.append(f"| CTA | {r2['meta']['cta']} |")
+    L.append("")
     g = c["google"]
     L.append("## Google Ads · מודעה רספונסיבית")
     L.append("")
@@ -353,12 +403,16 @@ def build_readme():
     L.append("")
     L.append("## עריכה ורינדור מחדש")
     L.append("")
-    L.append("צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow.")
+    L.append("צריך Node 22, Playwright עם Chromium, ffmpeg ו־Python עם Pillow, numpy ו־scipy.")
     L.append("")
     L.append("```bash")
     L.append("node src/render.mjs                 # כל המודעות, כל הגדלים -> ads/")
     L.append("node src/render.mjs alert story     # רק מודעה אחת בגודל אחד")
-    L.append("node src/render-video.mjs           # הווידאו -> ads/07-reel/")
+    L.append("node src/render-motion.mjs          # שש מודעות הווידאו (9:16 ו־4:5) עם מוזיקה")
+    L.append("node src/render-video.mjs           # הסרטון הראשי -> ads/07-reel/")
+    L.append("node src/render-video.mjs --page video-en/reel-en.html --out 08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4 \\")
+    L.append("    --audio ads/08-reel-en/venuvoy-reel-en_music.wav   # הסרטון באנגלית")
+    L.append("python3 src/audio/compose.py ads/08-reel-en/venuvoy-reel-en_music.wav   # פס הקול")
     L.append("python3 src/build_gallery.py        # index.html ו־README.md מתוך src/copy.json")
     L.append("```")
     L.append("")
@@ -377,7 +431,8 @@ HEAD = (
 
 
 def build_repo_page():
-    page = body(lambda c, f: png(c, f), lambda c, f: png(c, f), f"ads/{REEL}", "ads/07-reel/poster.jpg")
+    page = body(lambda c, f: png(c, f), lambda c, f: png(c, f), f"ads/{REEL}", "ads/07-reel/poster.jpg",
+                lambda c, f: mp4(c, f), f"ads/{REEL_EN}", "ads/08-reel-en/poster.jpg")
     doc = (
         '<!doctype html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
@@ -397,11 +452,22 @@ def build_publish(dirpath):
             t = im.copy()
             t.thumbnail((720, 720 if fmt != "story" else 1280), Image.LANCZOS)
             t.save(d / "thumb" / f'{x["id"]}_{fmt}.jpg', quality=84, optimize=True, progressive=True)
+    # lighter video copies for the page (the full-quality files stay in the repo)
+    (d / "vid").mkdir(parents=True, exist_ok=True)
+    web = ["-c:v", "libx264", "-preset", "medium", "-crf", "24", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart"]
+    for x in COPY["concepts"]:
+        for vf, *_ in VID_FORMATS:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ROOT / mp4(x["id"], vf)), "-vf", "scale=720:-2", *web, str(d / "vid" / f'{x["id"]}_{vf}.mp4')], check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / REEL), "-vf", "scale=720:-2", *web, str(d / "reel.mp4")], check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / REEL_EN), "-vf", "scale=720:-2", *web, str(d / "reel-en.mp4")], check=True)
     page = body(
         lambda c, f: f"thumb/{c}_{f}.jpg",
         lambda c, f: f"img/{c}_{f}.jpg",
         "reel.mp4",
         "poster.jpg",
+        lambda c, f: f"vid/{c}_{f}.mp4",
+        "reel-en.mp4",
+        "poster-en.jpg",
     )
     (d / "index.html").write_text(HEAD + STYLE + page + SCRIPT, encoding="utf-8")
 
@@ -409,12 +475,14 @@ def build_publish(dirpath):
 if __name__ == "__main__":
     poster = ADS / "07-reel" / "poster.jpg"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "2.4", "-i", str(ADS / REEL), "-frames:v", "1", "-q:v", "3", str(poster)], check=True)
+    poster_en = ADS / "08-reel-en" / "poster.jpg"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "4.9", "-i", str(ADS / REEL_EN), "-frames:v", "1", "-q:v", "3", str(poster_en)], check=True)
     build_repo_page()
     build_readme()
     if "--publish-dir" in sys.argv:
         out = sys.argv[sys.argv.index("--publish-dir") + 1]
         build_publish(out)
         os.makedirs(out, exist_ok=True)
-        subprocess.run(["cp", str(ADS / REEL), os.path.join(out, "reel.mp4")], check=True)
         subprocess.run(["cp", str(poster), os.path.join(out, "poster.jpg")], check=True)
+        subprocess.run(["cp", str(poster_en), os.path.join(out, "poster-en.jpg")], check=True)
     print("ok")

@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="../brand.css" />
 <link rel="stylesheet" href="../ui.css" />
 <script src="../brand.js"></script>
+<script src="../motion.js"></script>
 <style>
   .ad { --seal-bg: #3a0c15; }
   .col { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -91,42 +92,44 @@
   [data-format="landscape"] .trow .ds { display: none; }
 </style>
 </head>
-<body>
+<body data-duration="8">
 <div class="ad oxblood grain vignette">
   <div class="frame"></div>
   <i class="seal s-top"></i><i class="seal s-bottom"></i>
 
   <div class="col">
-    <div class="brand"><i class="crest" data-variant="ox"></i><span class="wordmark">Venuvoy</span></div>
-    <div class="eyebrow">בלי מנוי · חד־פעמי, לכל טיול</div>
-    <div class="price gilt-wrap lift">
+    <div class="brand" data-in="0.3,fade"><i class="crest" data-variant="ox"></i><span class="wordmark">Venuvoy</span></div>
+    <div class="eyebrow" data-in="0.5,up">בלי מנוי · חד־פעמי, לכל טיול</div>
+    <div class="price gilt-wrap lift" data-in="0.8,slam">
       <span class="rule l"></span>
       <span class="cur gilt">₪</span><span class="zero gilt">0</span>
       <span class="rule r"></span>
     </div>
-    <div class="offer-line" data-guard="headline">לתכנן טיול ספורט שלם.</div>
-    <p class="sub" data-guard="sub"><span class="ltr">2–3</span> תוכניות עם מסלול, מפה, עלויות ומקורות — בחינם. משלמים רק כשרוצים לערוך, לקבל מדריכי כרטיסים ומעקב, פעם אחת לטיול.</p>
+    <div class="offer-line" data-guard="headline" data-in="1.3,up">לתכנן טיול ספורט שלם.</div>
+    <p class="sub" data-guard="sub" data-in="1.7,up"><span class="ltr">2–3</span> תוכניות עם מסלול, מפה, עלויות ומקורות — בחינם. משלמים רק כשרוצים לערוך, לקבל מדריכי כרטיסים ומעקב, פעם אחת לטיול.</p>
     <div class="vis-slot"></div>
     <div class="ctas">
-      <span class="cta gilt-fill" data-guard="cta">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
-      <span class="url">VENUVOY.APP</span>
+      <span class="cta gilt-fill" data-guard="cta" data-in="4.0,pop">לתכנון טיול בחינם <i class="i-arrow" data-icon="arrow"></i></span>
+      <span class="url" data-in="4.3,fade">VENUVOY.APP</span>
     </div>
   </div>
 
   <!-- Prices from the app's price book (src/features/pricing/priceBook.ts, ILS). -->
   <div class="vis" id="vis">
-    <div class="tariff" data-guard="tariff">
+    <div class="tariff" data-guard="tariff" data-in="2.0,up">
       <div class="tariff-h"><b>המחירון</b><span>תשלום חד־פעמי לטיול</span></div>
       <div class="trow"><div class="nm">תכנון<span class="ds"><span class="ltr">2–3</span> תוכניות, מסלול, מפה, עלויות ומקורות</span></div><span class="lead"></span><span class="pr free">חינם</span></div>
       <div class="trow"><div class="nm">פתיחת התוכנית<span class="ds">עריכה, מדריכי כרטיסים, צ׳קליסט וייצוא</span></div><span class="lead"></span><span class="pr">₪49</span></div>
       <div class="trow"><div class="nm">מעקב<span class="ds">התראות על שינויים עם חלופות, עד יום אחרי הטיול</span></div><span class="lead"></span><span class="pr">₪99</span></div>
-      <div class="trow best"><div class="nm">חבילה<span class="tag">מומלץ</span><span class="ds">פתיחה ומעקב יחד, במחיר נמוך יותר</span></div><span class="lead"></span><span class="pr">₪129</span></div>
-      <div class="tariff-f"><b>לא מנוי.</b> <bdi>Venuvoy</bdi> לא מוכרת כרטיסים: הרכישה אצל הגופים הרשמיים.</div>
+      <div class="trow best"><div class="nm">חבילה<span class="tag" data-in="3.4,pop">מומלץ</span><span class="ds">פתיחה ומעקב יחד, במחיר נמוך יותר</span></div><span class="lead"></span><span class="pr">₪129</span></div>
+      <div class="tariff-f" data-in="3.6,fade"><b>לא מנוי.</b> <bdi>Venuvoy</bdi> לא מוכרת כרטיסים: הרכישה אצל הגופים הרשמיים.</div>
     </div>
   </div>
 </div>
 <script>
   if (VV.format !== "landscape") document.querySelector(".vis-slot").replaceWith(document.getElementById("vis"));
+
+  [...document.querySelectorAll(".tariff .trow")].forEach((r, i) => r.setAttribute("data-in", `${(2.4 + i * 0.25).toFixed(2)},row`));
 </script>
 </body>
 </html>

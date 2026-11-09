@@ -232,12 +232,12 @@
       const S = (W / 1080) * pinScale;
       const ring = (rm, op) =>
         `<path d="${pathT(ell(0, 0.5, rm, 0, Math.PI * 2, 60))}" fill="none" stroke="#e6cf98" stroke-opacity="${op}" stroke-width="${f(2 * S)}"/>`;
-      pinSvg += ring(4.2, 0.95) + ring(6.6, 0.5);
-      pinSvg += `<g transform="translate(${f(px)},${f(py)}) scale(${f(S * 1.15)})">
+      pinSvg += `<g class="pin-rings" style="transform-box:fill-box;transform-origin:50% 50%">${ring(4.2, 0.95) + ring(6.6, 0.5)}</g>`;
+      pinSvg += `<g class="pin-drop"><g transform="translate(${f(px)},${f(py)}) scale(${f(S * 1.15)})">
           <ellipse cx="0" cy="0" rx="13" ry="4.5" fill="#000" opacity=".45"/>
           <path d="M0 0C-4 -14 -26 -34 -26 -58A26 26 0 1 1 26 -58C26 -34 4 -14 0 0Z" fill="#cdae72" stroke="#f3e2b0" stroke-width="2"/>
           <circle cx="0" cy="-58" r="10" fill="#16392b"/>
-        </g>`;
+        </g></g>`;
     }
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0;display:block">

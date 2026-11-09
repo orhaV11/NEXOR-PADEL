@@ -18,7 +18,8 @@
         "description": "מתכנן טיולי ספורט",
         "cta": "מידע נוסף (Learn More)"
       },
-      "basis": "2-3 תוכניות מתוך משחקים שפורסמו, עם זמני נסיעה, עלויות משוערות ומקור לכל שורה: README ודף הבית של Venuvoy. התכנון חינם: עמוד המחירים."
+      "basis": "2-3 תוכניות מתוך משחקים שפורסמו, עם זמני נסיעה, עלויות משוערות ומקור לכל שורה: README ודף הבית של Venuvoy. התכנון חינם: עמוד המחירים.",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     },
     {
       "id": "02-sentence",
@@ -32,7 +33,8 @@
         "description": "2-3 תוכניות בחינם",
         "cta": "הרשמה (Sign Up)"
       },
-      "basis": "קלט במשפט אחד (״הטיול שלכם במשפט אחד״) ותוכנית ״המשחקים הגדולים״ עם ישימות 76 והתאמה 86: public/showcase/trips.json, שנוצר ב־8.11.2026."
+      "basis": "קלט במשפט אחד (״הטיול שלכם במשפט אחד״) ותוכנית ״המשחקים הגדולים״ עם ישימות 76 והתאמה 86: public/showcase/trips.json, שנוצר ב־8.11.2026.",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     },
     {
       "id": "03-alert",
@@ -46,7 +48,8 @@
         "description": "מעקב: ₪99 לטיול",
         "cta": "מידע נוסף (Learn More)"
       },
-      "basis": "התראות במייל ובאפליקציה עם חלופות, עד יום אחרי הטיול: עמוד המחירים ומסך ההתראות. אין התראות פוש, ולכן המודעה מציגה את המסך שבתוך האפליקציה. המעקב בתשלום (₪99, או ₪129 בחבילה)."
+      "basis": "התראות במייל ובאפליקציה עם חלופות, עד יום אחרי הטיול: עמוד המחירים ומסך ההתראות. אין התראות פוש, ולכן המודעה מציגה את המסך שבתוך האפליקציה. המעקב בתשלום (₪99, או ₪129 בחבילה).",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     },
     {
       "id": "04-trust",
@@ -60,7 +63,8 @@
         "description": "מקור לכל שורה",
         "cta": "מידע נוסף (Learn More)"
       },
-      "basis": "שלושת העקרונות לקוחים מסעיף ״איך אנחנו בודקים״ בדף הבית. שורות הקטלוג: באיירן נגד בטיס (מאושר, uefa.com, 24.10), באיירן נגד שאלקה (עשוי להשתנות), דרבי מנצ׳סטר (זמני, ≈ £40-120)."
+      "basis": "שלושת העקרונות לקוחים מסעיף ״איך אנחנו בודקים״ בדף הבית. שורות הקטלוג: באיירן נגד בטיס (מאושר, uefa.com, 24.10), באיירן נגד שאלקה (עשוי להשתנות), דרבי מנצ׳סטר (זמני, ≈ £40-120).",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     },
     {
       "id": "05-shabbat",
@@ -74,7 +78,8 @@
         "description": "שבת וחגים, לפי כל עיר",
         "cta": "מידע נוסף (Learn More)"
       },
-      "basis": "״לא נתכנן כלום מהדלקת הנרות ועד צאת השבת או החג, לפי השעון של כל מקום״: טקסט האשף. הסבר ״נופל בתוך השבת״: מנוע ההסברים. לונדון 20-21.11.2026: הדלקת נרות 15:46, צאת שבת 16:43."
+      "basis": "״לא נתכנן כלום מהדלקת הנרות ועד צאת השבת או החג, לפי השעון של כל מקום״: טקסט האשף. הסבר ״נופל בתוך השבת״: מנוע ההסברים. לונדון 20-21.11.2026: הדלקת נרות 15:46, צאת שבת 16:43.",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     },
     {
       "id": "06-offer",
@@ -88,7 +93,8 @@
         "description": "בלי מנוי",
         "cta": "הרשמה (Sign Up)"
       },
-      "basis": "פתיחה ₪49, מעקב ₪99, חבילה ₪129, חד־פעמי לטיול ולא מנוי: src/features/pricing/priceBook.ts ועמוד המחירים. ״Venuvoy לא מוכרת כרטיסים״: דף הבית ושאלות נפוצות."
+      "basis": "פתיחה ₪49, מעקב ₪99, חבילה ₪129, חד־פעמי לטיול ולא מנוי: src/features/pricing/priceBook.ts ועמוד המחירים. ״Venuvoy לא מוכרת כרטיסים״: דף הבית ושאלות נפוצות.",
+      "video": "8 שניות, 9:16 ו־4:5, עם מוזיקה"
     }
   ],
   "reel": {
@@ -126,5 +132,26 @@
       "שבת וחגים לפי השעון של כל עיר. תשלום חד־פעמי לטיול, לא מנוי."
     ],
     "business": "Venuvoy"
+  },
+  "reelEn": {
+    "id": "08-reel-en",
+    "name": "English video 9:16",
+    "length": "32 seconds, 1080×1920, 30fps, H.264, original soundtrack at 120 BPM",
+    "scenes": [
+      "0-4 s: “Sports trip abroad?” and 17 tabs of chaos",
+      "4-6 s: the drop · Venuvoy, sports trips built around real fixtures",
+      "6-10 s: one sentence in, real plans out (Arsenal v Dortmund, Arsenal v Man City, both confirmed)",
+      "10-16 s: tickets, the honest version: difficulty 5 of 5, members' ballot, lookalike link caught, official sites first",
+      "16-20 s: kick-off moved? Handled. Autopilot and replacements",
+      "20-22 s: match day: leave-by time, works offline, calendar, WhatsApp, PDF",
+      "22-26 s: 56 countries, 558 cities, 13 sports, 11,700+ events · English and Hebrew now, 4 more on the way",
+      "26-32 s: free to plan, pay once per trip ($15 / $29 / $39), no subscription · end card"
+    ],
+    "meta": {
+      "primary": "One sentence in, real plans out: fixtures with sources, honest ticket guides and a scam-link check. Free to plan.",
+      "headline": "A sports trip you can trust",
+      "description": "venuvoy.app",
+      "cta": "Learn More"
+    }
   }
 }

@@ -4,6 +4,26 @@
     "titleHe": "העולם הוא האצטדיון שלכם",
     "spots": [
       {
+        "id": "heist",
+        "folder": "14-heist",
+        "name": "סרט עם דמויות · Operation: Away Day",
+        "length": "36 שניות",
+        "angle": "סרט קומדיה עם דמויות שצולם בבינה מלאכותית ב־Higgsfield: פרודיה על סרט שוד. החבורה מתכננת ״מבצע״ להגיע למשחק חוץ, וכל מה שמשתבש להם (אתר כרטיסים מפוקפק, שעת משחק שזזה, לוח קונספירציה שקורס) הוא בדיוק מה ש־Venuvoy פותרת. ואז סבתא בפינה מקלידה משפט אחד. הדיבור באנגלית; בגרסה העברית הכתוביות, כרטיסי השמות, מסך האפליקציה וכרטיס הסיום בעברית.",
+        "posterAt": 9.5,
+        "en": {
+          "primary": "Planning a football trip abroad shouldn't need a heist crew. Tell Venuvoy one sentence and get the whole trip. Free to plan.",
+          "headline": "One sentence. Whole trip.",
+          "description": "venuvoy.app",
+          "cta": "Learn More"
+        },
+        "he": {
+          "primary": "לתכנן טיול כדורגל בחו״ל לא אמור לדרוש צוות שוד. משפט אחד ל־Venuvoy, וכל הטיול מוכן. התכנון בחינם.",
+          "headline": "משפט אחד. טיול שלם.",
+          "description": "venuvoy.app",
+          "cta": "מידע נוסף (Learn More)"
+        }
+      },
+      {
         "id": "anthem",
         "folder": "10-anthem",
         "name": "הסרט הראשי · The World Is Your Stadium",

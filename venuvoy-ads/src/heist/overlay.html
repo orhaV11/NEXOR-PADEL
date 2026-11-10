@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · Operation Away Day overlay</title>
+<link rel="stylesheet" href="../brand.css" />
+<style>
+  /* A transparent 1080x1920 layer for the AI-shot comedy: heist-film name cards at the top, dialogue
+     subtitles in the lower third. Rendered frame by frame with seek(t) and composited over the cut. */
+  html, body { margin: 0; background: transparent; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "Assistant", sans-serif; }
+  .hx-card { position: absolute; left: 72px; top: 300px; display: none; isolation: isolate; }
+  /* a soft shadow pool behind the card, so the gold line reads over bright walls and maps */
+  .hx-card::before { content: ""; position: absolute; left: -60px; top: -50px; right: -80px; bottom: -50px; z-index: -1;
+    background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3) 60%, rgba(0, 0, 0, 0)); }
+  .hx-card .hx-bar { position: absolute; left: 0; top: 6px; width: 12px; height: 0; background: #e6c47a; border-radius: 2px; box-shadow: 0 0 24px rgba(230, 196, 122, 0.55); }
+  .hx-card .hx-name { margin-left: 38px; font: 800 92px/0.95 "Assistant", sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: #fff;
+    text-shadow: 0 6px 30px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+  .hx-card .hx-what { margin: 14px 0 0 40px; font: italic 600 46px/1.1 "Playfair", serif; color: #e6c47a; text-shadow: 0 4px 22px rgba(0, 0, 0, 0.8); white-space: nowrap; }
+  .hx-sub { position: absolute; left: 60px; right: 60px; top: 1330px; display: none; text-align: center; }
+  .hx-sub span { display: inline-block; max-width: 900px; padding: 14px 28px 16px; border-radius: 16px; background: rgba(8, 10, 12, 0.62);
+    font: 700 54px/1.22 "Assistant", sans-serif; color: #fff; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  /* Hebrew: the card hangs from the right edge and the line under the name is set in FRL */
+  [dir="rtl"] .hx-card { left: auto; right: 72px; text-align: right; }
+  [dir="rtl"] .hx-card .hx-bar { left: auto; right: 0; }
+  [dir="rtl"] .hx-card .hx-name { margin: 0 38px 0 0; letter-spacing: 0; font-size: 100px; }
+  [dir="rtl"] .hx-card .hx-what { margin: 14px 40px 0 0; font: 600 50px/1.1 "FRL", serif; }
+  [dir="rtl"] .hx-sub span { font-size: 56px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+  // The timeline lives in the query string (?tl=<url-encoded JSON>) so the cut decides the times:
+  // { cards: [{ t0, t1, name, what }], subs: [{ t0, t1, text }] }
+  const TL = JSON.parse(new URLSearchParams(location.search).get("tl") || '{"cards":[],"subs":[]}');
+  if (TL.lang === "he") { document.documentElement.lang = "he"; document.documentElement.dir = "rtl"; }
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const P = (t, s, d) => clamp((t - s) / d);
+  const out = (p) => 1 - Math.pow(1 - p, 3);
+  const stage = document.getElementById("stage");
+  const cards = TL.cards.map((c) => {
+    const el = document.createElement("div"); el.className = "hx-card";
+    el.innerHTML = `<i class="hx-bar"></i><div class="hx-name"></div><div class="hx-what"></div>`;
+    el.querySelector(".hx-name").textContent = c.name; el.querySelector(".hx-what").textContent = c.what || "";
+    stage.appendChild(el); return { ...c, el };
+  });
+  const subs = TL.subs.map((s) => {
+    const el = document.createElement("div"); el.className = "hx-sub"; el.innerHTML = "<span></span>";
+    el.querySelector("span").textContent = s.text; stage.appendChild(el); return { ...s, el };
+  });
+  window.seek = (t) => {
+    for (const c of cards) {
+      const on = t >= c.t0 - 0.01 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const a = t - c.t0, exit = 1 - P(t, c.t1 - 0.16, 0.16);
+      c.el.style.opacity = Math.min(1, P(a, 0, 0.12)) * exit; // the shadow pool comes and goes with the card
+      c.el.querySelector(".hx-bar").style.height = `${out(P(a, 0, 0.14)) * 168}px`;
+      const nm = out(P(a, 0.04, 0.22));
+      const n = c.el.querySelector(".hx-name");
+      n.style.opacity = nm * exit; n.style.transform = `translateX(${(1 - nm) * (TL.lang === "he" ? 60 : -60)}px)`; n.style.filter = nm < 0.98 ? `blur(${(1 - nm) * 8}px)` : "";
+      const wt = out(P(a, 0.2, 0.2));
+      const w = c.el.querySelector(".hx-what");
+      w.style.opacity = wt * exit; w.style.transform = `translateY(${(1 - wt) * 14}px)`;
+      c.el.querySelector(".hx-bar").style.opacity = exit;
+    }
+    for (const s of subs) {
+      const on = t >= s.t0 - 0.01 && t < s.t1;
+      s.el.style.display = on ? "block" : "none";
+      if (on) s.el.style.opacity = Math.min(P(t, s.t0, 0.08), 1 - P(t, s.t1 - 0.08, 0.08));
+    }
+  };
+  window.__ready = document.fonts.ready.then(() => { window.seek(0); return true; });
+</script>
+</body>
+</html>

@@ -199,7 +199,7 @@
       c.n.textContent = v;
       const running = p < 1, bump = running ? 0.08 * Math.abs(Math.sin(t * 38)) : 0.34 * (1 - P(t, last, 0.22));
       c.n.style.transform = `scale(${1 + bump})`;
-      c.el.style.transform = `scale(${(0.4 + 0.6 * a) * (0.9 + 0.1 * x)}) rotate(${(c.rot ?? 5) + (running ? Math.sin(t * 31) * 1.6 : 0)}deg)`;
+      c.el.style.transform = `scale(${(c.scale ?? 1) * (0.4 + 0.6 * a) * (0.9 + 0.1 * x)}) rotate(${(c.rot ?? 5) + (running ? Math.sin(t * 31) * 1.6 : 0)}deg)`;
       c.el.style.opacity = Math.min(1, P(t, c.t0, 0.08) * 2) * x;
     }
     for (const c of caps) {

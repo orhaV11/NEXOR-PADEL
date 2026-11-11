@@ -138,7 +138,8 @@ def fix_frame(f, fixes):
     clone: cover a box with the picture a little way off (a logo, a burnt-in number);
     heal:  paint out small marks of one colour inside a window from the skin around them (a graze, a cut);
     key:   move one colour range to another hue (curtains that should match the hall);
-    grade: gain, per-channel gains and saturation (so clips of one room sit together)."""
+    grade: gain, per-channel gains and saturation (so clips of one room sit together);
+    shade: darken the top of the frame and the corners, so a bright bare wall stops pulling the eye off the face."""
     k = W / 1080
     for fx in fixes:
         if "clone" in fx:
@@ -185,6 +186,17 @@ def fix_frame(f, fixes):
             new[:, :, 1] = np.clip(sat.astype(np.float32) * q.get("s", 0.85), 0, 255)
             new[:, :, 2] = np.clip(val.astype(np.float32) * q.get("v_gain", 0.8), 0, 255)
             f = (f * (1 - m) + cv2.cvtColor(new, cv2.COLOR_HSV2BGR) * m).astype(np.uint8)
+        elif "shade" in fx:
+            q = fx["shade"]
+            key = (q.get("top", 0.78), q.get("to_y", 700), q.get("vig", 0.0))
+            if key not in _SHADE:
+                yy = np.clip(np.arange(H, dtype=np.float32) / (key[1] * k), 0, 1)
+                g = np.repeat((key[0] + (1 - key[0]) * yy)[:, None], W, axis=1)
+                if key[2]:
+                    ys, xs = np.mgrid[0:H, 0:W].astype(np.float32)
+                    g = g * (1 - key[2] * (((xs - W / 2) / (W / 2)) ** 2 + ((ys - H / 2) / (H / 2)) ** 2) / 2)
+                _SHADE[key] = g[:, :, None].astype(np.float32)
+            f = np.clip(f.astype(np.float32) * _SHADE[key], 0, 255).astype(np.uint8)
         elif "grade" in fx:
             q = fx["grade"]
             x = f.astype(np.float32) * q.get("gain", 1.0) * np.float32([q.get("b", 1.0), q.get("g", 1.0), q.get("r", 1.0)])
@@ -196,6 +208,7 @@ def fix_frame(f, fixes):
 
 
 _FIXES = None
+_SHADE = {}
 
 
 def fixes_of(path):
@@ -572,7 +585,7 @@ for s in segs:
             for f in ("name", "what", "text", "small", "title", "body", "when"):
                 if f in it:
                     e[f] = tr(it[f])
-            for f in ("y", "cls", "size", "rot", "rec", "x", "icon", "from", "to", "wait", "run", "more", "wsize"):
+            for f in ("y", "cls", "size", "rot", "rec", "x", "icon", "from", "to", "wait", "run", "more", "wsize", "scale"):
                 if f in it:
                     e[f] = it[f]
             tl[bucket].append(e)
@@ -740,7 +753,7 @@ for u in EDL.get("unduck", []):
 
 music = np.zeros((NS, 2))
 for cue in EDL.get("music", []):
-    a = read_audio(ROOT / tr(cue["file"]))
+    a = read_audio(ROOT / tr(cue["file"]), af=cue.get("af"))
     at = when(cue.get("at", 0.0))
     until = when(cue["until"]) if "until" in cue else TOTAL
     a = a[int(cue.get("offset", 0.0) * SR):][: int((until - at) * SR)]
@@ -778,7 +791,7 @@ for s in segs:
         sfx.append(dict(x, at=s["t"] + x.get("at", 0.0)))
 for x in sfx:
     if "file" in x:
-        a = read_audio(ROOT / x["file"])
+        a = read_audio(ROOT / x["file"], af=x.get("af"))
         if "trim" in x:
             a = a[int(x["trim"][0] * SR): int(x["trim"][1] * SR)]
     else:

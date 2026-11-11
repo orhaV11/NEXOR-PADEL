@@ -50,3 +50,9 @@ print(f"worst margin {worst:.1f} dB")
 m = json.load(open(d / "marks.json"))
 full = mus + fx
 print("everything but the voice, full band, per second:", " ".join(f"{db(full[i:i + sr]):.0f}" for i in range(0, n - sr, sr)))
+print("everything but the voice, 300 Hz-3 kHz, per second:", " ".join(f"{db(bo[i:i + sr]):.0f}" for i in range(0, n - sr, sr)))
+fin, sr2 = sf.read(d / "final.wav")
+fb = ss.sosfilt(ss.butter(4, [300, 3000], "bandpass", fs=sr2, output="sos"), mono(fin))
+half = [db(fb[i:i + sr2 // 2]) for i in range(0, len(fb) - sr2 // 2, sr2 // 2)]
+print("mastered mix, 300 Hz-3 kHz, per half second:", " ".join(f"{v:.0f}" for v in half))
+print(f"share of the film under -30 dBFS in that band: {100 * sum(v < -30 for v in half) / len(half):.1f}%")

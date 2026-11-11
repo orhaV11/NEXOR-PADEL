@@ -382,7 +382,7 @@ def build_readme():
         L.append("")
     L.append("רינדור: `node src/render-spot.mjs anthem en` (וגם chaos, sports, bumper; en או he). הסצנות ב־`src/spots/`, התלת־ממד ב־`src/fx3d/`, המוזיקה ב־`src/audio/anthem.py`, `chaos.py`, `sports.py`, `bumper.py` ו־`kit.py`.")
     L.append("")
-    L.append("הסרט עם הדמויות: `python3 src/film/cut.py src/film/apa.json en` (או he). רשימת העריכה ב־`src/film/apa.json`: כל חיתוך, שורה, כתובית, שלט, מוזיקה ואפקט, וגם תיקוני התמונה לכל שוט. הצילומים, תזמוני המילים והסאונד ב־`src/film/assets/`. המנוע חותך לפי פריים, מתזמן את הכתוביות לדיבור האמיתי, מוסיף את שכבת הגרפיקה (`src/film/overlay.html`), מנמיך את המוזיקה מתחת לדיבור ומאסטר ל־‎-14 LUFS. מסך האפליקציה שמעל הצילום נבנה ב־`src/film/render-plate.mjs` ו־`src/film/make_app_insert.py`.")
+    L.append("הסרט עם הדמויות: `python3 src/film/cut.py src/film/apa.json en` (או he). רשימת העריכה ב־`src/film/apa.json`: כל חיתוך, שורה, כתובית, שלט, מוזיקה ואפקט, וגם תיקוני התמונה לכל שוט. בדיקת עוצמה של כל שורה מול המוזיקה: `python3 src/film/margins.py work/apa/cut-en`. הצילומים, תזמוני המילים והסאונד ב־`src/film/assets/`. המנוע חותך לפי פריים, מתזמן את הכתוביות לדיבור האמיתי, מוסיף את שכבת הגרפיקה (`src/film/overlay.html`), מנמיך את המוזיקה מתחת לדיבור ומאסטר ל־‎-14 LUFS. מסך האפליקציה וכרטיס הסיום שמעל הצילום נבנים ב־`src/film/render-plate.mjs`, `src/film/make_app_insert.py` ו־`src/film/make_end_insert.py`.")
     L.append("")
     L.append("## הקבצים")
     L.append("")

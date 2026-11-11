@@ -13,6 +13,7 @@ const pos = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const opt = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? +process.argv[i + 1] : d; };
 const [lang, outDir] = [pos[0] || "en", pos[1]];
 const FPS = opt("--fps", 24), TYPE = opt("--type", 0.75), HOLD = opt("--hold", 0.6), PLAN = opt("--plan", 2.05);
+const END = process.argv.includes("--end") ? opt("--end", 2.6667) : 0; // --end <seconds>: the end card alone, on a transparent ground
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
@@ -21,6 +22,7 @@ const times = [];
 for (let i = 0; i < nType; i++) times.push(0.1 + (1.2 * i) / (nType - 1));       // typing, sped up to fit
 for (let i = 0; i < nHold; i++) times.push(1.32);                                   // the finished sentence, held
 for (let i = 0; i < nPlan; i++) times.push(1.335 + ((3.4 - 1.335) * i) / (nPlan - 1)); // the plan arrives
+if (END) { times.length = 0; for (let i = 0; i < Math.round(END * FPS); i++) times.push(3.6 + i / FPS); }
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
@@ -28,15 +30,16 @@ page.on("pageerror", (e) => console.error("page error:", e.message));
 await page.goto(pathToFileURL(join(HERE, "..", "spots", "bumper.html")).href + `?lang=${lang}&plate=1#story`, { waitUntil: "load" });
 await page.evaluate(() => window.__ready);
 for (let i = 0; i < times.length; i++) {
-  await page.evaluate(([t, k]) => {
+  await page.evaluate(([t, k, end]) => {
     window.seek(t);
+    if (end) return;
     // the phone rises into frame over the first five frames
     const p = Math.min(1, (k + 1) / 5), e = 1 - Math.pow(1 - p, 3);
     const demo = document.getElementById("demo");
     demo.style.opacity = e;
     demo.style.translate = `0 ${(1 - e) * 140}px`;
     if (t >= 1.32) document.getElementById("caret").style.opacity = 0;
-  }, [times[i], i]);
+  }, [times[i], i, END]);
   await page.screenshot({ path: join(outDir, `${String(i).padStart(5, "0")}.png`), omitBackground: true });
 }
 await browser.close();

@@ -52,7 +52,7 @@ for k, p in enumerate(plates):
     f = f * (1 - 0.56 * b) + TINT * (0.56 * b) * 0.9
     if bg2 is not None and k >= BG2_FROM:  # the trip arrives: a live stadium crowd behind the plan
         g = cv2.GaussianBlur(bg2[min(k - BG2_FROM, len(bg2) - 1)].astype(np.float32), (0, 0), 9)
-        g = g * 0.6 + TINT * 0.34
+        g = g * 0.72 + TINT * 0.22
         m = min(1.0, (k - BG2_FROM + 1) / 4)
         f = f * (1 - m) + g * m
     ov = cv2.imread(p, cv2.IMREAD_UNCHANGED).astype(np.float32)

@@ -1,0 +1,13 @@
+{"out": "src/film/assets/apa/vo/he", "target_db": -22.5, "max_gain_db": 3.5, "pause": 0.30, "lines": {
+ "n1": [["src/film/assets/apa/vo/takes/heB.mp3", 0.07, 1.97], ["src/film/assets/apa/vo/takes/heB.mp3", 2.44, 3.10], ["src/film/assets/apa/vo/takes/heB.mp3", 3.35, 3.80, 0.24]],
+ "n2": [["src/film/assets/apa/vo/takes/heB.mp3", 4.33, 4.99], ["src/film/assets/apa/vo/takes/heB.mp3", 5.34, 5.83, 0.28]],
+ "n3": [["src/film/assets/apa/vo/takes/heB.mp3", 6.29, 7.52], ["src/film/assets/apa/vo/takes/heB.mp3", 7.83, 8.64, 0.28]],
+ "n4": [["src/film/assets/apa/vo/takes/heB.mp3", 9.14, 9.62]],
+ "n5": [["src/film/assets/apa/vo/takes/heA.mp3", 9.84, 10.78]],
+ "n6": [["src/film/assets/apa/vo/takes/heB.mp3", 11.53, 12.60]],
+ "n7": [["src/film/assets/apa/vo/takes/heB.mp3", 12.99, 13.92], ["src/film/assets/apa/vo/takes/heB.mp3", 14.22, 15.01, 0.26]],
+ "n8": [["src/film/assets/apa/vo/takes/heB.mp3", 15.50, 16.74]],
+ "n9": [["src/film/assets/apa/vo/takes/heB.mp3", 17.18, 18.05]],
+ "n10": [["src/film/assets/apa/vo/takes/heB.mp3", 18.49, 19.95]],
+ "n11": [["src/film/assets/apa/vo/takes/heB.mp3", 20.36, 20.95], ["src/film/assets/apa/vo/takes/heB.mp3", 21.30, 22.02, 0.30], ["src/film/assets/apa/vo/takes/heB.mp3", 22.34, 23.18, 0.28]]
+}}

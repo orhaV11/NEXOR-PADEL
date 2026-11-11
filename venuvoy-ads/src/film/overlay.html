@@ -28,6 +28,13 @@
   .fx-cap.chorus { font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 800; font-size: 82px; text-transform: none; letter-spacing: 0; color: #f4eee1; -webkit-text-stroke-width: 12px; }
   [dir="rtl"] .fx-cap.chorus { font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 800; font-size: 90px; }
   .fx-cap.chorus span.on { color: #f4eee1; }
+  /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
+  .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
+    font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 62px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;
+    -webkit-text-stroke-width: 0; text-shadow: none; text-wrap: balance; }
+  [dir="rtl"] .fx-cap.nar { left: 0; right: 0; font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 700; font-size: 68px; -webkit-text-stroke-width: 0; padding: 12px 38px 18px; }
+  .fx-cap.nar span { margin: 0 0.11em; }
+  .fx-cap.nar span.on { color: #f4eee1; }
 
   /* lower third: a documentary name strap */
   .fx-lt { position: absolute; left: 60px; display: none; }
@@ -61,6 +68,48 @@
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45); }
   .fx-brs.chat .cd.me { background: #d9fdd3; }
   .fx-brs.chat .cd small { display: block; font-weight: 800; font-size: 26px; color: #1f8a4c; margin-bottom: 2px; }
+  /* card: a stamped file card (an exhibit, a chapter, a countdown) */
+  .fx-crd { position: absolute; display: none; left: 60px; padding: 14px 24px 16px; background: #f4eee1; color: #14201a; border: 5px solid #b3261e; border-radius: 6px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); transform-origin: 20% 50%; font-family: "Mont", "Heebo", sans-serif; }
+  [dir="rtl"] .fx-crd { left: auto; right: 150px; text-align: right; transform-origin: 80% 50%; }
+  .fx-crd .k { font-weight: 900; font-size: 30px; letter-spacing: 0.12em; text-transform: uppercase; color: #b3261e; }
+  [dir="rtl"] .fx-crd .k { letter-spacing: 0.02em; }
+  .fx-crd .t { font-weight: 900; font-size: 58px; line-height: 1.02; text-transform: uppercase; margin-top: 2px; }
+  .fx-crd .s { font-weight: 700; font-size: 35px; margin-top: 6px; color: #3c4a42; letter-spacing: 0.04em; text-transform: uppercase; }
+  [dir="rtl"] .fx-crd .s { letter-spacing: 0; }
+  /* chat: a group chat as a full panel: header with a running count, one system line, bubbles that flood in */
+  .fx-cht { position: absolute; display: none; left: 70px; right: 70px; top: 300px; height: 1180px; border-radius: 44px; overflow: hidden; background: #ece5dd;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); font-family: "Mont", "Heebo", sans-serif; }
+  .fx-cht .hd { height: 132px; background: #16392b; color: #f4eee1; display: flex; align-items: center; gap: 22px; padding: 0 34px; }
+  .fx-cht .hd .av { flex: none; width: 84px; height: 84px; border-radius: 50%; background: #e6c47a; display: grid; place-items: center; font-size: 44px; }
+  .fx-cht .hd .nm { font-weight: 800; font-size: 44px; line-height: 1.05; }
+  .fx-cht .hd .ct { font-weight: 600; font-size: 28px; opacity: 0.8; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .fx-cht .bd { position: absolute; left: 0; right: 0; top: 132px; bottom: 0; padding: 26px 30px; }
+  .fx-cht .sys { position: relative; display: table; margin: 0 auto 22px; padding: 10px 26px 12px; border-radius: 18px; background: #d9e3dc; color: #33443b; font-weight: 700; font-size: 34px; }
+  .fx-cht .sys svg { position: absolute; left: -26px; top: -18px; width: calc(100% + 52px); height: calc(100% + 36px); overflow: visible; }
+  .fx-cht .bb { display: table; max-width: 680px; margin: 0 0 16px; padding: 14px 24px 16px; border-radius: 26px; background: #fff; color: #14201a; font-weight: 700; font-size: 40px; line-height: 1.15;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); transform-origin: 0 100%; }
+  .fx-cht .bb.me { margin-inline-start: auto; background: #d9fdd3; transform-origin: 100% 100%; }
+  .fx-cht .bb small { display: block; font-weight: 800; font-size: 26px; color: #1f8a4c; margin-bottom: 2px; }
+  /* circle: a red marker ring drawn round something in the picture, with a label */
+  .fx-crc { position: absolute; display: none; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .fx-crc svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+  .fx-crc .lb { position: absolute; padding: 8px 18px 10px; background: #b3261e; color: #fff; font: 800 34px/1.1 "Mont", "Heebo", sans-serif; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  [dir="rtl"] .fx-crc .lb { letter-spacing: 0; }
+  /* pin: a small name label with a pointer, stuck on somebody in the picture */
+  .fx-tag.chat { background: rgba(244, 238, 225, 0.94); color: #16392b; font-size: 30px; font-weight: 600; text-transform: none; letter-spacing: 0; padding: 7px 18px 9px; border-radius: 18px 18px 18px 4px; }
+  /* a group-chat header: avatar, chat name, member count (the day tag sits under it, so the date belongs to the chat) */
+  .fx-chd { position: absolute; display: none; left: 60px; padding: 12px 34px 12px 12px; border-radius: 60px; background: rgba(246, 244, 238, 0.95); color: #14201a; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28); }
+  [dir="rtl"] .fx-chd { left: auto; right: 150px; padding: 12px 12px 12px 34px; }
+  .fx-chd .row { display: flex; align-items: center; gap: 18px; }
+  .fx-chd .av { flex: none; width: 78px; height: 78px; border-radius: 50%; background: #16392b; display: grid; place-items: center; }
+  .fx-chd .nm { font-weight: 800; font-size: 36px; line-height: 1.12; white-space: nowrap; }
+  .fx-chd .ct { font-weight: 600; font-size: 27px; color: #5d6a62; margin-top: 1px; white-space: nowrap; }
+  .fx-pin { position: absolute; display: none; transform-origin: 50% 100%; }
+  .fx-pin .b { padding: 8px 20px 10px; background: #f4eee1; color: #16392b; font: 900 40px/1 "Mont", "Heebo", sans-serif; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5); }
+  [dir="rtl"] .fx-pin .b { letter-spacing: 0; }
+  .fx-pin i { display: block; width: 0; height: 0; margin: 0 auto; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #f4eee1; }
   /* bug: the brand's wordmark, small, in a corner for the whole of the live action (like a channel ident) */
   .fx-tag.bug { background: none; padding: 0; border-radius: 0; font: 600 30px/1 "Playfair", "Heebo", serif; font-style: normal; letter-spacing: 0.34em; color: rgba(244, 238, 225, 0.86);
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.6); }
@@ -71,8 +120,8 @@
   .fx-ntf .row { display: flex; align-items: center; gap: 22px; }
   .fx-ntf .ic { flex: none; width: 92px; height: 92px; border-radius: 22px; background: #16392b; display: grid; place-items: center; color: #e6c47a; font: italic 700 62px/1 "Playfair", serif; }
   .fx-ntf .app { font-weight: 700; font-size: 30px; letter-spacing: 0.06em; text-transform: uppercase; color: #5d6a62; }
-  .fx-ntf .ttl { margin-top: 4px; font-weight: 800; font-size: 46px; line-height: 1.1; }
-  .fx-ntf .bod { margin-top: 4px; font-weight: 600; font-size: 40px; line-height: 1.15; color: #2c3a33; }
+  .fx-ntf .ttl { margin-top: 4px; font-weight: 800; font-size: 46px; line-height: 1.1; white-space: pre-line; }
+  .fx-ntf .bod { margin-top: 4px; font-weight: 600; font-size: 40px; line-height: 1.15; color: #2c3a33; white-space: pre-line; }
   .fx-ntf .now { margin-inline-start: auto; align-self: flex-start; font-weight: 600; font-size: 28px; color: #7a857e; }
   /* badge: an app icon with a red unread counter that races up (forty-seven tabs, nine hundred messages) */
   .fx-bdg { position: absolute; display: none; width: 176px; height: 176px; transform-origin: 50% 60%; }
@@ -129,6 +178,7 @@
   const tags = (TL.tags || []).map((c) => {
     const el = mk("fx-tag" + (c.cls ? " " + c.cls : ""), "");
     el.style.top = `${c.y ?? 300}px`;
+    if (c.x != null) { el.style.left = `${c.x}px`; el.style.right = "auto"; }
     if (c.rec) el.appendChild(document.createElement("i"));
     el.append(document.createTextNode(c.text));
     return { ...c, el };
@@ -151,6 +201,45 @@
     return { ...c, el, n: el.querySelector(".n") };
   });
 
+  // gfx: free graphics by type. Times inside each (stamp, bubbles[].t, count.at, circle) are seconds from its own t0.
+  const esc = (x) => String(x ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+  const RING = (w, h) => `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><ellipse cx="${w / 2}" cy="${h / 2}" rx="${w / 2 - 6}" ry="${h / 2 - 6}" fill="none" stroke="#e02b20" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-4 ${w / 2} ${h / 2})"/></svg>`;
+  const gfx = (TL.gfx || []).map((g) => {
+    if (g.type === "card") {
+      const el = mk("fx-crd", (g.kicker ? `<div class="k">${esc(g.kicker)}</div>` : "") + `<div class="t">${esc(g.title)}</div>` + (g.sub ? `<div class="s">${esc(g.sub)}</div>` : ""));
+      el.style.top = `${g.y ?? 300}px`;
+      if (g.x != null) { el.style.left = `${g.x}px`; el.style.right = "auto"; }
+      if (g.size) el.querySelector(".t").style.fontSize = `${g.size}px`;
+      return { ...g, el };
+    }
+    if (g.type === "chat") {
+      const el = mk("fx-cht", `<div class="hd"><div class="av">⚽</div><div><div class="nm">${esc(g.title)}</div><div class="ct"></div></div></div><div class="bd">` +
+        (g.sys ? `<div class="sys">${esc(g.sys)}${RING(400, 100)}</div>` : "") +
+        (g.bubbles || []).map((b) => `<div class="bb${b.me ? " me" : ""}">${b.who ? `<small>${esc(b.who)}</small>` : ""}${esc(b.text)}</div>`).join("") + `</div>`);
+      if (g.y != null) el.style.top = `${g.y}px`;
+      if (g.h != null) el.style.height = `${g.h}px`;
+      return { ...g, el, ct: el.querySelector(".ct"), bbs: [...el.querySelectorAll(".bb")], ring: el.querySelector(".sys ellipse") };
+    }
+    if (g.type === "circle") {
+      const el = mk("fx-crc", `<svg viewBox="0 0 1080 1920"><ellipse cx="${g.cx}" cy="${g.cy}" rx="${g.rx}" ry="${g.ry}" fill="none" stroke="${g.color || "#e02b20"}" stroke-width="${g.width ?? 10}" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(${g.rot ?? -6} ${g.cx} ${g.cy})"/></svg>` + (g.label ? `<div class="lb">${esc(g.label)}</div>` : ""));
+      const lb = el.querySelector(".lb");
+      if (lb) { lb.style.top = `${g.ly ?? g.cy + g.ry + 14}px`; if (RTL && g.lx_he != null) lb.style.left = `${g.lx_he}px`; else lb.style.left = `${g.lx ?? g.cx - g.rx}px`; }
+      return { ...g, el, ring: el.querySelector("ellipse"), lb };
+    }
+    if (g.type === "pin") {
+      const el = mk("fx-pin", `<div class="b">${esc(g.label)}</div>` + (g.arrow === false ? "" : "<i></i>"));
+      el.style.left = `${g.x}px`; el.style.top = `${g.y}px`;
+      if (g.size) el.querySelector(".b").style.fontSize = `${g.size}px`;
+      return { ...g, el };
+    }
+    if (g.type === "chathead") {
+      const el = mk("fx-chd", `<div class="row"><div class="av"><svg viewBox="0 0 64 64" width="58" height="58"><circle cx="17" cy="27" r="7" fill="#b89a55"/><path d="M3 50c0-8 6-12 14-12s14 4 14 12z" fill="#b89a55"/><circle cx="47" cy="27" r="7" fill="#b89a55"/><path d="M33 50c0-8 6-12 14-12s14 4 14 12z" fill="#b89a55"/><circle cx="32" cy="25" r="9" fill="#e6c47a"/><path d="M14 55c0-10 8-15 18-15s18 5 18 15z" fill="#e6c47a"/></svg></div><div><div class="nm">${esc(g.name)}</div><div class="ct">${esc(g.members || "")}</div></div></div>`);
+      el.style.top = `${g.y ?? 300}px`;
+      return { ...g, el };
+    }
+    return { ...g, el: mk("", "") };
+  });
+
   // bursts: [{ t0, t1, kind: "tabs"|"chat", cards: [{ x, y, rot, text, who, me, t }] }]
   const brs = (TL.bursts || []).map((b) => {
     const el = mk("fx-brs " + b.kind, "");
@@ -160,7 +249,7 @@
       d.style.left = `${c.x}px`; d.style.top = `${c.y}px`;
       if (b.kind === "tabs") d.innerHTML = `<div class="bar"><i></i><i></i><i></i></div><div class="ttl"></div><div class="ln"></div><div class="ln s"></div>`;
       else d.innerHTML = (c.who ? `<small></small>` : "") + `<span></span>`;
-      if (b.kind === "tabs") d.querySelector(".ttl").textContent = c.text;
+      if (b.kind === "tabs") { d.querySelector(".ttl").textContent = c.text.replace(/^!/, ""); if (c.text.startsWith("!")) d.style.outline = "7px solid #e02b20"; }
       else { if (c.who) d.querySelector("small").textContent = c.who; d.querySelector("span").textContent = c.text; }
       el.appendChild(d);
       return { ...c, el: d };
@@ -169,6 +258,47 @@
   });
 
   window.seek = (t) => {
+    for (const g of gfx) {
+      const on = t >= g.t0 - 1e-3 && t < g.t1 - 1e-3;
+      g.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const u = t - g.t0, x = 1 - P(t, g.t1 - 0.1, 0.1);
+      if (g.type === "chathead") {
+        const a = out(P(u, 0, 0.22));
+        g.el.style.transform = `translateX(${(RTL ? 1 : -1) * (1 - a) * 40}px)`;
+        g.el.style.opacity = a * (1 - P(t, g.t1 - 0.2, 0.2));
+      } else if (g.type === "card") {
+        const a = g.still ? 1 : P(u, 0, 0.14);  // "still": it was already there (the same slate, seen again)
+        g.el.style.transform = `scale(${1.7 - 0.7 * out(a)}) rotate(${g.rot ?? -3}deg)`;
+        g.el.style.opacity = Math.min(1, a * 3) * x;
+        const tt = g.el.querySelector(".t");
+        tt.style.textDecoration = g.strike != null && u >= g.strike ? "line-through" : "none";
+        tt.style.textDecorationColor = "#b3261e"; tt.style.textDecorationThickness = "8px";
+      } else if (g.type === "chat") {
+        const a = out(P(u, 0, 0.3));
+        g.el.style.transform = `translateY(${(1 - a) * 1500 + (1 - x) * 60}px)`;
+        g.el.style.opacity = x;
+        g.bbs.forEach((el, i) => {
+          const b = g.bubbles[i], p = P(u, b.t, 0.12);
+          el.style.display = u >= b.t && (b.until == null || u < b.until) ? "table" : "none";
+          el.style.transform = `scale(${0.6 + 0.4 * back(p)})`;
+        });
+        if (g.count) {
+          const c = g.count, p = out(P(u, c.at ?? 0, c.dur ?? 1));
+          g.ct.textContent = (c.label || "{n}").replace("{n}", Math.round(c.from + (c.to - c.from) * p));
+        } else g.ct.textContent = g.members || "";
+        if (g.ring) { g.ring.setAttribute("stroke-dashoffset", g.circle == null ? 100 : 100 * (1 - out(P(u, g.circle, 0.3)))); g.ring.style.opacity = g.circle != null && u >= g.circle ? 1 : 0; }
+      } else if (g.type === "pin") {
+        const a = P(u, 0, 0.14);
+        g.el.style.transform = `translate(-50%, -100%) scale(${0.5 + 0.5 * back(a)})`;
+        g.el.style.opacity = Math.min(1, a * 3) * x;
+      } else if (g.type === "circle") {
+        g.ring.setAttribute("stroke-dashoffset", 100 * (1 - out(P(u, g.draw ?? 0.1, 0.3))));
+        g.ring.style.opacity = u >= (g.draw ?? 0.1) ? 1 : 0;
+        if (g.lb) g.lb.style.opacity = P(u, (g.draw ?? 0.1) + 0.25, 0.1);
+        g.el.style.opacity = x;
+      }
+    }
     for (const b of brs) {
       const on = t >= b.t0 - 1e-3 && t < b.t1 - 1e-3;
       b.el.style.display = on ? "block" : "none";
@@ -184,8 +314,10 @@
       const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
-      const a = back(P(t, c.t0, 0.28)), x = P(t, c.t1 - 0.18, 0.18);
-      c.el.style.transform = `translateY(${(1 - a) * -420 - x * 420}px) scale(${0.96 + 0.04 * a})`;
+      const a = back(P(t, c.t0, 0.28)), x = c.stay ? 0 : P(t, c.t1 - 0.18, 0.18);  // "stay": it is still up when the shot is cut
+      const d = c.drop ?? 420;  // "drop": how far it travels in and out (a short drop when something sits above it)
+      c.el.style.transform = `translateY(${(1 - a) * -d - x * d}px) scale(${0.96 + 0.04 * a})`;
+      c.el.style.opacity = c.drop != null ? Math.min(1, P(t, c.t0, 0.14) * 1.5) * (1 - x) : 1;
     }
     for (const c of bdgs) {
       const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
@@ -213,7 +345,7 @@
         const w = c.words[i], lit = t >= w.t0 - 0.02 && t < (c.words[i + 1]?.t0 ?? c.t1 + 1) - 0.02;
         s.className = lit ? "on" : "";
         const k = lit ? 1 - P(t, w.t0, 0.14) : 0;
-        s.style.transform = lit ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+        s.style.transform = lit && c.cls !== "nar" ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
       });
     }
     for (const c of lts) {

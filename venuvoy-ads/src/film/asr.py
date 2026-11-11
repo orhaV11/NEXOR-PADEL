@@ -28,6 +28,28 @@ def parakeet():
     return _P
 
 
+_M = {}
+
+
+def whisper_multi(lang):
+    """Multilingual Whisper small, for narration in languages other than English (work/asr/sherpa-onnx-whisper-small)."""
+    if lang not in _M:
+        d = ASR / "sherpa-onnx-whisper-small"
+        _M[lang] = sherpa_onnx.OfflineRecognizer.from_whisper(
+            encoder=str(d / "small-encoder.int8.onnx"), decoder=str(d / "small-decoder.int8.onnx"),
+            tokens=str(d / "small-tokens.txt"), language=lang, task="transcribe", num_threads=4)
+    return _M[lang]
+
+
+def text_in(path, lang):
+    """What a recording says, in the given language (text only, no word times)."""
+    x, sr = load(path)
+    st = whisper_multi(lang).create_stream()
+    st.accept_waveform(sr, x)
+    whisper_multi(lang).decode_stream(st)
+    return st.result.text.strip()
+
+
 def whisper():
     global _W
     if _W is None:

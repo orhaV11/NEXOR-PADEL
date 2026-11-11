@@ -137,6 +137,7 @@ def fix_frame(f, fixes):
     """Repairs made to a source before it is cut: all coordinates are in 1080x1920 film pixels.
     clone: cover a box with the picture a little way off (a logo, a burnt-in number);
     heal:  paint out small marks of one colour inside a window from the skin around them (a graze, a cut);
+    calm:  fade marks that are redder than the skin around them (spots, a scar) without repainting anything;
     key:   move one colour range to another hue (curtains that should match the hall);
     grade: gain, per-channel gains and saturation (so clips of one room sit together);
     shade: darken the top of the frame and the corners, so a bright bare wall stops pulling the eye off the face."""
@@ -186,6 +187,26 @@ def fix_frame(f, fixes):
             new[:, :, 1] = np.clip(sat.astype(np.float32) * q.get("s", 0.85), 0, 255)
             new[:, :, 2] = np.clip(val.astype(np.float32) * q.get("v_gain", 0.8), 0, 255)
             f = (f * (1 - m) + cv2.cvtColor(new, cv2.COLOR_HSV2BGR) * m).astype(np.uint8)
+        elif "calm" in fx:  # pull marks that are redder than the skin around them back to that skin (no repainting)
+            q = fx["calm"]
+            src = cv2.cvtColor(f, cv2.COLOR_BGR2LAB)
+            lab = src.astype(np.float32)
+            ks = int(q.get("base", 61) * k) | 1
+            med = [cv2.medianBlur(src[:, :, c], ks).astype(np.float32) for c in range(3)]
+            m = np.clip((lab[:, :, 1] - med[1] - q.get("da", 3.5)) / q.get("soft", 3), 0, 1)
+            box = np.zeros((H, W), np.float32)
+            for x0, y0, x1, y1 in q["windows"]:
+                box[int(y0 * k):int(y1 * k), int(x0 * k):int(x1 * k)] = 1
+            box = cv2.GaussianBlur(box, (0, 0), 8 * k)
+            el = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (max(1, int(q.get("dilate", 9) * k)) | 1,) * 2)
+            m = np.clip(cv2.GaussianBlur(cv2.dilate(m, el), (0, 0), q.get("feather", 3) * k) * box * q.get("gain", 1.0), 0, 1)
+            for c, keep in ((0, q.get("l_keep", 0.3)), (1, q.get("keep", 0.1)), (2, q.get("keep", 0.1))):
+                lab[:, :, c] = lab[:, :, c] * (1 - m) + (med[c] + (lab[:, :, c] - med[c]) * keep) * m
+            f = cv2.cvtColor(np.clip(lab, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+        elif "soften" in fx:  # blur a box until lettering or a crest in it cannot be read
+            x0, y0, x1, y1 = [int(round(v * k)) for v in fx["soften"]]
+            m = _box_mask(x0, y0, x1, y1, fx.get("feather", 14) * k)
+            f = (f * (1 - m) + cv2.GaussianBlur(f, (0, 0), fx.get("sigma", 9) * k) * m).astype(np.uint8)
         elif "shade" in fx:
             q = fx["shade"]
             key = (q.get("top", 0.78), q.get("to_y", 700), q.get("vig", 0.0))
@@ -400,6 +421,7 @@ for i, sg in enumerate(EDL["segments"]):
         continue
     if "bands" in sg:  # a split screen is described by its bands; it is silent and "len" seconds long
         sg = {**sg, "src": sg["bands"][0]["src"], "in": sg["bands"][0]["in"], "out": sg["bands"][0]["in"] + sg["len"], "mute": True}
+    sg = {**sg, **{k: tr(sg[k]) for k in ("in", "out", "fit", "hold", "speed") if isinstance(sg.get(k), dict)}}  # {"en": .., "he": ..}: a line that runs longer in one language
     speed = sg.get("speed", 1.0)
     if "fit" in sg:  # play this stretch of source in exactly this many seconds (to land the next cut on the beat)
         speed = (sg["out"] - sg["in"]) / sg["fit"]
@@ -485,7 +507,17 @@ def chunks(words, max_words, max_chars):
     return out
 
 
-tl = {"dur": TOTAL, "lang": LANG, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": [], "bursts": []}
+tl = {"dur": TOTAL, "lang": LANG, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": [], "bursts": [], "gfx": []}
+
+
+def tr_deep(v):
+    """Pick this language's text everywhere inside a graphic's description."""
+    if isinstance(v, dict):
+        return tr(v) if ("en" in v or "he" in v) and all(k in ("en", "he") for k in v) else {k: tr_deep(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [tr_deep(x) for x in v]
+    return v
+
 speech_spans = []  # film-time spans where somebody speaks: the music ducks here
 for s in segs:
     heard = []
@@ -569,6 +601,13 @@ for s in segs:
         tl["caps"].append({"t0": round(t0, 3), "t1": round(t0 + ln + it.get("hold", 0.3), 3), "y": it.get("y", s.get("cap_y", LOOK.get("cap_y", 1240))),
                            **({"cls": it["cls"]} if "cls" in it else {}), **({"size": it["size"]} if "size" in it else {}),
                            "words": [{"w": w, "t0": round(t0 + k * step, 3), "t1": round(t0 + (k + 1) * step, 3)} for k, w in enumerate(ws_)]})
+    # "gfx": free graphics drawn by overlay.html by "type" (card, chat, circle); "at" and "len" are seconds in the shot,
+    # every other time inside is seconds from the graphic's own start
+    for it in s.get("gfx", []):
+        at_ = tr(it.get("at", 0.0))  # may differ per language: {"en": .., "he": ..}
+        t0 = s["t"] + at_
+        g = tr_deep({k: v for k, v in it.items() if k not in ("at", "len")})
+        tl["gfx"].append({**g, "t0": round(t0, 3), "t1": round(min(t0 + tr(it.get("len", s["dur"] - at_)), TOTAL), 3)})
     # "burst": things piling up around the speaker: {"kind": "tabs"|"chat", "at", "len", "step", "cards": [[x, y, rot, text, who?, me?]]}
     for it in ([s["burst"]] if isinstance(s.get("burst"), dict) else s.get("burst") or []):
         t0 = s["t"] + it.get("at", 0.0)
@@ -580,15 +619,83 @@ for s in segs:
     for key, bucket in (("lt", "lts"), ("sticker", "stickers"), ("tag", "tags"), ("notif", "notifs"), ("badge", "badges")):
         items = s.get(key)
         for it in (items if isinstance(items, list) else [items] if items else []):
-            t0 = s["t"] + it.get("at", 0.0)
-            e = {"t0": round(t0, 3), "t1": round(min(t0 + it.get("len", s["dur"] - it.get("at", 0.0)), TOTAL), 3)}
+            at_ = tr(it.get("at", 0.0))
+            t0 = s["t"] + at_
+            e = {"t0": round(t0, 3), "t1": round(min(t0 + tr(it.get("len", s["dur"] - at_)), TOTAL), 3)}
             for f in ("name", "what", "text", "small", "title", "body", "when"):
                 if f in it:
                     e[f] = tr(it[f])
-            for f in ("y", "cls", "size", "rot", "rec", "x", "icon", "from", "to", "wait", "run", "more", "wsize", "scale"):
-                if f in it:
-                    e[f] = it[f]
+            for f in ("y", "cls", "size", "rot", "rec", "x", "icon", "from", "to", "wait", "run", "more", "wsize", "scale", "stay", "drop"):
+                if f in it and tr(it[f]) is not None:
+                    e[f] = tr(it[f])
             tl[bucket].append(e)
+# ------------------------------------------------------------------ the narrator
+# "narration": [{"file": {"en": ..., "he": ...}, "at": time or mark, "text": {"en": "card one | card two", "he": ...},
+#                "level": -17, "gain_db": 0, "y": 1260}]
+# The recording is trimmed to the voice, laid at "at", and captioned card by card ("|" splits cards). English cards
+# follow the recognised words; other languages share the time out by the length of each card.
+def _decode(path):
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vn", "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32).reshape(-1, 2).astype(np.float64)
+
+
+narr = []
+for it in EDL.get("narration", []):
+    f = it["file"]
+    path = ROOT / (f.get(LANG, f.get("en")) if isinstance(f, dict) else f)
+    if not path.exists():
+        print(f"  note: narration file missing, skipped: {path.name}")
+        continue
+    a = _decode(path)
+    m = np.abs(a.mean(axis=1))
+    h = int(0.01 * SR)
+    lv = np.array([m[k:k + h].max() for k in range(0, max(1, len(m) - h), h)])
+    on = np.where(lv > 0.06 * lv.max())[0]
+    v0, v1 = max(0, on[0] * h - int(0.03 * SR)), min(len(a), (on[-1] + 1) * h + int(0.1 * SR))
+    a = a[v0:v1]
+    t0 = when(tr(it["at"]))
+    dur = len(a) / SR
+    cards = [c.strip() for c in tr(it.get("text", "")).split("|") if c.strip()]
+    spans = None
+    if cards and LANG == "en" and asr is not None:
+        side = Path(str(path) + ".words.json")
+        if side.exists():
+            ws = json.load(open(side))["words"]
+        else:
+            ws, _ = asr.words(path)
+            side.write_text(json.dumps({"words": ws}))
+        words_all = [w for c in cards for w in c.split()]
+        times = align(words_all, [(w, x - v0 / SR, y - v0 / SR) for w, x, y in ws])
+        if times:
+            spans, k = [], 0
+            for c in cards:
+                n = len(c.split())
+                spans.append((max(0.0, times[k][0]), min(dur, times[k + n - 1][0] + 0.2 + 0.06 * len(c.split()[-1]))))
+                k += n
+    if cards and spans is None:
+        tot, acc, spans = sum(len(c) for c in cards), 0, []
+        for c in cards:
+            spans.append((dur * acc / tot, dur * (acc + len(c)) / tot))
+            acc += len(c)
+    for k, c in enumerate(cards):
+        c0 = t0 + spans[k][0] - (0.05 if k else 0.0)
+        c1 = t0 + (spans[k + 1][0] - 0.05 if k + 1 < len(cards) else min(dur + 0.25, spans[k][1] + 0.35))
+        for sg_ in segs:  # a card whose words are (as good as) over at a cut leaves with the shot
+            b = sg_["t"] + sg_["dur"]
+            if c0 + 0.3 < b < c1 and b >= t0 + spans[k][1] - 0.3:
+                c1 = b
+        ws_ = c.split()
+        step = (c1 - c0) / len(ws_)
+        tl["caps"].append({"t0": round(c0, 3), "t1": round(max(c1, c0 + 0.3), 3), "y": it.get("y", LOOK.get("nar_y", LOOK.get("cap_y", 1240))), "cls": "nar",
+                           "words": [{"w": w, "t0": round(c0 + j * step, 3), "t1": round(c0 + (j + 1) * step, 3)} for j, w in enumerate(ws_)]})
+    narr.append({"t": t0, "a": a, "level": it.get("level", -17), "gain_db": tr(it.get("gain_db", 0))})
+    print(f"  narration {t0:6.2f}-{t0 + dur:6.2f}  {tr(it.get('text', ''))[:70]}")
+
+nar_caps = sorted([c for c in tl["caps"] if c.get("cls") == "nar"], key=lambda c: c["t0"])
+for a_, b_ in zip(nar_caps, nar_caps[1:]):  # one narrator card at a time
+    a_["t1"] = round(max(a_["t0"] + 0.25, min(a_["t1"], b_["t0"] - 0.04)), 3)
+
 for it in EDL.get("labels", []):  # labels pinned for a stretch of film time: {"text", "from", "to", "y", "cls"}
     tl["tags"].append({"t0": round(when(it.get("from", 0.0)), 3), "t1": round(when(it.get("to", TOTAL)), 3), "text": tr(it["text"]),
                        **{f: it[f] for f in ("y", "cls", "rec") if f in it}})
@@ -668,6 +775,17 @@ for name, ps in parts.items():
         a[-fo:] *= np.linspace(1, 0, fo)[:, None]
         i0 = int(round(p["t"] * SR))
         bus[i0: i0 + len(a)] += a[: len(bus) - i0]
+for nr in narr:  # the narrator is a voice like any other: same bus, so the music ducks and the margins are measured
+    a = nr["a"]
+    mm = a.mean(axis=1)
+    hh = int(0.05 * SR)
+    r = np.array([np.sqrt(np.mean(mm[k:k + hh] ** 2)) for k in range(0, max(1, len(mm) - hh), hh)]) + 1e-9
+    g = db(float(np.clip(nr["level"] - 20 * np.log10(np.percentile(r, 85)), -20, 24))) * db(nr["gain_db"])
+    a = a * g
+    a[:edge] *= ramp
+    a[-edge:] *= ramp[::-1]
+    i0 = int(round(nr["t"] * SR))
+    dialog[i0: i0 + len(a)] += a[: len(dialog) - i0]
 dialog = dialog[:NS]
 
 

@@ -105,6 +105,14 @@
   .fx-chd .av { flex: none; width: 78px; height: 78px; border-radius: 50%; background: #16392b; display: grid; place-items: center; }
   .fx-chd .nm { font-weight: 800; font-size: 36px; line-height: 1.12; white-space: nowrap; }
   .fx-chd .ct { font-weight: 600; font-size: 27px; color: #5d6a62; margin-top: 1px; white-space: nowrap; }
+  /* sign-off of a series episode: the brand signs, it does not sell (no button, no price, no product) */
+  .fx-sgn { position: absolute; display: none; left: 0; right: 0; top: 0; bottom: 0; text-align: center; color: #f4eee1; }
+  .fx-sgn .cr { position: absolute; left: 50%; top: 520px; width: 230px; height: 230px; margin-left: -115px; }
+  .fx-sgn .wm { position: absolute; left: 0; right: 0; top: 800px; font: 500 78px/1 "Playfair", serif; letter-spacing: 0.3em; text-indent: 0.3em; direction: ltr; }
+  .fx-sgn .ti { position: absolute; left: 80px; right: 80px; top: 930px; font: italic 700 82px/1.08 "Playfair", "FrankRuhl", serif; color: #e6c47a; text-wrap: balance; }
+  [dir="rtl"] .fx-sgn .ti { font: 700 86px/1.1 "FrankRuhl", "Heebo", serif; }
+  .fx-sgn .ln { position: absolute; left: 90px; right: 90px; top: 1130px; font: 600 46px/1.2 "Mont", "Heebo", sans-serif; text-wrap: balance; }
+  .fx-sgn .sm { position: absolute; left: 90px; right: 90px; top: 1290px; font: 500 36px/1.25 "Mont", "Heebo", sans-serif; color: rgba(244, 238, 225, 0.72); text-wrap: balance; }
   .fx-pin { position: absolute; display: none; transform-origin: 50% 100%; }
   .fx-pin .b { padding: 8px 20px 10px; background: #f4eee1; color: #16392b; font: 900 40px/1 "Mont", "Heebo", sans-serif; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5); }
@@ -232,6 +240,11 @@
       if (g.size) el.querySelector(".b").style.fontSize = `${g.size}px`;
       return { ...g, el };
     }
+    if (g.type === "signoff") {
+      const el = mk("fx-sgn", `<div class="cr"><svg viewBox="0 0 40 40" width="230" height="230"><circle cx="20" cy="20" r="19" fill="#16392b"/><circle cx="20" cy="20" r="18.25" fill="none" stroke="#e6c47a" stroke-width="1"/><circle cx="20" cy="20" r="15.6" fill="none" stroke="#e6c47a" stroke-width="0.6"/><path d="M20 1.2 21 2.9 20 4.6 19 2.9Z" fill="#e6c47a"/><path d="M20 35.4 21 37.1 20 38.8 19 37.1Z" fill="#e6c47a"/><path d="M11.2 11.6h6.6v.75l-1.6.2 4.35 11.4 3.95-10.6c.25-.68.05-.95-.65-1.05l-1.05-.15v-.75h5.05v.75l-.75.12c-.6.1-.92.4-1.2 1.12L20.3 28.9h-.95l-6.3-16.1c-.25-.62-.55-.9-1.1-.98l-.75-.1Z" fill="#f4eee1"/></svg></div><div class="wm">VENUVOY</div>` +
+        (g.title ? `<div class="ti">${esc(g.title)}</div>` : "") + (g.line ? `<div class="ln">${esc(g.line)}</div>` : "") + (g.small ? `<div class="sm">${esc(g.small)}</div>` : ""));
+      return { ...g, el, parts: [...el.children] };
+    }
     if (g.type === "chathead") {
       const el = mk("fx-chd", `<div class="row"><div class="av"><svg viewBox="0 0 64 64" width="58" height="58"><circle cx="17" cy="27" r="7" fill="#b89a55"/><path d="M3 50c0-8 6-12 14-12s14 4 14 12z" fill="#b89a55"/><circle cx="47" cy="27" r="7" fill="#b89a55"/><path d="M33 50c0-8 6-12 14-12s14 4 14 12z" fill="#b89a55"/><circle cx="32" cy="25" r="9" fill="#e6c47a"/><path d="M14 55c0-10 8-15 18-15s18 5 18 15z" fill="#e6c47a"/></svg></div><div><div class="nm">${esc(g.name)}</div><div class="ct">${esc(g.members || "")}</div></div></div>`);
       el.style.top = `${g.y ?? 300}px`;
@@ -263,7 +276,13 @@
       g.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const u = t - g.t0, x = 1 - P(t, g.t1 - 0.1, 0.1);
-      if (g.type === "chathead") {
+      if (g.type === "signoff") {
+        g.parts.forEach((el, i) => {  // crest, wordmark, title, line, small: one after another
+          const a = out(P(u, (g.wait ?? 0.12) + i * 0.13, 0.32));
+          el.style.opacity = a;
+          el.style.transform = i === 0 ? `scale(${0.82 + 0.18 * back(a)})` : `translateY(${(1 - a) * 26}px)`;
+        });
+      } else if (g.type === "chathead") {
         const a = out(P(u, 0, 0.22));
         g.el.style.transform = `translateX(${(RTL ? 1 : -1) * (1 - a) * 40}px)`;
         g.el.style.opacity = a * (1 - P(t, g.t1 - 0.2, 0.2));

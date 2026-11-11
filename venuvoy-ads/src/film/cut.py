@@ -357,6 +357,9 @@ def render_bands(seg, n, hold, enc, idx):
         enc.stdin.write(np.ascontiguousarray(out).tobytes())
 
 
+DIM_TINT = np.float32([0x1e, 0x2a, 0x0d])  # brand dark green, BGR
+
+
 def render_segment(seg, n, hold, enc, idx):
     """Write n + hold frames of one segment to the encoder."""
     if "bands" in seg:
@@ -370,6 +373,7 @@ def render_segment(seg, n, hold, enc, idx):
     t_in, t_out = seg.get("trans", "cut"), seg.get("trans_out", "cut")
     rgb = seg.get("rgb", 0)
     sharpen, grain = LOOK.get("sharpen", 0.35), LOOK.get("grain", 2.0)
+    dim = seg.get("dim")
     total = n + hold
     last = None
     frames = read_frames(source(seg["src"]), seg["in"], n, seg.get("speed", 1.0))
@@ -400,6 +404,12 @@ def render_segment(seg, n, hold, enc, idx):
             f = f.copy()
             f[:, :, 2] = np.roll(f[:, :, 2], r, axis=1)
             f[:, :, 0] = np.roll(f[:, :, 0], -r, axis=1)
+        if dim:  # the shot goes out of focus under a dark green scrim (a sign-off is laid over it)
+            q = min(1.0, max(0.0, (k / FPS - dim.get("at", 0.0)) / max(dim.get("ramp", 0.3), 1e-3)))
+            q = q * q * (3 - 2 * q)
+            if q > 0:
+                b = cv2.GaussianBlur(f, (0, 0), max(0.1, dim.get("blur", 14) * q * W / 1080))
+                f = (b.astype(np.float32) * (1 - dim.get("scrim", 0.55) * q) + DIM_TINT * (dim.get("scrim", 0.55) * q)).astype(np.uint8)
         if grain:
             f = add_grain(f, grain, idx * 3 + k)
         if t_in.startswith("whip_") and k < TRANS_FRAMES:

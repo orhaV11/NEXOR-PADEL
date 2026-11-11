@@ -87,6 +87,16 @@ def download(url, path):
     return r.stdout.strip(), r.stderr.strip()
 
 
+def upload(path):
+    """Send a local file to the service and get back a URL that a model can read."""
+    code, body, err = _curl(["-X", "POST", f"{BASE}/api/v1/upload_file", "-H", "x-api-key: proxy-injected", "-F", f"file=@{path}"], timeout=300)
+    d = _json(body)
+    url = d.get("url") or d.get("file_url") or (d.get("data") or {}).get("url")
+    if code >= 300 or not url:
+        raise RuntimeError(f"upload {path}: HTTP {code} {body[:300]} {err}")
+    return url
+
+
 def batch(jobs, out_dir):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -143,5 +153,7 @@ if __name__ == "__main__":
         print(json.dumps(res, ensure_ascii=False)[:1500])
         if len(sys.argv) > 3 and output_url(res):
             print(download(output_url(res), sys.argv[3]))
+    elif cmd == "upload":
+        print(upload(sys.argv[2]))
     elif cmd == "batch":
         batch(json.load(open(sys.argv[2])), sys.argv[3])

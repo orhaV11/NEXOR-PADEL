@@ -45,7 +45,22 @@
 
   /* tag: a small label pinned to a corner (a timestamp, "Illustration") */
   .fx-tag { position: absolute; display: none; left: 60px; padding: 8px 20px 10px; border-radius: 10px; background: rgba(11, 13, 12, 0.72); color: #fff; font-weight: 700; font-size: 36px; letter-spacing: 0.04em; text-transform: uppercase; }
-  [dir="rtl"] .fx-tag { left: auto; right: 60px; letter-spacing: 0; }
+  [dir="rtl"] .fx-tag { left: auto; right: 150px; letter-spacing: 0; }
+  /* burst: a pile of things that fills the bare wall around a speaker: browser windows (tabs), chat bubbles */
+  .fx-brs { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; display: none; font-family: "Mont", "Heebo", sans-serif; }
+  .fx-brs .cd { position: absolute; transform-origin: 50% 50%; }
+  .fx-brs.tabs .cd { width: 372px; border-radius: 16px; background: #fff; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); overflow: hidden; }
+  .fx-brs.tabs .cd .bar { height: 40px; background: #dfe4ea; display: flex; align-items: center; gap: 8px; padding: 0 14px; direction: ltr; }
+  .fx-brs.tabs .cd .bar i { width: 13px; height: 13px; border-radius: 50%; background: #ff5f57; }
+  .fx-brs.tabs .cd .bar i + i { background: #febc2e; }
+  .fx-brs.tabs .cd .bar i + i + i { background: #28c840; }
+  .fx-brs.tabs .cd .ttl { padding: 13px 18px 4px; font-weight: 800; font-size: 33px; line-height: 1.1; color: #14201a; white-space: nowrap; }
+  .fx-brs.tabs .cd .ln { height: 10px; margin: 9px 16px; border-radius: 5px; background: #d7dce2; }
+  .fx-brs.tabs .cd .ln.s { width: 52%; margin-bottom: 16px; }
+  .fx-brs.chat .cd { max-width: 450px; padding: 13px 22px 15px; border-radius: 26px; background: #fff; color: #14201a; font-weight: 700; font-size: 38px; line-height: 1.15;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45); }
+  .fx-brs.chat .cd.me { background: #d9fdd3; }
+  .fx-brs.chat .cd small { display: block; font-weight: 800; font-size: 26px; color: #1f8a4c; margin-bottom: 2px; }
   /* bug: the brand's wordmark, small, in a corner for the whole of the live action (like a channel ident) */
   .fx-tag.bug { background: none; padding: 0; border-radius: 0; font: 600 30px/1 "Playfair", "Heebo", serif; font-style: normal; letter-spacing: 0.34em; color: rgba(244, 238, 225, 0.86);
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.6); }
@@ -136,7 +151,35 @@
     return { ...c, el, n: el.querySelector(".n") };
   });
 
+  // bursts: [{ t0, t1, kind: "tabs"|"chat", cards: [{ x, y, rot, text, who, me, t }] }]
+  const brs = (TL.bursts || []).map((b) => {
+    const el = mk("fx-brs " + b.kind, "");
+    const cards = b.cards.map((c) => {
+      const d = document.createElement("div");
+      d.className = "cd" + (c.me ? " me" : "");
+      d.style.left = `${c.x}px`; d.style.top = `${c.y}px`;
+      if (b.kind === "tabs") d.innerHTML = `<div class="bar"><i></i><i></i><i></i></div><div class="ttl"></div><div class="ln"></div><div class="ln s"></div>`;
+      else d.innerHTML = (c.who ? `<small></small>` : "") + `<span></span>`;
+      if (b.kind === "tabs") d.querySelector(".ttl").textContent = c.text;
+      else { if (c.who) d.querySelector("small").textContent = c.who; d.querySelector("span").textContent = c.text; }
+      el.appendChild(d);
+      return { ...c, el: d };
+    });
+    return { ...b, el, cards };
+  });
+
   window.seek = (t) => {
+    for (const b of brs) {
+      const on = t >= b.t0 - 1e-3 && t < b.t1 - 1e-3;
+      b.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const x = 1 - P(t, b.t1 - 0.1, 0.1);
+      for (const c of b.cards) {
+        const a = P(t, c.t, 0.14);
+        c.el.style.opacity = a > 0 ? Math.min(1, a * 3) * x : 0;
+        c.el.style.transform = `scale(${(0.5 + 0.5 * back(a)) * (0.92 + 0.08 * x)}) rotate(${c.rot || 0}deg)`;
+      }
+    }
     for (const c of ntfs) {
       const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";

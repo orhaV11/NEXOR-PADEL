@@ -472,7 +472,7 @@ def chunks(words, max_words, max_chars):
     return out
 
 
-tl = {"dur": TOTAL, "lang": LANG, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": []}
+tl = {"dur": TOTAL, "lang": LANG, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": [], "bursts": []}
 speech_spans = []  # film-time spans where somebody speaks: the music ducks here
 for s in segs:
     heard = []
@@ -556,6 +556,14 @@ for s in segs:
         tl["caps"].append({"t0": round(t0, 3), "t1": round(t0 + ln + it.get("hold", 0.3), 3), "y": it.get("y", s.get("cap_y", LOOK.get("cap_y", 1240))),
                            **({"cls": it["cls"]} if "cls" in it else {}), **({"size": it["size"]} if "size" in it else {}),
                            "words": [{"w": w, "t0": round(t0 + k * step, 3), "t1": round(t0 + (k + 1) * step, 3)} for k, w in enumerate(ws_)]})
+    # "burst": things piling up around the speaker: {"kind": "tabs"|"chat", "at", "len", "step", "cards": [[x, y, rot, text, who?, me?]]}
+    for it in ([s["burst"]] if isinstance(s.get("burst"), dict) else s.get("burst") or []):
+        t0 = s["t"] + it.get("at", 0.0)
+        cards = []
+        for k, c in enumerate(it["cards"]):
+            cards.append({"x": c[0], "y": c[1], "rot": c[2], "text": tr(c[3]), "t": round(t0 + k * it.get("step", 0.09), 3),
+                          **({"who": tr(c[4])} if len(c) > 4 and c[4] else {}), **({"me": True} if len(c) > 5 and c[5] else {})})
+        tl["bursts"].append({"t0": round(t0, 3), "t1": round(min(t0 + it.get("len", s["dur"] - it.get("at", 0.0)), TOTAL), 3), "kind": it["kind"], "cards": cards})
     for key, bucket in (("lt", "lts"), ("sticker", "stickers"), ("tag", "tags"), ("notif", "notifs"), ("badge", "badges")):
         items = s.get(key)
         for it in (items if isinstance(items, list) else [items] if items else []):
@@ -614,6 +622,7 @@ def fit(a, n):
 
 NS = int(round(TOTAL * SR))
 dialog = np.zeros((NS + SR, 2))
+ambient = np.zeros((NS + SR, 2))  # the natural sound of cutaways (sources with "bus": "fx"): mixed with the effects
 edge = int(0.006 * SR)
 ramp = np.linspace(0, 1, edge)[:, None]
 # one gain per source, measured on the parts used, so a line split across cuts keeps its level
@@ -638,12 +647,14 @@ for name, ps in parts.items():
     g = db(float(np.clip(target - lvl, -14, 20)))
     if "fixed_gain_db" in EDL["sources"][name]:  # a clip with no speech (a reaction, an ambience): do not normalise it up
         g = db(EDL["sources"][name]["fixed_gain_db"])
+    bus = ambient if EDL["sources"][name].get("bus") == "fx" else dialog
     for p in ps:
         a = p["audio"] * g * db(p.get("gain_db", 0))
-        a[:edge] *= ramp
-        a[-edge:] *= ramp[::-1]
+        fi, fo = max(edge, int(p.get("a_fade_in", 0) * SR)), max(edge, int(p.get("a_fade_out", 0) * SR))
+        a[:fi] *= np.linspace(0, 1, fi)[:, None]
+        a[-fo:] *= np.linspace(1, 0, fo)[:, None]
         i0 = int(round(p["t"] * SR))
-        dialog[i0: i0 + len(a)] += a[: len(dialog) - i0]
+        bus[i0: i0 + len(a)] += a[: len(bus) - i0]
 dialog = dialog[:NS]
 
 
@@ -667,6 +678,31 @@ for x in EDL.get("sfx", []):
 
 speech = np.zeros(NS)
 duck_from = EDL.get("duck_from", 0.0)  # let the first note of the score sound before it tucks under the first word
+if EDL.get("duck_mode") == "voice":
+    # follow the voices themselves, so the music comes back in every real pause (the recogniser's word ends run long)
+    h = int(0.01 * SR)
+    dm2 = dialog[:NS].mean(axis=1) ** 2
+    lvl = np.sqrt(np.convolve(dm2, np.ones(2 * h) / (2 * h), "same"))[::h]
+    act = lvl > db(EDL.get("voice_gate_db", -38))
+    runs, k = [], 0
+    while k < len(act):  # runs of voice, as [start, end) in 10 ms steps
+        if act[k]:
+            j = k
+            while j < len(act) and act[j]:
+                j += 1
+            runs.append([k, j])
+            k = j
+        else:
+            k += 1
+    merged = []
+    for a, b in runs:
+        if b - a < 5:  # a blip of under 50 ms is not a voice
+            continue
+        if merged and a - merged[-1][1] < int(EDL.get("voice_gap", 0.35) * 100):
+            merged[-1][1] = b
+        else:
+            merged.append([a, b])
+    speech_spans = [(a / 100 - 0.06, b / 100 + 0.08) for a, b in merged] + [(a, b) for a, b in speech_spans if a in fx_voice_starts]
 for a, b in speech_spans:
     speech[max(0, int(max(a, duck_from) * SR)): min(NS, int(b * SR))] = 1
 att, rel = math.exp(-1 / (0.03 * SR)), math.exp(-1 / (0.25 * SR))
@@ -714,10 +750,19 @@ for cue in EDL.get("music", []):
     if fo and len(a) > fo:
         a[-fo:] *= np.linspace(1, 0, fo)[:, None] ** 1.5
     i0 = int(round(at * SR))
-    duck = 1 - (1 - db(-cue.get("duck_db", 9))) * env[i0: i0 + len(a)]
-    place(music, a * duck[: len(a), None], at, db(cue.get("gain_db", -8)))
+    e = env[i0: i0 + len(a)]
+    duck = 1 - (1 - db(-cue.get("duck_db", 9))) * e
+    if "split_hz" in cue:  # the bass does not mask a voice: duck it less ("duck_low_db") so the track stays full under speech
+        sos = ss.butter(4, cue["split_hz"], "lowpass", fs=SR, output="sos")
+        low = ss.sosfiltfilt(sos, a, axis=0)
+        duck_low = 1 - (1 - db(-cue.get("duck_low_db", 3))) * e
+        a = (a - low) * duck[: len(a), None] + low * duck_low[: len(a), None] * db(cue.get("low_gain_db", 0))
+    else:
+        a = a * duck[: len(a), None]
+    place(music, a, at, db(cue.get("gain_db", -8)))
 
 fx = np.zeros((NS, 2))
+fx += ambient[:NS]
 sfx = []
 for x in EDL.get("sfx", []):
     t0 = when(x["at"])

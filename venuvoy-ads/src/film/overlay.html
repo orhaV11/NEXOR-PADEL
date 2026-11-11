@@ -21,7 +21,7 @@
   .fx-cap { position: absolute; left: 100px; right: 140px; display: none; text-align: center; font-weight: 900; font-size: 86px; line-height: 1.08;
     letter-spacing: -0.01em; text-transform: uppercase; color: #fff; -webkit-text-stroke: 14px #0b0d0c; paint-order: stroke fill;
     filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.35)); }
-  [dir="rtl"] .fx-cap { font-size: 92px; letter-spacing: 0; -webkit-text-stroke-width: 13px; }
+  [dir="rtl"] .fx-cap { font-size: 92px; letter-spacing: 0; -webkit-text-stroke-width: 13px; text-wrap: balance; }
   .fx-cap span { display: inline-block; margin: 0 0.13em; transform-origin: 50% 70%; }
   .fx-cap span.on { color: #ffd66b; }
   /* a chorus (the whole room speaking): cream italics, sentence case */
@@ -31,7 +31,7 @@
 
   /* lower third: a documentary name strap */
   .fx-lt { position: absolute; left: 60px; display: none; }
-  [dir="rtl"] .fx-lt { left: auto; right: 60px; text-align: right; }
+  [dir="rtl"] .fx-lt { left: auto; right: 150px; text-align: right; }
   .fx-lt .n { display: inline-block; max-width: 900px; padding: 10px 26px 12px; background: #f4eee1; color: #16392b; font-weight: 900; font-size: 54px; line-height: 1.1; letter-spacing: 0.01em; text-transform: uppercase; }
   .fx-lt .w { display: table; margin-top: 0; padding: 9px 26px 11px; background: #16392b; color: #f4eee1; font-weight: 600; font-size: 38px; line-height: 1.12; max-width: 880px; }
   [dir="rtl"] .fx-lt .w { margin-inline-start: auto; }
@@ -138,14 +138,14 @@
 
   window.seek = (t) => {
     for (const c of ntfs) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = back(P(t, c.t0, 0.28)), x = P(t, c.t1 - 0.18, 0.18);
       c.el.style.transform = `translateY(${(1 - a) * -420 - x * 420}px) scale(${0.96 + 0.04 * a})`;
     }
     for (const c of bdgs) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = back(P(t, c.t0, 0.2)), x = 1 - P(t, c.t1 - 0.12, 0.12);
@@ -160,7 +160,7 @@
       c.el.style.opacity = Math.min(1, P(t, c.t0, 0.08) * 2) * x;
     }
     for (const c of caps) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = P(t, c.t0, 0.09);
@@ -174,7 +174,7 @@
       });
     }
     for (const c of lts) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const first = c.t0 < 0.01;  // on the first frame the strap is already there (the thumbnail must carry it)
@@ -187,7 +187,7 @@
       c.el.style.opacity = x;
     }
     for (const c of stickers) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = P(t, c.t0, 0.16), x = 1 - P(t, c.t1 - 0.1, 0.1);
@@ -195,7 +195,7 @@
       c.el.style.opacity = Math.min(1, a * 3) * x;
     }
     for (const c of tags) {
-      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       c.el.style.opacity = Math.min(P(t, c.t0, 0.1), 1 - P(t, c.t1 - 0.1, 0.1));

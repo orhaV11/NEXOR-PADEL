@@ -136,6 +136,7 @@ def _box_mask(x0, y0, x1, y1, feather):
 def fix_frame(f, fixes):
     """Repairs made to a source before it is cut: all coordinates are in 1080x1920 film pixels.
     clone: cover a box with the picture a little way off (a logo, a burnt-in number);
+    heal:  paint out small marks of one colour inside a window from the skin around them (a graze, a cut);
     key:   move one colour range to another hue (curtains that should match the hall);
     grade: gain, per-channel gains and saturation (so clips of one room sit together)."""
     k = W / 1080
@@ -146,6 +147,22 @@ def fix_frame(f, fixes):
             src = np.roll(f, (-dy, -dx), axis=(0, 1))
             m = _box_mask(x0, y0, x1, y1, fx.get("feather", 6) * k)
             f = (f * (1 - m) + src * m).astype(np.uint8)
+        elif "heal" in fx:
+            q = fx["heal"]
+            hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
+            h, sat, val = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+            lo, hi = q["hue"]
+            hm = ((h >= lo) | (h <= hi)) if lo > hi else ((h >= lo) & (h <= hi))
+            m = (hm & (sat >= q.get("s_min", 85)) & (val >= q.get("v", [50, 215])[0]) & (val <= q.get("v", [50, 215])[1])).astype(np.uint8)
+            box = np.zeros_like(m)
+            for x0, y0, x1, y1 in q["windows"]:
+                box[int(y0 * k):int(y1 * k), int(x0 * k):int(x1 * k)] = 1
+            el = lambda d: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (max(1, int(d * k)) | 1, max(1, int(d * k)) | 1))  # noqa: E731
+            m = cv2.dilate(cv2.morphologyEx(m * box, cv2.MORPH_CLOSE, el(q.get("close", 11))), el(q.get("dilate", 13)))
+            if m.any():
+                fill = cv2.inpaint(f, m * 255, q.get("radius", 7) * k, cv2.INPAINT_TELEA)
+                a = cv2.GaussianBlur(m.astype(np.float32), (0, 0), q.get("feather", 3) * k)[:, :, None]
+                f = (f * (1 - a) + fill * a).astype(np.uint8)
         elif "key" in fx:
             q = fx["key"]
             hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
@@ -574,7 +591,7 @@ ov = CUT / "ov"
 run(["node", HERE / "render-overlay.mjs", CUT / "timeline.json", ov, "--fps", FPS])
 picture_ov = CUT / "picture_ov.mp4"
 run(["ffmpeg", "-v", "error", "-y", "-i", picture, "-framerate", FPS, "-i", ov / "%05d.png", "-filter_complex", ov_scale,
-     "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "19" if DRAFT else "22", "-r", FPS, picture_ov])
+     "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "19" if DRAFT else "20", "-r", FPS, picture_ov])
 
 
 # ------------------------------------------------------------------ sound
@@ -640,11 +657,13 @@ def place(buf, sig, t0, gain=1.0):
 
 
 # a voice laid in as an effect (a chorus heard over a cutaway) ducks the music like any other line
+fx_voice_starts = []
 for x in EDL.get("sfx", []):
     if x.get("voice"):
         t0 = when(x["at"])
         ln = (x["trim"][1] - x["trim"][0]) if "trim" in x else x.get("len", 1.0)
         speech_spans.append((t0 + x.get("voice_from", 0.0) - 0.06, t0 + x.get("voice_to", ln + 0.1)))
+        fx_voice_starts.append(speech_spans[-1][0])
 
 speech = np.zeros(NS)
 duck_from = EDL.get("duck_from", 0.0)  # let the first note of the score sound before it tucks under the first word
@@ -654,14 +673,33 @@ att, rel = math.exp(-1 / (0.03 * SR)), math.exp(-1 / (0.25 * SR))
 env = np.maximum(ss.lfilter([1 - att], [1, -att], speech), ss.lfilter([1 - rel], [1, -rel], speech))
 env = np.clip(env * 1.3, 0, 1)
 # "unduck": at these times a line has just ended and the music must be back at once (before a stop, a drop, the end card)
-starts = sorted(max(a, duck_from) for a, _ in speech_spans)
+_dm = dialog.mean(axis=1)
+
+
+def voice_onset(t):
+    """When somebody next really speaks after t: the recogniser's word starts run early (a breath, the room),
+    so listen to the dialogue itself."""
+    h = int(0.01 * SR)
+    i = int(t * SR)
+    while i + 2 * h < NS:
+        if np.sqrt(np.mean(_dm[i:i + 2 * h] ** 2)) > db(-36):
+            return i / SR
+        i += h
+    return TOTAL
+
+
 for u in EDL.get("unduck", []):
     t0 = when(u)
-    nxt = next((a for a in starts if a > t0 + 0.05), TOTAL)
+    nxt = min([voice_onset(t0 + 0.05) - 0.06] + [a for a in fx_voice_starts if a > t0 + 0.05])
     i0, r, i1 = int(t0 * SR), int(0.06 * SR), int(nxt * SR)
     if i1 > i0 + r:
         env[i0:i0 + r] *= np.linspace(1, 0, r)
         env[i0 + r:i1] = 0
+        back = min(int(0.03 * SR), i1 - i0 - r)  # tuck back under the next line over 30 ms, never in one step
+        if back > 0 and i1 < len(env):
+            env[i1 - back:i1] = np.linspace(0, env[i1], back)
+    elif i1 <= i0 + r:
+        print(f"  note: unduck at {t0:.2f} s does nothing (the next voice starts at {nxt:.2f} s)")
 
 
 music = np.zeros((NS, 2))
@@ -730,6 +768,6 @@ else:
     out916 = Path(f"{base}_9x16_1080x1920.mp4")
     run(["ffmpeg", "-v", "error", "-y", "-i", picture_ov, "-i", final_wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
          "-t", f"{TOTAL:.4f}", "-movflags", "+faststart", out916])
-    run(["ffmpeg", "-v", "error", "-y", "-i", out916, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "22", "-pix_fmt", "yuv420p",
+    run(["ffmpeg", "-v", "error", "-y", "-i", out916, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
          "-c:a", "copy", "-movflags", "+faststart", f"{base}_4x5_1080x1350.mp4"])
     print(f"film: {out916} (+ 4:5), {TOTAL:.2f} s")

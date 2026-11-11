@@ -9,8 +9,8 @@
   "unduck": [],
   "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
   "labels": [
-    { "text": "VENUVOY", "from": 0.0, "to": "app", "y": 258, "cls": "bug" },
-    { "text": "VENUVOY", "from": "empty2", "to": "end", "y": 258, "cls": "bug" }
+    { "text": "VENUVOY", "from": "m1", "to": "app", "y": 258, "cls": "bug" },
+    { "text": "VENUVOY", "from": "munich", "to": "freeze2", "y": 258, "cls": "bug" }
   ],
   "sources": {
     "empty": { "path": "src/film/assets/apa/clips/empty_a.mp4", "bus": "fx", "fixed_gain_db": 17 },
@@ -18,20 +18,20 @@
     "danny": { "path": "src/film/assets/apa/clips/j09_danny_a.mp4", "fix": [
       { "calm": { "windows": [[215, 185, 650, 430]], "da": 3.5, "soft": 3, "base": 61, "dilate": 9, "feather": 3, "keep": 0.1, "l_keep": 0.3 } },
       { "calm": { "windows": [[320, 512, 455, 606]], "da": 3.0, "soft": 2, "base": 91, "dilate": 13, "feather": 4, "keep": 0.0, "l_keep": 0.2, "gain": 1.5 } },
-      { "soften": [695, 1085, 865, 1335], "sigma": 10 } ] },
+      { "soften": [722, 1100, 858, 1322], "sigma": 7, "feather": 10 } ] },
     "kevin": { "path": "src/film/assets/apa/clips/kevin_a.mp4", "bus": "fx", "fixed_gain_db": 17, "fix": [
-      { "soften": [215, 1020, 380, 1160], "sigma": 9 }, { "soften": [840, 1065, 940, 1225], "sigma": 8 } ] },
+      { "soften": [228, 1026, 432, 1176], "sigma": 8 }, { "soften": [912, 1060, 1004, 1226], "sigma": 8 } ] },
     "nan": { "path": "src/film/assets/apa/clips/j22_gran_a.mp4", "level": -17 },
     "munich": { "path": "src/film/assets/apa/clips/munich_a.mp4", "bus": "fx", "fixed_gain_db": -3, "fix": [
       { "key": { "hue": [170, 8], "s_min": 120, "v": [40, 255], "to_hue": 70, "s": 0.8, "v_gain": 0.75, "open": 5, "dilate": 5, "feather": 3, "region": [0, 980, 150, 1330] } },
       { "key": { "hue": [170, 8], "s_min": 120, "v": [40, 255], "to_hue": 70, "s": 0.8, "v_gain": 0.75, "open": 5, "dilate": 5, "feather": 3, "region": [930, 980, 1080, 1330] } } ] },
     "app": { "path": "src/film/assets/inserts/app-nan-{lang}.mp4" },
-    "endc": { "path": "src/film/assets/inserts/end-{lang}.mp4" }
+    "endc": { "path": "src/film/assets/inserts/end-nan-{lang}.mp4" }
   },
   "narration": [
     { "file": { "en": "src/film/assets/apa/vo/en/n1.wav", "he": "src/film/assets/apa/vo/he/n1.wav" }, "at": "open+0.08",
       "text": { "en": "The English invented football. | We followed them abroad to learn.", "he": "האנגלים המציאו את הכדורגל. | טסנו איתם, ללמוד." } },
-    { "file": { "en": "src/film/assets/apa/vo/en/n2.wav", "he": "src/film/assets/apa/vo/he/n2.wav" }, "at": { "en": "freeze+0.35", "he": "freeze+0.3" },
+    { "file": { "en": "src/film/assets/apa/vo/en/n2.wav", "he": "src/film/assets/apa/vo/he/n2.wav" }, "at": { "en": "freeze+0.06", "he": "freeze+0.01" },
       "text": { "en": "She voted maybe.", "he": "היא הצביעה 'אולי'." } },
     { "file": { "en": "src/film/assets/apa/vo/en/n3.wav", "he": "src/film/assets/apa/vo/he/n3.wav" }, "at": "kev+0.15",
       "text": { "en": "So somebody knew a guy.", "he": "אז מישהו אמר: | 'יש לי מישהו'." } },
@@ -39,9 +39,9 @@
       "text": { "en": "And Danny?", "he": "ודני?" } },
     { "file": { "en": "src/film/assets/apa/vo/en/n5.wav", "he": "src/film/assets/apa/vo/he/n5.wav" }, "at": "nan+0.22",
       "text": { "en": "Flew with his grandmother.", "he": "טס עם סבתא שלו." } },
-    { "file": { "en": "src/film/assets/apa/vo/en/n6.wav", "he": "src/film/assets/apa/vo/he/n6.wav" }, "at": "app+0.15", "y": 1470,
+    { "file": { "en": "src/film/assets/apa/vo/en/n6.wav", "he": "src/film/assets/apa/vo/he/n6.wav" }, "at": "app+0.15", "y": 1330,
       "text": { "en": "One comma, actually.", "he": "היה פסיק אחד." } },
-    { "file": { "en": "src/film/assets/apa/vo/en/n7.wav", "he": "src/film/assets/apa/vo/he/n7.wav" }, "at": { "en": "app+1.72", "he": "app+1.8" }, "y": 1470,
+    { "file": { "en": "src/film/assets/apa/vo/en/n7.wav", "he": "src/film/assets/apa/vo/he/n7.wav" }, "at": { "en": "plan+0.12", "he": "plan+0.2" }, "y": 1492, "size": { "en": 54, "he": 60 },
       "text": { "en": "A confirmed date. | Official tickets.", "he": "תאריך סגור. | כרטיס רשמי." } },
     { "file": { "en": "src/film/assets/apa/vo/en/n8.wav", "he": "src/film/assets/apa/vo/he/n8.wav" }, "at": "empty2+3.0", "gain_db": { "en": 3, "he": 1.5 },
       "text": { "en": "The guy never called.", "he": "ה'מישהו' לא התקשר." } },
@@ -49,30 +49,30 @@
       "text": { "en": "We learned a lot.", "he": "למדנו הרבה." } },
     { "file": { "en": "src/film/assets/apa/vo/en/n10.wav", "he": "src/film/assets/apa/vo/he/n10.wav" }, "at": "freeze2+0.2",
       "text": { "en": "All from Danny's grandmother.", "he": "הכול מסבתא של דני." } },
-    { "file": { "en": "src/film/assets/apa/vo/en/n11.wav", "he": "src/film/assets/apa/vo/he/n11.wav" }, "at": "end+0.22" }
+    { "file": { "en": "src/film/assets/apa/vo/en/n11.wav", "he": "src/film/assets/apa/vo/he/n11.wav" }, "at": "end+0.2" }
   ],
   "music": [
-    { "file": "src/film/assets/apa/audio/cueD_1.mp3", "af": "lowshelf=f=150:g=-2,highshelf=f=450:g=6", "at": "m1", "offset": 0.02, "until": "stop+0.05", "gain_db": 0, "duck_db": 12.5, "split_hz": 150, "duck_low_db": 3, "fade_in": 0.003, "fade_out": 0.03 },
-    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "nan", "until": "empty2", "gain_db": 7, "duck_db": 0, "fade_in": 0.15, "fade_out": 0.2 },
-    { "file": "src/film/assets/apa/audio/cueB_1.mp3", "af": "lowshelf=f=150:g=-2,highshelf=f=450:g=4", "at": "munich", "offset": 14.018, "gain_db": -1, "duck_db": 15, "split_hz": 150, "duck_low_db": 3, "fade_in": 0.002, "fade_out": 0.02 },
+    { "file": "src/film/assets/apa/audio/cueD_1.mp3", "af": "lowshelf=f=150:g=-2,highshelf=f=450:g=6", "at": "m1", "offset": 0.02, "until": "stop-0.06", "gain_db": 0, "duck_db": 12.5, "split_hz": 150, "duck_low_db": 3, "fade_in": 0.003, "fade_out": 0.03 },
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "nan", "until": "empty2", "gain_db": 6, "duck_db": 0, "fade_in": 0.15, "fade_out": 0.2 },
+    { "file": "src/film/assets/apa/audio/cueB_1.mp3", "af": "lowshelf=f=150:g=-2,highshelf=f=450:g=4", "at": "munich", "offset": 12.018, "gain_db": -1, "duck_db": 15, "split_hz": 150, "duck_low_db": 3, "fade_in": 0.002, "fade_out": 0.02 },
     { "file": "src/film/assets/apa/audio/bed_crowd.mp3", "at": "munich", "offset": 0.0, "gain_db": -1, "duck_db": 15, "fade_in": 0.02, "fade_out": 0.6 }
   ],
   "sfx": [
     { "synth": "stamp", "at": "open+0.02", "gain_db": -12 },
     { "file": "src/film/assets/apa/clips/empty_a.mp4", "trim": [0.0, 4.2], "at": "open", "gain_db": 15, "fade_in": 0.02, "fade_out": 0.2 },
     { "file": "src/film/assets/apa/clips/j06_maybe_a.mp4", "trim": [1.3, 2.35], "at": "freeze", "gain_db": -8, "fade_in": 0.08, "fade_out": 0.15 },
-    { "file": "src/film/assets/apa/clips/j06_maybe_a.mp4", "trim": [1.3, 2.35], "at": "freeze+0.95", "gain_db": -8, "fade_in": 0.15, "fade_out": 0.15 },
+    { "file": "src/film/assets/apa/clips/j06_maybe_a.mp4", "trim": [1.3, 2.35], "at": "freeze+0.66", "gain_db": -8, "fade_in": 0.15, "fade_out": 0.15 },
     { "file": "src/film/assets/apa/clips/kevin_a.mp4", "trim": [0.3, 3.2], "at": "kev", "gain_db": 6, "fade_in": 0.02, "fade_out": 0.2 },
-    { "file": "src/film/assets/apa/clips/kevin_a.mp4", "trim": [4.28, 4.62], "at": "stop", "gain_db": -3, "fade_in": 0.005, "fade_out": 0.08 },
-    { "file": "src/film/assets/apa/clips/kevin_a.mp4", "trim": [4.62, 5.5], "at": "stop+0.34", "gain_db": 8, "fade_in": 0.05, "fade_out": 0.1 },
-    { "synth": "click", "args": [0.03, 900, 4000], "at": "nan+0.3", "every": 1.0, "until": "empty2", "gain_db": -5 },
-    { "synth": "typing", "args": [0.55, 0.07], "at": "app+0.06", "gain_db": -2 },
+    { "file": "src/film/assets/apa/clips/kevin_a.mp4", "trim": [4.28, 5.5], "at": "stop", "gain_db": 0, "fade_in": 0.004, "fade_out": 0.1 },
+    { "synth": "click", "args": [0.03, 900, 4000], "at": "nan+0.3", "every": 1.0, "until": "empty2", "gain_db": -6 },
+    { "synth": "typing", "args": [0.55, 0.07], "at": "app+0.06", "gain_db": -6 },
+    { "file": "src/film/assets/apa/audio/sfx_whoosh.mp3", "trim": [0.0, 0.5], "at": "plan-0.32", "gain_db": -16, "fade_in": 0.05, "fade_out": 0.2 },
     { "synth": "ding", "at": "plan", "gain_db": -20 },
-    { "file": "src/film/assets/apa/clips/empty_a.mp4", "trim": [0.0, 5.75], "at": "empty2", "gain_db": 11, "fade_in": 0.05, "fade_out": 0.1 },
+    { "file": "src/film/assets/apa/clips/empty_a.mp4", "trim": [0.0, 5.75], "at": "empty2", "gain_db": 6, "fade_in": 0.05, "fade_out": 0.1 },
     { "synth": "notif", "at": "empty2+0.2", "gain_db": -8 },
     { "file": "src/film/assets/apa/clips/j22_gran_a.mp4", "trim": [3.34, 4.44], "at": "empty2+0.45", "gain_db": 4, "fade_in": 0.01, "fade_out": 0.04, "voice": true, "voice_from": 0.02 },
     { "file": "src/film/assets/apa/clips/j22_gran_a.mp4", "trim": [4.94, 6.02], "at": "empty2+1.7", "gain_db": 4, "fade_in": 0.01, "fade_out": 0.04, "voice": true, "voice_from": 0.02 },
-    { "file": "src/film/assets/apa/clips/j22_gran_a.mp4", "trim": [6.42, 7.45], "at": "empty2+4.5", "gain_db": 4, "fade_in": 0.01, "fade_out": 0.05, "voice": true, "voice_from": 0.02 },
+    { "file": "src/film/assets/apa/clips/j22_gran_a.mp4", "trim": [6.42, 7.52], "at": "empty2+4.5", "gain_db": 6, "fade_in": 0.01, "fade_out": 0.04, "voice": true, "voice_from": 0.02 },
     { "synth": "impact", "at": "munich", "gain_db": -9 },
     { "synth": "crash", "at": "munich", "gain_db": -15 },
     { "file": "src/film/assets/apa/clips/munich_a.mp4", "trim": [0.0, 0.8], "at": "munich", "gain_db": -1, "fade_out": 0.45 },
@@ -83,43 +83,47 @@
   "segments": [
     { "src": "empty", "in": 0.0, "out": 0.042, "hold": 0.6, "mute": true, "zoom": { "from": 1.0, "to": 1.008, "cx": 0.5, "cy": 0.55 }, "marks": { "open": 0.0 },
       "gfx": [ { "type": "card", "at": 0.0, "len": 4.0, "y": 300, "size": 76, "title": { "en": "Match day", "he": "יום המשחק" }, "sub": { "en": "Wed 27 Jan · Attendance: 1", "he": "יום ד׳ 27.1 · קהל: צופה אחד" } } ] },
-    { "src": "empty", "in": 0.0, "out": 2.1, "fit": 3.4, "mute": true, "zoom": { "from": 1.008, "to": 1.05, "cx": 0.5, "cy": 0.55 } },
+    { "src": "empty", "in": 0.0, "out": 2.1, "fit": 3.4, "mute": true, "pop": 0, "zoom": { "from": 1.008, "to": 1.10, "cx": 0.5, "cy": 0.55 } },
 
-    { "src": "maybe", "in": 0.0, "out": 3.4, "punch": 1.06, "cx": 0.42, "cy": 0.3, "marks": { "m1": 0.0 },
+    { "src": "maybe", "in": 0.0, "out": 3.69, "punch": 1.06, "cx": 0.42, "cy": 0.3, "marks": { "m1": 0.0 },
       "gfx": [ { "type": "chathead", "at": 0.2, "len": 2.1, "y": 300, "name": { "en": "Away trip – who's in?", "he": "טסים למשחק – מי בא?" }, "members": { "en": "8 members", "he": "8 משתתפים" } } ],
-      "tag": { "text": { "en": "54 days before", "he": "54 יום לפני המשחק" }, "at": 0.35, "y": 414 },
+      "tag": { "text": { "en": "54 days before", "he": "54 יום לפני המשחק" }, "at": 0.35, "y": 322, "x": { "en": 620, "he": 70 } },
       "line": { "en": "We voted on the dates. | Maybe won.", "he": "עשינו סקר על התאריכים. | ניצח 'אולי'." } },
-    { "src": "maybe", "in": 3.69, "out": 3.73, "hold": { "en": 1.7, "he": 2.0 }, "mute": true, "zoom": { "from": 1.06, "to": 1.10, "cx": 0.42, "cy": 0.3 }, "marks": { "freeze": 3.69 } },
+    { "src": "maybe", "in": 3.69, "out": 3.73, "hold": { "en": 1.41, "he": 1.71 }, "mute": true, "zoom": { "from": 1.06, "to": 1.10, "cx": 0.42, "cy": 0.3 }, "marks": { "freeze": 3.69 } },
 
     { "src": "danny", "in": 0.95, "out": 4.8, "punch": 1.14, "cx": 0.45, "cy": 0.3,
       "gfx": [ { "type": "chathead", "at": 0.05, "len": 2.85, "y": 300, "name": { "en": "Away trip – who's in?", "he": "טסים למשחק – מי בא?" }, "members": { "en": "8 members", "he": "8 משתתפים" } } ],
-      "tag": [ { "text": { "en": "40 days before", "he": "40 יום לפני" }, "at": 0.15, "len": 1.85, "y": 414 },
-               { "text": { "en": "3 days before", "he": "3 ימים לפני" }, "at": 2.0, "y": 414 } ],
+      "tag": [ { "text": { "en": "40 days before", "he": "40 יום לפני" }, "at": 0.15, "len": 1.85, "y": 322, "x": { "en": 620, "he": 180 } },
+               { "text": { "en": "3 days before", "he": "3 ימים לפני" }, "at": 2.0, "y": 322, "x": { "en": 620, "he": 180 } } ],
       "line": { "en": "Danny said | he'd handle it. | Danny left | the chat.", "he": "אז דני אמר: 'עליי'. | דני יצא מהקבוצה." } },
 
     { "src": "kevin", "in": 1.25, "out": 4.3, "fit": 2.75, "mute": true, "marks": { "kev": 1.25 },
       "tag": { "text": { "en": "2 days before · 23:40", "he": "יומיים לפני · 23:40" }, "at": 0.05, "len": 3.9, "y": 306 } },
     { "src": "kevin", "in": 4.3, "out": 5.5, "mute": true, "marks": { "stop": 4.3 } },
 
-    { "src": "nan", "in": 3.7, "out": 4.62, "fit": 1.45, "mute": true, "zoom": { "from": 1.1, "to": 1.17, "cx": 0.75, "cy": 0.8 }, "marks": { "nan": 3.7 } },
-    { "src": "nan", "in": 0.0, "out": 2.85, "a_fade_in": 0.004,
-      "line": { "en": "One sentence. | I didn't even | use a comma.", "he": "משפט אחד. | אפילו פסיק לא שמתי." } },
+    { "src": "nan", "in": 3.7, "out": 4.62, "fit": 1.85, "mute": true, "zoom": { "from": 1.1, "to": 1.17, "cx": 0.75, "cy": 0.8 }, "marks": { "nan": 3.7 } },
+    { "src": "nan", "in": 0.0, "out": 2.85, "a_fade_in": 0.02,
+      "line": { "en": "One sentence. | I didn't even | use a comma.", "he": "משפט אחד. | לא שמתי אפילו פסיק." } },
 
-    { "src": "app", "in": 0.0, "out": 3.9167, "hold": 0.35, "mute": true, "marks": { "app": 0.0, "plan": 1.6 },
-      "gfx": [ { "type": "circle", "at": 0.4, "len": 1.05, "cx": { "en": 657, "he": 560 }, "cy": { "en": 848, "he": 852 }, "rx": 28, "ry": 32, "rot": 0, "color": "#e6c47a", "width": 5, "draw": 0.0 } ] },
+    { "src": "app", "in": 0.0, "out": 1.40, "mute": true, "marks": { "app": 0.0 },
+      "gfx": [ { "type": "circle", "at": 0.4, "len": 1.75, "cx": { "en": 657, "he": 548 }, "cy": { "en": 848, "he": 850 }, "rx": 15, "ry": 20, "rot": 0, "color": "#b0832a", "width": 6, "draw": 0.0 } ] },
+    { "src": "app", "in": 1.40, "out": 1.442, "hold": 0.7, "mute": true, "pop": 0 },
+    { "src": "app", "in": 1.442, "out": 3.9167, "hold": 0.35, "mute": true, "pop": 0, "marks": { "plan": 1.6 } },
 
-    { "src": "empty", "in": 2.0, "out": 2.042, "hold": 0.66, "mute": true, "zoom": { "from": 1.05, "to": 1.056, "cx": 0.5, "cy": 0.55 }, "marks": { "empty2": 2.0 },
-      "gfx": [ { "type": "card", "at": 0.0, "len": 5.7, "y": 300, "size": 76, "still": true, "title": { "en": "Match day", "he": "יום המשחק" }, "sub": { "en": "Wed 27 Jan · Attendance: 1", "he": "יום ד׳ 27.1 · קהל: צופה אחד" } } ],
-      "notif": { "title": { "en": "Kick-off moved:\nnow Thu 28 Jan", "he": "המשחק הוזז\nליום ה׳, 28.1" }, "body": { "en": "Here's what changes in your trip.", "he": "מצאנו לכם חלופות." }, "at": 0.2, "len": 2.65, "y": 520, "drop": 60 },
-      "cap": [ { "text": { "en": "My phone told me.", "he": "הטלפון אמר לי." }, "at": 1.75, "len": 0.95, "hold": 0.12 },
-               { "text": { "en": "Poor boys.", "he": "מסכנים, הילדים." }, "at": 4.55, "len": 0.85, "hold": 0.15 } ] },
-    { "src": "empty", "in": 2.0, "out": 6.0, "fit": 5.0, "mute": true, "zoom": { "from": 1.056, "to": 1.10, "cx": 0.5, "cy": 0.55 } },
+    { "src": "empty", "in": 2.0, "out": 2.042, "hold": 1.66, "mute": true, "zoom": { "from": 1.05, "to": 1.065, "cx": 0.5, "cy": 0.55 }, "marks": { "empty2": 2.0 },
+      "gfx": [ { "type": "card", "at": 0.0, "len": 5.7, "y": 300, "size": 76, "still": true, "title": { "en": "Match day", "he": "יום המשחק" }, "sub": { "en": "Wed 27 Jan · Attendance: 1", "he": "יום ד׳ 27.1 · קהל: צופה אחד" } },
+               { "type": "pin", "arrow": false, "at": 1.72, "len": 1.15, "x": 540, "y": 1240, "size": 30, "label": { "en": "Danny's grandmother", "he": "סבתא של דני" } },
+               { "type": "pin", "arrow": false, "at": 4.62, "len": 1.0, "x": 540, "y": 1240, "size": 30, "label": { "en": "Danny's grandmother", "he": "סבתא של דני" } } ],
+      "notif": { "title": { "en": "Kick-off moved:\nnow Thu 28 Jan", "he": "המשחק הוזז\nליום ה׳ 28.1" }, "body": { "en": "Here's what changes in your trip.", "he": "מצאנו לכם חלופות." }, "at": 0.2, "len": 2.65, "y": 520, "drop": 60 },
+      "cap": [ { "text": { "en": "My phone told me.", "he": "הטלפון אמר לי." }, "at": 1.75, "len": 0.95, "hold": 0.12, "size": { "en": 62, "he": 88 } },
+               { "text": { "en": "Poor boys.", "he": "מסכנים, הילדים." }, "at": 4.65, "len": 0.8, "hold": 0.12 } ] },
+    { "src": "empty", "in": 2.0, "out": 6.0, "mute": true, "pop": 0, "zoom": { "from": 1.065, "to": 1.10, "cx": 0.5, "cy": 0.55 } },
 
     { "src": "munich", "in": 2.3, "out": 4.5, "mute": true, "trans": "flash", "marks": { "munich": 2.3 },
       "tag": { "text": { "en": "Thu 28 Jan · Kick-off", "he": "יום ה׳ 28.1 · שריקת הפתיחה" }, "at": 0.05, "len": 3.95, "y": 306, "x": { "en": 520, "he": null } } },
     { "src": "munich", "in": 4.5, "out": 4.542, "hold": 1.79, "mute": true, "zoom": { "from": 1.0, "to": 1.035, "cx": 0.5, "cy": 0.3 }, "marks": { "freeze2": 4.5 },
-      "gfx": [ { "type": "pin", "at": { "en": 0.6, "he": 1.25 }, "x": 235, "y": 362, "size": 30, "label": { "en": "Danny", "he": "דני" } } ] },
+      "gfx": [ { "type": "pin", "at": { "en": 0.6, "he": 0.75 }, "x": 235, "y": 362, "size": 44, "label": { "en": "Danny", "he": "דני" } } ] },
 
-    { "src": "endc", "in": 0.0, "out": 2.6667, "hold": 0.4, "mute": true, "marks": { "end": 0.0 } }
+    { "src": "endc", "in": 0.125, "out": 2.6667, "hold": { "en": 0.82, "he": 0.92 }, "mute": true, "marks": { "end": 0.0 } }
   ]
 }

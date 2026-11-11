@@ -599,7 +599,7 @@ for s in segs:
         ln = it.get("len", max(0.5, 0.28 * len(ws_)))
         step = ln / len(ws_)
         tl["caps"].append({"t0": round(t0, 3), "t1": round(t0 + ln + it.get("hold", 0.3), 3), "y": it.get("y", s.get("cap_y", LOOK.get("cap_y", 1240))),
-                           **({"cls": it["cls"]} if "cls" in it else {}), **({"size": it["size"]} if "size" in it else {}),
+                           **({"cls": it["cls"]} if "cls" in it else {}), **({"size": tr(it["size"])} if "size" in it else {}),
                            "words": [{"w": w, "t0": round(t0 + k * step, 3), "t1": round(t0 + (k + 1) * step, 3)} for k, w in enumerate(ws_)]})
     # "gfx": free graphics drawn by overlay.html by "type" (card, chat, circle); "at" and "len" are seconds in the shot,
     # every other time inside is seconds from the graphic's own start
@@ -673,6 +673,23 @@ for it in EDL.get("narration", []):
                 n = len(c.split())
                 spans.append((max(0.0, times[k][0]), min(dur, times[k + n - 1][0] + 0.2 + 0.06 * len(c.split()[-1]))))
                 k += n
+    if cards and spans is None and len(cards) > 1:
+        # no word times for this language: change cards in the pauses of the reading itself (the longest ones)
+        e = np.array([np.abs(a[k:k + h]).max() for k in range(0, max(1, len(a) - h), h)]) if len(a) else np.zeros(1)
+        quiet = e < 0.05 * max(e.max(), 1e-9)
+        gaps, k0 = [], None
+        for k, q in enumerate(quiet):
+            if q and k0 is None:
+                k0 = k
+            elif not q and k0 is not None:
+                if k0 > 0 and (k - k0) * 0.01 >= 0.12:
+                    gaps.append((k - k0, k0 * 0.01, k * 0.01))
+                k0 = None
+        if len(gaps) >= len(cards) - 1:
+            cuts = sorted(sorted(gaps, reverse=True)[:len(cards) - 1], key=lambda g: g[1])
+            edges = [0.0] + [g[2] - 0.03 for g in cuts] + [dur]
+            ends = [g[1] + 0.05 for g in cuts] + [dur]
+            spans = [(edges[k], ends[k]) for k in range(len(cards))]
     if cards and spans is None:
         tot, acc, spans = sum(len(c) for c in cards), 0, []
         for c in cards:
@@ -680,7 +697,7 @@ for it in EDL.get("narration", []):
             acc += len(c)
     for k, c in enumerate(cards):
         c0 = t0 + spans[k][0] - (0.05 if k else 0.0)
-        c1 = t0 + (spans[k + 1][0] - 0.05 if k + 1 < len(cards) else min(dur + 0.25, spans[k][1] + 0.35))
+        c1 = t0 + (max(spans[k][1], spans[k + 1][0] - 0.05) if k + 1 < len(cards) else min(dur + 0.25, spans[k][1] + 0.35))
         for sg_ in segs:  # a card whose words are (as good as) over at a cut leaves with the shot
             b = sg_["t"] + sg_["dur"]
             if c0 + 0.3 < b < c1 and b >= t0 + spans[k][1] - 0.3:
@@ -688,6 +705,7 @@ for it in EDL.get("narration", []):
         ws_ = c.split()
         step = (c1 - c0) / len(ws_)
         tl["caps"].append({"t0": round(c0, 3), "t1": round(max(c1, c0 + 0.3), 3), "y": it.get("y", LOOK.get("nar_y", LOOK.get("cap_y", 1240))), "cls": "nar",
+                           **({"size": tr(it["size"])} if "size" in it else {}),
                            "words": [{"w": w, "t0": round(c0 + j * step, 3), "t1": round(c0 + (j + 1) * step, 3)} for j, w in enumerate(ws_)]})
     narr.append({"t": t0, "a": a, "level": it.get("level", -17), "gain_db": tr(it.get("gain_db", 0))})
     print(f"  narration {t0:6.2f}-{t0 + dur:6.2f}  {tr(it.get('text', ''))[:70]}")
@@ -702,24 +720,27 @@ for it in EDL.get("labels", []):  # labels pinned for a stretch of film time: {"
 (CUT / "timeline.json").write_text(json.dumps(tl, ensure_ascii=False, indent=1))
 
 # ------------------------------------------------------------------ picture pass
-picture = CUT / "picture.mp4"
-enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                        "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "14", "-pix_fmt", "yuv420p", str(picture)], stdin=subprocess.PIPE)
-for s in segs:
-    render_segment(s, s["n"], s["hold_n"], enc, s["i"])
-enc.stdin.close()
-if enc.wait() != 0:
-    sys.exit("encoder failed")
-
-if DRAFT:  # the overlay is drawn at full size; scale it down in the composite
-    ov_scale = f"[1:v]scale={W}:{H}[ov];[0:v][ov]overlay=0:0:format=auto,format=yuv420p"
-else:
-    ov_scale = "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p"
-ov = CUT / "ov"
-run(["node", HERE / "render-overlay.mjs", CUT / "timeline.json", ov, "--fps", FPS])
 picture_ov = CUT / "picture_ov.mp4"
-run(["ffmpeg", "-v", "error", "-y", "-i", picture, "-framerate", FPS, "-i", ov / "%05d.png", "-filter_complex", ov_scale,
-     "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "19" if DRAFT else "20", "-r", FPS, picture_ov])
+AUDIO_ONLY = "--audio" in sys.argv and picture_ov.exists()  # the sound changed and the picture did not: keep the picture
+if not AUDIO_ONLY:
+    picture = CUT / "picture.mp4"
+    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
+                            "-vf", "scale=out_color_matrix=bt709:out_range=tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+                            "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "14", "-pix_fmt", "yuv420p", str(picture)], stdin=subprocess.PIPE)
+    for s in segs:
+        render_segment(s, s["n"], s["hold_n"], enc, s["i"])
+    enc.stdin.close()
+    if enc.wait() != 0:
+        sys.exit("encoder failed")
+
+    if DRAFT:  # the overlay is drawn at full size; scale it down in the composite
+        ov_scale = f"[1:v]scale={W}:{H}:out_color_matrix=bt709:out_range=tv,format=yuva420p[ov];[0:v][ov]overlay=0:0:format=yuv420,format=yuv420p"
+    else:  # the graphics are RGB: bring them to the picture's BT.709 before they are laid over it
+        ov_scale = "[1:v]scale=out_color_matrix=bt709:out_range=tv,format=yuva420p[ov];[0:v][ov]overlay=0:0:format=yuv420,format=yuv420p"
+    ov = CUT / "ov"
+    run(["node", HERE / "render-overlay.mjs", CUT / "timeline.json", ov, "--fps", FPS])
+    run(["ffmpeg", "-v", "error", "-y", "-i", picture, "-framerate", FPS, "-i", ov / "%05d.png", "-filter_complex", ov_scale,
+         "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-c:v", "libx264", "-preset", "medium" if DRAFT else "slow", "-crf", "19" if DRAFT else "20", "-r", FPS, picture_ov])
 
 
 # ------------------------------------------------------------------ sound
@@ -917,7 +938,10 @@ for x in sfx:
         y = getattr(kit, x["synth"])(*x.get("args", []))
         y = y if y.ndim == 2 else np.stack([y, y], axis=1)
         a = ss.resample_poly(y, SR, kit.SR, axis=0)
-    fo = int(x.get("fade_out", 0.02) * SR)
+    a = np.array(a, dtype=np.float64)
+    fi, fo = int(x.get("fade_in", 0.0) * SR), int(x.get("fade_out", 0.02) * SR)
+    if fi and len(a) > fi:
+        a[:fi] *= np.linspace(0, 1, fi)[:, None]
     if fo and len(a) > fo:
         a[-fo:] *= np.linspace(1, 0, fo)[:, None]
     place(fx, a, x["at"], db(x.get("gain_db", -6)))
@@ -944,6 +968,6 @@ else:
     out916 = Path(f"{base}_9x16_1080x1920.mp4")
     run(["ffmpeg", "-v", "error", "-y", "-i", picture_ov, "-i", final_wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
          "-t", f"{TOTAL:.4f}", "-movflags", "+faststart", out916])
-    run(["ffmpeg", "-v", "error", "-y", "-i", out916, "-vf", "crop=1080:1350:0:250", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
+    run(["ffmpeg", "-v", "error", "-y", "-i", out916, "-vf", "crop=1080:1350:0:250", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
          "-c:a", "copy", "-movflags", "+faststart", f"{base}_4x5_1080x1350.mp4"])
     print(f"film: {out916} (+ 4:5), {TOTAL:.2f} s")

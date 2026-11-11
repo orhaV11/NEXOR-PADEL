@@ -6,5 +6,5 @@ ads/**/*.video.mp4
 __pycache__/
 *.pyc
 
-# scratch for the AI-shot film: downloaded clips, intermediate cuts and overlay frames (rebuild with src/heist/cut.py)
+# scratch for the AI-shot films: test clips, intermediate cuts and overlay frames (rebuild with src/film/cut.py)
 work/

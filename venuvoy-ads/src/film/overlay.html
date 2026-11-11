@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · film overlay (captions, lower thirds, stickers)</title>
+<style>
+  /* A transparent 1080x1920 layer for the AI-shot films, rendered frame by frame with seek(t) and composited
+     over the cut: word-by-word captions the way people caption their own videos, documentary lower thirds,
+     and big text stickers. The timeline arrives in the query string (?tl=<url-encoded JSON>). */
+  @font-face { font-family: "Mont"; src: url(../../fonts/montserrat-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Heebo"; src: url(../../fonts/heebo-hebrew-wght-normal.woff2) format("woff2"); font-weight: 100 900; unicode-range: U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+  @font-face { font-family: "Heebo"; src: url(../../fonts/heebo-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Playfair"; src: url(../../fonts/playfair-display-latin-wght-italic.woff2) format("woff2"); font-weight: 400 900; font-style: italic; }
+  @font-face { font-family: "Playfair"; src: url(../../fonts/playfair-display-latin-wght-normal.woff2) format("woff2"); font-weight: 400 900; font-style: normal; }
+  @font-face { font-family: "FrankRuhl"; src: url(../../fonts/frank-ruhl-libre-hebrew-wght-normal.woff2) format("woff2"); font-weight: 300 900; }
+  html, body { margin: 0; background: transparent; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "Mont", "Heebo", sans-serif; }
+  [dir="rtl"] #stage { font-family: "Heebo", "Mont", sans-serif; }
+
+  /* captions: two or three words at a time, the spoken word lit in gold */
+  .fx-cap { position: absolute; left: 100px; right: 140px; display: none; text-align: center; font-weight: 900; font-size: 86px; line-height: 1.08;
+    letter-spacing: -0.01em; text-transform: uppercase; color: #fff; -webkit-text-stroke: 14px #0b0d0c; paint-order: stroke fill;
+    filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.35)); }
+  [dir="rtl"] .fx-cap { font-size: 92px; letter-spacing: 0; -webkit-text-stroke-width: 13px; }
+  .fx-cap span { display: inline-block; margin: 0 0.13em; transform-origin: 50% 70%; }
+  .fx-cap span.on { color: #ffd66b; }
+  /* a chorus (the whole room speaking): cream italics, sentence case */
+  .fx-cap.chorus { font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 800; font-size: 82px; text-transform: none; letter-spacing: 0; color: #f4eee1; -webkit-text-stroke-width: 12px; }
+  [dir="rtl"] .fx-cap.chorus { font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 800; font-size: 90px; }
+  .fx-cap.chorus span.on { color: #f4eee1; }
+
+  /* lower third: a documentary name strap */
+  .fx-lt { position: absolute; left: 60px; display: none; }
+  [dir="rtl"] .fx-lt { left: auto; right: 60px; text-align: right; }
+  .fx-lt .n { display: inline-block; max-width: 900px; padding: 10px 26px 12px; background: #f4eee1; color: #16392b; font-weight: 900; font-size: 54px; line-height: 1.1; letter-spacing: 0.01em; text-transform: uppercase; }
+  .fx-lt .w { display: table; margin-top: 0; padding: 9px 26px 11px; background: #16392b; color: #f4eee1; font-weight: 600; font-size: 38px; line-height: 1.12; max-width: 880px; }
+  [dir="rtl"] .fx-lt .w { margin-inline-start: auto; }
+  [dir="rtl"] .fx-lt .n { letter-spacing: 0; }
+
+  /* sticker: one big line that slams in (a chapter card, a count, a verdict) */
+  .fx-stk { position: absolute; left: 50px; right: 50px; display: none; text-align: center; font-weight: 900; font-size: 150px; line-height: 0.95;
+    text-transform: uppercase; color: #ffd66b; -webkit-text-stroke: 18px #0b0d0c; paint-order: stroke fill; filter: drop-shadow(0 12px 0 rgba(0, 0, 0, 0.4)); }
+  .fx-stk.white { color: #fff; }
+  .fx-stk small { display: block; margin-top: 18px; font-size: 0.42em; color: #fff; -webkit-text-stroke-width: 12px; }
+
+  /* tag: a small label pinned to a corner (a timestamp, "Illustration") */
+  .fx-tag { position: absolute; display: none; left: 60px; padding: 8px 20px 10px; border-radius: 10px; background: rgba(11, 13, 12, 0.72); color: #fff; font-weight: 700; font-size: 36px; letter-spacing: 0.04em; text-transform: uppercase; }
+  [dir="rtl"] .fx-tag { left: auto; right: 60px; letter-spacing: 0; }
+  /* bug: the brand's wordmark, small, in a corner for the whole of the live action (like a channel ident) */
+  .fx-tag.bug { background: none; padding: 0; border-radius: 0; font: 600 30px/1 "Playfair", "Heebo", serif; font-style: normal; letter-spacing: 0.34em; color: rgba(244, 238, 225, 0.86);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.6); }
+  [dir="rtl"] .fx-tag.bug { letter-spacing: 0.34em; left: 60px; right: auto; }
+  /* notification: a phone banner that drops in from the top (the app's kick-off alert) */
+  .fx-ntf { position: absolute; left: 60px; right: 60px; display: none; padding: 26px 30px 28px; border-radius: 44px; background: rgba(246, 244, 238, 0.94);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); color: #14201a; font-family: "Mont", "Heebo", sans-serif; }
+  .fx-ntf .row { display: flex; align-items: center; gap: 22px; }
+  .fx-ntf .ic { flex: none; width: 92px; height: 92px; border-radius: 22px; background: #16392b; display: grid; place-items: center; color: #e6c47a; font: italic 700 62px/1 "Playfair", serif; }
+  .fx-ntf .app { font-weight: 700; font-size: 30px; letter-spacing: 0.06em; text-transform: uppercase; color: #5d6a62; }
+  .fx-ntf .ttl { margin-top: 4px; font-weight: 800; font-size: 46px; line-height: 1.1; }
+  .fx-ntf .bod { margin-top: 4px; font-weight: 600; font-size: 40px; line-height: 1.15; color: #2c3a33; }
+  .fx-ntf .now { margin-inline-start: auto; align-self: flex-start; font-weight: 600; font-size: 28px; color: #7a857e; }
+  /* badge: an app icon with a red unread counter that races up (forty-seven tabs, nine hundred messages) */
+  .fx-bdg { position: absolute; display: none; width: 176px; height: 176px; transform-origin: 50% 60%; }
+  .fx-bdg .ic { width: 176px; height: 176px; border-radius: 42px; display: grid; place-items: center; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+  .fx-bdg.chat .ic { background: linear-gradient(#62e476, #1eb244); }
+  .fx-bdg.tabs .ic { background: linear-gradient(#fafbfc, #d3dae1); }
+  .fx-bdg .ic svg { width: 112px; height: 112px; display: block; }
+  .fx-bdg .n { position: absolute; top: -36px; right: -46px; min-width: 52px; height: 92px; padding: 0 22px; border-radius: 46px; background: #ff3b30; color: #fff;
+    font: 800 58px/92px "Mont", sans-serif; letter-spacing: -0.02em; text-align: center; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); transform-origin: 50% 50%; font-variant-numeric: tabular-nums; }
+  .fx-tag i { display: inline-block; width: 18px; height: 18px; margin-inline-end: 12px; border-radius: 50%; background: #e23b3b; vertical-align: 0.02em; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+  // { lang, caps: [{ t0, t1, y, words: [{ w, t0, t1 }] }], lts: [{ t0, t1, y, name, what }],
+  //   stickers: [{ t0, t1, y, text, small, cls, size }], tags: [{ t0, t1, y, text, rec }],
+  //   notifs: [{ t0, t1, y, title, body, when }],
+  //   badges: [{ t0, t1, x, y, icon: "chat"|"tabs", from, to, wait, run, more: [seconds after t0], rot }] }
+  const TL = JSON.parse(new URLSearchParams(location.search).get("tl") || "{}");
+  if (TL.lang === "he") { document.documentElement.lang = "he"; document.documentElement.dir = "rtl"; }
+  const RTL = TL.lang === "he";
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const P = (t, s, d) => clamp((t - s) / d);
+  const out = (p) => 1 - Math.pow(1 - p, 3);
+  const back = (p) => { const c = 2.2; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+  const stage = document.getElementById("stage");
+  const mk = (cls, html) => { const el = document.createElement("div"); el.className = cls; el.innerHTML = html; stage.appendChild(el); return el; };
+
+  const caps = (TL.caps || []).map((c) => {
+    const el = mk("fx-cap" + (c.cls ? " " + c.cls : ""), "");
+    el.style.top = `${c.y ?? 1240}px`;
+    if (c.size) el.style.fontSize = `${c.size}px`;
+    const spans = c.words.map((w) => { const s = document.createElement("span"); s.textContent = w.w; el.appendChild(s); el.appendChild(document.createTextNode(" ")); return s; });
+    return { ...c, el, spans };
+  });
+  const lts = (TL.lts || []).map((c) => {
+    const el = mk("fx-lt", `<div class="n"></div><div class="w"></div>`);
+    el.style.top = `${c.y ?? 1400}px`;
+    el.querySelector(".n").textContent = c.name; el.querySelector(".w").textContent = c.what || "";
+    if (c.size) el.querySelector(".n").style.fontSize = `${c.size}px`;
+    if (c.wsize) el.querySelector(".w").style.fontSize = `${c.wsize}px`;
+    if (!c.what) el.querySelector(".w").style.display = "none";
+    return { ...c, el };
+  });
+  const stickers = (TL.stickers || []).map((c) => {
+    const el = mk("fx-stk" + (c.cls ? " " + c.cls : ""), "");
+    el.style.top = `${c.y ?? 760}px`;
+    if (c.size) el.style.fontSize = `${c.size}px`;
+    el.append(document.createTextNode(c.text));
+    if (c.small) { const s = document.createElement("small"); s.textContent = c.small; el.appendChild(s); }
+    return { ...c, el };
+  });
+  const tags = (TL.tags || []).map((c) => {
+    const el = mk("fx-tag" + (c.cls ? " " + c.cls : ""), "");
+    el.style.top = `${c.y ?? 300}px`;
+    if (c.rec) el.appendChild(document.createElement("i"));
+    el.append(document.createTextNode(c.text));
+    return { ...c, el };
+  });
+
+  const ntfs = (TL.notifs || []).map((c) => {
+    const el = mk("fx-ntf", `<div class="row"><div class="ic">V</div><div><div class="app">Venuvoy</div><div class="ttl"></div><div class="bod"></div></div><div class="now"></div></div>`);
+    el.style.top = `${c.y ?? 300}px`;
+    el.querySelector(".ttl").textContent = c.title; el.querySelector(".bod").textContent = c.body || ""; el.querySelector(".now").textContent = c.when || (RTL ? "עכשיו" : "now");
+    return { ...c, el };
+  });
+
+  const GLYPH = {
+    chat: '<svg viewBox="0 0 112 112"><path fill="#fff" d="M56 14c-25 0-45 16.5-45 37 0 11.6 6.4 22 16.500 28.800L23 98l20.500-10.600c4 .9 8.200 1.400 12.500 1.400 25 0 45-16.500 45-37S81 14 56 14z"/></svg>',
+    tabs: '<svg viewBox="0 0 112 112"><rect x="8" y="20" width="96" height="74" rx="11" fill="#fff" stroke="#8a96a3" stroke-width="5"/><path d="M8 44h96" stroke="#8a96a3" stroke-width="5"/><rect x="15" y="26" width="26" height="14" rx="4" fill="#3b82f6"/><rect x="45" y="26" width="26" height="14" rx="4" fill="#c5ccd4"/><rect x="75" y="26" width="22" height="14" rx="4" fill="#c5ccd4"/><rect x="20" y="54" width="52" height="7" rx="3.500" fill="#c5ccd4"/><rect x="20" y="68" width="72" height="7" rx="3.500" fill="#dde2e7"/></svg>',
+  };
+  const bdgs = (TL.badges || []).map((c) => {
+    const el = mk("fx-bdg " + (c.icon || "chat"), `<div class="ic">${GLYPH[c.icon || "chat"]}</div><div class="n"></div>`);
+    el.style.top = `${c.y ?? 300}px`; el.style.left = `${c.x ?? 800}px`;
+    return { ...c, el, n: el.querySelector(".n") };
+  });
+
+  window.seek = (t) => {
+    for (const c of ntfs) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const a = back(P(t, c.t0, 0.28)), x = P(t, c.t1 - 0.18, 0.18);
+      c.el.style.transform = `translateY(${(1 - a) * -420 - x * 420}px) scale(${0.96 + 0.04 * a})`;
+    }
+    for (const c of bdgs) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const a = back(P(t, c.t0, 0.2)), x = 1 - P(t, c.t1 - 0.12, 0.12);
+      // the count: a fast run up to the number (ease-out), then single late ticks ("still coming in")
+      const p = out(P(t, c.t0 + (c.wait ?? 0.12), c.run ?? 0.9));
+      let v = Math.round((c.from ?? 1) + ((c.to ?? 9) - (c.from ?? 1)) * p), last = c.t0 + (c.wait ?? 0.12) + (c.run ?? 0.9);
+      for (const k of c.more || []) if (t >= c.t0 + k) { v += 1; last = c.t0 + k; }
+      c.n.textContent = v;
+      const running = p < 1, bump = running ? 0.08 * Math.abs(Math.sin(t * 38)) : 0.34 * (1 - P(t, last, 0.22));
+      c.n.style.transform = `scale(${1 + bump})`;
+      c.el.style.transform = `scale(${(0.4 + 0.6 * a) * (0.9 + 0.1 * x)}) rotate(${(c.rot ?? 5) + (running ? Math.sin(t * 31) * 1.6 : 0)}deg)`;
+      c.el.style.opacity = Math.min(1, P(t, c.t0, 0.08) * 2) * x;
+    }
+    for (const c of caps) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const a = P(t, c.t0, 0.09);
+      c.el.style.transform = `scale(${0.86 + 0.14 * back(a)})`;
+      c.el.style.opacity = Math.min(1, a * 2.5);
+      c.spans.forEach((s, i) => {
+        const w = c.words[i], lit = t >= w.t0 - 0.02 && t < (c.words[i + 1]?.t0 ?? c.t1 + 1) - 0.02;
+        s.className = lit ? "on" : "";
+        const k = lit ? 1 - P(t, w.t0, 0.14) : 0;
+        s.style.transform = lit ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+      });
+    }
+    for (const c of lts) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const first = c.t0 < 0.01;  // on the first frame the strap is already there (the thumbnail must carry it)
+      const a = first ? 1 : out(P(t, c.t0, 0.22)), b = first ? 1 : out(P(t, c.t0 + 0.1, 0.22)), x = 1 - P(t, c.t1 - 0.14, 0.14);
+      const dir = RTL ? 1 : -1;
+      const n = c.el.querySelector(".n"), w = c.el.querySelector(".w");
+      n.style.clipPath = RTL ? `inset(0 0 0 ${(1 - a) * 100}%)` : `inset(0 ${(1 - a) * 100}% 0 0)`;
+      w.style.clipPath = RTL ? `inset(0 0 0 ${(1 - b) * 100}%)` : `inset(0 ${(1 - b) * 100}% 0 0)`;
+      c.el.style.transform = `translateX(${dir * (1 - a) * 30}px)`;
+      c.el.style.opacity = x;
+    }
+    for (const c of stickers) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      const a = P(t, c.t0, 0.16), x = 1 - P(t, c.t1 - 0.1, 0.1);
+      c.el.style.transform = `scale(${1.5 - 0.5 * out(a)}) rotate(${c.rot ?? -3}deg)`;
+      c.el.style.opacity = Math.min(1, a * 3) * x;
+    }
+    for (const c of tags) {
+      const on = t >= c.t0 - 1e-3 && t < c.t1;
+      c.el.style.display = on ? "block" : "none";
+      if (!on) continue;
+      c.el.style.opacity = Math.min(P(t, c.t0, 0.1), 1 - P(t, c.t1 - 0.1, 0.1));
+      const dot = c.el.querySelector("i"); if (dot) dot.style.opacity = Math.floor(t * 2) % 2 ? 0.25 : 1;
+    }
+  };
+  window.__ready = document.fonts.ready.then(() => Promise.all([...document.fonts].map((f) => f.load().catch(() => 0)))).then(() => { window.seek(0); return true; });
+</script>
+</body>
+</html>

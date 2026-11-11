@@ -4,20 +4,20 @@
     "titleHe": "העולם הוא האצטדיון שלכם",
     "spots": [
       {
-        "id": "heist",
-        "folder": "14-heist",
-        "name": "סרט עם דמויות · Operation: Away Day",
+        "id": "anonymous",
+        "folder": "14-anonymous",
+        "name": "סרט עם דמויות · Football Trip Planners Anonymous",
         "length": "36 שניות",
-        "angle": "סרט קומדיה עם דמויות שצולם בבינה מלאכותית ב־Higgsfield: פרודיה על סרט שוד. החבורה מתכננת ״מבצע״ להגיע למשחק חוץ, וכל מה שמשתבש להם (אתר כרטיסים מפוקפק, שעת משחק שזזה, לוח קונספירציה שקורס) הוא בדיוק מה ש־Venuvoy פותרת. ואז סבתא בפינה מקלידה משפט אחד. הדיבור באנגלית; בגרסה העברית הכתוביות, כרטיסי השמות, מסך האפליקציה וכרטיס הסיום בעברית.",
-        "posterAt": 9.5,
+        "angle": "קומדיה בסגנון מוקומנטרי שצולמה כולה בבינה מלאכותית ב־Higgsfield: קבוצת תמיכה לאוהדים שמתכננים לבד טיולי כדורגל. לדייב יש 47 טאבים פתוחים, לסנדרה 900 הודעות בקבוצה ואפס הזמנות, מו קנה כרטיסים ״מאיזה אחד בשם קווין״, ולטומי הזיזו את המשחק. ואז מגיעה רוזי, שכתבה משפט אחד והלכה להכין תה. כשהמשחק זז שוב, היא היחידה שנשארת רגועה. הדיבור באנגלית; בגרסה העברית הכתוביות, שלטי השמות, ההתראה, מסך האפליקציה וכרטיס הסיום בעברית.",
+        "posterAt": 2.9,
         "en": {
-          "primary": "Planning a football trip abroad shouldn't need a heist crew. Tell Venuvoy one sentence and get the whole trip. Free to plan.",
+          "primary": "47 tabs. 900 messages. Zero bookings. Or tell Venuvoy one sentence and get the whole football trip. Free to plan.",
           "headline": "One sentence. Whole trip.",
           "description": "venuvoy.app",
           "cta": "Learn More"
         },
         "he": {
-          "primary": "לתכנן טיול כדורגל בחו״ל לא אמור לדרוש צוות שוד. משפט אחד ל־Venuvoy, וכל הטיול מוכן. התכנון בחינם.",
+          "primary": "47 טאבים. 900 הודעות. אפס הזמנות. או משפט אחד ל־Venuvoy, וכל טיול הכדורגל מוכן. התכנון בחינם.",
           "headline": "משפט אחד. טיול שלם.",
           "description": "venuvoy.app",
           "cta": "מידע נוסף (Learn More)"

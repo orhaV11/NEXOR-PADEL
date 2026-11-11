@@ -1,6 +1,6 @@
-// Render the transparent title/subtitle layer of "Operation: Away Day" as PNG frames with alpha.
-//   node src/heist/render-overlay.mjs <timeline.json> <out_dir> [--fps 24]
-// timeline.json: { dur, cards: [{ t0, t1, name, what }], subs: [{ t0, t1, text }] }
+// Render the transparent title/subtitle layer of an AI-shot film as PNG frames with alpha.
+//   node src/film/render-overlay.mjs <timeline.json> <out_dir> [--fps 24]
+// timeline.json: { dur, lang, caps, lts, stickers, tags } (see overlay.html)
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";

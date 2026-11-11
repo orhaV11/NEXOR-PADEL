@@ -4,6 +4,7 @@
 //   node src/render-spot.mjs anthem he --stills 0,1.2,2.6    # review stills only
 //   node src/render-spot.mjs anthem en --from 4 --to 8       # a quick partial preview (scratch file)
 //   --blur N   sub-frames averaged per output frame (default 2: a 180-degree shutter); 1 turns it off
+//   --fps N --out file.mp4   another frame rate, written to a file of your choice (an insert for another film)
 import { createRequire } from "node:module";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -19,7 +20,8 @@ const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? proce
 const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && !all[i - 1]?.startsWith("--"));
 const [name, lang = "en"] = pos;
 if (!FOLDERS[name]) throw new Error(`unknown spot ${name}`);
-const BLUR = +arg("--blur", 2), FPS = 30;
+const BLUR = +arg("--blur", 2), FPS = +arg("--fps", 30);
+const OUT = arg("--out", null); // write the 9:16 file here instead of ads/ (no 4:5 crop): for inserts cut into other films
 const STILLS = arg("--stills", null);
 const FROM = arg("--from", null), TO = arg("--to", null);
 const NOAUDIO = process.argv.includes("--no-audio");
@@ -49,7 +51,7 @@ if (STILLS) {
 }
 
 const t0 = FROM ? +FROM : 0, t1 = TO ? +TO : dur;
-const partial = FROM || TO;
+const partial = FROM || TO || OUT;
 const tmp = join(tmpdir(), `vv-spot-${name}-${lang}-${process.pid}`);
 mkdirSync(tmp, { recursive: true });
 const silent = join(tmp, "video.mp4");
@@ -81,7 +83,7 @@ await new Promise((r, j) => ff.on("close", (c) => (c === 0 ? r() : j(new Error("
 const { cues, score } = await page.evaluate(() => ({ cues: window.CUES || [], score: window.SCORE || null }));
 await browser.close();
 
-const out = partial ? join(tmp, `${base}_preview.mp4`) : join(outDir, `${base}_9x16_1080x1920.mp4`);
+const out = OUT ? OUT : partial ? join(tmp, `${base}_preview.mp4`) : join(outDir, `${base}_9x16_1080x1920.mp4`);
 if (NOAUDIO || !score) {
   renameSync(silent, out);
 } else {

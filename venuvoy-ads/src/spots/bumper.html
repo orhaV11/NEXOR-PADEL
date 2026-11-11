@@ -20,6 +20,16 @@
   .okBig { position: absolute; z-index: 25; left: 90px; right: 90px; top: 1120px; display: flex; align-items: center; gap: 20px; padding: 26px 30px; border-radius: 24px; background: #fff; color: var(--ink);
     font: 800 44px/1.2 "Assistant", sans-serif; box-shadow: 0 0 0 4px #2c6544, 0 26px 50px -20px rgba(0, 0, 0, 0.55); }
   .okBig .v { flex: none; width: 70px; height: 70px; border-radius: 50%; background: #2c6544; color: #fff; display: grid; place-items: center; font: 900 44px "Assistant", sans-serif; }
+  /* ?plate=1: the demo alone on a transparent ground, a little larger, to lay over live footage in a film */
+  .plate, .plate body, .plate #stage { background: transparent !important; }
+  .plate #demo { background: none; transform: scale(1.12); transform-origin: 50% 22%; }
+  .plate #leak, .plate #flash, .plate #vig, .plate #grainov { display: none !important; }
+  .plate #demo .tag { inset-inline-start: 92px; }
+  .plate #h1, .plate #h2 { font-size: 98px; }
+  .plateOnly { display: none !important; }
+  .plate .plateOnly { display: flex !important; }
+  .plate .plan.ghost { display: none; }
+  .plate .okBig { top: 1235px; }
 </style>
 </head>
 <body>
@@ -38,7 +48,9 @@
           <div class="pb"><div class="pt" data-t="pt" data-html="1"></div><div class="pm" data-t="pm"></div>
             <div class="row"><div class="day"><b data-t="dw"></b><span>27</span></div><div class="what"><b data-t="mt"></b><span class="sub" data-t="ms" data-html="1"></span></div></div>
             <div class="mini"><i>🚆</i><span data-t="tr"></span></div>
-            <div class="mini"><i>🏟</i><span data-t="lv" data-html="1"></span></div></div></div>
+            <div class="mini"><i>🏟</i><span data-t="lv" data-html="1"></span></div>
+            <div class="mini plateOnly"><i>🎟</i><span data-t="tk"></span></div>
+            <div class="mini plateOnly"><i>🔔</i><span data-t="al"></span></div></div></div>
         <div class="plan ghost"><div class="band"><span data-t="t1"></span><span class="on" data-t="t2"></span><span data-t="t3"></span></div></div>
       </div>
     </div></div>
@@ -61,15 +73,16 @@
     en: { h1: "One sentence.", h2: "Whole trip.", lab: "Your trip in one sentence", sentence: "Munich in late January, a Champions League night",
       rh: "3 plans for you", t1: "Big Matches", t2: "Balanced", t3: "Easy Pace", pt: 'Munich · <span class="ltr">25–29 Jan</span>', pm: "5 days · 1 big night · 4 free days",
       tr: "Airport → city: about 40 min on the S-Bahn", lv: 'Leave for the stadium by <span class="ltr">19:35</span> · U6 to Fröttmaning',
-      dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena', ok: "Real fixture. Confirmed.",
+      dw: "WED", mt: "Bayern München v Real Betis", ms: '✓ Confirmed · <span class="ltr">21:00</span> · Allianz Arena', ok: "Real fixture. Confirmed.", tk: "Tickets: the official club route first", al: "An alert if the kick-off moves",
       illus: "Illustration", tagline: "One sentence.<br>Whole trip.", cta: "Plan your trip free", fine: "Free to plan · Full plan: one payment per trip" },
     he: { h1: "משפט אחד.", h2: "טיול שלם.", lab: "הטיול שלכם במשפט אחד", sentence: "מינכן בסוף ינואר, ערב של ליגת האלופות",
       rh: "3 תוכניות בשבילכם", t1: "המשחקים הגדולים", t2: "מאוזן", t3: "בקצב רגוע", pt: 'מינכן · <span class="ltr">25–29.1</span>', pm: "5 ימים · ערב ענק אחד · 4 ימים חופשיים",
       tr: "שדה התעופה ← העיר: כ־40 דק׳ ברכבת", lv: 'לצאת לאצטדיון עד <span class="ltr">19:35</span> · קו U6 לפרטמנינג',
-      dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה', ok: "משחק אמיתי. מאושר.",
+      dw: "ד׳", mt: "באיירן מינכן נגד ריאל בטיס", ms: '✓ מאושר · <span class="ltr">21:00</span> · אליאנץ ארנה', ok: "משחק אמיתי. מאושר.", tk: "כרטיסים: קודם כל הערוץ הרשמי של המועדון", al: "התראה אם המשחק זז",
       illus: "המחשה", tagline: "משפט אחד.<br>טיול שלם.", cta: "לתכנון טיול בחינם", fine: "התכנון בחינם · תוכנית מלאה: תשלום אחד לטיול" },
   });
   const $ = (id) => document.getElementById(id);
+  if (new URLSearchParams(location.search).get("plate")) document.documentElement.classList.add("plate");
   // the end card gets the last 2.4 s; the confirmed plan holds for 1.75 s before it
   const S = { demo: [0, 3.6], end: [3.6, 6] };
   window.DURATION = 6;

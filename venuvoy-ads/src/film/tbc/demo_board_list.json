@@ -1,0 +1,7 @@
+{ "dur": 5.8, "scene": "list", "file": "THE STUDY · FILE 04", "title": "WHAT COULD BE MOVED",
+  "rows": [
+    { "t": 0.4, "label": "FLIGHTS",     "value": "MOVED, FOR A FEE" },
+    { "t": 1.6, "label": "HOTEL",       "value": "BOOKED AGAIN" },
+    { "t": 2.8, "label": "TOUR SHIRTS", "value": "PRINTED.\nTHEY SAY SATURDAY." },
+    { "t": 4.0, "label": "THE MATCH",   "value": "MOVED, NO CHARGE", "mark": true },
+    { "t": 4.9, "label": "NEW KICK-OFF TIME", "stamp": { "t": 5.4, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }

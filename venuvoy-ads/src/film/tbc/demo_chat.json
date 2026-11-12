@@ -1,0 +1,34 @@
+{ "dur": 21, "name": "Away trip – who's in?", "sub": "7 members",
+  "events": [
+    { "t": 0,    "type": "sys", "text": "Danny left" },
+    { "t": 0.5,  "type": "divider", "text": "8 months later" },
+    { "t": 1.4,  "type": "msg", "who": "Vic", "text": "Right.", "time": "07:02" },
+    { "t": 2.2,  "type": "sys", "text": "Maya added Danny" },
+    { "t": 2.2,  "type": "head", "sub": "8 members" },
+    { "t": 2.7,  "type": "typingbar", "who": "Danny" },
+
+    { "t": 3.6,  "type": "msg", "who": "Maya", "me": true, "text": "It's all in here.", "time": "07:31",
+      "card": { "title": "Trip plan", "sub": "spreadsheet" },
+      "receipts": [ { "t": 4.6, "text": "Seen by 7" }, { "t": 5.5, "text": "Opened by 1" } ] },
+
+    { "t": 6.6,  "type": "poll", "who": "Maya", "me": true, "q": "Are you in?", "time": "07:44", "options": [
+        { "text": "Yes", "votes": [7.2] },
+        { "text": "No", "votes": [] },
+        { "text": "Should be fine", "at": 8.3, "votes": [8.6, 8.85, 9.1, 9.35, 9.6] } ] },
+    { "t": 8.3,  "type": "sys", "text": "Jo added an option: Should be fine" },
+    { "t": 9.8,  "type": "space", "h": 110 },
+    { "t": 10.4, "type": "stamp", "text": "Recorded", "color": "green", "size": 46, "rot": -4, "x": 700, "y": 1108, "until": 11.5 },
+
+    { "t": 10.9, "type": "chip", "text": "OWE MAYA: 6" },
+    { "t": 11.5, "type": "pin", "text": "Kick-off: Monday. Time to be confirmed." },
+    { "t": 12.1, "type": "msg", "who": "Priya", "text": "what time's kick-off?" },
+    { "t": 12.8, "type": "msg", "who": "Marcus", "text": "what time is it again" },
+    { "t": 13.5, "type": "msg", "who": "Jo", "text": "is it 3 or 3.30" },
+    { "t": 14.2, "type": "msg", "who": "Maya", "me": true, "text": "It's pinned." },
+    { "t": 14.8, "type": "msg", "who": "Marcus", "text": "where" },
+    { "t": 15.4, "type": "msg", "who": "Sydney", "note": "02:07 his time", "text": "Monday. Time to be confirmed. It's at the top of the chat." },
+    { "t": 16.5, "type": "msg", "who": "Marcus", "text": "cheers Sydney" },
+
+    { "t": 17.3, "type": "pin", "big": true, "text": "KICK-OFF: MONDAY\nTIME: {when}",
+      "stamp": { "t": 19.0, "text": "TO BE\nCONFIRMED", "on": "when" } }
+  ] }

@@ -13,6 +13,49 @@ ducked under every spoken word; everything is mixed and mastered to -14 LUFS as 
 Picture: every frame goes through OpenCV (cover-scale to 1080x1920, animated zoom, shake, whip/flash/zoom
 transitions, a light sharpen and grain so mixed sources sit together), then captions are composited from an
 HTML layer (src/film/overlay.html).
+
+Options added for the series "To Be Confirmed" (every one is a no-op when it is left out; every text and number
+may be given per language as {"en": .., "he": ..}):
+
+  per segment, picture (not in a "bands" split screen):
+    "jolt":  [ { "at": 2.7, "amp": 16 } ]     the picture jumps once, "at" seconds from the segment's start, with
+                                              the curve of Stamp.shake in src/film/stamp.js, to the pixel (a single
+                                              {..} is accepted too). "at" is moved to the nearest frame exactly as
+                                              the overlay moves a stamp's hit, so give it the stamp's time: a
+                                              "gfx" stamp with "at": 2.0, "hit": 0.7 goes with "jolt" "at": 2.7.
+                                              The picture moves on the 2nd to 8th frame after the hit (12 px at
+                                              most with amp 16) and is back in place after 0.36 s. Held frames
+                                              ("hold") jolt like moving ones.
+    "drain": { "at": 0.4, "ramp": 0.6, "to": 0.92, "gain": 1.0 }
+                                              the picture loses its colour: from "at" seconds into the segment,
+                                              over "ramp" seconds, to "to" (0 = untouched, 1 = fully grey), and
+                                              stays so to the end of the segment. "gain" (1.0) also darkens it as
+                                              it drains (0.9 = a tenth darker). "from_start": true: it is already
+                                              drained on the segment's first frame (the next segment of the same
+                                              held picture): { "from_start": true, "to": 0.92 }.
+
+  per segment, graphics (drawn by src/film/overlay.html; its script comment has every option):
+    "gfx":   [ { "type": .., "at": seconds into the segment, "len": seconds (to the end of the segment if left
+               out), ...everything else is handed to the overlay as it is, so a new type needs nothing here } ]
+             types of the series: "stamp" (the series' rubber stamp; pair it with "jolt"), "counter" (chips whose
+             numbers count up and land), "tile" (a calendar page), "status" (the sign-off: name, status, wordmark
+             and the closing line). The old "pin" also takes "arrow": "up" (the label hangs under the point).
+             A stamp, its jolt and its thud in one segment:
+               "gfx":  [ { "type": "stamp", "at": 0.0, "hit": 0.7, "text": "TO BE\nCONFIRMED", "small": "EPISODE 1",
+                           "x": 540, "y": 860, "size": 128, "rot": -8, "color": "bright" } ],
+               "jolt": [ { "at": 0.7, "amp": 16 } ],
+               "sfx":  [ { "synth": "thud", "at": 0.76, "gain_db": -3 } ]
+    "tag":   also takes "small" (a second, smaller line: the day count "96 DAYS BEFORE*" / "*to be confirmed"),
+             "xr" (the x of the tag's RIGHT edge, instead of "x") and "strike": { "at": seconds into the segment,
+             "to": "42" } (the number is struck through in red and the new one written beside it; an "at" before
+             the tag's own "at", for example -1, shows it already corrected).
+  for the whole film:
+    "labels": [ { "text", "from", "to", "y", "cls", "rec" } ] also take "x", "xr", "small" and
+             "strike": { "at": a film time or a mark ("moved+0.6"), "to": "42" }; "cls": "chip" draws the
+             gold-outlined chip of the chat screens ("OWE MAYA: 6", "y": 348, "xr": 1040) and "cls": "bare" the
+             day count without its dark chip. While a "status" is up the corner wordmark ("cls": "bug") is hidden.
+  sounds ("sfx": [ { "synth": name, "args": [..], "at", "gain_db" } ], src/audio/kit.py): thud, vote (args [i],
+             0 to 6), msg, sys_tick, clock_tick (args [1] for the tock), cup, two_note.
 """
 import difflib
 import json
@@ -286,6 +329,15 @@ def shake_xy(t, amp, seed):
     return x * amp, y * amp
 
 
+def stamp_shake(u, amp=16.0):
+    """Stamp.shake of src/film/stamp.js, to the pixel: what the picture under a stamp does u seconds after the hit.
+    Returns (dx, dy) in 1080-wide film pixels (JavaScript's Math.round is floor(x + 0.5))."""
+    if u < 0.06 or u > 0.36:
+        return 0, 0
+    d = math.exp(-(u - 0.06) / 0.08) * amp
+    return math.floor(d * math.sin(u * 93) + 0.5), math.floor(d * math.cos(u * 71) + 0.5)
+
+
 def whip(frame, p, direction):
     """Directional smear and shove; p goes 0 (clean) to 1 (fully gone)."""
     if p <= 0:
@@ -376,6 +428,13 @@ def render_segment(seg, n, hold, enc, idx):
     dim = seg.get("dim")
     total = n + hold
     last = None
+    # "jolt": the frame of each hit, counted like the overlay counts a stamp's hit (film time to a millisecond, then
+    # to the nearest frame), so that the stamp and the picture under it are one event
+    jl = seg.get("jolt")
+    f0 = int(round(seg.get("t", 0.0) * FPS))
+    jolts = [(math.floor(round(seg.get("t", 0.0) + tr(j.get("at", 0.0)), 3) * FPS + 0.5) - f0, tr(j.get("amp", 16)))
+             for j in ([jl] if isinstance(jl, dict) else jl or [])]
+    drain = tr_deep(seg["drain"]) if seg.get("drain") else None
     frames = read_frames(source(seg["src"]), seg["in"], n, seg.get("speed", 1.0))
     for k in range(total):
         if k < n:
@@ -390,11 +449,17 @@ def render_segment(seg, n, hold, enc, idx):
         if t_out == "zoom" and k >= total - TRANS_FRAMES:
             s *= 1 + 0.6 * ((k - (total - TRANS_FRAMES) + 1) / TRANS_FRAMES) ** 2
         dx, dy = shake_xy((idx * 1.7 + k) / FPS, amp, idx)
-        if abs(s - 1) > 1e-4 or dx or dy:
+        jx = jy = 0
+        for jf, ja in jolts:
+            a_, b_ = stamp_shake((k - jf) / FPS, ja)
+            jx, jy = jx + a_, jy + b_
+        if abs(s - 1) > 1e-4 or dx or dy or jx or jy:
             # scale about (cx, cy), then clamp so the frame never shows an edge
             ox, oy = cx * W, cy * H
             tx, ty = ox - s * ox + dx, oy - s * oy + dy
             tx, ty = min(0, max(W - s * W, tx)), min(0, max(H - s * H, ty))
+            if jx or jy:  # the jolt is not clamped: for a few frames the edge is filled with the picture's reflection
+                tx, ty = tx + jx * W / 1080, ty + jy * W / 1080
             f = cv2.warpAffine(f, np.float32([[s, 0, tx], [0, s, ty]]), (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
         if sharpen:
             sh = min(0.6, sharpen * s * s)  # a punched-in 720p source needs more help
@@ -404,6 +469,13 @@ def render_segment(seg, n, hold, enc, idx):
             f = f.copy()
             f[:, :, 2] = np.roll(f[:, :, 2], r, axis=1)
             f[:, :, 0] = np.roll(f[:, :, 0], -r, axis=1)
+        if drain:  # the colour runs out of the picture (and stays out to the end of the segment)
+            q = 1.0 if drain.get("from_start") else min(1.0, max(0.0, (k / FPS - drain.get("at", 0.0)) / max(drain.get("ramp", 0.6), 1e-3)))
+            q = q * q * (3 - 2 * q)
+            if q > 0:
+                g_ = q * drain.get("to", 0.92)
+                grey = cv2.cvtColor(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
+                f = cv2.addWeighted(f, (1 - g_) * (1 - (1 - drain.get("gain", 1.0)) * q), grey, g_ * (1 - (1 - drain.get("gain", 1.0)) * q), 0)
         if dim:  # the shot goes out of focus under a dark green scrim (a sign-off is laid over it)
             q = min(1.0, max(0.0, (k / FPS - dim.get("at", 0.0)) / max(dim.get("ramp", 0.3), 1e-3)))
             q = q * q * (3 - 2 * q)
@@ -517,7 +589,7 @@ def chunks(words, max_words, max_chars):
     return out
 
 
-tl = {"dur": TOTAL, "lang": LANG, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": [], "bursts": [], "gfx": []}
+tl = {"dur": TOTAL, "lang": LANG, "fps": FPS, "caps": [], "lts": [], "stickers": [], "tags": [], "notifs": [], "badges": [], "bursts": [], "gfx": []}
 
 
 def tr_deep(v):
@@ -635,9 +707,12 @@ for s in segs:
             for f in ("name", "what", "text", "small", "title", "body", "when"):
                 if f in it:
                     e[f] = tr(it[f])
-            for f in ("y", "cls", "size", "rot", "rec", "x", "icon", "from", "to", "wait", "run", "more", "wsize", "scale", "stay", "drop"):
+            for f in ("y", "cls", "size", "rot", "rec", "x", "xr", "icon", "from", "to", "wait", "run", "more", "wsize", "scale", "stay", "drop"):
                 if f in it and tr(it[f]) is not None:
                     e[f] = tr(it[f])
+            if key == "tag" and it.get("strike"):  # {"at": seconds into the segment, "to": the new number}: a film time for the overlay
+                sk = tr_deep(it["strike"])
+                e["strike"] = {**sk, "at": round(s["t"] + sk.get("at", at_), 3)}
             tl[bucket].append(e)
 # ------------------------------------------------------------------ the narrator
 # "narration": [{"file": {"en": ..., "he": ...}, "at": time or mark, "text": {"en": "card one | card two", "he": ...},
@@ -725,8 +800,13 @@ for a_, b_ in zip(nar_caps, nar_caps[1:]):  # one narrator card at a time
     a_["t1"] = round(max(a_["t0"] + 0.25, min(a_["t1"], b_["t0"] - 0.04)), 3)
 
 for it in EDL.get("labels", []):  # labels pinned for a stretch of film time: {"text", "from", "to", "y", "cls"}
-    tl["tags"].append({"t0": round(when(it.get("from", 0.0)), 3), "t1": round(when(it.get("to", TOTAL)), 3), "text": tr(it["text"]),
-                       **{f: it[f] for f in ("y", "cls", "rec") if f in it}})
+    e = {"t0": round(when(it.get("from", 0.0)), 3), "t1": round(when(it.get("to", TOTAL)), 3), "text": tr(it["text"]),
+         **{f: it[f] for f in ("y", "cls", "rec") if f in it},
+         **{f: tr(it[f]) for f in ("x", "xr", "small") if f in it and tr(it[f]) is not None}}
+    if it.get("strike"):  # {"at": a film time or a mark, "to": the new number}
+        sk = tr_deep(it["strike"])
+        e["strike"] = {**sk, "at": round(when(sk.get("at", it.get("from", 0.0))), 3)}
+    tl["tags"].append(e)
 (CUT / "timeline.json").write_text(json.dumps(tl, ensure_ascii=False, indent=1))
 
 # ------------------------------------------------------------------ picture pass

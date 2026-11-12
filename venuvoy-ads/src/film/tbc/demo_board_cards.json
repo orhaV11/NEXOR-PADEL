@@ -1,0 +1,6 @@
+{ "dur": 6.4, "scene": "cards", "file": "THE STUDY · FILE 03", "title": "BALLOT FOR ONE TICKET",
+  "names": [ "JO'S DAD", "LEE'S LANDLORD", "VIC'S FATHER-IN-LAW", "PRIYA'S BROTHER", "MARCUS'S NEIGHBOUR",
+             "MAYA'S COUSIN", "LEE'S SISTER", "VIC'S DENTIST", "DANNY'S GRANDMOTHER" ],
+  "flips": [ 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4 ],
+  "win": { "i": 8, "t": 3.1 },
+  "note": { "t": 4.4, "text": "THE WINNER HAD NOT BEEN ASKED." } }

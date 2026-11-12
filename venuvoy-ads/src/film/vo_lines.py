@@ -46,7 +46,7 @@ for name, phrases in plan["lines"].items():
         body = a[int(t0 * SR):int(t1 * SR)]
         rms = 20 * np.log10(np.sqrt((body ** 2).mean()) + 1e-9)
         g = float(np.clip(plan.get("target_db", -22.5) - rms, -plan.get("max_gain_db", 3.5), plan.get("max_gain_db", 3.5)))
-        x = fade(a[int((t0 - 0.05) * SR):int((t1 + 0.09) * SR)]) * 10 ** (g / 20)
+        x = fade(a[max(0, int((t0 - 0.05) * SR)):int((t1 + 0.09) * SR)]) * 10 ** (g / 20)  # a line at the very start of a take has no 50 ms before it
         if k:
             gap = ph[3] if len(ph) > 3 else min(plan.get("pause", 0.30), ph[1] - phrases[k - 1][2]) if phrases[k - 1][0] == ph[0] else plan.get("pause", 0.30)
             parts.append(np.zeros(max(0, int((gap - 0.14) * SR))))

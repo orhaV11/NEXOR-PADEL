@@ -3,6 +3,23 @@ nothing needs a licence. Every function returns a mono (n,) or stereo (n, 2) flo
 
     from kit import *                      # used by the spot scores (anthem.py, chaos.py, sports.py)
     m = Mix(30); m.add(stomp(), 0.0); m.add(choir([...]), 0.0); m.render("raw.wav")
+
+The foley of the series "To Be Confirmed" is at the end of the file: dry, close, never a tune. Each returns a stereo
+(n, 2) array at SR with its peak below 0.9 (the film engine, src/film/cut.py, resamples whatever the kit returns to
+48 kHz and places it by name: { "synth": "thud", "at": "stamp", "gain_db": -8 }, arguments in "args"):
+
+    thud()            a rubber stamp hitting paper on a desk: a low knock, a hard top, nothing rings (0.25 s)
+    vote(i=0)         a soft tick for one vote in a poll; i = 0..6 lifts the pitch by a third of a semitone a step
+    msg()             a quiet message pop, softer and lower than pop()
+    sys_tick()        an even softer, duller tick for a system line ("Maya added Danny")
+    clock_tick(tock=False)   one tick of a mantel clock; clock_tick(True) is the lower "tock" of the pair
+    cup()             a china cup put down on its saucer: two small high clinks (0.3 s)
+    two_note()        the series' closing figure: two low, soft, slow notes, a fourth apart, falling (1.6 s)
+
+    python3 src/audio/kit.py                     # prints these seven sounds' length, peak, level, spectral centroid,
+                                                 # share of energy under 300 Hz, level above 300 Hz and last 30 ms
+    python3 src/audio/kit.py thud vote:6 pop     # the same for any sound of the kit ("vote:6" is vote(6))
+    python3 src/audio/kit.py --wav DIR thud ...  # also writes DIR/<name>.wav to listen to
 """
 import numpy as np
 from scipy.io import wavfile
@@ -692,3 +709,139 @@ def ooh(d=1.2, seed=44):
     n = len(c)
     sh = np.minimum(np.arange(n) / (0.15 * SR), 1) * np.exp(-np.arange(n) / (0.6 * SR))
     return c * sh[:, None]
+
+
+# ------------------------------------------------------------------ "To Be Confirmed": dry, close foley
+def _foley(y, peak):
+    """Stereo, the last 4 ms faded so that nothing clicks, and the peak set (always below 0.9)."""
+    y = stereo(np.array(y, dtype=float))
+    n = min(len(y), int(0.004 * SR))
+    y[-n:] *= np.linspace(1, 0, n)[:, None]
+    return y / (np.max(np.abs(y)) + 1e-9) * min(peak, 0.89)
+
+
+def _struck(t, at, partials, k=1.0):
+    """Something small and hard being struck at second "at": decaying partials [(Hz, level, decay s, phase)]."""
+    i = int(at * SR)
+    u = t[: len(t) - i]
+    out = np.zeros(len(t))
+    out[i:] = sum(a * np.sin(2 * np.pi * f * k * u + ph) * np.exp(-u / d) for f, a, d, ph in partials)
+    return out
+
+
+def _burst(t, at, noise, decay):
+    """Filtered noise let go at second "at" and gone in a few decays."""
+    i = int(at * SR)
+    out = np.zeros(len(t))
+    out[i:] = noise[: len(t) - i] * np.exp(-t[: len(t) - i] / decay)
+    return out
+
+
+def thud(seed=92):
+    """The series' stamp: a rubber stamp coming down on paper on a desk. A short low body (the desk), a hard top
+    (rubber on paper), and nothing that rings: everything is gone in a quarter of a second."""
+    t = tt(0.25)
+    r = R(seed)
+    f = 78 + 85 * np.exp(-t / 0.012)  # the desk: a knock that falls to 78 Hz
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.038)
+    # the desk top's own short notes: the part of the knock that a phone's speaker can play
+    wood = _struck(t, 0.0, ((212, 0.45, 0.016, 0.6), (345, 0.5, 0.02, 0.2), (540, 0.34, 0.011, 1.4), (810, 0.2, 0.007, 0.9)))
+    slap = bp(r.standard_normal(len(t)), 700, 3800) * np.exp(-t / 0.006) * 1.5  # rubber on paper: the hard top
+    paper = bp(r.standard_normal(len(t)), 350, 1600) * np.exp(-t / 0.014) * 0.5
+    tick = hp(r.standard_normal(len(t)), 5000) * np.exp(-t / 0.0012) * 0.35
+    y = np.tanh(1.6 * (body + wood) + 0.55 * (slap + paper + tick))  # one blow: the knock and the slap saturate together
+    return _foley(y * np.clip((0.25 - t) / 0.06, 0, 1), 0.88)
+
+
+def vote(i=0, seed=93):
+    """A soft tick for one vote landing in a poll. i (0 to 6) lifts it a third of a semitone a step, so a run of
+    votes climbs a little without turning into a scale."""
+    t = tt(0.07)
+    f = 1180 * 2 ** (0.36 * min(max(float(i), 0.0), 8.0) / 12)
+    y = np.sin(2 * np.pi * f * t) * np.exp(-t / 0.011) + 0.35 * np.sin(2 * np.pi * f * 2.4 * t) * np.exp(-t / 0.004)
+    y += 0.25 * bp(R(seed).standard_normal(len(t)), 1500, 5000) * np.exp(-t / 0.002)
+    return _foley(lp(y * np.minimum(t / 0.0015, 1), 6000), 0.5)
+
+
+def msg():
+    """A message arriving, quietly: softer and lower than pop() (which falls from 950 to 330 Hz; this falls from
+    650 to 250 and starts without a click)."""
+    t = tt(0.15)
+    ph = 2 * np.pi * np.cumsum(250 + 400 * np.exp(-t / 0.02)) / SR
+    y = (np.sin(ph) + 0.14 * np.sin(2 * ph)) * np.exp(-t / 0.03) * np.minimum(t / 0.003, 1)
+    return _foley(y, 0.45)
+
+
+def sys_tick(seed=94):
+    """A system line appearing ("Maya added Danny"): hardly a sound, one small dull tick."""
+    t = tt(0.05)
+    y = bp(R(seed).standard_normal(len(t)), 700, 2600) * np.exp(-t / 0.004) + 0.5 * np.sin(2 * np.pi * 880 * t) * np.exp(-t / 0.007)
+    return _foley(y * np.minimum(t / 0.001, 1), 0.28)
+
+
+def clock_tick(tock=False, seed=95):
+    """One tick of a mantel clock: the escapement's click, the lock a fiftieth of a second after it, and the wooden
+    case answering. tock=True is the other half of the pair, a little lower. Dry: the clock is in the room."""
+    t = tt(0.14)
+    r = R(seed + (1 if tock else 0))
+    k = 0.84 if tock else 1.0
+    case = ((1450, 0.5, 0.012, 0.3), (2380, 0.32, 0.008, 1.1), (640, 0.3, 0.02, 0.0))
+    y = np.zeros(len(t))
+    for at, g in ((0.0, 1.0), (0.021, 0.35)):  # the pallet drops, then locks
+        y += g * (_burst(t, at, hp(r.standard_normal(len(t)), 2500 * k), 0.0016) * 0.9 + _struck(t, at, case, k))
+    return _foley(lp(y, 9000), 0.5)
+
+
+def cup(seed=96):
+    """A china cup put down on its saucer: two small high clinks, the second lighter as the cup settles. Short:
+    china held in a hand does not ring."""
+    t = tt(0.3)
+    r = R(seed)
+    china = ((2630, 1.0, 0.035, 0.0), (4170, 0.6, 0.024, 0.9), (6050, 0.4, 0.014, 2.0), (7900, 0.22, 0.009, 0.4), (1480, 0.25, 0.03, 1.3))
+    y = np.zeros(len(t))
+    for at, g, k in ((0.0, 1.0, 1.0), (0.085, 0.5, 1.07)):
+        y += g * (_struck(t, at, china, k) + _burst(t, at, hp(r.standard_normal(len(t)), 3000), 0.0012) * 0.7)
+    return _foley(y, 0.5)
+
+
+def two_note():
+    """The series' closing figure: two low, soft, slow notes, a fall of a fourth (B flat to the F below it), half a
+    second apart. Warm: a round tone with a soft start and a little second and third harmonic (so that a phone can
+    play it), no hammer and no bell partials; each ear a hair off the note. 1.6 s, ending in the second note's own
+    decay."""
+    d = 1.6
+    t = tt(d)
+    y = np.zeros((len(t), 2))
+    for at, m, g, dec in ((0.0, 58, 1.0, 0.4), (0.52, 53, 0.94, 0.36)):
+        i = int(at * SR)
+        u = t[: len(t) - i]
+        for ch, cents in ((0, -1.5), (1, 1.5)):
+            f = mtof(m) * 2 ** (cents / 1200)
+            tone = sum(a * np.sin(2 * np.pi * f * h * u) * np.exp(-u / (dec / h ** 0.9)) for h, a in ((1, 1.0), (2, 0.62), (3, 0.3), (4, 0.1), (5, 0.03)))
+            y[i:, ch] += tone * (1 - np.exp(-u / 0.012)) * g
+    y = lp(y, 1800) * (0.5 - 0.5 * np.cos(np.pi * np.clip((d - t) / 0.3, 0, 1)))[:, None]
+    return _foley(y, 0.6)
+
+
+if __name__ == "__main__":  # for people (and agents) who cannot hear: the numbers of any sound in the kit
+    import sys
+    from pathlib import Path
+
+    names = [a for a in sys.argv[1:] if not a.startswith("--")]
+    wav = None
+    if "--wav" in sys.argv:
+        wav = Path(names.pop(0))
+        wav.mkdir(parents=True, exist_ok=True)
+    print(f"{'sound':<16}{'length':>8}{'peak':>7}{'rms dB':>8}{'centroid':>10}{'<300 Hz':>9}{'phone dB':>10}{'tail dB':>9}   (SR {SR}; the film resamples to 48000;"
+          f" phone = rms above 300 Hz; tail = the last 30 ms)")
+    for name in names or ["thud", "vote", "msg", "sys_tick", "clock_tick", "cup", "two_note"]:
+        fn, _, arg = name.partition(":")  # "vote:6" = vote(6)
+        y = stereo(np.asarray(globals()[fn](*([float(arg)] if arg else [])), dtype=float))
+        m = y.mean(axis=1)
+        sp = np.abs(np.fft.rfft(m)) ** 2
+        fr = np.fft.rfftfreq(len(m), 1 / SR)
+        tail = y[-max(1, int(0.03 * SR)):]
+        print(f"{name:<16}{len(y) / SR:7.3f}s{np.max(np.abs(y)):7.3f}{20 * np.log10(np.sqrt(np.mean(y ** 2)) + 1e-12):8.1f}{(sp * fr).sum() / sp.sum():8.0f} Hz"
+              f"{100 * sp[fr < 300].sum() / sp.sum():8.0f}%{20 * np.log10(np.sqrt(np.mean(hp(y, 300) ** 2)) + 1e-12):10.1f}{20 * np.log10(np.sqrt(np.mean(tail ** 2)) + 1e-12):9.1f}")
+        if wav:
+            wavfile.write(wav / f"{name.replace(':', '_')}.wav", SR, (np.clip(y, -1, 1) * 32767).astype(np.int16))

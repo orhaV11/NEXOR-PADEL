@@ -1,0 +1,69 @@
+{
+ "dir": "src/film/assets/tbc",
+ "cast": {
+  "maya": {
+   "portrait": "A frame from a television documentary interview, photoreal, shot on a shoulder camera, unretouched skin with visible pores and faint shadows under the eyes. A woman of 34 with light-brown skin, dark curly hair tied back loosely with a few strands loose at the temples, dark steady tired eyes and no make-up, wearing a plain faded grey crew-neck sweatshirt with no logos or lettering. She sits in her interview place, a small wooden kitchen table at night, with an open laptop at the left edge of frame turned so its screen cannot be seen, a neat pile of printed pages lying face down under her right hand, one plain white mug, a knitted scarf in plain green and gold stripes with no lettering and no crest over the back of her chair, and a plain fridge door with nothing on it soft in the background, lit by a warm overhead lamp and the cool glow of the laptop on one cheek. Chest-up, vertical 9:16, mouth closed, looking just off lens. No text, no logos, no watermark."
+  },
+  "vic": {
+   "image": "src/film/assets/tbc/portraits/vic_src.jpg",
+   "edit": "Keep this photograph exactly as it is: the same man, the same face, expression, pose, framing, light and background. Change only four things. One: remove every red spot, blemish, scratch and sore from his head and face, so his skin is an even, ordinary, weathered complexion with normal pores. Two: remove the lettering at the bottom of the scarf, so the scarf is plain green and gold stripes all the way down. Three: remove the badge from the jacket, so the jacket is plain black. Four: remove the phone from the hand at the bottom edge, so the hand holds only the black foam-covered microphone. Photoreal, unretouched documentary frame. No text, no logos, no watermark."
+  }
+ },
+ "shots": [
+  {
+   "id": "e1_s1",
+   "cast": "maya",
+   "setup": "seat",
+   "scene": "",
+   "action": "She sits still with one hand flat on the pile of pages. She says the first sentence to the interviewer as a plain fact. She stops for about two seconds, glances down at the open laptop and back up, then says the second sentence a little more quietly. Silent end beat: she squares the pile of pages with both hands and waits, mouth closed.",
+   "delivery": "flat, patient, unsmiling",
+   "line": "I made a spreadsheet. I wanted to check the link worked.",
+   "accent": "a soft English accent; her voice is low, a little husky, quiet and unhurried",
+   "audio": "quiet kitchen at night, a fridge humming"
+  },
+  {
+   "id": "e2_s1",
+   "cast": "maya",
+   "setup": "seat",
+   "scene": "",
+   "action": "She answers the interviewer without smiling and gives a very small one-shoulder shrug on the last three words. Silent end beat of about two seconds: she looks down at the open laptop, her jaw sets, and her eyes close. She is alone at the table: nobody else and no other hand ever enters the frame",
+   "delivery": "dry, tired, certain",
+   "line": "Wait for the date and the flights are gone. So you guess.",
+   "accent": "a soft English accent; her voice is low, a little husky, quiet and unhurried",
+   "audio": "quiet kitchen at night, a fridge humming"
+  },
+  {
+   "id": "e4_s1",
+   "cast": "maya",
+   "setup": "seat",
+   "scene": "",
+   "action": "Very still, both hands flat on the pile of pages. She lists the three days evenly, pauses for half a second, and says the last sentence with no change of expression. Silent end beat: she turns the laptop a few degrees away from herself and looks back at the interviewer. She is alone at the table: nobody else and no other hand ever enters the frame",
+   "delivery": "even, very controlled",
+   "line": "I'd booked three hotels. Saturday, Sunday, Monday. I cancelled Monday on Tuesday.",
+   "accent": "a soft English accent; her voice is low, a little husky, quiet and unhurried",
+   "audio": "quiet kitchen at night, a fridge humming"
+  },
+  {
+   "id": "e3_s1",
+   "cast": "vic",
+   "setup": "seat",
+   "scene": "",
+   "action": "Eyes on the interviewer. He says the first sentence as plain housekeeping, holds the look for two seconds with his mouth closed, then adds the second sentence. No smile, no nod. Silent end beat of a second and a half: he holds the interviewer's look, mouth closed",
+   "delivery": "certain, flat, unsmiling, stating it as housekeeping",
+   "line": "I buy tickets to matches I can't go to. Keeps my record up.",
+   "accent": "an English accent; his voice is deep, gravelly and slow",
+   "audio": "a crowd murmuring behind him, no announcements with words"
+  },
+  {
+   "id": "e4_s2",
+   "cast": "vic",
+   "setup": "seat",
+   "scene": "",
+   "action": "For the first time he is not certain. He looks down, then up at the interviewer and says the first sentence quietly; he waits a full second; he adds the second sentence as his defence. Silent end beat: he breathes out through his nose and looks away towards the ground. Only the one microphone is in the frame and nothing else enters it",
+   "delivery": "quiet, guilty, sincere",
+   "line": "It's my daughter's wedding. I did ask her.",
+   "accent": "an English accent; his voice is deep, gravelly and slow",
+   "audio": "a crowd murmuring behind him, no announcements with words"
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+{ "dur": 3.6, "scene": "list", "file": "AWAY TRIP – WHO'S IN?", "title": "PINNED MESSAGE",
+  "rows": [
+    { "label": "KICK-OFF", "value": "MONDAY" },
+    { "label": "TIME", "stamp": { "t": 3.0, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }

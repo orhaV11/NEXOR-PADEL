@@ -5,7 +5,8 @@
 shoot.json:
   { "dir": "src/film/assets/<series>",          portraits/, shots/ and state.json are kept here
     "cast": { "gran": { "portrait": "<text-to-image prompt of the character in their interview seat>",
-                        "image": "or a still that already exists (a frame of an approved clip)" }, ... },
+                        "image": "or a still that already exists (a frame of an approved clip)",
+                        "edit": "with image: what to clean in that still before it is used" }, ... },
     "shots": [ { "id": "e1_s1", "cast": "gran" | null, "setup": "seat" | "away" | "none",
                  "scene": "away: where they are now, light, wardrobe; none: the whole scene with the people in it",
                  "action": "what they do before, while and after speaking, with the silent end beat",
@@ -110,9 +111,11 @@ def do_portrait(name):
         return
     if c.get("image"):  # a still that already exists: only an upload
         if DRY:
-            print(f"portrait {name}: from {c['image']} (free)")
+            print(f"portrait {name}: from {c['image']}" + (f", cleaned ${price(EDIT, {'prompt': c['edit'], 'images_list': ['PORTRAIT'], 'aspect_ratio': '9:16'})}" if c.get("edit") else " (free)"))
             return
         url = muapi.upload(str(ROOT / c["image"]))
+        if c.get("edit"):  # the still is cleaned once (a badge, lettering, marks) and every shot starts from the clean one
+            url = run(EDIT, {"prompt": c["edit"], "images_list": [url], "aspect_ratio": "9:16"}, D / "portraits" / f"{name}.jpg")
     else:
         payload = {"prompt": c["portrait"], "aspect_ratio": "9:16"}
         cost = price(T2I, payload)

@@ -1,0 +1,357 @@
+{
+ "out": "src/film/assets/tbc/vo/en",
+ "target_db": -22.5,
+ "max_gain_db": 3.5,
+ "pause": 0.34,
+ "lines": {
+  "e1_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    0.043,
+    1.745
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    2.138,
+    3.035
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    3.448,
+    4.7
+   ]
+  ],
+  "e1_n1a": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    0.043,
+    1.745
+   ]
+  ],
+  "e1_n1b": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    2.138,
+    3.035
+   ]
+  ],
+  "e1_n1c": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    3.448,
+    4.7
+   ]
+  ],
+  "e1_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    5.148,
+    7.345
+   ]
+  ],
+  "e1_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    7.823,
+    9.32
+   ]
+  ],
+  "e1_n4": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    9.763,
+    10.83
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    11.218,
+    12.44
+   ]
+  ],
+  "e1_n4a": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    9.763,
+    10.83
+   ]
+  ],
+  "e1_n4b": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    11.218,
+    12.44
+   ]
+  ],
+  "e1_n5": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    12.913,
+    14.895
+   ]
+  ],
+  "e1_n6": [
+   [
+    "src/film/assets/tbc/vo/takes/e1.mp3",
+    15.343,
+    17.415
+   ]
+  ],
+  "e2_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    0.033,
+    2.595
+   ]
+  ],
+  "e2_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    3.063,
+    4.795
+   ]
+  ],
+  "e2_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    5.203,
+    5.845
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    6.193,
+    6.78
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    7.128,
+    8.025
+   ]
+  ],
+  "e2_n3a": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    5.203,
+    5.845
+   ]
+  ],
+  "e2_n3b": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    6.193,
+    6.78
+   ]
+  ],
+  "e2_n3c": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    7.128,
+    8.025
+   ]
+  ],
+  "e2_n4": [
+   [
+    "src/film/assets/tbc/vo/takes/e2.mp3",
+    8.433,
+    9.79
+   ]
+  ],
+  "e3_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    0.078,
+    3.715
+   ]
+  ],
+  "e3_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    4.163,
+    5.96
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    6.263,
+    7.25
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    7.588,
+    9.21
+   ]
+  ],
+  "e3_n2a": [
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    4.163,
+    5.96
+   ]
+  ],
+  "e3_n2b": [
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    6.263,
+    7.25
+   ]
+  ],
+  "e3_n2c": [
+   [
+    "src/film/assets/tbc/vo/takes/e3.mp3",
+    7.588,
+    9.21
+   ]
+  ],
+  "e4_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    0.028,
+    2.335
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    2.678,
+    4.61
+   ]
+  ],
+  "e4_n1a": [
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    0.028,
+    2.335
+   ]
+  ],
+  "e4_n1b": [
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    2.678,
+    4.61
+   ]
+  ],
+  "e4_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    4.988,
+    6.49
+   ]
+  ],
+  "e4_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e4.mp3",
+    6.943,
+    8.725
+   ]
+  ],
+  "e5_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    0.083,
+    3.265
+   ]
+  ],
+  "e5_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    3.733,
+    6.005
+   ]
+  ],
+  "e5_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    6.433,
+    8.12
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    8.468,
+    10.49
+   ]
+  ],
+  "e5_n3a": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    6.433,
+    8.12
+   ]
+  ],
+  "e5_n3b": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    8.468,
+    10.49
+   ]
+  ],
+  "e5_n4": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    10.968,
+    12.995
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    13.348,
+    14.83
+   ]
+  ],
+  "e5_n4a": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    10.968,
+    12.995
+   ]
+  ],
+  "e5_n4b": [
+   [
+    "src/film/assets/tbc/vo/takes/e5.mp3",
+    13.348,
+    14.83
+   ]
+  ],
+  "e6_n1": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    0.038,
+    1.6
+   ]
+  ],
+  "e6_n2": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    1.963,
+    4.13
+   ]
+  ],
+  "e6_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    4.518,
+    5.95
+   ],
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    6.213,
+    7.565
+   ]
+  ],
+  "e6_n3a": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    4.518,
+    5.95
+   ]
+  ],
+  "e6_n3b": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    6.213,
+    7.565
+   ]
+  ],
+  "e6_n4": [
+   [
+    "src/film/assets/tbc/vo/takes/e6.mp3",
+    8.033,
+    9.735
+   ]
+  ]
+ }
+}

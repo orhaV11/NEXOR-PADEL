@@ -1,0 +1,88 @@
+{
+ "cast": {
+  "maya": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/98dac244-4525-4a70-b3f4-f8394d79df10_bc482657.jpg"
+  },
+  "vic": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/7e09baa8e54b4f2596e4fe02b4645f27.jpg"
+  }
+ },
+ "shots": {
+  "e3_s1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/f0c1af7a-114a-4c9a-b8d0-00fa2bc4d712_b1281be3.mp4",
+     "heard": "I buy tickets to matches I can't go to. Keeps my record up.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e3_s1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/f0c1af7a-114a-4c9a-b8d0-00fa2bc4d712_b1281be3.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I buy tickets to matches I can't go to. Keeps my record up.",
+   "score": 1.0,
+   "line": "I buy tickets to matches I can't go to. Keeps my record up."
+  },
+  "e1_s1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/fc02a3a5-9376-4572-953d-f03a1df4182c_37ac3819.mp4",
+     "heard": "I made a spreadsheet. I wanted to check the link worked.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e1_s1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/fc02a3a5-9376-4572-953d-f03a1df4182c_37ac3819.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I made a spreadsheet. I wanted to check the link worked.",
+   "score": 1.0,
+   "line": "I made a spreadsheet. I wanted to check the link worked."
+  },
+  "e4_s1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/5948364e-9b9a-4eaf-a263-a88fc02136f6_2aad155e.mp4",
+     "heard": "I'd booked three hotels Saturday, Sunday, Monday. I cancelled Monday on Tuesday.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e4_s1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/5948364e-9b9a-4eaf-a263-a88fc02136f6_2aad155e.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I'd booked three hotels Saturday, Sunday, Monday. I cancelled Monday on Tuesday.",
+   "score": 1.0,
+   "line": "I'd booked three hotels. Saturday, Sunday, Monday. I cancelled Monday on Tuesday."
+  },
+  "e2_s1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/b452a216-dbf9-4531-a608-a23a3dbcdcf0_e815e9c6.mp4",
+     "heard": "Wait for the date and the flights are gone. So you guess.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e2_s1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/b452a216-dbf9-4531-a608-a23a3dbcdcf0_e815e9c6.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "Wait for the date and the flights are gone. So you guess.",
+   "score": 1.0,
+   "line": "Wait for the date and the flights are gone. So you guess."
+  },
+  "e4_s2": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/13a91a90-7c9c-4f9d-80dd-adba5457d5b8_614ed6c0.mp4",
+     "heard": "It's my daughter's wedding. I did ask her.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e4_s2.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/13a91a90-7c9c-4f9d-80dd-adba5457d5b8_614ed6c0.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "It's my daughter's wedding. I did ask her.",
+   "score": 1.0,
+   "line": "It's my daughter's wedding. I did ask her."
+  }
+ },
+ "away": {}
+}

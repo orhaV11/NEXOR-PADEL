@@ -1,6 +1,7 @@
 // Film a group-chat scene (chat.html) as an MP4 the edit engine can cut like any other clip.
-//   node src/film/render-chat.mjs <script.json> <he|en> <out.mp4> [--fps 24] [--still 3.2 out.png]
+//   node src/film/render-chat.mjs <script.json> <he|en> <out.mp4> [--fps 24] [--still 3.2 out.png] [--page board.html]
 // script.json: see the comment in chat.html; any text may be {"en": .., "he": ..}. "dur" is the length in seconds.
+// --page: another page of this folder with the same contract (?s=<script>, seek(t), window.__ready); default chat.html.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
@@ -18,7 +19,7 @@ const script = { ...JSON.parse(readFileSync(scriptPath, "utf8")), lang };
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
 page.on("pageerror", (e) => console.error("page error:", e.message));
-await page.goto(pathToFileURL(join(HERE, "chat.html")).href + "?s=" + encodeURIComponent(JSON.stringify(script)), { waitUntil: "load" });
+await page.goto(pathToFileURL(join(HERE, opt("--page", "chat.html"))).href + "?s=" + encodeURIComponent(JSON.stringify(script)), { waitUntil: "load" });
 await page.evaluate(() => window.__ready);
 
 const stillAt = process.argv.indexOf("--still");

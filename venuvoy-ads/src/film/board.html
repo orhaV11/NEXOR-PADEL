@@ -1,0 +1,687 @@
+<!doctype html>
+<!--
+  board.html · "the study's paperwork": the full-frame graphic scenes of the series that are neither a chat nor footage.
+  Same contract as chat.html: a 1080 x 1920 page, the script as JSON in the query string (?s=...), a global seek(t) that
+  draws second t deterministically, and the promise window.__ready. Any text may be {"en": .., "he": ..}.
+
+    node src/film/render-chat.mjs <script.json> en <out.mp4> --page board.html [--still 3.2 out.png]
+
+  THE LOOK (the same in every scene): a deep green field; on it a cream paper lying on a card folder (or cream cards),
+  typed labels, the series stamp from stamp.js. A stamp jolts the paper under it (Stamp.shake). Nothing fades in at
+  t = 0: the paper is on the desk on the first frame, so a scene can be cut in hard, and it holds its last state.
+  WHERE THINGS SIT: the folder is x 40-1040, rows 415-1247, with its tab in rows 362-415 from x 40 (to x 470 with
+  a file line of 19 characters); all text is in rows 362-1236. Rows 1250-1480 (the caption lane) hold background only. The block x 620-1040, rows 262-404 is left
+  to the edit engine's day tag and chip; only "week" with a "count" draws there, in place of the engine's tag
+  (switch the engine's tag off for that scene).
+
+  SCRIPT   { "dur": seconds, "scene": "checklist" | "list" | "loop" | "cards" | "week", ...fields of the scene }
+  Every time in a script is in seconds from the start of the scene. A time may be negative ("it already happened"):
+  the thing is then drawn in its final state from the first frame (a moved tile, a corrected count, a landed stamp).
+  A demo of each scene, with the words of the plan, is in src/film/tbc/demo_board_*.json.
+
+  FIELDS EVERY SCENE TAKES (all optional)
+    "file":  "THE STUDY · FILE 02"          typed on the tab of the folder, top left (in "cards": at the left of a
+                                            typed line above the cards). Up to about 20 characters.
+    "title": "STATUS OF BOOKINGS"           heads the paper, above a double rule (in "cards": at the right of the
+                                            line above the cards). Up to about 34 characters.
+    "note":  { "t": 4.4, "text": "THE WINNER HAD NOT BEEN ASKED." }
+                                            one typed line on its own cream strip under the scene (rows 1164-1236);
+                                            the scene above it becomes 90 px shorter. The strip slides in during the
+                                            0.16 s before t, then the line is typed. Up to 34 characters.
+    "cps":   40                             typing speed, characters per second (labels, values, the note)
+    "guides": true                          draws the caption lane, the 4:5 crop and the tag block (for checking only)
+
+  A STAMP (wherever a scene takes "stamp")
+    { "t": 3.5, "text": "TO BE CONFIRMED", "color": "red" | "green" | "bright", "big": true,
+      "small": "EPISODE 2", "size": 70, "rot": -8, "dx": 0, "dy": 0, "oneline": true }
+    Only "t" and "text" are needed. "color" defaults to "red". A text longer than 12 characters with no "\n" in it is
+    broken into two lines at the space nearest its middle ("TO BE" / "CONFIRMED"); write "\n" yourself to choose the
+    break, or "oneline": true to forbid it. "big" is the joke stamp: larger, crooked (-8 degrees), and the paper
+    jolts 16 px; a stamp that is not big lands nearly straight and the paper jolts 6 px. The stamp of "loop" and of
+    "week" is always big. "small" is a small line under the text, inside the frame. "size" (px of the letters),
+    "rot" (degrees) and "dx"/"dy" (px, a nudge from where the scene puts it) override the scene's choice. A stamp
+    is kept on the paper. It lands in three frames from t (stamp.js); the sound is kit.thud at t.
+
+  1. "checklist": typed labels on the left, each row's stamp on the right of its row.
+     { "dur": 4.6, "scene": "checklist", "file": "THE STUDY · FILE 02", "title": "STATUS OF BOOKINGS",
+       "rows": [
+         { "label": "FLIGHTS",       "stamp": { "t": 0.5, "text": "BOOKED",   "color": "green" } },
+         { "label": "HOTEL",         "stamp": { "t": 1.5, "text": "BOOKED",   "color": "green" } },
+         { "label": "TIME OFF WORK", "stamp": { "t": 2.5, "text": "APPROVED", "color": "green" } },
+         { "label": "DATE OF MATCH", "stamp": { "t": 3.5, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }
+     row: "label" (required); "t" = when the label is typed (omit: it is there on the first frame); "stamp" optional.
+     A big stamp takes the room from the end of its label to the edge of the paper, and its row is made taller.
+     2 to 6 rows; the letters shrink as rows are added (3 rows: 60 px, 4: 52, 5: 46, 6: 40), or set "size": 48.
+     At 4 rows a label of up to 13 characters leaves room for its stamp.
+
+  2. "list": label on the left, value on the right; each row is typed (label, then value) at its time.
+     { "dur": 5.8, "scene": "list", "file": "THE STUDY · FILE 04", "title": "WHAT COULD BE MOVED",
+       "rows": [
+         { "t": 0.4, "label": "FLIGHTS",     "value": "MOVED, FOR A FEE" },
+         { "t": 1.6, "label": "HOTEL",       "value": "BOOKED AGAIN" },
+         { "t": 2.8, "label": "TOUR SHIRTS", "value": "PRINTED.\nTHEY SAY SATURDAY." },
+         { "t": 4.0, "label": "THE MATCH",   "value": "MOVED, NO CHARGE", "mark": true },
+         { "t": 4.9, "label": "NEW KICK-OFF TIME", "stamp": { "t": 5.4, "text": "TO BE CONFIRMED", "big": true } } ] }
+     row: "t" = when its label starts to be typed (omit: the whole row is there on the first frame);
+          "vt" = when its value starts (default: 0.1 s after the last letter of the label);
+          "value" wraps inside its column, "\n" forces a break;
+          "mark": true underlines the row in gold 0.12 s after the last letter of its value, or "mark": { "t": 4.8 };
+          "stamp": with no value it lands where the value would be; with a value it lands on the end of it.
+     The label column is as wide as the longest label. 2 to 7 rows; the letters shrink as rows are added
+     (label / value px: 2 rows 58 / 76, 3 rows 46 / 58, 4 rows 40 / 48, 5 or 6 rows 36 / 42, 7 rows 32 / 36), or set
+     "sizes": [ 36, 42 ]. Two rows make a notice: { "label": "KICK-OFF", "value": "MONDAY" }, { "label": "TIME",
+     "stamp": { .. } } (src/film/tbc/demo_board_pinned.json).
+
+  3. "loop": two boxes joined by two curved arrows; a marker goes round for as long as the scene lasts.
+     { "dur": 5.0, "scene": "loop", "file": "THE STUDY · FILE 03", "title": "HOW TO BUY A TICKET",
+       "boxes": [ "BUY A TICKET", "REQUIRED: A TICKET BOUGHT BEFORE" ],
+       "go": 0.5, "lap": 1.4, "counter": "ATTEMPT",
+       "stamp": { "t": 4.7, "text": "NOT ELIGIBLE" } }
+     "boxes": the top and the bottom box. Text before a colon is set as a small gold line above the rest
+            ("REQUIRED:"). The top box takes about 14 characters at full size, the bottom about 24; longer text
+            wraps and is made smaller until it fits (never under 30 px), so keep to about 30 characters a box.
+     "go":  when the marker first leaves the top box (default 0.5). The top box is there from the first frame; the
+            right arrow is drawn by the marker on its first way down, the bottom box appears as the marker reaches
+            it, the left arrow is drawn on its first way back. After that only the marker moves.
+     "lap": seconds for one full round (default 1.4). The marker reaches the bottom box at go + (k + 0.37) x lap
+            and is back at the top box at go + (k + 0.87) x lap, k = 0, 1, 2 .. (the moments for a click); the box
+            it reaches flashes red once, and the marker is out of sight inside the box until it leaves again.
+     "counter": optional label of a lap counter under the loop ("ATTEMPT 1", then 2, 3 ..); it ticks each time the
+            marker leaves the top box, at go + k x lap.
+     "stamp": optional; lands across the loop between the boxes, and the marker keeps going underneath.
+
+  4. "cards": names on cards in rows of three, turned over one at a time.
+     { "dur": 6.4, "scene": "cards", "file": "THE STUDY · FILE 03", "title": "BALLOT FOR ONE TICKET",
+       "names": [ "JO'S DAD", "LEE'S LANDLORD", "VIC'S FATHER-IN-LAW", "PRIYA'S BROTHER", "MARCUS'S NEIGHBOUR",
+                  "MAYA'S COUSIN", "LEE'S SISTER", "VIC'S DENTIST", "DANNY'S GRANDMOTHER" ],
+       "flips": [ 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4 ],
+       "win": { "i": 8, "t": 3.1 },
+       "note": { "t": 4.4, "text": "THE WINNER HAD NOT BEEN ASKED." } }
+     "names": 3 to 12 strings (nine is the design). A name is broken after a first word that ends in 'S
+              ("VIC'S" / "DENTIST"); write "\n" to choose the break yourself. Up to 13 characters a line.
+     "flips": the times at which the losing cards turn over, one card per time, in reading order (the winner is
+              skipped). A flip takes 0.25 s, around the vertical axis, and shows the name in grey over UNSUCCESSFUL.
+              "order": [ 3, 0, 7, .. ] gives another order (indices into "names", 0 is the first).
+     "win":   { "i": index of the winning name, "t": time }. That card turns over slowly (0.6 s from t), comes to
+              the centre at about twice its size and shows the name large over a green SUCCESSFUL; the others dim.
+     "lose" / "won": the two words on the backs (defaults "UNSUCCESSFUL" and "SUCCESSFUL").
+
+  5. "week": a strip of days with tiles; each tile has its own row, so a tile that moves never crosses another.
+     { "dur": 5.3, "scene": "week", "file": "THE STUDY · FILE 04", "title": "THE WEEKEND",
+       "days": [ "FRI", "SAT", "SUN", "MON" ],
+       "tiles": [
+         { "label": "FLIGHT OUT",  "day": 0 },
+         { "label": "THE MATCH",   "day": 1, "main": true, "move": { "t": 3.6, "to": 3 }, "tag": "MOVED" },
+         { "label": "FLIGHT HOME", "day": 2, "clash": { "t": 4.6 } } ],
+       "count": { "label": "DAYS BEFORE*", "sub": "*to be confirmed", "from": 40, "to": 42, "t": 4.2 },
+       "stamp": { "t": 5.0, "text": "ARRIVED?" } }
+     "days":  3 to 7 names. For dates under the names add "dates": [ "14", "15", "16", "17" ], or write each day as
+              { "name": "FRI", "date": "14" }.
+     tile:    "label"; "day" = index into "days" (0 is the first);
+              "main": true = the gold tile (the match); the others are white with an ink outline;
+              "pin": true  = drawn as a note with a red pin head (for "REACHED HIS SEAT");
+              "t" = when the tile appears (omit: there on the first frame);
+              "move": { "t", "to" } = slides to day "to" in 0.3 s from t and leaves a dashed outline where it was
+                      (a list of moves is allowed: [ { "t": 1, "to": 2 }, { "t": 3, "to": 4 } ]);
+              "tag": "MOVED" = a small red label on the tile, from the end of its first move (from the first
+                      frame if the tile has no move, or at a time: "tag": { "text": "MOVED", "t": 2.0 });
+              "clash": { "t" } = at t the tile turns red (red outline and letters) and swells once.
+              1 to 4 tiles, one row each, in the order written. With 6 or 7 days the letters of the tiles fall
+              under 30 px and each word of a label must be 6 letters or fewer: use 3 to 5 days for anything a
+              viewer has to read.
+     "count": a counter in the top right corner, in the place of the edit engine's day tag. "from" alone draws the
+              number; with "to" and "t" the old number is struck through at t and the new one is written beside it.
+              "sub" is the small line under it.
+     "stamp": optional; lands across the tile rows, at the place nearest their middle where it covers least of
+              the tiles (the tiles in their last positions).
+
+  WHAT THIS PAGE DOES NOT DO: right-to-left layout (texts may be {"en","he"} but the page is laid out left to right);
+  sound; any transition into or out of a scene.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Venuvoy · the study's paperwork (full-frame graphic scenes for the series)</title>
+<style>
+  @font-face { font-family: "Mont"; src: url(../../fonts/montserrat-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Heebo"; src: url(../../fonts/heebo-hebrew-wght-normal.woff2) format("woff2"); font-weight: 100 900; unicode-range: U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+  html, body { margin: 0; background: #0f2e21; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; color: #14201a;
+    background: radial-gradient(ellipse 92% 62% at 50% 43%, #16392b 0%, #133426 58%, #0f2e21 100%);
+    font-family: "JetBrains Mono", "DejaVu Sans Mono", "Heebo", monospace; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+  #grain { position: absolute; inset: 0; }
+  #scene, #stamps, #guides { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  #stamps, #guides { pointer-events: none; }
+
+  /* the paper */
+  .sheet { position: absolute; left: 48px; width: 984px; box-sizing: border-box; }
+  .folder { position: absolute; left: 40px; width: 1000px; box-sizing: border-box; background: linear-gradient(180deg, #d6cab0, #cfc3a8); border-radius: 0 7px 5px 5px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36); }
+  .folder .tab { position: absolute; left: 0; bottom: calc(100% - 1px); height: 54px; padding: 0 28px 0 26px; display: flex; align-items: center; background: #d6cab0; border-radius: 9px 12px 0 0;
+    font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: 0.06em; color: #3f4a43; white-space: nowrap; box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.14); }
+  .sheet.under { background: #e6dfcf; transform: rotate(-0.7deg) translate(3px, 5px); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); }
+  .sheet.doc { background: linear-gradient(180deg, #f6f1e5, #efe8d9); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22), 0 14px 34px rgba(0, 0, 0, 0.26); }
+  .sheet.doc > .pg { position: absolute; inset: 0; mix-blend-mode: multiply; }
+  .hd { position: absolute; left: 44px; right: 44px; top: 0; height: 78px; box-sizing: border-box; padding-bottom: 13px; display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;
+    border-bottom: 3px solid #14201a; font-weight: 800; font-size: 34px; line-height: 1; letter-spacing: 0.05em; color: #14201a; white-space: nowrap; }
+  .hd::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 1px; background: rgba(20, 32, 26, 0.7); }
+  .body { position: absolute; left: 44px; right: 44px; top: 100px; bottom: 24px; }
+  .body.bare { top: 26px; }
+  .ty { white-space: pre-line; }
+  .ty .off { visibility: hidden; }
+  .ty .on.u { padding-bottom: 7px; background: linear-gradient(#b0832a, #b0832a) no-repeat 0 100% / 0% 7px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+  /* a line of the file on the green field (cards) */
+  .fline { position: absolute; left: 52px; right: 52px; height: 46px; display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 12px; box-sizing: border-box;
+    border-bottom: 2px solid rgba(230, 196, 122, 0.55); font-weight: 600; font-size: 30px; line-height: 1; letter-spacing: 0.06em; color: rgba(230, 196, 122, 0.82); white-space: nowrap; }
+  .fline .tt { color: #e6c47a; font-weight: 700; }
+
+  /* the note: one typed line on its own strip */
+  .note { position: absolute; left: 48px; width: 984px; top: 1164px; height: 72px; box-sizing: border-box; background: linear-gradient(180deg, #f6f1e5, #efe8d9); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22), 0 10px 24px rgba(0, 0, 0, 0.26);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 40px; line-height: 1; white-space: nowrap; transform-origin: 0 50%; }
+
+  /* rows: checklist and list */
+  .rows { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .row { position: relative; flex: 1 1 0; min-height: 0; display: flex; align-items: center; }
+  .row .rule { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: rgba(20, 32, 26, 0.28); transform-origin: 0 50%; }
+  .row:first-child .rule { display: none; }
+  .ck .lb { flex: none; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+  .ck .ld { flex: 1 1 0; min-width: 0; height: 0; margin: 0 20px 0 22px; border-bottom: 5px dotted rgba(20, 32, 26, 0.36); transform: translateY(0.3em); }
+  .ck .zone { flex: none; height: 10px; }
+  .ls .lb { flex: none; font-weight: 700; line-height: 1.16; color: #55615a; white-space: nowrap; }
+  .ls .vl { flex: 1 1 0; min-width: 0; font-weight: 800; line-height: 1.16; }
+  .row.big { flex-grow: 1.4; }
+  .ls .row.big { flex-grow: 1.55; }
+
+  /* loop */
+  .lp svg { position: absolute; left: 0; top: 0; overflow: visible; }
+  .lp .bx { position: absolute; box-sizing: border-box; border: 5px solid #14201a; background: #fbf8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 18px; transform-origin: 50% 50%; }
+  .lp .bx .k { font-weight: 700; font-size: 32px; letter-spacing: 0.1em; color: #b0832a; margin-bottom: 10px; line-height: 1; }
+  .lp .bx .m { font-weight: 800; line-height: 1.1; white-space: pre-line; }
+  .lp .bx .fl { position: absolute; inset: -5px; border: 9px solid #b3261e; opacity: 0; }
+  .lp .ct { position: absolute; left: 0; right: 0; text-align: center; font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: 0.04em; color: #55615a; white-space: nowrap; }
+  .lp .ct b { display: inline-block; min-width: 1.3em; text-align: left; margin-left: 0.4em; font-weight: 800; color: #14201a; transform-origin: 30% 60%; }
+
+  /* cards */
+  .card { position: absolute; transform-origin: 50% 50%; }
+  .card .face { position: absolute; inset: 0; box-sizing: border-box; border-radius: 7px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px 14px; box-shadow: 0 7px 18px rgba(0, 0, 0, 0.36); }
+  .card .front { background: linear-gradient(180deg, #f6f1e5, #efe8d9); }
+  .card .front::after { content: ""; position: absolute; inset: 9px; border: 2px solid rgba(20, 32, 26, 0.2); border-radius: 3px; }
+  .card .back { background: #c9c5ba; color: #48534c; padding-bottom: 66px; }
+  .card .back .st { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; border-radius: 0 0 7px 7px; background: #55615a; color: #f4eee1; font: 800 30px/58px "Mont", "Heebo", sans-serif; letter-spacing: 0.06em; white-space: nowrap; }
+  .card.win .back { background: linear-gradient(180deg, #faf6ec, #f2ecdf); color: #14201a; }
+  .card.win .back .st { background: #1f7a4d; }
+  .card .nm { font-weight: 800; line-height: 1.14; white-space: pre-line; }
+  .card .sh { position: absolute; inset: 0; border-radius: 7px; background: #0b1410; opacity: 0; }
+
+  /* week */
+  .wk .dy { position: absolute; top: 0; text-align: center; }
+  .wk .dy .n { font-weight: 800; line-height: 1; }
+  .wk .dy .d { margin-top: 10px; font-weight: 600; font-size: 30px; line-height: 1; color: #55615a; }
+  .wk .hr { position: absolute; left: 0; right: 0; height: 3px; background: #14201a; }
+  .wk .cl { position: absolute; width: 2px; margin-left: -1px; background: rgba(20, 32, 26, 0.2); }
+  .wk .ln { position: absolute; left: 0; right: 0; height: 2px; background: rgba(20, 32, 26, 0.12); }
+  .wk .gh { position: absolute; box-sizing: border-box; border: 3px dashed rgba(20, 32, 26, 0.42); border-radius: 6px; }
+  .wk .tl { position: absolute; box-sizing: border-box; border-radius: 6px; border: 4px solid #14201a; background: #fbf8f0; color: #14201a; display: flex; align-items: center; justify-content: center; text-align: center;
+    font-weight: 800; line-height: 1.1; padding: 0 6px; transform-origin: 50% 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16); }
+  .wk .tl.main { background: #e9cd8b; }
+  .wk .tl.hot { background: #f3d3ca; border-color: #b3261e; color: #b3261e; box-shadow: 0 0 0 2px #b3261e, 0 4px 10px rgba(0, 0, 0, 0.16); }
+  .wk .tl.pin { border-width: 3px; }
+  .wk .tl .ph { position: absolute; left: 50%; top: -19px; width: 30px; height: 30px; margin-left: -15px; border-radius: 50%; background: #b3261e; box-shadow: inset -4px -5px 0 rgba(0, 0, 0, 0.22), 0 3px 5px rgba(0, 0, 0, 0.3); }
+  .wk .tl .tg { position: absolute; right: -12px; top: -30px; padding: 6px 12px 7px; background: #b3261e; color: #f8f3e8; font: 800 30px/1 "Mont", "Heebo", sans-serif; letter-spacing: 0.07em; white-space: nowrap; transform-origin: 80% 100%; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3); }
+  .count { position: absolute; right: 40px; top: 264px; text-align: right; font-family: "Mont", "Heebo", sans-serif; color: #f4eee1; white-space: nowrap; }
+  .count .l1 { display: flex; justify-content: flex-end; align-items: baseline; font-weight: 900; font-size: 46px; line-height: 1; }
+  .count .old { position: relative; display: inline-block; }
+  .count .old i { position: absolute; left: -5px; right: -5px; top: 46%; height: 6px; border-radius: 3px; background: #ea3d2c; transform: rotate(-9deg) scaleX(0); transform-origin: 0 50%; }
+  .count .new { display: inline-block; overflow: hidden; text-align: right; vertical-align: baseline; transform-origin: 60% 70%; }
+  .count .new b { display: inline-block; padding-left: 14px; font-weight: 900; }
+  .count .lab { margin-left: 14px; font-weight: 800; font-size: 32px; letter-spacing: 0.06em; color: #e6c47a; }
+  .count .l2 { margin-top: 7px; font-weight: 600; font-size: 24px; line-height: 1; letter-spacing: 0.03em; color: rgba(244, 238, 225, 0.74); }
+
+  /* guides (checking only) */
+  #guides div { position: absolute; left: 0; right: 0; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grain"></div>
+  <div id="scene"></div>
+  <div id="stamps"></div>
+  <div id="guides"></div>
+</div>
+<script src="stamp.js"></script>
+<script>
+  // The script format is documented in the comment at the top of this file.
+  const S = JSON.parse(new URLSearchParams(location.search).get("s") || "{}");
+  const LANG = S.lang || "en";
+  const tr = (v) => (v && typeof v === "object" && !Array.isArray(v) ? (v[LANG] ?? v.en ?? "") : (v ?? ""));
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const P = (t, t0, d) => clamp((t - t0) / d);
+  const out = (x) => 1 - Math.pow(1 - x, 3);
+  const io = (x) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
+  const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const scene = document.getElementById("scene"), stampLayer = document.getElementById("stamps");
+  const el = (cls, parent, tag = "div") => { const e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; };
+  const CPS = S.cps ?? 40;
+  const TOP = 424, BOTTOM = S.note ? 1146 : 1236;   // the band the scene may use; the note strip takes the last 90 px
+
+  // a faint, fixed grain (seeded, so every render is the same): the baize of the desk and the tooth of the paper
+  function grain(seed, alpha, dark) {
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const g = c.getContext("2d"), im = g.createImageData(256, 256);
+    let s = seed >>> 0;
+    const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let x = Math.imul(s ^ (s >>> 15), 1 | s); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+    for (let i = 0; i < im.data.length; i += 4) {
+      const v = rnd(), lit = !dark && v > 0.5;
+      im.data[i] = im.data[i + 1] = im.data[i + 2] = lit ? 255 : 0;
+      im.data[i + 3] = Math.abs(v - 0.5) * 2 * alpha * 255;
+    }
+    g.putImageData(im, 0, 0);
+    return `url(${c.toDataURL()})`;
+  }
+  document.getElementById("grain").style.backgroundImage = grain(7, 0.085, false);
+  const PAPER_GRAIN = grain(23, 0.06, true);
+
+  // text that is typed: the whole text is always laid out (so nothing moves), only the first k characters show
+  function typed(parent, text, underline) {
+    const w = el("ty", parent, "span"), on = el("on" + (underline ? " u" : ""), w, "span"), off = el("off", w, "span");
+    const chars = [...String(text)];
+    let cur = -1;
+    const o = { el: w, on, n: chars.length,
+      set(k) { k = clamp(Math.floor(k), 0, chars.length); if (k === cur) return; cur = k; on.textContent = chars.slice(0, k).join(""); off.textContent = chars.slice(k).join(""); },
+      at(t, t0) { o.set(t0 == null ? chars.length : t < t0 ? 0 : (t - t0) * CPS + 1); },   // typed from t0; no t0: it is simply there
+      end(t0) { return t0 == null ? -99 : t0 + Math.max(0, chars.length - 1) / CPS; },
+      mark(p) { on.style.backgroundSize = `${p * 100}% 7px`; } };
+    o.set(0);
+    return o;
+  }
+
+  // the paper: one sheet with another under it, a head line, a body to build in
+  function sheet(top = TOP, height = BOTTOM - TOP) {
+    const folder = el("folder", scene), under = el("sheet under", scene), doc = el("sheet doc", scene);
+    folder.style.top = `${top - 9}px`; folder.style.height = `${height + 20}px`;
+    for (const s of [under, doc]) { s.style.top = `${top}px`; s.style.height = `${height}px`; }
+    el("pg", doc).style.backgroundImage = PAPER_GRAIN;
+    const file = tr(S.file), title = tr(S.title), body = el("body", doc);
+    if (file) el("tab", folder).textContent = file;       // the file line is the tab of the folder
+    if (title) el("hd", doc).textContent = title;         // the title heads the paper
+    else body.classList.add("bare");
+    return { doc, body, top, height, bodyH: height - (title ? 100 : 26) - 24 };
+  }
+
+  // stamps: made by stamp.js, kept in a layer that does not jolt (the paper jolts under them)
+  const stamps = [];
+  function addStamp(spec, o = {}) {
+    let text = String(tr(spec.text));
+    if (!text.includes("\n") && text.length > 12 && !spec.oneline && text.includes(" ")) {
+      let best = -1;
+      for (let i = 0; i < text.length; i++) if (text[i] === " " && (best < 0 || Math.abs(i - text.length / 2) < Math.abs(best - text.length / 2))) best = i;
+      text = text.slice(0, best) + "\n" + text.slice(best + 1);
+    }
+    const big = !!spec.big || !!o.big;
+    const rot = spec.rot ?? o.rot ?? (big ? -8 : -3);
+    const e = Stamp.make(text, { color: spec.color || o.color || "red", size: 100, rot, small: spec.small ? String(tr(spec.small)) : undefined });
+    stampLayer.appendChild(e);
+    e.style.display = "block"; e.style.transform = "none";
+    let size = spec.size ?? o.size;
+    if (size == null) size = Math.min(o.max ?? 120, (100 * (o.fit ?? 520)) / e.offsetWidth);
+    e.style.fontSize = `${Math.round(size)}px`;
+    const s = { el: e, t: spec.t ?? 0, amp: big ? 16 : 6, w: e.offsetWidth, h: e.offsetHeight, rot, dx: spec.dx ?? 0, dy: spec.dy ?? 0 };
+    e.style.display = "none";
+    stamps.push(s);
+    return s;
+  }
+  // put a stamp's centre at (cx, cy); with "box" (a rect) the crooked stamp is kept inside it, so its ink stays on the paper
+  const place = (s, cx, cy, box) => {
+    if (box) {
+      const a = (Math.abs(s.rot) * Math.PI) / 180, hw = (s.w * Math.cos(a) + s.h * Math.sin(a)) / 2, hh = (s.w * Math.sin(a) + s.h * Math.cos(a)) / 2;
+      cx = clamp(cx, box.left + hw, Math.max(box.left + hw, box.right - hw)); cy = clamp(cy, box.top + hh, Math.max(box.top + hh, box.bottom - hh));
+    }
+    s.el.style.left = `${Math.round(cx + s.dx)}px`; s.el.style.top = `${Math.round(cy + s.dy)}px`;
+  };
+  const inset = (r, d) => ({ left: r.left + d, right: r.right - d, top: r.top + d, bottom: r.bottom - d });
+  const rect = (e) => e.getBoundingClientRect();
+
+  // the note: a typed line on its own strip under the scene
+  function note() {
+    if (!S.note) return () => {};
+    const strip = el("note", scene), ty = typed(strip, tr(S.note.text)), t0 = S.note.t ?? 0;
+    el("pg", strip).style.cssText = `position:absolute;inset:0;mix-blend-mode:multiply;background-image:${PAPER_GRAIN}`;
+    return (t) => {
+      const a = out(P(t, t0 - 0.16, 0.16));
+      strip.style.visibility = t >= t0 - 0.16 ? "visible" : "hidden";
+      strip.style.clipPath = `inset(-40px ${(1 - a) * 100}% -40px -40px)`;
+      ty.at(t, t0);
+    };
+  }
+
+  const SCENES = {
+    // 1. labels on the left, a stamp on the right of each row
+    checklist() {
+      const rows = S.rows || [], n = rows.length, { doc, body } = sheet();
+      const size = S.size ?? (n <= 3 ? 60 : n === 4 ? 52 : n === 5 ? 46 : 40);
+      const wrap = el("rows ck", body);
+      const R = rows.map((r) => {
+        const row = el("row" + (r.stamp && r.stamp.big ? " big" : ""), wrap), rule = el("rule", row), lbBox = el("lb", row);
+        lbBox.style.fontSize = `${size}px`;
+        return { r, row, rule, lb: typed(lbBox, tr(r.label)), ld: el("ld", row), zone: el("zone", row) };
+      });
+      return {
+        layout() {
+          let zw = 0;
+          const paper = inset(rect(doc), 12);
+          R.forEach((x, i) => {
+            if (!x.r.stamp) return;
+            // the big one takes the room from the end of its label to the edge of the paper; the others are a little smaller than the labels
+            const room = paper.right - rect(x.lb.el).right - 4;
+            x.st = x.r.stamp.big ? addStamp(x.r.stamp, { fit: Math.min(size * 10.6, room * 0.95), max: 90, rot: -8 }) : addStamp(x.r.stamp, { size: Math.round(size * 0.86), rot: [-3, 2, -2, 3, -1, 2][i % 6] });
+            if (!x.r.stamp.big) zw = Math.max(zw, x.st.w);
+          });
+          zw = zw || size * 6.4;
+          for (const x of R) x.zone.style.width = `${Math.round(zw + 16)}px`;
+          for (const x of R) {
+            if (!x.st) continue;
+            const b = rect(x.row), z = rect(x.zone);
+            if (x.r.stamp.big) place(x.st, paper.right, b.top + b.height / 2, paper);
+            else place(x.st, z.left + z.width / 2, b.top + b.height / 2, paper);
+          }
+        },
+        update(t) {
+          for (const x of R) {
+            const t0 = x.r.t;
+            x.lb.at(t, t0);
+            x.rule.style.transform = `scaleX(${t0 == null ? 1 : out(P(t, t0 - 0.05, 0.2))})`;
+            x.ld.style.clipPath = `inset(-12px ${(1 - (t0 == null ? 1 : P(t, x.lb.end(t0), 0.18))) * 100}% -12px 0)`;
+          }
+        },
+      };
+    },
+
+    // 2. label and value, typed row by row; a gold underline; a stamp on a value
+    list() {
+      const rows = S.rows || [], n = rows.length, { doc, body } = sheet();
+      const [ls, vs] = S.sizes ?? (n <= 2 ? [58, 76] : n === 3 ? [46, 58] : n === 4 ? [40, 48] : n <= 6 ? [36, 42] : [32, 36]);
+      const wrap = el("rows ls", body);
+      const R = rows.map((r) => {
+        const row = el("row" + (r.stamp && r.stamp.big ? " big" : ""), wrap), rule = el("rule", row), lbBox = el("lb", row), vlBox = el("vl", row);
+        lbBox.style.fontSize = `${ls}px`; vlBox.style.fontSize = `${vs}px`;
+        return { r, row, rule, lbBox, vlBox, lb: typed(lbBox, tr(r.label), true), vl: typed(vlBox, tr(r.value), true) };
+      });
+      return {
+        layout() {
+          const lw = Math.max(...R.map((x) => rect(x.lb.el).width)) + 34;
+          for (const x of R) x.lbBox.style.width = `${Math.ceil(lw)}px`;
+          const paper = inset(rect(doc), 12);
+          for (const x of R) {
+            if (!x.r.stamp) continue;
+            const cell = rect(x.vlBox), b = rect(x.row), big = !!x.r.stamp.big;
+            const room = paper.right - rect(x.lb.el).right - 4;
+            x.st = addStamp(x.r.stamp, big ? { fit: Math.min(600, room * 0.92), max: 90, rot: -8 } : { size: Math.round(vs * 0.96), rot: -3 });
+            const over = x.vl.n ? rect(x.vl.on.parentNode) : null, last = over ? [...x.vl.el.getClientRects()].pop() : null;
+            place(x.st, last ? last.right + x.st.w * 0.24 : cell.left + x.st.w / 2 - (big ? 22 : 4), (last ? last.top + last.height / 2 : b.top + b.height / 2) + (big ? 6 : 0), paper);
+          }
+        },
+        update(t) {
+          for (const x of R) {
+            const t0 = x.r.t, tv = x.r.vt ?? (t0 == null ? null : x.lb.end(t0) + 0.1);
+            x.lb.at(t, t0); x.vl.at(t, tv);
+            x.rule.style.transform = `scaleX(${t0 == null ? 1 : out(P(t, t0 - 0.05, 0.2))})`;
+            if (x.r.mark) {
+              const tm = (typeof x.r.mark === "object" ? x.r.mark.t : null) ?? (tv == null ? -99 : x.vl.end(tv) + 0.12);
+              x.lb.mark(out(P(t, tm, 0.14))); x.vl.mark(out(P(t, tm + 0.1, 0.22)));
+            }
+          }
+        },
+      };
+    },
+
+    // 3. two boxes, two arrows, and a marker that goes round
+    loop() {
+      const { doc, body, bodyH } = sheet();
+      const wrap = el("lp", body); wrap.style.cssText = "position:absolute;inset:0";
+      const W = 896, H = bodyH, cx = W / 2;
+      const hasCt = S.counter != null && S.counter !== false;
+      const ctH = hasCt ? 78 : 0;
+      const b1h = Math.round((H - ctH) * 0.23), b2h = Math.round((H - ctH) * 0.31), gap = H - ctH - b1h - b2h - 22;
+      const y1 = 14, yA = y1 + b1h, yB = yA + gap, ax = 186, sag = 64;   // two arcs of a circle, like brackets: ( )
+      const RAD = ((gap * gap) / 4 + sag * sag) / (2 * sag);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      wrap.appendChild(svg);
+      const mkPath = (d) => { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); p.setAttribute("fill", "none"); p.setAttribute("stroke", "#14201a"); p.setAttribute("stroke-width", 6); p.setAttribute("stroke-linecap", "round"); svg.appendChild(p); return p; };
+      const mkHead = () => { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", "M0 0 L-34 -17 L-26 0 L-34 17 Z"); p.setAttribute("fill", "#14201a"); svg.appendChild(p); return p; };
+      const arcs = [
+        mkPath(`M ${cx + ax} ${yA} A ${RAD} ${RAD} 0 0 1 ${cx + ax} ${yB}`),   // right, going down
+        mkPath(`M ${cx - ax} ${yB} A ${RAD} ${RAD} 0 0 1 ${cx - ax} ${yA}`),   // left, going up
+      ].map((p) => {
+        const L = p.getTotalLength(), a = p.getPointAtLength(0), a2 = p.getPointAtLength(2), z = p.getPointAtLength(L), z2 = p.getPointAtLength(L - 2);
+        const T0 = [(a2.x - a.x) / 2, (a2.y - a.y) / 2], T1 = [(z.x - z2.x) / 2, (z.y - z2.y) / 2];
+        p.setAttribute("stroke-dasharray", `${L} ${L}`);
+        const head = mkHead();
+        head.setAttribute("transform", `translate(${z.x} ${z.y}) rotate(${(Math.atan2(T1[1], T1[0]) * 180) / Math.PI})`);
+        const pt = (s) => (s < 0 ? [a.x + s * T0[0], a.y + s * T0[1]] : s > L ? [z.x + (s - L) * T1[0], z.y + (s - L) * T1[1]] : (() => { const q = p.getPointAtLength(s); return [q.x, q.y]; })());
+        return { p, L, head, pt };
+      });
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("r", 17); dot.setAttribute("fill", "#b3261e"); dot.setAttribute("stroke", "#f6f1e5"); dot.setAttribute("stroke-width", 5); svg.appendChild(dot);
+      const texts = (S.boxes || []).map((b) => String(tr(typeof b === "object" && b && "text" in b ? b.text : b)));
+      const mkBox = (text, y, h, w, fs) => {
+        const bx = el("bx", wrap), i = text.indexOf(":");
+        bx.style.cssText = `left:${cx - w / 2}px;top:${y}px;width:${w}px;height:${h}px`;
+        if (i > 0 && i < text.length - 1) el("k", bx).textContent = text.slice(0, i + 1);
+        const m = el("m", bx); m.textContent = i > 0 && i < text.length - 1 ? text.slice(i + 1).trim() : text; m.style.fontSize = `${fs}px`;
+        return { bx, fl: el("fl", bx), m, w };
+      };
+      const B = [mkBox(texts[0] || "", y1, b1h, 600, 58), mkBox(texts[1] || "", yB, b2h, 820, 50)];
+      let ct = null, num = null;
+      if (hasCt) { ct = el("ct", wrap); ct.style.top = `${yB + b2h + 30}px`; ct.append(String(tr(S.counter))); num = el("", ct, "b"); }
+      const go = S.go ?? 0.5, lap = S.lap ?? 1.4, half = lap / 2, TRAVEL = 0.74, EXT = 46;
+      let st = null;
+      return {
+        layout() {
+          for (const b of B) {   // text too long for its box wraps, then shrinks until it fits (never under 30 px)
+            let fs = parseFloat(b.m.style.fontSize);
+            const room = b.bx.clientHeight - 18 - (b.m.previousSibling ? b.m.previousSibling.offsetHeight + 10 : 0);
+            while (fs > 30 && (b.m.offsetHeight > room || b.m.scrollWidth > b.m.clientWidth + 1)) { fs -= 2; b.m.style.fontSize = `${fs}px`; }
+          }
+          if (S.stamp) { const r = rect(wrap); st = addStamp(S.stamp, { big: true, fit: 800, max: 96 }); place(st, r.left + cx, r.top + (yA + yB) / 2, inset(rect(doc), 12)); }
+        },
+        update(t) {
+          const u = t - go, k = Math.floor(u / half);          // k: which half-lap (even: going down on the right; odd: going up on the left)
+          const q = u < 0 ? 0 : (u - k * half) / half;       // 0..1 inside this half-lap
+          const arc = arcs[((k % 2) + 2) % 2], pos = (v) => arc.pt(-EXT + (arc.L + 2 * EXT) * io(v / TRAVEL));
+          const show = u >= 0 && q <= TRAVEL;                // the rest of the half-lap it is inside the box
+          dot.setAttribute("visibility", show ? "visible" : "hidden");
+          if (show) { const [x, y] = pos(q); dot.setAttribute("cx", x.toFixed(1)); dot.setAttribute("cy", y.toFixed(1)); }
+          // the first lap draws the arrows; after it they are simply there
+          arcs.forEach((a, i) => {
+            const t0 = go + i * half, pr = clamp((io(P(t, t0, half * TRAVEL)) * (a.L + 2 * EXT) - EXT) / a.L);
+            a.p.setAttribute("stroke-dashoffset", (a.L * (1 - pr)).toFixed(1));
+            a.p.setAttribute("visibility", pr > 0 ? "visible" : "hidden");
+            a.head.setAttribute("visibility", pr >= 0.985 ? "visible" : "hidden");
+          });
+          // the bottom box appears as the marker first reaches it; each box flashes when the marker arrives
+          const tb = go + half * TRAVEL - 0.08, a2 = P(t, tb, 0.14);
+          B[1].bx.style.visibility = t >= tb ? "visible" : "hidden";
+          B[1].bx.style.transform = `scale(${0.94 + 0.06 * back(a2)})`;
+          B[1].bx.style.opacity = Math.min(1, a2 * 2.4);
+          B.forEach((b, i) => {
+            const first = go + half * TRAVEL + (i === 0 ? half : 0), m = t < first ? -1 : (t - first) % lap;
+            b.fl.style.opacity = m < 0 ? 0 : 0.9 * (1 - P(m, 0.04, 0.26));
+          });
+          if (ct) {
+            const nA = u < 0 ? 0 : Math.floor(u / lap) + 1, since = u < 0 ? 9 : u - (nA - 1) * lap;
+            ct.style.visibility = nA ? "visible" : "hidden";
+            num.textContent = nA;
+            num.style.transform = `scale(${1 + 0.32 * (1 - out(P(since, 0, 0.22)))})`;
+          }
+        },
+      };
+    },
+
+    // 4. names on cards, turned over one at a time
+    cards() {
+      const names = (S.names || []).map((x) => String(tr(x))), n = names.length, cols = 3, rowsN = Math.ceil(n / cols);
+      const hasLine = !!(S.file || S.title);
+      if (hasLine) { const f = el("fline", scene); f.style.top = `${TOP + 2}px`; el("f", f, "span").textContent = tr(S.file); el("tt", f, "span").textContent = tr(S.title); }
+      const top = TOP + (hasLine ? 68 : 0), gap = 22, x0 = 48, W = 984;
+      const cw = (W - (cols - 1) * gap) / cols, ch = Math.min(250, (BOTTOM - top - (rowsN - 1) * gap) / rowsN);
+      const y0 = top + (BOTTOM - top - rowsN * ch - (rowsN - 1) * gap) / 2;
+      const win = S.win != null ? (typeof S.win === "object" ? S.win : { i: S.win, t: S.win_t ?? 0 }) : null;
+      const lines = names.map((s) => (s.includes("\n") ? s : s.replace(/^(\S+['’]S) (?=\S)/i, "$1\n")));
+      const longest = Math.max(1, ...lines.flatMap((s) => s.split("\n").map((l) => l.length)));
+      const fs = Math.min(40, Math.floor((cw - 30) / (0.6 * longest)));
+      const order = (S.order || names.map((_, i) => i)).filter((i) => !win || i !== win.i);
+      const flipAt = {}; (S.flips || []).forEach((tt, k) => { if (order[k] != null) flipAt[order[k]] = tt; });
+      const C = names.map((_, i) => {
+        const c = el("card" + (win && win.i === i ? " win" : ""), scene), col = i % cols, row = Math.floor(i / cols);
+        const x = x0 + col * (cw + gap), y = y0 + row * (ch + gap);
+        c.style.cssText = `left:${x}px;top:${y}px;width:${cw}px;height:${ch}px`;
+        const front = el("face front", c), back = el("face back", c);
+        for (const f of [front, back]) { const nm = el("nm", f); nm.textContent = lines[i]; nm.style.fontSize = `${fs}px`; }
+        el("st", back).textContent = String(tr(win && win.i === i ? S.won ?? "SUCCESSFUL" : S.lose ?? "UNSUCCESSFUL"));
+        const sh = [el("sh", front), el("sh", back)];
+        return { c, front, back, sh, x: x + cw / 2, y: y + ch / 2, t: win && win.i === i ? win.t : flipAt[i] };
+      });
+      const BIG = Math.min(2.15, 720 / cw), midX = 540, midY = y0 + (rowsN * ch + (rowsN - 1) * gap) / 2;
+      const upNote = note();
+      return {
+        layout() {},
+        update(t) {
+          C.forEach((k, i) => {
+            const isWin = !!win && win.i === i, d = isWin ? 0.6 : 0.25;
+            const p = k.t == null ? 0 : P(t, k.t, d), a = io(p) * 180, lift = Math.sin(Math.PI * p);
+            const e = isWin ? io(P(t, k.t, d)) : 0;
+            const tx = isWin ? (midX - k.x) * e : 0, ty = isWin ? (midY - k.y) * e : 0, sc = isWin ? 1 + (BIG - 1) * e : 1 + 0.07 * lift;
+            k.c.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) perspective(1100px) rotateY(${(a < 90 ? a : a - 180).toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+            k.c.style.zIndex = isWin && p > 0 ? 30 : p > 0 && p < 1 ? 20 : 1;
+            k.front.style.visibility = a < 90 ? "visible" : "hidden";
+            k.back.style.visibility = a < 90 ? "hidden" : "visible";
+            const dark = 0.5 * Math.sin(Math.PI * p);
+            k.sh[0].style.opacity = k.sh[1].style.opacity = dark.toFixed(3);
+            k.c.style.opacity = win && !isWin ? 1 - 0.74 * P(t, win.t + 0.1, 0.3) : 1;
+          });
+          upNote(t);
+        },
+      };
+    },
+
+    // 5. a strip of days with tiles on rows
+    week() {
+      const days = (S.days || []).map((d, i) => (d && typeof d === "object" && "name" in d ? { name: String(tr(d.name)), date: String(tr(d.date ?? "")) } : { name: String(tr(d)), date: String(tr((S.dates || [])[i] ?? "")) }));
+      const n = Math.max(1, days.length), tiles = S.tiles || [], m = Math.max(1, tiles.length);
+      const hasDates = days.some((d) => d.date);
+      const headH = S.title ? 100 : 26, dayH = hasDates ? 132 : 96, band = BOTTOM - TOP;
+      const laneH = clamp((band - headH - dayH - 30) / m, 110, 200);
+      const height = headH + dayH + m * laneH + 30, top = TOP + (band - height) / 2;
+      const { doc, body } = sheet(top, height);
+      const wrap = el("wk", body); wrap.style.cssText = "position:absolute;inset:0 -14px";   // the strip runs a little wider than a document's text
+      const W = 896 + 28, colW = W / n, tileW = Math.min(colW - 18, 320), tileH = Math.min(laneH - 34, 150);
+      const nameFs = Math.min(52, Math.floor((colW - 16) / (0.6 * Math.max(3, ...days.map((d) => d.name.length)))));
+      days.forEach((d, i) => {
+        const c = el("dy", wrap); c.style.cssText = `left:${i * colW}px;width:${colW}px;top:${hasDates ? 14 : 22}px`;
+        const nm = el("n", c); nm.textContent = d.name; nm.style.fontSize = `${nameFs}px`;
+        if (hasDates) el("d", c).textContent = d.date;
+        if (i) { const l = el("cl", wrap); l.style.cssText = `left:${i * colW}px;top:${dayH + 10}px;height:${m * laneH}px`; }
+      });
+      const hr = el("hr", wrap); hr.style.top = `${dayH}px`;
+      for (let j = 1; j < m; j++) el("ln", wrap).style.top = `${dayH + 10 + j * laneH}px`;
+      const X = (day) => day * colW + (colW - tileW) / 2, Y = (j) => dayH + 10 + j * laneH + (laneH - tileH) / 2 + 4;
+      const T = tiles.map((tl, j) => {
+        const moves = [].concat(tl.move || []).slice().sort((a, b) => a.t - b.t);
+        let gh = null;
+        if (moves.length) { gh = el("gh", wrap); gh.style.cssText = `left:${X(tl.day)}px;top:${Y(j)}px;width:${tileW}px;height:${tileH}px`; }
+        const e = el("tl" + (tl.main ? " main" : "") + (tl.pin ? " pin" : ""), wrap);
+        e.style.cssText = `left:0;top:${Y(j)}px;width:${tileW}px;height:${tileH}px`;
+        const label = String(tr(tl.label)), words = label.split(/\s+/), inner = tileW - 24;
+        const fs = Math.max(24, Math.min(38, Math.floor(inner / (0.6 * Math.max(...words.map((w) => w.length))))));
+        const sp = el("", e, "span"); sp.textContent = label; e.style.fontSize = `${fs}px`;
+        if (tl.pin) el("ph", e);
+        let tg = null;
+        if (tl.tag) { e.style.paddingTop = "12px"; tg = el("tg", e); tg.textContent = String(tr(typeof tl.tag === "object" && "text" in tl.tag ? tl.tag.text : tl.tag)); }
+        return { tl, e, gh, tg, moves, j };
+      });
+      let cnt = null;
+      if (S.count) {
+        const c = S.count, box = el("count", scene), l1 = el("l1", box);
+        const old = el("old", l1, "span"); el("", old, "b").textContent = c.from; const strike = el("", old, "i");
+        const nw = el("new", l1, "span"), nb = el("", nw, "b"); nb.textContent = c.to ?? "";
+        el("lab", l1, "span").textContent = String(tr(c.label ?? ""));
+        if (c.sub) el("l2", box).textContent = String(tr(c.sub));
+        cnt = { c, old, strike, nw, nb, w: 0 };
+      }
+      const upNote = note();
+      let st = null;
+      return {
+        layout() {
+          if (cnt) cnt.w = cnt.nb.offsetWidth;
+          if (S.stamp) {
+            // the stamp lands across the tile rows, at the place nearest their middle where it covers least of the tiles
+            const r = rect(wrap), paper = inset(rect(doc), 12);
+            st = addStamp(S.stamp, { big: true, fit: Math.min(760, W * 0.7), max: 150 });
+            const a = (Math.abs(st.rot) * Math.PI) / 180, hw = (st.w * Math.cos(a) + st.h * Math.sin(a)) / 2, hh = (st.w * Math.sin(a) + st.h * Math.cos(a)) / 2;
+            const x0 = r.left + W / 2, y0 = r.top + dayH + 10 + (m * laneH) / 2, yMin = r.top + dayH + 4 + hh, yMax = Math.max(yMin, paper.bottom - hh);
+            const boxes = T.map((k) => { const day = k.moves.length ? k.moves[k.moves.length - 1].to : k.tl.day, x = r.left + X(day), y = r.top + Y(k.j); return [x - 4, y - (k.tg || k.tl.pin ? 26 : 4), x + tileW + (k.tg ? 16 : 4), y + tileH + 4]; });
+            let best = [x0, clamp(y0, yMin, yMax)], score = Infinity;
+            for (let cx = paper.left + hw; cx <= paper.right - hw; cx += 10) for (let cy = yMin; cy <= yMax; cy += 10) {
+              let v = 55 * (Math.abs(cx - x0) + Math.abs(cy - y0));
+              for (const [bx0, by0, bx1, by1] of boxes) v += Math.max(0, Math.min(cx + hw, bx1) - Math.max(cx - hw, bx0)) * Math.max(0, Math.min(cy + hh, by1) - Math.max(cy - hh, by0));
+              if (v < score) { score = v; best = [cx, cy]; }
+            }
+            place(st, best[0], best[1], paper);
+          }
+        },
+        update(t) {
+          for (const k of T) {
+            let day = k.tl.day, land = null, started = false;
+            for (const mv of k.moves) { const a = P(t, mv.t, 0.3); if (a > 0) started = true; day += (mv.to - day) * io(a); if (land == null) land = mv.t + 0.3; }
+            const ap = k.tl.t == null ? 1 : P(t, k.tl.t, 0.18), cl = k.tl.clash ? P(t, k.tl.clash.t, 0.12) : 0, pulse = k.tl.clash ? Math.sin(Math.PI * P(t, k.tl.clash.t, 0.34)) : 0;
+            k.e.style.visibility = ap > 0 ? "visible" : "hidden";
+            k.e.style.opacity = Math.min(1, ap * 2);
+            k.e.style.transform = `translate(${X(day).toFixed(1)}px, ${((1 - out(ap)) * -18).toFixed(1)}px) scale(${(1 + 0.08 * pulse).toFixed(4)})`;
+            if (k.tl.clash) { k.e.classList.toggle("hot", cl > 0); k.e.style.zIndex = cl > 0 ? 5 : ""; }
+            if (k.gh) k.gh.style.visibility = started ? "visible" : "hidden";
+            if (k.tg) {
+              const tt = (typeof k.tl.tag === "object" ? k.tl.tag.t : null) ?? (land == null ? -99 : land - 0.04), a = P(t, tt, 0.14);
+              k.tg.style.visibility = a > 0 ? "visible" : "hidden";
+              k.tg.style.transform = `rotate(4deg) scale(${(1.5 - 0.5 * out(a)).toFixed(3)})`;
+              k.tg.style.opacity = Math.min(1, a * 2.5);
+            }
+          }
+          if (cnt) {
+            const c = cnt.c, has = c.to != null, a = has ? P(t, c.t ?? 0, 0.14) : 0, b = has ? P(t, (c.t ?? 0) + 0.12, 0.16) : 0;
+            cnt.strike.style.transform = `rotate(-9deg) scaleX(${out(a)})`;
+            cnt.old.style.opacity = 1 - 0.42 * a;
+            cnt.nw.style.width = `${(cnt.w * out(b)).toFixed(1)}px`;
+            cnt.nw.style.opacity = Math.min(1, b * 2);
+          }
+          upNote(t);
+        },
+      };
+    },
+  };
+
+  const build = SCENES[S.scene];
+  const sc = build ? build() : { layout() {}, update() {} };
+  const upDocNote = S.scene === "cards" || S.scene === "week" || !build ? () => {} : note();
+
+  if (S.guides) {
+    const g = document.getElementById("guides");
+    const band = (y0, y1, css) => { const d = el("", g); d.style.cssText = `top:${y0}px;height:${y1 - y0}px;${css}`; };
+    band(1250, 1480, "background:rgba(255,0,200,0.22);border:2px solid #f0c");            // the caption lane
+    band(262, 1588, "left:40px;right:40px;border:2px dashed rgba(0,220,255,0.8)");        // where everything that matters sits
+    band(250, 1600, "border-top:2px solid #ff0;border-bottom:2px solid #ff0");            // the 4:5 crop
+    band(262, 404, "left:620px;right:40px;background:rgba(255,160,0,0.22);border:2px solid #fa0");  // the day tag and the chip
+  }
+
+  window.seek = (t) => {
+    let dx = 0, dy = 0;
+    for (const s of stamps) { const u = t - s.t; Stamp.pose(s.el, u); const [a, b] = Stamp.shake(u, s.amp); dx += a; dy += b; }
+    scene.style.transform = dx || dy ? `translate(${dx}px, ${dy}px)` : "none";
+    sc.update(t);
+    upDocNote(t);
+  };
+  window.__ready = Promise.all([document.fonts.ready, document.fonts.load('900 60px "Mont"'), document.fonts.load('800 60px "Mont"'), document.fonts.load('600 60px "Mont"')])
+    .then(() => document.fonts.ready).then(() => { sc.layout(); window.seek(0); return true; });
+</script>
+</body>
+</html>

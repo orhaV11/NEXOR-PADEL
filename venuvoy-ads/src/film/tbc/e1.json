@@ -1,0 +1,107 @@
+{
+  "slug": "tbc-e1",
+  "title": "Episode 1: Should Be Fine",
+  "out": "ads/16-tbc/venuvoy-tbc-e1",
+  "fps": 24,
+  "duck_from": 0.0,
+  "duck_mode": "voice",
+  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
+  "labels": [
+    { "text": "LAST SEASON", "from": -0.2, "to": "drain", "x": 60, "y": 306 },
+    { "text": "VENUVOY", "from": "munich", "to": "chatA", "y": 258, "cls": "bug" },
+    { "text": "VENUVOY", "from": "maya1", "to": "chatB", "y": 258, "cls": "bug" },
+    { "text": "VENUVOY", "from": "maya2", "to": "chatC", "y": 258, "cls": "bug" },
+    { "text": "96 DAYS BEFORE*", "small": "*to be confirmed", "from": "chatA", "to": "signoff", "y": 262, "xr": 1040 }
+  ],
+  "sources": {
+    "jo": { "path": "src/film/assets/apa/clips/j06_maybe_a.mp4" },
+    "munich": { "path": "src/film/assets/apa/clips/munich_a.mp4", "bus": "fx", "fixed_gain_db": -3, "fix": [
+      { "key": { "hue": [170, 8], "s_min": 120, "v": [40, 255], "to_hue": 70, "s": 0.8, "v_gain": 0.75, "open": 5, "dilate": 5, "feather": 3, "region": [0, 980, 150, 1330] } },
+      { "key": { "hue": [170, 8], "s_min": 120, "v": [40, 255], "to_hue": 70, "s": 0.8, "v_gain": 0.75, "open": 5, "dilate": 5, "feather": 3, "region": [930, 980, 1080, 1330] } } ] },
+    "maya": { "path": "src/film/assets/tbc/shots/e1_s1.mp4", "level": -17 },
+    "chat": { "path": "src/film/assets/tbc/scenes/e1_chat.mp4" },
+    "rcpt": { "path": "src/film/assets/tbc/scenes/e1_receipts.mp4" },
+    "gran": { "path": "src/film/assets/apa/clips/j22_gran_a.mp4" }
+  },
+  "narration": [
+    { "file": "src/film/assets/tbc/vo/en/e1_n1.wav", "at": "munich+0.25",
+      "text": "Eight people planned that trip. | Two arrived. | Neither was in the chat." },
+    { "file": "src/film/assets/tbc/vo/en/e1_n2.wav", "at": "drain+0.15",
+      "text": "This season they are doing it properly." },
+    { "file": "src/film/assets/tbc/vo/en/e1_n3.wav", "at": "chatA+0.3", "y": 1288, "gain_db": -1.5,
+      "text": "The dates came out at seven." },
+    { "file": "src/film/assets/tbc/vo/en/e1_n4.wav", "at": "chatB+0.7", "gain_db": 1.0 },
+    { "file": "src/film/assets/tbc/vo/en/e1_n5.wav", "at": "chatC+0.3", "y": 1288,
+      "text": "The organiser had removed 'maybe'." },
+    { "file": "src/film/assets/tbc/vo/en/e1_n6.wav", "at": "chatC+4.65", "y": 1288, "gain_db": 1.0,
+      "text": "Danny has been typing since Tuesday." }
+  ],
+  "music": [
+    { "file": "src/film/assets/apa/clips/munich_a.mp4", "at": "munich", "offset": 0.3, "until": "drain+0.45", "gain_db": -19.5, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.55 },
+    { "file": "src/film/assets/apa/audio/bed_crowd.mp3", "at": "munich", "offset": 0.0, "until": "drain+0.45", "gain_db": -19.5, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.55 },
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "drain", "offset": 3.0, "gain_db": -12, "duck_db": 0, "fade_in": 0.5, "fade_out": 0.02 }
+  ],
+  "sfx": [
+    { "file": "src/film/assets/apa/clips/munich_a.mp4", "trim": [0.0, 0.3], "at": "munich", "gain_db": -12, "fade_in": 0.01, "fade_out": 0.22 },
+    { "synth": "cup", "at": "freeze", "gain_db": -12 },
+    { "synth": "sys_tick", "at": "freeze+0.125", "gain_db": -8 },
+    { "synth": "sys_tick", "at": "freeze+0.44", "gain_db": -8 },
+    { "synth": "thud", "at": "stamp+0.06", "gain_db": -6 },
+
+    { "synth": "msg", "at": "chatA+2.2", "gain_db": -10 },
+    { "synth": "sys_tick", "at": "chatA+3.05", "gain_db": -6 },
+    { "synth": "typing", "args": [0.7, 0.11, 61], "at": "chatA+3.6", "gain_db": -26 },
+
+    { "synth": "msg", "at": "chatB+0.12", "gain_db": -15 },
+    { "synth": "typing", "args": [3.5, 0.11, 62], "at": "chatB+0.05", "gain_db": -26 },
+
+    { "synth": "msg", "at": "chatC+0.1", "gain_db": -15 },
+    { "synth": "typing", "args": [4.35, 0.11, 63], "at": "chatC+0.05", "gain_db": -26 },
+    { "synth": "vote", "args": [0], "at": "chatC+0.9", "gain_db": -12 },
+    { "synth": "sys_tick", "at": "chatC+2.6", "gain_db": -6 },
+    { "synth": "vote", "args": [1], "at": "chatC+2.95", "gain_db": -10 },
+    { "synth": "vote", "args": [2], "at": "chatC+3.19", "gain_db": -10 },
+    { "synth": "vote", "args": [3], "at": "chatC+3.43", "gain_db": -10 },
+    { "synth": "vote", "args": [4], "at": "chatC+3.67", "gain_db": -10 },
+    { "synth": "vote", "args": [5], "at": "chatC+3.91", "gain_db": -10 },
+    { "synth": "typing", "args": [2.6, 0.11, 64], "at": "chatC+4.45", "gain_db": -21 },
+
+    { "synth": "clock_tick", "at": "signoff+0.15", "gain_db": -8 },
+    { "synth": "cup", "at": "signoff+0.55", "gain_db": -10 },
+    { "synth": "two_note", "at": "signoff+0.75", "gain_db": -12 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 }
+  ],
+  "segments": [
+    { "src": "jo", "in": 0.05, "out": 1.30, "punch": 1.06, "cx": 0.42, "cy": 0.30, "marks": { "open": 0.05 },
+      "line": "We voted on the dates. | Maybe won." },
+    { "src": "jo", "in": 2.25, "out": 4.0, "punch": 1.16, "cx": 0.42, "cy": 0.34, "pop": 0, "marks": { "maybe": 2.25 },
+      "cap": { "text": "Maybe won.", "at": 0.27, "len": 0.62, "hold": 0.86 } },
+
+    { "src": "munich", "in": 2.3333, "out": 4.5, "mute": true, "marks": { "munich": 2.3333 } },
+    { "src": "munich", "in": 4.5, "out": 4.542, "hold": 2.7917, "mute": true, "pop": 0, "zoom": { "from": 1.0, "to": 1.04, "cx": 0.5, "cy": 0.3 }, "marks": { "freeze": 4.5 },
+      "gfx": [ { "type": "pin", "arrow": "up", "at": 0.125, "x": 562, "y": 880, "size": 40, "label": "Danny's grandmother" },
+               { "type": "pin", "arrow": "up", "at": 0.44, "x": 236, "y": 545, "size": 44, "label": "Danny" } ] },
+    { "src": "munich", "in": 4.5, "out": 4.542, "hold": 2.2917, "mute": true, "pop": 0, "zoom": { "from": 1.04, "to": 1.07, "cx": 0.5, "cy": 0.3 }, "marks": { "drain": 4.5 },
+      "drain": { "at": 0.0, "ramp": 0.6, "to": 0.92, "gain": 0.92 } },
+    { "src": "munich", "in": 4.5, "out": 4.542, "hold": 0.7917, "mute": true, "pop": 0, "zoom": { "from": 1.07, "to": 1.07, "cx": 0.5, "cy": 0.3 }, "marks": { "stamp": 4.5 },
+      "drain": { "from_start": true, "to": 0.92, "gain": 0.92 },
+      "gfx": [ { "type": "stamp", "at": 0.0, "hit": 0.0, "text": "TO BE\nCONFIRMED", "small": "EPISODE 1", "x": 540, "y": 1040, "size": 100, "rot": -8, "color": "bright" } ],
+      "jolt": [ { "at": 0.0, "amp": 16 } ] },
+
+    { "src": "chat", "in": 0.0, "out": 4.3333, "mute": true, "pop": 0, "marks": { "chatA": 0.0 } },
+
+    { "src": "maya", "in": 0.45, "out": 2.05, "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya1": 0.45 },
+      "lt": { "name": "MAYA", "what": "ORGANISER, UNOPPOSED", "at": 0.08, "y": 1085 },
+      "line": "I made a spreadsheet. | I wanted to check the link worked." },
+
+    { "src": "rcpt", "in": 0.0, "out": 3.6667, "mute": true, "pop": 0, "punch": 1.6, "cx": 0.037, "cy": 0.7083, "marks": { "chatB": 0.0 } },
+
+    { "src": "maya", "in": 2.25, "out": 4.125, "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya2": 2.25 },
+      "line": "I wanted to check | the link worked." },
+
+    { "src": "chat", "in": 8.0, "out": 15.125, "mute": true, "pop": 0, "marks": { "chatC": 8.0 } },
+
+    { "src": "gran", "in": 3.70, "out": 4.62, "fit": 1.8, "mute": true, "zoom": { "from": 1.10, "to": 1.17, "cx": 0.75, "cy": 0.8 }, "marks": { "signoff": 3.70 },
+      "gfx": [ { "type": "status", "at": 0.0, "name": "DANNY'S GRANDMOTHER", "status": "NOTHING BOOKED.", "foot": "Next episode: Thursday. Confirmed." } ] }
+  ]
+}

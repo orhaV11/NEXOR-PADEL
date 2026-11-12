@@ -1,0 +1,4 @@
+{ "dur": 5.2, "scene": "loop", "file": "THE STUDY · FILE 03", "title": "HOW TO BUY A TICKET",
+  "boxes": [ "BUY A TICKET", "REQUIRED: A TICKET BOUGHT BEFORE" ],
+  "go": 0.3, "lap": 1.24,
+  "stamp": { "t": 3.96, "text": "NOT ELIGIBLE" } }

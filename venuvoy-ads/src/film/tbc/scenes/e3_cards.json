@@ -1,0 +1,5 @@
+{ "dur": 6.6, "scene": "cards", "file": "THE STUDY · FILE 03", "title": "BALLOT FOR ONE TICKET",
+  "names": [ "JO'S DAD", "LEE'S LANDLORD", "VIC'S FATHER-IN-LAW", "PRIYA'S BROTHER", "MARCUS'S NEIGHBOUR",
+             "MAYA'S COUSIN", "LEE'S SISTER", "VIC'S DENTIST", "DANNY'S GRANDMOTHER" ],
+  "flips": [ 0.35, 0.58, 0.81, 1.04, 1.27, 1.50, 1.73, 1.96 ],
+  "win": { "i": 8, "t": 2.65 } }

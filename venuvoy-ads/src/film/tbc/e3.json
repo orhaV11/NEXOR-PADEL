@@ -1,0 +1,109 @@
+{
+  "slug": "tbc-e3",
+  "title": "Episode 3: A History of Buying Tickets",
+  "out": "ads/16-tbc/venuvoy-tbc-e3",
+  "fps": 24,
+  "duck_from": 0.0,
+  "duck_mode": "voice",
+  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
+
+  "labels": [
+    { "text": "VENUVOY", "from": "loop", "to": "chat1", "y": 258, "cls": "bug" },
+    { "text": "VENUVOY", "from": "cards", "to": "chat2", "y": 258, "cls": "bug" },
+    { "text": "VENUVOY", "from": "gran", "to": "signoff", "y": 258, "cls": "bug" },
+    { "text": "61 DAYS BEFORE*", "small": "*to be confirmed", "from": "loop", "to": "signoff", "y": 262, "xr": 1040 }
+  ],
+
+  "sources": {
+    "vic":   { "path": "src/film/assets/tbc/shots/e3_s1.mp4", "level": -19 },
+    "loop":  { "path": "src/film/assets/tbc/scenes/e3_loop.mp4" },
+    "chat":  { "path": "src/film/assets/tbc/scenes/e3_chat.mp4" },
+    "cards": { "path": "src/film/assets/tbc/scenes/e3_cards.mp4" },
+    "gran":  { "path": "src/film/assets/tbc/clips/gran_go.mp4", "level": -18.8 }
+  },
+
+  "narration": [
+    { "file": "src/film/assets/tbc/vo/en/e3_n1.wav", "at": "loop+0.25", "gain_db": 0.7,
+      "text": "To buy a ticket, | a supporter needs | a history of buying tickets." },
+    { "file": "src/film/assets/tbc/vo/en/e3_n2a.wav", "at": "cards+0.2", "gain_db": -0.9,
+      "text": "The group put in nine names." },
+    { "file": "src/film/assets/tbc/vo/en/e3_n2b.wav", "at": "win-0.05", "gain_db": -1.2,
+      "text": "One came out." },
+    { "file": "src/film/assets/tbc/vo/en/e3_n2c.wav", "at": "win+1.4", "gain_db": -0.2,
+      "text": "The winner had not been asked." }
+  ],
+
+  "music": [
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "loop", "until": "vic2", "offset": 2.0, "gain_db": -19, "duck_db": 0, "fade_in": 0.04, "fade_out": 0.06 },
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "chat1", "until": "gran", "offset": 11.0, "gain_db": -19, "duck_db": 0, "fade_in": 0.06, "fade_out": 0.06 },
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "gran", "offset": 26.0, "gain_db": -17, "duck_db": 0, "fade_in": 0.06, "fade_out": 0.02 }
+  ],
+
+  "sfx": [
+    { "synth": "click", "at": "loop+0.76", "gain_db": -18 },
+    { "synth": "click", "at": "loop+1.38", "gain_db": -18 },
+    { "synth": "click", "at": "loop+2.0",  "gain_db": -18 },
+    { "synth": "click", "at": "loop+2.62", "gain_db": -18 },
+    { "synth": "click", "at": "loop+3.24", "gain_db": -18 },
+    { "synth": "thud", "at": "stamp+0.06", "gain_db": -7 },
+
+    { "synth": "vote", "args": [1], "at": "look+0.36", "gain_db": -9 },
+    { "synth": "vote", "args": [4], "at": "look+0.82", "gain_db": -9 },
+
+    { "synth": "msg", "at": "m_vic+0.04",  "gain_db": -10 },
+    { "synth": "msg", "at": "m_maya+0.04", "gain_db": -15 },
+    { "synth": "msg", "at": "m_lee+0.04",  "gain_db": -10 },
+
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+0.45", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+0.68", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+0.91", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+1.14", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+1.37", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+1.60", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+1.83", "gain_db": -15 },
+    { "synth": "click", "args": [0.02, 900, 3600], "at": "cards+2.06", "gain_db": -15 },
+    { "synth": "vote", "args": [5], "at": "win+0.58", "gain_db": -14 },
+
+    { "synth": "sys_tick", "at": "added+0.04", "gain_db": -4 },
+    { "synth": "sys_tick", "at": "left+0.04",  "gain_db": -9 },
+
+    { "synth": "clock_tick",              "at": "signoff-3.05", "gain_db": -12 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff-2.25", "gain_db": -12 },
+    { "synth": "clock_tick",              "at": "signoff-1.45", "gain_db": -12 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff-0.65", "gain_db": -12 },
+
+    { "synth": "clock_tick",              "at": "signoff+0.15", "gain_db": -8 },
+    { "synth": "cup",                     "at": "signoff+0.55", "gain_db": -10 },
+    { "synth": "two_note",                "at": "signoff+0.75", "gain_db": -12 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 }
+  ],
+
+  "segments": [
+    { "src": "vic", "in": 0.50, "out": 3.50, "punch": 1.08, "cx": 0.0, "cy": 0.0, "marks": { "open": 0.50 },
+      "lt": { "name": "VIC", "what": "IN. HUNDRED PERCENT.", "at": 0.2, "len": 2.3, "y": 1085 },
+      "line": "I buy tickets to matches | I can't go to." },
+
+    { "src": "loop", "in": 0.0, "out": 4.9583, "mute": true, "pop": 0, "marks": { "loop": 0.0, "stamp": 3.96 } },
+
+    { "src": "vic", "in": 4.46, "out": 5.96, "audio_out": 7.76, "a_fade_out": 0.12, "punch": 1.08, "cx": 0.0, "cy": 0.0, "marks": { "vic2": 4.46 },
+      "line": "Keeps my record up.", "no_caps": true,
+      "cap": { "text": "Keeps my record up.", "at": 0.14, "len": 1.0, "hold": 0.36 } },
+    { "src": "vic", "in": 5.96, "out": 7.40, "fit": 1.8, "mute": true, "pop": 0, "punch": 1.08, "cx": 0.0, "cy": 0.0, "marks": { "look": 5.96 },
+      "gfx": [ { "type": "counter", "at": 0.0, "x": 60, "y": 1050, "items": [
+                 { "label": "ATTENDED", "to": 11, "at": 0.0, "run": 0.3 },
+                 { "label": "BOUGHT", "to": 19, "at": 0.42, "run": 0.34 } ] } ] },
+
+    { "src": "chat", "in": 0.0, "out": 4.7083, "mute": true, "pop": 0, "marks": { "chat1": 0.0, "m_vic": 0.12, "m_maya": 1.25, "m_lee": 3.4583 } },
+
+    { "src": "cards", "in": 0.0, "out": 3.9167, "mute": true, "pop": 0, "marks": { "cards": 0.0, "win": 2.65 } },
+    { "src": "cards", "in": 3.9167, "out": 6.25, "mute": true, "pop": 0, "zoom": { "from": 1.0, "to": 1.03, "cx": 0.5, "cy": 0.52 } },
+
+    { "src": "chat", "in": 5.0, "out": 7.625, "mute": true, "pop": 0, "marks": { "chat2": 5.0, "added": 5.25, "left": 6.5 } },
+
+    { "src": "gran", "in": 0.15, "out": 3.35, "punch": 1.3, "cx": 0.7, "cy": 0.0, "marks": { "gran": 0.15 },
+      "line": "I'm not in the group chat. | I just go." },
+
+    { "src": "gran", "in": 3.35, "out": 5.25, "fit": 1.8, "mute": true, "pop": 0, "zoom": { "from": 1.3, "to": 1.36, "cx": 0.7, "cy": 0.0 }, "marks": { "signoff": 3.35 },
+      "gfx": [ { "type": "status", "at": 0.0, "name": "DANNY'S GRANDMOTHER", "status": "ONE TICKET. HER OWN.", "foot": "Next episode: Thursday. Confirmed." } ] }
+  ]
+}

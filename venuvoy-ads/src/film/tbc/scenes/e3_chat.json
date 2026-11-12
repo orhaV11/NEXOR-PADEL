@@ -1,0 +1,14 @@
+{ "dur": 8.0, "name": "Away trip – who's in?", "sub": "8 members",
+  "events": [
+    { "t": 0,    "type": "chip", "text": "OWE MAYA: 6" },
+    { "t": 0,    "type": "typingbar", "who": "Danny" },
+
+    { "t": 0.12, "type": "msg", "who": "Vic", "text": "Got six. All on my phone.", "time": "20:41" },
+    { "t": 1.25, "type": "msg", "who": "Maya", "me": true, "text": "One short. Put a name in for the last ticket. Any name.", "time": "20:42" },
+    { "t": 3.4583, "type": "msg", "who": "Lee", "text": "My landlord.", "time": "20:42" },
+
+    { "t": 5.25, "type": "sys", "text": "Maya added Danny's grandmother" },
+    { "t": 5.25, "type": "head", "sub": "9 members" },
+    { "t": 6.5,  "type": "sys", "text": "Danny's grandmother left" },
+    { "t": 6.5,  "type": "head", "sub": "8 members" }
+  ] }

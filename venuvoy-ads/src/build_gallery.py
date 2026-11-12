@@ -31,6 +31,16 @@ REEL_EN = "08-reel-en/venuvoy-reel-en_9x16_1080x1920.mp4"
 REEL_EN_15 = "08-reel-en/venuvoy-reel-en-15s_9x16_1080x1920.mp4"
 VID_FORMATS = [("story", "9:16", 1080, 1920), ("feed", "4:5", 1080, 1350)]
 CAMP = COPY["campaign"]
+SERIES = COPY.get("series")  # the community series: English only, not ads (no Meta copy; a post caption instead)
+
+
+def ep_mp4(ep, fmt="9x16_1080x1920"):
+    return f"{SERIES['folder']}/venuvoy-{ep['id']}-en_{fmt}.mp4"
+
+
+def episodes():
+    """the episodes that have been rendered (an episode still in the edit is left out of the page)"""
+    return [ep for ep in SERIES["episodes"] if (ADS / ep_mp4(ep)).exists()] if SERIES else []
 
 
 def spot_mp4(sp, lang, fmt="9x16_1080x1920"):
@@ -224,19 +234,61 @@ def reel_videos(full, short, poster, lang):
             "</div>")
 
 
-def body(img_src, full_src, vid_src, reels, camp_src=None, camp_poster=None):
-    """reels: (he_full, he_15, he_poster, en_full, en_15, en_poster); camp_*: (spot, lang) -> path"""
+def text_rows(prefix, rows):
+    """rows: (Hebrew label, small note, text). Each gets a copy button, like the Meta rows."""
+    out = []
+    for i, (he, note, text) in enumerate(rows):
+        rid = f"{prefix}-{i}"
+        out.append(
+            f'<div><dt>{e(he)}<small><span class="ltr">{e(note)}</span></small></dt>'
+            f'<dd id="{rid}" dir="ltr" lang="en">{e(text)}</dd>'
+            f'<span class="act"><button type="button" class="cp" data-for="{rid}">העתקה</button></span></div>'
+        )
+    return '<dl class="copy">' + "".join(out) + "</dl>"
+
+
+def series_parts(ser_src, ser_poster):
+    eps = episodes()
+    if not eps:
+        return []
+    parts = [
+        '<section class="entry" aria-labelledby="h-series"><div class="entry-h"><span class="no">●</span>'
+        f'<h2 id="h-series">הסדרה · <span class="ltr">{e(SERIES["title"])}</span></h2><span class="onimg">{e(SERIES["titleHe"])}</span></div>'
+        f'<p class="angle">{e(SERIES["angle"])}</p>'
+        + text_rows("series-bio", [("ביו לפרופיל", "Bio", SERIES["bio"])])
+        + '<p class="sub-h">תוכנית הפרסום</p><ol class="scenes">' + "".join(f"<li>{e(x)}</li>" for x in SERIES["plan"]) + "</ol></section>"
+    ]
+    for k, ep in enumerate(eps, start=1):
+        rows = [("כיתוב לפוסט", "Caption", ep["caption"])]
+        if ep.get("pinned"):
+            rows.append(("תגובה נעוצה", "Pinned comment", ep["pinned"]))
+        parts.append(
+            f'<section class="entry" aria-labelledby="h-{ep["id"]}"><div class="entry-h"><span class="no">{k}</span>'
+            f'<h2 id="h-{ep["id"]}"><span class="ltr">{e(ep["name"])}</span></h2><span class="onimg">{e(ep["when"])} · {e(ep.get("length", ""))}</span></div>'
+            f'<div class="reel"><div class="rv"><figure><video src="{e(ser_src(ep))}" poster="{e(ser_poster(ep))}" controls playsinline loop preload="metadata"></video>'
+            '<figcaption>English · <span class="ltr">9:16</span></figcaption></figure></div><div>'
+            + text_rows(ep["id"], rows)
+            + '<p class="basis">קיים גם ב־4:5 (<span class="ltr">1080×1350</span>) לפיד, באותה תיקייה. בלי מוצר, בלי מחיר ובלי כפתור: רק החתימה בסוף.</p>'
+            "</div></div></section>"
+        )
+    return parts
+
+
+def body(img_src, full_src, vid_src, reels, camp_src=None, camp_poster=None, ser_src=None, ser_poster=None):
+    """reels: (he_full, he_15, he_poster, en_full, en_15, en_poster); camp_*: (spot, lang) -> path; ser_*: episode -> path"""
     camp_src = camp_src or (lambda sp, l: f"ads/{spot_mp4(sp, l)}")
     camp_poster = camp_poster or (lambda sp, l: f"ads/{sp['folder']}/poster-{l}.jpg")
+    ser_src = ser_src or (lambda ep: f"ads/{ep_mp4(ep)}")
+    ser_poster = ser_poster or (lambda ep: f"ads/{SERIES['folder']}/poster-{ep['id']}.jpg")
     c = COPY
     parts = []
     parts.append(
         f'<header class="mast"><span class="lockup">{CREST}<span class="wordmark">Venuvoy</span></span>'
-        f'<span class="meta">קמפיין בינלאומי · 2 סרטונים ראשיים · 6 מודעות · עברית ואנגלית</span></header>'
+        f'<span class="meta">{"סדרה קומית · " if episodes() else ""}קמפיין בינלאומי · 2 סרטונים ראשיים · 6 מודעות · עברית ואנגלית</span></header>'
     )
     parts.append(
         '<h1>ערכת הקמפיין של <span class="g ltr">Venuvoy</span></h1>'
-        '<p class="lede">קמפיין בינלאומי של ארבעה סרטונים באנגלית ובעברית, סרטון ראשי בעברית ובאנגלית (35 שניות, וגרסה של 15 שניות לכל אחד), ושש מודעות וידאו בעברית (9:16 ו־4:5, 8 שניות). '
+        '<p class="lede">' + (f'חדש: <span class="ltr">{e(SERIES["title"])}</span>, סדרה קומית באנגלית לבניית קהילה ({len(episodes())} פרקים), בראש העמוד. אחריה: ' if episodes() else "") + 'קמפיין בינלאומי של ארבעה סרטונים באנגלית ובעברית, סרטון ראשי בעברית ובאנגלית (35 שניות, וגרסה של 15 שניות לכל אחד), ושש מודעות וידאו בעברית (9:16 ו־4:5, 8 שניות). '
         "לכל הסרטונים מוזיקה מקורית. כל מודעה קיימת גם כתמונה בארבעה גדלים. כל משחק, מחיר ושעה לקוחים מהמוצר עצמו: תוכניות שהמנוע ייצר, שורות מהקטלוג וספר המחירים. "
         "מתחת לכל מודעה יש את הטקסטים ל־Meta, מוכנים להעתקה.</p>"
     )
@@ -246,7 +298,10 @@ def body(img_src, full_src, vid_src, reels, camp_src=None, camp_poster=None):
         + '<li>וידאו 9:16 <span>1080×1920</span></li><li>וידאו 4:5 <span>1080×1350</span></li></ul>'
     )
 
-    # The international campaign first: the newest and strongest pieces.
+    # The community series first: the newest work, and the current direction (a following before a sale).
+    parts.extend(series_parts(ser_src, ser_poster))
+
+    # Then the international campaign.
     parts.append(
         '<section class="entry" aria-labelledby="h-camp"><div class="entry-h"><span class="no">★</span>'
         f'<h2 id="h-camp">קמפיין בינלאומי · <span class="ltr">{e(CAMP["title"])}</span></h2><span class="onimg">{e(CAMP["titleHe"])}</span></div>'
@@ -361,6 +416,18 @@ def build_readme():
     L.append("")
     L.append("לצפייה נוחה: פתחו את `index.html` בדפדפן. כל התמונות והווידאו נמצאים ב־`ads/`.")
     L.append("")
+    if episodes():
+        L.append(f"## הסדרה · {SERIES['title']}")
+        L.append("")
+        L.append(SERIES["angle"])
+        L.append("")
+        L.append("| פרק | מתי | כיתוב לפוסט | קבצים |")
+        L.append("|---|---|---|---|")
+        for ep in episodes():
+            L.append(f"| {ep['name']} | {ep['when']} | {ep['caption']} | `ads/{SERIES['folder']}/venuvoy-{ep['id']}-en_{{9x16_1080x1920,4x5_1080x1350}}.mp4` |")
+        L.append("")
+        L.append("עריכה: `python3 src/film/cut.py src/film/tbc/e1.json en` (וכך e2 עד e6). הכלים: `src/film/chat.html` (מסך הצ׳אט), `src/film/board.html` (לוחות), `src/film/stamp.js` (החותמת).")
+        L.append("")
     L.append(f"## קמפיין בינלאומי · {CAMP['title']}")
     L.append("")
     L.append("ארבעה סרטונים, באנגלית ובעברית, ב־9:16 (1080×1920) וב־4:5 (1080×1350). מוזיקה ואפקטים מקוריים שהולחנו בקוד, סטדיון וגלובוס בתלת־ממד, וחתימה צלילית אחת לכולם.")
@@ -529,6 +596,9 @@ def build_publish(dirpath):
         for l in ("en", "he"):
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / spot_mp4(sp, l)), "-vf", "scale=720:-2", *web, str(d / "vid" / f'{sp["id"]}-{l}.mp4')], check=True)
             subprocess.run(["cp", str(ADS / sp["folder"] / f"poster-{l}.jpg"), str(d / "vid" / f'{sp["id"]}-{l}.jpg')], check=True)
+    for ep in episodes():
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(ADS / ep_mp4(ep)), "-vf", "scale=720:-2", *web, str(d / "vid" / f'{ep["id"]}.mp4')], check=True)
+        subprocess.run(["cp", str(ADS / SERIES["folder"] / f"poster-{ep['id']}.jpg"), str(d / "vid" / f'{ep["id"]}.jpg')], check=True)
     page = body(
         lambda c, f: f"thumb/{c}_{f}.jpg",
         lambda c, f: f"img/{c}_{f}.jpg",
@@ -536,6 +606,8 @@ def build_publish(dirpath):
         ("reel.mp4", "reel-15.mp4", "poster.jpg", "reel-en.mp4", "reel-en-15.mp4", "poster-en.jpg"),
         lambda sp, l: f"vid/{sp['id']}-{l}.mp4",
         lambda sp, l: f"vid/{sp['id']}-{l}.jpg",
+        lambda ep: f"vid/{ep['id']}.mp4",
+        lambda ep: f"vid/{ep['id']}.jpg",
     )
     (d / "index.html").write_text(HEAD + STYLE + page + SCRIPT, encoding="utf-8")
 
@@ -549,6 +621,11 @@ if __name__ == "__main__":
     for sp in CAMP["spots"]:
         for l in ("en", "he"):
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(sp.get("posterAt", 0.5)), "-i", str(ADS / spot_mp4(sp, l)), "-frames:v", "1", "-q:v", "3", str(ADS / sp["folder"] / f"poster-{l}.jpg")], check=True)
+    for ep in episodes():
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(ep.get("posterAt", 0.5)), "-i", str(ADS / ep_mp4(ep)), "-frames:v", "1", "-q:v", "3",
+                        str(ADS / SERIES["folder"] / f"poster-{ep['id']}.jpg")], check=True)
+        secs = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(ADS / ep_mp4(ep))], capture_output=True, text=True).stdout)
+        ep["length"] = f"{round(secs)} שניות"
     build_repo_page()
     build_readme()
     if "--publish-dir" in sys.argv:

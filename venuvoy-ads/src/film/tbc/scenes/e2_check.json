@@ -1,0 +1,6 @@
+{ "dur": 5.75, "scene": "checklist", "file": "THE STUDY · FILE 02", "title": "STATUS OF BOOKINGS",
+  "rows": [
+    { "label": "FLIGHTS",       "stamp": { "t": 0.5417, "text": "BOOKED",   "color": "green" } },
+    { "label": "HOTEL",         "stamp": { "t": 1.5,    "text": "BOOKED",   "color": "green" } },
+    { "label": "TIME OFF WORK", "stamp": { "t": 2.7083, "text": "APPROVED", "color": "green" } },
+    { "label": "DATE OF MATCH", "stamp": { "t": 4.0833, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }

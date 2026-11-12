@@ -1,7 +1,7 @@
 {
  "out": "src/film/assets/tbc/vo/en",
  "target_db": -22.5,
- "max_gain_db": 3.5,
+ "max_gain_db": 5.0,
  "pause": 0.34,
  "lines": {
   "e1_n1": [
@@ -47,13 +47,6 @@
     "src/film/assets/tbc/vo/takes/e1.mp3",
     5.148,
     7.345
-   ]
-  ],
-  "e1_n3": [
-   [
-    "src/film/assets/tbc/vo/takes/e1.mp3",
-    7.823,
-    9.32
    ]
   ],
   "e1_n4": [
@@ -353,5 +346,6 @@
     9.735
    ]
   ]
- }
+ },
+ "af": "highpass=f=85,equalizer=f=190:t=q:w=0.9:g=-3.5,equalizer=f=2600:t=q:w=0.8:g=4.5,equalizer=f=5200:t=q:w=1.2:g=1.5"
 }

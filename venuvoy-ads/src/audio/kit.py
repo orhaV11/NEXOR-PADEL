@@ -739,17 +739,19 @@ def _burst(t, at, noise, decay):
 
 def thud(seed=92):
     """The series' stamp: a rubber stamp coming down on paper on a desk. A short low body (the desk), a hard top
-    (rubber on paper), and nothing that rings: everything is gone in a quarter of a second."""
+    (rubber on paper), and nothing that rings: everything is gone in a quarter of a second. Most phones play
+    nothing under about 300 Hz, so the blow is carried there by the desk top's own notes and by the slap of the
+    rubber, which last long enough (20-30 ms) to be heard as a knock and not as a click."""
     t = tt(0.25)
     r = R(seed)
     f = 78 + 85 * np.exp(-t / 0.012)  # the desk: a knock that falls to 78 Hz
     body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.038)
     # the desk top's own short notes: the part of the knock that a phone's speaker can play
-    wood = _struck(t, 0.0, ((212, 0.45, 0.016, 0.6), (345, 0.5, 0.02, 0.2), (540, 0.34, 0.011, 1.4), (810, 0.2, 0.007, 0.9)))
-    slap = bp(r.standard_normal(len(t)), 700, 3800) * np.exp(-t / 0.006) * 1.5  # rubber on paper: the hard top
-    paper = bp(r.standard_normal(len(t)), 350, 1600) * np.exp(-t / 0.014) * 0.5
+    wood = _struck(t, 0.0, ((212, 0.45, 0.016, 0.6), (345, 0.6, 0.026, 0.2), (540, 0.6, 0.024, 1.4), (810, 0.42, 0.018, 0.9), (1180, 0.22, 0.012, 2.1)))
+    slap = bp(r.standard_normal(len(t)), 700, 3800) * np.exp(-t / 0.011) * 1.9  # rubber on paper: the hard top
+    paper = bp(r.standard_normal(len(t)), 350, 1900) * np.exp(-t / 0.026) * 1.1
     tick = hp(r.standard_normal(len(t)), 5000) * np.exp(-t / 0.0012) * 0.35
-    y = np.tanh(1.6 * (body + wood) + 0.55 * (slap + paper + tick))  # one blow: the knock and the slap saturate together
+    y = np.tanh(1.25 * (0.8 * body + 1.3 * wood) + 0.75 * (slap + paper + tick))  # one blow: the knock and the slap saturate together
     return _foley(y * np.clip((0.25 - t) / 0.06, 0, 1), 0.88)
 
 
@@ -817,9 +819,9 @@ def two_note():
         u = t[: len(t) - i]
         for ch, cents in ((0, -1.5), (1, 1.5)):
             f = mtof(m) * 2 ** (cents / 1200)
-            tone = sum(a * np.sin(2 * np.pi * f * h * u) * np.exp(-u / (dec / h ** 0.9)) for h, a in ((1, 1.0), (2, 0.62), (3, 0.3), (4, 0.1), (5, 0.03)))
+            tone = sum(a * np.sin(2 * np.pi * f * h * u) * np.exp(-u / (dec / h ** 0.9)) for h, a in ((1, 0.8), (2, 0.85), (3, 0.6), (4, 0.34), (5, 0.16), (6, 0.06)))  # the upper partials carry it on a phone
             y[i:, ch] += tone * (1 - np.exp(-u / 0.012)) * g
-    y = lp(y, 1800) * (0.5 - 0.5 * np.cos(np.pi * np.clip((d - t) / 0.3, 0, 1)))[:, None]
+    y = lp(y, 2600) * (0.5 - 0.5 * np.cos(np.pi * np.clip((d - t) / 0.3, 0, 1)))[:, None]
     return _foley(y, 0.6)
 
 

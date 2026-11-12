@@ -103,7 +103,8 @@
               skipped). A flip takes 0.25 s, around the vertical axis, and shows the name in grey over UNSUCCESSFUL.
               "order": [ 3, 0, 7, .. ] gives another order (indices into "names", 0 is the first).
      "win":   { "i": index of the winning name, "t": time }. That card turns over slowly (0.6 s from t), comes to
-              the centre at about twice its size and shows the name large over a green SUCCESSFUL; the others dim.
+              the centre at about twice its size and shows the name large over a green SUCCESSFUL; the others all but
+              vanish ("dim": how far, 0 to 1, default 0.93), so that no cut-off word beside the winner can be read.
      "lose" / "won": the two words on the backs (defaults "UNSUCCESSFUL" and "SUCCESSFUL").
 
   5. "week": a strip of days with tiles; each tile has its own row, so a tile that moves never crosses another.
@@ -558,7 +559,7 @@
             k.back.style.visibility = a < 90 ? "hidden" : "visible";
             const dark = 0.5 * Math.sin(Math.PI * p);
             k.sh[0].style.opacity = k.sh[1].style.opacity = dark.toFixed(3);
-            k.c.style.opacity = win && !isWin ? 1 - 0.74 * P(t, win.t + 0.1, 0.3) : 1;
+            k.c.style.opacity = win && !isWin ? 1 - (S.dim ?? 0.93) * P(t, win.t + 0.1, 0.3) : 1;  // the losers all but vanish: cut-off words beside the winner must not read
           });
           upNote(t);
         },

@@ -82,6 +82,21 @@
    "heard": "It's my daughter's wedding. I did ask her.",
    "score": 1.0,
    "line": "It's my daughter's wedding. I did ask her."
+  },
+  "e1_s1b": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/5859b284-3310-4ec4-8239-b58f99eb5837_06901c6f.mp4",
+     "heard": "I made a spreadsheet. I wanted to check the link worked.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/e1_s1b.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/5859b284-3310-4ec4-8239-b58f99eb5837_06901c6f.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I made a spreadsheet. I wanted to check the link worked.",
+   "score": 1.0,
+   "line": "I made a spreadsheet. I wanted to check the link worked."
   }
  },
  "away": {}

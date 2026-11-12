@@ -53,7 +53,9 @@ def nw(s):
     return len(re.findall(r"[A-Za-z0-9'-]+", s))
 
 
-plan = {"out": "src/film/assets/tbc/vo/en", "target_db": -22.5, "max_gain_db": 3.5, "pause": 0.34, "lines": {}}
+# the narrator's voice is dark (little between 1 and 3.4 kHz, where a phone speaks): a presence EQ on every take
+AF = "highpass=f=85,equalizer=f=190:t=q:w=0.9:g=-3.5,equalizer=f=2600:t=q:w=0.8:g=4.5,equalizer=f=5200:t=q:w=1.2:g=1.5"
+plan = {"out": "src/film/assets/tbc/vo/en", "target_db": -22.5, "max_gain_db": 5.0, "pause": 0.34, "af": AF, "lines": {}}
 report = []
 for ep, lines in LINES.items():
     path = TAKES / f"{ep}.mp3"
@@ -102,5 +104,6 @@ for ep, lines in LINES.items():
                 plan["lines"][f"{ep}_n{n}{'abc'[q]}"] = [ph]
         dur = sum(p[2] - p[1] for p in phrases) + 0.34 * (len(phrases) - 1)
         report.append(f"{ep}_n{n}  {dur:5.2f}s  " + " | ".join(f"{p[1]:.2f}-{p[2]:.2f}" for p in phrases) + f"   {ln}")
+plan["lines"].pop("e1_n3", None)  # re-read after review in its own take: takes/plan_e1_n3.json
 (TAKES / "plan_en.json").write_text(json.dumps(plan, indent=1))
 print("\n".join(report))

@@ -2,7 +2,7 @@
 
     python3 src/film/vo_lines.py plan.json
 
-plan.json: {"out": "src/film/assets/apa/vo/en", "target_db": -22.5, "max_gain_db": 3.5, "pause": 0.30,
+plan.json: {"out": "src/film/assets/apa/vo/en", "target_db": -22.5, "max_gain_db": 3.5, "pause": 0.30, "af": "<optional ffmpeg filter>",
             "lines": {"n1": [["take.mp3", t0, t1], ["take.mp3", t0, t1]], ...}}
 Each line is one or more phrases (start and end of the voice inside a take, in seconds). Every phrase is brought
 towards the same level (a quiet last phrase is a common fault of read speech), and the pause between the phrases of
@@ -23,7 +23,8 @@ _cache = {}
 
 def take(path):
     if path not in _cache:
-        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
+        af = ["-af", plan["af"]] if plan.get("af") else []  # "af": an ffmpeg filter for the whole take (an EQ for a voice that is too dark for a phone)
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, *af, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
         _cache[path] = np.frombuffer(raw, np.float32).astype(np.float64)
     return _cache[path]
 

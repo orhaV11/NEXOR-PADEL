@@ -22,7 +22,7 @@ import asr  # noqa: E402
 TAKES = ROOT / "src/film/assets/tbc/vo/takes"
 SR = 48000
 LINES = {
-    "e1": ["Eight people planned that trip. Two arrived. Neither was in the chat.", "This season they are doing it properly.", "The dates came out at seven.",
+    "e1": ["Eight people planned that trip. Two arrived. Neither was in the chat.", "This season they are doing it properly.", "The dates came out at seven.",  # replaced after review by "The match dates came out at seven a.m." (takes/plan_e1_n3.json)
            "Seen by seven. Opened by one.", "The organiser had removed maybe.", "Danny has been typing since Tuesday."],
     "e2": ["Lee had been comparing flights since nine.", "He did not say which Friday.", "Flights. Hotel. Time off work.", "She guessed Saturday."],
     "e3": ["To buy a ticket, a supporter needs a history of buying tickets.", "The group put in nine names. One came out. The winner had not been asked."],

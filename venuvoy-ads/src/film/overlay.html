@@ -287,7 +287,10 @@
   //            0.18 s, rocks once and is still by 0.45 s.
   //            Sound: kit.sys_tick or kit.click as it lands (0.18 s after it starts).
   //   status   { type: "status", name: "DANNY'S GRANDMOTHER", status: "NOTHING BOOKED.",
-  //              foot: "Next episode: Thursday. Confirmed.", y: 270, foot_y: 1380, align: "center", scrim: 1 }
+  //              foot: "Next episode: Thursday. Confirmed.", y: 270, foot_y: 1380, align: "center", scrim: 1,
+  //              foot_at: 0.2, foot_size: 44 }
+  //            "foot_at": seconds after t0 at which the wordmark and the line arrive (default 0.2; give about 1.1 so
+  //            the status is read alone first); "foot_size": the line's size in pixels.
   //            The sign-off. Top (rows 270-400): the name on cream and the status on deep green, centred
   //            ("align": "left" puts both at x 60); a line too long for x 40-1040 is set smaller. Foot (rows
   //            1380-1502): the wordmark VENUVOY and the line under it in gold italics, centred, over a soft dark
@@ -484,6 +487,7 @@
       if (g.y != null) q(".lb").style.top = `${g.y}px`;
       if (g.foot_y != null) { q(".ft").style.top = `${g.foot_y}px`; o.sc.style.top = `${g.foot_y - 110}px`; }
       if (!g.name) o.n.style.display = "none";
+      if (g.foot_size && o.ln) { o.ln.style.fontSize = `${g.foot_size}px`; o.ln.style.lineHeight = `${Math.round(g.foot_size * 1.14)}px`; }
       fits.push(() => {  // a line too long for x 40-1040 is set smaller (never under 30 px: write a shorter line instead)
         el.style.display = "block";
         for (const [b, max] of [[o.n, g.align === "left" ? 960 : 1000], [o.s, g.align === "left" ? 960 : 1000], [o.ln, 1000]]) {
@@ -595,7 +599,8 @@
         g.el.style.opacity = Math.min(1, P(w, 0, 0.07) * 1.4) * (g.fade ? 1 - P(t, g.t1 - g.fade, g.fade) : 1);
       } else if (g.type === "status") {
         const w = g.still ? 1e3 : u;  // name, status, wordmark, line: all in place by 0.5 s, then nothing moves
-        const a = out(P(w, 0, 0.14)), b = out(P(w, 0.1, 0.16)), c = out(P(w, 0.2, 0.2)), d = out(P(w, 0.3, 0.2));
+        const fa = g.foot_at ?? 0.2;  // "foot_at": the wordmark and the line come later, once the status has been read
+        const a = out(P(w, 0, 0.14)), b = out(P(w, 0.1, 0.16)), c = out(P(w, fa, 0.2)), d = out(P(w, fa + 0.1, 0.2));
         g.n.style.clipPath = a < 1 ? (RTL ? `inset(0 0 0 ${(1 - a) * 100}%)` : `inset(0 ${(1 - a) * 100}% 0 0)`) : "none";
         g.s.style.clipPath = b < 1 ? (RTL ? `inset(0 0 0 ${(1 - b) * 100}%)` : `inset(0 ${(1 - b) * 100}% 0 0)`) : "none";
         g.sc.style.opacity = (g.scrim ?? 1) * c;

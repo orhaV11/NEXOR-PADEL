@@ -1,0 +1,15 @@
+{
+ "out": "src/film/assets/tbc/vo/en",
+ "target_db": -22.5,
+ "max_gain_db": 3.5,
+ "pause": 0.34,
+ "lines": {
+  "e1_n3": [
+   [
+    "src/film/assets/tbc/vo/takes/e1_n3_b.mp3",
+    3.03,
+    5.19
+   ]
+  ]
+ }
+}

@@ -1,0 +1,6 @@
+{ "dur": 9.0, "scene": "list", "file": "THE STUDY · FILE 06", "title": "NOT ON THE FLIGHT",
+  "rows": [
+    { "t": 0.1667, "label": "VIC",   "value": "WEDDING ON MONDAY." },
+    { "t": 0.8333, "label": "LEE",   "value": "FOUND IT CHEAPER." },
+    { "t": 6.4167, "label": "DANNY",
+      "stamp": { "t": 7.25, "text": "NO SURNAME", "color": "red", "big": true, "dx": 44 } } ] }

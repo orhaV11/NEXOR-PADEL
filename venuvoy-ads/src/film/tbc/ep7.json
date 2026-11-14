@@ -25,14 +25,68 @@
  ],
  "sources": {
   "jo": {
-   "path": "src/film/assets/tbc/shots/b2_j1.mp4"
+   "path": "src/film/assets/tbc/shots/b2_j1.mp4",
+   "fix": [
+    {
+     "soften": [
+      0,
+      1785,
+      115,
+      1890
+     ],
+     "sigma": 9,
+     "feather": 10
+    },
+    {
+     "soften": [
+      1015,
+      795,
+      1080,
+      885
+     ],
+     "sigma": 8,
+     "feather": 10
+    }
+   ]
   },
   "gate": {
    "path": "src/film/assets/tbc/scenes/ep7_gate.mp4"
   },
   "stand": {
    "path": "src/film/assets/tbc/shots/b2_g2.mp4",
-   "level": -21
+   "level": -21,
+   "fix": [
+    {
+     "soften": [
+      30,
+      835,
+      135,
+      930
+     ],
+     "sigma": 7,
+     "feather": 10
+    },
+    {
+     "soften": [
+      815,
+      795,
+      912,
+      905
+     ],
+     "sigma": 7,
+     "feather": 10
+    },
+    {
+     "soften": [
+      1005,
+      985,
+      1080,
+      1105
+     ],
+     "sigma": 7,
+     "feather": 10
+    }
+   ]
   },
   "vic": {
    "path": "src/film/assets/tbc/shots/b2_v2.mp4"

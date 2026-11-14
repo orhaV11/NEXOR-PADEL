@@ -1,0 +1,503 @@
+{
+ "slug": "tbc-ep7",
+ "title": "Episode 7: Confirmed",
+ "out": "ads/16-tbc/venuvoy-tbc-ep7",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "0 DAYS BEFORE*",
+   "small": "*to be confirmed",
+   "from": "gate",
+   "to": "drain",
+   "y": 262,
+   "xr": 1040
+  }
+ ],
+ "sources": {
+  "jo": {
+   "path": "src/film/assets/tbc/shots/b2_j1.mp4"
+  },
+  "gate": {
+   "path": "src/film/assets/tbc/scenes/ep7_gate.mp4"
+  },
+  "stand": {
+   "path": "src/film/assets/tbc/shots/b2_g2.mp4"
+  },
+  "vic": {
+   "path": "src/film/assets/tbc/shots/b2_v2.mp4"
+  },
+  "after": {
+   "path": "src/film/assets/tbc/scenes/ep7_after.mp4"
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/ep7_n1a.wav",
+   "at": "stand2+0.2",
+   "y": 1340,
+   "text": "Two got in."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/ep7_n1b.wav",
+   "at": "stand2+1.5"
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/ep7_n1c.wav",
+   "at": "drain+0.2",
+   "y": 1340,
+   "text": "The other is typing."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "offset": 3.0,
+   "gain_db": -8,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.004
+  },
+  {
+   "file": "src/film/assets/tbc/shots/b2_g2.mp4",
+   "at": "stand2-0.1",
+   "offset": 3.1917,
+   "until": "drain+0.5",
+   "gain_db": -4,
+   "duck_db": 10,
+   "fade_in": 0.1,
+   "fade_out": 0.5
+  },
+  {
+   "file": "src/film/assets/apa/audio/bed_crowd.mp3",
+   "at": "stand2-0.1",
+   "offset": 3.0,
+   "until": "drain+0.5",
+   "gain_db": -8,
+   "duck_db": 6,
+   "fade_in": 0.1,
+   "fade_out": 0.5
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "msg",
+   "at": "gate+0.04",
+   "gain_db": -15
+  },
+  {
+   "synth": "typing",
+   "args": [
+    4.55,
+    0.11,
+    71
+   ],
+   "at": "gate+0.05",
+   "gain_db": -26
+  },
+  {
+   "synth": "msg",
+   "at": "syd+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "buzz",
+   "args": [
+    0.4
+   ],
+   "at": "g2+0.0",
+   "gain_db": -12
+  },
+  {
+   "synth": "buzz",
+   "args": [
+    0.6
+   ],
+   "at": "g2+2.05",
+   "gain_db": -12
+  },
+  {
+   "synth": "sys_tick",
+   "at": "stand2+0.2",
+   "gain_db": -8
+  },
+  {
+   "synth": "sys_tick",
+   "at": "stand2+0.65",
+   "gain_db": -8
+  },
+  {
+   "synth": "thud",
+   "at": "stamp+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "msg",
+   "at": "after+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "typing",
+   "args": [
+    4.6,
+    0.11,
+    72
+   ],
+   "at": "after+0.05",
+   "gain_db": -23
+  },
+  {
+   "synth": "msg",
+   "at": "nothing+0.04",
+   "gain_db": -15
+  },
+  {
+   "synth": "msg",
+   "at": "paid+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "click",
+   "at": "chip",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "in+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "jo",
+   "in": 3.2083,
+   "out": 4.8333,
+   "a_fade_out": 0.05,
+   "marks": {
+    "open": 3.2083
+   },
+   "speech": true,
+   "lt": {
+    "name": "JO",
+    "what": "VOTED “SHOULD BE FINE”",
+    "at": 0.0,
+    "y": 1085
+   },
+   "cap": {
+    "text": "I never said I was coming.",
+    "at": -0.1,
+    "len": 1.42,
+    "hold": 0.3
+   }
+  },
+  {
+   "src": "gate",
+   "in": 0.0,
+   "out": 4.7083,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.235,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587
+   },
+   "marks": {
+    "gate": 0.0,
+    "syd": 3.0
+   }
+  },
+  {
+   "src": "stand",
+   "in": 0.0,
+   "out": 3.2917,
+   "a_fade_out": 0.1,
+   "marks": {
+    "g2": 0.0
+   },
+   "speech": true,
+   "cap": {
+    "text": "That'll be for Vic.",
+    "y": 1180,
+    "at": 0.33,
+    "len": 0.97,
+    "hold": 0.7
+   }
+  },
+  {
+   "src": "vic",
+   "in": 0.5417,
+   "out": 3.875,
+   "punch": 1.1,
+   "cx": 1.0,
+   "cy": 0.0,
+   "marks": {
+    "vic": 0.5417
+   },
+   "line": "My daughter says | I didn't look | at my phone once.",
+   "cap_from": 0.25,
+   "lt": {
+    "name": "VIC",
+    "what": "IN. HUNDRED PERCENT.",
+    "at": 0.0,
+    "y": 1100
+   }
+  },
+  {
+   "src": "stand",
+   "in": 3.2917,
+   "out": 7.0833,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "stand2": 3.2917
+   },
+   "cap": {
+    "text": "One is not in the chat.",
+    "cls": "nar",
+    "y": 1340,
+    "at": 1.5,
+    "len": 1.54,
+    "hold": 0.08
+   },
+   "gfx": [
+    {
+     "type": "pin",
+     "at": 0.2,
+     "len": 5.09,
+     "x": 365,
+     "y": 478,
+     "size": 40,
+     "label": "Danny"
+    },
+    {
+     "type": "pin",
+     "at": 0.65,
+     "len": 4.64,
+     "x": 700,
+     "y": 640,
+     "size": 34,
+     "label": "Danny's grandmother"
+    }
+   ]
+  },
+  {
+   "src": "stand",
+   "in": 7.0833,
+   "out": 7.125,
+   "hold": 1.4167,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.04,
+    "cx": 0.55,
+    "cy": 0.2
+   },
+   "marks": {
+    "drain": 7.0833
+   },
+   "drain": {
+    "at": 0.0,
+    "ramp": 0.6,
+    "to": 0.92,
+    "gain": 0.92
+   }
+  },
+  {
+   "src": "stand",
+   "in": 7.0833,
+   "out": 7.125,
+   "hold": 1.2083,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.04,
+    "to": 1.04,
+    "cx": 0.55,
+    "cy": 0.2
+   },
+   "marks": {
+    "stamp": 7.0833
+   },
+   "drain": {
+    "from_start": true,
+    "to": 0.92,
+    "gain": 0.92
+   },
+   "gfx": [
+    {
+     "type": "stamp",
+     "at": 0.0,
+     "hit": 0.0,
+     "text": "CONFIRMED",
+     "x": 540,
+     "y": 470,
+     "size": 96,
+     "rot": -8,
+     "color": "bright"
+    }
+   ],
+   "jolt": [
+    {
+     "at": 0.0,
+     "amp": 16
+    }
+   ]
+  },
+  {
+   "src": "after",
+   "in": 0.0,
+   "out": 2.0833,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.235,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587
+   },
+   "marks": {
+    "after": 0.0,
+    "nothing": 1.2083
+   }
+  },
+  {
+   "src": "after",
+   "in": 2.0833,
+   "out": 2.5,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.235,
+    "to": 1.0,
+    "cx": 0.0,
+    "cy": 0.587,
+    "ease": "inout"
+   },
+   "marks": {
+    "wide": 2.0833
+   }
+  },
+  {
+   "src": "after",
+   "in": 2.5,
+   "out": 6.6667,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "friday": 2.5,
+    "paid": 2.9167,
+    "chip": 3.5,
+    "quiet": 4.7083,
+    "in": 5.0833
+   }
+  },
+  {
+   "src": "jo",
+   "in": 6.3333,
+   "out": 7.6667,
+   "a_fade_in": 0.04,
+   "marks": {
+    "fine": 6.3333
+   },
+   "speech": true,
+   "lt": {
+    "name": "JO",
+    "what": "VOTED “SHOULD BE FINE”",
+    "at": 0.0,
+    "y": 1085
+   },
+   "cap": {
+    "text": "It was fine.",
+    "at": 0.02,
+    "len": 0.7,
+    "hold": 0.62
+   }
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "WENT.",
+     "foot": "Next season: to be confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
+}

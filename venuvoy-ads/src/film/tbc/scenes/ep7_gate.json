@@ -1,0 +1,10 @@
+{ "dur": 5.0, "name": "Away trip – who's in?", "sub": "8 members", "right": 760,
+  "events": [
+    { "t": 0,    "type": "typingbar", "who": "Danny" },
+    { "t": 0,    "type": "pin", "text": "Kick-off: Mon 12:30" },
+    { "t": 0,    "type": "chip", "text": "OWE MAYA: 6" },
+
+    { "t": 0,    "type": "msg", "who": "Maya", "me": true, "time": "12:09",
+      "text": "At the gate. Danny,\nwe need the tickets.\nRinging Vic's phone." },
+    { "t": 3.0,  "type": "msg", "who": "Sydney", "time": "12:11", "text": "Danny's grandmother is on TV." }
+  ] }

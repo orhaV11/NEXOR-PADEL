@@ -1,0 +1,6 @@
+{ "dur": 6.5, "scene": "list", "file": "THE STUDY · FILE 05", "title": "MONDAY · KICK-OFF TO BE CONFIRMED", "cps": 24, "sizes": [40, 58],
+  "rows": [
+    { "t": 0.625,  "label": "THE WEDDING NEEDS", "value": "VIC",         "vt": 1.4583 },
+    { "t": 2.375,  "label": "THE MATCH NEEDS",   "value": "VIC'S PHONE", "vt": 3.1667 },
+    { "t": 4.375,  "label": "SEND THE TICKETS",
+      "stamp": { "t": 5.2083, "text": "NOT PERMITTED", "color": "red", "big": true, "size": 52 } } ] }

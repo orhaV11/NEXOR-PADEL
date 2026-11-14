@@ -1,0 +1,425 @@
+{
+ "slug": "tbc-ep5",
+ "title": "Episode 5: Leave It With Me",
+ "out": "ads/16-tbc/venuvoy-tbc-ep5",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "21 DAYS BEFORE*",
+   "small": "*to be confirmed",
+   "from": "she",
+   "to": "signoff",
+   "y": 262,
+   "xr": 1040
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "chat",
+   "to": "look",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "chatb",
+   "to": "maya",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
+  }
+ ],
+ "sources": {
+  "vic": {
+   "path": "src/film/assets/tbc/shots/b2_v1.mp4",
+   "level": -19
+  },
+  "board": {
+   "path": "src/film/assets/tbc/scenes/ep5_board.mp4"
+  },
+  "chat": {
+   "path": "src/film/assets/tbc/scenes/ep5_chat.mp4"
+  },
+  "look": {
+   "path": "src/film/assets/tbc/shots/e4_s2.mp4"
+  },
+  "maya": {
+   "path": "src/film/assets/tbc/shots/b2_m1.mp4",
+   "level": -19
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/ep5_n1.wav",
+   "at": "board+0.6",
+   "gain_db": 0.0
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/ep5_n2.wav",
+   "at": "chatb+3.1667",
+   "y": 1288,
+   "gain_db": 0.0,
+   "text": "He had been typing | for seventy-seven days."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "offset": 3.0,
+   "gain_db": -8,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.004
+  },
+  {
+   "file": "src/film/assets/tbc/shots/e4_s2.mp4",
+   "at": "look-0.08",
+   "until": "look+1.6",
+   "offset": 3.9,
+   "gain_db": -7,
+   "duck_db": 0,
+   "fade_in": 0.08,
+   "fade_out": 0.25
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "click",
+   "at": "r1+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "click",
+   "at": "r2+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "click",
+   "at": "r3+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "thud",
+   "at": "stamp+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "msg",
+   "at": "m_jo+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m_vic+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m_lee+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m_vic2+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "typing",
+   "args": [
+    0.6,
+    0.11,
+    66
+   ],
+   "at": "ticks",
+   "gain_db": -22
+  },
+  {
+   "synth": "msg",
+   "at": "m_danny+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "typing",
+   "args": [
+    0.05,
+    0.11,
+    67
+   ],
+   "at": "back+0.05",
+   "gain_db": -20
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "vic",
+   "in": 0.625,
+   "out": 5.5,
+   "audio_out": 5.75,
+   "a_fade_out": 0.25,
+   "punch": 1.1,
+   "cx": 1.0,
+   "cy": 0.0,
+   "marks": {
+    "open": 0.625,
+    "she": 3.52
+   },
+   "lt": {
+    "name": "VIC",
+    "what": "FATHER OF THE BRIDE",
+    "at": 0.0,
+    "y": 1100
+   },
+   "line": "I said, marry in the morning. She said, what time's kick-off?",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "I said, marry",
+     "at": -0.1,
+     "len": 1.27,
+     "hold": 0.0
+    },
+    {
+     "text": "in the morning.",
+     "at": 1.17,
+     "len": 0.55,
+     "hold": 0.5
+    },
+    {
+     "text": "She said,",
+     "at": 2.995,
+     "len": 0.36,
+     "hold": 0.0
+    },
+    {
+     "text": "what time's kick-off?",
+     "at": 3.355,
+     "len": 0.85,
+     "hold": 0.67
+    }
+   ]
+  },
+  {
+   "src": "board",
+   "in": 0.0,
+   "out": 6.4583,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "board": 0.0,
+    "r1": 0.625,
+    "r2": 2.375,
+    "r3": 4.375,
+    "stamp": 5.2083
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.0,
+   "out": 0.2917,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chat": 0.0,
+    "m_jo": 0.25
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.2917,
+   "out": 0.7083,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.232,
+    "cx": 0.0,
+    "cy": 0.5764,
+    "ease": "inout"
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.7083,
+   "out": 3.3333,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.232,
+    "to": 1.232,
+    "cx": 0.0,
+    "cy": 0.5764
+   },
+   "marks": {
+    "m_vic": 1.2083,
+    "m_lee": 2.1667
+   }
+  },
+  {
+   "src": "look",
+   "in": 0.875,
+   "out": 2.375,
+   "mute": true,
+   "punch": 1.1,
+   "cx": 1.0,
+   "cy": 0.0,
+   "marks": {
+    "look": 0.875
+   },
+   "lt": {
+    "name": "VIC",
+    "what": "FATHER OF THE BRIDE",
+    "at": 0.0,
+    "y": 1100
+   }
+  },
+  {
+   "src": "chat",
+   "in": 3.3333,
+   "out": 10.2917,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.232,
+    "to": 1.232,
+    "cx": 0.0,
+    "cy": 0.5764
+   },
+   "marks": {
+    "chatb": 3.3333,
+    "m_vic2": 3.4583,
+    "ticks": 4.2333,
+    "gone": 4.8333,
+    "m_danny": 5.25,
+    "back": 9.4583
+   }
+  },
+  {
+   "src": "maya",
+   "in": 0.4167,
+   "out": 6.0,
+   "audio_out": 6.2,
+   "a_fade_in": 0.08,
+   "a_fade_out": 0.2,
+   "punch": 1.3,
+   "cx": 0.6,
+   "cy": 0.42,
+   "marks": {
+    "maya": 0.4167
+   },
+   "lt": {
+    "name": "MAYA",
+    "what": "ORGANISER, UNOPPOSED",
+    "at": 0.0,
+    "len": 2.6,
+    "y": 1085
+   },
+   "line": "He said leave it with him. So I have.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "He said",
+     "at": 0.27,
+     "len": 0.28,
+     "hold": 0.0
+    },
+    {
+     "text": "leave it with him.",
+     "at": 0.55,
+     "len": 0.7,
+     "hold": 0.5
+    },
+    {
+     "text": "So I have.",
+     "at": 2.83,
+     "len": 0.55,
+     "hold": 0.7
+    }
+   ]
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "HER TICKET IS PAPER.",
+     "foot": "Next episode: Thursday. Confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{ "dur": 14.8, "name": "Away trip – who's in?", "sub": "8 members", "right": 795,
+  "events": [
+    { "t": 0,       "type": "chip", "text": "OWE MAYA: 6" },
+    { "t": 0,       "type": "typingbar", "who": "Danny" },
+    { "t": 0,       "type": "pin", "text": "Kick-off: Mon…" },
+
+    { "t": 0.125,   "type": "msg", "who": "Priya",  "text": "what time's kick-off?" },
+    { "t": 0.7917,  "type": "msg", "who": "Marcus", "text": "what time is it again" },
+    { "t": 1.4583,  "type": "msg", "who": "Jo",     "text": "is it 7:45 or 8" },
+
+    { "t": 4.4167,  "type": "msg", "who": "Maya", "me": true, "text": "It's pinned." },
+    { "t": 5.1667,  "type": "msg", "who": "Marcus", "text": "where" },
+
+    { "t": 6.0417,  "type": "msg", "who": "Sydney", "text": "Top of the chat." },
+    { "t": 6.875,   "type": "msg", "who": "Marcus", "text": "cheers Sydney" },
+
+    { "t": 11.625,  "type": "pin", "big": true, "text": "KICK-OFF: MONDAY\nTIME: {when}",
+      "stamp": { "t": 13.4583, "text": "TO BE\nCONFIRMED", "on": "when" } }
+  ] }

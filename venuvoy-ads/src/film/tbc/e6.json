@@ -1,0 +1,75 @@
+{
+  "slug": "tbc-e6",
+  "title": "In the Chat: It's Pinned",
+  "out": "ads/16-tbc/venuvoy-tbc-e6",
+  "fps": 24,
+  "duck_from": 0.0,
+  "duck_mode": "voice",
+  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
+
+  "labels": [
+    { "text": "37 DAYS BEFORE*", "small": "*to be confirmed", "from": "chat", "to": "signoff", "y": 262, "xr": 1040 }
+  ],
+
+  "sources": {
+    "maya": { "path": "src/film/assets/tbc/shots/e2_s1.mp4" },
+    "chat": { "path": "src/film/assets/tbc/scenes/e6_chat.mp4" },
+    "gran": { "path": "src/film/assets/tbc/clips/gran_go.mp4" }
+  },
+
+  "narration": [
+    { "file": "src/film/assets/tbc/vo/en/e6_n1.wav", "at": "open+0.2" },
+    { "file": "src/film/assets/tbc/vo/en/e6_n2.wav", "at": "chat+1.8", "y": 1288,
+      "text": "It has been asked | fourteen times." },
+    { "file": "src/film/assets/tbc/vo/en/e6_n3a.wav", "at": "chat+7.45", "y": 1288,
+      "text": "The answer came from Sydney." },
+    { "file": "src/film/assets/tbc/vo/en/e6_n3b.wav", "at": "chat+9.3", "y": 1288,
+      "text": "It was two in the morning there." },
+    { "file": "src/film/assets/tbc/vo/en/e6_n4.wav", "at": "chat+11.1", "y": 1288,
+      "text": "This is the pinned message." }
+  ],
+
+  "music": [
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": 0.0, "offset": 3.0, "gain_db": -12, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.004 }
+  ],
+
+  "sfx": [
+    { "synth": "msg", "at": "m1+0.04", "gain_db": -10 },
+    { "synth": "msg", "at": "m2+0.04", "gain_db": -10 },
+    { "synth": "msg", "at": "m3+0.04", "gain_db": -10 },
+    { "synth": "msg", "at": "m4+0.04", "gain_db": -15 },
+    { "synth": "msg", "at": "m5+0.04", "gain_db": -10 },
+    { "synth": "msg", "at": "m6+0.04", "gain_db": -10 },
+    { "synth": "msg", "at": "m7+0.04", "gain_db": -10 },
+
+    { "synth": "thud", "at": "stamp+0.06", "gain_db": -6 },
+
+    { "synth": "clock_tick",              "at": "signoff+0.15", "gain_db": -8 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 },
+    { "synth": "two_note",                "at": "signoff+1.45", "gain_db": -12 },
+    { "synth": "clock_tick",              "at": "signoff+1.75", "gain_db": -8 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+2.55", "gain_db": -8 },
+    { "synth": "clock_tick",              "at": "signoff+3.35", "gain_db": -8 }
+  ],
+
+  "segments": [
+    { "src": "maya", "in": 5.2083, "out": 7.4583, "mute": true, "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "open": 5.2083 },
+      "lt": { "name": "MAYA", "what": "ORGANISER", "at": 0.0, "y": 1085 },
+      "cap": { "text": "The kick-off time is pinned.", "cls": "nar", "y": 1300, "at": -0.1, "len": 1.95, "hold": 0.2 } },
+
+    { "src": "chat", "in": 0.0, "out": 0.375, "mute": true, "pop": 0, "marks": { "chat": 0.0, "m1": 0.125 } },
+    { "src": "chat", "in": 0.375, "out": 0.7917, "mute": true, "pop": 0,
+      "zoom": { "from": 1.0, "to": 1.2, "cx": 0.0, "cy": 0.6375, "ease": "inout" } },
+    { "src": "chat", "in": 0.7917, "out": 11.625, "mute": true, "pop": 0,
+      "zoom": { "from": 1.2, "to": 1.2, "cx": 0.0, "cy": 0.6375 },
+      "marks": { "m2": 0.7917, "m3": 1.4583, "m4": 4.4167, "m5": 5.1667, "m6": 6.0417, "m7": 6.875 } },
+    { "src": "chat", "in": 11.625, "out": 12.125, "mute": true, "pop": 0,
+      "zoom": { "from": 1.2, "to": 1.0, "cx": 0.0, "cy": 0.6375, "ease": "inout" }, "marks": { "opens": 11.625 } },
+    { "src": "chat", "in": 12.125, "out": 14.75, "mute": true, "pop": 0, "marks": { "stamp": 13.4583 } },
+
+    { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
+      "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },
+      "gfx": [ { "type": "status", "at": 0.15, "name": "DANNY'S GRANDMOTHER", "status": "NOT IN THE CHAT.",
+                 "foot": "Next episode: Thursday. Confirmed.", "foot_at": 1.3, "foot_size": 56 } ] }
+  ]
+}

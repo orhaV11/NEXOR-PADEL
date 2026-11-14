@@ -9,6 +9,7 @@ publish as one page plus files.
 import html
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -247,6 +248,12 @@ def text_rows(prefix, rows):
     return '<dl class="copy">' + "".join(out) + "</dl>"
 
 
+def mixed(text):
+    """Hebrew text with English phrases in it: each English run is isolated left-to-right, so its full stops and
+    colons stay on the right side of it."""
+    return re.sub(r"[A-Za-z][A-Za-z0-9 .,:'’\-]*[A-Za-z0-9.]", lambda m: f'<bdi dir="ltr">{m.group(0)}</bdi>', e(text))
+
+
 def series_parts(ser_src, ser_poster):
     eps = episodes()
     if not eps:
@@ -254,9 +261,9 @@ def series_parts(ser_src, ser_poster):
     parts = [
         '<section class="entry" aria-labelledby="h-series"><div class="entry-h"><span class="no">●</span>'
         f'<h2 id="h-series">הסדרה · <span class="ltr">{e(SERIES["title"])}</span></h2><span class="onimg">{e(SERIES["titleHe"])}</span></div>'
-        f'<p class="angle">{e(SERIES["angle"])}</p>'
+        f'<p class="angle">{mixed(SERIES["angle"])}</p>'
         + text_rows("series-bio", [("ביו לפרופיל", "Bio", SERIES["bio"])])
-        + '<p class="sub-h">תוכנית הפרסום</p><ol class="scenes">' + "".join(f"<li>{e(x)}</li>" for x in SERIES["plan"]) + "</ol></section>"
+        + '<p class="sub-h">תוכנית הפרסום</p><ol class="scenes">' + "".join(f"<li>{mixed(x)}</li>" for x in SERIES["plan"]) + "</ol></section>"
     ]
     for k, ep in enumerate(eps, start=1):
         rows = [("כיתוב לפוסט", "Caption", ep["caption"])]

@@ -4,6 +4,21 @@
 
 לצפייה נוחה: פתחו את `index.html` בדפדפן. כל התמונות והווידאו נמצאים ב־`ads/`.
 
+## הסדרה · To Be Confirmed
+
+זו לא פרסומת. סדרה דוקומנטרית־קומית על קבוצת צ׳אט של אוהדים שמתכננים נסיעה אחת למשחק בחו״ל, בהמשך ל״דני יצא מהקבוצה״ (שהופך ל״עונה שעברה״). אין בה מסך של האפליקציה, מחיר, כפתור או קישור. המותג רק חותם בסוף כל פרק: ״Next episode: Thursday. Confirmed.״ המטרה: שאוהדים שנוסעים למשחקים יעקבו, ישלחו לקבוצה שלהם ויחכו לפרק הבא.
+
+| פרק | מתי | כיתוב לפוסט | קבצים |
+|---|---|---|---|
+| Episode 1: Should Be Fine | יום 1 · חמישי | Episode 1. The dates are out. There is a spreadsheet. | `ads/16-tbc/venuvoy-tbc-e1-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 2: So You Guess | יום 1 · חמישי, מיד אחרי פרק 1 | Episode 2. Everything gets booked. | `ads/16-tbc/venuvoy-tbc-e2-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 3: A History of Buying Tickets | יום 1 · חמישי, מיד אחרי פרק 2 | Episode 3. One ticket short. | `ads/16-tbc/venuvoy-tbc-e3-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Elsewhere: A Bit Early | יום 6 · שלישי | Elsewhere. A man has reached his seat. | `ads/16-tbc/venuvoy-tbc-e5-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 4: It's Been Moved | יום 8 · חמישי | Episode 4. The match has moved to Monday. | `ads/16-tbc/venuvoy-tbc-e4-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| In the Chat: It's Pinned | יום 13 · שלישי | In the chat. Somebody has asked what time kick-off is. | `ads/16-tbc/venuvoy-tbc-e6-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+
+עריכה: `python3 src/film/cut.py src/film/tbc/e1.json en` (וכך e2 עד e6). הכלים: `src/film/chat.html` (מסך הצ׳אט), `src/film/board.html` (לוחות), `src/film/stamp.js` (החותמת).
+
 ## קמפיין בינלאומי · The World Is Your Stadium
 
 ארבעה סרטונים, באנגלית ובעברית, ב־9:16 (1080×1920) וב־4:5 (1080×1350). מוזיקה ואפקטים מקוריים שהולחנו בקוד, סטדיון וגלובוס בתלת־ממד, וחתימה צלילית אחת לכולם.

@@ -1,7 +1,7 @@
-{ "dur": 6.75, "name": "Away trip – who's in?", "sub": "8 members",
+{ "dur": 6.0, "name": "Away trip – who's in?", "sub": "8 members",
   "events": [
     { "t": 0,      "type": "typingbar", "who": "Danny" },
-    { "t": 0.0833, "type": "msg", "who": "Maya", "me": true, "text": "Booked everyone. I've paid. Pay me back when you can.", "time": "07:40" },
-    { "t": 2.0833, "type": "msg", "who": "Vic", "text": "Hundred percent. I'll pay you Friday.", "time": "07:41" },
-    { "t": 5.2083, "type": "chip", "text": "OWE MAYA: 6" }
+    { "t": 0.125,  "type": "msg", "who": "Maya", "me": true, "text": "Booked everyone. I've paid. Pay me back when you can.", "time": "07:40" },
+    { "t": 1.5417, "type": "msg", "who": "Vic", "text": "Hundred percent. I'll pay you Friday.", "time": "07:41" },
+    { "t": 5.25,   "type": "chip", "text": "OWE MAYA: 6" }
   ] }

@@ -1,20 +1,9 @@
-{ "dur": 15.5, "name": "Away trip – who's in?", "sub": "7 members",
+{ "dur": 5.25, "name": "Away trip – who's in?", "sub": "7 members",
   "events": [
-    { "t": 0,     "type": "sys", "text": "Danny left" },
-    { "t": 0.3,   "type": "divider", "text": "8 months later" },
-    { "t": 2.2,   "type": "msg", "who": "Vic", "text": "Right.", "time": "07:02" },
-    { "t": 3.05,  "type": "sys", "text": "Maya added Danny" },
-    { "t": 3.05,  "type": "head", "sub": "8 members" },
-    { "t": 3.5,   "type": "typingbar", "who": "Danny" },
-
-    { "t": 5.0,   "type": "msg", "who": "Maya", "me": true, "text": "It's all in here.", "time": "07:31",
-      "card": { "title": "Trip plan", "sub": "spreadsheet" },
-      "receipts": [ { "t": 5.2, "text": "Seen by 7" }, { "t": 5.4, "text": "Opened by 1" } ] },
-
-    { "t": 8.1,   "type": "poll", "who": "Maya", "me": true, "q": "Are you in?", "time": "07:44", "options": [
-        { "text": "Yes", "votes": [8.9] },
-        { "text": "No", "votes": [] },
-        { "text": "Should be fine", "at": 10.6, "votes": [10.95, 11.19, 11.43, 11.67, 11.91] } ] },
-    { "t": 10.6,  "type": "sys", "text": "Jo added an option: Should be fine" },
-    { "t": 12.45, "type": "space", "h": 110 }
+    { "t": 0,    "type": "sys", "text": "Danny left" },
+    { "t": 0.25, "type": "divider", "text": "8 months later" },
+    { "t": 2.95, "type": "msg", "who": "Vic", "text": "Right.", "time": "07:02" },
+    { "t": 3.75, "type": "sys", "text": "Maya added Danny" },
+    { "t": 3.75, "type": "head", "sub": "8 members" },
+    { "t": 4.3,  "type": "typingbar", "who": "Danny" }
   ] }

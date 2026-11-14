@@ -1,7 +1,7 @@
 { "dur": 5.7083, "scene": "list", "file": "THE STUDY · FILE 04", "title": "WHAT COULD BE MOVED",
   "rows": [
     { "t": 0.2083, "label": "FLIGHTS",   "value": "MOVED, FOR A FEE" },
-    { "t": 1.0,    "label": "HOTEL",     "value": "BOOKED AGAIN" },
-    { "t": 1.6667, "label": "T-SHIRTS",  "value": "PRINTED.\nTHEY SAY SATURDAY." },
+    { "t": 0.875,  "label": "HOTEL",     "value": "BOOKED AGAIN" },
+    { "t": 1.4583, "label": "T-SHIRTS",  "value": "PRINTED.\nTHEY SAY SATURDAY." },
     { "t": 3.5,    "label": "THE MATCH", "value": "MOVED",
       "stamp": { "t": 4.4583, "text": "NO CHARGE", "color": "red", "big": true, "size": 60, "dx": 165 } } ] }

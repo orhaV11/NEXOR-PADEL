@@ -18,18 +18,18 @@
     "maya": { "path": "src/film/assets/tbc/shots/e4_s1.mp4", "level": -19 },
     "list": { "path": "src/film/assets/tbc/scenes/e4_list.mp4" },
     "chat": { "path": "src/film/assets/tbc/scenes/e4_chat.mp4" },
-    "vic":  { "path": "src/film/assets/tbc/shots/e4_s2.mp4", "level": -21.5 },
+    "vic":  { "path": "src/film/assets/tbc/shots/e4_s2.mp4", "level": -23.5 },
     "gran": { "path": "src/film/assets/tbc/clips/gran_go.mp4" }
   },
 
   "narration": [
-    { "file": "src/film/assets/tbc/vo/en/e4_n1a.wav", "at": "week+0.2917", "gain_db": 1.0,
+    { "file": "src/film/assets/tbc/vo/en/e4_n1a.wav", "at": "week+0.2917", "gain_db": 1.5,
       "text": "A different team | won a different match." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n1b.wav", "at": "week+2.9583", "gain_db": -1.2,
+    { "file": "src/film/assets/tbc/vo/en/e4_n1b.wav", "at": "week+2.9583", "gain_db": -2.2,
       "text": "So this one | moved to Monday." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n2.wav", "at": "week+5.25", "gain_db": 0.4,
+    { "file": "src/film/assets/tbc/vo/en/e4_n2.wav", "at": "week+5.25", "gain_db": 0.6,
       "text": "The flight home did not." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n3.wav", "at": "list+0.625", "gain_db": 1.2,
+    { "file": "src/film/assets/tbc/vo/en/e4_n3.wav", "at": "list+0.625", "gain_db": 1.4,
       "text": "Every change cost money." }
   ],
 
@@ -85,7 +85,7 @@
       "lt": { "name": "VIC", "what": "HOLDS ALL SIX TICKETS", "at": 0.0, "len": 2.8, "y": 1085 },
       "line": "It's my daughter's wedding. I did ask her.", "no_caps": true,
       "cap": [ { "text": "It's my daughter's", "at": 0.95, "len": 0.75, "hold": 0.0 },
-               { "text": "wedding.", "at": 1.70, "len": 0.4, "hold": 0.7 },
+               { "text": "wedding.", "at": 1.70, "len": 0.4, "hold": 0.55 },
                { "text": "I did ask her.", "at": 3.8, "len": 0.75, "hold": 0.6 } ] },
 
     { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,

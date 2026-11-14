@@ -1,0 +1,6 @@
+{ "dur": 7.5, "scene": "week", "file": "THE STUDY · FILE 04", "title": "THE WEEKEND",
+  "days": [ "FRI", "SAT", "SUN", "MON" ],
+  "tiles": [
+    { "label": "FLIGHT OUT",  "day": 0, "t": 0.2083 },
+    { "label": "THE MATCH",   "day": 1, "t": 0.4583, "main": true, "move": { "t": 3.9167, "to": 3 }, "tag": "MOVED" },
+    { "label": "FLIGHT HOME", "day": 2, "t": 0.7083, "clash": { "t": 6.375 } } ] }

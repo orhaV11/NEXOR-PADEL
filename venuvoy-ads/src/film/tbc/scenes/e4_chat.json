@@ -1,0 +1,7 @@
+{ "dur": 2.75, "name": "Away trip – who's in?", "sub": "8 members", "right": 730,
+  "events": [
+    { "t": 0,      "type": "chip", "text": "OWE MAYA: 6" },
+    { "t": 0,      "type": "typingbar", "who": "Danny" },
+    { "t": 0.125,  "type": "msg", "who": "Maya", "me": true, "text": "All moved to Monday.\nDo not ask.", "time": "19:26" },
+    { "t": 1.75,   "type": "typingbar", "who": "Vic" }
+  ] }

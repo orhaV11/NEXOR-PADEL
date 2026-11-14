@@ -273,7 +273,7 @@
  "series": {
   "title": "To Be Confirmed",
   "folder": "16-tbc",
-  "titleHe": "סדרה קומית לבניית קהילה · באנגלית",
+  "titleHe": "סדרה קומית לבניית קהילה · באנגלית · עונה שלמה",
   "angle": "זו לא פרסומת. סדרה דוקומנטרית־קומית על קבוצת צ׳אט של אוהדים שמתכננים נסיעה אחת למשחק בחו״ל, בהמשך ל״דני יצא מהקבוצה״ (שהופך ל״עונה שעברה״). אין בה מסך של האפליקציה, מחיר, כפתור או קישור. המותג רק חותם בסוף כל פרק: ״Next episode: Thursday. Confirmed.״ המטרה: שאוהדים שנוסעים למשחקים יעקבו, ישלחו לקבוצה שלהם ויחכו לפרק הבא.",
   "bio": "A study of people trying to get to a match. Fiction. New episode every Thursday.",
   "episodes": [
@@ -320,6 +320,42 @@
     "when": "יום 13 · שלישי",
     "posterAt": 0.6,
     "caption": "In the chat. Somebody has asked what time kick-off is."
+   },
+   {
+    "id": "tbc-ep5",
+    "name": "Episode 5: Leave It With Me",
+    "when": "יום 15 · חמישי",
+    "posterAt": 0.6,
+    "caption": "Episode 5. Danny has sent a message."
+   },
+   {
+    "id": "tbc-shA",
+    "name": "In the Chat: Danny Football",
+    "when": "יום 20 · שלישי",
+    "posterAt": 0.6,
+    "caption": "In the chat. The airline needs a surname."
+   },
+   {
+    "id": "tbc-ep6",
+    "name": "Episode 6: Seven Seats",
+    "when": "יום 22 · חמישי",
+    "posterAt": 0.6,
+    "caption": "Episode 6. Maya booked seven seats."
+   },
+   {
+    "id": "tbc-shB",
+    "name": "In the Chat: Again",
+    "when": "יום 27 · שלישי",
+    "posterAt": 0.6,
+    "caption": "In the chat. The kick-off time has been confirmed."
+   },
+   {
+    "id": "tbc-ep7",
+    "name": "Episode 7: Confirmed",
+    "when": "יום 29 · חמישי · סיום העונה",
+    "posterAt": 0.6,
+    "caption": "Episode 7. Match day. The group is at the gate.",
+    "pinned": "Vic is recorded as attending. It is his twelfth match."
    }
   ],
   "plan": [
@@ -327,9 +363,9 @@
    "בכל פוסט ובכל פלטפורמה להדליק את התווית שמציינת שהתוכן נוצר בבינה מלאכותית.",
    "שעה קבועה: 12:00 בשעון בריטניה (14:00 בישראל בחורף). בשעה הזאת זה יום חמישי בכל העולם, מלוס אנג׳לס ועד סידני, והשורה ״Thursday. Confirmed.״ נכונה לכולם.",
    "יום 1: פרקים 1, 2 ו־3 אחד אחרי השני באותה שעה, ושלושתם נעוצים בראש הפרופיל. כך מי שנכנס רואה מיד סדרה ממוספרת.",
+   "העונה שלמה: אחרי ששת הסרטים הראשונים באים פרק 5 (יום 15), קצר (יום 20), פרק 6 (יום 22), קצר (יום 27) ופרק 7, סיום העונה (יום 29). בפרק האחרון השורה בסוף מתחלפת ל־״Next season: to be confirmed.״",
    "להעלות לכל פלטפורמה את הקובץ המקורי (9:16), ולא קובץ שהורד מפלטפורמה אחרת עם סימן מים. עד שלושה תגים כלליים: away days, groundhopping, football travel. בלי שם של מועדון, ליגה או תחרות.",
    "תגובות: עונים בקול של הקריין (״Noted.״) או לא עונים. לא מבקשים לייקים, תיוגים או מעקב. על המוצר עונים רק אם מישהו שואל מה זה Venuvoy, במשפט אחד.",
-   "ההבטחה ״Next episode: Thursday. Confirmed.״ מחייבת פרק חדש בכל יום חמישי. הפרק של יום 15 (החתונה של הבת של ויק) עוד לא צולם: מחליטים עליו ביום 9, לפי הנתונים של השבוע הראשון.",
    "מה למדוד אחרי שבוע: כמה שלחו את הסרטון ביחס לחשיפה, כמה דילגו בשלוש השניות הראשונות, כמה צפו עד הסוף, וכמה התחילו לעקוב."
   ]
  }

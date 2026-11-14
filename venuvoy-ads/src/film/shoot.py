@@ -11,7 +11,8 @@ shoot.json:
                  "scene": "away: where they are now, light, wardrobe; none: the whole scene with the people in it",
                  "action": "what they do before, while and after speaking, with the silent end beat",
                  "delivery": "calm, matter-of-fact", "line": "the exact line, or empty for a silent shot",
-                 "audio": "what else is heard", "accent": "an English accent" } ] }
+                 "audio": "what else is heard", "accent": "an English accent",
+                 "address": "optional: whom they speak to, in place of 'speaks to an interviewer just off camera'" } ] }
 
 How a recurring character is kept: the portrait is made once (or taken from an approved clip) and every seated
 shot starts from that picture, so the face, the clothes and the room return exactly, like a real interview
@@ -99,7 +100,8 @@ def prompt_for(shot):
     say, audio = speech(shot)
     act = (shot.get("action", "").rstrip(". ") + ". ") if shot.get("action") else ""
     if shot["setup"] == "seat":
-        return f"{STYLE} The person sits exactly as in the image and speaks to an interviewer just off camera. {say}{act}{audio}{TAIL}"
+        # "address": whom they speak to (default: an interviewer just off camera; "says it to nobody, looking ahead" for a line nobody is meant to hear)
+        return f"{STYLE} The person is exactly as in the image and {shot.get('address', 'speaks to an interviewer just off camera')}. {say}{act}{audio}{TAIL}"
     if shot["setup"] == "away":
         return f"{STYLE} The scene is exactly as in the image. {say}{act}{audio}{TAIL}"
     return f'{shot["scene"].rstrip(". ")}. {say}{act}{audio}{TAIL}'

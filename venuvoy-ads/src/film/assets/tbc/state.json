@@ -5,6 +5,21 @@
   },
   "vic": {
    "portrait_url": "https://cdn.muapi.ai/outputs/generated/7e09baa8e54b4f2596e4fe02b4645f27.jpg"
+  },
+  "jo": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/0cdfcf78674941d0affe8ae7e553d4ba.jpg"
+  },
+  "lee": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/4ad755c708b3422f89bbea6792c9fef0.jpg"
+  },
+  "gran": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/6736565c530c4211a9d37fb57ecf4e13.jpg"
+  },
+  "vic_wed": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/42dd847b940743a7bf1b1457db50cd0b.jpg"
+  },
+  "gran_stand": {
+   "portrait_url": "https://cdn.muapi.ai/outputs/generated/4d6a5f8491b84607960b5e66c49f4cd1.jpg"
   }
  },
  "shots": {
@@ -97,6 +112,81 @@
    "heard": "I made a spreadsheet. I wanted to check the link worked.",
    "score": 1.0,
    "line": "I made a spreadsheet. I wanted to check the link worked."
+  },
+  "b2_l1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/287e9270-b92c-46b6-8b9f-b5139d3b969b_919f11d6.mp4",
+     "heard": "Three flights and a bus. I get in before kickoff, depending on kickoff.",
+     "score": 0.79
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_l1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/287e9270-b92c-46b6-8b9f-b5139d3b969b_919f11d6.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "Three flights and a bus. I get in before kickoff, depending on kickoff.",
+   "score": 0.79,
+   "line": "Three flights and a bus. I get in before kick-off, depending on kick-off."
+  },
+  "b2_v1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/4735993c-b48b-48d5-80ed-3341e06fd553_55020dc6.mp4",
+     "heard": "I said, marry in the morning. She said, what time's kickoff? There's no spray.",
+     "score": 0.77
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_v1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/4735993c-b48b-48d5-80ed-3341e06fd553_55020dc6.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I said, marry in the morning. She said, what time's kickoff? There's no spray.",
+   "score": 0.77,
+   "line": "I said, marry in the morning. She said, what time's kick-off?"
+  },
+  "b2_g1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/b84ce44c-a90b-4e67-8c79-d52d8c47c54a_766a9801.mp4",
+     "heard": "This isn't my phone. Danny left it with me.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_g1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/b84ce44c-a90b-4e67-8c79-d52d8c47c54a_766a9801.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "This isn't my phone. Danny left it with me.",
+   "score": 1.0,
+   "line": "This isn't my phone. Danny left it with me."
+  },
+  "b2_m2": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/b7db2adc-1dc9-44ce-ba63-3c208dc9b41a_f8e29b3c.mp4",
+     "heard": "I booked seven seats. Four of us flew.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_m2.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/b7db2adc-1dc9-44ce-ba63-3c208dc9b41a_f8e29b3c.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I booked seven seats. Four of us flew.",
+   "score": 1.0,
+   "line": "I booked seven seats. Four of us flew."
+  },
+  "b2_m1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/d5bd112c-9d72-47a5-996c-99c1fd5c1852_b310ee1d.mp4",
+     "heard": "He said, leave it with him. So I have.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_m1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/d5bd112c-9d72-47a5-996c-99c1fd5c1852_b310ee1d.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "He said, leave it with him. So I have.",
+   "score": 1.0,
+   "line": "He said leave it with him. So I have."
   }
  },
  "away": {}

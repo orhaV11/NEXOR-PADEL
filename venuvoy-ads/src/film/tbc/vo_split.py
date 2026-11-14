@@ -31,7 +31,13 @@ LINES = {
            "The match moved while he was in the air. He flies home on Wednesday."],
     "e6": ["The kick-off time is pinned.", "It has been asked fourteen times.", "The answer came from Sydney. It was two in the morning there.", "This is the pinned message."],
 }
-TAKE_OF = json.loads((TAKES / "takes.json").read_text()) if (TAKES / "takes.json").exists() else {}  # {"e1_5": "e1_fix.mp3"}: a line re-read in another take
+# A later batch: python3 src/film/tbc/vo_split.py <script.json>, where script.json is
+#   {"plan": "plan_b2.json", "takes": {"b2_a": [["ep5_n1", "The wedding needs Vic. The match needs his phone."], ...]}}
+# (take name without ".mp3" -> the lines read in it, in order, each with the file name it is cut to).
+SCRIPT = json.loads(Path(sys.argv[1]).read_text()) if len(sys.argv) > 1 else None
+JOBS = ([(ep, [(f"{ep}_n{n}", ln) for n, ln in enumerate(lines, 1)]) for ep, lines in LINES.items()] if SCRIPT is None
+        else [(take, [(nm, ln) for nm, ln in lines]) for take, lines in SCRIPT["takes"].items()])
+PLAN_NAME = "plan_en.json" if SCRIPT is None else SCRIPT["plan"]
 
 
 def load(p):
@@ -57,7 +63,8 @@ def nw(s):
 AF = "highpass=f=85,equalizer=f=190:t=q:w=0.9:g=-3.5,equalizer=f=2600:t=q:w=0.8:g=4.5,equalizer=f=5200:t=q:w=1.2:g=1.5"
 plan = {"out": "src/film/assets/tbc/vo/en", "target_db": -22.5, "max_gain_db": 5.0, "pause": 0.34, "af": AF, "lines": {}}
 report = []
-for ep, lines in LINES.items():
+for ep, named in JOBS:
+    lines = [ln for _, ln in named]
     path = TAKES / f"{ep}.mp3"
     x = load(path)
     e, hop = env_db(x)
@@ -78,7 +85,7 @@ for ep, lines in LINES.items():
         return round(max(0, i0 * hop - 0.012), 3), round(min(len(x) / SR, i1 * hop + 0.02 + 0.03), 3)
 
     k = 0
-    for n, ln in enumerate(lines, 1):
+    for (name, ln) in named:
         phrases = []
         for s in sentences(ln):
             a = ws[k][1]
@@ -98,12 +105,12 @@ for ep, lines in LINES.items():
             t0, t1 = edge(a + 0.02, end * hop)
             phrases.append([str(path.relative_to(ROOT)), t0, t1])
             k += nw(s)
-        plan["lines"][f"{ep}_n{n}"] = phrases
+        plan["lines"][name] = phrases
         if len(phrases) > 1:  # each sentence also on its own (e1_n4a, e1_n4b), for a line whose sentences land on separate pictures
             for q, ph in enumerate(phrases):
-                plan["lines"][f"{ep}_n{n}{'abc'[q]}"] = [ph]
+                plan["lines"][f"{name}{'abc'[q]}"] = [ph]
         dur = sum(p[2] - p[1] for p in phrases) + 0.34 * (len(phrases) - 1)
-        report.append(f"{ep}_n{n}  {dur:5.2f}s  " + " | ".join(f"{p[1]:.2f}-{p[2]:.2f}" for p in phrases) + f"   {ln}")
+        report.append(f"{name}  {dur:5.2f}s  " + " | ".join(f"{p[1]:.2f}-{p[2]:.2f}" for p in phrases) + f"   {ln}")
 plan["lines"].pop("e1_n3", None)  # re-read after review in its own take: takes/plan_e1_n3.json
-(TAKES / "plan_en.json").write_text(json.dumps(plan, indent=1))
+(TAKES / PLAN_NAME).write_text(json.dumps(plan, indent=1))
 print("\n".join(report))

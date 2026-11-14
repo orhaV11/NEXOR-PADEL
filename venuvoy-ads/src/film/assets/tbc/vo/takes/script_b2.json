@@ -1,0 +1,39 @@
+{
+ "plan": "plan_b2.json",
+ "takes": {
+  "b2_a": [
+   [
+    "ep5_n1",
+    "The wedding needs Vic. The match needs his phone."
+   ],
+   [
+    "ep5_n2",
+    "He had been typing for seventy seven days."
+   ]
+  ],
+  "b2_b": [
+   [
+    "shA_n1",
+    "They have known him for eleven years."
+   ],
+   [
+    "ep6_n1",
+    "Lee lives forty minutes from the airport."
+   ]
+  ],
+  "b2_c": [
+   [
+    "shB_n1",
+    "It was moved for television."
+   ],
+   [
+    "shB_n2",
+    "Sydney is not going."
+   ],
+   [
+    "ep7_n1",
+    "Two got in. One is not in the chat. The other is typing."
+   ]
+  ]
+ }
+}

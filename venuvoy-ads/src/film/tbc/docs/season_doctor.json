@@ -1,0 +1,112 @@
+{
+ "verdict": "Make it, after two fixes that must happen before any money is spent and an honest re-timing of the three numbered episodes. The spine is right, the story moves in all five films, every thread on the brief's list is paid, and the best lines are things people say.\n\nThe two blockers: the narrator's \"seventy-five days\" contradicts the two-day correction Episode 4 made on screen (it is 77), and shot G2 is asked for more usable seconds than it holds.\n\nLengths are under-timed. At the brief's own rates (2.6 words a second spoken, 0.3 s a word on screen) the episodes run about 35.9, 35.9 and 38.1 s, not 33.4, 32.7 and 34.1. The shorts run about 22 and 21 s, inside their range. The cuts I give lose no joke except one counter.\n\nTwo clarity faults in the finale: it never says \"tickets\", so a stranger does not know why the phone matters, and it puts four payoffs into 6.7 s of the wide chat view, where batch 1's cold viewers missed small things.\n\nThreads left open, all acceptable: Danny's surname, the five who still owe, the Elsewhere man, and Vic's record if the counter is cut (I move it to the pinned comment).\n\nLimits: narration is 273 characters by my count (274 after the fix), not 272. Nine shots, each one person, the longest line 13 words. No graphic of a kind that does not exist: I checked the chat and board pages for the typing line going out, the chip changing, and a green and a red stamp on the pinned bar.\n\nI changed no project file. I pulled reference frames from existing footage into the scratch folder only.",
+ "problems": [
+  {
+   "where": "Episode 5, beat 5: the narrator's line (the arc and the Episode 5 finding repeat the number)",
+   "severity": "blocker",
+   "what": "Seventy-five is 96 minus 21. But Episode 4 struck 40 and wrote 42, so every count shown before it was two days short. Danny began typing under the 96 label, which was really 98 days before the Monday. 98 minus 21 is 77. The line is recorded and paid for, and a study that corrected its own count on screen cannot then quote the uncorrected one.",
+   "replacement": "\"He had been typing for seventy-seven days.\" (42 characters; total narration 274.) Change the number in the arc and the finding too. If a commenter does 96 minus 21, the narrator's reply is ready: \"The count was corrected by two days in Episode 4.\""
+  },
+  {
+   "where": "Episode 7, beats 3, 5 and 6 (shot G2)",
+   "severity": "blocker",
+   "what": "G2 is one 7.9 s shot. The plan takes 3.3 s of it for the line and 4.4 s for the tail: 7.7 s, no margin. The tail is also under-timed: the same shape in Episode 1 (three narrator sentences, two pins read before the second) took 5.6 s. 3.3 plus 5.4 is more than the shot holds. It cannot be slowed, because fists are moving behind her and the cut sheet forbids slowing fast movement. The existing stand footage cannot fill the gap: she holds a saucer in it, not a phone.",
+   "replacement": "Build it exactly as Episode 1 was built, with the narrator's last sentence over the grey frame.\n- G2 direction: seen 0.25 s; the buzz at once; glance down and up by 1.3 s; \"That'll be for Vic.\" finished by 2.8 s; 0.5 s still; then the lift and sip run from 3.3 s to the end of the shot.\n- Beat 3 = G2 0.0 to 3.3.\n- Beat 5 = G2 3.3 to 7.1, real time, never slowed: \"Two got in.\" (pin DANNY on \"Two\", pin DANNY'S GRANDMOTHER 0.45 s later), then \"One is not in the chat.\"\n- Beat 6: the frame it has reached freezes and drains in 0.6 s with Episode 1's slow push (1.00 to 1.04); the roar cuts to room tone; \"The other is typing.\" is spoken over the grey frame with Danny's pin still up. Pins and caption go as the red CONFIRMED lands on his last word; held 1.2 s.\n- Beats 5 and 6 together: 6.6 s.\n- In the edited still the phone replaces the saucer where the saucer is now (in frame, inside the 4:5 crop), not \"low on her lap\". The plan's fallback (unedited still, lap out of frame) stays."
+  },
+  {
+   "where": "Episode 7, whole film: length",
+   "severity": "major",
+   "what": "At the brief's rates the finale is about 38.1 s, not 34.1. My beat times: 3.0, 5.0, 3.4, 5.5, 5.4, 1.8, 7.0, 2.8, 4.3. At the pace batch 1's takes were actually spoken it is still about 36.8. The plan's own remedy (\"cut the counter if the takes run long\") is not enough and should not wait for the takes. The counter also lands in the 0.6 s of silence that Vic's best line is owed.",
+   "replacement": "Cuts, in this order:\n1. Beats 5 and 6 as rebuilt above (saves 0.6 s).\n2. Cut the MATCHES ATTENDED counter. Vic's line keeps its own 0.6 s look and V2's silent end beat can be 1 s. The fact goes to the pinned comment under the post, in the narrator's voice: \"Vic is recorded as attending. It is his twelfth match.\" (saves 1.1 s).\n3. Beat 7 as rebuilt in the beat 7 entry.\n4. Beat 2: typing ticks 0.3 s, not 0.7. Beat 8: Jo thinks for 0.6 s, not 1.0 (saves 0.8 s).\nResult: about 35.8 s at 2.6 words a second, about 34.5 s at the pace the batch-1 takes ran.\nIf it is still over: Jo's first look 0.4 s and Sydney's message 1.5 s.\nNever cut: the stamp's 1.2 s, the hold after \"Nothing.\", the hold on \"I'm in.\"."
+  },
+  {
+   "where": "Episode 7, beat 2: Maya's message at the gate",
+   "severity": "major",
+   "what": "The word \"tickets\" is never seen or heard in the finale. A stranger is told the group needs a phone and is never told why, so \"That'll be for Vic.\" and \"Two got in.\" lose their cause.",
+   "replacement": "Maya 12:09: \"At the gate. Danny, we need the tickets. Ringing Vic's phone.\" Same ten words of reading. It ties the tickets to the phone, and it rhymes with her \"Danny, you have Vic's phone.\" in Episode 6. Allow 3.0 s for it before Sydney's line: beat 2 is about 4.6 s, not 4.1."
+  },
+  {
+   "where": "Episode 7, beat 7: the epilogue in the chat",
+   "severity": "major",
+   "what": "Four payoffs (Lee, Friday, the chip, Danny) share 6.7 s, in silence, in the wide view. The chip (30 px, top corner) gets 0.8 s while the eye is at the foot of the thread. Batch 1's cold viewers missed exactly this: the chip at 0.54 s in Episode 2 and \"Danny's grandmother left\" at 0.8 s in the wide view of Episode 3. Also, the divider says FRIDAY and then Vic says \"It's Friday.\": the same thing twice, and Vic winking at a narrator's line he never heard.",
+   "replacement": "Same length, fewer words, longer holds.\n- Close on the thread: Lee 13:17: \"What did I miss?\" is up at the cut. Maya 13:17: \"Nothing.\" arrives at 1.2 s and is held 0.9 s.\n- Widen in 0.4 s to the full screen. Divider FRIDAY. Vic 09:02: \"Paid you.\"\n- Nothing moves for 0.3 s. The chip clicks from OWE MAYA: 6 to OWE MAYA: 5 and is left alone for 1.2 s.\n- The typing line goes out and its ticks stop. Danny 09:03: \"I'm in.\" Held 1.3 s with no typing line.\n- About 6.9 s.\n\"Just got here.\" is cut because the time stamp says it. \"It's Friday.\" is cut because the divider says it."
+  },
+  {
+   "where": "Short A, beat 1: Jo's line (shot J0)",
+   "severity": "major",
+   "what": "\"I've got him as Danny Football.\" is one country's phrase, and nothing in the short ever says \"phone\" (Lee's reply is \"in mine\"). In the first two seconds a stranger, and any second-language viewer, cannot tell what she has him as. The beat is also timed at 2.6 s for a six-word line plus a 0.7 s look; it needs about 3.1 s.",
+   "replacement": "Jo: \"He's in my phone as Danny Football.\" Seven words. Cards: HE'S IN MY PHONE AS / DANNY FOOTBALL. Lee's \"He's Danny Football 2 in mine.\" then reads without help. Beat 1 is about 3.5 s; the short comes out at about 22 s."
+  },
+  {
+   "where": "Short A, beat 2: Maya's message (also the fallback narrator line)",
+   "severity": "major",
+   "what": "Maya booked and paid for every seat 77 days earlier and moved the flights for a fee. Anyone who has booked a flight knows a seat cannot be booked without a surname. What does happen twelve days out is check-in asking for names as they are on the passports.",
+   "replacement": "Maya 20:05: \"Check-in needs passport names. Danny, surname?\" Marcus, Lee and Priya reply as written. The board (SEAT 7 OF 7, FIRST NAME: DANNY, SURNAME: stamp) and the post caption stay. If J0 is given up, the narrator's line is \"Check-in needs a surname.\" (25 characters; total 299)."
+  },
+  {
+   "where": "Episode 5, whole film: length",
+   "severity": "major",
+   "what": "At the brief's rates Episode 5 is about 35.9 s, not 33.4. My beat times: 5.9, 7.2, 3.4, 1.5, 8.4, 5.2, 4.3. Vic's 11 words with a full second's pause and a 0.6 s look are 5.9 s, not 5.0. Maya's 9 words with her wait are 5.2 s, not 4.2. The board's five-word title has to be read before the narrator starts, which the 6.4 s does not include. Beat 3 is the only one over-timed: it needs 3.4 s, not 4.4.",
+   "replacement": "Cuts, in this order:\n1. Beat 3 at 3.4 s.\n2. Cut Maya's chat line \"Who takes it?\". The thread runs: Vic 20:17: \"The phone can go. I can't.\", 0.6 s of typing ticks, the typing line goes out, Danny 20:20: \"Leave it with me.\" He volunteers instead of answering, which is stronger (saves 0.9 s).\n3. Only if still over: board title \"MONDAY\" in place of \"MONDAY · KICK-OFF TO BE CONFIRMED\". The day count's small line arriving under her question already gives the answer (saves 0.8 s).\nResult: about 34.2 s at 2.6 words a second."
+  },
+  {
+   "where": "Episode 6: length, and beat 2",
+   "severity": "major",
+   "what": "At the brief's rates Episode 6 is about 35.9 s, not 32.7. My beat times: 5.3, 5.0, 6.9, 2.4, 5.9, 6.2, 4.3. Lee's 13 words with a one-second glance cannot fit 5.2 s at any pace he has spoken. In beat 2 both rows are typed by 1.6 s and the narrator's caption arrives on top of them: twelve words of paper and a seven-word caption asking to be read together.",
+   "replacement": "- Beat 1 (M2): the wait between her two sentences is about 1.0 s, not 1.5. It falls in the first three seconds on a muted phone.\n- Beat 2: the narrator starts 0.6 s after row 2 is complete. Time it at 5.0 s.\n- Beat 3 (L1): the glance at the laptop is half a second. Time it at 6.3 s.\n- Beat 4: 2.4 s is enough.\nResult: about 34.9 s at 2.6 words a second. No word changes."
+  },
+  {
+   "where": "Episode 6, beat 3, and Short B, beat 1: Lee's name tags",
+   "severity": "minor",
+   "what": "In Episode 6 the board types LEE: FOUND IT CHEAPER. and five seconds later the tag under his face says LEE / FOUND IT CHEAPER: the same joke text twice. In Short B the tag says ON THE CHEAPER ROUTE over a selfie taken in his bedroom.",
+   "replacement": "Episode 6 tag: LEE / COMPARES FLIGHTS (his role since Episode 2; it sits well against \"Three flights\"). Short B tag: LEE / FOUND IT CHEAPER."
+  },
+  {
+   "where": "Short B, beat 3: Lee's message",
+   "severity": "minor",
+   "what": "\"Then I get to the ground at 1:15.\" arrives before the viewer has been given the new time at a readable size. 12:30 is only in the collapsed bar until Sydney's message, which comes after.",
+   "replacement": "Lee: \"12:30? I get to the ground at 1:15.\" Sydney's two messages and the narrator's lines stay. Give the three messages about 2 s each, then the narrator: beat 3 is about 9.5 s and the short about 21 s."
+  },
+  {
+   "where": "Short B, beat 1: the opening",
+   "severity": "minor",
+   "what": "The first two seconds are the same picture, crop and caption as Episode 4's opening. The words repeating is the joke; the identical first frame only tells a follower's thumb that this is a repost.",
+   "replacement": "Use the other framing the cut sheet gives for this clip (punch 1.35 at cx 0.385, cy 0.57), not Episode 4's low-left crop, and put the two-line tag up on frame 0. Words unchanged."
+  },
+  {
+   "where": "Episode 5, beat 3: Jo's message",
+   "severity": "minor",
+   "what": "In batch 1 Jo types in lower case with no punctuation (\"is it 7:45 or 8\"), as Marcus and Priya do. Maya, Vic, Lee and Sydney type sentences. \"Screenshot them?\" is in the wrong hand.",
+   "replacement": "Jo 20:14: \"can you not screenshot them\""
+  },
+  {
+   "where": "Episode 6, beat 2: row 1 of the board",
+   "severity": "minor",
+   "what": "The board is about the Saturday flight. On Saturday Vic is not at a wedding: the wedding is on the Monday.",
+   "replacement": "Row 1: VIC: WEDDING ON MONDAY."
+  },
+  {
+   "where": "Episode 6, beat 6 (G1), and every sign-off",
+   "severity": "minor",
+   "what": "The grandmother already holds a dark phone in her left hand, large in frame, in every sign-off since Episode 1 and in her Episode 3 shot. \"This isn't my phone\" lands on an object followers have watched her hold for ten weeks, including in Episode 5's own sign-off. It is not a contradiction (nothing ever said that phone was hers), but the plan does not mention it.",
+   "replacement": "Change no word.\n- Keep Vic's phone the same dark phone in the same hand, in G1 and in the edited stand still. A case or a colour would make the house sign-off show a different phone one cut later.\n- Never claim anywhere that she has no phone.\n- Reply for the comments, in the narrator's voice: \"She has a phone. This is not it.\"\n- Check on a frame of G1 that the caption does not cover the phone: in the house framing it sits low, from about row 1450 down."
+  }
+ ],
+ "narration_count": 273,
+ "keep": [
+  "The spine: the phone goes to Danny, Danny leaves it with his grandmother, the tickets go in without the people who planned.",
+  "The finale's mirror of Episode 1: the stand, the two pins, the drained freeze, the same red stamp in the same place, now reading CONFIRMED. It is the only second freeze the show should ever have. Keep the stamp red even though Short B's small CONFIRMED is green.",
+  "Vic's cold open, word for word, with the day count's small line arriving under her question. The daughter runner: \"I did ask her.\", \"what time's kick-off?\", \"My daughter says I didn't look at my phone once.\"",
+  "Episode 5's chat: \"Tried. The barcode moves.\", \"Film it.\", \"The phone can go. I can't.\", the typing line going out for the first time, \"Leave it with me.\", the full second of nothing, the typing line coming back. Then Maya: \"He said leave it with him. So I have.\"",
+  "All five sign-off statuses (HER TICKET IS PAPER. / KNOWS HIS FULL NAME. / SIX TICKETS. AND HER OWN. / LIKES TO BE EARLY. / WENT.) and the last line, \"Next season: to be confirmed.\"",
+  "\"Danny Football\", \"Danny Football 2\", \"is it not just Danny\", \"ask Danny\", the stamp SURNAME: TO BE CONFIRMED, and NO SURNAME as the reason he is not on the flight.",
+  "\"I booked seven seats. Four of us flew.\" And \"Lee lives forty minutes from the airport.\" placed before \"Three flights and a bus. I get in before kick-off, depending on kick-off.\"",
+  "The T-shirt exchange: \"Wear the T-shirts.\" / \"they say Saturday\" / \"It is Saturday.\"",
+  "The cut from \"Danny, you have Vic's phone.\" and the typing ticks straight to the grandmother. \"This isn't my phone. Danny left it with me.\", the buzz she lets ring out, and the sign-off entered in the same sitting.",
+  "Short B: the green CONFIRMED left alone for 1.1 s, then the red MOVED. \"It was moved for television.\" \"Works for me.\" followed by \"Sydney is not going.\" Lee's unused \"Again.\". A day's notice is an exaggeration, and the 1.1 s makes clear it is one.",
+  "The finale's lines: \"Danny's grandmother is on TV.\" from Sydney; \"That'll be for Vic.\"; \"Two got in. One is not in the chat. The other is typing.\"; \"Nothing.\"; the chip moving by one with the old click; \"I'm in.\" under the chat's own name; \"It was fine.\"",
+  "Vic posting nothing in any chat while his phone is away, and posting again on the Friday.",
+  "The showrunner's cuts: no on-screen Danny, no cascade of \"Paid.\", no second \"Should be fine\", no line that explains \"it\", no third use of Maya's closed eyes.",
+  "The arithmetic that closes: seven seats is Maya plus OWE MAYA: 6; six tickets for six travellers once Vic is out, with the grandmother on her own paper one; 12:30 plus 45 minutes is 1:15; the pinned bar on every chat screen."
+ ]
+}

@@ -1,0 +1,368 @@
+{
+ "arc": "Vic asked his daughter to marry in the morning and she asked what time kick-off was, which nobody can tell her; the six tickets cannot leave his phone and he cannot leave the wedding, so the phone has to travel without him, and after seventy-five days of typing Danny sends four words: \"Leave it with me.\" (Episode 5). The airline then needs a surname for every seat and, after eleven years, nobody in the chat has Danny's: he is \"Danny Football\" in every phone, and the one person who knows it is not in the chat (Short A). Maya booked seven seats and four people fly, in T-shirts that are right for one day: Vic is at a wedding, Lee found it cheaper (three flights and a bus, arriving \"before kick-off, depending on kick-off\"), Danny has no surname, and the phone with the six tickets is in a floral armchair, because Danny left it with his grandmother, who does not answer a phone that is not hers (Episode 6). The day before, the kick-off time is confirmed at last, in green, and moved within three seconds for television, to a time that suits only Sydney, who is not going, and that turns Lee's route into an arrival at half-time (Short B). On match day the four who did everything properly are at the gate and learn where their tickets are from Sydney, who has seen Danny's grandmother on television: she is in her seat, early, with Vic's phone ringing in her hand (\"That'll be for Vic.\"), Danny is behind her, and Vic is recorded as attending his twelfth match from his daughter's wedding (Episode 7). The season ends where the last one did, at greater expense and with everyone content: two got in, one is not in the chat and the other is typing, and the study stamps it CONFIRMED on the same kind of frozen frame that was stamped TO BE CONFIRMED in Episode 1; Lee arrives at half-time having missed nothing, on Friday Vic pays and OWE MAYA moves for the first time, to 5, Danny at last answers the question the chat is named after (\"I'm in.\") and stops typing, Jo's verdict is \"It was fine.\", the grandmother's status is WENT., and the last line is \"Next season: to be confirmed.\"",
+ "films": [
+  {
+   "slot": "Episode 5",
+   "title": "Episode 5: Leave It With Me",
+   "seconds": 33.4,
+   "finding": "The wedding needs Vic and the match needs his phone, and a ticket on a phone cannot be sent on; topped once when the member who offers to take the phone is Danny, with the first message he has sent in seventy-five days.",
+   "moves": "Vic tried to move the wedding to the morning and could not tell the bride what time kick-off is. The six tickets cannot be sent, screenshotted or filmed off his phone, so the phone will go and Vic will not. Danny has finally sent a message, has been handed the whole problem, and is typing again. Maya has, for the first time, left something with somebody else. The grandmother's own ticket is paper.",
+   "beats": [
+    {
+     "picture": "NEW SHOT V1. Vic in his usual place outside the ground at night, reporter's microphone at the bottom, his standard top-held framing (set so his head stays clear of the day count's corner, as corrected after Episode 4). Frame 0 is his face mid-word. First sentence as a reasonable suggestion; a full second with his mouth closed; her answer, reported flat; he holds the interviewer's look 0.6 s.",
+     "spoken": "I said, marry in the morning. She said, what time's kick-off?",
+     "narration": "",
+     "on_screen": "First caption card up on frame 0. Cards: I SAID, MARRY / IN THE MORNING. then SHE SAID, / WHAT TIME'S KICK-OFF? Name tag from frame 0, held through the silent look: VIC / FATHER OF THE BRIDE. Day count arrives at about 2.8 s, as he begins her answer, so its small line is read against her question: 21 DAYS BEFORE* / *to be confirmed",
+     "seconds": 5
+    },
+    {
+     "picture": "Paperwork board, typed list, cut in hard. The title is already on the paper and is read before anything moves: it is the answer to her question. Row 1 is typed on the narrator's first sentence and row 2 on his second (the rows are the caption, so no narrator caption). 0.6 s of nothing. Row 3's label is typed in silence and the red stamp lands where its value would be, with the thud and the jolt; held 1.25 s, nothing said.",
+     "spoken": "",
+     "narration": "The wedding needs Vic. The match needs his phone.",
+     "on_screen": "Tab: THE STUDY · FILE 05. Title: MONDAY · KICK-OFF TO BE CONFIRMED. Row 1: THE WEDDING NEEDS: VIC. Row 2: THE MATCH NEEDS: VIC'S PHONE. Row 3: SEND THE TICKETS: then red stamp NOT PERMITTED. Day count stays.",
+     "seconds": 6.4
+    },
+    {
+     "picture": "Chat from Maya's phone: header, chip and the collapsed pinned bar seen 0.3 s, then pushed in on the thread. Three messages pop about 0.9 s apart; the last is held 0.9 s in silence.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Header: Away trip – who's in? / 8 members. Chip: OWE MAYA: 6. Bar: Pinned · Kick-off: Mon… Jo 20:14: Screenshot them? / Vic 20:15: Tried. The barcode moves. / Lee 20:15: Film it. / Foot: Danny is typing…",
+     "seconds": 4.4
+    },
+    {
+     "picture": "FREE FOOTAGE: Vic, silent, live, real time: he looks down, troubled (the unused look before his wedding line in the Episode 4 take, same framing as beat 1). In the cut it is his answer to \"Film it.\" and the moment he decides. Nothing said.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Name tag again: VIC / FATHER OF THE BRIDE",
+     "seconds": 1.5
+    },
+    {
+     "picture": "Chat, the same close frame. Vic's message, then Maya's question; 0.6 s of typing ticks. Then, for the first time in the series, the typing line at the foot goes out and its ticks stop. One message arrives. A full second of nothing. The narrator. Then the typing line comes back with a single tick and is held 0.6 s.",
+     "spoken": "",
+     "narration": "He had been typing for seventy-five days.",
+     "on_screen": "Vic 20:17: The phone can go. I can't. / Maya 20:19: Who takes it? / (Danny is typing… disappears) / Danny 20:20: Leave it with me. / narrator's caption at y 1288 / (after it) Danny is typing… / Chip OWE MAYA: 6",
+     "seconds": 7.6
+    },
+    {
+     "picture": "NEW SHOT M1. Maya at her kitchen table at night, standard Maya framing. She reports the first sentence, waits about a second, adds the second with no change of expression, then her eyes go down to the pile of pages and stay there. 0.6 s silent.",
+     "spoken": "He said leave it with him. So I have.",
+     "narration": "",
+     "on_screen": "Name tag from her first frame: MAYA / ORGANISER, UNOPPOSED",
+     "seconds": 4.2
+    },
+    {
+     "picture": "Sign-off, house cut: the grandmother at home lifts the rose teacup, sips, eyes to the lens, small smile (gran_go 3.25 to 6.85 filled to 4.3 s, muted, clock ticks, two notes, hard cut). Day count and chip off.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "DANNY'S GRANDMOTHER / HER TICKET IS PAPER. Then VENUVOY and: Next episode: Thursday. Confirmed.",
+     "seconds": 4.3
+    }
+   ],
+   "signoff_status": "HER TICKET IS PAPER.",
+   "post_caption": "Episode 5. Danny has sent a message."
+  },
+  {
+   "slot": "Short A",
+   "title": "In the Chat: Danny Football",
+   "seconds": 20,
+   "finding": "The airline needs a surname for every seat and, after eleven years, nobody in the chat has Danny's (he is 'Danny Football' in every phone); topped once by the sign-off: the one person who knows his full name is not in the chat.",
+   "moves": "The seven seats need seven surnames and Danny's is the only one missing: nobody in the group has ever known it. The question has been put to Danny, who is typing. His seat is therefore not safe. His grandmother knows his full name and cannot be asked.",
+   "beats": [
+    {
+     "picture": "NEW SHOT J0. Jo in her usual place outside a ground at night, olive parka, ponytail, reporter's microphone at the bottom (framed as her Episode 1 clip). Frame 0 her face, mid-word. She gives it as plain information, then presses her lips together and holds the look 0.7 s.",
+     "spoken": "I've got him as Danny Football.",
+     "narration": "",
+     "on_screen": "Caption up on frame 0 (one card, then DANNY FOOTBALL. alone). Name tag from frame 0: JO / FRIEND OF DANNY. Day count from 2.2 s: 12 DAYS BEFORE* / *to be confirmed",
+     "seconds": 2.6
+    },
+    {
+     "picture": "Chat from Maya's phone: header, chip and collapsed pinned bar seen 0.4 s, then pushed in on the thread. Maya's message is read; two replies pop 0.8 s apart; the second is held 0.9 s.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Header: Away trip – who's in? / 8 members. Chip: OWE MAYA: 6. Bar: Pinned · Kick-off: Mon… Maya 20:05: The airline needs a surname for every seat. Danny? / Marcus: is it not just Danny / Lee: He's Danny Football 2 in mine. / Foot: Danny is typing…",
+     "seconds": 4.8
+    },
+    {
+     "picture": "The same close frame. Nothing arrives; only the typing dots move.",
+     "spoken": "",
+     "narration": "They have known him for eleven years.",
+     "on_screen": "(the thread as it stands; narrator's caption at y 1288)",
+     "seconds": 2.8
+    },
+    {
+     "picture": "One more message pops; the picture eases down so the typing line sits in the middle of the frame, its ticks a little louder; 1.1 s in which nothing arrives. Nothing is said.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Priya: ask Danny / Foot: Danny is typing…",
+     "seconds": 1.8
+    },
+    {
+     "picture": "Paperwork board, typed list as a two-row notice, in silence. Row 1 is typed. Row 2's label is typed and the red stamp lands on its blank with the thud and the jolt; held 1.25 s, nothing said, nothing heard.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Tab: THE STUDY · IN THE CHAT. Title: SEAT 7 OF 7. Row 1: FIRST NAME: DANNY. Row 2: SURNAME: then red stamp TO BE CONFIRMED",
+     "seconds": 3.7
+    },
+    {
+     "picture": "Sign-off, house cut: the grandmother at home, sip, look, small smile. Day count off.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "DANNY'S GRANDMOTHER / KNOWS HIS FULL NAME. Then VENUVOY and: Next episode: Thursday. Confirmed.",
+     "seconds": 4.3
+    }
+   ],
+   "signoff_status": "KNOWS HIS FULL NAME.",
+   "post_caption": "In the chat. The airline needs a surname."
+  },
+  {
+   "slot": "Episode 6",
+   "title": "Episode 6: Seven Seats",
+   "seconds": 32.7,
+   "finding": "The organiser booked seven seats and four people flew, each absence a type every travelling group knows; topped once: the six tickets were not on the flight either, they are in a floral armchair.",
+   "moves": "Who is actually travelling: Maya, Jo, Marcus and Priya flew on the Saturday, the one day the T-shirts are right. Vic is at a wedding. Lee is on three flights and a bus and gets in 'before kick-off, depending on kick-off'. Danny has no surname and so no seat. Maya still believes Danny has Vic's phone. He left it with his grandmother, who is at home with six tickets and her own and does not answer a phone that is not hers.",
+   "beats": [
+    {
+     "picture": "NEW SHOT M2. Maya at her kitchen table, standard framing. Frame 0 mid-word. First sentence as a fact; about a second and a half holding the interviewer's look; the second sentence; 0.6 s silent.",
+     "spoken": "I booked seven seats. Four of us flew.",
+     "narration": "",
+     "on_screen": "Caption up on frame 0: I BOOKED SEVEN SEATS. then FOUR OF US FLEW. Name tag from frame 0: MAYA / ORGANISER, UNOPPOSED. Day count from 2.4 s: 2 DAYS BEFORE* / *to be confirmed",
+     "seconds": 4.6
+    },
+    {
+     "picture": "Paperwork board, typed list. Two rows are typed one after the other, each with a soft tick (done by 1.6 s). Then the narrator, over the second row.",
+     "spoken": "",
+     "narration": "Lee lives forty minutes from the airport.",
+     "on_screen": "Tab: THE STUDY · FILE 06. Title: NOT ON THE FLIGHT. Row 1: VIC: AT A WEDDING. Row 2: LEE: FOUND IT CHEAPER. Narrator's caption in the caption lane.",
+     "seconds": 4.4
+    },
+    {
+     "picture": "NEW SHOT L1. Lee in his dark bedroom lit by the laptop, propped on his elbows. First sentence with quiet satisfaction; a glance down at the laptop for a second; the second sentence to the interviewer as good news, with no doubt in it; 0.6 s silent look.",
+     "spoken": "Three flights and a bus. I get in before kick-off, depending on kick-off.",
+     "narration": "",
+     "on_screen": "Cards: THREE FLIGHTS / AND A BUS. then I GET IN / BEFORE KICK-OFF, / DEPENDING ON / KICK-OFF. Name tag from his first frame, held through the look: LEE / FOUND IT CHEAPER",
+     "seconds": 5.2
+    },
+    {
+     "picture": "The same board, rows 1 and 2 already there. A third row's label is typed in silence; the red stamp lands where its value would be, with the thud and the jolt; held 1.25 s, nothing said.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Row 3: DANNY: then red stamp NO SURNAME",
+     "seconds": 3
+    },
+    {
+     "picture": "Chat from Maya's phone at the departure gate: header, chip and collapsed pinned bar seen 0.3 s, then pushed in. A divider, then three messages 0.8 s apart, the third held 0.8 s; then Maya's last message and 0.9 s of nothing but the typing ticks. Cut on the ticks: the next shot is the answer.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Chip OWE MAYA: 6. Bar: Pinned · Kick-off: Mon… Divider: SATURDAY. Maya 06:02: Gate 22. Wear the T-shirts. / Marcus: they say Saturday / Maya 06:03: It is Saturday. / Maya 06:51: Boarding. Danny, you have Vic's phone. / Foot: Danny is typing…",
+     "seconds": 5.8
+    },
+    {
+     "picture": "NEW SHOT G1. The grandmother in her floral armchair, rose teacup held still in her right hand, the dark phone in her left (its screen never seen). She is seen 0.25 s before the caption, already looking down at the phone. She says the first sentence to the interviewer; the phone buzzes and she watches it for about 1.8 s until it stops, without answering; she looks up and says the second sentence as plain information; 0.6 s look. Framed to match the sign-off's opening framing.",
+     "spoken": "This isn't my phone. Danny left it with me.",
+     "narration": "",
+     "on_screen": "Captions: THIS ISN'T MY PHONE. then DANNY LEFT IT / WITH ME. (no caption during the 1.8 s). Name tag from her first frame, held through the silence: DANNY'S GRANDMOTHER / NOT IN THE CHAT",
+     "seconds": 5.4
+    },
+    {
+     "picture": "Sign-off, house cut, entered as a jump cut within the same sitting: she lifts the cup, sips, eyes to the lens, small smile; the phone is still in her other hand. Day count and chip off.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "DANNY'S GRANDMOTHER / SIX TICKETS. AND HER OWN. Then VENUVOY and: Next episode: Thursday. Confirmed.",
+     "seconds": 4.3
+    }
+   ],
+   "signoff_status": "SIX TICKETS. AND HER OWN.",
+   "post_caption": "Episode 6. Maya booked seven seats."
+  },
+  {
+   "slot": "Short B",
+   "title": "In the Chat: Again",
+   "seconds": 19.2,
+   "finding": "The kick-off time is confirmed at last and moved at once, for television; topped once: the only member the new time suits lives twenty-two hours away and is not going.",
+   "moves": "The pinned time finally had an answer (20:00, the first green CONFIRMED of the series; it was 8, not 7:45) and lost it within three seconds: kick-off is now 12:30 on Monday. Lee's cheaper route now reaches the ground at 1:15, which is half-time. Sydney is not travelling and will watch at 9:30 at night. The grandmother, who travels on the day with every ticket, likes to be early.",
+   "beats": [
+    {
+     "picture": "FREE FOOTAGE: Lee, selfie (f_selfie 2.40 to 6.00, the Episode 4 opening running on to its unused last word, same crop as Episode 4). Frame 0 his face, mid-word. First sentence, his own pause of about a second, then the one word; last frame held 0.3 s at most.",
+     "spoken": "They just moved the kick-off. Again.",
+     "narration": "",
+     "on_screen": "Cards: THEY JUST MOVED / THE KICK-OFF. then AGAIN. First card up on frame 0. Name tag from frame 0: LEE / ON THE CHEAPER ROUTE. Day count from 2.2 s: 1 DAY BEFORE* / *to be confirmed",
+     "seconds": 3.6
+    },
+    {
+     "picture": "Chat, full screen, cut in hard with the pinned bar already open large. At 0.4 s a small green stamp lands on the blank after the time with a soft thud; it is left alone for 1.1 s. At 1.6 s the red stamp lands across the time and the green stamp, with the heavy thud and the jolt; held 1.25 s, nothing said, nothing heard. (Built from the bar's own stamp in green and a free stamp in red; no strike-through.)",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Header: Away trip – who's in? / 8 members. Chip: OWE MAYA: 6. PINNED / KICK-OFF: MONDAY / TIME: 20:00 then small green stamp CONFIRMED; then red stamp MOVED across it. Foot: Danny is typing…",
+     "seconds": 2.9
+    },
+    {
+     "picture": "The bar closes to its one line, which now carries the new time, and the picture pushes in on the thread; the narrator speaks as it closes. Then three messages pop in silence about 1.2 s apart, the last held 0.9 s; then the narrator, over the typing dots; 0.5 s of nothing.",
+     "spoken": "",
+     "narration": "It was moved for television. Sydney is not going.",
+     "on_screen": "Bar: Pinned · Kick-off: Mon 12:30. Lee: Then I get to the ground at 1:15. / Sydney: 12:30 there is 9:30 at night here. / Sydney: Works for me. / Foot: Danny is typing… (First narrator sentence as the bar closes; second sentence after \"Works for me.\"; captions at y 1288.)",
+     "seconds": 8.4
+    },
+    {
+     "picture": "Sign-off, house cut: the grandmother at home, sip, look, small smile. Day count and chip off.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "DANNY'S GRANDMOTHER / LIKES TO BE EARLY. Then VENUVOY and: Next episode: Thursday. Confirmed.",
+     "seconds": 4.3
+    }
+   ],
+   "signoff_status": "LIKES TO BE EARLY.",
+   "post_caption": "In the chat. The kick-off time has been confirmed."
+  },
+  {
+   "slot": "Episode 7",
+   "title": "Episode 7: Confirmed",
+   "seconds": 34.1,
+   "finding": "Everybody who did it properly reached the gate and the tickets went in without them: two got in, one is not in the chat and the other is typing, and the study stamps last season's result CONFIRMED; topped once by the group's verdict on the trip, which is 'It was fine.'",
+   "moves": "Everything is settled. Who got in: Danny and his grandmother, as last season. Vic's six tickets entered the ground on his phone, in her hand, unanswered. Jo, who never said yes, came; Vic, hundred percent, did not, and is recorded as attending his twelfth match from his daughter's wedding. The group learned where its tickets were from Sydney, watching television twenty-two hours away. Kick-off was 12:30 and for once nobody asked. Lee arrived at half-time and missed nothing. Vic paid on a Friday and OWE MAYA moved for the first time, to 5. Danny answered the question the chat is named after and stopped typing. The group calls it fine. The grandmother went. The next season is to be confirmed.",
+   "beats": [
+    {
+     "picture": "NEW SHOT J1, first sentence. Jo in her usual place outside a ground at night, olive parka, ponytail, reporter's microphone at the bottom. Frame 0 her face, mid-word. She states it as a point of accuracy and holds the look, lips pressed, 0.6 s.",
+     "spoken": "I never said I was coming.",
+     "narration": "",
+     "on_screen": "Caption up on frame 0. Name tag from frame 0: JO / VOTED “SHOULD BE FINE”. Day count from 2.0 s: 0 DAYS BEFORE* / *to be confirmed",
+     "seconds": 2.5
+    },
+    {
+     "picture": "Chat from Maya's phone at the gate, already pushed in on the thread with the collapsed pinned bar at the top. Maya's message is read; 0.7 s of typing ticks; one message from Sydney, on screen 1.7 s. Cut on it.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Bar: Pinned · Kick-off: Mon 12:30. Maya 12:09: At the gate. Danny, we need Vic's phone. Ringing it. / Sydney 12:11: Danny's grandmother is on TV. / Foot: Danny is typing…",
+     "seconds": 4.1
+    },
+    {
+     "picture": "NEW SHOT G2, first part. The grandmother in the roaring stand, rose teacup in her right hand, the dark phone in her left, low on her lap (screen never seen), the cheering man in the dark jacket soft behind her shoulder. She is seen 0.25 s before the caption. The phone buzzes under the roar; she glances down at it, does not answer, looks ahead again and says the line to nobody; 0.6 s.",
+     "spoken": "That'll be for Vic.",
+     "narration": "",
+     "on_screen": "Caption only: THAT'LL BE FOR VIC. No tag (the pins name her two beats later).",
+     "seconds": 3.3
+    },
+    {
+     "picture": "NEW SHOT V2. Vic in a dark suit with a flower in the buttonhole and a green and gold striped tie, at a wedding reception, warm lights and guests soft behind him, no microphone. He is seen 0.25 s, says the line with quiet pride and holds the look. In his silence one counter lands with a tick and, half a second later, ticks up by one; held 0.6 s.",
+     "spoken": "My daughter says I didn't look at my phone once.",
+     "narration": "",
+     "on_screen": "Cards: MY DAUGHTER SAYS / I DIDN'T LOOK / AT MY PHONE ONCE. Name tag from his first frame: VIC / IN. HUNDRED PERCENT. After the line, counter: MATCHES ATTENDED 11, then it counts up to 12",
+     "seconds": 4.5
+    },
+    {
+     "picture": "The stand again, live, the roar under it: the tail of G2 (she lifts the cup, sips, lowers it and looks ahead, composed). Two pins land as in Episode 1, on the man behind her and then on her. The narrator's three sentences, with air between them; his caption clear of the teacup.",
+     "spoken": "",
+     "narration": "Two got in. One is not in the chat. The other is typing.",
+     "on_screen": "Pin DANNY (on the man in the dark jacket) on \"Two\"; pin DANNY'S GRANDMOTHER a moment later; both read before the second sentence.",
+     "seconds": 4.4
+    },
+    {
+     "picture": "On the frame it has reached, the picture freezes and the colour drains in 0.6 s, as it did once in Episode 1; pins and day count off, the roar cuts to room tone. The red stamp lands with the thud and the jolt; held 1.2 s, nothing said.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Red stamp: CONFIRMED",
+     "seconds": 1.8
+    },
+    {
+     "picture": "Chat, close on the thread: Lee's message, Maya's answer, held 0.9 s in silence. The picture widens to the full screen so the header, the chat's name and the chip are in frame: a divider, Vic's message, then the chip changes with the old click, in silence, for the first time, and is left 0.8 s. Then the typing line at the foot goes out and one message arrives under the chat's own name; held 1.1 s with no typing line. Nothing is said in this beat.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "Lee 13:17: Just got here. What did I miss? / Maya 13:17: Nothing. / Header: Away trip – who's in? / 8 members / Divider: FRIDAY / Vic 09:02: Paid you. It's Friday. / Chip: OWE MAYA: 6 becomes OWE MAYA: 5 / (Danny is typing… disappears) / Danny 09:03: I'm in.",
+     "seconds": 6.7
+    },
+    {
+     "picture": "NEW SHOT J1, second part. Jo, same place. She thinks about it for a second, lips pressed, gives the verdict flat, and holds the look 0.6 s. Cut on the look.",
+     "spoken": "It was fine.",
+     "narration": "",
+     "on_screen": "Name tag again: JO / VOTED “SHOULD BE FINE”",
+     "seconds": 2.5
+    },
+    {
+     "picture": "Sign-off, last of the season, the same picture as every film: the grandmother at home in her armchair lifts the rose teacup, sips, eyes to the lens, small smile (house cut, clock ticks, two notes). Hard cut.",
+     "spoken": "",
+     "narration": "",
+     "on_screen": "DANNY'S GRANDMOTHER / WENT. Then VENUVOY and: Next season: to be confirmed.",
+     "seconds": 4.3
+    }
+   ],
+   "signoff_status": "WENT.",
+   "post_caption": "Episode 7. Match day. The group is at the gate."
+  }
+ ],
+ "new_shots": [
+  {
+   "id": "V1",
+   "who": "Vic",
+   "where": "His usual seat: outside the ground at night, reporter's microphone at the bottom of frame (from his existing still)",
+   "line": "I said, marry in the morning. She said, what time's kick-off?",
+   "action": "Eyes on the interviewer. First sentence as a reasonable suggestion he still thinks was reasonable; mouth closed for a full second; her answer reported flat, with no impression of her voice. Silent end beat of two seconds: he holds the look, mouth closed. No smile, no shrug; the microphone stays still.",
+   "used_in": "Episode 5, beat 1 (frame 0)"
+  },
+  {
+   "id": "M1",
+   "who": "Maya",
+   "where": "Her usual seat: the kitchen table at night (from her existing still)",
+   "line": "He said leave it with him. So I have.",
+   "action": "Very still, right hand flat on the pile of pages, hands do not move. She reports the first sentence, waits about a second, says the second with no change of expression. Silent end beat: her eyes go down to the pages and stay there. Alone at the table, no other hand in frame.",
+   "used_in": "Episode 5, beat 6"
+  },
+  {
+   "id": "J0",
+   "who": "Jo",
+   "where": "Her usual seat: outside a ground at night, reporter's microphone at the bottom (from the still of her existing clip at 3.70 s)",
+   "line": "I've got him as Danny Football.",
+   "action": "Says it once, as plain information, with the smallest pause before the two words of the name. Silent end beat of two seconds: lips pressed together, she holds the interviewer's look, completely still.",
+   "used_in": "Short A, beat 1 (frame 0). This is the first shot to give up if retakes use the allowance: Short A then opens on Maya's free silent look with the narrator saying \"The airline needs a surname.\" (28 characters, total 300)."
+  },
+  {
+   "id": "M2",
+   "who": "Maya",
+   "where": "Her usual seat: the kitchen table at night (from her existing still)",
+   "line": "I booked seven seats. Four of us flew.",
+   "action": "Very still. First sentence as a fact; about a second and a half holding the interviewer's look; the second sentence, no warmer. Silent end beat: she holds the look, mouth closed. Hands do not move; no other hand in frame.",
+   "used_in": "Episode 6, beat 1 (frame 0)"
+  },
+  {
+   "id": "L1",
+   "who": "Lee",
+   "where": "His usual seat: the dark bedroom lit by the laptop (from the still of his existing clip at 2.50 s)",
+   "line": "Three flights and a bus. I get in before kick-off, depending on kick-off.",
+   "action": "Propped on his elbows. First sentence with quiet satisfaction; a glance down at the laptop for a second; second sentence to the interviewer as good news, with no doubt in it. Silent end beat: he holds the look, mouth closed.",
+   "used_in": "Episode 6, beat 3"
+  },
+  {
+   "id": "G1",
+   "who": "Danny's grandmother",
+   "where": "Her usual seat: the floral armchair, rose teacup held still at chest height in her right hand (she does not drink in this shot), dark phone in her left, its screen never towards the camera",
+   "line": "This isn't my phone. Danny left it with me.",
+   "action": "On the first frame she is already looking down at the phone. She looks up and says the first sentence to the interviewer. The phone buzzes (sound only); she looks down and watches it for about two seconds until it stops, without answering. She looks up and says the second sentence as plain information. Silent end beat: she holds the look.",
+   "used_in": "Episode 6, beat 6 (the top of the episode, straight into the sign-off)"
+  },
+  {
+   "id": "J1",
+   "who": "Jo",
+   "where": "Her usual seat: outside a ground at night, reporter's microphone at the bottom (from the still of her existing clip at 3.70 s)",
+   "line": "I never said I was coming. It was fine.",
+   "action": "First sentence as a point of accuracy, not a joke. Lips pressed together for about two seconds while she considers. Then the verdict, flat. Silent end beat: she holds the interviewer's look.",
+   "used_in": "Episode 7, beat 1 (frame 0) and beat 8 (the verdict)"
+  },
+  {
+   "id": "G2",
+   "who": "Danny's grandmother",
+   "where": "The roaring stand, from her existing still there, edited once so that the saucer in her left hand is the dark phone, held low on her lap (one extra still). The cheering man in the dark jacket stays soft behind her shoulder.",
+   "line": "That'll be for Vic.",
+   "action": "Teacup in her right hand at chest height. The phone buzzes (sound only, under the roar, screen never seen). She glances down at it, does not answer, looks ahead again and says the line to nobody. Then, for the rest of the shot, she lifts the cup, sips, lowers it and looks ahead, composed (this tail of about 4.5 s carries the narrator's three sentences and the freeze). If the phone will not hold in her hand, shoot from the unedited still with her lap out of frame; the glance and the chat line before it carry the beat.",
+   "used_in": "Episode 7, beat 3 (the line) and beats 5 and 6 (its tail, the pins, the freeze and the stamp)"
+  },
+  {
+   "id": "V2",
+   "who": "Vic",
+   "where": "A new place, costing one extra still: a wedding reception in the evening. Vic redrawn in a dark suit with a flower in the buttonhole and a plain green and gold striped tie; warm lights and guests soft and out of focus behind him; no microphone, nothing readable.",
+   "line": "My daughter says I didn't look at my phone once.",
+   "action": "Calm, standing still. He says the one sentence with quiet pride, as a compliment he has accepted. Silent end beat of three seconds: he holds the interviewer's look, mouth closed (the counter lands in this silence). Nothing else enters the frame.",
+   "used_in": "Episode 7, beat 4"
+  }
+ ],
+ "narration_characters": 272,
+ "last_line": "Next season: to be confirmed.",
+ "why": "The spine is Writer A's, because it is the one where the grandmother stays one step ahead without trying and the season closes on its own premise. The phone goes to Danny, Danny leaves it with his grandmother, and the tickets go in without the people who planned. The finale replays Episode 1's \"Two arrived. Neither was in the chat.\" one notch drier and stamps it CONFIRMED on the same kind of frozen frame. Writer B's finale had Danny inside on a ticket nobody could account for; in this one the count closes (six tickets, six travelling once Vic is out, Danny uses one, the grandmother has her paper one).\n\nWhat I took from Writer B, where it was sharper:\n- Vic's cold open, put into direct speech so the first line is six words. The bride's \"what time's kick-off?\" is the question from \"It's Pinned\" asked a fifteenth time, and the board's heading answers it in the cut.\n- \"Danny Football\", the most recognisable observation in either script. It is re-motivated (the airline needs a surname for every seat) and made to matter: NO SURNAME is why Danny is not on the flight two days later.\n- The T-shirts being right for one day.\n- Lee's \"Three flights and a bus. I get in before kick-off, depending on kick-off.\" and \"Lee lives forty minutes from the airport.\"\n- The unseen daughter as a three-step runner: \"I did ask her\", then \"what time's kick-off?\", then \"My daughter says I didn't look at my phone once.\"\n- Vic's record ticking from 11 to 12 while he is at the wedding.\n- \"I'm in.\" as the message that ends the typing, sent on the Friday under the chat's own name.\n\nWhat I cut:\n- A's opener, which repeated Episode 4's last line.\n- A's separate short for the grandmother and the phone. In A a follower learned it on Tuesday and was told again on Thursday; here it happens once, as Episode 6's top, spoken by her.\n- A third use of Maya's closed eyes.\n- Jo typing \"Should be fine.\" again, which would have made it a catchphrase. It survives as her name tag and pays off as \"It was fine.\"\n- B's on-screen Danny and \"Both are Danny\" (a new face, and a joke that needs a second look).\n- B's \"Leave what with you?\" and \"I don't know what 'it' is\" (they explain the joke).\n- B's cascade of \"Paid.\" (Vic paying on a Friday and the chip moving by one is drier).\n- The second \"seventy-five days\" line.\n- The struck-through pinned time, which the pinned bar cannot draw.\n\nThreads paid: Danny's typing, the tickets on Vic's phone, the wedding, Vic's record, Jo, OWE MAYA and \"which Friday\", Lee, Sydney (the answer comes from Sydney again), the kick-off time (\"7:45 or 8\": it was 8, for three seconds), the Saturday T-shirts, the grandmother's ticket, the series title. The Elsewhere man is left as closed by his own ARRIVED stamp.\n\nLimits:\n- Narration is 272 characters of 700, in seven lines (300 if the fallback line is needed).\n- There are 9 new shots of 10 and two extra stills (Vic in a suit; the stand still with the phone). No new face: Danny is the pinned man and Sydney is never seen.\n- Lengths are 33.4, 20.0, 32.7, 19.2 and 34.1 seconds.\n- I checked the chat and board pages: the typing line can go out and return, the chip can change, the pinned bar takes a green and a red stamp. No new kind of graphic is used.\n- I changed no project file. I ran a character count and pulled a few reference frames from existing footage into the scratch folder.\n\nBiggest risk: the finale leaves the four who did everything properly outside the ground. If \"Nothing.\" or \"It was fine.\" is played with any self-pity, or Danny reads as having abandoned them, the ending turns sour and Maya becomes the fool the bible forbids. It needs flat performances and every silence held.\n\nSmaller risks:\n- The finale is 0.9 s under the ceiling. If the real takes run long, cut the MATCHES ATTENDED counter first, then shorten the hold on Vic. Never cut the stamp's silence, the hold after \"Nothing.\" or the hold on \"I'm in.\"\n- Nine shots leave one retake, and G2 (a phone in her hand in a roaring stand) and V2 (Vic redrawn) are the likeliest to need one. J0 is the agreed shot to give up; its fallback is written into the shot list.\n- Short B opens on the same frame as Episode 4. That is deliberate, but it may look like a repost for two seconds."
+}

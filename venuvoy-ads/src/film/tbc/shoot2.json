@@ -1,0 +1,119 @@
+{
+ "dir": "src/film/assets/tbc",
+ "cast": {
+  "maya": {
+   "portrait": "(made in batch 1)"
+  },
+  "vic": {
+   "image": "src/film/assets/tbc/portraits/vic.jpg"
+  },
+  "jo": {
+   "image": "src/film/assets/tbc/portraits/jo.jpg"
+  },
+  "lee": {
+   "image": "src/film/assets/tbc/portraits/lee.jpg"
+  },
+  "gran": {
+   "image": "src/film/assets/tbc/portraits/gran_src.jpg"
+  },
+  "gran_stand": {
+   "image": "src/film/assets/tbc/portraits/gran_stand_phone.jpg"
+  },
+  "vic_wed": {
+   "image": "src/film/assets/tbc/portraits/vic_wedding.jpg"
+  }
+ },
+ "shots": [
+  {
+   "id": "b2_v1",
+   "cast": "vic",
+   "setup": "seat",
+   "line": "I said, marry in the morning. She said, what time's kick-off?",
+   "delivery": "reasonable, flat, unsmiling",
+   "accent": "an English accent; his voice is deep, gravelly and slow",
+   "audio": "a crowd murmuring behind him, no announcements with words",
+   "action": "Eyes on the interviewer. He says the first sentence as a reasonable suggestion that he still thinks was reasonable; his mouth stays closed for a full second; then he reports her answer flat, with no impression of her voice. Silent end beat of two seconds: he holds the look, mouth closed. No smile, no shrug. Only the one microphone is in the frame and nothing else enters it"
+  },
+  {
+   "id": "b2_m1",
+   "cast": "maya",
+   "setup": "seat",
+   "line": "He said leave it with him. So I have.",
+   "delivery": "flat, tired, even",
+   "accent": "a soft English accent; her voice is low, a little husky, quiet and unhurried",
+   "audio": "quiet kitchen at night, a fridge humming",
+   "action": "Very still, her right hand flat on the pile of pages; her hands do not move. She reports the first sentence, waits about a second, then says the second with no change of expression. Silent end beat: her eyes go down to the pages and stay there. She is alone at the table: nobody else and no other hand ever enters the frame"
+  },
+  {
+   "id": "b2_j0",
+   "cast": "jo",
+   "setup": "seat",
+   "line": "He's in my phone as Danny Football.",
+   "delivery": "plainly, as a matter of fact",
+   "accent": "an English accent; a woman in her thirties, her voice flat and dry",
+   "audio": "a crowd murmuring behind her outside a ground at night, no announcements with words",
+   "action": "She says it once, as plain information, with the smallest pause before the two words of the name. Silent end beat of two seconds: lips pressed together, she holds the interviewer's look, completely still. Only the one microphone is in the frame and nothing else enters it"
+  },
+  {
+   "id": "b2_m2",
+   "cast": "maya",
+   "setup": "seat",
+   "line": "I booked seven seats. Four of us flew.",
+   "delivery": "flat, even, unsmiling",
+   "accent": "a soft English accent; her voice is low, a little husky, quiet and unhurried",
+   "audio": "quiet kitchen at night, a fridge humming",
+   "action": "Very still. She says the first sentence as a fact; holds the interviewer's look for about a second; then the second sentence, no warmer. Silent end beat: she holds the look, mouth closed. Her hands do not move. She is alone at the table: nobody else and no other hand ever enters the frame"
+  },
+  {
+   "id": "b2_l1",
+   "cast": "lee",
+   "setup": "seat",
+   "line": "Three flights and a bus. I get in before kick-off, depending on kick-off.",
+   "delivery": "quietly pleased, certain",
+   "accent": "an English accent; a man in his thirties, his voice a little hoarse and quiet",
+   "audio": "a silent bedroom at night, a laptop fan",
+   "action": "Propped on his elbows in the dark, lit only by the laptop. He looks up from the laptop to the interviewer and says the first sentence with quiet satisfaction; a half-second glance down at the laptop; then the second sentence to the interviewer as good news, with no doubt in it. Silent end beat: he holds the look, mouth closed. Nobody else is in the room"
+  },
+  {
+   "id": "b2_g1",
+   "cast": "gran",
+   "setup": "seat",
+   "line": "This isn't my phone. Danny left it with me.",
+   "delivery": "calm, dry, matter-of-fact",
+   "accent": "an English accent; an old woman's voice, soft, dry and unhurried",
+   "audio": "a quiet sitting room, a mantel clock ticking, the phone buzzing in her hand between the two sentences",
+   "action": "On the first frame she is already looking down at the dark phone in her left hand. She looks up and says the first sentence to the interviewer. The phone vibrates in her hand: she looks down and watches it for about two seconds until it stops, and does not answer it. Then she looks up and says the second sentence as plain information. Silent end beat: she holds the look. She does not drink: the teacup stays still in her right hand. The phone's screen is never turned towards the camera"
+  },
+  {
+   "id": "b2_j1",
+   "cast": "jo",
+   "setup": "seat",
+   "line": "I never said I was coming. It was fine.",
+   "delivery": "flat and exact",
+   "accent": "an English accent; a woman in her thirties, her voice flat and dry",
+   "audio": "a crowd murmuring behind her outside a ground at night, no announcements with words",
+   "action": "She says the first sentence as a point of accuracy, not a joke. Then her lips press together for about two seconds while she considers. Then she says the second sentence, flat, as a verdict. Silent end beat: she holds the interviewer's look. Only the one microphone is in the frame and nothing else enters it"
+  },
+  {
+   "id": "b2_g2",
+   "cast": "gran_stand",
+   "setup": "seat",
+   "address": "says her line to nobody, looking straight ahead",
+   "line": "That'll be for Vic.",
+   "delivery": "calm, dry, to herself",
+   "accent": "an English accent; an old woman's voice, soft, dry and unhurried",
+   "audio": "a stadium crowd roaring all around her, a phone buzzing in her hand at the start, no announcements with words",
+   "action": "Everyone behind her keeps roaring and punching the air the whole time. In the first second the dark phone in her left hand vibrates: she glances down at it and up again, and does not answer it. Then she says the line, looking ahead, finished by the third second. She stays still for half a second. Then she slowly lifts the teacup to her lips, takes a small sip, lowers it and looks ahead, composed, until the end. The phone's screen is never turned towards the camera"
+  },
+  {
+   "id": "b2_v2",
+   "cast": "vic_wed",
+   "setup": "seat",
+   "line": "My daughter says I didn't look at my phone once.",
+   "delivery": "quiet pride",
+   "accent": "an English accent; his voice is deep, gravelly and slow",
+   "audio": "wedding guests talking softly behind him, glasses clinking, no music",
+   "action": "Calm, standing still at the wedding reception. He says the one sentence with quiet pride, as a compliment he has accepted. Silent end beat of three seconds: he holds the interviewer's look, content, mouth closed. Nobody comes near him"
+  }
+ ]
+}

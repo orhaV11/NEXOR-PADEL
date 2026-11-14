@@ -1,10 +1,55 @@
-{ "dur": 7.6, "name": "Away trip – who's in?", "sub": "8 members", "right": 850,
-  "events": [
-    { "t": 0,    "type": "typingbar", "who": "Danny" },
-    { "t": 0.1,  "type": "poll", "who": "Maya", "me": true, "q": "Are you in?", "time": "07:44", "options": [
-        { "text": "Yes", "votes": [0.5] },
-        { "text": "No", "votes": [] },
-        { "text": "Should be fine", "at": 2.95, "votes": [3.4, 3.62, 3.84, 4.06, 4.28] } ] },
-    { "t": 2.95, "type": "sys", "text": "Jo added an option: Should be fine" },
-    { "t": 4.85, "type": "space", "h": 80 }
-  ] }
+{
+ "dur": 7.6,
+ "name": "Away trip – who's in?",
+ "sub": "8 members",
+ "right": 850,
+ "events": [
+  {
+   "t": 0,
+   "type": "typingbar",
+   "who": "Danny"
+  },
+  {
+   "t": 0.1,
+   "type": "poll",
+   "who": "Maya",
+   "me": true,
+   "q": "Are you in?",
+   "time": "07:44",
+   "options": [
+    {
+     "text": "Yes",
+     "votes": [
+      0.5
+     ]
+    },
+    {
+     "text": "No",
+     "votes": []
+    },
+    {
+     "text": "Should be fine",
+     "at": 2.95,
+     "votes": [
+      3.4,
+      3.62,
+      3.84,
+      4.06,
+      4.28
+     ]
+    }
+   ],
+   "dots": false
+  },
+  {
+   "t": 2.95,
+   "type": "sys",
+   "text": "Jo added an option: Should be fine"
+  },
+  {
+   "t": 4.85,
+   "type": "space",
+   "h": 80
+  }
+ ]
+}

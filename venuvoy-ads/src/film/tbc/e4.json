@@ -59,7 +59,7 @@
   ],
 
   "segments": [
-    { "src": "lee", "in": 2.5, "out": 4.7917, "audio_out": 5.0, "a_fade_out": 0.25, "punch": 1.35, "cx": 0.0, "cy": 0.9, "marks": { "open": 2.5 },
+    { "src": "lee", "in": 2.5, "out": 4.7917, "audio_out": 5.0, "a_fade_out": 0.25, "punch": 1.39, "cx": 0.0, "cy": 0.9, "marks": { "open": 2.5 },
       "lt": { "name": "LEE", "at": 0.0, "y": 1085 },
       "line": "They just moved the kick-off.", "no_caps": true,
       "cap": [ { "text": "They just moved", "at": -0.1, "len": 0.95, "hold": 0.0 },

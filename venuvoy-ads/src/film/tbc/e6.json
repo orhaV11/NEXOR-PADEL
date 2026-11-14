@@ -10,7 +10,7 @@
   "labels": [
     { "text": "37 DAYS BEFORE*", "small": "*to be confirmed", "from": "chat", "to": "signoff", "y": 262, "xr": 1040 },
     { "text": "OWE MAYA: 6", "from": "chat", "to": "chat+0.62", "y": 348, "xr": 1040, "cls": "chip" },
-    { "text": "OWE MAYA: 6", "from": "chat+12.25", "to": "signoff", "y": 348, "xr": 1040, "cls": "chip" }
+    { "text": "OWE MAYA: 6", "from": "chat+12.1667", "to": "signoff", "y": 348, "xr": 1040, "cls": "chip" }
   ],
 
   "sources": {
@@ -61,13 +61,13 @@
 
     { "src": "chat", "in": 0.0, "out": 0.5, "mute": true, "pop": 0, "marks": { "chat": 0.0, "m1": 0.125 } },
     { "src": "chat", "in": 0.5, "out": 0.9167, "mute": true, "pop": 0,
-      "zoom": { "from": 1.0, "to": 1.2, "cx": 0.0, "cy": 0.647, "ease": "inout" } },
-    { "src": "chat", "in": 0.9167, "out": 11.875, "mute": true, "pop": 0,
-      "zoom": { "from": 1.2, "to": 1.2, "cx": 0.0, "cy": 0.647 },
+      "zoom": { "from": 1.0, "to": 1.235, "cx": 0.0, "cy": 0.587, "ease": "inout" } },
+    { "src": "chat", "in": 0.9167, "out": 11.7917, "mute": true, "pop": 0,
+      "zoom": { "from": 1.235, "to": 1.235, "cx": 0.0, "cy": 0.587 },
       "marks": { "m2": 0.9167, "m3": 1.5833, "m4": 4.5, "m5": 5.25, "m6": 6.125, "m7": 6.9583 } },
-    { "src": "chat", "in": 11.875, "out": 12.375, "mute": true, "pop": 0,
-      "zoom": { "from": 1.2, "to": 1.0, "cx": 0.0, "cy": 0.647, "ease": "inout" }, "marks": { "opens": 11.875 } },
-    { "src": "chat", "in": 12.375, "out": 14.9167, "mute": true, "pop": 0, "marks": { "stamp": 13.625 } },
+    { "src": "chat", "in": 11.7917, "out": 12.2917, "mute": true, "pop": 0,
+      "zoom": { "from": 1.235, "to": 1.0, "cx": 0.0, "cy": 0.587, "ease": "inout" }, "marks": { "wide": 11.7917, "bar": 11.875 } },
+    { "src": "chat", "in": 12.2917, "out": 14.9167, "mute": true, "pop": 0, "marks": { "stamp": 13.625 } },
 
     { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
       "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },

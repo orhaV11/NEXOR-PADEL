@@ -1,4 +1,4 @@
-{ "dur": 15.0, "name": "Away trip – who's in?", "sub": "8 members", "right": 795,
+{ "dur": 15.0, "name": "Away trip – who's in?", "sub": "8 members", "right": 775,
   "events": [
     { "t": 0,       "type": "typingbar", "who": "Danny" },
     { "t": 0,       "type": "pin", "text": "Kick-off: Mon…" },

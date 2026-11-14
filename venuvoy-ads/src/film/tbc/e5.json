@@ -71,7 +71,7 @@
       "zoom": { "from": 1.4149, "to": 1.4, "cx": 0.5, "cy": 0.0 }, "marks": { "chew": 5.5833 } },
 
     { "src": "week", "in": 0.0, "out": 10.0417, "mute": true, "pop": 0,
-      "marks": { "board": 0.0, "pin": 3.75, "moved": 5.125, "home": 7.9167, "stamp": 8.7917 } },
+      "marks": { "board": 0.0, "pin": 3.8333, "moved": 5.125, "home": 8.0, "stamp": 8.7917 } },
 
     { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
       "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },

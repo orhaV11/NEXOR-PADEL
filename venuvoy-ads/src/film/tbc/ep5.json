@@ -55,7 +55,7 @@
   },
   "maya": {
    "path": "src/film/assets/tbc/shots/b2_m1.mp4",
-   "level": -19
+   "level": -21.5
   },
   "gran": {
    "path": "src/film/assets/tbc/clips/gran_go.mp4"
@@ -145,7 +145,7 @@
     66
    ],
    "at": "ticks",
-   "gain_db": -22
+   "gain_db": -18
   },
   {
    "synth": "msg",
@@ -160,7 +160,7 @@
     67
    ],
    "at": "back+0.05",
-   "gain_db": -20
+   "gain_db": -13
   },
   {
    "synth": "clock_tick",
@@ -289,9 +289,9 @@
    "pop": 0,
    "zoom": {
     "from": 1.0,
-    "to": 1.232,
+    "to": 1.223,
     "cx": 0.0,
-    "cy": 0.5764,
+    "cy": 0.5929,
     "ease": "inout"
    }
   },
@@ -302,10 +302,10 @@
    "mute": true,
    "pop": 0,
    "zoom": {
-    "from": 1.232,
-    "to": 1.232,
+    "from": 1.223,
+    "to": 1.223,
     "cx": 0.0,
-    "cy": 0.5764
+    "cy": 0.5929
    },
    "marks": {
     "m_vic": 1.2083,
@@ -314,14 +314,14 @@
   },
   {
    "src": "look",
-   "in": 0.875,
-   "out": 2.375,
+   "in": 0.7083,
+   "out": 2.2083,
    "mute": true,
    "punch": 1.1,
    "cx": 1.0,
    "cy": 0.0,
    "marks": {
-    "look": 0.875
+    "look": 0.7083
    },
    "lt": {
     "name": "VIC",
@@ -337,10 +337,10 @@
    "mute": true,
    "pop": 0,
    "zoom": {
-    "from": 1.232,
-    "to": 1.232,
+    "from": 1.223,
+    "to": 1.223,
     "cx": 0.0,
-    "cy": 0.5764
+    "cy": 0.5929
    },
    "marks": {
     "chatb": 3.3333,

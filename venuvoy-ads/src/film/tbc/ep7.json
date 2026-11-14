@@ -31,7 +31,8 @@
    "path": "src/film/assets/tbc/scenes/ep7_gate.mp4"
   },
   "stand": {
-   "path": "src/film/assets/tbc/shots/b2_g2.mp4"
+   "path": "src/film/assets/tbc/shots/b2_g2.mp4",
+   "level": -21
   },
   "vic": {
    "path": "src/film/assets/tbc/shots/b2_v2.mp4"
@@ -46,19 +47,22 @@
  "narration": [
   {
    "file": "src/film/assets/tbc/vo/en/ep7_n1a.wav",
-   "at": "stand2+0.2",
+   "at": "stand2+0.15",
    "y": 1340,
-   "text": "Two got in."
+   "text": "Two got in.",
+   "gain_db": 1.0
   },
   {
    "file": "src/film/assets/tbc/vo/en/ep7_n1b.wav",
-   "at": "stand2+1.5"
+   "at": "stand2+1.5",
+   "gain_db": 2.5
   },
   {
    "file": "src/film/assets/tbc/vo/en/ep7_n1c.wav",
    "at": "drain+0.2",
    "y": 1340,
-   "text": "The other is typing."
+   "text": "The other is typing.",
+   "gain_db": -2.0
   }
  ],
  "music": [
@@ -106,7 +110,7 @@
     71
    ],
    "at": "gate+0.05",
-   "gain_db": -26
+   "gain_db": -24
   },
   {
    "synth": "msg",
@@ -119,7 +123,7 @@
     0.4
    ],
    "at": "g2+0.0",
-   "gain_db": -12
+   "gain_db": -10
   },
   {
    "synth": "buzz",
@@ -127,16 +131,16 @@
     0.6
    ],
    "at": "g2+2.05",
-   "gain_db": -12
+   "gain_db": -10
   },
   {
    "synth": "sys_tick",
-   "at": "stand2+0.2",
+   "at": "stand2+0.15",
    "gain_db": -8
   },
   {
    "synth": "sys_tick",
-   "at": "stand2+0.65",
+   "at": "stand2+0.6",
    "gain_db": -8
   },
   {
@@ -157,7 +161,7 @@
     72
    ],
    "at": "after+0.05",
-   "gain_db": -23
+   "gain_db": -19
   },
   {
    "synth": "msg",
@@ -171,8 +175,8 @@
   },
   {
    "synth": "click",
-   "at": "chip",
-   "gain_db": -10
+   "at": "chip+0.02",
+   "gain_db": -4
   },
   {
    "synth": "msg",
@@ -275,7 +279,7 @@
    "speech": true,
    "cap": {
     "text": "That'll be for Vic.",
-    "y": 1180,
+    "y": 1104,
     "at": 0.33,
     "len": 0.97,
     "hold": 0.7
@@ -292,7 +296,7 @@
     "vic": 0.5417
    },
    "line": "My daughter says | I didn't look | at my phone once.",
-   "cap_from": 0.25,
+   "cap_from": 0.27,
    "lt": {
     "name": "VIC",
     "what": "IN. HUNDRED PERCENT.",
@@ -320,8 +324,8 @@
    "gfx": [
     {
      "type": "pin",
-     "at": 0.2,
-     "len": 5.09,
+     "at": 0.15,
+     "len": 5.0567,
      "x": 365,
      "y": 478,
      "size": 40,
@@ -329,10 +333,10 @@
     },
     {
      "type": "pin",
-     "at": 0.65,
-     "len": 4.64,
-     "x": 700,
-     "y": 640,
+     "at": 0.6,
+     "len": 4.6067,
+     "x": 725,
+     "y": 645,
      "size": 34,
      "label": "Danny's grandmother"
     }
@@ -342,7 +346,7 @@
    "src": "stand",
    "in": 7.0833,
    "out": 7.125,
-   "hold": 1.4167,
+   "hold": 1.3333,
    "mute": true,
    "pop": 0,
    "zoom": {
@@ -469,7 +473,7 @@
     "text": "It was fine.",
     "at": 0.02,
     "len": 0.7,
-    "hold": 0.62
+    "hold": 0.6
    }
   },
   {

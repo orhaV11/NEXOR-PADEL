@@ -14,7 +14,9 @@
 
   "sources": {
     "jo":    { "path": "src/film/assets/apa/clips/j06_maybe_a.mp4" },
-    "stand": { "path": "src/film/assets/tbc/clips/gran_stand.mp4" },
+    "stand": { "path": "src/film/assets/tbc/clips/gran_stand.mp4", "fix": [
+      { "soften": [0, 780, 62, 912], "sigma": 7, "feather": 10 },
+      { "soften": [818, 812, 908, 928], "sigma": 6, "feather": 10 } ] },
     "maya":  { "path": "src/film/assets/tbc/shots/e1_s1b.mp4", "level": -17 },
     "chat":  { "path": "src/film/assets/tbc/scenes/e1_chat.mp4" },
     "rcpt":  { "path": "src/film/assets/tbc/scenes/e1_receipts.mp4" },

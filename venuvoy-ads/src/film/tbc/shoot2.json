@@ -89,10 +89,10 @@
    "cast": "jo",
    "setup": "seat",
    "line": "I never said I was coming. It was fine.",
-   "delivery": "flat and exact",
+   "delivery": "calm and flat",
    "accent": "an English accent; a woman in her thirties, her voice flat and dry",
-   "audio": "a crowd murmuring behind her outside a ground at night, no announcements with words",
-   "action": "She says the first sentence as a point of accuracy, not a joke. Then her lips press together for about two seconds while she considers. Then she says the second sentence, flat, as a verdict. Silent end beat: she holds the interviewer's look. Only the one microphone is in the frame and nothing else enters it"
+   "audio": "people talking in the distance outside a ground at night",
+   "action": "She says the first sentence calmly, as a correction. She pauses for two seconds with her mouth closed, thinking. Then she says the second sentence flatly. At the end she holds the interviewer's look, completely still. Only the one microphone is in the frame"
   },
   {
    "id": "b2_g2",
@@ -114,6 +114,16 @@
    "accent": "an English accent; his voice is deep, gravelly and slow",
    "audio": "wedding guests talking softly behind him, glasses clinking, no music",
    "action": "Calm, standing still at the wedding reception. He says the one sentence with quiet pride, as a compliment he has accepted. Silent end beat of three seconds: he holds the interviewer's look, content, mouth closed. Nobody comes near him"
+  },
+  {
+   "id": "b2_j2",
+   "cast": "jo",
+   "setup": "seat",
+   "line": "It was fine.",
+   "delivery": "flat, as a verdict",
+   "accent": "an English accent; a woman in her thirties, her voice flat and dry",
+   "audio": "people talking in the distance outside a ground at night",
+   "action": "For the first two seconds she says nothing: lips pressed together, she looks down and thinks about the question. Then she looks at the interviewer and says the one sentence, flat. Then she holds the interviewer's look for three seconds, completely still, mouth closed. Only the one microphone is in the frame"
   }
  ]
 }

@@ -187,6 +187,66 @@
    "heard": "He said, leave it with him. So I have.",
    "score": 1.0,
    "line": "He said leave it with him. So I have."
+  },
+  "b2_v2": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/1ad88c70-1f72-4d0f-89f0-49069f932948_14d39cc7.mp4",
+     "heard": "My daughter says I didn't look at my phone once.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_v2.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/1ad88c70-1f72-4d0f-89f0-49069f932948_14d39cc7.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "My daughter says I didn't look at my phone once.",
+   "score": 1.0,
+   "line": "My daughter says I didn't look at my phone once."
+  },
+  "b2_g2": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/9de680bc-5e3b-438f-bf1a-1e508e6ba0e3_89364418.mp4",
+     "heard": "That'll be for Vic.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_g2.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/9de680bc-5e3b-438f-bf1a-1e508e6ba0e3_89364418.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "That'll be for Vic.",
+   "score": 1.0,
+   "line": "That'll be for Vic."
+  },
+  "b2_j0": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/7e220024-c7f0-4d4d-a8e1-95eb8a917f50_dbb4c25a.mp4",
+     "heard": "He's he's in my phone as Danny Football, Danny Football.",
+     "score": 0.82
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_j0.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/7e220024-c7f0-4d4d-a8e1-95eb8a917f50_dbb4c25a.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "He's he's in my phone as Danny Football, Danny Football.",
+   "score": 0.82,
+   "line": "He's in my phone as Danny Football."
+  },
+  "b2_j1": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/5eba2e80-2f6c-4d19-ad94-47650b706a95_6477ff92.mp4",
+     "heard": "I never said I was coming. It was fun. It was fine.",
+     "score": 0.86
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_j1.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/5eba2e80-2f6c-4d19-ad94-47650b706a95_6477ff92.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "I never said I was coming. It was fun. It was fine.",
+   "score": 0.86,
+   "line": "I never said I was coming. It was fine."
   }
  },
  "away": {}

@@ -1,0 +1,7 @@
+{ "dur": 10.0417, "scene": "week", "file": "THE STUDY · ELSEWHERE", "title": "ONE SUPPORTER",
+  "days": [ "MON", "TUE", "WED", "THU" ],
+  "tiles": [
+    { "label": "REACHED HIS SEAT", "day": 1, "pin": true, "t": 3.75 },
+    { "label": "THE MATCH",        "day": 1, "main": true, "move": { "t": 5.125, "to": 3 }, "tag": "MOVED" },
+    { "label": "FLIGHT HOME",      "day": 2, "t": 7.9167 } ],
+  "stamp": { "t": 8.7917, "text": "ARRIVED" } }

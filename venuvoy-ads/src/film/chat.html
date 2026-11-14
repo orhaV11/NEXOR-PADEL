@@ -168,7 +168,10 @@
   //        "voice" and "poll" take "note" and "receipts" in the same way.
   //   { t, type: "voice", who, len: "3:41", me?, time? }        a voice note
   //   { t, type: "poll", who, q, me?, time?, options: [ { text, votes?: [t, t, ...], at? } ] }
-  //        each vote lands at its time (the count ticks, the bar fills); the option in the lead is marked.
+  //        each vote lands at its time (the count ticks, the bar fills); the option in the lead is marked. With
+  //        "mine": true on one option, the filled dot stays on that option instead (the choice of the person whose
+  //        phone this is) from its first vote on, and only counts and bars move. "dots": false on the poll: no filled
+  //        dot at all (the owner has not voted).
   //        "at": 24.8           seconds at which this option is added: before that it is not there, then the
   //                             poll grows (0.3 s) and it arrives with an empty bar and takes votes like the
   //                             others. The line "Jo added an option: Should be fine" is a "sys" event that
@@ -404,7 +407,9 @@
           const last = Math.max(-1e4, ...votes[k].filter((v) => t >= v));
           op.querySelector(".n").textContent = counts[k];
           op.querySelector(".bar i").style.width = `${(Math.max(0, counts[k] - 1 + out(P(t, last, 0.3))) / Math.max(most, 3)) * 100}%`;
-          op.classList.toggle("lead", lead > 0 && counts[k] === lead);
+          // the filled dot is the phone owner's own choice when the script names one ("mine": true on an option); otherwise the leader
+          const own = it.options.some((o) => o.mine);
+          op.classList.toggle("lead", it.dots === false ? false : own ? !!it.options[k].mine && counts[k] > 0 : lead > 0 && counts[k] === lead);
           op.querySelector(".n").style.transform = `scale(${1 + 0.35 * (1 - P(t, last, 0.25))})`;
         });
       }

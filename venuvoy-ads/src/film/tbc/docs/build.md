@@ -1,7 +1,7 @@
 # Build notes for "To Be Confirmed" (read before touching anything)
 
 Root: `/home/user/NEXOR-PADEL/venuvoy-ads` (all paths below are relative to it). The series plan is
-`work/community/plan.json` (bible, cast, six episodes with beats, timings and every word on screen). English only.
+`src/film/tbc/docs/final.md` (the cut sheet: every beat, every word on screen, the house style and all decisions). English only.
 
 ## Hard rules
 - Spend nothing: no generation tools, no MuAPI, no Higgsfield. No network. No `git commit`, no `git push`.

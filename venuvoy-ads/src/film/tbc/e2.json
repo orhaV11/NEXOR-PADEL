@@ -23,12 +23,12 @@
   "narration": [
     { "file": "src/film/assets/tbc/vo/en/e2_n1.wav", "at": "lee2+0.5", "gain_db": 1.8,
       "text": "Lee had been comparing flights since nine." },
-    { "file": "src/film/assets/tbc/vo/en/e2_n2.wav", "at": "chat+2.75", "y": 1260, "gain_db": 1.0,
+    { "file": "src/film/assets/tbc/vo/en/e2_n2.wav", "at": "chat+2.75", "y": 1250, "gain_db": 1.0,
       "text": "He did not say which Friday." },
     { "file": "src/film/assets/tbc/vo/en/e2_n3a.wav", "at": "check+0.24", "gain_db": -2.5 },
     { "file": "src/film/assets/tbc/vo/en/e2_n3b.wav", "at": "check+1.18", "gain_db": 0.0 },
     { "file": "src/film/assets/tbc/vo/en/e2_n3c.wav", "at": "check+2.13", "gain_db": 0.6 },
-    { "file": "src/film/assets/tbc/vo/en/e2_n4.wav", "at": "maya2+0.5", "gain_db": -0.2,
+    { "file": "src/film/assets/tbc/vo/en/e2_n4.wav", "at": "maya2+0.45", "gain_db": -0.2,
       "text": "She guessed Saturday." }
   ],
 
@@ -81,13 +81,13 @@
     { "src": "maya", "in": 0.0, "out": 2.7, "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya": 0.0 },
       "lt": { "name": "MAYA", "what": "ORGANISER", "at": 0.0, "len": 3.2, "y": 1085 },
       "line": "Wait for the date | and the flights are gone.", "cap_from": 0.2, "cap_until": 2.35 },
-    { "src": "maya", "in": 2.7, "out": 4.4583, "audio_out": 7.5, "a_fade_out": 0.3, "pop": 0,
+    { "src": "maya", "in": 2.7, "out": 4.4583, "audio_out": 7.45, "a_fade_out": 0.3, "pop": 0,
       "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "guess": 3.64 },
       "line": "So you guess.", "cap_from": 0.88, "cap_until": 2.15 },
-    { "src": "maya", "in": 4.4583, "out": 6.9, "fit": 3.0833, "mute": true, "pop": 0,
+    { "src": "maya", "in": 4.4583, "out": 6.2917, "fit": 3.0, "mute": true, "pop": 0,
       "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya2": 4.4583 },
-      "gfx": [ { "type": "tile", "at": 2.0833, "x": 40, "y": 600, "size": 54, "kicker": "MATCH", "title": "SATURDAY*" } ],
-      "sfx": [ { "synth": "sys_tick", "at": 2.2633, "gain_db": -4 } ] },
+      "gfx": [ { "type": "tile", "at": 2.0, "x": 40, "y": 600, "size": 54, "kicker": "MATCH", "title": "SATURDAY*" } ],
+      "sfx": [ { "synth": "sys_tick", "at": 2.18, "gain_db": -4 } ] },
 
     { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
       "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },

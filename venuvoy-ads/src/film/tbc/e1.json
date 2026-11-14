@@ -25,23 +25,23 @@
   "narration": [
     { "file": "src/film/assets/tbc/vo/en/e1_n1a.wav", "at": "stand+0.25", "y": 1300,
       "text": "Eight people | planned that trip." },
-    { "file": "src/film/assets/tbc/vo/en/e1_n1b.wav", "at": "stand+2.38", "y": 1300,
-      "text": "Two arrived." },
-    { "file": "src/film/assets/tbc/vo/en/e1_n1c.wav", "at": "stand+3.85", "y": 1220,
+    { "file": "src/film/assets/tbc/vo/en/e1_n1b.wav", "at": "stand+2.38" },
+    { "file": "src/film/assets/tbc/vo/en/e1_n1c.wav", "at": "stand+3.85", "y": 1200, "gain_db": 1.3,
       "text": "Neither was in the chat." },
-    { "file": "src/film/assets/tbc/vo/en/e1_n2.wav", "at": "drain+0.2", "y": 1220,
+    { "file": "src/film/assets/tbc/vo/en/e1_n2.wav", "at": "drain+0.2", "y": 1220, "gain_db": 1.2,
       "text": "This season | they are doing it properly." },
     { "file": "src/film/assets/tbc/vo/en/e1_n3.wav", "at": "chatA+0.4", "y": 1288,
       "text": "The match dates | came out at seven a.m." },
-    { "file": "src/film/assets/tbc/vo/en/e1_n4.wav", "at": "rcpt+0.75" },
-    { "file": "src/film/assets/tbc/vo/en/e1_n5.wav", "at": "poll+0.7", "y": 1288,
+    { "file": "src/film/assets/tbc/vo/en/e1_n4.wav", "at": "rcpt+0.75", "gain_db": 2.0 },
+    { "file": "src/film/assets/tbc/vo/en/e1_n5.wav", "at": "poll+0.7", "y": 1288, "gain_db": -0.5,
       "text": "The organiser | had removed ‘maybe’." },
-    { "file": "src/film/assets/tbc/vo/en/e1_n6.wav", "at": "poll+4.95", "y": 1288,
+    { "file": "src/film/assets/tbc/vo/en/e1_n6.wav", "at": "poll+4.95", "y": 1288, "gain_db": 1.0,
       "text": "Danny has been typing | since Tuesday." }
   ],
 
   "music": [
-    { "file": "src/film/assets/tbc/clips/gran_stand.mp4", "at": "stand", "offset": 1.25, "until": "drain+0.5", "gain_db": -6, "duck_db": 4, "fade_in": 0.02, "fade_out": 0.5 },
+    { "file": "src/film/assets/tbc/clips/gran_stand.mp4", "at": "stand-0.1", "offset": 1.15, "until": "drain+0.5", "gain_db": -8, "duck_db": 8, "fade_in": 0.1, "fade_out": 0.5 },
+    { "file": "src/film/assets/apa/audio/bed_crowd.mp3", "at": "stand-0.1", "offset": 3.0, "until": "drain+0.5", "gain_db": -14, "duck_db": 4, "fade_in": 0.1, "fade_out": 0.5 },
     { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "drain", "offset": 3.0, "gain_db": -12, "duck_db": 0, "fade_in": 0.5, "fade_out": 0.02 }
   ],
 
@@ -80,18 +80,19 @@
     { "src": "jo", "in": 0.05, "out": 1.30, "punch": 1.06, "cx": 0.42, "cy": 0.30, "marks": { "open": 0.05 },
       "speech": true,
       "cap": { "text": "We voted on the dates.", "at": -0.1, "len": 1.05, "hold": 0.26 } },
-    { "src": "jo", "in": 2.37, "out": 3.83, "audio_out": 3.95, "a_fade_out": 0.12, "punch": 1.16, "cx": 0.42, "cy": 0.34, "pop": 0, "marks": { "maybe": 2.37 },
+    { "src": "jo", "in": 2.37, "out": 3.79, "punch": 1.16, "cx": 0.42, "cy": 0.34, "pop": 0, "marks": { "maybe": 2.37 },
       "speech": true,
-      "cap": { "text": "“Maybe” won.", "at": -0.04, "len": 1.0, "hold": 0.498 } },
+      "cap": { "text": "“Maybe” won.", "at": -0.04, "len": 1.0, "hold": 0.4567 } },
 
     { "src": "stand", "in": 1.25, "out": 6.875, "mute": true, "pop": 0, "marks": { "stand": 1.25 },
+      "cap": { "text": "Two arrived.", "cls": "nar", "y": 1300, "at": 2.36, "len": 0.9, "hold": 0.14 },
       "gfx": [ { "type": "pin", "at": 2.40, "x": 370, "y": 528, "size": 40, "label": "Danny" },
                { "type": "pin", "at": 2.85, "x": 735, "y": 700, "size": 34, "label": "Danny's grandmother" } ] },
-    { "src": "stand", "in": 6.875, "out": 6.9167, "hold": 2.4583, "mute": true, "pop": 0, "zoom": { "from": 1.0, "to": 1.04, "cx": 0.55, "cy": 0.45 }, "marks": { "drain": 6.875 },
+    { "src": "stand", "in": 6.875, "out": 6.9167, "hold": 2.375, "mute": true, "pop": 0, "zoom": { "from": 1.0, "to": 1.04, "cx": 0.55, "cy": 0.45 }, "marks": { "drain": 6.875 },
       "drain": { "at": 0.0, "ramp": 0.6, "to": 0.92, "gain": 0.92 } },
     { "src": "stand", "in": 6.875, "out": 6.9167, "hold": 1.2083, "mute": true, "pop": 0, "zoom": { "from": 1.04, "to": 1.04, "cx": 0.55, "cy": 0.45 }, "marks": { "stamp": 6.875 },
       "drain": { "from_start": true, "to": 0.92, "gain": 0.92 },
-      "gfx": [ { "type": "stamp", "at": 0.0, "hit": 0.0, "text": "TO BE\nCONFIRMED", "small": "EPISODE 1", "x": 540, "y": 505, "size": 108, "rot": -8, "color": "bright" } ],
+      "gfx": [ { "type": "stamp", "at": 0.0, "hit": 0.0, "text": "TO BE\nCONFIRMED", "small": "EPISODE 1", "x": 540, "y": 488, "size": 102, "rot": -8, "color": "bright" } ],
       "jolt": [ { "at": 0.0, "amp": 16 } ] },
 
     { "src": "chat", "in": 0.0, "out": 0.375, "mute": true, "pop": 0, "marks": { "chatA": 0.0 } },
@@ -111,7 +112,7 @@
       "cap": [ { "text": "I wanted to check", "at": 0.18, "len": 0.74, "hold": 0.0 },
                { "text": "the link worked.", "at": 0.92, "len": 0.7, "hold": 0.84 } ] },
 
-    { "src": "poll", "in": 0.0, "out": 7.4167, "mute": true, "pop": 0, "punch": 1.2, "cx": 0.0, "cy": 0.8016, "marks": { "poll": 0.0 } },
+    { "src": "poll", "in": 0.0, "out": 7.3333, "mute": true, "pop": 0, "punch": 1.2, "cx": 0.0, "cy": 0.8016, "marks": { "poll": 0.0 } },
 
     { "src": "gran", "in": 3.25, "out": 6.85, "mute": true, "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },
       "gfx": [ { "type": "status", "at": 0.15, "name": "DANNY'S GRANDMOTHER", "status": "NOTHING BOOKED.", "foot": "Next episode: Thursday. Confirmed.", "foot_at": 1.3, "foot_size": 56 } ] }

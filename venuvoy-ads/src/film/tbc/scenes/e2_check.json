@@ -1,6 +1,46 @@
-{ "dur": 6.0, "scene": "checklist", "file": "THE STUDY · FILE 02", "title": "STATUS OF BOOKINGS",
-  "rows": [
-    { "t": 0.25,   "label": "FLIGHTS",       "stamp": { "t": 0.9167, "text": "BOOKED",   "color": "green" } },
-    { "t": 1.1667, "label": "HOTEL",         "stamp": { "t": 1.8333, "text": "BOOKED",   "color": "green" } },
-    { "t": 2.125,  "label": "TIME OFF WORK", "stamp": { "t": 3.0,    "text": "APPROVED", "color": "green" } },
-    { "t": 4.0,    "label": "DATE OF MATCH", "stamp": { "t": 4.625,  "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }
+{
+ "dur": 6.0,
+ "scene": "checklist",
+ "file": "THE STUDY · FILE 02",
+ "title": "STATUS OF BOOKINGS",
+ "rows": [
+  {
+   "t": 0.25,
+   "label": "FLIGHTS",
+   "stamp": {
+    "t": 0.9167,
+    "text": "BOOKED",
+    "color": "green"
+   }
+  },
+  {
+   "t": 1.1667,
+   "label": "HOTEL",
+   "stamp": {
+    "t": 1.8333,
+    "text": "BOOKED",
+    "color": "green"
+   }
+  },
+  {
+   "t": 2.125,
+   "label": "TIME OFF WORK",
+   "stamp": {
+    "t": 3.0,
+    "text": "APPROVED",
+    "color": "green"
+   }
+  },
+  {
+   "t": 4.0,
+   "label": "DATE OF MATCH",
+   "stamp": {
+    "t": 4.625,
+    "text": "TO BE CONFIRMED",
+    "color": "red",
+    "big": true,
+    "dx": -70
+   }
+  }
+ ]
+}

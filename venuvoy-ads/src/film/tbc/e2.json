@@ -1,97 +1,418 @@
 {
-  "slug": "tbc-e2",
-  "title": "Episode 2: So You Guess",
-  "out": "ads/16-tbc/venuvoy-tbc-e2",
-  "fps": 24,
-  "duck_from": 0.0,
-  "duck_mode": "voice",
-  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
-
-  "labels": [
-    { "text": "02:14", "from": -0.2, "to": "chat", "x": 60, "y": 306 },
-    { "text": "89 DAYS BEFORE*", "small": "*to be confirmed", "from": "lee2+0.5", "to": "signoff", "y": 262, "xr": 1040 }
-  ],
-
-  "sources": {
-    "lee":   { "path": "src/film/assets/tbc/clips/j01_tab_a.mp4", "level": -18.5 },
-    "chat":  { "path": "src/film/assets/tbc/scenes/e2_chat.mp4" },
-    "check": { "path": "src/film/assets/tbc/scenes/e2_check.mp4" },
-    "maya":  { "path": "src/film/assets/tbc/shots/e2_s1.mp4", "level": -22.5 },
-    "gran":  { "path": "src/film/assets/tbc/clips/gran_go.mp4" }
+ "slug": "tbc-e2",
+ "title": "Episode 2: So You Guess",
+ "out": "ads/16-tbc/venuvoy-tbc-e2",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "02:14",
+   "from": -0.2,
+   "to": "chat",
+   "x": 60,
+   "y": 306
   },
-
-  "narration": [
-    { "file": "src/film/assets/tbc/vo/en/e2_n1.wav", "at": "lee2+0.5", "gain_db": 1.8,
-      "text": "Lee had been comparing flights since nine." },
-    { "file": "src/film/assets/tbc/vo/en/e2_n2.wav", "at": "chat+2.75", "y": 1250, "gain_db": 1.0,
-      "text": "He did not say which Friday." },
-    { "file": "src/film/assets/tbc/vo/en/e2_n3a.wav", "at": "check+0.24", "gain_db": -2.5 },
-    { "file": "src/film/assets/tbc/vo/en/e2_n3b.wav", "at": "check+1.18", "gain_db": 0.0 },
-    { "file": "src/film/assets/tbc/vo/en/e2_n3c.wav", "at": "check+2.13", "gain_db": 0.6 },
-    { "file": "src/film/assets/tbc/vo/en/e2_n4.wav", "at": "maya2+0.45", "gain_db": -0.2,
-      "text": "She guessed Saturday." }
-  ],
-
-  "music": [
-    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": 0.0, "until": "lee2+0.6", "offset": 3.0, "gain_db": -13, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.6 },
-    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": "lee2", "offset": 6.958, "gain_db": -7.5, "duck_db": 0, "fade_in": 0.6, "fade_out": 0.02 }
-  ],
-
-  "sfx": [
-    { "synth": "msg", "at": "m_maya+0.04", "gain_db": -15 },
-    { "synth": "msg", "at": "m_vic+0.04",  "gain_db": -10 },
-    { "synth": "click", "at": "chip+0.02", "gain_db": -6 },
-
-    { "synth": "thud", "at": "s1+0.06",  "gain_db": -14 },
-    { "synth": "thud", "at": "s2+0.06",  "gain_db": -14 },
-    { "synth": "thud", "at": "s3+0.06",  "gain_db": -14 },
-    { "synth": "thud", "at": "red+0.06", "gain_db": -6 },
-
-    { "synth": "clock_tick",              "at": "signoff+0.15", "gain_db": -8 },
-    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 },
-    { "synth": "two_note",                "at": "signoff+1.45", "gain_db": -12 },
-    { "synth": "clock_tick",              "at": "signoff+1.75", "gain_db": -8 },
-    { "synth": "clock_tick", "args": [1], "at": "signoff+2.55", "gain_db": -8 },
-    { "synth": "clock_tick",              "at": "signoff+3.35", "gain_db": -8 }
-  ],
-
-  "segments": [
-    { "src": "lee", "in": 0.29, "out": 4.25, "audio_out": 6.0, "a_fade_out": 0.6, "marks": { "open": 0.29, "flights": 3.04 },
-      "lt": { "name": "LEE", "at": 0.0, "len": 2.6, "y": 1085 },
-      "line": "I closed one tab. It was the flights.", "no_caps": true,
-      "cap": [ { "text": "I closed one tab.", "at": -0.1, "len": 1.6, "hold": 0.45 },
-               { "text": "It was the flights.", "at": 2.72, "len": 0.75, "hold": 0.9 } ] },
-    { "src": "lee", "in": 4.25, "out": 6.0, "fit": 3.8333, "mute": true, "pop": 0,
-      "zoom": { "from": 1.0, "to": 1.05, "cx": 0.5, "cy": 0.4 }, "marks": { "lee2": 4.25 } },
-
-    { "src": "chat", "in": 0.0, "out": 0.4583, "mute": true, "pop": 0,
-      "marks": { "chat": 0.0, "m_maya": 0.125 } },
-    { "src": "chat", "in": 0.4583, "out": 0.7917, "mute": true, "pop": 0,
-      "zoom": { "from": 1.0, "to": 1.14, "cx": 0.183, "cy": 0.859, "ease": "inout" } },
-    { "src": "chat", "in": 0.7917, "out": 4.7083, "mute": true, "pop": 0,
-      "zoom": { "from": 1.14, "to": 1.14, "cx": 0.183, "cy": 0.859 }, "marks": { "m_vic": 1.5417 } },
-    { "src": "chat", "in": 4.7083, "out": 5.0, "mute": true, "pop": 0,
-      "zoom": { "from": 1.14, "to": 1.0, "cx": 0.183, "cy": 0.859, "ease": "inout" } },
-    { "src": "chat", "in": 5.0, "out": 5.75, "mute": true, "pop": 0,
-      "marks": { "chip": 5.125 } },
-
-    { "src": "check", "in": 0.0, "out": 5.875, "mute": true, "pop": 0,
-      "marks": { "check": 0.0, "s1": 0.9167, "s2": 1.8333, "s3": 3.0, "red": 4.625 } },
-
-    { "src": "maya", "in": 0.0, "out": 2.7, "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya": 0.0 },
-      "lt": { "name": "MAYA", "what": "ORGANISER", "at": 0.0, "len": 3.2, "y": 1085 },
-      "line": "Wait for the date | and the flights are gone.", "cap_from": 0.2, "cap_until": 2.35 },
-    { "src": "maya", "in": 2.7, "out": 4.4583, "audio_out": 7.45, "a_fade_out": 0.3, "pop": 0,
-      "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "guess": 3.64 },
-      "line": "So you guess.", "cap_from": 0.88, "cap_until": 2.15 },
-    { "src": "maya", "in": 4.4583, "out": 6.2917, "fit": 3.0, "mute": true, "pop": 0,
-      "punch": 1.3, "cx": 0.60, "cy": 0.42, "marks": { "maya2": 4.4583 },
-      "gfx": [ { "type": "tile", "at": 2.0, "x": 40, "y": 600, "size": 54, "kicker": "MATCH", "title": "SATURDAY*" } ],
-      "sfx": [ { "synth": "sys_tick", "at": 2.18, "gain_db": -4 } ] },
-
-    { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
-      "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },
-      "gfx": [ { "type": "status", "at": 0.15, "name": "DANNY'S GRANDMOTHER", "status": "HAS KEPT THE MONTH FREE.",
-                 "foot": "Next episode: Thursday. Confirmed.", "foot_at": 1.3, "foot_size": 56 } ] }
-  ]
+  {
+   "text": "89 DAYS BEFORE*",
+   "small": "*to be confirmed",
+   "from": "lee2+0.5",
+   "to": "signoff",
+   "y": 262,
+   "xr": 1040
+  }
+ ],
+ "sources": {
+  "lee": {
+   "path": "src/film/assets/tbc/clips/j01_tab_a.mp4",
+   "level": -18.5
+  },
+  "chat": {
+   "path": "src/film/assets/tbc/scenes/e2_chat.mp4"
+  },
+  "check": {
+   "path": "src/film/assets/tbc/scenes/e2_check.mp4"
+  },
+  "maya": {
+   "path": "src/film/assets/tbc/shots/e2_s1.mp4",
+   "level": -22.5
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n1.wav",
+   "at": "lee2+0.5",
+   "gain_db": 1.8,
+   "text": "Lee had been comparing flights since nine."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n2.wav",
+   "at": "chat+2.75",
+   "y": 1250,
+   "gain_db": 1.0,
+   "text": "He did not say which Friday."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n3a.wav",
+   "at": "check+0.24",
+   "gain_db": -2.5
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n3b.wav",
+   "at": "check+1.18",
+   "gain_db": 0.0
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n3c.wav",
+   "at": "check+2.13",
+   "gain_db": 0.6
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e2_n4.wav",
+   "at": "maya2+0.45",
+   "gain_db": -0.2,
+   "text": "She guessed Saturday."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "until": "lee2+0.6",
+   "offset": 3.0,
+   "gain_db": -13,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.6
+  },
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": "lee2",
+   "offset": 6.958,
+   "gain_db": -7.5,
+   "duck_db": 0,
+   "fade_in": 0.6,
+   "fade_out": 0.02
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "msg",
+   "at": "m_maya+0.04",
+   "gain_db": -15
+  },
+  {
+   "synth": "msg",
+   "at": "m_vic+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "click",
+   "at": "chip+0.02",
+   "gain_db": -6
+  },
+  {
+   "synth": "thud",
+   "at": "s1+0.06",
+   "gain_db": -14
+  },
+  {
+   "synth": "thud",
+   "at": "s2+0.06",
+   "gain_db": -14
+  },
+  {
+   "synth": "thud",
+   "at": "s3+0.06",
+   "gain_db": -14
+  },
+  {
+   "synth": "thud",
+   "at": "red+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "lee",
+   "in": 0.29,
+   "out": 4.25,
+   "audio_out": 6.0,
+   "a_fade_out": 0.6,
+   "marks": {
+    "open": 0.29,
+    "flights": 3.04
+   },
+   "lt": {
+    "name": "LEE",
+    "at": 0.0,
+    "len": 2.6,
+    "y": 1085
+   },
+   "line": "I closed one tab. It was the flights.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "I closed one tab.",
+     "at": -0.1,
+     "len": 1.6,
+     "hold": 0.45
+    },
+    {
+     "text": "It was the flights.",
+     "at": 2.72,
+     "len": 0.75,
+     "hold": 0.9
+    }
+   ]
+  },
+  {
+   "src": "lee",
+   "in": 4.25,
+   "out": 6.0,
+   "fit": 3.8333,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.05,
+    "cx": 0.5,
+    "cy": 0.4
+   },
+   "marks": {
+    "lee2": 4.25
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.0,
+   "out": 0.4583,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chat": 0.0,
+    "m_maya": 0.125
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.4583,
+   "out": 0.7917,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.14,
+    "cx": 0.0,
+    "cy": 0.859,
+    "ease": "inout"
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.7917,
+   "out": 4.7083,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.14,
+    "to": 1.14,
+    "cx": 0.0,
+    "cy": 0.859
+   },
+   "marks": {
+    "m_vic": 1.5417
+   }
+  },
+  {
+   "src": "chat",
+   "in": 4.7083,
+   "out": 5.0,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.14,
+    "to": 1.0,
+    "cx": 0.0,
+    "cy": 0.859,
+    "ease": "inout"
+   }
+  },
+  {
+   "src": "chat",
+   "in": 5.0,
+   "out": 6.125,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chip": 5.05
+   }
+  },
+  {
+   "src": "check",
+   "in": 0.0,
+   "out": 5.875,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "check": 0.0,
+    "s1": 0.9167,
+    "s2": 1.8333,
+    "s3": 3.0,
+    "red": 4.625
+   }
+  },
+  {
+   "src": "maya",
+   "in": 0.0,
+   "out": 2.7,
+   "punch": 1.3,
+   "cx": 0.6,
+   "cy": 0.42,
+   "marks": {
+    "maya": 0.0
+   },
+   "lt": {
+    "name": "MAYA",
+    "what": "ORGANISER, UNOPPOSED",
+    "at": 0.0,
+    "len": 3.2,
+    "y": 1085
+   },
+   "line": "Wait for the date | and the flights are gone.",
+   "cap_from": 0.2,
+   "cap_until": 2.35
+  },
+  {
+   "src": "maya",
+   "in": 2.7,
+   "out": 4.4583,
+   "audio_out": 7.45,
+   "a_fade_out": 0.3,
+   "pop": 0,
+   "punch": 1.3,
+   "cx": 0.6,
+   "cy": 0.42,
+   "marks": {
+    "guess": 3.64
+   },
+   "line": "So you guess.",
+   "cap_from": 0.88,
+   "cap_until": 2.15
+  },
+  {
+   "src": "maya",
+   "in": 4.4583,
+   "out": 6.2917,
+   "fit": 3.0,
+   "mute": true,
+   "pop": 0,
+   "punch": 1.3,
+   "cx": 0.6,
+   "cy": 0.42,
+   "marks": {
+    "maya2": 4.4583
+   },
+   "gfx": [
+    {
+     "type": "tile",
+     "at": 1.75,
+     "x": 40,
+     "y": 600,
+     "size": 54,
+     "kicker": "MATCH",
+     "title": "SATURDAY*"
+    }
+   ],
+   "sfx": [
+    {
+     "synth": "sys_tick",
+     "at": 1.93,
+     "gain_db": 0
+    }
+   ]
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "HAS KEPT THE MONTH FREE.",
+     "foot": "Next episode: Thursday. Confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
 }

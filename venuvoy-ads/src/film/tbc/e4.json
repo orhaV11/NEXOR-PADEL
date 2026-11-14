@@ -1,96 +1,387 @@
 {
-  "slug": "tbc-e4",
-  "title": "Episode 4: It's Been Moved",
-  "out": "ads/16-tbc/venuvoy-tbc-e4",
-  "fps": 24,
-  "duck_from": 0.0,
-  "duck_mode": "voice",
-  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
-
-  "labels": [
-    { "text": "40 DAYS BEFORE*", "small": "*to be confirmed", "from": "week", "to": "signoff", "y": 262, "xr": 1040,
-      "strike": { "at": "strike", "to": "42" } }
-  ],
-
-  "sources": {
-    "lee":  { "path": "src/film/assets/tbc/clips/f_selfie.mp4", "level": -18, "af": "highpass=f=120" },
-    "week": { "path": "src/film/assets/tbc/scenes/e4_week.mp4" },
-    "maya": { "path": "src/film/assets/tbc/shots/e4_s1.mp4", "level": -19 },
-    "list": { "path": "src/film/assets/tbc/scenes/e4_list.mp4" },
-    "chat": { "path": "src/film/assets/tbc/scenes/e4_chat.mp4" },
-    "vic":  { "path": "src/film/assets/tbc/shots/e4_s2.mp4", "level": -23.5 },
-    "gran": { "path": "src/film/assets/tbc/clips/gran_go.mp4" }
+ "slug": "tbc-e4",
+ "title": "Episode 4: It's Been Moved",
+ "out": "ads/16-tbc/venuvoy-tbc-e4",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "40 DAYS BEFORE*",
+   "small": "*to be confirmed",
+   "from": "week",
+   "to": "signoff",
+   "y": 262,
+   "xr": 1040,
+   "strike": {
+    "at": "strike",
+    "to": "42"
+   }
+  }
+ ],
+ "sources": {
+  "lee": {
+   "path": "src/film/assets/tbc/clips/f_selfie.mp4",
+   "level": -18,
+   "af": "highpass=f=120"
   },
-
-  "narration": [
-    { "file": "src/film/assets/tbc/vo/en/e4_n1a.wav", "at": "week+0.2917", "gain_db": 1.5,
-      "text": "A different team | won a different match." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n1b.wav", "at": "week+2.9583", "gain_db": -2.2,
-      "text": "So this one | moved to Monday." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n2.wav", "at": "week+5.25", "gain_db": 0.6,
-      "text": "The flight home did not." },
-    { "file": "src/film/assets/tbc/vo/en/e4_n3.wav", "at": "list+0.625", "gain_db": 1.4,
-      "text": "Every change cost money." }
-  ],
-
-  "music": [
-    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": 0.0, "offset": 3.0, "gain_db": -8, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.004 }
-  ],
-
-  "sfx": [
-    { "synth": "click", "at": "t1+0.04", "gain_db": -18 },
-    { "synth": "click", "at": "t2+0.04", "gain_db": -18 },
-    { "synth": "click", "at": "t3+0.04", "gain_db": -18 },
-    { "synth": "sys_tick", "at": "moved+0.30", "gain_db": -6 },
-    { "synth": "click", "at": "strike+0.02", "gain_db": -12 },
-    { "synth": "sys_tick", "at": "clash+0.04", "gain_db": -6 },
-
-    { "synth": "thud", "at": "stamp+0.06", "gain_db": -6 },
-
-    { "synth": "msg", "at": "m_maya+0.04", "gain_db": -13 },
-    { "synth": "typing", "args": [0.9, 0.11, 65], "at": "vic_typing+0.05", "gain_db": -24 },
-
-    { "synth": "clock_tick",              "at": "signoff+0.15", "gain_db": -8 },
-    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 },
-    { "synth": "two_note",                "at": "signoff+1.45", "gain_db": -12 },
-    { "synth": "clock_tick",              "at": "signoff+1.75", "gain_db": -8 },
-    { "synth": "clock_tick", "args": [1], "at": "signoff+2.55", "gain_db": -8 },
-    { "synth": "clock_tick",              "at": "signoff+3.35", "gain_db": -8 }
-  ],
-
-  "segments": [
-    { "src": "lee", "in": 2.5, "out": 4.7917, "audio_out": 5.0, "a_fade_out": 0.25, "punch": 1.39, "cx": 0.0, "cy": 0.9, "marks": { "open": 2.5 },
-      "lt": { "name": "LEE", "at": 0.0, "y": 1085 },
-      "line": "They just moved the kick-off.", "no_caps": true,
-      "cap": [ { "text": "They just moved", "at": -0.1, "len": 0.95, "hold": 0.0 },
-               { "text": "the kick-off.", "at": 0.87, "len": 0.6, "hold": 0.55 } ] },
-
-    { "src": "week", "in": 0.0, "out": 7.375, "mute": true, "pop": 0,
-      "marks": { "week": 0.0, "t1": 0.2083, "t2": 0.4583, "t3": 0.7083, "moved": 3.875, "strike": 4.3333, "clash": 6.25 } },
-
-    { "src": "maya", "in": 0.1667, "out": 6.0833, "audio_out": 6.3, "a_fade_out": 0.2, "punch": 1.3, "cx": 0.60, "cy": 0.2, "marks": { "maya": 0.1667 },
-      "lt": { "name": "MAYA", "what": "ORGANISER", "at": 0.0, "len": 2.6, "y": 1085 },
-      "line": "I'd booked three hotels. | Saturday, Sunday, Monday. | I cancelled Monday | on Tuesday.", "cap_from": 0.15 },
-
-    { "src": "list", "in": 0.0, "out": 5.7083, "mute": true, "pop": 0,
-      "marks": { "list": 0.0, "row4": 3.5, "stamp": 4.4583 } },
-
-    { "src": "chat", "in": 0.0, "out": 0.3333, "mute": true, "pop": 0, "marks": { "chat": 0.0, "m_maya": 0.125 } },
-    { "src": "chat", "in": 0.3333, "out": 0.75, "mute": true, "pop": 0,
-      "zoom": { "from": 1.0, "to": 1.43, "cx": 0.0, "cy": 0.74, "ease": "inout" } },
-    { "src": "chat", "in": 0.75, "out": 2.5, "mute": true, "pop": 0,
-      "zoom": { "from": 1.43, "to": 1.43, "cx": 0.0, "cy": 0.74 }, "marks": { "vic_typing": 1.5 } },
-
-    { "src": "vic", "in": 1.75, "out": 6.9583, "audio_out": 7.2, "a_fade_in": 0.08, "a_fade_out": 0.25, "punch": 1.06, "cx": 0.45, "cy": 0.3, "marks": { "vic": 1.75 },
-      "lt": { "name": "VIC", "what": "HOLDS ALL SIX TICKETS", "at": 0.0, "len": 2.8, "y": 1085 },
-      "line": "It's my daughter's wedding. I did ask her.", "no_caps": true,
-      "cap": [ { "text": "It's my daughter's", "at": 0.95, "len": 0.75, "hold": 0.0 },
-               { "text": "wedding.", "at": 1.70, "len": 0.4, "hold": 0.55 },
-               { "text": "I did ask her.", "at": 3.8, "len": 0.75, "hold": 0.6 } ] },
-
-    { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
-      "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },
-      "gfx": [ { "type": "status", "at": 0.15, "name": "DANNY'S GRANDMOTHER", "status": "FREE ON MONDAY.",
-                 "foot": "Next episode: Thursday. Confirmed.", "foot_at": 1.3, "foot_size": 56 } ] }
-  ]
+  "week": {
+   "path": "src/film/assets/tbc/scenes/e4_week.mp4"
+  },
+  "maya": {
+   "path": "src/film/assets/tbc/shots/e4_s1.mp4",
+   "level": -19
+  },
+  "list": {
+   "path": "src/film/assets/tbc/scenes/e4_list.mp4"
+  },
+  "chat": {
+   "path": "src/film/assets/tbc/scenes/e4_chat.mp4"
+  },
+  "vic": {
+   "path": "src/film/assets/tbc/shots/e4_s2.mp4",
+   "level": -23.5
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/e4_n1a.wav",
+   "at": "week+0.2917",
+   "gain_db": 1.5,
+   "text": "A different team | won a different match."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e4_n1b.wav",
+   "at": "week+2.9583",
+   "gain_db": -2.2,
+   "text": "So this one | moved to Monday."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e4_n2.wav",
+   "at": "week+5.25",
+   "gain_db": 0.6,
+   "text": "The flight home did not."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/e4_n3.wav",
+   "at": "list+0.625",
+   "gain_db": 1.4,
+   "text": "Every change cost money."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "offset": 3.0,
+   "gain_db": -8,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.004
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "click",
+   "at": "t1+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "click",
+   "at": "t2+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "click",
+   "at": "t3+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "sys_tick",
+   "at": "moved+0.30",
+   "gain_db": -6
+  },
+  {
+   "synth": "click",
+   "at": "strike+0.02",
+   "gain_db": -12
+  },
+  {
+   "synth": "sys_tick",
+   "at": "clash+0.04",
+   "gain_db": -6
+  },
+  {
+   "synth": "thud",
+   "at": "stamp+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "msg",
+   "at": "m_maya+0.04",
+   "gain_db": -13
+  },
+  {
+   "synth": "typing",
+   "args": [
+    0.9,
+    0.11,
+    65
+   ],
+   "at": "vic_typing+0.05",
+   "gain_db": -24
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "lee",
+   "in": 2.5,
+   "out": 4.7917,
+   "audio_out": 5.0,
+   "a_fade_out": 0.25,
+   "punch": 1.39,
+   "cx": 0.0,
+   "cy": 0.9,
+   "marks": {
+    "open": 2.5
+   },
+   "lt": {
+    "name": "LEE",
+    "at": 0.0,
+    "y": 1085
+   },
+   "line": "They just moved the kick-off.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "They just moved",
+     "at": -0.1,
+     "len": 0.95,
+     "hold": 0.0
+    },
+    {
+     "text": "the kick-off.",
+     "at": 0.87,
+     "len": 0.6,
+     "hold": 0.55
+    }
+   ]
+  },
+  {
+   "src": "week",
+   "in": 0.0,
+   "out": 7.375,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "week": 0.0,
+    "t1": 0.2083,
+    "t2": 0.4583,
+    "t3": 0.7083,
+    "moved": 3.875,
+    "strike": 4.3333,
+    "clash": 6.25
+   }
+  },
+  {
+   "src": "maya",
+   "in": 0.1667,
+   "out": 6.0833,
+   "audio_out": 6.3,
+   "a_fade_out": 0.2,
+   "punch": 1.3,
+   "cx": 0.6,
+   "cy": 0.2,
+   "marks": {
+    "maya": 0.1667
+   },
+   "lt": {
+    "name": "MAYA",
+    "what": "ORGANISER, UNOPPOSED",
+    "at": 0.0,
+    "len": 2.6,
+    "y": 1085
+   },
+   "line": "I'd booked three hotels. | Saturday, Sunday, Monday. | I cancelled Monday | on Tuesday.",
+   "cap_from": 0.15
+  },
+  {
+   "src": "list",
+   "in": 0.0,
+   "out": 5.7083,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "list": 0.0,
+    "row4": 3.5,
+    "stamp": 4.4583
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.0,
+   "out": 0.3333,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chat": 0.0,
+    "m_maya": 0.125
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.3333,
+   "out": 0.75,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.43,
+    "cx": 0.0,
+    "cy": 0.6375,
+    "ease": "inout"
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.75,
+   "out": 2.5,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.43,
+    "to": 1.43,
+    "cx": 0.0,
+    "cy": 0.6375
+   },
+   "marks": {
+    "vic_typing": 1.5
+   }
+  },
+  {
+   "src": "vic",
+   "in": 1.75,
+   "out": 6.9583,
+   "audio_out": 7.2,
+   "a_fade_in": 0.08,
+   "a_fade_out": 0.25,
+   "punch": 1.1,
+   "cx": 1.0,
+   "cy": 0.0,
+   "marks": {
+    "vic": 1.75
+   },
+   "lt": {
+    "name": "VIC",
+    "what": "HOLDS ALL SIX TICKETS",
+    "at": 0.0,
+    "len": 2.8,
+    "y": 1100
+   },
+   "line": "It's my daughter's wedding. I did ask her.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "It's my daughter's",
+     "at": 0.95,
+     "len": 0.75,
+     "hold": 0.0
+    },
+    {
+     "text": "wedding.",
+     "at": 1.7,
+     "len": 0.4,
+     "hold": 0.55
+    },
+    {
+     "text": "I did ask her.",
+     "at": 3.8,
+     "len": 0.75,
+     "hold": 0.6
+    }
+   ]
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "FREE ON MONDAY.",
+     "foot": "Next episode: Thursday. Confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
 }

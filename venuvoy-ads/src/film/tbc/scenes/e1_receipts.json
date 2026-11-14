@@ -1,7 +1,35 @@
-{ "dur": 4.0, "name": "Away trip – who's in?", "sub": "8 members", "right": 665,
-  "events": [
-    { "t": 0,    "type": "typingbar", "who": "Danny" },
-    { "t": 0.12, "type": "msg", "who": "Maya", "me": true, "text": "It's all in here.", "time": "07:31",
-      "card": { "title": "Trip plan", "sub": "spreadsheet" },
-      "receipts": [ { "t": 0.73, "text": "Seen by 7" }, { "t": 2.09, "text": "Opened by 1" } ] }
-  ] }
+{
+ "dur": 4.0,
+ "name": "Away trip – who's in?",
+ "sub": "8 members",
+ "right": 615,
+ "events": [
+  {
+   "t": 0,
+   "type": "typingbar",
+   "who": "Danny"
+  },
+  {
+   "t": 0.12,
+   "type": "msg",
+   "who": "Maya",
+   "me": true,
+   "text": "It's all in here.",
+   "time": "07:31",
+   "card": {
+    "title": "Trip plan",
+    "sub": "spreadsheet"
+   },
+   "receipts": [
+    {
+     "t": 0.73,
+     "text": "Seen by 7"
+    },
+    {
+     "t": 2.09,
+     "text": "Opened by 1"
+    }
+   ]
+  }
+ ]
+}

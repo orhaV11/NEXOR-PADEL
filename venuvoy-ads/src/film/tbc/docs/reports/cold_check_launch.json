@@ -1,0 +1,102 @@
+{
+ "episodes": [
+  {
+   "n": 1,
+   "verdict": "Content and rhythm are ready: every beat reads muted (vote on dates, 'Maybe' won; eight planned, two arrived, neither in the chat; 'properly' into the title stamp; dates out, 'Right.'; spreadsheet seen by 7, opened by 1, by her; 'maybe' removed, 'Should be fine' wins; Danny typing since Tuesday; gran, nothing booked). Before it goes to TikTok or Shorts, pull the 'Seen by 7 / Opened by 1' numbers in from the right edge; the rest is polish.",
+   "findings": [
+    {
+     "severity": "major",
+     "at": "19.6-22.6",
+     "what": "The two numbers that carry the spreadsheet joke sit in the right-hand strip where TikTok and Shorts draw their button column, so a muted viewer there may get 'Seen by ... / Opened by ...' with the digits covered. I cannot see app chrome from here, so this is geometry, not an observed overlap: confirm on a phone.",
+     "evidence": "Frame at 21.5 s: 'Seen by 7' ink runs x 762-1013, y 964-1019; 'Opened by 1' x 691-1006, y 1047-1102. That is 67-74 px from the right edge at 50-57% of the height. Captions, lower thirds and the sign-off all keep 80-100 px; the usual TikTok template asks for about 120-140 px clear on the right. Next closest are the poll counts (x 959-986, y 750-870, 25.3-32.4 s).",
+     "fix": "Inset the two receipt lines about 80 px (right edge near x 930), or pull that chat punch-in back about 9%. No timing change."
+    },
+    {
+     "severity": "minor",
+     "at": "25.125",
+     "what": "The speech caption 'THE LINK WORKED.' survives one frame past the cut and sits on the empty chat screen.",
+     "evidence": "Frame 603 (25.125 s) in both the 9:16 and the 4:5 master shows the chat with the caption still on it; frame 604 is clean. The other seven cuts in the episode are clean.",
+     "fix": "End that caption one frame earlier, on the cut."
+    },
+    {
+     "severity": "minor",
+     "at": "12.7-14.6",
+     "what": "In the punched-in chat the '8 MONTHS LATER' divider is off-centre: its right rule is cut by the frame and the label ends at like-button height on the right.",
+     "evidence": "Frame at 13.2 s: label ink x 483-1018, y 1168-1200; left rule runs x 40-445, right rule is about 20 px before the edge. 'Danny left' sits right of centre the same way.",
+     "fix": "Shift the divider and pill about 80 px left in that punch-in (or centre them in frame)."
+    },
+    {
+     "severity": "minor",
+     "at": "34.1-36.0",
+     "what": "The sign-off line ends close to the right edge at button-column height, so the last letters of 'Confirmed.' (the word that makes the line) may sit under a button on TikTok. Identical in episodes 2 and 3.",
+     "evidence": "Frame at 35.0 s: 'Next episode: Thursday. Confirmed.' x 92-977, y 1463-1516 (103 px from the right edge); VENUVOY x 350-728. Held about 1.9 s at full opacity, 1.3 s after the top label lands.",
+     "fix": "Scale the italic line to about 92% so it ends near x 940; if there is room, hold the end card 8-12 frames longer."
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "verdict": "Post it as it is. Every beat reads muted (02:14, closed one tab, it was the flights; comparing since nine; 'I'll pay you Friday', which Friday; everything booked except the date of the match; wait and the flights go, so she guessed Saturday; gran has kept the month free); what is left is three small timing and position nits.",
+   "findings": [
+    {
+     "severity": "minor",
+     "at": "12.96-13.54",
+     "what": "The 'OWE MAYA: 6' counter is introduced here and nowhere else, and it is on for about half a second in the top-right corner while the eye is still on the messages. A stranger will not see it.",
+     "evidence": "Region timing: chip fades in at 12.96-13.0 and the cut to the file card is at 13.54, so 13 frames (0.54 s). Caps about 24 px (1.3 mm on a 6 cm phone). Narration ends at 12.0; the pull-back starts at 12.67. Tick at -24 dBFS.",
+     "fix": "Start the pull-back about 10 frames earlier (around 12.25) so the chip lands by 12.55 and holds about a second. No length change."
+    },
+    {
+     "severity": "minor",
+     "at": "25.92-26.875",
+     "what": "The 'MATCH / SATURDAY*' tag, whose red asterisk is the joke, is settled for under a second before the cut to the grandmother.",
+     "evidence": "Region timing: tag animates in 25.92-26.04, last frame 26.83, cut at 26.875: about 0.8 s settled. Narration 'She guessed Saturday.' ends at 25.5. Its tick is -29 dBFS against -11 for the card stamp at 18.2.",
+     "fix": "Bring the tag in at about 25.6 as the narration caption clears; that gives about 1.25 s with no length change."
+    },
+    {
+     "severity": "minor",
+     "at": "8.3-12.5 and 18.2-19.4",
+     "what": "Two things run closer to the frame edge than anything else in the episode: Vic's reply starts almost at the left edge, and the red 'TO BE CONFIRMED' stamp ends at button-column height on the right, so the last letters of CONFIRMED may sit under the like button on TikTok or Shorts. Geometry only; check on a phone.",
+     "evidence": "Frame at 9.5 s: 'Hundred percent. I'll pay you Friday.' ink starts at x 51. Frame at 18.6 s: stamp x 511-1017, y 992-1213, lettering to about x 980-1015.",
+     "fix": "Nudge the stamp about 70 px left (overlapping the dotted leader is fine) and pull the chat punch-in back about 5%."
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "verdict": "The strongest of the three and nearly ready: give 'Danny's grandmother left' about ten more frames first, because it is the laugh that sets up her line. Every beat reads muted (buys tickets to matches he cannot attend; you need a ticket history to buy a ticket; attended 11, bought 19; 'any name', 'My landlord.'; nine names and the one who was not asked wins; added to the chat, leaves, 'I just go'; one ticket, her own).",
+   "findings": [
+    {
+     "severity": "major",
+     "at": "23.25-24.17",
+     "what": "Rushed punchline. 'Danny's grandmother left' is new information, in the smallest chat type of the episode, and is on for about 0.8 s while the thread scrolls and the member count flips 9 to 8. Her spoken line rescues the sense, but the laugh is the pill.",
+     "evidence": "Region timing: 'Maya added Danny's grandmother' lands 22.13-22.25; the thread scrolls and 'left' lands 23.25-23.38; cut to her at 24.167, so 19 settled frames (0.79 s) for 24 characters, about 30 characters a second. This is the wide chat view: pill caps about 30 px against about 44 px in the punched-in view at 11.7-15.5. Tick at -33 dBFS.",
+     "fix": "Bring the 'left' pill in about 8 frames sooner (around 22.9) and cut to the chat about 4 frames earlier (the winner card is static from 19.9 and narration ends by 21.4), giving it about 1.3 s; or simply hold the chat 10 frames longer before her line."
+    },
+    {
+     "severity": "minor",
+     "at": "15.54-18.0",
+     "what": "The densest moment in the series: nine names, the header and the narration caption all ask to be read at once, and the tiles start greying out before a stranger has finished the caption. Two or three names get through; the gag survives, the names mostly do not.",
+     "evidence": "Tile timing: grid appears 15.54; first flip (Marcus's neighbour) about 16.4, then one roughly every 0.2 s to 17.92 (Lee's landlord at 17.5); caption 'The group put in nine names.' 15.6-17.7. Tile names are a comfortable 32 px caps, so this is time, not size.",
+     "fix": "Hold the first flip to about 16.9 and flip at 4 frames apiece so they finish by about 18.1, before 'One came out.' at 18.24. No length change."
+    },
+    {
+     "severity": "minor",
+     "at": "12.3-15.5 and 9.3-10.9",
+     "what": "Edge margins. The key message starts almost on the left edge, so the 'O' of 'One' and the 'l' of 'last' would clip on any player that trims the sides; and the stat numbers 11 and 19 sit at like-button height on the right. Geometry only; check on a phone.",
+     "evidence": "Frame at 13.5 s: 'One short. Put a name in for the / last ticket. Any name.' ink x 41-947. Frame at 10.6 s: stat digits x 872-953, y 1072-1220.",
+     "fix": "Shift that chat punch-in about 45 px right (the text has room on the right); move the stat chip about 60 px left only if a phone check shows the digits covered."
+    }
+   ]
+  }
+ ],
+ "across": [
+  "Series title and episode number: only episode 1 shows the 'TO BE CONFIRMED / EPISODE 1' stamp (10.7-12.0). Episodes 2 and 3 never name the series or a number on screen; they carry 'THE STUDY - FILE 02 / 03' tabs instead, and episode 1 has no FILE 01. A stranger who meets 2 or 3 first cannot tell what to look for. Either add the stamp for about a second at the first cut out of the cold open (episode 2 at 4.5, episode 3 at 2.9) or make sure every post caption carries title and number.",
+  "Maya's lower third: 'ORGANISER, UNOPPOSED' in episode 1 (16.6-18.8, 22.7-25.1) but plain 'ORGANISER' in episode 2 (19.4-22.3). Fine if the joke is meant to be told once; a stranger who starts at episode 2 never gets it. Related: Maya and Vic get a second line, Lee gets a name only (0-2.3).",
+  "Chat scale: the punched-in view (episode 1 12.7-16.5, episode 2 8.3-12.5, episode 3 11.7-15.5) has type about 1.4 times the wide view (episode 2 12.7-13.5, episode 3 22.0-24.2), and the wide view is used exactly where the two briefest texts live ('OWE MAYA: 6' for 0.54 s, 'Danny's grandmother left' for 0.8 s).",
+  "Edge margins: captions, lower thirds and the sign-off keep 80-100 px from the sides in all three; chat punch-ins and file cards run to 41-74 px (episode 3 left 41, episode 2 left 51, episode 1 right 62-74, episode 2 stamp 63). The punch-in framing also differs: episode 2 keeps the chat header whole, episodes 1 and 3 slice through it so only 'N members' and half the avatar show at the top edge.",
+  "Landing sounds: title and card stamps hit at about -11 to -17 dBFS, the 'OWE MAYA' chip at -24, the Saturday tag at -29, chat pills at -31 to -33. Reads as a deliberate hierarchy, but the Saturday tag is the quietest landing on a joke.",
+  "Checked and the same in all three (no action): integrated loudness -14.0 / -14.1 / -14.1 LUFS with peaks -2.0 / -1.8 / -1.9 dBFS; sign-off text, position (x 92-977, y 1393-1516) and hold (about 1.9 s, 1.3 s after the label); end-card label position; caption and label type sizes; the grandmother's closing framing; days-before tag position. Loudness range differs (6.9 / 12.8 / 17.8 LU) only because episodes 2 and 3 have longer near-silent chat stretches (episode 3 11.0-15.5 at about -40 dBFS), which is by design. No frozen-looking holds and no black or stray frames at head or tail in any of the six files.",
+  "4:5 crops: overlays are re-laid rather than cropped, and nothing that matters is cut in the 24 moments opened (eight per episode, including opening caption, labels, title stamp, chat header and chip, file cards, ballot, Saturday tag and end card). The one-frame caption overhang at 25.125 in episode 1 is in the 4:5 file too.",
+  "Working files (contact sheets, frame pulls, cut strips) are in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final-launch/ ; nothing in the repository was changed."
+ ]
+}

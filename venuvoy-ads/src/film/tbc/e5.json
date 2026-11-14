@@ -53,8 +53,7 @@
   },
   {
    "file": "src/film/assets/tbc/vo/en/e5_n3.wav",
-   "at": "more+1.85",
-   "text": "Staff have asked him to leave. | He has explained that it is his seat."
+   "at": "more+1.85"
   },
   {
    "file": "src/film/assets/tbc/vo/en/e5_n4.wav",
@@ -120,7 +119,7 @@
   },
   {
    "synth": "two_note",
-   "at": "signoff+1.45",
+   "at": "signoff+1.35",
    "gain_db": -12
   },
   {
@@ -140,9 +139,38 @@
    "synth": "clock_tick",
    "at": "signoff+3.35",
    "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
   }
  ],
  "segments": [
+  {
+   "src": "man",
+   "in": 0.6666,
+   "out": 0.7083,
+   "hold": 0.1667,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.5,
+    "to": 1.5,
+    "cx": 0.5,
+    "cy": 0.0
+   },
+   "cap": {
+    "text": "I'm a bit early.",
+    "at": 0.0,
+    "len": 1.0,
+    "hold": 0.5,
+    "y": 1300
+   }
+  },
   {
    "src": "man",
    "in": 0.6666,
@@ -161,13 +189,6 @@
    },
    "speech": true,
    "cap": [
-    {
-     "text": "I'm a bit early.",
-     "at": -0.1,
-     "len": 0.667,
-     "hold": 0.73,
-     "y": 1300
-    },
     {
      "text": "Two days.",
      "at": 1.86,
@@ -224,7 +245,25 @@
    },
    "marks": {
     "more": 0.0
-   }
+   },
+   "cap": [
+    {
+     "text": "Staff have asked him to leave.",
+     "cls": "nar",
+     "y": 1360,
+     "at": 1.8,
+     "len": 1.9,
+     "hold": 0.2
+    },
+    {
+     "text": "He has explained that it is his seat.",
+     "cls": "nar",
+     "y": 1360,
+     "at": 4.0,
+     "len": 2.1,
+     "hold": 0.72
+    }
+   ]
   },
   {
    "src": "week",
@@ -261,10 +300,11 @@
      "name": "DANNY'S GRANDMOTHER",
      "status": "TRAVELS ON THE DAY.",
      "foot": "Next episode: Thursday. Confirmed.",
-     "foot_at": 1.3,
-     "foot_size": 56
+     "foot_at": 1.2,
+     "foot_size": 52
     }
-   ]
+   ],
+   "fit": 4.3
   }
  ]
 }

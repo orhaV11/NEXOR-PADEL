@@ -398,3 +398,14 @@ tag ELSEWHERE top-left (x 60, y 306) from frame 0. Episode 6 ("In the Chat"): 37
 - Mix: every room, chat and board has a quiet tone under it (about -40 dBFS), the same kind in every scene of
   an episode, so a pause is a held breath and never a hole; message pops must be audible on a phone (about
   -24 dBFS at their loudest); the red stamp is the heaviest sound of its episode.
+
+## AS SHIPPED (after the last cold viewing; these numbers are what the six edit lists now hold)
+- The sign-off: gran_go 3.25-6.85 slowed to fill 4.3 s ("fit": 4.3), status at 0.15, "foot_at": 1.2,
+  "foot_size": 52; ticks at +0.15, +0.95, +1.75, +2.55, +3.35, +4.15; the two notes at +1.35.
+- Maya's name tag is MAYA / ORGANISER, UNOPPOSED in every episode, so each stands on its own.
+- Text that carries a joke stays out of the right-hand strip where the apps draw their buttons (x > 940 between
+  about rows 900 and 1550): the receipts in Episode 1 end near x 940, the red stamp in Episode 2 is nudged in.
+- Episode 5 has a second shot, `src/film/assets/tbc/clips/early_next.mp4`, filmed from the last frame of the
+  first; under its narration the caption sits at y 1360 because the shot invented a white collar and tie.
+- Lengths: 36.8, 31.5, 32.1, 33.3, 25.2 and 21.7 seconds.
+- Money spent on generation for this batch: about 2.6 dollars (two stills, eight shots of eight seconds).

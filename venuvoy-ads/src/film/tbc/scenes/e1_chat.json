@@ -1,9 +1,9 @@
-{ "dur": 5.25, "name": "Away trip – who's in?", "sub": "7 members",
+{ "dur": 4.75, "name": "Away trip – who's in?", "sub": "7 members",
   "events": [
     { "t": 0,    "type": "sys", "text": "Danny left" },
-    { "t": 0.25, "type": "divider", "text": "8 months later" },
-    { "t": 2.95, "type": "msg", "who": "Vic", "text": "Right.", "time": "07:02" },
-    { "t": 3.75, "type": "sys", "text": "Maya added Danny" },
-    { "t": 3.75, "type": "head", "sub": "8 members" },
-    { "t": 4.3,  "type": "typingbar", "who": "Danny" }
+    { "t": 0.2,  "type": "divider", "text": "8 months later" },
+    { "t": 2.8,  "type": "msg", "who": "Vic", "text": "Right.", "time": "07:02" },
+    { "t": 3.5,  "type": "sys", "text": "Maya added Danny" },
+    { "t": 3.5,  "type": "head", "sub": "8 members" },
+    { "t": 4.0,  "type": "typingbar", "who": "Danny" }
   ] }

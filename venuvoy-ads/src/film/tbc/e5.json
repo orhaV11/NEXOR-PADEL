@@ -1,0 +1,70 @@
+{
+  "slug": "tbc-e5",
+  "title": "Elsewhere: A Bit Early",
+  "out": "ads/16-tbc/venuvoy-tbc-e5",
+  "fps": 24,
+  "duck_from": 0.0,
+  "duck_mode": "voice",
+  "look": { "pop": 0.03, "shake": 0, "sharpen": 0.12, "grain": 3.0, "cap_y": 1260, "nar_y": 1300 },
+
+  "labels": [
+    { "text": "ELSEWHERE", "from": -0.2, "to": "board", "x": 60, "y": 306 }
+  ],
+
+  "sources": {
+    "man":  { "path": "src/film/assets/tbc/clips/j12_early_a.mp4", "level": -18 },
+    "week": { "path": "src/film/assets/tbc/scenes/e5_week.mp4" },
+    "gran": { "path": "src/film/assets/tbc/clips/gran_go.mp4" }
+  },
+
+  "narration": [
+    { "file": "src/film/assets/tbc/vo/en/e5_n1.wav", "at": "look+0.53",
+      "text": "The subject is the only adult present | in face paint." },
+    { "file": "src/film/assets/tbc/vo/en/e5_n2.wav", "at": "look+3.83",
+      "text": "He is also the only adult present." },
+    { "file": "src/film/assets/tbc/vo/en/e5_n3.wav", "at": "board+0.30",
+      "text": "Staff have asked him to leave. | He has explained that it is his seat." },
+    { "file": "src/film/assets/tbc/vo/en/e5_n4.wav", "at": "board+4.63",
+      "text": "The match moved | while he was in the air. | He flies home on Wednesday." }
+  ],
+
+  "music": [
+    { "file": "src/film/assets/apa/audio/bed_hall_quiet.flac", "at": 0.0, "offset": 3.0, "gain_db": -12, "duck_db": 0, "fade_in": 0.02, "fade_out": 0.02 }
+  ],
+
+  "sfx": [
+    { "synth": "click",    "at": "pin+0.10",   "gain_db": -15 },
+    { "synth": "sys_tick", "at": "moved+0.30", "gain_db": -9 },
+    { "synth": "sys_tick", "at": "home+0.10",  "gain_db": -9 },
+    { "synth": "thud",     "at": "stamp+0.06", "gain_db": -6 },
+
+    { "synth": "clock_tick",              "at": "signoff+0.15", "gain_db": -8 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+0.95", "gain_db": -8 },
+    { "synth": "two_note",                "at": "signoff+1.45", "gain_db": -12 },
+    { "synth": "clock_tick",              "at": "signoff+1.75", "gain_db": -8 },
+    { "synth": "clock_tick", "args": [1], "at": "signoff+2.55", "gain_db": -8 },
+    { "synth": "clock_tick",              "at": "signoff+3.35", "gain_db": -8 }
+  ],
+
+  "segments": [
+    { "src": "man", "in": 0.4583, "out": 2.9583, "audio_out": 5.15, "a_fade_out": 0.6, "pop": 0,
+      "zoom": { "from": 1.5, "to": 1.4715, "cx": 0.5, "cy": 0.0 }, "marks": { "open": 0.4583 },
+      "speech": true,
+      "cap": [ { "text": "I'm a bit early.", "at": -0.1, "len": 0.96, "hold": 0.65 },
+               { "text": "Two days.", "at": 2.07, "len": 0.45, "hold": 0.43 } ] },
+    { "src": "man", "in": 2.9583, "out": 5.0, "fit": 4.0833, "mute": true, "pop": 0,
+      "zoom": { "from": 1.4710, "to": 1.4242, "cx": 0.5, "cy": 0.0 }, "marks": { "look": 2.9583 } },
+    { "src": "man", "in": 5.0, "out": 5.375, "mute": true, "pop": 0,
+      "zoom": { "from": 1.4237, "to": 1.4198, "cx": 0.5, "cy": 0.0 }, "marks": { "lift": 5.0 } },
+    { "src": "man", "in": 5.375, "out": 6.0, "fit": 1.25, "hold": 0.4583, "mute": true, "pop": 0,
+      "zoom": { "from": 1.4193, "to": 1.4, "cx": 0.5, "cy": 0.0 }, "marks": { "bite": 5.375 } },
+
+    { "src": "week", "in": 0.0, "out": 10.0417, "mute": true, "pop": 0,
+      "marks": { "board": 0.0, "pin": 3.75, "moved": 5.125, "home": 7.9167, "stamp": 8.7917 } },
+
+    { "src": "gran", "in": 3.25, "out": 6.85, "mute": true,
+      "zoom": { "from": 1.06, "to": 1.12, "cx": 0.5, "cy": 0.45 }, "marks": { "signoff": 3.25 },
+      "gfx": [ { "type": "status", "at": 0.15, "name": "DANNY'S GRANDMOTHER", "status": "TRAVELS ON THE DAY.",
+                 "foot": "Next episode: Thursday. Confirmed.", "foot_at": 1.3, "foot_size": 56 } ] }
+  ]
+}

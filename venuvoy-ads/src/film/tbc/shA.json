@@ -34,7 +34,19 @@
  "sources": {
   "jo": {
    "path": "src/film/assets/tbc/shots/b2_j0.mp4",
-   "level": -20.5
+   "level": -20.5,
+   "fix": [
+    {
+     "soften": [
+      0,
+      1630,
+      125,
+      1810
+     ],
+     "sigma": 9,
+     "feather": 12
+    }
+   ]
   },
   "chat": {
    "path": "src/film/assets/tbc/scenes/shA_chat.mp4"

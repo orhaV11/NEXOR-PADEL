@@ -1,0 +1,66 @@
+{
+ "episodes": [
+  {
+   "id": "shB",
+   "verdict": "Post it as it is. Nothing in the picture, the text timing or the 4:5 crop would trip a stranger; the two notes below are optional polish.",
+   "findings": [
+    {
+     "severity": "minor",
+     "at": "0.2-3.3 against 6.7-8.2 and 14.1-15.8",
+     "what": "Lee's hook line is the quietest speech in the film; the narrator who follows is noticeably hotter.",
+     "evidence": "Per-line loudness: Lee -14.0 LUFS (both lines), narrator -10.5 and -10.7 LUFS, a 3.5 LU step. In Episode 7 the narrator sits only 0-3 LU above the people on screen. Peaks are -2 dBFS throughout, so nothing clips.",
+     "fix": "Optional: lift Lee's two lines about 2 dB, or drop the two narrator lines about 1.5 dB. Not worth holding the post for."
+    },
+    {
+     "severity": "minor",
+     "at": "16.6-20.67 (4:5 file only)",
+     "what": "The ending label 'DANNY'S GRANDMOTHER / LIKES TO BE EARLY.' sits almost on the top edge of the feed crop. It is intact, just tight.",
+     "evidence": "4:5 frame at 19.5 s: the cream label box starts 20 px below the top of the 1350 px frame (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-last/m45_tops.png). Episode 7's crop is identical.",
+     "fix": "Optional: drop the label 30-40 px in the 4:5 layout only."
+    }
+   ]
+  },
+  {
+   "id": "ep7",
+   "verdict": "One thing has to change first: the Vic wedding shot in the 9:16 master has a flat black band across the top. Fix that and it is ready; it closes the season and leaves the door open. The three minors are cheap to take in the same pass, but none should hold it.",
+   "findings": [
+    {
+     "severity": "major",
+     "at": "9.63-12.97 (9:16 master only)",
+     "what": "The Vic wedding shot does not fill the frame: a flat near-black band covers the top 196 px, with a hard edge that slices through the fairy lights. Every other shot in both films is full-bleed, so it reads as a render error for 3.3 seconds. The 4:5 file does not show it because its crop starts below the band.",
+     "evidence": "Frame at 11.0 s: rows 0-195 are uniform (mean level 11 of 255, deviation 3.5), picture starts at y=196 (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-last/ep7_vic_top.png). A scan of all four files at 4 fps found no other dark band on any shot or side.",
+     "fix": "Make the plate fill the frame: scale it about 111% from the bottom edge (1724 to 1920 px), or slide it up 196 px if the source has the rows. Then check his head clears the day-count chip (x 715-1040, y 262-338) and the name tag and caption still sit on his chest. If his face must stay where it is, extend the top with a blurred copy of the top rows so there is no hard edge. Re-export the 4:5 if the framing moves."
+    },
+    {
+     "severity": "minor",
+     "at": "17.00-18.08",
+     "what": "The punchline caption 'The other is typing.' gets the shortest hold of any narrator line and is taken off two frames before the stamp lands, while the picture is also draining to black and white. A muted stranger can miss the line the stamp is answering.",
+     "evidence": "Caption plate is on for 26 frames (1.08 s) and gone at 18.12; the stamp hits at 18.17 and the frozen frame holds to 19.33. 'One is not in the chat.' gets 1.58 s; the four-word narrator line in 'In the Chat: Again' gets 1.67 s.",
+     "fix": "Leave the caption up through the freeze, to about 18.6 s or to the cut at 19.33. Nothing collides: stamp at y 340-590, caption at y 1340-1450."
+    },
+    {
+     "severity": "minor",
+     "at": "0.00-1.63",
+     "what": "Jo's opening is tight and its word highlight runs ahead of her voice. The shot also carries the two-line tag that sets up 'IT WAS FINE.' at 26 s, with too little time to register on a first view.",
+     "evidence": "Shot is 39 frames. 'NEVER' lights at 0.125 s but the voice starts at 0.34 s; each word is highlighted 0.2-0.35 s early. Every other speech caption in both films is within 0.13 s of the voice.",
+     "fix": "Keep the whole caption on from frame 0, but slip the highlight track 5-6 frames later. If the take allows, hold Jo 6-8 frames longer after 'coming.' before cutting to the chat."
+    },
+    {
+     "severity": "minor",
+     "at": "0-1.63 and 26.0-27.3 (Jo), against the pinned card at 1.63-6.3",
+     "what": "Jo is interviewed under floodlights with a black sky, and the next frame pins 'Kick-off: Mon 12:30' with messages stamped 12:09 and 12:11. Football fans, and followers coming from 'In the Chat: Again' (whose whole joke is the 12:30 kick-off), may notice a night match at lunchtime. The joke itself still lands.",
+     "evidence": "Frames at 0.04, 0.9 and 26.6 s show night sky and floodlights; the chat frame at 3.0 s shows the pinned 12:30 and the 12:09 stamp. Vic's reception at 11.0 s is also at dusk with fairy lights.",
+     "fix": "No cheap fix and the words stay. Either accept it (the talking heads read as recorded later) or re-make Jo's two plates in daylight. I would accept it."
+    }
+   ]
+  }
+ ],
+ "across": [
+  "Sender name colours are not pinned to people. Sydney is teal in 'In the Chat: Again' (14.8 s) and ochre in Episode 7 (5.5 s), the same ochre Lee has in both films; Vic takes Sydney's teal in Episode 7 (23.3 s). Fix: one fixed colour per member (Lee ochre, Sydney teal, Vic a third, Danny red).",
+  "Bubble timestamps: Episode 7's bubbles carry times and ticks (12:09, 12:11, 13:17, 09:02, 09:03); the three bubbles in 'In the Chat: Again' carry none. Episode 7's times earn their place (Lee's 13:17 pays off his 'ground at 1:15'), so if this is evened out, add times to the short rather than strip the episode. Low priority.",
+  "The word CONFIRMED is stamped green in 'In the Chat: Again' (4.2 s, on the pinned card) and red in Episode 7 (18.17 s). Probably deliberate, with red kept for the stamp that thuds; just confirm it is intended.",
+  "Framing: the Vic shot in Episode 7's 9:16 master is the only shot in either film that is not full-bleed (the 196 px band above).",
+  "Levels match where it counts: both films measure -14.1 LUFS integrated with peaks at -2.0 dBFS. The only drift is the narrator sitting 3.5 LU above Lee in the short against 0-3 LU above the speakers in Episode 7.",
+  "Checked and identical, no action: the grandmother ending uses the same plate and framing in both, with the label and sign-off at the same size and position and a 4.33 s ending each; speech captions sit on the same baselines; the day-count and OWE MAYA chips are in the same place; the pinned 'Kick-off: Mon 12:30' agrees; stamp sound and picture are in sync in both."
+ ]
+}

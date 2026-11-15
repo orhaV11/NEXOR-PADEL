@@ -1,4 +1,5 @@
-{ "dur": 5.5, "name": "Away trip – who's in?", "sub": "8 members", "right": 760,
+{ "dur": 6.2, "name": "Away trip – who's in?", "sub": "8 members",
+  "colors": { "Vic": "#b0832a", "Lee": "#1f7a6b", "Jo": "#b3261e", "Sydney": "#6b4fa3", "Marcus": "#2a6fb0", "Priya": "#c2571a", "Danny": "#7a8c1f" }, "right": 760,
   "events": [
     { "t": 0,       "type": "pin", "text": "Kick-off: Mon…" },
     { "t": 0,       "type": "typingbar", "who": "Danny" },
@@ -8,5 +9,5 @@
     { "t": 1.2083,  "type": "msg", "who": "Marcus", "text": "they say Saturday" },
     { "t": 2.0417,  "type": "msg", "who": "Maya", "me": true, "text": "It is Saturday.", "time": "06:03" },
 
-    { "t": 2.9583,  "type": "msg", "who": "Maya", "me": true, "text": "Boarding. Danny,\nyou have Vic's phone.", "time": "06:51" }
+    { "t": 3.5833,  "type": "msg", "who": "Maya", "me": true, "text": "Boarding. Danny,\nyou have Vic's phone.", "time": "06:51" }
   ] }

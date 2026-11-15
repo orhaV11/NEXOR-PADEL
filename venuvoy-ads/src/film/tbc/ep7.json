@@ -105,7 +105,7 @@
    ]
   },
   "vic": {
-   "path": "src/film/assets/tbc/shots/b2_v2.mp4"
+   "path": "src/film/assets/tbc/shots/b2_v2_fill.mp4"
   },
   "after": {
    "path": "src/film/assets/tbc/scenes/ep7_after.mp4"
@@ -130,8 +130,6 @@
   {
    "file": "src/film/assets/tbc/vo/en/ep7_n1c.wav",
    "at": "drain+0.2",
-   "y": 1340,
-   "text": "The other is typing.",
    "gain_db": -2.0
   }
  ],
@@ -317,8 +315,8 @@
    "cap": {
     "text": "I never said I was coming.",
     "at": -0.1,
-    "len": 1.42,
-    "hold": 0.3
+    "len": 1.62,
+    "hold": 0.1
    }
   },
   {
@@ -433,6 +431,14 @@
     "ramp": 0.6,
     "to": 0.92,
     "gain": 0.92
+   },
+   "cap": {
+    "text": "The other is typing.",
+    "cls": "nar",
+    "y": 1340,
+    "at": 0.2,
+    "len": 1.2,
+    "hold": 0.5
    }
   },
   {

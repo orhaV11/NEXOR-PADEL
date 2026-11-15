@@ -34,7 +34,7 @@
  "sources": {
   "lee": {
    "path": "src/film/assets/tbc/clips/f_selfie.mp4",
-   "level": -19,
+   "level": -17.0,
    "af": "highpass=f=120"
   },
   "chat": {
@@ -49,14 +49,14 @@
    "file": "src/film/assets/tbc/vo/en/shB_n1.wav",
    "at": "close+0.08",
    "y": 1288,
-   "gain_db": 2.5,
+   "gain_db": 1.5,
    "text": "It was moved | for television."
   },
   {
    "file": "src/film/assets/tbc/vo/en/shB_n2.wav",
    "at": "m3+1.5",
    "y": 1288,
-   "gain_db": 1.5,
+   "gain_db": 0.5,
    "text": "Sydney is not going."
   }
  ],

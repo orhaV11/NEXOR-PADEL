@@ -241,7 +241,7 @@
      "text": "I booked seven seats.",
      "at": -0.1,
      "len": 1.52,
-     "hold": 0.45
+     "hold": 1.64
     }
    ],
    "gain_db": 1.5
@@ -296,7 +296,7 @@
     "name": "LEE",
     "what": "COMPARES FLIGHTS",
     "at": 0.0,
-    "y": 1085,
+    "y": 1125,
     "len": 5.9167
    },
    "line": "Three flights and a bus. I get in before kick-off,",
@@ -396,7 +396,7 @@
   {
    "src": "chat",
    "in": 0.7083,
-   "out": 4.9167,
+   "out": 5.5417,
    "mute": true,
    "pop": 0,
    "zoom": {
@@ -408,8 +408,8 @@
    "marks": {
     "m2": 1.2083,
     "m3": 2.0417,
-    "m4": 2.9583,
-    "ticks": 3.95
+    "m4": 3.5833,
+    "ticks": 4.575
    }
   },
   {
@@ -418,9 +418,6 @@
    "out": 5.25,
    "a_fade_in": 0.08,
    "a_fade_out": 0.15,
-   "punch": 1.06,
-   "cx": 0.5,
-   "cy": 0.45,
    "marks": {
     "g1": 0.0
    },
@@ -435,26 +432,32 @@
    "cap": [
     {
      "text": "This isn't my phone.",
-     "y": 1228,
+     "y": 1318,
      "at": 0.62,
      "len": 1.36,
      "hold": 0.4
     },
     {
      "text": "Danny left it",
-     "y": 1228,
+     "y": 1318,
      "at": 2.74,
      "len": 1.0,
      "hold": 0.03
     },
     {
      "text": "with me.",
-     "y": 1228,
+     "y": 1318,
      "at": 3.79,
      "len": 0.32,
      "hold": 0.7
     }
-   ]
+   ],
+   "zoom": {
+    "from": 1.06,
+    "to": 1.2,
+    "cx": 0.5,
+    "cy": 0.3
+   }
   },
   {
    "src": "gran",

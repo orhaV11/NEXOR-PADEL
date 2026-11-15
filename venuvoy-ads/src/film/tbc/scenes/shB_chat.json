@@ -1,4 +1,5 @@
-{ "dur": 12.75, "name": "Away trip – who's in?", "sub": "8 members", "right": 775,
+{ "dur": 12.75, "name": "Away trip – who's in?", "sub": "8 members",
+  "colors": { "Vic": "#b0832a", "Lee": "#1f7a6b", "Jo": "#b3261e", "Sydney": "#6b4fa3", "Marcus": "#2a6fb0", "Priya": "#c2571a", "Danny": "#7a8c1f" }, "right": 775,
   "events": [
     { "t": 0,       "type": "typingbar", "who": "Danny" },
 

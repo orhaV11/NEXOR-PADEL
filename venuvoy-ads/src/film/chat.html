@@ -237,7 +237,8 @@
   const T0 = (t) => (t == null || t <= 0 ? -1e4 : t);  // t <= 0: already there, settled
   const COLORS = ["#b0832a", "#1f7a6b", "#b3261e", "#6b4fa3", "#2a6fb0", "#c2571a", "#7a8c1f"];
   const people = {};
-  const colorOf = (who) => (people[who] ??= COLORS[Object.keys(people).length % COLORS.length]);
+  // "colors": { "Vic": "#b0832a", ... } in the script fixes a person's name colour across films; anyone else takes the next free one
+  const colorOf = (who) => (people[who] ??= (S.colors && S.colors[who]) || COLORS.filter((c) => !Object.values(S.colors || {}).includes(c))[Object.keys(people).length % COLORS.length] || COLORS[0]);
   const TICK = (blue) => `<svg class="tk" viewBox="0 0 40 22"><path d="M2 12l7 7L24 3M15 16l3 3L33 3" fill="none" stroke="${blue ? "#2a8fd6" : "#9aa59e"}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const SHEET = `<svg viewBox="0 0 60 72"><path d="M7 2h30l21 21v41a6 6 0 0 1-6 6H7a6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z" fill="#fffdf8" stroke="#16392b" stroke-width="3" stroke-linejoin="round"/><path d="M37 2v15a6 6 0 0 0 6 6h15" fill="#e4dfd2" stroke="#16392b" stroke-width="3" stroke-linejoin="round"/><rect x="11" y="32" width="38" height="9" fill="#e6c47a"/><path d="M11 32h38v28H11zM11 41h38M11 50.500h38M24 32v28M36.500 32v28" fill="none" stroke="#16392b" stroke-width="2.4"/></svg>`;
   const PIN = `<svg viewBox="0 0 24 24"><g transform="rotate(38 12 12)" fill="currentColor"><rect x="7" y="1.500" width="10" height="3.200" rx="1.300"/><path d="M9 4.500h6l1.300 6.500H7.700z"/><rect x="4.800" y="10.600" width="14.400" height="3.200" rx="1.600"/><rect x="11.100" y="13.500" width="1.800" height="9.500" rx="0.900"/></g></svg>`;

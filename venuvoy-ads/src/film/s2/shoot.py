@@ -47,7 +47,15 @@ ELEMENTS = {  # name -> (pictures in cast.json, tag, description, voice key)
     "Cat": (["cat_side", "cat_front"], "animal", "fat ginger street cat, cream belly, grumpy half-closed eyes", None),
 }
 
-args = [a for a in sys.argv[1:] if not a.startswith("--")]
+VALUED = {"--n"}  # options that take a value
+args, _skip = [], False
+for _a in sys.argv[1:]:
+    if _skip:
+        _skip = False
+    elif _a in VALUED:
+        _skip = True
+    elif not _a.startswith("--"):
+        args.append(_a)
 opt = lambda k, d=None: (sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d)  # noqa: E731
 PLAN_PATH, CMD, ONLY = args[0], args[1], set(args[2:])
 plan = json.load(open(PLAN_PATH))

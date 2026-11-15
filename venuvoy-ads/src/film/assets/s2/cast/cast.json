@@ -13,5 +13,7 @@
  "cat_front": "https://cdn.muapi.ai/outputs/generated/6a997b51-acf3-4be2-8b33-dc82d0449d78_1a19e76b.jpg",
  "voice_timo": "https://cdn.muapi.ai/outputs/a017c3d944154eadae0df862ef319632_timo.mp3",
  "voice_luna": "https://cdn.muapi.ai/outputs/0e90d8e890a540b4baf64c01b919b9df_luna.mp3",
- "lineup": "https://cdn.muapi.ai/outputs/generated/3cab6c81-2222-44eb-9cfc-695edd773b74_32389823.jpg"
+ "lineup": "https://cdn.muapi.ai/outputs/generated/3cab6c81-2222-44eb-9cfc-695edd773b74_32389823.jpg",
+ "toy_2_style": "https://cdn.muapi.ai/outputs/generated/0da57f20-322a-4070-bfe6-9eb54b43dbf8_1bb23da8.jpg",
+ "ride_toy_1": "https://cdn.muapi.ai/outputs/generated/17c25722-b113-40b5-b6d4-b4c93b4940e4_4bef8952.jpg"
 }

@@ -1,0 +1,163 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/pilot",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, the same teal-and-coral scarf hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "shots": [
+  {
+   "id": "s1",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 6,
+   "still": "THE PICTURE: a small sunny square at the bottom of a hill town. Big Yellow stands parked dead centre, a little scuffed, ENORMOUS: its flat top is level with Luna's chest and it is as wide as the two friends together; its small violet wheels are just inside the bottom edge of the frame; it has only its short fixed grab handle (no telescopic handle). On the LEFT stands LUNA, facing us, one hand flat on top of the suitcase, chin up, a proud closed-mouth grin, her eyes on Timo. On the RIGHT, nearest the camera, stands TIMO, three-quarters to us, looking down at the suitcase with his mouth closed and his eyebrows tilted up in the middle with worry; his right arm is stretched out and points up and back at the hilltop behind them; the thumb of his left hand (the yellow watch arm) is hooked under his backpack strap. Behind them a steep cobbled street climbs between painted houses to the top of the hill; beyond the hilltop roofs, far away, only the upper rim of a cream stadium and its four lit floodlight masts peek out against the sky. The top fifth of the frame is plain open sky. We see both friends from the knees up. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "video": "For the first second nobody speaks: @Timo's eyes travel slowly from the bottom of the giant yellow suitcase up to its top. Then he turns his face to @Luna and says, flat and dry: \"Did you bring your whole house?\" and his pointing arm sinks while he speaks. @Luna pats the top of the suitcase twice with her flat hand and answers, proud and delighted: \"This is the small one!\" The suitcase does not move. Sound: the hum of a train, a crowd and drums far away, two hollow pats on the suitcase, their two voices.",
+   "pick": 1
+  },
+  {
+   "id": "s2",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "cat_side",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: a steep cobbled street seen from the side, climbing from the lower right to the upper left. Exactly three figures: Luna, Timo and the cat, plus the suitcase. Big Yellow stands upright on its wheels, stuck halfway up the slope, in the middle of the frame. We see the two friends from the knees up, large in the frame. On the LEFT, uphill of the suitcase, LUNA (coral bob, coral shirt) leans far back like in a tug-of-war, both hands gripping the suitcase's short handle, cheeks puffed out with effort. On the RIGHT, downhill of it, TIMO (flat-top, teal track jacket) pushes with both hands and one shoulder, his cheek squashed flat against the yellow shell, his face turned towards the camera, eyes wide. Behind them runs a low cream garden wall; the fat ginger cat is walking along the top of the wall towards the left, just above Timo's head, tail up, calm, not looking at them.",
+   "video": "The friends strain against the heavy yellow suitcase, which hardly moves on the steep cobbles: @Luna leans back and pulls its handle with both hands, puffing; @Timo pushes with both hands and his shoulder, his cheek flat against the yellow shell. Along the top of the wall behind them @Cat strolls calmly uphill from right to left and overtakes them: it passes above Timo, above the suitcase, above Luna. Both friends' eyes follow the cat as it passes; their heads stay still. Ahead of them the cat stops and looks back at them once, unimpressed. The friends and the suitcase stay where they are. Sound: small wheels grinding slowly on cobblestones, both friends puffing with effort, trainers slipping, one small 'mrrp' from the cat. Nobody speaks.",
+   "pick": 1
+  },
+  {
+   "id": "s3",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the very top of the hill, looking DOWN the other side. The camera looks down a long, straight, steep cobbled street that DESCENDS away from us between painted houses whose roofs step down the slope; far BELOW, at the bottom end of the street, small in the middle of the frame, lies a round cream stadium with flags and four lit floodlight masts. We see the stadium in the gap between the two friends. The horizon is high in the frame. On the LEFT, Big Yellow stands upright on the last flat stones before the slope, and LUNA is already sitting sideways on its flat top, feet off the ground, with a huge closed-mouth grin, her face turned to Timo; one of her arms points straight down the hill at the stadium, and her other hand lies flat on the empty part of the suitcase top beside her. On the RIGHT stands TIMO in profile, facing her, both palms raised at chest height as if to say stop, eyebrows tilted up, mouth closed. The suitcase is closed; it has only its short fixed grab handle. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "video": "@Luna, sitting on the suitcase and pointing down the hill, says with a huge grin: \"Trust me.\" @Timo, both palms up, answers at once: \"No.\" Luna pats the empty half of the suitcase top behind her twice, inviting him to sit. Timo shakes his head and says: \"No, no, no.\" and takes one step back. Luna keeps grinning without a sound. The suitcase does not move. Sound: a far crowd and drums rising from below, two hollow pats on the suitcase, their two voices.",
+   "pick": 2
+  },
+  {
+   "id": "s4",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: both friends are RIDING Big Yellow down a steep cobbled street, straight towards the camera, like a sledge. The suitcase rolls upright on its wheels in the lower middle of the frame. Luna sits in front on its flat top, legs stuck out to both sides, both arms thrown up in a wide V, mouth wide open in a huge laugh, scarf flying back. Timo sits right behind her, both hands clamped on her shoulders, his whole face visible above her head: eyes huge, mouth wide open in a scream. The painted houses and lemon trees on both sides streak past with motion blur; behind them the street climbs back up the hill into the golden light. Both faces are in the upper half of the frame. Only Timo, Luna and the suitcase are in the picture: no cat, no other people, no animals.",
+   "video": "The two friends ride the big yellow suitcase fast down the steep cobbled street straight towards us; the camera races backwards just ahead of them; houses and lemon trees streak past; the suitcase bumps over the cobbles. @Timo, behind, clings to @Luna's shoulders with both hands, eyes huge, and screams her name as one long terrified scream: \"LUNAAA!\" @Luna, in front, keeps both arms high in the air and whoops with joy, her hair and scarf flying. They stay on the suitcase the whole time. Sound: his long scream, her whoop, small wheels roaring on cobblestones, wind.",
+   "pick": 1
+  },
+  {
+   "id": "s5",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: both friends ride Big Yellow down the steep cobbled street straight towards the camera; we see them from the chest up and the yellow top of the suitcase is a wide bar across the bottom of the frame. LUNA sits in front with both arms up in a wide V, her head twisted half round to look up at Timo over her shoulder, laughing. TIMO sits right behind her and above her, looking down at her, laughing with his eyes squeezed into happy lines, BOTH his arms thrown up in the same wide V as hers, his V above and outside her V, the yellow watch on his raised left wrist. All four hands are inside the frame. Scarves flap out to the sides, not across a face. The houses behind them are soft streaking bands of colour. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "video": "The two friends ride the big yellow suitcase fast down the steep street straight towards us; the camera races backwards just ahead of them; the houses streak past. @Timo is now laughing as hard as @Luna: he shouts a joyful \"Yes!\" and laughs out loud, and both pump their raised arms twice. Luna, laughing, looks up at him over her shoulder and he looks down at her. They stay on the suitcase. Sound: his shout \"Yes!\" and his big laugh, her laugh, small wheels roaring on cobblestones, wind.",
+   "pick": 1
+  },
+  {
+   "id": "s6",
+   "refs": [
+    "cat_front",
+    "cat_side",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Cat"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: only the fat ginger cat, sitting on top of a low cream garden wall in the UPPER half of the frame, facing us, eyes half closed, completely calm, tail curled up like a question mark. Behind it soft painted houses in golden sun. The LOWER half of the frame is only the cream wall and, below it, the empty cobbled street. Nobody else in the picture.",
+   "video": "@Cat sits calmly on top of the wall with its eyes half closed. After one second a strong gust of wind from the right flattens its ears and blows its fur and whiskers to the left; its head whips round to the left, looking after something that has just rushed past below it, and its eyes go huge and round. It stays like that, stunned. The camera does not move. Only the cat is seen. Sound: a calm street, then a sudden gust of wind, then one small surprised 'mrrow'. Nobody speaks.",
+   "pick": 1
+  },
+  {
+   "id": "s7a",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: in front of the stadium gate, low golden sun from the left. The gate is a narrow cream doorway between two round cream posts with a waist-high violet bar across it, and a bright soft glow behind it; cream flags above; far away a few soft still shapes of fans. Big Yellow stands side-on right in front of the narrow gate, in the middle of the frame, clearly twice as wide as the gap between the posts and taller than the violet bar; there is dust on its lower half. On the RIGHT, TIMO is on his knees with his chest against the suitcase and both arms spread wide along its top, hugging it, his face lifted, beaming with joy, mouth closed; dust on his knees. On the LEFT, LUNA leans on the suitcase top on one elbow, a closed-mouth grin, her eyes on him. Both scarves are blown back over their shoulders. The gate posts and bar show above the suitcase in the centre. Both faces are in the upper half of the frame. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "video": "@Timo, on his knees, hugging the yellow suitcase, looks up beaming and says with all his heart: \"I love this suitcase.\" Then he lays his cheek on its top and closes his eyes, smiling, with a happy sigh. @Luna, leaning on the suitcase, grins down at him and slowly shakes her head. The suitcase does not move. Sound: his voice, his happy sigh, the roar of a stadium crowd swelling behind the gate.",
+   "pick": 1
+  },
+  {
+   "id": "s7b",
+   "refs": [
+    "timo_front",
+    "luna_front",
+    "big_side",
+    "luna_face",
+    "timo_face",
+    "toy_2_style"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: a closer view over the yellow top of Big Yellow, in front of the same stadium gate. TIMO's cheek lies on the yellow suitcase top, his eyes shut, smiling blissfully, his arms round the suitcase. LUNA's face is above his, in full clear view, mouth closed in a teasing grin; one of her hands lies flat on top of his flat-top hair, and the thumb of her other hand points back over her shoulder at the narrow gate behind them. In the gap between their two heads we see the narrow cream gate: two round posts and a waist-high violet bar, with a bright glow behind. Both faces are in the upper half of the frame; the lower third is the yellow suitcase top. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "video": "@Luna, grinning, says to him, teasing: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. @Timo's eyes snap open and stare straight into the camera, shocked, and he hugs the suitcase tighter. Then Luna bursts out laughing. Sound: her voice, two soft pats, then her big laugh; the roar of a stadium crowd behind the gate.",
+   "pick": 1
+  }
+ ]
+}

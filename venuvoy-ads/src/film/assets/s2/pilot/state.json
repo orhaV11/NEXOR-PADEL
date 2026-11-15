@@ -1,0 +1,125 @@
+{
+ "stills": {
+  "s2": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/8e8fd765-67d9-4ce6-ba4b-275f8ff541ab_1f1d606d.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/fb29ecb9-63fc-4e7a-ba3e-c2112b6d724f_b91d6326.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/50978ffc-b255-4f2b-be3b-a2c406943ac1_15bbcee8.jpg"
+   }
+  },
+  "s4": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/df080d6c-4681-429d-96fc-44266defec99_1e189e2c.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/055add8a-25c3-4851-9345-a1094b440407_b8a9d8da.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/09e1d418-fd4a-48d7-8202-01a6e630793d_c7c400e6.jpg"
+   }
+  },
+  "s5": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/42115fbc-dc10-4f8c-9b23-810d4c8055ce_1c158d10.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/47c5a645-a951-4e0c-9b99-05805dac7834_e957518c.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/1d06f809-bd5b-4b5a-8e57-d7fb1d676dc8_a045a2c9.jpg"
+   }
+  },
+  "s6": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/ac808e0f-5dc9-451a-87b0-7f35fa8d95f1_9f6a8894.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/121c16fb-131c-48c0-b944-606b267f791e_8c4ef93a.jpg"
+   }
+  },
+  "s1": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/f2347945-9bd9-4b3d-8d9b-99a58701a297_e03f75a9.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/361220ce-35fb-4ae3-aec6-6abae4e1b93b_e85e67d3.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/4bc83892-b69b-4238-bcc4-59e6b6ac8490_934d2086.jpg"
+   }
+  },
+  "s3": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c17bbf87-35d4-42d6-836d-e32839987c3f_55d10552.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/dc843e63-db98-436d-90fb-8d952eff5538_3fefd4ed.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/ee249905-e2d0-4471-bac3-37ca9e54e16e_25bb842d.jpg"
+   }
+  },
+  "s7a": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/3bd91cce-daad-45ab-8246-ab6207b4286b_37d6ba44.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/47a869be-94ee-475a-b84a-5c6f2bacecf2_ebfe1727.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/f1699c08-c4b0-4395-b0da-6140523692ee_7301bec2.jpg"
+   }
+  },
+  "s7b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/5fc72887-386c-447a-b6a2-37e01f4c1544_7339fd87.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/b008a879-b85d-4089-b35e-7cab18502201_651b17f1.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/d002cf32-b3c9-4f63-8865-365a467c033e_f6d65d25.jpg"
+   }
+  }
+ },
+ "clips": {
+  "s2": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/c1218686-fe7e-40e0-97d7-3fe1a4bcc479_e14749ff.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s2_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The friends strain against the heavy yellow suitcase, which hardly moves on the steep cobbles: @Luna leans back and pulls its handle with both hands, puffing; @Timo pushes with both hands and his shoulder, his cheek flat against the yellow shell. Along the top of the wall behind them @Cat strolls calmly uphill from right to left and overtakes them: it passes above Timo, above the suitcase, above Luna. Both friends' eyes follow the cat as it passes; their heads stay still. Ahead of them the cat stops and looks back at them once, unimpressed. The friends and the suitcase stay where they are. Sound: small wheels grinding slowly on cobblestones, both friends puffing with effort, trainers slipping, one small 'mrrp' from the cat. Nobody speaks."
+    }
+   ],
+   "file": "src/film/assets/s2/pilot/clips/s2_t1.mp4"
+  },
+  "s6": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/2d9a5be4-32e8-4b35-b0aa-2aa49ccd5284_a2c0d699.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s6_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Cat sits calmly on top of the wall with its eyes half closed. After one second a strong gust of wind from the right flattens its ears and blows its fur and whiskers to the left; its head whips round to the left, looking after something that has just rushed past below it, and its eyes go huge and round. It stays like that, stunned. The camera does not move. Only the cat is seen. Sound: a calm street, then a sudden gust of wind, then one small surprised 'mrrow'. Nobody speaks."
+    }
+   ],
+   "file": "src/film/assets/s2/pilot/clips/s6_t1.mp4"
+  }
+ },
+ "uploads": {
+  "s2_1": "https://cdn.muapi.ai/outputs/generated/0d9cc3bfd2fb4d7b85635ec293f79b4e.jpg",
+  "s6_1": "https://cdn.muapi.ai/outputs/generated/07dab9e601494c60a647833db0295983.jpg",
+  "s1_1": "https://cdn.muapi.ai/outputs/generated/118139c441a84daaa2fd38d4f87fc219.jpg",
+  "s3_2": "https://cdn.muapi.ai/outputs/generated/c03d7652550542018bd71c684a33e539.jpg",
+  "s4_1": "https://cdn.muapi.ai/outputs/generated/3fa417c5438048958a4f19eadfc7ee56.jpg",
+  "s5_1": "https://cdn.muapi.ai/outputs/generated/a2e1983ca06b4ae7952bdfc097972234.jpg",
+  "s7a_1": "https://cdn.muapi.ai/outputs/generated/2bf4aa61890e4a80b97287acac2a6150.jpg",
+  "s7b_1": "https://cdn.muapi.ai/outputs/generated/798a5e1fdc034964b76bcec4ff072279.jpg"
+ }
+}

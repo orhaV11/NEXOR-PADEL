@@ -1,0 +1,119 @@
+{
+ "stills": {
+  "p1": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/11d8691e-b77b-4be4-8462-2e107ff1672c_34fa7e53.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/72d75195-6361-4fdb-9b7d-b6eeee26588f_f80843fe.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/70baeca5-67ea-42ee-b1b2-d1230e363e2f_4dc892b4.jpg"
+   }
+  },
+  "p2": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/a374f689-4a62-46ac-b2e1-ed1eef285ddb_cc76b8e9.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/bd4d2604-4822-4d66-b5b7-0b19bf26c5bb_6c3b55d8.jpg"
+   }
+  },
+  "p3": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/aa2c73df-a518-4d9f-8f0b-175e2fa0af9a_fbe3d1b1.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/dbdf88da-329f-45e5-bcdd-88422dd5ff95_0d06cdd2.jpg"
+   }
+  },
+  "p4": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/98051624-9997-4cfe-b414-4bde899c6df6_cc6d4c50.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/2266e081-d67f-472c-b8d3-3ad1c2da7d95_afc32b39.jpg"
+   }
+  },
+  "p4b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/d0eddfac-2795-4e23-80ab-cfab121cf4ed_469a66c8.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c2386ce6-7d19-4004-91f9-27cdb30be034_fa486d49.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c7fd5da4-a773-44b8-bc5b-23720b216b49_cbf08a2a.jpg"
+   }
+  }
+ },
+ "clips": {
+  "p1": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/88ffe034-9f48-47ca-a1fe-803a58319206_abc722e3.mp4",
+     "file": "src/film/assets/s2/meet/clips/p1_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. Both look straight into the camera the whole time, like presenters. @Luna waves and says, bright, warm and lively: \"Hi! I'm Luna.\" Then @Timo gives a small formal wave and says, friendly and a little stiff: \"And I'm Timo.\" Luna beams; Timo nods once. The cat on the suitcase behind them yawns. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: the two voices, birds, a far-away stadium hum."
+    }
+   ],
+   "file": "src/film/assets/s2/meet/clips/p1_t1.mp4"
+  },
+  "p2": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/6d3c6f66-0758-4435-bf21-cec14e23fba2_6ef45256.mp4",
+     "file": "src/film/assets/s2/meet/clips/p2_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo looks straight into the camera like a presenter, lifts the thick blue folder a little higher and says, proud and precise, in a lively acted voice: \"A football trip takes forty-two steps.\" He taps the folder once with one finger and nods. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: his voice, one tap on the folder."
+    }
+   ],
+   "file": "src/film/assets/s2/meet/clips/p2_t1.mp4"
+  },
+  "p3": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/00d68d53-bbd9-47dd-958f-a30cdca6e3f5_0c889213.mp4",
+     "file": "src/film/assets/s2/meet/clips/p3_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"Or one sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, soft thumb taps."
+    }
+   ],
+   "file": "src/film/assets/s2/meet/clips/p3_t1.mp4"
+  },
+  "p4": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/08145e6d-10e5-4258-8ea0-94e721ba09ad_1ecbec08.mp4",
+     "file": "src/film/assets/s2/meet/clips/p4_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna pats his shoulder twice, looks into the camera and says, amused and warm: \"He's fine.\" Then she smiles at the camera. Timo does not move. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, two soft pats."
+    }
+   ],
+   "file": "src/film/assets/s2/meet/clips/p4_t1.mp4"
+  },
+  "p4b": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/f2b5d5ad-4232-4190-83bd-d2b775e26df4_39f8124f.mp4",
+     "file": "src/film/assets/s2/meet/clips/p4b_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna pats his shoulder twice, looks into the camera and says, amused and warm, in a lively acted voice: \"He's fine.\" Then she smiles at the camera. The cat on the suitcase between them looks up at Timo and yawns. Timo does not move. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, two soft pats, a small cat yawn."
+    }
+   ],
+   "file": "src/film/assets/s2/meet/clips/p4b_t1.mp4"
+  }
+ },
+ "uploads": {
+  "p1_2": "https://cdn.muapi.ai/outputs/generated/a67fc9f8cc564d7cb25a5fb26020b740.jpg",
+  "p2_1": "https://cdn.muapi.ai/outputs/generated/c5e6d58d84194250973ec2ce4302c33b.jpg",
+  "p3_2": "https://cdn.muapi.ai/outputs/generated/deca303189ea4b5a9fcdd0146d6529e1.jpg",
+  "p4_2": "https://cdn.muapi.ai/outputs/generated/330354ab7595418bba90e5d56d5520c6.jpg",
+  "p4b_1": "https://cdn.muapi.ai/outputs/generated/8da23aa124694ce795ac9fcd568763b4.jpg"
+ }
+}

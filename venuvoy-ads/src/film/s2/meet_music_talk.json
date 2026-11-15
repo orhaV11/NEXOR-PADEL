@@ -1,0 +1,17 @@
+{
+ "track": "src/film/assets/s2/music/jersey_1.mp3",
+ "out": "src/film/assets/s2/music/bed_meet_talk.wav",
+ "length": 16.458366666666667,
+ "trim_db": -8,
+ "blocks": [
+  {
+   "at": 0.0,
+   "len": 7.0417,
+   "from_s": 7.1933,
+   "layer": "phone",
+   "gain_db": -0.5,
+   "fade_in": 0.003,
+   "fade_out": 0.02
+  }
+ ]
+}

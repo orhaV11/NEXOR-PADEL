@@ -1,0 +1,295 @@
+{
+ "slug": "pnp-meet",
+ "title": "Meet Timo & Luna",
+ "out": "ads/18-duo/venuvoy-duo-01-meet-timo-and-luna",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0,
+  "shake": 0,
+  "sharpen": 0.1,
+  "grain": 1.5,
+  "cap_y": 1230
+ },
+ "sources": {
+  "p1": {
+   "path": "src/film/assets/s2/meet/clips/p1_t1.mp4",
+   "level": -19
+  },
+  "p2": {
+   "path": "src/film/assets/s2/meet/clips/p2_t1.mp4",
+   "level": -19
+  },
+  "p3": {
+   "path": "src/film/assets/s2/meet/clips/p3_t1.mp4",
+   "level": -19
+  },
+  "p4": {
+   "path": "src/film/assets/s2/meet/clips/p4b_t1.mp4",
+   "level": -19
+  }
+ },
+ "music": [
+  {
+   "file": "src/film/assets/s2/music/bed_meet_talk.wav",
+   "at": 0.0,
+   "gain_db": 4,
+   "duck_db": 9,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  },
+  {
+   "file": "src/film/assets/s2/brand/sonic_logo.wav",
+   "at": 14.142,
+   "gain_db": -2,
+   "duck_db": 0,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  }
+ ],
+ "sfx": [
+  {
+   "file": "src/film/assets/s2/meet/air.wav",
+   "at": 0.0,
+   "gain_db": 0
+  },
+  {
+   "synth": "typing",
+   "args": [
+    1.3
+   ],
+   "at": "type+0.0",
+   "gain_db": -9
+  },
+  {
+   "synth": "ding",
+   "at": "done+0.0",
+   "gain_db": -8
+  },
+  {
+   "synth": "pop",
+   "at": "done+0.1",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "done+0.22",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "done+0.34",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "done+0.46",
+   "gain_db": -10
+  }
+ ],
+ "segments": [
+  {
+   "src": "p1",
+   "in": 0.7083,
+   "out": 4.4167,
+   "punch": 1.12,
+   "cx": 0.5,
+   "cy": 0.6,
+   "marks": {
+    "hi": 0.7083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "meet the faces of Venuvoy",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 3.3,
+     "hold": 0.3,
+     "y": 330
+    },
+    {
+     "text": "Hi! I'm Luna.",
+     "cls": "pnp",
+     "at": 0.25,
+     "len": 1.5,
+     "hold": 0.2
+    },
+    {
+     "text": "And I'm Timo.",
+     "cls": "pnp",
+     "at": 2.3,
+     "len": 1.1,
+     "hold": 0.25
+    }
+   ]
+  },
+  {
+   "src": "p2",
+   "in": 0.25,
+   "out": 3.5833,
+   "marks": {
+    "steps": 0.25
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "A football trip takes forty-two steps.",
+     "cls": "pnp",
+     "at": 0.15,
+     "len": 2.7,
+     "hold": 0.3
+    }
+   ]
+  },
+  {
+   "src": "p3",
+   "in": 0.2917,
+   "out": 1.9583,
+   "marks": {
+    "one": 0.2917
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "Or one sentence.",
+     "cls": "pnp",
+     "at": 0.1,
+     "len": 1.3,
+     "hold": 0.2
+    }
+   ]
+  },
+  {
+   "src": "p3",
+   "in": 2.5833,
+   "out": 5.0,
+   "hold": 0.9167,
+   "punch": 1.7,
+   "cx": 0.486,
+   "cy": 0.12,
+   "marks": {
+    "type": 2.633,
+    "done": 4.483
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 0.0,
+     "len": 0.05,
+     "hold": 3.25,
+     "y": 250
+    },
+    {
+     "text": "plan a trip for me and Timo to Saturday's match",
+     "cls": "vv type",
+     "at": 0.05,
+     "len": 1.4,
+     "hold": 1.85,
+     "y": 345
+    },
+    {
+     "text": "Done.",
+     "cls": "pnp",
+     "at": 1.7,
+     "len": 0.3,
+     "hold": 0.5,
+     "y": 1060
+    },
+    {
+     "text": "match ticket",
+     "cls": "vv tick",
+     "at": 1.95,
+     "len": 0.05,
+     "hold": 1.35,
+     "y": 1185
+    },
+    {
+     "text": "flight",
+     "cls": "vv tick r",
+     "at": 2.07,
+     "len": 0.05,
+     "hold": 1.23,
+     "y": 1185
+    },
+    {
+     "text": "hotel",
+     "cls": "vv tick",
+     "at": 2.19,
+     "len": 0.05,
+     "hold": 1.11,
+     "y": 1272
+    },
+    {
+     "text": "match day",
+     "cls": "vv tick r",
+     "at": 2.31,
+     "len": 0.05,
+     "hold": 0.99,
+     "y": 1272
+    }
+   ]
+  },
+  {
+   "src": "p4",
+   "in": 0.5833,
+   "out": 3.0,
+   "punch": 1.2,
+   "cx": 0.5,
+   "cy": 0.6,
+   "a_fade_out": 0.25,
+   "marks": {
+    "stare": 0.5833
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "He's fine.",
+     "cls": "pnp",
+     "at": 0.86,
+     "len": 1.0,
+     "hold": 0.15
+    },
+    {
+     "text": "one sentence. the whole football trip.",
+     "cls": "pnp sig",
+     "at": 2.1,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1215
+    },
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 2.15,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1392
+    },
+    {
+     "text": "follow Timo & Luna",
+     "cls": "pnp brand",
+     "at": 2.15,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1492
+    }
+   ]
+  },
+  {
+   "src": "p4",
+   "in": 3.0,
+   "out": 5.0,
+   "punch": 1.2,
+   "cx": 0.5,
+   "cy": 0.6,
+   "mute": true,
+   "marks": {
+    "pack": 3.0
+   }
+  }
+ ]
+}

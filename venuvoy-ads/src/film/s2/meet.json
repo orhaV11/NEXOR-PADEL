@@ -1,0 +1,92 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/meet",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "_": "Presenter spot 1: Meet Timo & Luna. They speak to the camera, at eye level.",
+ "shots": [
+  {
+   "id": "p1",
+   "refs": [
+    "place_station",
+    "timo_34",
+    "luna_34",
+    "big_side"
+   ],
+   "elements": [
+    "Luna",
+    "Timo",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the small sunny square of the football town, exactly the place of the FIRST reference picture (the plain cream arch with the train carriage behind it; over the roofs the rim of the stadium with four floodlight masts), golden late-afternoon sun from the LEFT. LUNA on the LEFT and TIMO on the RIGHT stand side by side, facing the CAMERA and looking straight into the lens, seen from the knees up. Luna has one hand up in a big friendly wave and a wide warm smile, mouth closed. Timo stands very straight with a small polite smile, mouth closed, one hand raised in a small formal wave, a very thick plain blue folder hugged under his other arm; his tiny teal backpack straps on his shoulders, the yellow watch on his left wrist. Big Yellow stands upright between them, a little behind, and the fat ginger CAT sits on top of it, half asleep. Both faces are in the middle band of the frame; the top fifth is only sky and the stadium rim. Only Luna, Timo, the suitcase and the cat.",
+   "video": "Both look straight into the camera the whole time, like presenters. @Luna waves and says, bright, warm and lively: \"Hi! I'm Luna.\" Then @Timo gives a small formal wave and says, friendly and a little stiff: \"And I'm Timo.\" Luna beams; Timo nods once. The cat on the suitcase behind them yawns. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: the two voices, birds, a far-away stadium hum.",
+   "pick": 2
+  },
+  {
+   "id": "p2",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/72d75195-6361-4fdb-9b7d-b6eeee26588f_f80843fe.jpg",
+    "timo_face",
+    "timo_34"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same sunny square, the same stadium rim with floodlights, the same golden light as the FIRST reference picture. TIMO alone, from the chest up, facing the CAMERA and looking straight into the lens, holding his very thick plain blue folder up in front of his chest with both hands like a trophy, proud, eyebrows up, a small pleased smile, mouth closed. His tiny teal backpack straps on his shoulders, the yellow watch on his left wrist, his teal-and-coral scarf. Only Timo: no Luna, no suitcase, no cat.",
+   "video": "@Timo looks straight into the camera like a presenter, lifts the thick blue folder a little higher and says, proud and precise, in a lively acted voice: \"A football trip takes forty-two steps.\" He taps the folder once with one finger and nods. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: his voice, one tap on the folder.",
+   "pick": 1
+  },
+  {
+   "id": "p3",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/72d75195-6361-4fdb-9b7d-b6eeee26588f_f80843fe.jpg",
+    "luna_face",
+    "luna_34"
+   ],
+   "elements": [
+    "Luna"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the same sunny square, the same stadium rim with floodlights, the same golden light as the FIRST reference picture. LUNA alone, from the chest up, facing the CAMERA and looking straight into the lens with a sly friendly smile, mouth closed, leaning a little toward the camera. She holds her phone in both hands in front of her chest with its BACK toward the camera (a plain coral case, no logo; the screen is not visible), both thumbs on it. Her long plain teal scarf. Her head is in the LOWER half of the frame; the upper third of the frame is only soft sky and the stadium rim. Only Luna: no Timo, no suitcase, no cat.",
+   "video": "@Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"Or one sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, soft thumb taps.",
+   "pick": 2
+  },
+  {
+   "id": "p4",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/72d75195-6361-4fdb-9b7d-b6eeee26588f_f80843fe.jpg",
+    "timo_face",
+    "luna_face"
+   ],
+   "elements": [
+    "Luna",
+    "Timo"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the same sunny square, the same stadium rim with floodlights, the same golden light as the FIRST reference picture. LUNA on the LEFT and TIMO on the RIGHT, side by side, from the waist up, both facing the CAMERA. TIMO stares straight into the lens, stunned: eyes wide, mouth a small flat line, his thick blue folder hanging open in one hand at his side. LUNA looks into the lens with an amused little smile, mouth closed, one hand resting on Timo's shoulder. Their heads are in the upper half of the frame; the lower third is their jackets and shirts. Timo's tiny teal backpack straps on his shoulders; Luna's long plain teal scarf. Only Luna and Timo: no suitcase, no cat.",
+   "video": "@Timo stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna pats his shoulder twice, looks into the camera and says, amused and warm: \"He's fine.\" Then she smiles at the camera. Timo does not move. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, two soft pats.",
+   "pick": 2
+  },
+  {
+   "id": "p4b",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/72d75195-6361-4fdb-9b7d-b6eeee26588f_f80843fe.jpg",
+    "timo_face",
+    "luna_face"
+   ],
+   "elements": [
+    "Luna",
+    "Timo",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: reproduce the FIRST reference picture: the same square, stadium, light and framing, LUNA on the left and TIMO on the right facing the CAMERA, Big Yellow standing upright between them with the fat ginger CAT sitting on top of it. Change ONLY the two friends' poses: TIMO now stares straight into the lens, stunned: eyes wide, mouth a small flat line, both arms hanging, his thick blue folder hanging open in one hand at his side. LUNA looks into the lens with an amused little smile, mouth closed, and has reached across the suitcase to rest one hand on Timo's shoulder. Timo's tiny teal backpack straps show on his shoulders and his yellow watch is on his left wrist; Luna's long scarf is plain teal. Only Luna, Timo, the suitcase and the cat.",
+   "video": "@Timo stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna pats his shoulder twice, looks into the camera and says, amused and warm, in a lively acted voice: \"He's fine.\" Then she smiles at the camera. The cat on the suitcase between them looks up at Timo and yawns. Timo does not move. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, two soft pats, a small cat yawn.",
+   "pick": 1
+  }
+ ]
+}

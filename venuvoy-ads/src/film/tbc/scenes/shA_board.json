@@ -1,0 +1,5 @@
+{ "dur": 3.6667, "scene": "list", "file": "THE STUDY · IN THE CHAT", "title": "SEAT 7 OF 7",
+  "rows": [
+    { "t": 0.4167, "label": "FIRST NAME", "value": "DANNY" },
+    { "t": 1.4583, "label": "SURNAME",
+      "stamp": { "t": 2.4167, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }

@@ -5,10 +5,11 @@
 A generated track cannot be asked to stop at 12.0 seconds and drop at 12.5. So the film's music is built from the
 track the way a DJ would: blocks lifted on bar lines and laid where the film needs them, with filters standing in
 for the stems we do not have ("bass" = everything under 170 Hz, "tops" = everything above 2.5 kHz, "full" = as is,
-"lean" = as is with 6 dB less under 150 Hz, which leaves room to play the rest louder: a phone plays nothing down there).
+"lean" = as is with 6 dB less under 150 Hz; "phone" = 8 dB less under 150 Hz and 5 dB more above 400 Hz: a phone's
+speaker plays nothing down there, so a bass-heavy club track all but vanishes on it unless its middle is lifted).
 
 arrangement.json
-  { "track": "src/film/assets/s2/music/A1_0.mp3", "out": "src/film/assets/s2/music/bed_one_night.wav", "length": 28.5,
+  { "track": "src/film/assets/s2/music/A1_0.mp3", "out": "src/film/assets/s2/music/bed_one_night.wav", "length": 28.5, "trim_db": -8,
     "blocks": [ { "at": 0.0, "len": 4.0, "from_bar": 1, "layer": "full", "gain_db": -6 },
                 { "at": 4.0, "len": 4.0, "from_bar": 9, "layer": "bass", "gain_db": -3 }, ... ] }
 
@@ -46,7 +47,8 @@ def main(path):
     a = beats.analyse(track)
     beat, first = a["beat"], a["first_beat"]
     low150 = sosfiltfilt(butter(4, 150, btype="low", fs=SR, output="sos"), x, axis=0)
-    layers = {"full": x, "lean": x - 0.5 * low150,
+    hi400 = sosfiltfilt(butter(2, 400, btype="high", fs=SR, output="sos"), x, axis=0)
+    layers = {"full": x, "lean": x - 0.5 * low150, "phone": x - 0.6 * low150 + 0.78 * hi400,
               "bass": sosfiltfilt(butter(4, 170, btype="low", fs=SR, output="sos"), x, axis=0),
               "tops": sosfiltfilt(butter(4, 2500, btype="high", fs=SR, output="sos"), x, axis=0),
               "nobass": sosfiltfilt(butter(4, 170, btype="high", fs=SR, output="sos"), x, axis=0)}
@@ -66,8 +68,10 @@ def main(path):
             seg[-fo:] *= np.linspace(1, 0, fo)[:, None]
         d0 = int(b["at"] * SR)
         out[d0:d0 + n] += seg[: max(0, len(out) - d0)]
+    out *= 10 ** (arr.get("trim_db", 0) / 20)  # one trim for the whole bed (give it back in the film's music cue), so no block clips
     peak = float(np.abs(out).max())
     if peak > 0.98:
+        print(f"WARNING: peak {20 * np.log10(peak):.1f} dBFS, scaled down: lower trim_db to keep the block gains true")
         out *= 0.98 / peak
     dst = ROOT / arr["out"]
     sf.write(dst, out.astype(np.float32), SR)

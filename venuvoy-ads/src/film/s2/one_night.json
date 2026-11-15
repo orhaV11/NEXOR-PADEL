@@ -50,15 +50,15 @@
   {
    "file": "src/film/assets/s2/music/bed_one_night_talk.wav",
    "at": 0.0,
-   "gain_db": -4,
-   "duck_db": 7,
+   "gain_db": 4,
+   "duck_db": 9,
    "fade_in": 0.0,
    "fade_out": 0.0
   },
   {
    "file": "src/film/assets/s2/music/bed_one_night_drop.wav",
    "at": 0.0,
-   "gain_db": -4,
+   "gain_db": 8,
    "duck_db": 0,
    "fade_in": 0.0,
    "fade_out": 0.0
@@ -107,9 +107,9 @@
    "src": "s1",
    "in": 4.0,
    "out": 6.0,
-   "punch": 1.6,
-   "cx": 0.3125,
-   "cy": 0.55,
+   "punch": 1.8,
+   "cx": 0.0,
+   "cy": 0.545,
    "marks": {
     "small": 4.0
    },
@@ -165,15 +165,16 @@
      "len": 0.25,
      "hold": 0.1
     }
-   ]
+   ],
+   "gain_db": 3
   },
   {
    "src": "s3",
    "in": 2.8333,
    "out": 4.3333,
-   "punch": 1.75,
-   "cx": 0.72,
-   "cy": 0.47,
+   "punch": 1.95,
+   "cx": 1.0,
+   "cy": 0.397,
    "marks": {
     "panic": 2.8333
    },
@@ -281,14 +282,6 @@
    ]
   },
   {
-   "src": "s7a",
-   "in": 2.7917,
-   "out": 3.7917,
-   "marks": {
-    "cheek": 2.7917
-   }
-  },
-  {
    "src": "s7b",
    "in": 0.2083,
    "out": 3.3333,
@@ -332,7 +325,7 @@
      "at": 0.1,
      "len": 0.05,
      "hold": 1.05,
-     "y": 1150
+     "y": 1285
     },
     {
      "text": "VENUVOY",
@@ -340,7 +333,7 @@
      "at": 0.1,
      "len": 0.05,
      "hold": 1.05,
-     "y": 1228
+     "y": 1362
     }
    ]
   }

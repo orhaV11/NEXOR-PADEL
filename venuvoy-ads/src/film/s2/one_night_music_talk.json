@@ -1,44 +1,76 @@
 {
  "track": "src/film/assets/s2/music/jersey_1.mp3",
  "out": "src/film/assets/s2/music/bed_one_night_talk.wav",
- "length": 26.333333333333332,
+ "length": 25.333333333333332,
+ "trim_db": -8,
  "blocks": [
   {
    "at": 0.0,
    "len": 4.0417,
    "from_s": 1.56,
-   "layer": "lean",
-   "gain_db": 3,
+   "layer": "phone",
+   "gain_db": 3.5,
    "fade_in": 0.003
   },
   {
    "at": 4.0417,
-   "len": 4.435,
+   "len": 3.125,
    "from_s": 7.146,
-   "layer": "lean",
-   "gain_db": 3,
+   "layer": "phone",
+   "gain_db": 8,
+   "fade_out": 0.004
+  },
+  {
+   "at": 7.1667,
+   "len": 1.31,
+   "from_s": 10.271,
+   "layer": "phone",
+   "gain_db": 4,
+   "fade_in": 0.004,
    "fade_out": 0.02
   },
   {
    "at": 14.5,
-   "len": 3.9583,
+   "len": 1.5417,
    "from_s": 18.235,
-   "layer": "lean",
-   "gain_db": 2
+   "layer": "phone",
+   "gain_db": 9,
+   "fade_out": 0.004
+  },
+  {
+   "at": 16.0417,
+   "len": 1.5417,
+   "from_s": 19.7767,
+   "layer": "phone",
+   "gain_db": 4,
+   "fade_in": 0.004,
+   "fade_out": 0.004
+  },
+  {
+   "at": 17.5833,
+   "len": 0.875,
+   "from_s": 21.3183,
+   "layer": "phone",
+   "gain_db": 5,
+   "fade_in": 0.004,
+   "fade_out": 0.004
   },
   {
    "at": 18.4583,
-   "len": 3.5,
+   "len": 2.5,
    "from_s": 22.1933,
-   "layer": "lean",
-   "gain_db": 1
+   "layer": "phone",
+   "gain_db": 5.5,
+   "fade_in": 0.004,
+   "fade_out": 0.004
   },
   {
-   "at": 21.9583,
+   "at": 20.9583,
    "len": 2.5417,
-   "from_s": 25.6933,
-   "layer": "lean",
+   "from_s": 24.6933,
+   "layer": "phone",
    "gain_db": -1,
+   "fade_in": 0.004,
    "fade_out": 0.02
   }
  ]

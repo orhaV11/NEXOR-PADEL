@@ -47,7 +47,7 @@
    "path": "src/film/assets/tbc/scenes/ep6_chat.mp4"
   },
   "g1": {
-   "path": "src/film/assets/tbc/shots/b2_g1.mp4",
+   "path": "src/film/assets/tbc/shots/b2_g1b.mp4",
    "level": -19.5
   },
   "gran": {
@@ -414,15 +414,15 @@
   },
   {
    "src": "g1",
-   "in": 0.0833,
-   "out": 5.2083,
+   "in": 0.0,
+   "out": 5.25,
    "a_fade_in": 0.08,
    "a_fade_out": 0.15,
    "punch": 1.06,
    "cx": 0.5,
    "cy": 0.45,
    "marks": {
-    "g1": 0.0833
+    "g1": 0.0
    },
    "lt": {
     "name": "DANNY'S GRANDMOTHER",
@@ -436,21 +436,21 @@
     {
      "text": "This isn't my phone.",
      "y": 1228,
-     "at": 0.72,
-     "len": 1.32,
+     "at": 0.62,
+     "len": 1.36,
      "hold": 0.4
     },
     {
      "text": "Danny left it",
      "y": 1228,
-     "at": 2.62,
+     "at": 2.74,
      "len": 1.0,
      "hold": 0.03
     },
     {
      "text": "with me.",
      "y": 1228,
-     "at": 3.67,
+     "at": 3.79,
      "len": 0.32,
      "hold": 0.7
     }

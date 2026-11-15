@@ -21,12 +21,20 @@
    "to": "signoff",
    "y": 262,
    "xr": 1040
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "chat",
+   "to": "close+0.12",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
   }
  ],
  "sources": {
   "lee": {
    "path": "src/film/assets/tbc/clips/f_selfie.mp4",
-   "level": -18,
+   "level": -19,
    "af": "highpass=f=120"
   },
   "chat": {
@@ -41,14 +49,14 @@
    "file": "src/film/assets/tbc/vo/en/shB_n1.wav",
    "at": "close+0.08",
    "y": 1288,
-   "gain_db": 0,
+   "gain_db": 2.5,
    "text": "It was moved | for television."
   },
   {
    "file": "src/film/assets/tbc/vo/en/shB_n2.wav",
    "at": "m3+1.5",
    "y": 1288,
-   "gain_db": 0,
+   "gain_db": 1.5,
    "text": "Sydney is not going."
   }
  ],
@@ -142,9 +150,9 @@
    "audio_out": 6.02,
    "a_fade_out": 0.2,
    "hold": 0.25,
-   "punch": 1.35,
-   "cx": 0.385,
-   "cy": 0.57,
+   "punch": 1.5,
+   "cx": 0.23,
+   "cy": 0.84,
    "marks": {
     "open": 2.5,
     "day": 4.7

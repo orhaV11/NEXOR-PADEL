@@ -1,7 +1,6 @@
 { "dur": 12.75, "name": "Away trip – who's in?", "sub": "8 members", "right": 775,
   "events": [
     { "t": 0,       "type": "typingbar", "who": "Danny" },
-    { "t": 0,       "type": "chip", "text": "OWE MAYA: 6" },
 
     { "t": 0,       "type": "pin", "big": true, "dim": 0, "text": "KICK-OFF: MONDAY\nTIME: 20:00 {when}",
       "stamp": { "t": 0.4167, "text": "CONFIRMED", "on": "when", "color": "green", "size": 48, "rot": -4 } },

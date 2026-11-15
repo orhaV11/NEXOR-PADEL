@@ -16,6 +16,11 @@
 | Elsewhere: A Bit Early | יום 6 · שלישי | Elsewhere. A man has reached his seat. | `ads/16-tbc/venuvoy-tbc-e5-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
 | Episode 4: It's Been Moved | יום 8 · חמישי | Episode 4. The match has moved to Monday. | `ads/16-tbc/venuvoy-tbc-e4-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
 | In the Chat: It's Pinned | יום 13 · שלישי | In the chat. Somebody has asked what time kick-off is. | `ads/16-tbc/venuvoy-tbc-e6-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 5: Leave It With Me | יום 15 · חמישי | Episode 5. Danny has sent a message. | `ads/16-tbc/venuvoy-tbc-ep5-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| In the Chat: Danny Football | יום 20 · שלישי | In the chat. The airline needs a surname. | `ads/16-tbc/venuvoy-tbc-shA-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 6: Seven Seats | יום 22 · חמישי | Episode 6. Maya booked seven seats. | `ads/16-tbc/venuvoy-tbc-ep6-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| In the Chat: Again | יום 27 · שלישי | In the chat. The kick-off time has been confirmed. | `ads/16-tbc/venuvoy-tbc-shB-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
+| Episode 7: Confirmed | יום 29 · חמישי · סיום העונה | Episode 7. Match day. The group is at the gate. | `ads/16-tbc/venuvoy-tbc-ep7-en_{9x16_1080x1920,4x5_1080x1350}.mp4` |
 
 עריכה: `python3 src/film/cut.py src/film/tbc/e1.json en` (וכך e2 עד e6). הכלים: `src/film/chat.html` (מסך הצ׳אט), `src/film/board.html` (לוחות), `src/film/stamp.js` (החותמת).
 

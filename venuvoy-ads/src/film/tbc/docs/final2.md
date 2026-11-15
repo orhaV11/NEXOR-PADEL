@@ -238,3 +238,45 @@ wedding and the grandmother in the stand with the phone were drawn once and each
 - shB_n1 1.67 "It was moved for television."   ·   shB_n2 1.70 "Sydney is not going."
 - ep7_n1 4.19 "Two got in. One is not in the chat. The other is typing." (ep7_n1a 0.96, ep7_n1b 1.59, ep7_n1c 1.36)
 There is no more narrator than this: nothing may be added.
+
+## AS SHIPPED (second batch, final renders in `ads/16-tbc/`, all at -14.1 LUFS)
+| slug | title | length | day count | the grandmother's status | last line |
+|---|---|---|---|---|---|
+| ep5 | Episode 5: Leave It With Me | 33.25 s | 21 | HER TICKET IS PAPER. | Next episode: Thursday. Confirmed. |
+| shA | In the Chat: Danny Football | 20.96 s | 12 | KNOWS HIS FULL NAME. | Next episode: Thursday. Confirmed. |
+| ep6 | Episode 6: Seven Seats | 33.04 s | 2 | SIX TICKETS. AND HER OWN. | Next episode: Thursday. Confirmed. |
+| shB | In the Chat: Again | 20.67 s | 1 | LIKES TO BE EARLY. | Next episode: Thursday. Confirmed. |
+| ep7 | Episode 7: Confirmed | 31.67 s | 0 | WENT. | Next season: to be confirmed. |
+
+Each film's beats, exactly as cut, are in `reports/film_<slug>.json` (the editor's report); the two cold viewers'
+findings are in `reports/cold2_first.json` and `reports/cold2_last.json`.
+
+What differs from the plan above, and why:
+- **Jo's closing line** ("It was fine.") is the fallback from `b2_j1.mp4` 6.33-7.67. The dedicated shot `b2_j2`
+  was requested three times and never arrived (two failures, one request that hung; none was charged).
+- **The grandmother at home (Episode 6)** is a retake, `b2_g1b.mp4` (voice 0.66-2.02 and 2.78-4.08). In the first
+  take the cup passed behind the phone and changed hands. The retake's prompt keeps both hands where they are;
+  she lowers them out of frame on the second sentence. The shot creeps in from 1.06 to 1.20 so that the cut to
+  the sign-off (same sitting, same framing) reads as a cut.
+- **Vic at the wedding (Episode 7)** plays from `b2_v2_fill.mp4`: the generated clip has a flat black band over
+  its top 120 rows; the band is rebuilt from the rows just under it (mirrored, stretched, blurred, fading to dark).
+- **The debt chip.** Over a pushed-in chat the chip is the edit engine's label (`cls: chip`, y 348, xr 1040), in
+  every film, because the chat's own chip is cut by the frame edge there. In Episode 7's epilogue the label hands
+  over to the chat's chip when the view widens, and the change 6 to 5 uses the new `"big": true` chip event in
+  `chat.html` (the chip grows from its right edge and fills gold for 0.85 s, with a click).
+- **Name colours in the chat are fixed per person** through the script's `"colors"` map (new in `chat.html`):
+  Vic gold `#b0832a`, Lee teal `#1f7a6b`, Jo red `#b3261e`, Sydney purple `#6b4fa3`, Marcus blue `#2a6fb0`,
+  Priya orange `#c2571a`, Danny olive `#7a8c1f`. Use the same map in any later scene. (The first batch was filmed
+  before the map: Vic gold and Lee teal agree; its chat short gave Priya, Marcus, Jo and Sydney the first four.)
+- Fixed after the cold viewing: Episode 6's "It is Saturday." now gets 1.5 s before "Boarding." arrives and the
+  last bubble 1.96 s; Maya's first caption stays up until the second replaces it; the grandmother's captions sit
+  at y 1318 (clear of the cup); Lee's tag at y 1125. Episode 5's "Danny is typing…" returns as the narrator ends
+  and stays 1.3 s. Episode 7's "The other is typing." stays up through the stamp's hit; Jo's opening caption
+  follows her voice. Short A's outgoing bubble is broken by hand so it does not run off the frame; the stray
+  lettering on Jo's sleeve is softened. Short B: Lee +2 dB, narrator -1 dB.
+- Left as they are, knowingly: Jo is interviewed at night while Episode 7's match is at 12:30 (the interviews
+  read as recorded later); the 4:5 crops lose the chat header and show a sliver of the message field; incoming
+  bubbles carry times only where there was room (Episodes 5 and 7).
+
+Cost of the batch: MuAPI about $2.73 (two stills, nine charged shots; balance $85.03 left); narration about
+1.4 Higgsfield credits (about 2.9 left).

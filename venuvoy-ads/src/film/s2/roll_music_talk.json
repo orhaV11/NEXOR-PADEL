@@ -1,0 +1,53 @@
+{
+ "track": "src/film/assets/s2/music/jersey_1.mp3",
+ "out": "src/film/assets/s2/music/bed_roll_talk.wav",
+ "length": 16.291666666666668,
+ "trim_db": -8,
+ "blocks": [
+  {
+   "at": 0.0,
+   "len": 3.3333,
+   "from_s": 10.9017,
+   "layer": "phone",
+   "gain_db": -0.5,
+   "fade_in": 0.003,
+   "fade_out": 0.004
+  },
+  {
+   "at": 3.3333,
+   "len": 0.6,
+   "from_s": 14.235,
+   "layer": "phone",
+   "gain_db": 5,
+   "fade_in": 0.002,
+   "fade_out": 0.004
+  },
+  {
+   "at": 3.9333,
+   "len": 1.15,
+   "from_s": 14.834999999999999,
+   "layer": "phone",
+   "gain_db": 6,
+   "fade_in": 0.004,
+   "fade_out": 0.02
+  },
+  {
+   "at": 9.875,
+   "len": 0.6,
+   "from_s": 16.009,
+   "layer": "phone",
+   "gain_db": 5,
+   "fade_in": 0.002,
+   "fade_out": 0.004
+  },
+  {
+   "at": 10.475,
+   "len": 1.0667,
+   "from_s": 16.609,
+   "layer": "phone",
+   "gain_db": 6,
+   "fade_in": 0.004,
+   "fade_out": 0.02
+  }
+ ]
+}

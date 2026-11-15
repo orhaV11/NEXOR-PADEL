@@ -37,6 +37,14 @@
    "2": {
     "url": "https://cdn.muapi.ai/outputs/generated/83017d75-62d1-43df-b911-f0b15e039ef2_85d1ee65.jpg"
    }
+  },
+  "r3x": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/02624c26-d13d-428b-a2a4-8ffea74ad917_3d286d34.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/6d926e23-53be-42c4-947c-2735a0ca347b_7d3c3a44.jpg"
+   }
   }
  },
  "clips": {
@@ -84,15 +92,35 @@
      "file": "src/film/assets/s2/roll/clips/r4_t1.mp4",
      "pick": 1,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The strip of plan paper in @Timo's hands is tugged from far away: it twitches and slides forward a little along the cobbles, again and again. @Timo does not move: he stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna, shading her eyes and looking past the camera into the distance, says, amused and warm, in a lively acted voice: \"It's still rolling.\" Then she lowers her hand and smiles at the camera. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, paper rustling."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/1e1c2142-c64e-4ba3-974e-b3a4190d773f_a8eb1cbd.mp4",
+     "file": "src/film/assets/s2/roll/clips/r4_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The strip of plan paper in @Timo's hands is tugged from far away: it twitches and slides forward a little along the cobbles, again and again. @Timo does not move: he stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna, shading her eyes and looking past the camera into the distance, says exactly these five words, amused and warm, in a lively acted voice, and nothing else: \"The cat has your plan.\" Then she lowers her hand and smiles at the camera. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, paper rustling."
     }
    ],
-   "file": "src/film/assets/s2/roll/clips/r4_t1.mp4"
+   "file": "src/film/assets/s2/roll/clips/r4_t2.mp4"
+  },
+  "r3x": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/9df1a515-fcc1-46d2-b3b7-d3b5883bb953_9eb6732a.mp4",
+     "file": "src/film/assets/s2/roll/clips/r3x_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" Her scarf stays ONE plain teal colour all the way round her neck for the whole shot: no coral, no pink, no stripes on the scarf. The screen of the phone is never seen. One continuous shot: the camera does not cut, does not move and does not zoom; the framing never changes. Nobody else appears. Sound: her voice, soft thumb taps."
+    }
+   ],
+   "file": "src/film/assets/s2/roll/clips/r3x_t1.mp4"
   }
  },
  "uploads": {
   "r1_1": "https://cdn.muapi.ai/outputs/generated/5d66faf19f854d69b09569153f362621.jpg",
   "r2_1": "https://cdn.muapi.ai/outputs/generated/250cd897757449b493490192f5cf6204.jpg",
   "r3_1": "https://cdn.muapi.ai/outputs/generated/2b7d4638c203480db347900fc294c7eb.jpg",
-  "r4_1": "https://cdn.muapi.ai/outputs/generated/365d9e5f849c4c399c60483e22f31bf0.jpg"
+  "r4_1": "https://cdn.muapi.ai/outputs/generated/76f0cb3ae8ee4eb99823b7410b5a655d.jpg",
+  "r3x_1": "https://cdn.muapi.ai/outputs/generated/4bad80e46c764634af640a4e4c86120a.jpg"
  }
 }

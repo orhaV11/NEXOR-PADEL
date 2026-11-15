@@ -65,7 +65,21 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: reproduce the FIRST reference picture: the same hilltop street, light and framing, LUNA on the left beside Big Yellow, TIMO on the right. Change ONLY this: the roll on the ground is GONE. The long strip of plan paper now runs from Timo's two hands down to the cobbles and then flat along the ground straight towards the camera and out of the bottom edge of the picture. The paper is a hand-drawn PLAN: cream paper with a thin blue grid, one long red route line and little drawn pictures along it (a football, an aeroplane, a bed, a train, a stadium); no writing, no letters, no numbers. TIMO faces the camera and stares straight into the lens, stunned: eyes wide open, mouth a small flat line, still holding the top end of the paper in both hands at chest height. LUNA shades her eyes with one hand and looks past the camera into the far distance behind us with an amused little smile, mouth closed; her other hand rests on Big Yellow. Timo's tiny teal backpack straps show on his shoulders, his teal-and-coral scarf, his yellow watch on his left wrist; Luna's long scarf is plain teal. Only Luna, Timo, the suitcase and the paper: no cat.",
-   "video": "The strip of plan paper in @Timo's hands is tugged from far away: it twitches and slides forward a little along the cobbles, again and again. @Timo does not move: he stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna, shading her eyes and looking past the camera into the distance, says, amused and warm, in a lively acted voice: \"It's still rolling.\" Then she lowers her hand and smiles at the camera. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, paper rustling.",
+   "video": "The strip of plan paper in @Timo's hands is tugged from far away: it twitches and slides forward a little along the cobbles, again and again. @Timo does not move: he stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna, shading her eyes and looking past the camera into the distance, says exactly these five words, amused and warm, in a lively acted voice, and nothing else: \"The cat has your plan.\" Then she lowers her hand and smiles at the camera. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, paper rustling.",
+   "pick": 1
+  },
+  {
+   "id": "r3x",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/719bf74d-1193-49ab-909b-2a6f439794f4_0d218cb1.jpg",
+    "luna_face"
+   ],
+   "elements": [
+    "Luna"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: reproduce the FIRST reference picture exactly (the same young woman, the same street, the same light, pose, phone and clothes) but CLOSER: she is framed from the chest up. Her head is in the middle of the frame; the upper third of the frame is only soft sky and rooftops; her two hands holding the phone (its BACK with the plain coral case toward the camera, both thumbs on it; the screen is not visible) are in the lower quarter of the frame. She looks straight into the lens with a sly friendly smile, mouth closed. Her scarf is ONE plain teal colour all the way round her neck and down the front: there is no coral, no pink and no stripe anywhere on the scarf. Only Luna: no Timo, no suitcase, no cat, no paper.",
+   "video": "@Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" Her scarf stays ONE plain teal colour all the way round her neck for the whole shot: no coral, no pink, no stripes on the scarf. The screen of the phone is never seen. One continuous shot: the camera does not cut, does not move and does not zoom; the framing never changes. Nobody else appears. Sound: her voice, soft thumb taps.",
    "pick": 1
   }
  ]

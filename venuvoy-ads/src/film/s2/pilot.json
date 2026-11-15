@@ -165,6 +165,39 @@
    "still": "THE PICTURE: exactly the same moment, people, suitcase, clothes, light and place as the FIRST reference picture (Timo's cheek resting on top of the scuffed yellow suitcase, his eyes shut, smiling blissfully, his arm with the big yellow watch on the suitcase top; Luna right behind and above him), but the camera has moved back and up a little, so that we now see: LUNA's whole head and shoulders in clear view above Timo, her mouth closed in a teasing grin, looking down at him; one of her hands lies flat on top of Timo's flat-top hair; the thumb of her other hand points back over her shoulder at the gate behind them. Behind them stands the same gate as in the SECOND reference picture: tall round-topped cream posts with violet bars between them, warm golden light. TIMO is unchanged: cheek on the suitcase, eyes shut, smiling, teal track jacket with cream stripes, teal-and-coral scarf. The suitcase is unchanged: sunflower yellow, scuffed and dusty, the same horizontal ridges. Both faces are in the upper two thirds of the frame; the lower third is the yellow suitcase top. Only Timo, Luna and the suitcase are in the picture; nobody else, no crowd.",
    "video": "@Luna, grinning, says to him in a bright, lively, teasing voice with a laugh in it: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing, a big real laugh. Her voice is a lively, natural, acted performance full of fun, never flat or robotic. Behind them there are only the gate posts and the painted houses, exactly as in the picture, for the whole clip: no crowd, no spectators, nobody else ever appears. The suitcase does not change. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny square.",
    "pick": 2
+  },
+  {
+   "id": "s7bx",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/7fcd41f72575487fb39a4df2ff69643f.jpg",
+    "luna_front"
+   ],
+   "still": "THE PICTURE: reproduce the FIRST reference picture exactly: the same framing, the same gate posts with violet bars, the same houses and lemon trees, the same light, the same poses (Timo's cheek on top of the scuffed yellow suitcase, his eyes shut, smiling; Luna behind him, one hand on his flat-top hair, the thumb of her other hand pointing back at the gate, grinning down at him), the same suitcase with its horizontal ridges and its scuffs. Change ONLY ONE THING: Luna's scarf. Luna's scarf is plain teal, in two soft teal tones, with NO coral, NO red and NO stripes anywhere on it, exactly like her scarf in the SECOND reference picture, and it hangs still. Timo's own scarf stays teal-and-coral striped and hangs still. Only Timo, Luna and the suitcase are in the picture; nobody else.",
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "video": "@Luna, grinning, says to him in her usual bright, high, girlish voice, lively and teasing, with a laugh in it: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing, a big real laugh. Her voice is a lively, natural, acted performance full of fun, never flat or robotic. Behind them there are only the gate posts and the painted houses, exactly as in the picture, for the whole clip: no crowd, no spectators, nobody else ever appears. The suitcase does not change. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny square. Both scarves hang still: there is no wind. Luna's scarf is plain teal with no coral.",
+   "duration": 5,
+   "pick": 3
+  },
+  {
+   "id": "s7ax",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/aa2ca555-33c5-44ec-90f4-8209cdbb1907_42aff995.jpg",
+    "s7a_wide",
+    "luna_front"
+   ],
+   "still": "THE PICTURE: the same place, the same gate, houses, lemon trees and light, the same two people in the same clothes and the same scuffed yellow suitcase as the FIRST reference picture, but one moment EARLIER and seen from FURTHER BACK, a wide shot: both people are seen from head to shoes, and the whole suitcase stands upright on its wheels on the cobbles in front of the gate, the round-topped cream gate posts and violet bars behind them. TIMO kneels on the right of the suitcase, upright on his knees, his chest against it and both arms laid along its top, hugging it, his face lifted toward Luna, beaming, mouth closed, eyes open; his teal backpack is on his back; the big yellow watch is on his left wrist; dust on his knees. LUNA stands on the left of the suitcase, leaning on its top with one elbow, with a closed-mouth teasing grin, looking at him. Both scarves hang straight down and still: there is no wind at all. Luna's scarf is plain teal with no coral on it; Timo's is teal-and-coral striped. The suitcase is clearly wider than the gap between the two gate posts behind it. Both faces are in the upper half of the frame. Only Timo, Luna and the suitcase are in the picture: nobody else, no fans, no cat.",
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "video": "@Timo, upright on his knees, hugging the yellow suitcase with both arms, looks up at @Luna, beaming, and says the whole line clearly, his mouth moving on every word, with all his heart, in a warm, lively, happy voice: \"I love this suitcase.\" Only after the last word does he lay his cheek on the top of the suitcase and close his eyes, smiling, with a happy sigh. @Luna stays exactly where she is, leaning on the suitcase with one elbow; she does not touch Timo; she looks down at him with a teasing grin and slowly shakes her head. The suitcase does not move and does not change. The background does not change. Sound: his voice, his happy sigh, a quiet sunny square. Both scarves hang still the whole time: there is no wind. Luna's scarf is plain teal with no coral. One continuous wide shot: the camera does not cut and does not move closer. Nobody else appears.",
+   "duration": 4,
+   "pick": 2
   }
  ]
 }

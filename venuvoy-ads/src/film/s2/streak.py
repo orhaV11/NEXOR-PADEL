@@ -1,7 +1,7 @@
 """Lay a fast fly-past over a clip: a cut-out picture crosses the frame in a few frames, smeared by its speed.
 
     python3 src/film/s2/streak.py <clip.mp4> <sprite_on_green.jpg> <out.mp4> --at 2.3 [--frames 8] [--height 820] [--bottom 1880] [--dir left] [--smear 0.75]
-                                  [--gain 0.93,0.87,1.1] [--shadow 0.35]
+                                  [--gamma 1.5] [--gain 1.05,1.0,0.8] [--shadow 0.35] [--skip-last 2]
 
 Used for the shot in which Timo and Luna shoot past the cat on Big Yellow: the cat's clip is generated on its own
 (one animal, still camera: the safe kind of clip) and the riders are a designed still, keyed off its green
@@ -12,7 +12,9 @@ nothing about them can go wrong in motion. The sound of the clip is kept as it i
 --frames  how many frames the crossing takes (8 at 24 fps = a third of a second)
 --height  height of the cut-out on screen, in pixels;  --bottom  row its lowest point sits on
 --dir     "left": enters at the right edge and leaves at the left;  "right": the other way
+--gamma   tone curve for the cut-out before the gains (1.5 darkens the middle and keeps the highlights: studio light to evening sun)
 --gain    red,green,blue multipliers for the cut-out, to bring a picture drawn in studio light into the light of the clip
+--skip-last  do not draw the last N frames of the crossing (when only a scrap of scarf would trail at the edge)
 --shadow  darkness (0-1) of a soft shadow laid on the ground under the cut-out, so that it stands on the street
 """
 import subprocess
@@ -28,6 +30,8 @@ AT, FRAMES, HEIGHT, BOTTOM, DIR = opt("--at", 2.3), opt("--frames", 8), opt("--h
 SMEAR = opt("--smear", 0.75)  # how much of the distance covered in one frame is smeared (0.75 = a real shutter; less = easier to read)
 GAIN = [float(v) for v in opt("--gain", "1,1,1").split(",")]
 SHADOW = opt("--shadow", 0.0)
+GAMMA = opt("--gamma", 1.0)
+SKIP_LAST = opt("--skip-last", 0)
 
 # the cut-out: everything that is not the green screen
 img = cv2.imread(sprite_path).astype(np.float32)
@@ -38,7 +42,7 @@ alpha = cv2.erode(alpha, np.ones((3, 3), np.uint8))
 alpha = cv2.GaussianBlur(alpha, (0, 0), 1.2)
 spill = np.minimum(g, np.maximum(r, b) * 1.05)  # take the green cast off the edges
 img[..., 1] = np.where(alpha < 0.999, spill, g)
-img = np.clip(img * np.array(GAIN[::-1], dtype=np.float32), 0, 255)  # BGR order
+img = np.clip(255.0 * (img / 255.0) ** GAMMA * np.array(GAIN[::-1], dtype=np.float32), 0, 255)  # BGR order
 ys, xs = np.where(alpha > 0.5)
 y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
 img, alpha = img[y0:y1, x0:x1], alpha[y0:y1, x0:x1]
@@ -71,7 +75,7 @@ for i in range(n):
     if not ok:
         break
     j = i - f0
-    if 0 <= j < FRAMES:
+    if 0 <= j < FRAMES - SKIP_LAST:
         centre = (W + w / 2) - step * (j + 0.5) if DIR == "left" else (-w / 2) + step * (j + 0.5)
         left = int(round(centre - sw / 2))
         top = BOTTOM - h

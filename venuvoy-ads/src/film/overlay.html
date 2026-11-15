@@ -36,7 +36,8 @@
      "pnp": the spoken line, whole, in sentence case: white semi-bold grotesque with a thin black edge, no plate, no
      word highlight, no pop; narrow enough to stay clear of the buttons at the right edge.
      "pnp hook": a situation line typed by the poster: black on a white rounded label, lower case, there from frame 0.
-     "pnp sig" + "pnp brand": the signature on the held last frame: the series and episode, and the maker's name. */
+     "pnp sig" + "pnp brand": the signature on the last shot: the series and episode, and under it the maker's name, as
+     plain text (a chip looked like a button, and a button is an advert). */
   .fx-cap.pnp { left: 190px; right: 190px; font-family: "Mont", "Heebo", sans-serif; font-weight: 800; font-size: 64px; line-height: 1.16; text-transform: none; letter-spacing: -0.005em;
     color: #fff; -webkit-text-stroke: 7px #000; paint-order: stroke fill; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35)); text-wrap: balance; }
   .fx-cap.pnp span { margin: 0 0.03em; }
@@ -45,10 +46,8 @@
     -webkit-text-stroke-width: 0; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18)); }
   .fx-cap.pnp.hook span.on { color: #111; }
   .fx-cap.pnp.sig { font-weight: 700; font-size: 46px; -webkit-text-stroke: 6px #000; letter-spacing: 0.01em; }
-  .fx-cap.pnp.brand { left: 0; right: 0; width: fit-content; margin: 0 auto; padding: 12px 30px 14px 42px; border-radius: 999px; background: #fbf3e2; color: #3a2a63; font-family: "Nunito", sans-serif;
-    font-weight: 1000; font-size: 60px; letter-spacing: 0.16em; -webkit-text-stroke-width: 0; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
-  .fx-cap.pnp.brand span { margin: 0; }
-  .fx-cap.pnp.brand span.on { color: #3a2a63; }
+  .fx-cap.pnp.brand { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 44px; letter-spacing: 0.1em; -webkit-text-stroke: 6px #000; }
+  .fx-cap.pnp.brand span { margin: 0 0.12em; }
   /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
   .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
     font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 68px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;

@@ -95,6 +95,17 @@
    "3": {
     "url": "https://cdn.muapi.ai/outputs/generated/34cfc4b4-6146-4fba-ad3f-36c3a3190360_f2f10175.jpg"
    }
+  },
+  "s7bx": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/a2bdf2dc-6fee-4849-bec2-63d7854139d9_d4bf3334.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/b49c02f8-e048-4b4b-8582-8c8e682ddc87_21f21275.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/aa2ca555-33c5-44ec-90f4-8209cdbb1907_42aff995.jpg"
+   }
   }
  },
  "clips": {
@@ -282,6 +293,30 @@
     }
    ],
    "file": "src/film/assets/s2/pilot/clips/s6b_t1.mp4"
+  },
+  "s7bx": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/16565b43-440f-4d55-9015-d5d424be5091_ee2f18db.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s7bx_t1.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, grinning, says to him in her usual bright, high, girlish voice, lively and teasing, with a laugh in it: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing, a big real laugh. Her voice is a lively, natural, acted performance full of fun, never flat or robotic. Behind them there are only the gate posts and the painted houses, exactly as in the picture, for the whole clip: no crowd, no spectators, nobody else ever appears. The suitcase does not change. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny square. Both scarves hang still: there is no wind. Luna's scarf is plain teal with no coral."
+    }
+   ],
+   "file": "src/film/assets/s2/pilot/clips/s7bx_t1.mp4"
+  },
+  "s7ax": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/2abf3265-b706-4901-9850-ed92d36bc4ba_789ca2f9.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s7ax_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, upright on his knees, hugging the yellow suitcase with both arms, looks up at @Luna, beaming, and says the whole line clearly, his mouth moving on every word, with all his heart, in a warm, lively, happy voice: \"I love this suitcase.\" Only after the last word does he lay his cheek on the top of the suitcase and close his eyes, smiling, with a happy sigh. @Luna stays exactly where she is, leaning on the suitcase with one elbow; she does not touch Timo; she looks down at him with a teasing grin and slowly shakes her head. The suitcase does not move and does not change. The background does not change. Sound: his voice, his happy sigh, a quiet sunny square. Both scarves hang still the whole time: there is no wind. Luna's scarf is plain teal with no coral. One continuous wide shot: the camera does not cut and does not move closer. Nobody else appears."
+    }
+   ],
+   "file": "src/film/assets/s2/pilot/clips/s7ax_t1.mp4"
   }
  },
  "uploads": {
@@ -297,6 +332,8 @@
   "s2_2": "https://cdn.muapi.ai/outputs/generated/8327c9461d36462792a8f3092f4329e9.jpg",
   "s5_3": "https://cdn.muapi.ai/outputs/generated/46182f7282d44419971544e759d3f6f9.jpg",
   "s7b_2": "https://cdn.muapi.ai/outputs/generated/7fcd41f72575487fb39a4df2ff69643f.jpg",
-  "s6b_2": "https://cdn.muapi.ai/outputs/generated/a8c78ada018a48f4ac1c8c2dd87aea36.jpg"
+  "s6b_2": "https://cdn.muapi.ai/outputs/generated/a8c78ada018a48f4ac1c8c2dd87aea36.jpg",
+  "s7bx_3": "https://cdn.muapi.ai/outputs/generated/a92476a86186460cbdf1c1e649c023de.jpg",
+  "s7ax_2": "https://cdn.muapi.ai/outputs/generated/d35165bc30ce4c0cbd332f1cbbba5de9.jpg"
  }
 }

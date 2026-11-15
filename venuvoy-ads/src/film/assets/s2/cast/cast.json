@@ -18,5 +18,14 @@
  "ride_toy_1": "https://cdn.muapi.ai/outputs/generated/17c25722-b113-40b5-b6d4-b4c93b4940e4_4bef8952.jpg",
  "s4_frame": "https://cdn.muapi.ai/outputs/generated/2b04f0eb4416478a9f77c911b463e08c.jpg",
  "s7a_last": "https://cdn.muapi.ai/outputs/generated/6d8eff55ba1b48fe8dbb5f9e61506f64.jpg",
- "s7a_wide": "https://cdn.muapi.ai/outputs/generated/cd79cfa3c0a141b796a99d54efd7ceba.jpg"
+ "s7a_wide": "https://cdn.muapi.ai/outputs/generated/cd79cfa3c0a141b796a99d54efd7ceba.jpg",
+ "place_station": "https://cdn.muapi.ai/outputs/generated/f2347945-9bd9-4b3d-8d9b-99a58701a297_e03f75a9.jpg",
+ "place_uphill": "https://cdn.muapi.ai/outputs/generated/c366bd51-96c0-4d36-a21c-67733e3a08d2_27c2cd9a.jpg",
+ "place_hilltop": "https://cdn.muapi.ai/outputs/generated/23c90695-1808-4276-89ad-d429965eb212_4d59c010.jpg",
+ "place_ride": "https://cdn.muapi.ai/outputs/generated/df080d6c-4681-429d-96fc-44266defec99_1e189e2c.jpg",
+ "place_ride_close": "https://cdn.muapi.ai/outputs/generated/5c5e9944-3de7-43fd-b74d-228bba2bbbc3_b516fa45.jpg",
+ "place_catwall": "https://cdn.muapi.ai/outputs/generated/ac808e0f-5dc9-451a-87b0-7f35fa8d95f1_9f6a8894.jpg",
+ "place_ride_behind": "https://cdn.muapi.ai/outputs/generated/cac99f4c-1b40-43b3-abdc-3b74e0025544_befb379a.jpg",
+ "place_gate_close": "https://cdn.muapi.ai/outputs/generated/aa2ca555-33c5-44ec-90f4-8209cdbb1907_42aff995.jpg",
+ "place_gate_wide": "https://cdn.muapi.ai/outputs/generated/cb0e9f26daa7409aa387f98301c595d8.jpg"
 }

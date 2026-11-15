@@ -53,3 +53,13 @@ who travel, or dream of travelling, to matches abroad. The brand only signs the 
 - Music is made for the series (a theme the films share). Sound matters as much as picture.
 - The look may be photoreal live action OR a designed, stylised look (for example warm 3D animation): choose
   what serves a young, cool feeling and hides the weaknesses of generated video. Say which and why.
+
+## What the client said after the pilot was delivered (15 Nov), translated from Hebrew
+"I remind you that in the end the goal is to build a kind of consistent web series that advertises Venuvoy in a
+certain way. Come on, I am dying to see it."
+
+What this changes: the line above, "The series is NOT an advert ... the brand only signs the last second", is too
+weak. The series stays a series people would watch, and it carries Venuvoy in a way that is the same in every
+episode, that a first-time viewer notices, and after which that viewer can say what Venuvoy is (a football trip
+abroad planned from one typed sentence). Still no hard sell: no price, no "download now", no invented features.
+How exactly is decided in `season_1.json` (the season room of 15 Nov).

@@ -1,0 +1,495 @@
+{
+ "slug": "pnp-the-bet",
+ "title": "Plan, No Plan, ep 1: The Bet",
+ "out": "ads/17-pnp/venuvoy-pnp-ep1-the-bet",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0,
+  "shake": 0,
+  "sharpen": 0.1,
+  "grain": 1.5,
+  "cap_y": 1230
+ },
+ "sources": {
+  "s1": {
+   "path": "src/film/assets/s2/bet/clips/s1_t1.mp4",
+   "level": -19
+  },
+  "s2": {
+   "path": "src/film/assets/s2/bet/clips/s2_t1.mp4",
+   "level": -19
+  },
+  "s3": {
+   "path": "src/film/assets/s2/bet/clips/s3p_t1.mp4",
+   "level": -19
+  },
+  "s4": {
+   "path": "src/film/assets/s2/bet/clips/s4_t1.mp4",
+   "level": -19
+  },
+  "s6": {
+   "path": "src/film/assets/s2/bet/clips/s6_t1.mp4",
+   "level": -19
+  },
+  "s7a": {
+   "path": "src/film/assets/s2/bet/clips/s7ap_t1.mp4",
+   "level": -19
+  },
+  "s7b": {
+   "path": "src/film/assets/s2/bet/clips/s7b_t1.mp4",
+   "level": -19
+  },
+  "s8": {
+   "path": "src/film/assets/s2/bet/clips/s8_t1.mp4",
+   "level": -19
+  },
+  "s9": {
+   "path": "src/film/assets/s2/bet/clips/s9_t1.mp4"
+  },
+  "s10": {
+   "path": "src/film/assets/s2/bet/clips/s10_t1.mp4",
+   "level": -19
+  },
+  "s11": {
+   "path": "src/film/assets/s2/bet/clips/s11_t1.mp4",
+   "level": -19
+  },
+  "s12": {
+   "path": "src/film/assets/s2/bet/clips/s12_t1.mp4"
+  }
+ },
+ "music": [
+  {
+   "file": "src/film/assets/s2/music/bed_bet_talk.wav",
+   "at": 0.0,
+   "gain_db": 4,
+   "duck_db": 9,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  },
+  {
+   "file": "src/film/assets/s2/music/bed_bet_hit.wav",
+   "at": 0.0,
+   "gain_db": 8,
+   "duck_db": 0,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  }
+ ],
+ "sfx": [
+  {
+   "file": "src/film/assets/s2/bet/air.wav",
+   "at": 0.0,
+   "gain_db": 0
+  },
+  {
+   "synth": "typing",
+   "args": [
+    1.35
+   ],
+   "at": "type+0.0",
+   "gain_db": -9
+  },
+  {
+   "synth": "ding",
+   "at": "ticks+0.02",
+   "gain_db": -7
+  },
+  {
+   "synth": "pop",
+   "at": "ticks+0.12",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "ticks+0.27",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "ticks+0.42",
+   "gain_db": -10
+  },
+  {
+   "synth": "pop",
+   "at": "ticks+0.57",
+   "gain_db": -10
+  }
+ ],
+ "segments": [
+  {
+   "src": "s1",
+   "in": 0.0833,
+   "out": 2.8333,
+   "marks": {
+    "open": 0.0833
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "he planned this trip for 3 weeks",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.55,
+     "hold": 0.12,
+     "y": 330
+    },
+    {
+     "text": "Three weeks. Every minute is planned.",
+     "cls": "pnp",
+     "at": 0.2,
+     "len": 2.3,
+     "hold": 0.2
+    }
+   ]
+  },
+  {
+   "src": "s2",
+   "in": 0.25,
+   "out": 2.9167,
+   "marks": {
+    "come": 0.25
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "Nice. Can I come?",
+     "cls": "pnp",
+     "at": 0.2,
+     "len": 2.1,
+     "hold": 0.3
+    }
+   ],
+   "gain_db": 3
+  },
+  {
+   "src": "s3",
+   "in": 0.0417,
+   "out": 2.3333,
+   "marks": {
+    "tomorrow": 0.0417
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "The match is TOMORROW!",
+     "cls": "pnp",
+     "at": 0.08,
+     "len": 1.8,
+     "hold": 0.3
+    }
+   ]
+  },
+  {
+   "src": "s4",
+   "in": 0.1667,
+   "out": 3.0,
+   "marks": {
+    "phone": 0.1667,
+    "type": 0.947
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "One second.",
+     "cls": "pnp",
+     "at": 0.05,
+     "len": 0.95,
+     "hold": 0.2
+    },
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 0.55,
+     "len": 0.05,
+     "hold": 2.2,
+     "y": 250
+    },
+    {
+     "text": "plan a trip for me and Timo to tomorrow's match",
+     "cls": "vv type",
+     "at": 0.78,
+     "len": 1.35,
+     "hold": 0.68,
+     "y": 345
+    },
+    {
+     "text": "Done.",
+     "cls": "pnp",
+     "at": 2.2,
+     "len": 0.3,
+     "hold": 0.3
+    }
+   ]
+  },
+  {
+   "src": "s4",
+   "in": 3.0417,
+   "out": 5.0,
+   "marks": {
+    "ticks": 3.0417
+   },
+   "cap": [
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 0.0,
+     "len": 0.05,
+     "hold": 1.9,
+     "y": 1085
+    },
+    {
+     "text": "match ticket",
+     "cls": "vv tick",
+     "at": 0.12,
+     "len": 0.05,
+     "hold": 1.77,
+     "y": 1185
+    },
+    {
+     "text": "flight",
+     "cls": "vv tick r",
+     "at": 0.27,
+     "len": 0.05,
+     "hold": 1.62,
+     "y": 1185
+    },
+    {
+     "text": "hotel",
+     "cls": "vv tick",
+     "at": 0.42,
+     "len": 0.05,
+     "hold": 1.47,
+     "y": 1272
+    },
+    {
+     "text": "match day",
+     "cls": "vv tick r",
+     "at": 0.57,
+     "len": 0.05,
+     "hold": 1.32,
+     "y": 1272
+    }
+   ]
+  },
+  {
+   "src": "s6",
+   "in": 0.7917,
+   "out": 3.2917,
+   "marks": {
+    "note": 0.7917
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "Done?",
+     "cls": "pnp",
+     "at": 1.5,
+     "len": 0.4,
+     "hold": 0.45
+    }
+   ]
+  },
+  {
+   "src": "s7a",
+   "in": 0.7083,
+   "out": 3.2083,
+   "marks": {
+    "pride": 0.7083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "My plan is still better.",
+     "cls": "pnp",
+     "at": 0.2,
+     "len": 2.0,
+     "hold": 0.25
+    }
+   ]
+  },
+  {
+   "src": "s7b",
+   "in": 0.4583,
+   "out": 3.2917,
+   "punch": 1.25,
+   "cx": 0.5,
+   "cy": 0.31,
+   "marks": {
+    "bet": 0.4583
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "the bet: loser carries her suitcase",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.6,
+     "hold": 0.2,
+     "y": 330
+    },
+    {
+     "text": "Bet?",
+     "cls": "pnp",
+     "at": 0.14,
+     "len": 0.4,
+     "hold": 0.5
+    },
+    {
+     "text": "Bet.",
+     "cls": "pnp",
+     "at": 2.02,
+     "len": 0.4,
+     "hold": 0.38
+    }
+   ],
+   "gain_db": -3
+  },
+  {
+   "src": "s8",
+   "in": 0.25,
+   "out": 3.5833,
+   "marks": {
+    "drop": 0.25
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "his plan: 42 steps",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 3.1,
+     "hold": 0.2,
+     "y": 330
+    },
+    {
+     "text": "Step one of forty-two!",
+     "cls": "pnp",
+     "at": 0.15,
+     "len": 2.9,
+     "hold": 0.2
+    }
+   ]
+  },
+  {
+   "src": "s9",
+   "in": 0.0833,
+   "out": 2.0,
+   "marks": {
+    "yawn": 0.0833
+   },
+   "gain_db": -6,
+   "cap": [
+    {
+     "text": "her plan: 1 sentence",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 1.75,
+     "hold": 0.12,
+     "y": 330
+    }
+   ]
+  },
+  {
+   "src": "s9",
+   "in": 2.0833,
+   "out": 3.1667,
+   "marks": {
+    "pastry": 2.0833
+   },
+   "gain_db": -6
+  },
+  {
+   "src": "s10",
+   "in": 0.2083,
+   "out": 3.4167,
+   "marks": {
+    "wind": 0.2083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "No, no, no! My plan!",
+     "cls": "pnp",
+     "at": 0.18,
+     "len": 2.3,
+     "hold": 0.35
+    }
+   ]
+  },
+  {
+   "src": "s11",
+   "in": 0.7083,
+   "out": 3.2917,
+   "audio_out": 4.0,
+   "a_fade_out": 0.4,
+   "marks": {
+    "need": 0.7083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "Need a plan?",
+     "cls": "pnp",
+     "at": 0.3,
+     "len": 1.2,
+     "hold": 0.5
+    }
+   ]
+  },
+  {
+   "src": "s12",
+   "in": 0.9167,
+   "out": 3.0,
+   "marks": {
+    "stare": 0.9167
+   },
+   "gain_db": -4,
+   "cap": [
+    {
+     "text": "one sentence. the whole football trip.",
+     "cls": "pnp sig",
+     "at": 0.9,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1215
+    },
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 1.0,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1392
+    },
+    {
+     "text": "Plan, No Plan · ep 1",
+     "cls": "pnp brand",
+     "at": 1.0,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1492
+    }
+   ]
+  },
+  {
+   "src": "s12",
+   "in": 3.2083,
+   "out": 5.0,
+   "hold": 0.5833,
+   "marks": {
+    "hat": 3.2083
+   },
+   "gain_db": -4,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.04,
+    "cx": 0.5,
+    "cy": 0.45,
+    "ease": "linear"
+   }
+  }
+ ]
+}

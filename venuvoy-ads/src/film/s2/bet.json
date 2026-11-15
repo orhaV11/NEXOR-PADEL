@@ -1,0 +1,255 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/bet",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "shots": [
+  {
+   "id": "s1",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "timo_34",
+    "luna_34",
+    "cat_front",
+    "toy_2_style"
+   ],
+   "still": "THE PICTURE: a wide shot of Timo's small room at sunset. The whole back wall is covered with Timo's trip plan: dozens of paper squares and blank sticky notes in yellow, coral and mint, a few little drawn pictures (a football, an aeroplane, a bed, a train), all joined by red strings between pins, with a big paper cut-out of a round stadium in the middle. There is no writing on any of it. TIMO stands on the RIGHT, very straight and proud, chin up, one arm stretched out toward the wall like a teacher presenting it, his mouth closed in a proud smile, looking at Luna. LUNA lies sprawled on a big soft violet bean bag on the LEFT, one leg over its side, an open plain paper bag of crisps on her stomach, one crisp halfway to her mouth, looking up at the wall, unimpressed. The fat ginger CAT sits on the windowsill at the far left edge, half asleep, in the golden light. Both faces are clearly visible, in the middle band of the frame; the top fifth of the frame is only wall. Only Timo, Luna and the cat.",
+   "elements": [
+    "Timo",
+    "Luna",
+    "Cat"
+   ],
+   "duration": 4,
+   "video": "@Timo sweeps his arm across the wall behind him and says, proud and lively, like a presenter: \"Three weeks. Every minute is planned.\" He ends with his chin up, beaming. @Luna keeps eating crisps, crunching, looking up at the wall. The cat's tail flicks once. The wall does not change. Nobody else appears. Sound: his voice, crisps crunching, a quiet room.",
+   "pick": 3
+  },
+  {
+   "id": "s2",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "luna_face",
+    "luna_34"
+   ],
+   "elements": [
+    "Luna"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same plan wall, the same violet bean bag, the same window and golden light as the FIRST reference picture, now a closer shot of LUNA alone, sprawled on the violet bean bag: her head and upper body fill the middle of the frame. She holds one crisp up near her mouth, cheeks full, chewing, eyebrows raised, looking up and to the right toward Timo, who is out of frame. The open plain paper bag of crisps lies on her stomach. Behind her, soft: the window with golden light and a corner of the plan wall. Her plain teal scarf, her coral football shirt. Only Luna: no Timo, no cat.",
+   "video": "@Luna, chewing, swallows and says casually, bright and lively, with a little shrug: \"Nice. Can I come?\" Then she pops the crisp into her mouth and crunches, smiling up at him. Nobody else appears. Sound: her voice, one loud crunch.",
+   "pick": 2
+  },
+  {
+   "id": "s3",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "timo_face",
+    "timo_34"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same plan wall, the same violet bean bag, the same window and golden light as the FIRST reference picture, now a closer shot of TIMO alone in front of his plan wall, from the chest up, facing a little to the left toward Luna, who is out of frame. His proud smile has just frozen: eyes wide open, eyebrows tilted up in the middle, mouth closed; both hands are starting to rise. The plan wall with its notes, red strings and the paper stadium fills the background. He wears no backpack. Only Timo.",
+   "video": "@Timo's eyes go wide; he throws both hands up and cries out, horrified, his voice jumping high, a lively acted cry: \"The match is TOMORROW!\" Then he points both hands at the wall behind him, breathing fast. The wall does not change. Nobody else appears. Sound: his voice.",
+   "pick": 2
+  },
+  {
+   "id": "s4",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "luna_face",
+    "luna_34"
+   ],
+   "elements": [
+    "Luna"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the same room, the same plan wall, the same violet bean bag, the same window and golden light as the FIRST reference picture, now a closer shot of LUNA alone, sitting up on the violet bean bag. She holds her phone in both hands in front of her chest with the BACK of the phone toward the camera (a plain coral case, no logo; the screen is not visible), both thumbs on it, the tip of her tongue between her lips, her eyes down on the phone, calm. Her head is in the LOWER half of the frame; the upper third of the frame is only soft empty wall and window light. Only Luna: no Timo, no cat.",
+   "video": "@Luna says lightly, without looking up: \"One second.\" She types fast with both thumbs for about two seconds, the tip of her tongue between her lips. Then she taps once with one thumb, looks up with a big easy grin and says, bright and proud: \"Done.\" She wiggles the phone a little. The screen of the phone is never seen. Nobody else appears. Sound: her voice, soft thumb taps.",
+   "pick": 1
+  },
+  {
+   "id": "s6",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "timo_face",
+    "cat_front"
+   ],
+   "elements": [
+    "Timo",
+    "Luna",
+    "Cat"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same plan wall, the same violet bean bag, the same window and golden light as the FIRST reference picture, the same wide framing. TIMO on the RIGHT stands frozen, arms hanging, mouth a little open, staring down at Luna. One yellow sticky note has come loose from the wall behind him and hangs in the air beside his shoulder, falling. LUNA sits on the bean bag on the LEFT and grins up at him, holding her phone with its back to the camera. The CAT on the windowsill has lifted its head and watches the falling note. Only Timo, Luna and the cat.",
+   "video": "@Timo, stunned, turns his head slowly from Luna to his wall and back to her, and says in a small cracked voice: \"Done?\" The loose yellow sticky note drifts down to the floor like a leaf. The cat's head follows the note down. @Luna grins and nods. Nobody else appears. Sound: his small voice, a soft paper flutter.",
+   "pick": 1
+  },
+  {
+   "id": "s7a",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "timo_face",
+    "timo_34"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same plan wall, the same violet bean bag, the same window and golden light as the FIRST reference picture, now a closer shot of TIMO alone in front of his plan wall, from the chest up. He has pulled himself together: chin high, arms crossed, eyes narrowed, mouth closed in a tight proud line. The plan wall fills the background. He wears no backpack. Only Timo.",
+   "video": "@Timo lifts his chin, frees one hand to point a finger up, and says, proud and stubborn, in a lively acted voice: \"My plan is still better.\" He nods once, firmly, and crosses his arms again. Nobody else appears. Sound: his voice.",
+   "pick": 1
+  },
+  {
+   "id": "s7b",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. In this room Timo wears NO backpack. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/afd88005-9241-49ca-99b7-247664ce87e7_1d344530.jpg",
+    "luna_face",
+    "timo_face"
+   ],
+   "elements": [
+    "Luna",
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same plan wall with its coloured sticky notes, red strings and paper stadium, the same violet bean bag, the same window and golden light as the FIRST reference picture, now a two-shot from the chest up, the camera a little to the side so that BOTH faces are clearly seen in three-quarter view. LUNA on the LEFT has got up and stands on the bean bag, so that her eyes are level with Timo's; TIMO on the RIGHT leans a little toward her. They face each other like two boxers at a weigh-in, playful and stubborn, NOT romantic: there is a clear gap of two hand-widths between their faces and they do not touch. Both have narrowed eyes and small challenging smiles, mouths closed. Behind them the plan wall with coloured sticky notes and red strings, exactly as in the first reference picture. Only Luna and Timo: no cat.",
+   "video": "@Luna, with a slow teasing grin, says quietly: \"Bet?\" A short pause. @Timo narrows his eyes and answers, low and firm: \"Bet.\" They hold each other's stare and neither moves away. Nobody else appears. Sound: only the two words, a quiet room.",
+   "pick": 1
+  },
+  {
+   "id": "s8",
+   "refs": [
+    "place_ride",
+    "timo_front",
+    "timo_face"
+   ],
+   "still": "THE PICTURE: early morning on a sunny cobbled street of the model town, the camera in front of Timo, a little below his eye level. TIMO alone power-walks straight toward the camera with long stiff steps, very upright, his tiny teal backpack on his back, a very thick blue folder stuffed with white paper hugged against his chest with his right arm, his left wrist raised in front of his chest so that he reads his big yellow watch, eyebrows down, mouth closed, completely serious. He fills the frame from the knees to the top of his head. Painted houses and lemon trees behind him, soft. The folder is plain blue with no label. Only Timo: no suitcase, no Luna, no cat.",
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "video": "@Timo power-walks toward the camera with fast stiff steps, glances at his watch and announces, brisk and proud, in a lively acted voice: \"Step one of forty-two!\" He keeps marching, eyes ahead, the thick blue folder hugged to his chest. The camera moves backward in front of him at his speed, so he stays the same size. Nobody else appears. Sound: his voice, quick footsteps on cobbles, morning birds.",
+   "pick": 3
+  },
+  {
+   "id": "s9",
+   "refs": [
+    "place_uphill",
+    "luna_front",
+    "big_side",
+    "cat_side"
+   ],
+   "still": "THE PICTURE: the same sunny morning street, seen from the side. LUNA alone strolls slowly from right to left, half asleep: her eyes almost shut and her mouth wide open in a huge yawn, one hand flat on the top of Big Yellow, which she rolls along beside her, the other hand holding a half-eaten golden pastry. Big Yellow, the giant sunflower-yellow suitcase, stands upright on its wheels; its flat top reaches her chest. Behind her on a low cream garden wall the fat ginger CAT walks in the same direction, already half a step ahead of her. We see Luna from head to shoes. Only Luna, the suitcase and the cat: no Timo.",
+   "elements": [
+    "Luna",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 4,
+   "video": "@Luna strolls slowly from right to left, rolling the suitcase beside her with one hand, finishes one huge slow yawn and then takes a lazy bite of her pastry, eyes half shut, in no hurry at all. On the wall behind her the cat walks past her and gets ahead. The suitcase does not change. Nobody else appears. Sound: a big sleepy yawn, suitcase wheels rolling slowly on cobbles, morning birds.",
+   "pick": 1
+  },
+  {
+   "id": "s10",
+   "refs": [
+    "place_station",
+    "timo_front",
+    "timo_face"
+   ],
+   "still": "THE PICTURE: the small square outside the train station, the same place as the FIRST reference picture (the plain cream station arch behind), morning sun from the LEFT. A gust of wind: TIMO alone stands in the middle with his thick blue folder open in both hands, and ALL its pages are bursting out of it and flying up into the air around and above him like a flock of white birds: blank white pages everywhere. His face is pure horror: eyes wide, eyebrows up in the middle, mouth shut tight. His tiny teal backpack is on his back; his scarf blows to the right. We see him from the knees up. Every page is blank white: no writing anywhere. Only Timo: no suitcase, no Luna.",
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "video": "A gust of wind. The white pages keep streaming out of @Timo's open folder and whirl up and away into the sky. He snatches at them with one hand and cries out, his voice jumping high, panicking, a lively acted cry: \"No, no, no! My plan!\" The last pages fly off and he is left holding the empty blue folder. Nobody else appears. Sound: wind, paper flapping, his voice.",
+   "pick": 3
+  },
+  {
+   "id": "s11",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/0d277515-ddb6-4986-b185-834afc4fefb4_1462e54e.jpg",
+    "luna_front",
+    "big_side"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same station square with the same plain cream arch and morning light as the FIRST reference picture, a few blank white pages still drifting in the air. LUNA alone has just walked in and stands on the LEFT half of the frame, relaxed, one hand resting on the top of Big Yellow beside her, the other hand holding up her phone at shoulder height with its BACK to the camera (a plain coral case, no logo), with a big friendly teasing grin, mouth closed, looking to the right toward Timo, who is out of frame. We see her from the knees up. Big Yellow stands upright; its top reaches her chest. Only Luna and the suitcase: no Timo, no cat.",
+   "video": "@Luna wiggles her phone in the air and says, bright, teasing and warm, in a lively acted voice: \"Need a plan?\" Then she laughs, a real happy laugh. One white page drifts down past her. The screen of the phone is never seen. Nobody else appears. Sound: her voice, her laugh, a light wind.",
+   "pick": 2
+  },
+  {
+   "id": "s12",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/0d95041f-3ac6-4df1-8cec-ae335faf265b_28106529.jpg",
+    "timo_face",
+    "cat_front"
+   ],
+   "elements": [
+    "Timo",
+    "Cat"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the same station square, the same cream arches, bunting and morning light as the FIRST reference picture, but now a CLOSE shot of TIMO from the waist up: his face is large, in the upper middle of the frame, facing the camera. He holds the empty blue folder open and flat in front of his stomach with both hands, like a tray, and the fat ginger CAT sits inside the open folder, calm, looking up at him, unimpressed. One blank white page lies flat on top of Timo's flat-top hair like a hat. His eyes are wide open and stare straight into the camera; his mouth is a small flat line: stunned. His tiny teal backpack straps show on his shoulders; his teal-and-coral scarf at his throat. A few white pages on the ground behind, soft. Only Timo and the cat: no Luna, no suitcase.",
+   "video": "@Timo stands frozen and stares straight into the camera without a word. He blinks once, slowly. The page on his head slides forward a little and stops over his forehead. The cat sitting in the open folder looks up at him and then yawns. Nothing else moves. Nobody else appears. Sound: a light wind, one page fluttering, the cat's small yawn.",
+   "pick": 2
+  },
+  {
+   "id": "s3p",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. Timo wears his tiny teal backpack here too (he has been packed for three weeks): its two teal straps lie over his shoulders. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/b35154e5-e24c-4da0-9ba0-31b33876b59c_f2106d9a.jpg",
+    "timo_front",
+    "timo_back"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: reproduce the FIRST reference picture exactly: the same room, plan wall, light, framing, pose, hands and expression. Change ONLY ONE THING: TIMO wears his tiny teal backpack: its two teal straps lie over his shoulders and run down the front of his jacket to under his arms, exactly as in the SECOND reference picture. Nothing else changes. Only Timo.",
+   "video": "@Timo's eyes go wide; he throws both hands up and cries out, horrified, his voice jumping high, a lively acted cry: \"The match is TOMORROW!\" Then he points both hands at the wall behind him, breathing fast. The wall does not change. He wears his tiny teal backpack the whole time. One continuous shot: the camera does not cut and the place does not change. Nobody else appears. Sound: his voice.",
+   "pick": 2
+  },
+  {
+   "id": "s7ap",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. Timo wears his tiny teal backpack here too (he has been packed for three weeks): its two teal straps lie over his shoulders. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/657b92d1-2c69-4201-a262-070077061934_92b68fb7.jpg",
+    "timo_front",
+    "timo_back"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: reproduce the FIRST reference picture exactly: the same room, plan wall, light, framing, pose, hands and expression. Change ONLY ONE THING: TIMO wears his tiny teal backpack: its two teal straps lie over his shoulders and run down the front of his jacket to under his arms, exactly as in the SECOND reference picture. Nothing else changes. Only Timo.",
+   "video": "@Timo lifts his chin, frees one hand to point a finger up, and says, proud and stubborn, in a lively acted voice: \"My plan is still better.\" He nods once, firmly, and crosses his arms again. He wears his tiny teal backpack the whole time. One continuous shot: the camera does not cut and the place does not change. Nobody else appears. Sound: his voice.",
+   "pick": 1
+  },
+  {
+   "id": "s7bp",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Evening: low golden sunset light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. Timo wears his tiny teal backpack here too (he has been packed for three weeks): its two teal straps lie over his shoulders. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/cd425d7c-b9b9-4095-b84d-71bd37a9419f_bbb32292.jpg",
+    "timo_front",
+    "timo_back"
+   ],
+   "elements": [
+    "Luna",
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: reproduce the FIRST reference picture exactly: the same room, wall, light, framing, the same two people in the same poses and expressions (Luna on the left holding her paper bag of crisps, Timo on the right leaning toward her, a clear gap between their faces). Change ONLY ONE THING: TIMO wears his tiny teal backpack on his back, exactly the backpack of the THIRD reference picture, with its strap over his shoulder; in this side view the small backpack is clearly seen on his back. Nothing else changes. Only Luna and Timo.",
+   "video": "@Luna, with a slow teasing grin, says quietly: \"Bet?\" A short pause. @Timo narrows his eyes and answers, low and firm: \"Bet.\" They hold each other's stare and neither moves away. He wears his tiny teal backpack the whole time. One continuous shot: the camera does not cut and the place does not change. Nobody else appears. Sound: only the two words, a quiet room."
+  }
+ ],
+ "_": "Episode 1 of the serial: The Bet. Room shots carry their own look (an interior at sunset)."
+}

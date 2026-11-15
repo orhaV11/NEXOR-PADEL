@@ -1,0 +1,17 @@
+{
+ "track": "src/film/assets/s2/music/jersey_1.mp3",
+ "out": "src/film/assets/s2/music/bed_bet_hit.wav",
+ "length": 36.916666666666664,
+ "trim_db": -8,
+ "blocks": [
+  {
+   "at": 34.5417,
+   "len": 2.375,
+   "from_s": 59.855,
+   "layer": "phone",
+   "gain_db": -2,
+   "fade_in": 0.002,
+   "fade_out": 0.25
+  }
+ ]
+}

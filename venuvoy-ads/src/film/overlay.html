@@ -48,6 +48,20 @@
   .fx-cap.pnp.sig { font-weight: 700; font-size: 56px; -webkit-text-stroke: 7px #000; letter-spacing: 0.01em; }
   .fx-cap.pnp.brand { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 50px; letter-spacing: 0.1em; -webkit-text-stroke: 7px #000; }
   .fx-cap.pnp.brand span { margin: 0 0.12em; }
+  /* cls "vv": Venuvoy inside the story (the serial "Plan, No Plan"): what Luna types and what comes back, drawn by
+     the edit so that every letter is crisp. "vv chip": the name. "vv type": her one sentence, appearing word by word
+     in a white input bubble. "vv tick" (+ "r" for the right column): one planned thing with a tick. */
+  .fx-cap.vv { left: 0; right: 0; width: fit-content; margin: 0 auto; font-family: "Mont", sans-serif; text-transform: none; letter-spacing: 0; -webkit-text-stroke-width: 0; filter: none; color: #17122b; }
+  .fx-cap.vv span { margin: 0 0.07em; }
+  .fx-cap.vv span.on { color: inherit; }
+  .fx-cap.vv.chip { padding: 10px 28px 12px 40px; border-radius: 999px; background: #fbf3e2; color: #3a2a63; font-family: "Nunito", sans-serif; font-weight: 1000; font-size: 54px; letter-spacing: 0.16em;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
+  .fx-cap.vv.chip span { margin: 0; }
+  .fx-cap.vv.type { max-width: 800px; padding: 22px 36px 26px; border-radius: 30px; background: #fff; font-weight: 600; font-size: 50px; line-height: 1.22; text-align: left; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22)); }
+  .fx-cap.vv.tick { left: 92px; right: auto; width: 352px; margin: 0; padding: 13px 16px 15px 70px; border-radius: 20px; background: #fbf3e2; font-weight: 700; font-size: 46px; text-align: left;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.2)); }
+  .fx-cap.vv.tick.r { left: auto; right: 92px; }
+  .fx-cap.vv.tick::before { content: ""; position: absolute; left: 28px; top: 50%; width: 13px; height: 25px; border: solid #1f8a8a; border-width: 0 7px 7px 0; transform: translateY(-64%) rotate(45deg); }
   /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
   .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
     font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 68px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;
@@ -671,7 +685,8 @@
         const w = c.words[i], lit = t >= w.t0 - 0.02 && t < (c.words[i + 1]?.t0 ?? c.t1 + 1) - 0.02;
         s.className = lit ? "on" : "";
         const k = lit ? 1 - P(t, w.t0, 0.14) : 0;
-        s.style.transform = lit && c.cls !== "nar" && !(c.cls || "").startsWith("pnp") ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+        s.style.transform = lit && c.cls !== "nar" && !/^(pnp|vv)/.test(c.cls || "") ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+        if ((c.cls || "").includes("type")) s.style.visibility = t < w.t0 - 0.02 ? "hidden" : "visible";  // typed: a word is not there before its time
       });
     }
     for (const c of lts) {

@@ -69,6 +69,21 @@ REDO = "--redo" in sys.argv
 
 
 def save():
+    """Write state.json, keeping what another run of this script wrote meanwhile (stills and clips are often made at
+    the same time by two runs; without this the later writer wiped the earlier one's entries)."""
+    disk = json.loads(STATE.read_text()) if STATE.exists() else {}
+    for sid, cands in disk.get("stills", {}).items():
+        mine = state["stills"].setdefault(sid, {})
+        for k, v in cands.items():
+            mine.setdefault(k, v)
+    for k, v in disk.get("uploads", {}).items():
+        state.setdefault("uploads", {}).setdefault(k, v)
+    for sid, c in disk.get("clips", {}).items():
+        mine = state["clips"].setdefault(sid, {"takes": []})
+        have = {t["take"] for t in mine["takes"]}
+        mine["takes"] += [t for t in c.get("takes", []) if t["take"] not in have]
+        mine["takes"].sort(key=lambda t: t["take"])
+        mine.setdefault("file", c.get("file"))
     STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1))
 
 
@@ -103,7 +118,7 @@ def do_stills():
         for k in range(1, n + 1):
             if str(k) in have and not REDO:
                 continue
-            prompt = f'{plan.get("look", "")} {s["still"]}'.strip()
+            prompt = f'{s.get("look", plan.get("look", ""))} {s["still"]}'.strip()  # a shot may bring its own look (an interior)
             payload = {"prompt": prompt, "images_list": [cast[r] if r in cast else r for r in s["refs"]], "aspect_ratio": "9:16", "resolution": "2k"}
             jobs.append((s["id"], k, payload))
 

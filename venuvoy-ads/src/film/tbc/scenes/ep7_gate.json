@@ -2,7 +2,6 @@
   "events": [
     { "t": 0,    "type": "typingbar", "who": "Danny" },
     { "t": 0,    "type": "pin", "text": "Kick-off: Mon 12:30" },
-    { "t": 0,    "type": "chip", "text": "OWE MAYA: 6" },
 
     { "t": 0,    "type": "msg", "who": "Maya", "me": true, "time": "12:09",
       "text": "At the gate. Danny,\nwe need the tickets.\nRinging Vic's phone." },

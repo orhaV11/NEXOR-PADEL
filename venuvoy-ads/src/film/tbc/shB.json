@@ -1,0 +1,257 @@
+{
+ "slug": "tbc-shB",
+ "title": "In the Chat: Again",
+ "out": "ads/16-tbc/venuvoy-tbc-shB",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "1 DAY BEFORE*",
+   "small": "*to be confirmed",
+   "from": "day",
+   "to": "signoff",
+   "y": 262,
+   "xr": 1040
+  }
+ ],
+ "sources": {
+  "lee": {
+   "path": "src/film/assets/tbc/clips/f_selfie.mp4",
+   "level": -18,
+   "af": "highpass=f=120"
+  },
+  "chat": {
+   "path": "src/film/assets/tbc/scenes/shB_chat.mp4"
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/shB_n1.wav",
+   "at": "close+0.08",
+   "y": 1288,
+   "gain_db": 0,
+   "text": "It was moved | for television."
+  },
+  {
+   "file": "src/film/assets/tbc/vo/en/shB_n2.wav",
+   "at": "m3+1.5",
+   "y": 1288,
+   "gain_db": 0,
+   "text": "Sydney is not going."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "offset": 3.0,
+   "gain_db": -8,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.004
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "thud",
+   "at": "green+0.06",
+   "gain_db": -14
+  },
+  {
+   "synth": "thud",
+   "at": "stamp+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "msg",
+   "at": "m1+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m2+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m3+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "lee",
+   "in": 2.5,
+   "out": 6.0,
+   "audio_out": 6.02,
+   "a_fade_out": 0.2,
+   "hold": 0.25,
+   "punch": 1.35,
+   "cx": 0.385,
+   "cy": 0.57,
+   "marks": {
+    "open": 2.5,
+    "day": 4.7
+   },
+   "lt": {
+    "name": "LEE",
+    "what": "FOUND IT CHEAPER",
+    "at": 0.0,
+    "len": 2.5,
+    "y": 1085
+   },
+   "line": "They just moved the kick-off. Again.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "They just moved",
+     "at": -0.1,
+     "len": 0.95,
+     "hold": 0.0
+    },
+    {
+     "text": "the kick-off.",
+     "at": 0.87,
+     "len": 0.6,
+     "hold": 0.55
+    },
+    {
+     "text": "Again.",
+     "at": 2.6,
+     "len": 0.5,
+     "hold": 0.65
+    }
+   ]
+  },
+  {
+   "src": "chat",
+   "in": 0.0,
+   "out": 2.875,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chat": 0.0,
+    "green": 0.4167,
+    "stamp": 1.625
+   }
+  },
+  {
+   "src": "chat",
+   "in": 2.875,
+   "out": 3.375,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587,
+    "ease": "inout"
+   },
+   "marks": {
+    "close": 2.875
+   }
+  },
+  {
+   "src": "chat",
+   "in": 3.375,
+   "out": 12.625,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.235,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587
+   },
+   "marks": {
+    "m1": 4.9167,
+    "m2": 6.9167,
+    "m3": 8.9167
+   }
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "LIKES TO BE EARLY.",
+     "foot": "Next episode: Thursday. Confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
+}

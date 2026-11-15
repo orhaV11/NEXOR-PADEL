@@ -21,6 +21,22 @@
    "to": "drain",
    "y": 262,
    "xr": 1040
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "gate",
+   "to": "g2",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "after",
+   "to": "friday+0.3",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
   }
  ],
  "sources": {

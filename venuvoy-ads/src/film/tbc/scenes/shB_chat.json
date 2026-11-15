@@ -1,0 +1,15 @@
+{ "dur": 12.75, "name": "Away trip – who's in?", "sub": "8 members", "right": 775,
+  "events": [
+    { "t": 0,       "type": "typingbar", "who": "Danny" },
+    { "t": 0,       "type": "chip", "text": "OWE MAYA: 6" },
+
+    { "t": 0,       "type": "pin", "big": true, "dim": 0, "text": "KICK-OFF: MONDAY\nTIME: 20:00 {when}",
+      "stamp": { "t": 0.4167, "text": "CONFIRMED", "on": "when", "color": "green", "size": 48, "rot": -4 } },
+    { "t": 1.625,   "type": "stamp", "text": "MOVED", "color": "red", "size": 118, "rot": -6, "x": 660, "y": 686, "until": 2.875 },
+
+    { "t": 2.875,   "type": "pin", "text": "Kick-off: Mon 12:30" },
+
+    { "t": 4.9167,  "type": "msg", "who": "Lee",    "text": "12:30? I get to the\nground at 1:15." },
+    { "t": 6.9167,  "type": "msg", "who": "Sydney", "text": "12:30 there is 9:30\nat night here." },
+    { "t": 8.9167,  "type": "msg", "who": "Sydney", "text": "Works for me." }
+  ] }

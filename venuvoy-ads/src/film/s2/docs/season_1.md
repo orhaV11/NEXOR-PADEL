@@ -8,16 +8,29 @@ write and check alone, no multi-agent proofs unless he asks.
 Timo planned the trip to the match for three weeks. Luna remembers the evening before, types ONE sentence into
 Venuvoy, and everything is planned. They bet on whose trip will be better. Loser carries her suitcase.
 
-## Episodes
-1. **The Bet** (37 s, made). His wall of plans; "Can I come?"; "The match is TOMORROW!"; she types one sentence, four
-   ticks (match ticket, flight, hotel, match day), "Done."; "My plan is still better." / "Bet?" / "Bet."; next
-   morning: his 42 steps against her one sentence; the wind takes his plan at the station; "Need a plan?"; his stare,
-   the cat in his empty folder.
-2. **Travel day** (to write). 42 steps against one sentence on the way there. He arrives wrecked, she arrives fresh.
-3. **Match day** (to write). The day around the match. The suitcase material of "One Night" belongs here (uphill,
-   the ride, the cat, the gate, "It can't come in, Timo"): nine finished clips, so this episode needs few new ones.
-4. **Full time** (to write). At the stadium: who won the bet, who carries the suitcase, and Timo secretly types his
-   first sentence.
+## Episodes (all four made, 15 Nov)
+1. **The Bet** (37 s). His wall of plans; "Can I come?"; "The match is TOMORROW!"; she types one sentence, four ticks
+   (match ticket, flight, hotel, match day), "Done."; "My plan is still better." / "Bet?" / "Bet."; next morning his
+   42 steps against her one sentence; the wind takes his plan; "Need a plan?"; his stare, the cat in his folder.
+   Plan `bet.json`, edit `bet_edit.json`.
+2. **No Ticket** (33 s). His ticket was in the folder. "Timo, I have your..." / "No. My plan is in here." Swan boat
+   and donkey against her nap on the train with the cat. He arrives wet with a duck on his head: "Step forty-two.
+   Done." "I still have no ticket!" She tries again, he says no, she looks at us: "in her plan: 2 match tickets".
+   Plan `ep2.json`, edit `ep2_edit.json`.
+3. **The Small One** (30 s). The suitcase footage of the first pilot ("One Night") with a new opening ("You're
+   losing. You carry it.", the bet at Luna 2, Timo 0) and a new last label ("he still thinks he has no ticket").
+   One new clip. Plan `ep3.json`, edit `ep3_edit.json` (built from `one_night.json`).
+4. **Full Time** (32 s). "No ticket. No plan. Nothing!" "Timo! Listen. I typed: me AND Timo." "Since yesterday?"
+   "You kept saying no." "I love your plan." They run in; the cat guards Big Yellow; the goal; Luna wins the bet and
+   rides home on the suitcase; Timo secretly types his first sentence; "I saw that!"; his stare.
+   Plan `ep4.json`, edit `ep4_edit.json`.
+
+The thread that carries viewers from episode to episode: the sentence Luna typed in episode 1 said "for me AND Timo",
+so she has had his ticket all along, and he never lets her finish the sentence. Every episode opens with a one-second
+"previously" on the last image of the one before and ends on "follow for ep N". Posting kit: `ads/17-pnp/posting-kit.md`.
+
+Money: the four episodes cost about 34 dollars in total (ep 1 14.5, ep 2 10.2, ep 3 1.0, ep 4 9.9, one retake 1.0);
+about 12.6 dollars remain.
 
 ## How Venuvoy appears, the same way in every episode
 - In the story: Luna's phone is never read. What she types and what comes back are drawn by the edit: the name chip

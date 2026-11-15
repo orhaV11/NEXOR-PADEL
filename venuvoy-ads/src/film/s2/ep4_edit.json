@@ -37,8 +37,7 @@
    "level": -19
   },
   "g8": {
-   "path": "src/film/assets/s2/ep4/clips/g8_t1.mp4",
-   "level": -19
+   "path": "src/film/assets/s2/ep4/clips/g8_t2.mp4"
   },
   "g9": {
    "path": "src/film/assets/s2/ep4/clips/g9_t1.mp4",
@@ -293,28 +292,30 @@
   },
   {
    "src": "g8",
-   "in": 0.4167,
+   "in": 0.125,
    "out": 2.9167,
    "marks": {
-    "goal": 0.4167
+    "goal": 0.125
    },
-   "gain_db": -3,
+   "gain_db": -6,
    "cap": [
+    {
+     "text": "GOAL!",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.4,
+     "hold": 0.2,
+     "y": 330
+    },
     {
      "text": "YES!",
      "cls": "pnp",
-     "at": 0.1,
-     "len": 0.5,
-     "hold": 0.45
-    },
-    {
-     "text": "GOAL!",
-     "cls": "pnp",
-     "at": 1.45,
-     "len": 0.5,
-     "hold": 0.5
+     "at": 0.15,
+     "len": 0.6,
+     "hold": 0.6
     }
-   ]
+   ],
+   "a_fade_in": 0.12
   },
   {
    "src": "g9",

@@ -129,9 +129,16 @@
      "file": "src/film/assets/s2/ep4/clips/g8_t1.mp4",
      "pick": 2,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna and @Timo roar with joy at the same time, a real football-goal roar, throwing both arms up: Luna shouts \"YES!\" and Timo shouts \"GOAL!\" They grab each other's shoulders and jump. Streamers keep drifting down; the light flickers green and gold on their faces. One continuous shot: the camera does not cut. Nobody else appears. Sound: their two shouts, a huge happy stadium roar."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/ae764ca7-4a17-445e-8d5b-3b890c3c1fc6_5201bad9.mp4",
+     "file": "src/film/assets/s2/ep4/clips/g8_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna and @Timo roar with joy at the same time, a real football-goal roar, arms in the air: Luna shouts \"YES!\" and Timo shouts \"GOAL!\" Then they grab each other's shoulders and jump up and down, laughing. Streamers drift down. Their clothes and scarves do not change. One continuous shot: the camera does not cut. Nobody else comes into focus. Sound: their two shouts and laughter, a happy stadium crowd in the distance."
     }
    ],
-   "file": "src/film/assets/s2/ep4/clips/g8_t1.mp4"
+   "file": "src/film/assets/s2/ep4/clips/g8_t2.mp4"
   },
   "g9": {
    "takes": [
@@ -203,6 +210,7 @@
   "g3_1": "https://cdn.muapi.ai/outputs/generated/53d1e748e74c4bf1b4d7fac2c32a33c3.jpg",
   "g4_1": "https://cdn.muapi.ai/outputs/generated/ceb7bc762bab4678857e6988735d8bea.jpg",
   "g9_2": "https://cdn.muapi.ai/outputs/generated/ccb49decbed34f21b9595f47605ccb7b.jpg",
-  "g10_1": "https://cdn.muapi.ai/outputs/generated/637e81f016f249e9afd10ea4a52ec10d.jpg"
+  "g10_1": "https://cdn.muapi.ai/outputs/generated/637e81f016f249e9afd10ea4a52ec10d.jpg",
+  "g8_1": "https://cdn.muapi.ai/outputs/generated/03f0cda1f7db4e1cb1a4db75d1ffe4ef.jpg"
  }
 }

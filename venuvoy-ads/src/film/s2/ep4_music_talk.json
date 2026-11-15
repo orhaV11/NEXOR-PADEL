@@ -1,7 +1,7 @@
 {
  "track": "src/film/assets/s2/music/jersey_1.mp3",
  "out": "src/film/assets/s2/music/bed_ep4_talk.wav",
- "length": 32.125,
+ "length": 32.416666666666664,
  "trim_db": -8,
  "blocks": [
   {
@@ -51,17 +51,17 @@
   },
   {
    "at": 19.9583,
-   "len": 2.5,
+   "len": 2.7917,
    "from_s": 17.235,
    "layer": "phone",
-   "gain_db": 1,
+   "gain_db": 2,
    "fade_in": 0.004,
    "fade_out": 0.004
   },
   {
-   "at": 22.4583,
+   "at": 22.75,
    "len": 3.5417,
-   "from_s": 19.735,
+   "from_s": 20.0267,
    "layer": "phone",
    "gain_db": -1,
    "fade_in": 0.004,

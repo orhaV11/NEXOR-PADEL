@@ -1,0 +1,87 @@
+{
+ "episodes": [
+  {
+   "id": "ep5",
+   "verdict": "Ready: post it as it is. Every beat lands muted (bride asks the kick-off time; tickets locked to Vic's phone, stamped NOT PERMITTED; \"Film it.\"; \"The phone can go. I can't.\"; Danny's first message after 77 days of typing; Maya's \"So I have.\"; the grandmother's paper ticket), faces and hands hold up, and the 4:5 loses nothing a joke needs.",
+   "findings": [
+    {
+     "severity": "minor",
+     "at": "22.4-23.0",
+     "what": "The topper of the chat scene is thrown away: after the narration line, \"Danny is typing…\" comes back under his own message for about 15 frames and then the film cuts to Maya. A stranger will not see it.",
+     "evidence": "4 fps strip of 11-23 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/ep5-chat-strip.jpg): caption pill clears at 22.0, chat scrolls at 22.25, indicator visible at 22.5 and 22.75 only, Maya by 23.1.",
+     "fix": "Bring the typing indicator back on the frame the caption clears (22.0) so it has a full second, with no change to length; or hold the chat 10-12 frames longer."
+    },
+    {
+     "severity": "minor",
+     "at": "11.3-23.0 (4:5 file only)",
+     "what": "The 4:5 crop removes the chat header, so the group name \"Away trip - who's in?\" is never seen in the settled view, and the top edge of the Message field shows as a white sliver along the bottom of the frame.",
+     "evidence": "4:5 frame at 20.6 s: frame starts at the PINNED bar; white rounded edge about 20 px high at the bottom. Same in the 4:5 of shA (6.0, 12.6 s) and ep6 (22.6 s).",
+     "fix": "In the 4:5 chat shots, move the crop window down or up about 25 px so the Message field is either fully out or clearly in; the header loss is acceptable."
+    }
+   ]
+  },
+  {
+   "id": "shA",
+   "verdict": "Ready: post it as it is; it is the cleanest of the three. Beats read as: saved in her phone as \"Danny Football\" (said twice, caption re-pops at 3.2 s); nobody in the chat knows his surname, Lee has \"Danny Football 2\"; \"for eleven years\"; \"ask Danny\" over the eternal typing dots; surname stamped TO BE CONFIRMED; the grandmother knows his full name.",
+   "findings": [
+    {
+     "severity": "minor",
+     "at": "4.6-13.0",
+     "what": "The outgoing green bubble \"Check-in needs passport names. Danny, surname?\" runs off the left edge of the frame: its left corner is cut and its text starts about 32 px from the edge, while every other bubble's text starts about 80 px in.",
+     "evidence": "Full frame at 10.5 s and crop at 6.2 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/shA-green-crop.jpg): bubble spans x 0 to about 956. Same in the 4:5.",
+     "fix": "Shift the chat pan about 45 px to the right for this scene (nothing on the right is lost), or cap the outgoing bubble width as in ep6."
+    },
+    {
+     "severity": "minor",
+     "at": "0-4.3",
+     "what": "Stray generated lettering: a yellow letter-like fragment (\"TH\" and a block) on a black strap of Jo's sleeve in the bottom-left corner.",
+     "evidence": "Crop of the frame at 3.9 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/shA-patch.jpg): x 0-110, y 1640-1800. It lies under the platforms' caption block and is outside the 4:5 crop.",
+     "fix": "Leave it; if the shot is ever touched, darken that corner."
+    }
+   ]
+  },
+  {
+   "id": "ep6",
+   "verdict": "Postable, but retime one chat bubble first: \"It is Saturday.\" is trodden on after 18 frames and is the one joke in the three films a stranger is likely to miss. Everything else lands (seven seats, four flew; Lee found it cheaper, three flights and a bus, \"depending on kick-off\"; Danny NO SURNAME; \"This isn't my phone. Danny left it with me.\"; six tickets and her own) and the rest is minor.",
+   "findings": [
+    {
+     "severity": "major",
+     "at": "20.15-20.9",
+     "what": "Rushed punchline in the densest text passage of the three films. \"they say Saturday\" / \"It is Saturday.\" (the T-shirts name the wrong day, and today happens to be that day) gets 0.75 s before \"Boarding. Danny, you have Vic's phone.\" pops in and scrolls the SATURDAY day divider, which explains the joke, out of frame. Four bubbles, 17 words, in 4.5 s; I needed a still to be sure what \"they\" were.",
+     "evidence": "4 fps strip of 17.9-23.0 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/ep6-chat-strip.jpg): bubbles at 18.4, 19.15, 20.15, 20.9; divider gone by 21.15; cut to the grandmother at about 22.9.",
+     "fix": "Hold the \"Boarding…\" bubble back 14-16 frames (to about 21.5) and cut to the grandmother that much later, keeping at least 1.75 s on the last bubble; the film grows by about 0.6 s."
+    },
+    {
+     "severity": "minor",
+     "at": "26.4-28.1",
+     "what": "The phone she is talking about and the teacup both leave the bottom of the frame during \"Danny left it with me.\" and the hold after it; at the hard cut to the identically framed closing shot (28.1) the cup is suddenly raised at her chest and the phone is back in her hand. It reads as a pop inside one shot, not as a cut. In the 4:5 the phone is only a corner sliver for the whole speaking shot.",
+     "evidence": "12 fps strip of 27.6-28.6 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/ep6-join-strip.jpg) and lower-half crop at 26.6 s (no phone, no cup); 4:5 frame at 24.2 s.",
+     "fix": "Put a 6-8 frame cross-dissolve on the cut at 28.1 so it reads as time passing, or enter the closing shot about 20 frames later with the cup already at her lips."
+    },
+    {
+     "severity": "minor",
+     "at": "23.0-25.2",
+     "what": "Name plate and caption sit on the raised teacup: the cup is squeezed between \"NOT IN THE CHAT\" and the caption, and \"ISN'T\" is white lettering on white china. (Lesser case at 9.7-15.3: the \"COMPARES FLIGHTS\" bar touches Lee's jaw at mouth height.)",
+     "evidence": "Full frame at 24.2 s and crop at 23.7 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/ep6-gpair.jpg): cup at x 464-724, y 1132-1321; caption line 1 at y 1235-1310.",
+     "fix": "On the grandmother's speaking shot only, drop the caption block about 90 px (line 1 then starts at about y 1325, clear of the cup and of the phone); for Lee, scale the picture about 108% anchored at the bottom so his mouth sits above the plate."
+    },
+    {
+     "severity": "minor",
+     "at": "0.0-3.25",
+     "what": "Opening, muted: frame 0 is Maya mid-blink with her mouth open, and during her 1.65 s pause the caption disappears (2.0-3.25), so at the moment a stranger decides to stay there is nothing to read.",
+     "evidence": "4 fps strip of 0-4.75 s (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/final2-first/ep6-maya-strip.jpg): eyes closed at 0.0 and 0.25; \"I BOOKED SEVEN SEATS.\" gone at 2.0; \"FOUR OF US FLEW.\" in at 3.25. Speech 0.0-1.3 and 2.96-4.0.",
+     "fix": "Keep \"I BOOKED SEVEN SEATS.\" on screen until \"FOUR OF US FLEW.\" replaces it (as shA does with its first line), and pick the cover frame from 0.5 s or later."
+    }
+   ]
+  }
+ ],
+ "across": [
+  "Day-count chip: it fades in over the opening speaker at about 2.5 s in ep5 (Vic) and ep6 (Maya), but never appears over Jo in shA; there it is first seen with the chat at 4.3 s.",
+  "Chat sender colours are not fixed per person: Lee's name is red in ep5 and teal in shA; gold is Jo in ep5 but Marcus in shA and ep6; teal is Vic in ep5 but Lee in shA.",
+  "Incoming chat bubbles carry timestamps in ep5 (20:14 to 20:20) but none in shA or ep6, where only the outgoing green bubbles have them.",
+  "Outgoing green bubbles: right-aligned with a clear margin in ep6, but in shA the one outgoing bubble runs off the left edge of the frame.",
+  "Caption during a speaker's pause: shA holds the line on screen (0-2.0 s), ep5 drops to no caption for 0.5 s (2.0-2.5), ep6 for 1.25 s (2.0-3.25).",
+  "All three 4:5 crops alike (not a difference between films): the chat header with the group name is cropped away and a sliver of the Message field shows at the bottom edge.",
+  "Checked and matching, no action: loudness -14.1 / -14.0 / -14.1 LUFS with peaks at -1.9 dBFS; stamp thud level; name-plate, caption and chip sizes; Maya's framing in ep5 and ep6; the grandmother's closing framing, status-plate position, and the sign-off wording, size, position and entry about 1.5 s after the cut."
+ ]
+}

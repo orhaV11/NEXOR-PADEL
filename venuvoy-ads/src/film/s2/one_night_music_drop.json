@@ -1,0 +1,25 @@
+{
+ "track": "src/film/assets/s2/music/A1_0.mp3",
+ "out": "src/film/assets/s2/music/bed_one_night_drop.wav",
+ "length": 30.5,
+ "blocks": [
+  {
+   "at": 14.0,
+   "len": 5.0,
+   "from_bar": 9,
+   "layer": "full",
+   "gain_db": 0,
+   "fade_in": 0.002,
+   "fade_out": 0.03
+  },
+  {
+   "at": 28.5,
+   "len": 1.62,
+   "from_bar": 17,
+   "layer": "full",
+   "gain_db": -6,
+   "fade_in": 0.002,
+   "fade_out": 0.06
+  }
+ ]
+}

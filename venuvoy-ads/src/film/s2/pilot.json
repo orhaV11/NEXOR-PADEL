@@ -87,12 +87,9 @@
   {
    "id": "s5",
    "refs": [
-    "timo_front",
-    "luna_front",
-    "big_side",
-    "luna_face",
+    "https://cdn.muapi.ai/outputs/generated/3fa417c5438048958a4f19eadfc7ee56.jpg",
     "timo_face",
-    "toy_2_style"
+    "luna_face"
    ],
    "elements": [
     "Timo",
@@ -100,9 +97,9 @@
     "BigYellow"
    ],
    "duration": 4,
-   "still": "THE PICTURE: both friends ride Big Yellow down the steep cobbled street straight towards the camera; we see them from the chest up and the yellow top of the suitcase is a wide bar across the bottom of the frame. LUNA sits in front with both arms up in a wide V, her head twisted half round to look up at Timo over her shoulder, laughing. TIMO sits right behind her and above her, looking down at her, laughing with his eyes squeezed into happy lines, BOTH his arms thrown up in the same wide V as hers, his V above and outside her V, the yellow watch on his raised left wrist. All four hands are inside the frame. Scarves flap out to the sides, not across a face. The houses behind them are soft streaking bands of colour. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
+   "still": "THE PICTURE: exactly the same scene, street, light, suitcase and two friends as in the first reference picture, one moment later and a little closer: both friends still ride the upright yellow suitcase down the steep cobbled street straight towards the camera, and we see them from the waist up. LUNA sits in front, both arms up in a wide V, laughing with her eyes closed into crescents, her head tilted back to look up at Timo. TIMO sits right behind and above her and is now LAUGHING as hard as she is, his eyes squeezed into happy lines, BOTH his arms thrown up in the same wide V as hers, his V above and outside hers, the yellow watch on his raised left wrist. All four hands are inside the frame. Scarves flap out to the sides, not across a face. The top of the upright yellow suitcase shows at the bottom of the frame, the same suitcase in the same position as in the reference picture. Only Timo, Luna and the suitcase are in the picture.",
    "video": "The two friends ride the big yellow suitcase fast down the steep street straight towards us; the camera races backwards just ahead of them; the houses streak past. @Timo is now laughing as hard as @Luna: he shouts a joyful \"Yes!\" and laughs out loud, and both pump their raised arms twice. Luna, laughing, looks up at him over her shoulder and he looks down at her. They stay on the suitcase. Sound: his shout \"Yes!\" and his big laugh, her laugh, small wheels roaring on cobblestones, wind.",
-   "pick": 1
+   "pick": 2
   },
   {
    "id": "s6",
@@ -136,7 +133,7 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: in front of the stadium gate, low golden sun from the left. The gate is a narrow cream doorway between two round cream posts with a waist-high violet bar across it, and a bright soft glow behind it; cream flags above; far away a few soft still shapes of fans. Big Yellow stands side-on right in front of the narrow gate, in the middle of the frame, clearly twice as wide as the gap between the posts and taller than the violet bar; there is dust on its lower half. On the RIGHT, TIMO is on his knees with his chest against the suitcase and both arms spread wide along its top, hugging it, his face lifted, beaming with joy, mouth closed; dust on his knees. On the LEFT, LUNA leans on the suitcase top on one elbow, a closed-mouth grin, her eyes on him. Both scarves are blown back over their shoulders. The gate posts and bar show above the suitcase in the centre. Both faces are in the upper half of the frame. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
-   "video": "@Timo, on his knees, hugging the yellow suitcase, looks up beaming and says with all his heart: \"I love this suitcase.\" Then he lays his cheek on its top and closes his eyes, smiling, with a happy sigh. @Luna, leaning on the suitcase, grins down at him and slowly shakes her head. The suitcase does not move. Sound: his voice, his happy sigh, the roar of a stadium crowd swelling behind the gate.",
+   "video": "@Timo, on his knees, hugging the yellow suitcase, looks up beaming and says with all his heart: \"I love this suitcase.\" Then he lays his cheek on the top of the suitcase and closes his eyes, smiling, with a happy sigh. @Luna stays exactly where she is, leaning on the suitcase with one elbow; she does not touch Timo and does not lean on him; she only looks down at him with a teasing grin and slowly shakes her head. The suitcase does not move. One continuous shot from the same camera position: the camera does not cut and does not move closer. The background does not change. Sound: his voice, his happy sigh, the roar of a stadium crowd swelling behind the gate.",
    "pick": 1
   },
   {
@@ -156,7 +153,7 @@
    ],
    "duration": 5,
    "still": "THE PICTURE: a closer view over the yellow top of Big Yellow, in front of the same stadium gate. TIMO's cheek lies on the yellow suitcase top, his eyes shut, smiling blissfully, his arms round the suitcase. LUNA's face is above his, in full clear view, mouth closed in a teasing grin; one of her hands lies flat on top of his flat-top hair, and the thumb of her other hand points back over her shoulder at the narrow gate behind them. In the gap between their two heads we see the narrow cream gate: two round posts and a waist-high violet bar, with a bright glow behind. Both faces are in the upper half of the frame; the lower third is the yellow suitcase top. Only Timo, Luna and the suitcase are in the picture: no cat, no other people in focus.",
-   "video": "@Luna, grinning, says to him, teasing: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. @Timo's eyes snap open and stare straight into the camera, shocked, and he hugs the suitcase tighter. Then Luna bursts out laughing. Sound: her voice, two soft pats, then her big laugh; the roar of a stadium crowd behind the gate.",
+   "video": "@Luna, grinning, says to him, teasing: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing. Behind them there are only the painted houses and the gate posts, exactly as in the picture, for the whole clip: no crowd, no spectators, no other people ever appear in the background. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny street.",
    "pick": 1
   }
  ]

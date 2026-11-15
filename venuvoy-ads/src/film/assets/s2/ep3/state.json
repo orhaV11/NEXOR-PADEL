@@ -9,5 +9,21 @@
    }
   }
  },
- "clips": {}
+ "clips": {
+  "carry": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/56b6232d-4f97-46c0-9a7a-29b3ec2d66f2_3466e175.mp4",
+     "file": "src/film/assets/s2/ep3/clips/carry_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna pats the top of the suitcase twice and says, bright and teasing, in a lively acted voice: \"You're losing. You carry it.\" Then she gives the suitcase a little push to the right and grins. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, two pats on the suitcase, birds."
+    }
+   ],
+   "file": "src/film/assets/s2/ep3/clips/carry_t1.mp4"
+  }
+ },
+ "uploads": {
+  "carry_1": "https://cdn.muapi.ai/outputs/generated/4efe2cd44db64242b5284f54556af3fd.jpg"
+ }
 }

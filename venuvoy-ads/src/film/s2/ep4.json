@@ -18,21 +18,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. TIMO alone stands beside the scuffed Big Yellow in front of the gate, both hands on top of his head, eyebrows up in the middle, mouth closed tight, panicking; his tiny teal backpack on his back. We see him from the knees up. Only Timo and the suitcase: no Luna, no cat.",
-   "video": "@Timo, hands on his head, counts on his fingers in a panic and cries, voice high, in a lively acted voice: \"No ticket. No plan. Nothing!\" He throws both hands up. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, a far-away stadium crowd humming."
-  },
-  {
-   "id": "g2",
-   "refs": [
-    "place_gate_close",
-    "luna_face",
-    "luna_front"
-   ],
-   "elements": [
-    "Luna"
-   ],
-   "duration": 4,
-   "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. LUNA alone, from the waist up, calm, one hand raised flat in front of her like a stop sign, the other hand holding her phone down at her side, eyes half closed, mouth closed in a patient little smile, looking to the right toward Timo, who is out of frame. Her plain teal scarf. Only Luna.",
-   "video": "@Luna, palm up like a stop sign, says, calm, firm and warm, in a lively acted voice: \"Timo. Stop. Listen.\" She lowers her hand and raises her eyebrows. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice."
+   "video": "@Timo, hands on his head, counts on his fingers in a panic and cries, voice high, in a lively acted voice: \"No ticket. No plan. Nothing!\" He throws both hands up. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, a far-away stadium crowd humming.",
+   "pick": 1
   },
   {
    "id": "g3",
@@ -46,7 +33,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. LUNA alone, from the waist up, holds her phone up beside her face with one hand, the BACK of the phone toward the camera (a plain coral case, no logo), her other hand pointing at the phone, with a big bright grin, mouth closed, looking to the right toward Timo, who is out of frame. Her head is in the lower half of the frame; the upper third of the frame is only soft houses and sky. Only Luna.",
-   "video": "@Luna taps the back of her phone with one finger and says, slowly and clearly, bright and proud, in a lively acted voice: \"I typed: me AND Timo.\" She nods, grinning. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice."
+   "video": "@Luna says, firm and bright, in a lively acted voice: \"Timo! Listen.\" Then she taps the back of her phone with one finger and says slowly and clearly, proud: \"I typed: me AND Timo.\" She nods, grinning. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice.",
+   "pick": 1
   },
   {
    "id": "g4",
@@ -60,7 +48,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. TIMO alone, from the chest up, facing a little to the left toward Luna, who is out of frame: completely still, eyes wide, mouth a small flat line, his tiny teal backpack straps on his shoulders. Only Timo.",
-   "video": "@Timo stares, blinks twice, slowly, and says in a small, quiet, cracked voice: \"Since yesterday?\" His shoulders sink. One continuous shot: the camera does not cut. Nobody else appears. Sound: his small voice, a quiet square."
+   "video": "@Timo stares, blinks twice, slowly, and says in a small, quiet, cracked voice: \"Since yesterday?\" His shoulders sink. One continuous shot: the camera does not cut. Nobody else appears. Sound: his small voice, a quiet square.",
+   "pick": 1
   },
   {
    "id": "g5",
@@ -74,7 +63,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. LUNA alone, from the waist up, both shoulders lifted in a big shrug with her palms up (the phone in one hand, its back to the camera), eyebrows up, a helpless amused smile, mouth closed, looking to the right toward Timo, who is out of frame. Only Luna.",
-   "video": "@Luna shrugs with both palms up and says, amused and warm, in a lively acted voice: \"You kept saying no.\" Then she laughs a little. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, a small laugh."
+   "video": "@Luna shrugs with both palms up and says, amused and warm, in a lively acted voice: \"You kept saying no.\" Then she laughs a little. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, a small laugh.",
+   "pick": 1
   },
   {
    "id": "g6",
@@ -89,7 +79,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT. A friendly hug between best friends, like brother and sister: TIMO bends down and hugs LUNA tight with both arms, his eyes shut and a huge happy smile, his cheek against the top of her head; LUNA's face is seen over his arm, laughing with her eyes closed, one of her hands patting his back. Big Yellow stands beside them. We see them from the knees up. Only Timo, Luna and the suitcase: no cat.",
-   "video": "@Timo, hugging her tight with his eyes shut, says, happy and relieved, in a lively acted voice: \"I love your plan.\" @Luna laughs and pats his back twice. They stay in the hug. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, her laugh, two pats."
+   "video": "@Timo, hugging her tight with his eyes shut, says, happy and relieved, in a lively acted voice: \"I love your plan.\" @Luna laughs and pats his back twice. They stay in the hug. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, her laugh, two pats.",
+   "pick": 1
   },
   {
    "id": "g7",
@@ -106,24 +97,26 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: the stadium gate of the FIRST reference picture, exactly the same place (tall round-topped cream posts with violet bars between them, cream bunting, painted houses and lemon trees behind), warm golden evening light from the LEFT, seen from a little further back. In the FOREGROUND, large, the scuffed Big Yellow stands in front of the gate with the fat ginger CAT sitting on top of it, seen from behind, watching. BEYOND the suitcase, TIMO and LUNA are running away from us through the open gate into a bright golden glow, seen from behind, small, their scarves flying, Timo's tiny teal backpack on his back, Luna's arm in the air. Only Timo, Luna, the suitcase and the cat.",
-   "video": "@Timo and @Luna run away from us through the gate into the golden glow, getting smaller, whooping. The cat sitting on top of the yellow suitcase in the foreground watches them go, then turns its head and looks at the camera, unimpressed. The suitcase does not move. One continuous shot: the camera does not cut. Nobody else appears. Sound: two happy whoops fading, a stadium crowd swelling, one small cat meow."
+   "video": "@Timo and @Luna run away from us through the gate into the golden glow, getting smaller, whooping. The cat sitting on top of the yellow suitcase in the foreground watches them go, then turns its head and looks at the camera, unimpressed. The suitcase does not move. One continuous shot: the camera does not cut. Nobody else appears. Sound: two happy whoops fading, a stadium crowd swelling, one small cat meow.",
+   "pick": 2
   },
   {
    "id": "g8",
    "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INSIDE the football stadium of the same toy world, high up in the top row of a cream stand at golden evening: a plain cream railing in front, warm green-and-gold light shining up from the pitch onto faces, paper streamers in cream and violet drifting down through the air; the other fans are only soft blurred shapes far behind. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
    "refs": [
-    "timo_face",
-    "luna_face",
-    "timo_front",
-    "luna_front"
+    "lineup",
+    "timo_34",
+    "luna_34",
+    "timo_face"
    ],
    "elements": [
     "Luna",
     "Timo"
    ],
    "duration": 4,
-   "still": "THE PICTURE: LUNA on the LEFT and TIMO on the RIGHT stand side by side at the railing, seen from the front, from the waist up, both with their mouths wide open in a huge roar of joy, eyes shining, arms starting to fly up, green-and-gold light on their faces, streamers falling around them. Timo's tiny teal backpack straps on his shoulders; Luna's plain teal scarf; Timo's teal-and-coral scarf. Only Luna and Timo in focus; the fans behind are soft blurred shapes with no faces.",
-   "video": "@Luna and @Timo roar with joy at the same time, a real football-goal roar, throwing both arms up: Luna shouts \"YES!\" and Timo shouts \"GOAL!\" They grab each other's shoulders and jump. Streamers keep drifting down; the light flickers green and gold on their faces. One continuous shot: the camera does not cut. Nobody else appears. Sound: their two shouts, a huge happy stadium roar."
+   "still": "THE PICTURE: LUNA on the LEFT and TIMO on the RIGHT stand side by side at the cream railing, seen from the front, from the waist up, close to the camera, both with their mouths wide open in a huge roar of joy, both arms thrown up, warm golden light on their faces with a soft green glow from the pitch below, a few paper streamers falling. They are EXACTLY the two figures of the reference pictures, in exactly their clothes: TIMO in his teal track jacket with cream sleeve stripes, his thick knitted teal-and-coral striped scarf knotted at his throat, his tiny teal backpack straps on his shoulders, the yellow watch on his left wrist; LUNA with her coral bob, coral football shirt with a cream collar and her long plain teal knitted scarf hanging down. Behind them there are no people in focus: only soft out-of-focus blobs of colour and light, with no faces. Only Luna and Timo.",
+   "video": "@Luna and @Timo roar with joy at the same time, a real football-goal roar, arms in the air: Luna shouts \"YES!\" and Timo shouts \"GOAL!\" Then they grab each other's shoulders and jump up and down, laughing. Streamers drift down. Their clothes and scarves do not change. One continuous shot: the camera does not cut. Nobody else comes into focus. Sound: their two shouts and laughter, a happy stadium crowd in the distance.",
+   "pick": 1
   },
   {
    "id": "g9",
@@ -141,7 +134,8 @@
    ],
    "duration": 4,
    "still": "THE PICTURE: a cobbled street of the football town in warm golden evening light from the LEFT, seen from the side. TIMO walks from right to left pushing Big Yellow in front of him with both hands on its back; LUNA sits on top of the suitcase like a queen, facing forward, both arms in the air, laughing; the fat ginger CAT sits on her lap. Timo is tired but smiling, his tiny teal backpack on his back. We see everyone from head to shoes. Only Timo, Luna, the cat and the suitcase.",
-   "video": "@Timo pushes the suitcase slowly along the street with @Luna sitting on top of it. Luna, arms in the air, calls out, bright and teasing: \"Loser carries!\" Timo, pushing, answers with a tired happy smile: \"Worth it.\" The cat on her lap yawns. One continuous shot: the camera does not cut. Nobody else appears. Sound: the two voices, suitcase wheels rolling on cobbles, evening birds."
+   "video": "@Timo pushes the suitcase slowly along the street with @Luna sitting on top of it. Luna, arms in the air, calls out, bright and teasing: \"Loser carries!\" Timo, pushing, answers with a tired happy smile: \"Worth it.\" The cat on her lap yawns. One continuous shot: the camera does not cut. Nobody else appears. Sound: the two voices, suitcase wheels rolling on cobbles, evening birds.",
+   "pick": 2
   },
   {
    "id": "g10",
@@ -156,7 +150,8 @@
    ],
    "duration": 5,
    "still": "THE PICTURE: the same evening street, a close shot. TIMO in the middle, from the chest up, holds a phone in both hands in front of his chest with its BACK toward the camera (a plain teal case, no logo; the screen is not visible), both thumbs on it, the tip of his tongue between his lips, his eyes glancing sideways to make sure nobody sees. Behind his LEFT shoulder (on the left of the frame) LUNA's head pops in, peeking down at his phone with a huge delighted grin, mouth closed; he has not noticed her. His head is in the LOWER half of the frame; the upper third is only soft evening houses and sky. Only Timo and Luna.",
-   "video": "@Timo types with both thumbs, the tip of his tongue between his lips, taps once, and whispers, pleased with himself: \"Done.\" Right behind his shoulder @Luna says, loud, bright and delighted: \"I saw that!\" Timo freezes, and slowly turns his eyes straight into the camera, stunned, without moving his head. Luna grins. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: soft thumb taps, his whisper, her voice."
+   "video": "@Timo types with both thumbs, the tip of his tongue between his lips, taps once, and whispers, pleased with himself: \"Done.\" Right behind his shoulder @Luna says, loud, bright and delighted: \"I saw that!\" Timo freezes, and slowly turns his eyes straight into the camera, stunned, without moving his head. Luna grins. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: soft thumb taps, his whisper, her voice.",
+   "pick": 1
   }
  ]
 }

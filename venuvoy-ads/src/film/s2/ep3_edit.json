@@ -1,0 +1,413 @@
+{
+ "slug": "pnp-ep3",
+ "title": "Plan, No Plan, ep 3: The Small One",
+ "out": "ads/17-pnp/venuvoy-pnp-ep3-the-small-one",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0,
+  "shake": 0,
+  "sharpen": 0.1,
+  "grain": 1.5,
+  "cap_y": 1230
+ },
+ "sources": {
+  "s1": {
+   "path": "src/film/assets/s2/pilot/clips/s1_t1.mp4",
+   "level": -19
+  },
+  "s2": {
+   "path": "src/film/assets/s2/pilot/clips/s2_t2.mp4"
+  },
+  "s3": {
+   "path": "src/film/assets/s2/pilot/clips/s3_t3g.mp4",
+   "level": -19
+  },
+  "s4": {
+   "path": "src/film/assets/s2/pilot/clips/s4_t2.mp4"
+  },
+  "s5": {
+   "path": "src/film/assets/s2/pilot/clips/s5_t3.mp4"
+  },
+  "s6": {
+   "path": "src/film/assets/s2/pilot/clips/s6_streak.mp4"
+  },
+  "s6b": {
+   "path": "src/film/assets/s2/pilot/clips/s6b_t1.mp4",
+   "level": -19
+  },
+  "s7a": {
+   "path": "src/film/assets/s2/pilot/clips/s7ax_t1.mp4",
+   "level": -19
+  },
+  "s7b": {
+   "path": "src/film/assets/s2/pilot/clips/s7bx_t1.mp4",
+   "level": -19
+  },
+  "prev": {
+   "path": "src/film/assets/s2/ep2/clips/final_t1.mp4"
+  },
+  "carry": {
+   "path": "src/film/assets/s2/ep3/clips/carry_t1.mp4",
+   "level": -19
+  }
+ },
+ "music": [
+  {
+   "file": "src/film/assets/s2/music/bed_ep3_talk.wav",
+   "at": 0.0,
+   "gain_db": 4,
+   "duck_db": 9,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  },
+  {
+   "file": "src/film/assets/s2/music/bed_ep3_drop.wav",
+   "at": 0.0,
+   "gain_db": 8,
+   "duck_db": 0,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  }
+ ],
+ "sfx": [
+  {
+   "file": "src/film/assets/s2/bet/air.wav",
+   "at": 0.0,
+   "gain_db": 0
+  },
+  {
+   "file": "src/film/assets/s2/pilot/extra/whoosh.wav",
+   "at": "pass-0.05",
+   "gain_db": -12
+  }
+ ],
+ "segments": [
+  {
+   "src": "prev",
+   "in": 4.1667,
+   "out": 5.0,
+   "hold": 0.5,
+   "mute": true,
+   "punch": 1.25,
+   "cx": 0.5,
+   "cy": 0.6,
+   "marks": {
+    "prev": 4.1667
+   },
+   "cap": [
+    {
+     "text": "previously: she has his ticket. he won't listen.",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 1.2,
+     "hold": 0.1,
+     "y": 1250
+    }
+   ]
+  },
+  {
+   "src": "carry",
+   "in": 0.2083,
+   "out": 2.8333,
+   "marks": {
+    "carry": 0.2083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "the bet so far: Luna 2, Timo 0",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.4,
+     "hold": 0.15,
+     "y": 330
+    },
+    {
+     "text": "You're losing. You carry it.",
+     "cls": "pnp",
+     "at": 0.12,
+     "len": 2.3,
+     "hold": 0.2
+    }
+   ]
+  },
+  {
+   "src": "s1",
+   "in": 0.7083,
+   "out": 2.75,
+   "marks": {
+    "open": 0.7083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "one towel later",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 1.7,
+     "hold": 0.2,
+     "y": 330
+    },
+    {
+     "text": "Did you bring your whole house?",
+     "cls": "pnp",
+     "at": 0.17,
+     "len": 1.6,
+     "hold": 0.25
+    }
+   ]
+  },
+  {
+   "src": "s1",
+   "in": 4.0,
+   "out": 6.0,
+   "punch": 1.8,
+   "cx": 0.0,
+   "cy": 0.47,
+   "marks": {
+    "small": 4.0
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "It's the small one!",
+     "cls": "pnp",
+     "at": 0.5,
+     "len": 1.3,
+     "hold": 0.15
+    }
+   ]
+  },
+  {
+   "src": "s2",
+   "in": 0.25,
+   "out": 2.4583,
+   "marks": {
+    "hill": 0.25
+   },
+   "gain_db": -7,
+   "cap": [
+    {
+     "text": "overtaken by a cat",
+     "cls": "pnp hook",
+     "at": 0.3,
+     "len": 1.6,
+     "hold": 0.25,
+     "y": 330
+    }
+   ]
+  },
+  {
+   "src": "s3",
+   "in": 0.4167,
+   "out": 2.25,
+   "marks": {
+    "top": 0.4167
+   },
+   "speech": true,
+   "gain_db": 3,
+   "cap": [
+    {
+     "text": "Trust me",
+     "cls": "pnp",
+     "at": 0.2,
+     "len": 0.85,
+     "hold": 0.2
+    },
+    {
+     "text": "No.",
+     "cls": "pnp",
+     "at": 1.36,
+     "len": 0.2,
+     "hold": 0.25
+    }
+   ]
+  },
+  {
+   "src": "s3",
+   "in": 3.0,
+   "out": 4.5,
+   "punch": 1.95,
+   "cx": 1.0,
+   "cy": 0.397,
+   "marks": {
+    "panic": 3.0
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "No, no, no!",
+     "cls": "pnp",
+     "at": 0.0,
+     "len": 1.3,
+     "hold": 0.12
+    }
+   ]
+  },
+  {
+   "src": "s4",
+   "in": 0.2917,
+   "out": 2.0833,
+   "marks": {
+    "drop": 0.2917
+   },
+   "gain_db": 3
+  },
+  {
+   "src": "s5",
+   "in": 0.1667,
+   "out": 2.375,
+   "marks": {
+    "yes": 0.1667
+   },
+   "punch": 1.12,
+   "cx": 0.5,
+   "cy": 0.0,
+   "gain_db": 3,
+   "cap": [
+    {
+     "text": "Yes!",
+     "cls": "pnp",
+     "at": 0.1,
+     "len": 0.6,
+     "hold": 0.3
+    }
+   ]
+  },
+  {
+   "src": "s6",
+   "in": 1.7083,
+   "out": 3.25,
+   "marks": {
+    "cat": 1.7083,
+    "pass": 2.08
+   }
+  },
+  {
+   "src": "s6b",
+   "in": 0.2083,
+   "out": 1.75,
+   "audio_out": 1.98,
+   "a_fade_out": 0.12,
+   "punch": 1.25,
+   "cx": 0.5,
+   "cy": 0.45,
+   "marks": {
+    "taunt": 0.2083
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "Too slow!",
+     "cls": "pnp",
+     "at": 0.1,
+     "len": 1.1,
+     "hold": 0.25
+    }
+   ]
+  },
+  {
+   "src": "s6",
+   "in": 3.5833,
+   "out": 4.4583,
+   "marks": {
+    "meow": 3.5833
+   },
+   "gain_db": -1
+  },
+  {
+   "src": "s7a",
+   "in": 0.5833,
+   "out": 3.3333,
+   "marks": {
+    "gate": 0.5833
+   },
+   "speech": true,
+   "punch": 1.12,
+   "cx": 0.56,
+   "cy": 1.0,
+   "cap": [
+    {
+     "text": "stadium rule: small bags only",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.5,
+     "hold": 0.2,
+     "y": 330
+    },
+    {
+     "text": "I love this suitcase",
+     "cls": "pnp",
+     "at": 0.12,
+     "len": 1.75,
+     "hold": 0.5
+    }
+   ]
+  },
+  {
+   "src": "s7b",
+   "in": 0.2083,
+   "out": 3.75,
+   "marks": {
+    "pat": 0.2083,
+    "eyes": 3.1667
+   },
+   "speech": true,
+   "cap": [
+    {
+     "text": "It can't come in, Timo",
+     "cls": "pnp",
+     "at": 0.1,
+     "len": 2.45,
+     "hold": 0.2
+    },
+    {
+     "text": "he still thinks he has no ticket",
+     "cls": "pnp hook",
+     "at": 3.208,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 215
+    }
+   ]
+  },
+  {
+   "src": "s7b",
+   "in": 3.75,
+   "out": 5.0,
+   "a_fade_out": 0.3,
+   "marks": {
+    "sign": 3.75
+   },
+   "cap": [
+    {
+     "text": "one sentence. the whole football trip.",
+     "cls": "pnp sig",
+     "at": 0.15,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1215
+    },
+    {
+     "text": "VENUVOY",
+     "cls": "vv chip",
+     "at": 0.2,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1392
+    },
+    {
+     "text": "ep 3 · follow for the final",
+     "cls": "pnp brand",
+     "at": 0.2,
+     "len": 0.05,
+     "hold": 6.0,
+     "y": 1492
+    }
+   ],
+   "hold": 1.4167
+  }
+ ]
+}

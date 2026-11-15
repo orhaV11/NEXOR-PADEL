@@ -73,6 +73,8 @@ def wait(rid, every=6, limit=900):
     t0 = time.time()
     while time.time() - t0 < limit:
         code, res = result(rid)
+        if isinstance(res.get("detail"), dict) and res["detail"].get("status"):  # a failed job answers {"detail": {"status": "failed", "error": ...}}
+            res = {**res["detail"], "request_id": rid}
         st = str(res.get("status", "")).lower()
         if st in ("completed", "succeeded", "success") or (code == 200 and output_url(res)):
             return res

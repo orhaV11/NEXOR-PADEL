@@ -4,14 +4,16 @@
 
 A generated track cannot be asked to stop at 12.0 seconds and drop at 12.5. So the film's music is built from the
 track the way a DJ would: blocks lifted on bar lines and laid where the film needs them, with filters standing in
-for the stems we do not have ("bass" = everything under 170 Hz, "tops" = everything above 2.5 kHz, "full" = as is).
+for the stems we do not have ("bass" = everything under 170 Hz, "tops" = everything above 2.5 kHz, "full" = as is,
+"lean" = as is with 6 dB less under 150 Hz, which leaves room to play the rest louder: a phone plays nothing down there).
 
 arrangement.json
   { "track": "src/film/assets/s2/music/A1_0.mp3", "out": "src/film/assets/s2/music/bed_one_night.wav", "length": 28.5,
     "blocks": [ { "at": 0.0, "len": 4.0, "from_bar": 1, "layer": "full", "gain_db": -6 },
                 { "at": 4.0, "len": 4.0, "from_bar": 9, "layer": "bass", "gain_db": -3 }, ... ] }
 
-"from_bar" counts the track's bars from 1 (see beats.py for the bar table); "beat" (0-3) starts inside the bar.
+"from_bar" counts the track's bars from 1 (see beats.py for the bar table); "beat" (0-3, fractions allowed) starts
+inside the bar. "from_s" instead of "from_bar" names a second of the track directly (for its last hit and tail).
 Blocks may overlap (a bass block under a tops block). Every block gets a 12 ms fade at both ends unless "fade_in" /
 "fade_out" say otherwise. Where no block lies the bed is silent: that is how the dead stop before the drop is made.
 """
@@ -43,13 +45,14 @@ def main(path):
     x = load(track)
     a = beats.analyse(track)
     beat, first = a["beat"], a["first_beat"]
-    layers = {"full": x,
+    low150 = sosfiltfilt(butter(4, 150, btype="low", fs=SR, output="sos"), x, axis=0)
+    layers = {"full": x, "lean": x - 0.5 * low150,
               "bass": sosfiltfilt(butter(4, 170, btype="low", fs=SR, output="sos"), x, axis=0),
               "tops": sosfiltfilt(butter(4, 2500, btype="high", fs=SR, output="sos"), x, axis=0),
               "nobass": sosfiltfilt(butter(4, 170, btype="high", fs=SR, output="sos"), x, axis=0)}
     out = np.zeros((int(arr["length"] * SR), 2))
     for b in arr["blocks"]:
-        src_t = first + ((b["from_bar"] - 1) * 4 + b.get("beat", 0)) * beat
+        src_t = b["from_s"] if "from_s" in b else first + ((b["from_bar"] - 1) * 4 + b.get("beat", 0)) * beat
         n = int(b["len"] * SR)
         s0 = int(src_t * SR)
         seg = layers[b.get("layer", "full")][s0:s0 + n].copy()

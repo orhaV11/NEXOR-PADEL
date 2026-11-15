@@ -1,0 +1,607 @@
+{
+ "faults 0-16 s": {
+  "findings": [
+   {
+    "severity": "blocker",
+    "at": "6.0-14.0 (uphill and hilltop shots), against 0.0-6.0 and 14.0-16.0",
+    "what": "Timo's teal backpack disappears for two shots and comes back. Station (0-6): pack on his back, straps over both shoulders, he grips a strap. Uphill (6-9.5): his back and shoulders are in full view and bare. Hilltop (9.5-14): no strap over the shoulder, bare back in the source clip. Ride (14-16): strap and buckle are back; the pack is also there at the gate (23 s). Same class of slip as the 'object that changed hands'.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/backpack.jpg (station 0.83 s, uphill 7.9 s, uphill source, hilltop source side by side); /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/backpack2.jpg (hilltop 9.5 s and 10.75 s, hilltop source, ride 14.0 s); /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/ride_strap.jpg (strap at 14-16). The watcher model, asked to list clothing per shot without hints, also wrote 'No backpack' for shots 2 and 3 (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w7.txt).",
+    "fix": "Generate the uphill clip (s2) and the hilltop clip (s3) again from start pictures in which Timo wears the backpack with both straps visible, and name the backpack in the video prompt. No edit trick hides it: his back is the centre of the uphill picture.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "14.7-16.0 (first ride shot)",
+    "what": "Timo's scream of her name is heard as 'LANA', not 'LUNA'. It is the only time her name is spoken in the film and there is no caption for it.",
+    "evidence": "Word read-back returned 'Lana' on three separate cuts: the film 8-16.5 s, the film 12.5-18.5 s ('No, no, no. Yay! Lana! Yes!'), and the raw source clip s4_t1.mp4 ('Yay! Lana!'). The watcher model, asked twice in different words, wrote 'LAAAAA-NAAAAA (Lana)' and 'LAH-NAH, first vowel ah as in father, name: Lana' (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w4.txt, /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w8.txt). The script asks for 'LUNAAA!'. I cannot hear it myself, hence 'likely'.",
+    "fix": "Generate the clip (or only its sound) again with the scream spelled the way it must sound, e.g. 'LOOO-NAAA' with 'oo' as in moon; or replace it with a wordless scream. Read it back before accepting.",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "9.7-10.4 'Trust me' against 4.5-5.9 'It's the small one!'",
+    "what": "Luna's voice changes between her two lines. 'Trust me' is almost an octave lower and husky; 'It's the small one!' is high and bright. This is the 'voices changed between shots' complaint again.",
+    "evidence": "Pitch measured on the dialogue stem: 'It's the small one!' median 331 Hz (260-475 Hz); 'Trust me' median 188 Hz, falling from 258 to 145 Hz, which overlaps Timo's range (105-150 Hz); her later line at 25-27 s sits at 190-306 Hz. Speaker-likeness between her two lines is 0.51, no higher than between her and Timo (0.41-0.55), while Timo's own lines score 0.60-0.69. The watcher model, played the two lines back to back and told not to be polite, said a stranger 'would definitely think these are TWO different people' (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w9.txt); on a gentler ask it said same actress but noted the drop in pitch (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w6.txt).",
+    "fix": "The hilltop clip has to be generated again for the backpack anyway: ask for the same bright, high, delighted voice as in the first shot, and accept the take only if 'Trust me' measures above about 250 Hz. Otherwise re-voice only those two words.",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "12.5-14.0, worst at 12.5-13.4 (hilltop shot, both formats)",
+    "what": "Timo is cut by the right frame edge while he says 'No, no, no'. From 12.5 s his body crosses the edge; at 12.5-13.4 s the edge runs through his head (ear and back of the head are outside the picture). The suitcase is cut at the left edge at the same time, so both friends sit on the edges with the middle empty. On TikTok the right-hand buttons cover what is left of him.",
+    "evidence": "Full frame at 13.25 s: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/fr/f0318.jpg; right edge 12.3-14.0 s: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/timo_edge.jpg; 4:5 at 13.3 s: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/g_cmp.jpg. Cause: the edit enlarges this shot 1.25x (src/film/s2/one_night.json, 'punch': 1.25); the unenlarged source shows both friends whole (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/src_cmp.jpg, right two panels).",
+    "fix": "Reframe: lower the enlargement on the hilltop shot to about 1.05 or none. The friends span the source from 7% to 98% of the width, so nothing above about 1.08 keeps both whole.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "8.7-9.5 (end of the uphill shot)",
+    "what": "The uphill shot ends on a dead-still picture. After 8.7 s both friends are statues and only the cat's mouth moves (meow 8.75-9.0); from 9.1 to 9.5 s nothing moves at all. It can read as the video stalling just before the cut.",
+    "evidence": "Frame-to-frame difference in the source clip falls from 0.4-0.7 mid-shot to 0.06-0.16 over the last ten frames, with 1 to 5 of 576 picture blocks changing. The watcher model, unprompted on duration, said the picture 'completely freezes like a paused video' and 'ends on a still pose' (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w10.txt). Cat mouth frames: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/cat_up.jpg.",
+    "fix": "Trim: take the shot 0.35 s earlier from the same clip (in 1.15 s, out 4.65 s instead of 1.5-5.0) so it ends just after the meow. The trimmed-off head of the clip shows the same straining, so nothing is lost.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "6.0-9.5 (uphill shot, both formats)",
+    "what": "Luna's head is cut by the left frame edge for the whole shot. At 6.0 s about a third of her bob is outside the picture; later the back of her hair still touches the edge.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/up_a.jpg (6.0, 6.6, 7.2 s) and /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/up_b.jpg; the unenlarged source has her whole (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/src_cmp.jpg, left two panels). Cause: 1.3x enlargement centred at 0.5.",
+    "fix": "Reframe: enlargement about 1.15, or keep 1.3 and move the window left (centre about 0.44).",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "9.5-14.0 (hilltop shot)",
+    "what": "The hilltop shot is paler and cooler than the shots on both sides: it looks like midday between two golden-hour shots.",
+    "evidence": "Measured on frames: mean saturation 0.29 against 0.38-0.43 in station, uphill and ride; red-to-blue ratio 1.27 against 1.44-1.65. Visible in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/cuts.jpg (frames either side of the cuts at 9.5 and 14.0).",
+    "fix": "Re-level the colour of this shot: about 25-30% more saturation and a warmer balance; if it is generated again, ask for the same low golden sun as the station.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "9.5-14.0 and 6.0-9.5 against 0.0-6.0 and 14.0-16.0",
+    "what": "Luna's scarf changes. On the hilltop a long coral end with teal squares hangs down her front to the hip; uphill a long coral-striped end hangs down her back to the knee. In the station (seen from the front) and in the ride she has only the short teal end. The two shots with the coral end are the same two that lost the backpack.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/luna_st.jpg (station), /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/luna_up.jpg (uphill), /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/luna_hill.jpg (hilltop), /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/ride_watch.jpg (ride).",
+    "fix": "When the uphill and hilltop clips are generated again, use start pictures with the scarf exactly as in the station shot (short teal end only).",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "14.0-16.0 (first ride shot)",
+    "what": "Two small design drifts in the ride. The side of the suitcase facing us has only vertical seams, no horizontal ridges, and near-black wheels; uphill the ridges wrap round that side and the wheels are violet. Luna's solid sculpted bob becomes soft locks flying in the wind.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/suitcase.jpg (line-up, station, uphill, hilltop, ride side by side); /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/ride_case.jpg; hair in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/ride_watch.jpg.",
+    "fix": "Accept (two seconds, motion blur), or generate the clip again from a start picture that shows the ridges on the narrow side and ask for the hair to stay one solid shape.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "13.4-14.0 and 15.9-16.1 (the two cuts into and out of the first ride shot)",
+    "what": "Both cuts land in mid-voice. At 14.0 the last 'no' is still sounding 150 ms before the cut and is faded in the last 100 ms. At 16.0 the scream is at full level in the last frame and 'YES!' starts 20 ms after the cut, so the same mouth goes from scream to shout with no gap, like a splice.",
+    "evidence": "Dialogue stem levels: -21 to -28 dB at 13.75-13.875 s, then -66 dB by 13.975 s (the source clip ends there, so there is no more of the word); -17 dB at 15.99 s, -24 at 16.00, -8 at 16.02. The watcher model called the last 'no' 'chopped off' on two separate asks (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w3_hilltop.txt, /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w4.txt) and the 16.0 cut 'jumps abruptly' (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w11.txt).",
+    "fix": "14.0: fine if the interruption is the joke; when the hilltop is generated again ask for the line to end 0.4 s before the clip ends. 16.0: retime the sound only: fade the scream over its last 0.15 s and start 'Yes!' 4-6 frames after the cut.",
+    "sure": "likely"
+   },
+   {
+    "severity": "minor",
+    "at": "10.78-13.95 (caption on the hilltop shot)",
+    "what": "The caption 'No. No, no, no' is on screen in full from 10.78 s, but then only 'No.' is spoken (10.75-11.1). 'No, no, no' is spoken at 12.93-13.9, two seconds after the caption has given it away.",
+    "evidence": "Caption frames: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/cap_no.jpg (identical text from 10.8 to 13.9 s); speech times from the dialogue stem levels and the word read-back.",
+    "fix": "Retime: two captions, 'No.' from 10.78 to about 12.9 s and 'No, no, no' from 12.93 to 13.95 s.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "6.0-9.5 (uphill shot, story)",
+    "what": "The cat does not pass them. It takes about one second of steps (6.0-7.1 s), moving one body length from above Timo's head to above the suitcase, never beyond Luna, then stops and stares. The set-up 'the cat is faster than they are' for the later fly-past is therefore weak.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/cat_up.jpg (every 4th frame, 6.0-9.2 s); the whole source clip shows no more travel (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/s2src_sheet.jpg). The watcher model retold it as 'a ginger cat sits on a low wall watching them' (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/w5.txt). The script asks for the cat to overtake Timo, the suitcase and Luna.",
+    "fix": "Accept (it reads as a judging cat), or, since this clip is generated again for the backpack, ask for the cat to walk the whole wall and leave the frame past Luna.",
+    "sure": "certain"
+   }
+  ],
+  "clean": [
+   "Scope: film time 0.0-16.0 only. The blurred streak at 19.75 is outside my part and I did not check it. I stepped all four shots at 8 frames a second, opened the first and last frame of each, and zoomed at full size on faces, hands, suitcase, cat and edges. 11 of the 12 watcher questions used.",
+   "Cuts at 6.0, 9.5, 14.0 and 16.0 are clean hard cuts: no blended or flash frames, none on a blink (Luna's closed eyes at 9.5 are a held grin). Sheet: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/cuts.jpg",
+   "Frame edges: no band or border on any side. The outer six rows and columns continue the picture at 12 sampled times, including the first and last frame of every shot.",
+   "Freeze and stutter: no repeated frame inside the station, hilltop or ride shots (frame-difference series over all 384 frames). The only single-frame jumps are captions switching on or off (0.88, 2.83, 4.54, 10.58, 10.78, 13.96 s). The uphill tail is reported above.",
+   "Faces: no off-model frames for either friend in any of the four shots. Timo's small lidded eyes, brows and flat-top hold; Luna's bob, freckles and teeth hold (hair in the ride reported above).",
+   "Station: Timo's pointing arm rises and sinks cleanly (0.6-2.8 s), index finger out, other hand on the strap. Luna's hand stays on the handle and her second hand pats the top; finger counts stable, nothing passes through the suitcase.",
+   "Watch: on Timo's left wrist in all four shots, including the pointing arm and under Luna's sleeve in the ride; the face has two hands and no numerals. Sleeve stripe is the same double cream stripe throughout; Timo's own scarf stays coral and teal.",
+   "Uphill: Timo's cheek on the shell, his hand on the suitcase, Luna's two-hand grip, feet and wheels are stable. The cat's legs and tail are clean and it is the same cat face-on (cream muzzle and chest, half-closed green eyes).",
+   "Hilltop: Luna seated on the suitcase, her pointing arm and her patting hand show motion blur only; Timo's two raised palms are clean; his mouth opens on each line.",
+   "Suitcase in station, uphill and hilltop: same size against the friends (about 0.6 of Luna's height), same two pairs of ridges, violet feet, short top handle.",
+   "Letters, numbers, logos: none. Doors, flags, bunting, shirts and the stadium board are blank.",
+   "Sharpness: no shot clearly softer than its neighbours. Edge-contrast ratio 0.65-0.73 for station, uphill and hilltop; the ride reads 0.60 from motion blur. The two enlarged shots lose a little fabric weave, nothing a viewer would call blurry.",
+   "Words: read-back matches the captions for 'Did you bring your whole house?', 'It's the small one!' (one read-back heard 'That's a small one'), 'Trust me' and 'No. No, no, no'. Lips move with all five lines.",
+   "Timo's voice is the same in station and hilltop (123-150 Hz, speaker-likeness 0.60-0.69). The cat's sound at 8.75-9.0 is heard as a meow by the watcher model.",
+   "Music: silent from 12.0 to 14.0 and back on the cut at 14.0, by design; no click at either edge.",
+   "Captions: static, legible, well inside the safe area in 9:16 and not cut in the 4:5.",
+   "Story: the watcher model retold the first 16 seconds correctly without help (her suitcase, pushing it uphill, 'Trust me', his refusal, cut to both riding). Its only open questions were how he got on and where they are going."
+  ],
+  "verdict": "Not ready to show. One blocker and three majors in 0-16 s. Timo's backpack vanishes for the uphill and hilltop shots (6.0-14.0) and returns in the ride: certain. His scream at 14.7-16.0 is heard as \"Lana\", not \"Luna\". Luna's \"Trust me\" is nearly an octave lower than her first line and may read as a different voice. Timo's head is cut by the frame edge at 12.5-13.4 while he speaks.\n\nGenerating the uphill and hilltop clips again (backpack on, station scarf, Luna's bright voice, golden light, cat walking the whole wall) and enlarging them less clears the blocker, two majors and most of the minors. The scream needs a new sound take. The rest are edit changes: trim the still tail at 8.7-9.5, split the \"No\" caption, soften the sound at the 16.0 cut.\n\nThe station shot is clean. Edges, cuts, hands, watch, lettering and sharpness are clean throughout my part.\n\nHousekeeping: I changed nothing in the repository; I only read the work folder, the source clips and the edit spec. A shell slip of mine left three small error-text files outside the scratch folder: /w5.txt, /w6.txt and /w7.txt (804 bytes each). The removal was blocked by a safety check, so they are still there and need deleting by hand. Everything else is in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-a/."
+ },
+ "faults 16-30 s + 4:5": {
+  "findings": [
+   {
+    "severity": "blocker",
+    "at": "cut at 25.00 (gate shot 22.0-25.0 against head-pat shot 25.0-28.5)",
+    "what": "The suitcase is a different suitcase after the cut. In the gate shot its front has three pairs of HORIZONTAL bands, a thin grey handle and scuff marks on the lower half. One frame later, in the same place with Timo still hugging it, its front has VERTICAL grooves, a chunky purple handle and is spotless. It is the same broad face in both shots (about 2.4 Timo-heads wide in each), so it cannot be explained as another side. This is the hero prop, it fills the bottom third of the punchline shot, and it is the same class of slip that got the earlier series rejected.",
+    "evidence": "Last frame of gate shot (f599, 24.958) beside first frame of head-pat shot (f600, 25.000): /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/cut25.jpg. Reference design (horizontal bands) in /home/user/NEXOR-PADEL/venuvoy-ads/ads/17-pnp/cast-lineup.jpg and in the opening shot. The watching model, asked without a hint to compare both shots, answered: grooves horizontal in A, vertical in B, dirty in A, clean in B.",
+    "fix": "Generate the head-pat clip (s7b) again from a start picture that reuses the suitcase exactly as it stands at the end of the gate shot: three pairs of horizontal bands, scuffed lower half, thin grey handle. No trim or reframe hides it, because the suitcase has to be in this shot for the joke.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "16.00-19.00 (second ride shot, all 72 frames)",
+    "what": "Timo's jacket is off-model for the whole shot: bright yellow knitted cuffs on BOTH wrists and no white stripes on the sleeves. In the shots either side (and in the opening) the cuffs are teal and each sleeve carries two white stripes. His arms are up in the air in the middle of frame, so the yellow bands are in plain view; the stripes vanish at the 16.00 cut and come back at 22.00. (The watch stays on his left wrist, correctly.)",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/ride_cuffs.jpg (f396 at 16.50 and f440 at 18.33: yellow cuffs, plain sleeves) against /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/gate_hand.jpg (f560, f599: teal cuff, two white stripes). Every frame of the shot: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/ride_all_a.jpg and ride_all_b.jpg in the same folder.",
+    "fix": "Generate the clip (s5) again from a corrected start picture: teal ribbed cuffs, two cream stripes down each sleeve, yellow only on the watch on his left wrist. A recolour in the edit is risky because the cuffs sit next to the yellow watch and the yellow suitcase.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "19.70-20.90 (cat shot, as the riders pass)",
+    "what": "The shouted line 'Too slow!' cannot be made out in the mix and has no caption, although every other spoken line is captioned. It is the pay-off to the cat overtaking them uphill, so the joke is lost and a viewer is left asking what was said. The whoosh lands on top of the first word.",
+    "evidence": "Word read-back of the sound file alone gives 'Too slow!' on both recognisers. The same 1.6 s cut from the finished film (19.5-21.1) gives 'But you smell.' on one and 'This is slow!' on the other; longer cuts gave 'We're too slow' and 'It's too slow!'. The watching model heard 'Look out!', then 'Listen, slow! / Slow down!', then 'Look out! (or Too fast!)' on three separate viewings. Edit file /home/user/NEXOR-PADEL/venuvoy-ads/src/film/s2/one_night.json places whoosh.wav at pass-0.12 (-5 dB) and tooslow.wav at pass-0.05 (-3 dB), and has no caption for it.",
+    "fix": "Retime and re-level, then caption: start the shout about 0.3 s later (pass+0.25) or drop the whoosh about 6 dB under it, and add the caption 'Too slow!' from about 19.9 to 20.9. Read it back afterwards until the recogniser returns 'Too slow'.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "23.75-24.5 (gate shot)",
+    "what": "The caption 'I love this suitcase' leaves the screen at 23.75 while Timo is still saying the word 'suitcase'. The voice runs on for roughly another half to three quarters of a second with no caption.",
+    "evidence": "Caption measured on frames: on at f532 (22.167), last frame f569 (23.708), gone at f570 (23.750). Word read-back of the source clip puts 'suitcase' at 1.84-2.44 s, which is 23.64-24.24 in the film; the two 's' sounds of the word show as bursts above 4 kHz at 23.60-23.80 and 24.36-24.50. Timeline /home/user/NEXOR-PADEL/venuvoy-ads/work/pnp-one-night/cut-en/timeline.json has the caption t1 at 23.75. The watching model on a 2.5x slowed copy: caption gone at 3.9 s, voice ends at 6.5 s (1.56 s and 2.6 s in real time).",
+    "fix": "Retime the caption: in one_night.json, segment s7a, change the caption 'len' from 1.25 to 2.0 so it holds until about 24.5.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "22.4-24.5 (gate shot)",
+    "what": "Timo's lips do not say the line. His mouth opens and moves only from 22.00 to about 22.35; from 22.42 he holds one fixed toothy grin with his eyes shut while the voice speaks 'love this suitcase' for two more seconds. It can pass as a dreamy murmur, but to a client who was burned by a patched line it will look like a voice laid over a still mouth.",
+    "evidence": "Timo's face every second frame from 22.00: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/timo_mouth.jpg (talking shapes in the first five tiles only, identical grin after). Voice timing as in the caption finding. The watching model on the slowed copy: mouth opening and closing for the first 0.76 s (real time), then 'completely frozen in a fixed smile while the audio continues'. Asked at normal speed it did not notice.",
+    "fix": "Generate the clip (s7a) again asking for him to say the whole line with visible lip movement while still upright, and only then lay his head on the suitcase. If the clip is kept, at least keep the caption up for the whole line (previous finding).",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "4.5-5.9, 9.55-10.4 and 25.2-27.25 (Luna's three lines)",
+    "what": "Luna does not sound like one person across the film. Her first line 'It's the small one!' sits far higher than 'Trust me' and than 'It can't come in, Timo' in my part. Timo's three lines stay close together. I cannot hear, so this needs one human listen, but the numbers and the listener agree, and voices changing between shots was one of the client's reasons last time.",
+    "evidence": "Median pitch measured on the source clips on the exact word windows: Luna 340 Hz ('It's the small one!'), 191 Hz ('Trust me'), 246 Hz ('It can't come in, Timo'), a spread of about ten semitones. Timo 139, 150 and 172 Hz, under four semitones. The watching model, given the six lines back to back and told to be strict, rated the woman 5 out of 5 'clearly different voice profiles' with line 2 the odd one out, and the man 2 out of 5; on a plain viewing of the whole film it said her last line 'sounds like a separate take spliced in'. The speaker-identity tool (voiceid.py) gave 0.60-0.74 for her own lines but also 0.52-0.70 between her and Timo, so it proves nothing either way.",
+    "fix": "Have a person listen to the three lines back to back (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/p_lines.mp4). If confirmed, pass all three of Luna's lines through one voice with a single reference, starting with the outlier 'It's the small one!', or generate that clip again asking for the same calm, medium-pitched voice.",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "cut at 25.00",
+    "what": "Besides the suitcase, the staging and the place change across this cut. Luna jumps from standing at the left of the suitcase, leaning on it, to standing directly behind Timo. The gate changes from two tall round-topped posts that end well above her head, with a purple bar overhead, open gate leaves and a cheering crowd behind, to two posts with ball tops that end at her chin, a low purple rail, and an empty street with no crowd. The cut also lands with Luna's eyes shut (she closes them from about 24.6) and they are wide open on the next frame.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/cut25.jpg: post tops at about y=280 against Luna's head top at y=490 in f599; ball tops at about y=600 against her head top at y=370 in f600. Luna's eyes over the last second of the gate shot: luna_eyes.jpg in the same folder. The watching model: 'an ordinary viewer would likely feel a jump', listing her position, the missing people and the fence.",
+    "fix": "Fold into the same regeneration as the suitcase: build the start picture of s7b from the end of the gate shot (same tall posts and overhead bar, crowd still visible, Luna having stepped round behind him), so only the camera moves.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "28.33-28.50 (last four frames before the end card)",
+    "what": "The cut to the logo lands four frames into a new movement: after half a second of frozen stare Timo's mouth shuts into a pout, his shoulders jump up and his arms jerk, then the card arrives. It plays as a twitch just before the logo, in silence.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/lastframes.jpg (f676 held stare, then f681, f682, f683). Frame-to-frame change on his face stays under 1.4 from f668 to f679, then rises to 2.9, 11.4, 18.0 and 19.1 on f680-f683. The watching model described a movement 'abruptly cut off' by the card. The unused tail of the source clip shows the suitcase changing shape as he clutches it, so extending the shot is not an option: /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/src_s7b_tail.jpg.",
+    "fix": "Trim four frames: in one_night.json set segment s7b 'out' from 3.7 to 3.53, or hold frame f679 for those four frames to keep the length.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "cut at 16.00",
+    "what": "Jump cut on nearly the same axis and size: on the last frame of the first ride shot Timo is screaming with both hands on Luna's shoulders, on the next frame both his arms are straight up and he is laughing with his eyes shut. It can read as the intended 'YES!' beat, but the pose pops, and the jacket change in the same frame makes it worse.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/cut16.jpg (f383 at 15.958, f384 at 16.000, f385). The watching model, asked only to describe him: 'Yes, there is a sudden jump. His pose and mood abruptly snap from fear to pure joy.'",
+    "fix": "Reframe so it reads as a cut-in rather than a jump: enlarge the second ride shot more (punch about 1.45 instead of 1.25, centred on the two faces). It becomes less noticeable once the jacket is corrected.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "17.4-19.0 and 25.0-28.5",
+    "what": "Small drifts in Luna's clothes. In the ride shot her shirt sleeves are plain coral while her arms are up, then both sleeves show a cream hem band once the arms come down (no other shot has it). Her scarf has a coral band at the neck in the ride shot and a coral and teal striped tail at the start of the gate shot, but is all teal with no coral in the head-pat shot.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/luna_sleeve.jpg (f400 plain sleeves; f426 and f450 cream hems), gate_start.jpg (f528 striped scarf tail) and full/f_0600.jpg (all-teal scarf) in the same folder.",
+    "fix": "Correct both in the start pictures when s5 and s7b are generated again: plain coral sleeves, scarf with the coral-striped end as on the cast sheet.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "19.79-19.96 (the streak)",
+    "what": "The blurred riders have a hard, saturated green bar along their bottom edge, about 25 pixels high and 440 wide, where the suitcase wheels should be. It looks like leftover key colour. It is on screen for five frames at the very bottom of the 9:16 picture (rows 1863-1891, under the app's own buttons) and is cropped out of the 4:5 file, so only someone stepping through frames will find it.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/streak_bottom.jpg (f478). Measured colour of the bar about RGB 73,111,18 on f476-f479.",
+    "fix": "Re-level the colour on the streak plate: desaturate or darken the green band to the dark purple of the wheels, or crop the bottom 30 pixels off the streak layer.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "20.4-20.8 (cat shot)",
+    "what": "A dark smudge of shadow curls and crawls across the sunlit patch of cobbles in front of the wall for about ten frames while the cat turns, then vanishes. It reads as the cat's shadow and sits low in the frame, away from the cat's face, so few will see it.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-b/road.jpg (pavement every second frame from f484; the smudge is in f490-f498) and road_full.jpg in the same folder.",
+    "fix": "Optional: hold a clean still of the pavement over the bottom 500 pixels of this shot; nothing else moves there except the streak, which is a separate layer.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "29.92-30.50 (end card sound)",
+    "what": "The beat under the logo does not finish: it stops on a held bass note that is chopped at 30.20, followed by 0.3 s of dead digital silence to the end of the file. The first hit also arrives 0.1 s after the card appears. I cannot hear it; the listener called it cut off on two separate viewings.",
+    "evidence": "Level in 20 ms steps: bass note steady at about -21 dB from 29.94 to 30.14, then -30, -40 and -95 dB by 30.20; digital silence from 30.22. First kick at 28.60 against the picture cut at 28.50. The watching model twice: 'stops suddenly as if cut off in the middle'.",
+    "fix": "Re-level the end of the bed: finish on one last hit and let it ring or fade over about 0.4 s to the end of the film. One human listen to confirm.",
+    "sure": "likely"
+   },
+   {
+    "severity": "minor",
+    "at": "28.5-30.5 in the 4:5 file",
+    "what": "On the 4:5 end card the logo block sits 35 pixels below centre (595 px of space above it, 526 px below). The 4:5 file is a straight crop of the 9:16 at rows 250-1599, and the logo is centred for the tall frame.",
+    "evidence": "Text block in the 4:5 end card spans rows 595-824, centre 709.5 against frame centre 674.5; in 9:16 it is exactly centred (rows 845-1074, centre 959.5; side margins 90 and 91 px).",
+    "fix": "Reframe: for the card segment only, take the 4:5 crop 35 pixels lower (rows 285-1634), or render the card separately for 4:5.",
+    "sure": "certain"
+   }
+  ],
+  "clean": [
+   "Cuts: scene detection puts the cuts in my part exactly at 16.00, 19.00, 22.00, 25.00 and 28.50, as listed.",
+   "Freezes and stutter: frame-to-frame differences for all 359 frames from 15.5 to 30.5 show no repeated or frozen frame in any action shot. The 0.5 s stare at 27.8-28.3 is a live hold (small movement continues on both faces).",
+   "Frame edges: outer 8 rows and columns of every frame from 16.0 to 30.5 in 9:16 and of all 732 frames of the 4:5 file show no band or border. The one reading at the bottom of the 4:5 file at 11-13 s is a cobblestone joint, not a band.",
+   "Second ride shot 16-19, all 72 frames at full size: both faces stay on model (eyes, teeth, freckles, hair), hands have five digits with no melting, the watch stays on Timo's left wrist, the suitcase keeps its shape and purple wheels, the street slides past without morphing.",
+   "Cat shot 19-22: same cat as the cast sheet (ginger, cream chest and muzzle, grumpy face), four legs and one tail through the turn at 20.2-20.5, face clean. Reaction order reads well: startled at 19.75, flinch, then turns to look after them.",
+   "The streak 19.79-20.04 (six frames): travels right to left in front of the wall and under the cat, never crossing the cat. Slowed down, the watching model named it without a hint as two people riding a yellow suitcase, with high confidence.",
+   "Gate shot 22-25: posts, overhead bar and gate leaves hold steady through the shot. The background figures do not pop in; they are uncovered as Timo lowers his head. Timo's hand on the suitcase and Luna's leaning hand are clean. Watch face is a plain dial with two hands, no numerals.",
+   "Head-pat shot 25-28.5: background static, Luna's patting hand and thumb hand clean, Timo's two hands on the suitcase clean, eyes snap open at 27.5 right after the line ends at about 27.2. Luna's lips move with 'It can't come in, Timo' (mouth open 25.2-25.75, 'o' shape at 26.8-27.1). Caption on 25.25 to 27.42, covering the whole line.",
+   "Letters, numbers, logos in the picture: none on doors, shirts or the watch. The only logo-like shape is a blurred pinwheel in a window behind the gate, out of focus and stable.",
+   "End card: 'VENUVOY' and 'football trip app' spelled correctly, static from its first frame, exactly centred in 9:16 with 90 and 91 px side margins.",
+   "Sharpness: the ride shot and the cat shot measure softer than the gate shots, but side by side at full size none is visibly soft.",
+   "Music: the bed stops hard at 18.93 for the cat shot and returns at 22.1. The watching model heard this as a deliberate comedy pause, not a dropout. The silence at 27.8-28.5 before the logo is the same device.",
+   "Timo's voice: his three lines measure close in pitch (139, 150, 172 Hz) and the watching model heard one actor.",
+   "Story in my part: a first-time retelling by the watching model matched the intended plot and the ending joke.",
+   "Light and screen direction across my cuts: warm backlight throughout; the riders come toward camera, cross right to left past the cat, and the cat looks left after them.",
+   "4:5 file, twelve moments plus a 2 fps pass of the whole film: it is a fixed crop of the 9:16 at rows 250-1599. No face is cut. The headline sits 48 px under the top edge and is whole. All captions are whole with at least 106 px side margins. Timo's raised hands at 16.0-17.3 come within 5 to 40 px of the top edge but are not cut (the watching model's claim that they are cut is wrong). In the head-pat shot the bottom edge slices his hugging hands; the shot still reads.",
+   "Watching-model questions used: 11 of 12."
+  ],
+  "verdict": "Not ready to show. My part (16.0-30.5 and the 4:5 file) has one slip of exactly the kind that sank the last series: the suitcase changes design across the 25.00 cut (horizontal bands and scuffed, then vertical grooves and spotless). Behind it are six major items: Timo's jacket has yellow cuffs and no sleeve stripes for the whole 16-19 shot; the 'Too slow!' shout at 19.7-20.9 cannot be understood and has no caption; the 'I love this suitcase' caption leaves about half a second before the line ends; his lips are frozen for most of that line; Luna's voice sits in a different register from shot to shot (needs one human listen); and Luna and the gate both change at the 25.00 cut. Fixing it means generating two clips again (the head-pat shot s7b and the second ride shot s5, ideally also the gate shot s7a for the lips) and four quick edit changes: caption length, the shout's timing plus a caption, a four-frame trim before the logo, and the end-card sound tail. Faces, hands, the cat, the streak, frame edges, the end card and the 4:5 framing are otherwise clean."
+ },
+ "cold-viewer panel": {
+  "viewers": [
+   {
+    "who": "(a) 21, basic English, sound OFF (shown the muted copy)",
+    "retell": "\"A girl brings a big yellow suitcase and her male friend complains it is too big while pushing it up a hill. Then they ride down the hill sitting together on the suitcase, but at the stadium gate she tells him the suitcase is not allowed inside.\" Read all six dialogue captions, the hook and the end card correctly. Calls him Timo (from the caption) and her 'the girl with pink hair'.",
+    "understood_1_10": 7,
+    "enjoyed_1_10": 5,
+    "confused": [
+     "6-9 s: a suitcase with wheels should roll, yet they struggle as if it weighs a ton",
+     "14-18 s: riding one suitcase down cobbles looks impossible",
+     "19-21 s: 'a giant round cat sitting on a wall feels random and adds nothing to the story' - did not see the riders pass (no whoosh or shout to help with sound off)",
+     "25-27 s: not clear why the suitcase cannot go in until you notice the stadium behind"
+    ],
+    "kids_advert_or_tiktok": "Advert made for TikTok (vertical, very short, 3D, ends on a brand screen). Names it: VENUVOY football trip app. Watch another: no. Send to a friend: no - 'it is just an app commercial'.",
+    "best": "16 s: both ride with arms in the air",
+    "worst": "28 s: Timo's sudden sad face when he learns it cannot come in"
+   },
+   {
+    "who": "(b) 24, travels to matches abroad, swipes away from anything fake or advert-like",
+    "retell": "\"Two friends struggle to drag a massive yellow suitcase up a hill to a football stadium, only to ride it downhill like a sled. Once they reach the stadium entry, the girl tells him he can't bring a huge bag inside.\" Luna = 'annoying and smug'; Timo = 'dramatic, clueless, soft'.",
+    "understood_1_10": 8,
+    "enjoyed_1_10": 2,
+    "confused": [
+     "5-9 s: why drag a huge suitcase up a steep hill right before a match",
+     "10-13 s: misread the route - thought they were already at the top facing the stadium and that riding down takes them away from it",
+     "14-18 s: two adults on a plastic suitcase over cobbles without crashing",
+     "22-25 s: nobody who goes to matches thinks a suitcase gets past stadium security"
+    ],
+    "kids_advert_or_tiktok": "'A cheap advert trying to pass as a TikTok video'; the shiny 3D 'looks like a mobile game or a kids show'. Says he would swipe at 0:02 on the look alone. Watch another: no. Send: no - 'they would roast me for sharing an ad'.",
+    "best": "15-18 s: the ride ('the only bit with actual movement')",
+    "worst": "25-28 s: the punchline about bag rules 'felt flat and forced', predictable"
+   },
+   {
+    "who": "(c) 19, does not follow football",
+    "retell": "\"A girl brings a giant suitcase that they struggle to haul uphill, so they ride it downhill like a sled to reach a stadium. Once they arrive at the entrance, she tells him the huge bag isn't allowed inside.\" Luna = mischievous, impulsive; Timo = dramatic, gullible, easily excited.",
+    "understood_1_10": 9,
+    "enjoyed_1_10": 3,
+    "confused": [
+     "4-5 s: she calls it 'the small one' when it is almost as tall as she is (took the joke as an oddity)",
+     "14-18 s: sliding smoothly down rough cobbles on suitcase wheels",
+     "25-27 s: she brought giant luggage to a stadium gate without checking"
+    ],
+    "kids_advert_or_tiktok": "'A TikTok ad disguised as a kids' 3D cartoon'. Names VENUVOY as a travel app. Watch another: no. Send: no - 'animation is cheesy and the jokes are bland'.",
+    "best": "19-21 s: 'the angry fat cat gets startled on the wall' (does not say by what)",
+    "worst": "5-9 s: 'they groan awkwardly while dragging the suitcase uphill'"
+   },
+   {
+    "who": "(d) 22, posts on TikTok daily, merciless about brands acting young",
+    "retell": "\"A girl overpacks a huge yellow suitcase for a short trip, and she convinces her friend to ride it down a steep hill like a scooter. They arrive at a stadium only to realize security won't let the oversized suitcase inside.\" Luna = chaotic, over-optimistic; Timo = sensible and anxious but easily dragged into stupid ideas. Skips the uphill completely.",
+    "understood_1_10": 9,
+    "enjoyed_1_10": 2,
+    "confused": [
+     "0:06: struggling with a rolling suitcase 'as if wheels don't exist'; movement looks floaty",
+     "0:14: riding a hard-shell case down cobbles at speed",
+     "0:25: why drag it to a stadium gate without checking the bag policy"
+    ],
+    "kids_advert_or_tiktok": "'An advert disguised as a kids cartoon' - 'glossy 3D claymation and polished sound design scream corporate brand budget'. Dated or try-hard: the over-enthusiastic voice acting, 'the corporate Relatable POV caption style from 2020' (the hook line), forced wholesomeness. Native to TikTok: 'absolutely nothing, except maybe keeping the video short'. Watch another: no. Send: no.",
+    "best": "0:19: 'the grumpy orange cat judging them'",
+    "worst": "0:04: 'the painfully fake laugh and forced voice acting' (Luna's 'It's the small one!')"
+   },
+   {
+    "who": "(e) 45, parent, English not first language",
+    "retell": "\"A girl and a man struggle to bring a huge yellow suitcase up a hill to a football match. They ride down the hill on the suitcase, but then they learn the suitcase is not allowed inside the stadium.\" Luna = energetic, playful, slightly foolish; Timo = easy to convince, 'gets attached to things easily'.",
+    "understood_1_10": 8,
+    "enjoyed_1_10": 3,
+    "confused": [
+     "5-9 s: no sense in pushing it uphill just to go down again",
+     "14-18 s: looks fake and unsafe",
+     "20-21 s: 'the cat moves unnaturally and looks like cheap 3D software'",
+     "25-28 s: why pack a huge suitcase for one night and bring it to a stadium entrance",
+     "Could not follow the 'fast background music lyrics' (vocal chops in the track); found the word VENUVOY confusing"
+    ],
+    "kids_advert_or_tiktok": "Advert made for TikTok (vertical, short, ends with a product name). Watch another: no - 'the logic is stupid'. Send: no - 'just a commercial and not funny'.",
+    "best": "14-18 s: riding down together",
+    "worst": "25-28 s: being told it cannot enter 'after they worked so hard'"
+   },
+   {
+    "who": "(f) 12 years old",
+    "retell": "\"A guy makes fun of a girl for bringing a giant yellow suitcase on a trip, but then they both end up riding it down a big hill together. At the bottom, he loves the suitcase, but she tells him he can't take it into the football stadium.\" Luna = cheeky, stubborn; Timo = dramatic, 'changes his mind really quickly'. The only viewer who retold his change of heart.",
+    "understood_1_10": 8,
+    "enjoyed_1_10": 4,
+    "confused": [
+     "5-8 s: 'a tiny hill' and it has wheels, so it should not be that hard",
+     "14-18 s: it would just crash",
+     "19-21 s: 'a random cat suddenly appears on a wall making weird noises, totally out of place'",
+     "25-28 s: why bring a huge suitcase to a stadium entrance"
+    ],
+    "kids_advert_or_tiktok": "Advert made for TikTok (vertical, short, text top and bottom). Watch another: no - 'it is just a commercial'. Send: no - 'not funny enough to share'.",
+    "best": "14-18 s: sliding down the hill on the suitcase",
+    "worst": "19-21 s: 'it cuts to an angry fat cat watching them for no reason'"
+   }
+  ],
+  "intended_retell_matched": "No viewer matched the intended retelling in full: 0 of 6. The spine got through to all six (giant suitcase, rode it downhill, not allowed in at the stadium). The cat thread got through to none.\n(a) sound off: NO. Has her suitcase, the uphill push, the ride, the gate refusal. Missing: the cat overtaking them, shooting past the cat (called the cat 'random'), the hug, 'one night'.\n(b) travelling fan: NO. Has uphill, ride, gate refusal. Missing: whose suitcase and 'one night', both cat beats, the hug; also misread the route (thought the ride went away from the stadium).\n(c) non-fan: NO. Has her suitcase, uphill, ride 'to reach a stadium', gate refusal. Missing: both cat beats (liked the startled cat but never said what startled it), the hug.\n(d) TikTok poster: NO. Has overpacking for a short trip, ride, gate refusal. Missing: the uphill push, both cat beats ('cat judging them'), the hug.\n(e) parent: NO. Has uphill, ride, gate refusal, and half the hug ('gets attached to things'). Missing: both cat beats, 'so slow that' as the reason for riding (saw up-then-down as pointless).\n(f) 12-year-old: NO, but closest. Has his mockery of her suitcase, the ride, 'he loves the suitcase', the stadium refusal. Missing: the uphill push, both cat beats ('a cat watching them for no reason').\n'Too big to go in' was read by all six as 'not allowed in / bag rules', which is close enough; nothing in the picture shows it being too big.",
+  "patterns": [
+   "GOOD, 6 of 6: the spine is understood, including with sound off (understood 7 to 9). Everyone saw a stadium and named 'VENUVOY football trip app', even the non-fan. Nobody was lost about where it ends.",
+   "GOOD: the ride (14.25-19.25) is the best moment for 4 of 6 (a, b, e, f); the cat's face for the other 2 (c, d). The two characters read the same way to everyone: she is cheeky and chaotic, he is anxious, dramatic and easily won over.",
+   "BAD, 6 of 6: the cat thread is lost. Nobody retold the cat overtaking them or them shooting past it; a and f called the cat random (f's worst moment). Follow-up 1 on the whole film: the watcher saw the cat at 5-9 and 19-22, said nothing crossed the picture and 'the cat has nothing to do with their story'. Shown shot 2 alone it did name the joke, so the gag is readable only when you are pointed at it.",
+   "WHY the cat fails, measured: in shot 2 the cat moves about 15 percent of the frame width, from above the suitcase to between suitcase and Luna, then stops and looks; it never passes Luna. The take used is entered at 1.5 s and punched in 1.3x, which removes the part of the clip where the cat comes from behind Timo. In shot 6 the riders are on screen for 7 to 8 frames (20.00-20.30 s, about 0.3 s), blurred, in the lower half; in the 4:5 crop the suitcase is almost cut off. Caveat: the watcher samples few frames a second and cannot see a 0.3 s streak, so its 'nothing crossed' is weak proof about people; the weak staging of the overtaking is not.",
+   "BAD, the 'Too slow!' shout at 19.95 s (a separately made sound file laid over the cat shot): not captioned, speaker not on screen, and three listens gave three phrases - word read-back 'You're too small, bro', the watcher 'TOO SLOW!' on the whole film and 'Look out!' on the cut piece. Follow-up 2 called it a 'disembodied voice ... high-pitched, screechy male voice ... out of nowhere'. Measured pitch of the file is about 560 Hz against about 150-190 Hz for Timo's spoken lines and 370-400 Hz for Luna's. This is the patched-line and changed-voice class the client rejected before. Fairly sure.",
+   "BAD, 6 of 6 said advert (most: 'advert made for TikTok' or 'ad disguised as a kids cartoon'), 0 of 6 said it feels like something from TikTok, 0 of 6 would watch another or send it. Stated reason almost every time: it ends on a brand screen, 'it is just a commercial'. Nothing on screen says this is a series or names it 'Plan, No Plan'. Enjoyment 2 to 5; the roles were told not to be kind, so treat the numbers as role-play, but the reason is consistent.",
+   "BAD, 5 of 6 tripped on logic: wheels should make it easy (a, d, f), why go up just to come down (b, e), why bring a suitcase to a stadium (b, c, d, e, f). The causal link 'so slow, so they rode it' is not perceived; only c used the word 'so'.",
+   "VOICES (follow-up 2, where d called the acting fake, c the groans, and the others said nothing): all captioned lines are heard as written and judged clear over the music. Flagged: Luna's 'Trust me' at 9.5 s 'flatter and drier ... abruptly inserted' (measured about 270 Hz against 370-400 Hz for her other two lines, and the bed under it sinks to -33 to -39 dBFS); Timo's last 'no' at 12.5-14 s 'like a completely different voice actor or a stock sample spliced in' (it follows 0.2 s of digital silence, -84 dBFS at 12.3-12.5); most natural line: 'Did you bring your whole house?'. Single listener that sometimes invents, so medium confidence, but both points agree with measurement.",
+   "NAMES: all six call him Timo (caption at 25.4 s); nobody learned her name. The one time it is said, Timo's scream at about 15.2 s, was heard as 'Lana' by the read-back and 'La-la!' by the watcher, and it has no caption. 'Yes!' at 16.4 s is also uncaptioned.",
+   "MUSIC (one listener): 'upbeat corporate synth-pop ... sounds like stock library music or a children's app', not a current TikTok sound; it does react to the action (stop before the ride, thin for the cat, stop on his open eyes). Measured: for the first 4 s the bed sits near -29 dBFS under voices at -16 to -21; there is no music at 12.3-14.25 and 27.4-28.75 and next to none at 19.25-22.25; only the ride (14.25-19.25) is loud. For a film whose brief is fun trendy music, the music is barely there for roughly 13 of 30 seconds, including the opening.",
+   "TIKTOK-NATIVENESS: d called the hook line 'When your friend packs for one night' a 'corporate Relatable POV caption style from 2020'; it also stays up for the full 6 s on top of the stadium, so the destination is hidden in shot 1 (and cropped out in 4:5).",
+   "PRODUCTION SLIPS seen in stills, not raised by any viewer, high confidence: (1) Timo's backpack is on in shot 1 (0-6), gone in shot 2 (6-9.5) and shot 3 (9.5-14.25), back as a strap at 16.25-19.25, large and obvious at 22.25-25.25, not visible at 25.25-28.75. (2) Luna's scarf is plain teal in shot 1 and at 25.25-28.75, teal with coral bands or a coral block panel in shots 2, 3, 5 and 7. (3) The gate changes between 22.25-25.25 (flat-topped posts, slatted doors, building and blurred fans behind) and 25.25-28.75 (ball-topped posts, violet railing, houses and lemon trees, no fans); the suitcase is scuffed in the first and spotless in the second. The watcher said 'same place, same suitcase', which the frames contradict.",
+   "CLEAN, checked: the yellow watch is on his left wrist in every shot; no object changes hands; nothing intrudes at a frame edge; every caption appears within about a quarter second of its line; no black frames. Small notes: the film is 30.75 s and the cuts fall at 6.0, 9.5, 14.25, 16.25, 19.25, 22.25, 25.25, 28.75 plus a jump to another take at 27.42, whose 1.4x punch-in cuts Luna's face across the eyes for the last 1.3 s (her face is gone entirely in 4:5). Read-back heard 'It's a small one' under the caption 'It's the small one!' - low confidence, worth one listen by a person.",
+   "Evidence is in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-panel/ : the twelve answers as ans_a.txt to ans_f.txt and ans_q7_cat.txt, ans_q8_voices.txt, ans_q9_music.txt, ans_q10_catpiece.txt, ans_q11_uphill.txt, ans_q12_gate.txt; stills backpack.jpg, scarf.jpg, timo.jpg, streak.jpg, uphill.jpg, close.jpg, gatebg.jpg, cut2742.jpg, c45.jpg; sound picture spec.png. All 12 watcher questions were used."
+  ],
+  "top_changes": [
+   "EDIT - make the cat thread land, both ends. Shot 2 (6.0-9.5): start the take at 0.0-0.3 instead of 1.5 and drop the 1.3x punch, so the cat is seen coming from behind Timo and walking past him and the suitcase (the full frame also keeps Luna's whole head and the floodlights); put one short on-screen line on the cat's look-back at about 8 s. Shot 6: hold the laid-in riders two to three times longer than the present 7-8 frames and higher in frame so the 4:5 crop keeps the suitcase, and caption the shout 'TOO SLOW!' from 20.0 s for about a second.",
+   "EDIT - fix or remove the laid-in 'Too slow!' voice. At about 560 Hz it sounds like neither character and was heard as three different phrases. Re-make it at Timo's pitch (his shouted 'no' sits around 280 Hz) with street air under it, or cut the voice and let the caption, whoosh and the cat's 'mrrow' carry the beat. As it stands it is the one thing in the film most likely to be called a patched line.",
+   "EDIT - end card and names, so it reads as episode 1 of a series and not a 2-second advert. Put the series title 'Plan, No Plan' and an episode mark on the card with Venuvoy as the maker, plus one line tying the joke to the app (stadium bag rules). Caption Timo's scream 'LUNAAA!' at about 15.1-16.3 s and 'YES!' at 16.4 s so her name is learned once and his change of heart reads with sound off. Shorten the hook caption to about 2.5 s so the stadium behind it is seen.",
+   "ONE NEW CLIP - the gate wide shot (22.25-25.25). Regenerate it with the same gate as the close shot that follows (ball-topped posts, violet railing, houses behind, no crowd), the suitcase in the same clean or dusty state, visibly wider than the opening or jammed in it so 'too big' is shown and not only said, and Timo's backpack matching the neighbouring shots. One clip removes three continuity slips and gives the sound-off viewer the reason. For the backpack in shots 2 and 3, newer takes that show it exist in the clips folder (s2_t2, s3_t3); I have not screened them.",
+   "EDIT - sound mix. Bring the groove in audibly from the first frame (it is near -29 dBFS for the first 4 s) and keep a light layer through the cat shot and into the card; keep a bed of street air under the two comic stops so 'Trust me' and the last 'no' do not sit in digital silence; audition the two other prepared beds against the current one with a real young listener, since the only listener asked described it as stock or children's-app music. On the last 1.3 s ease the punch-in from 1.4x to about 1.15-1.2 so Luna's laughing face is in frame with his shocked one - the un-punched take already has both, and that reaction is the character interaction the film is short of."
+  ]
+ },
+ "sound and captions": {
+  "words": "Times are for the file now at the delivery path (rendered 08:36, 30.75 s). Times come from the level curve of the clip-sound stem; words from two speech recognisers run on the final mix in pieces of 10 s or less, and from the watching model with the captions covered. The watching model heard the earlier 08:22 render, which is identical up to 9.5 s and runs 0.25 s earlier from the ride on.\n\n0.03 thud (laid-in effect).\n0.85-2.50 TIMO: \"Did you bring your whole house?\" Both recognisers and the watcher agree. Script: same.\n3.3-4.1 LUNA giggles; three pats on the lid (3.30, 3.70, 4.00).\n4.58-5.85 LUNA: \"It's the small one!\" Recognisers split between \"It's the small one\" and \"It's a small one\"; the watcher wrote \"It's a small one\" both times the caption was covered. Script: \"This is the small one!\"\n6.0-8.0 both puff and grunt. 8.05-8.60 no clip sound at all. 8.65-9.12 the cat: one loud meow.\n9.63-10.12 LUNA: \"Trust me\" (both recognisers). Script: same.\n10.90-11.32 TIMO: \"No.\"\n12.50-14.00 TIMO: \"No, no, no\", with thumps between (both recognisers: three \"no\"). Script: same.\n14.25-15.0 a whoop (\"Woo!\" / \"Whee!\") and the start of Timo's scream. 15.05-15.45 the scream peaks: both recognisers read \"Lana!\"; the watcher wrote \"Nooo!\" twice and \"Lana!... Noooo!\" once. Script: \"LUNAAA!\"\n16.25-16.55 \"Yes!\" (both recognisers; the watcher once gave it to the girl).\n16.6-19.2 laughter in separate bursts.\n20.00-20.10 pass-by burst from the clip. 20.20-20.35 \"Too\", 20.55-21.10 \"slow!\" (the laid-in shout). Alone the recording reads \"Too slow!\". In this mix the recognisers read \"We're too slow!\", \"You're too slow, friend\" and \"This is slow!\"; in the 08:22 mix neither read it. The watcher wrote \"Too slow!\" twice and \"Look out!\" / \"Look out below!\" / \"Watch out!\" three times.\n21.65-22.18 the cat: meow.\n22.35-24.05 TIMO: \"I love this suitcase\" (\"I\" drawn out to 22.7). Both recognisers and the watcher agree.\n25.38-27.40 LUNA: \"It can't come in, Timo\" (both recognisers; one spells \"Teemo\").\n27.60-27.65 a short sound; 27.75-28.75 laughter (recogniser: \"[LAUGH]\"). New in this render and not listened to. In the 08:22 render this was Timo's \"Huh?\" at 27.55 and then near silence.\n28.78-29.95 LUNA laughs \"ha ha ha ha ha\" under the logo. 30.45-30.75 silence.\n\nNo scripted line is missing and there is no extra spoken line. The differences from the script: \"This is\" became \"It's\" and the article after it is unclear; the name in the scream is not heard as \"Luna\".",
+  "captions": [
+   {
+    "text": "When your friend packs for one night (headline, two lines, top)",
+    "on": "0.00 (complete by 0.04)",
+    "off": "6.00, on the cut",
+    "matches_speech": "Not spoken. Wording as in the edit list.",
+    "readable": "Time is enough: 7 words, 6.0 s. From 0.92 to 2.83 s it shares the screen with the first spoken caption. 9:16: y 232-434 px (12-23 % of height), x 206-876, no face, but it lies on the stadium rim that Timo points at. 4:5: starts 44 px from the top edge."
+   },
+   {
+    "text": "Did you bring your whole house?",
+    "on": "0.92",
+    "off": "2.83",
+    "matches_speech": "Yes. Spoken 0.85-2.50, same words.",
+    "readable": "Not comfortably: 6 words need about 2.3 s and it is up 1.92 s, while the 7-word headline is also up (13 words in the first 2.8 s). 9:16: y 1302-1461 (68-76 %), x 174-906, clear of faces, the bottom fifth and the right strip. 4:5: 78-90 % of the height, inside the bottom fifth."
+   },
+   {
+    "text": "It's the small one!",
+    "on": "4.54",
+    "off": "6.00, on the cut",
+    "matches_speech": "On time (spoken 4.58-5.85). The article is doubtful: heard as \"a small one\" by the watcher twice with captions covered and by one recogniser, as \"the\" by the other. Script: \"This is the small one!\"",
+    "readable": "Borderline: 4 words need about 1.7 s and it is up 1.46 s. Position clear: y 1304-1359, x 184-897. 4:5: 78-82 % of the height."
+   },
+   {
+    "text": "Trust me",
+    "on": "9.58",
+    "off": "10.71",
+    "matches_speech": "Yes. Spoken 9.63-10.12 (new take in this render).",
+    "readable": "Yes: 2 words, 1.13 s. Clear position, x 366-710."
+   },
+   {
+    "text": "No. No, no, no!",
+    "on": "10.96",
+    "off": "14.21, one frame before the cut",
+    "matches_speech": "Yes. \"No.\" 10.90-11.32, \"No, no, no\" 12.50-14.00. It comes on 0.06 s after he starts and shows all four from the first one, 1.5 s before the other three are said.",
+    "readable": "Yes: 3.25 s. Clear position, x 247-833."
+   },
+   {
+    "text": "I love this suitcase",
+    "on": "22.42",
+    "off": "24.00",
+    "matches_speech": "Yes. Spoken 22.35-24.05.",
+    "readable": "Just: 4 words need about 1.7 s and it is up 1.58 s. Over the suitcase, x 174-907, no face."
+   },
+   {
+    "text": "It can't come in, Timo",
+    "on": "25.42",
+    "off": "27.42, on the cut",
+    "matches_speech": "Yes. Spoken 25.38-27.40.",
+    "readable": "Just: 5 words need 2.0 s and it is up 2.0 s. x 108-973: the right end is 106 px from the edge, so the \"o\" of Timo is inside the right-hand button strip. It sits directly under Timo's chin and touches it, without covering eyes or mouth. 4:5: 78-82 % of the height."
+   },
+   {
+    "text": "[no caption] Too slow!",
+    "on": "none",
+    "off": "none",
+    "matches_speech": "Spoken 20.20-21.10 and left uncaptioned by design.",
+    "readable": "Not applicable. This is the one line listeners get wrong (first finding on the film itself)."
+   }
+  ],
+  "findings": [
+   {
+    "severity": "major",
+    "at": "whole film",
+    "what": "The file at the delivery path was replaced while this check ran, so the listening proof does not cover what is now on disk. All 12 listening questions were asked on the 08:22 render (30.5 s). At 08:36 a new render (30.75 s) took its place: the hilltop uses another take (s3_t2 instead of s3_t1) and the gate close-up another take for picture and sound (s7b_t1, with s7b_t3 mute for the eyes). The new \"Trust me\", \"No. No, no, no\", \"It can't come in, Timo\" and all sound after 27.4 s have been measured and read back, never listened to. The edit list changed again at 08:37 (not rendered), and new takes were still arriving at 08:56 (s3_t3, s2_t2, s4_t2, s7a_t3).",
+    "evidence": "md5 ca9c27e6... (08:22) against 1852ffee... (08:36). Cross-correlating the stems with the clip audio gives a 1.000 match with s3_t2 and s7b_t1 in the new file and with s3_t1 and s7b_t3 in the old one. Both renders are kept in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/ (film916.mp4 and v2/film916.mp4).",
+    "fix": "Freeze the cut, then repeat four listening questions on the frozen file: hilltop 9.5-14.25, the ending 25.25-30.75, and each character's lines back to back.",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "20.0-21.1 (shout as they pass the cat)",
+    "what": "\"Too slow!\", the pay-off of the cat joke, is not understood and not heard as Timo. The watcher wrote \"Look out!\", \"Look out below!\" or \"Watch out!\" three times out of five, and gave the voice once to the cat, once to the girl and once to \"a young man or boy\". The recognisers read the recording alone as \"Too slow!\" but in the mix as \"We're too slow!\", \"You're too slow, friend\" and \"This is slow!\". The shout is pitched at about 565 Hz, against 122-170 Hz for Timo's spoken lines and 378 Hz for his own scream. It has no caption.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a1.txt, a2.txt, a4.txt, a5.txt, a11.txt. The clip's pass-by burst at 20.00-20.10 is the loudest 50 ms of the clip sound (-8 dBFS) and ends 0.1 s before \"Too\".",
+    "fix": "Smallest: add the caption \"Too slow!\" from 20.2 to 21.4 s and take 6 dB off the pass-by burst. Proper: generate the shout again in Timo's range; the two spare recordings sit just as high (449 and 525 Hz).",
+    "sure": "certain"
+   },
+   {
+    "severity": "major",
+    "at": "22.75-24.0",
+    "what": "Timo says \"love this suitcase\" through one fixed toothy grin with his eyes closed. Only the drawn-out \"I\" (22.35-22.7) has a moving mouth. It reads as a voice laid over a still face. The clip is the same in both renders.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/fr/timo_mouth_22.jpg (every frame of the shot; times there are 0.25 s earlier). Watcher: \"lip sync entirely absent for 'love this suitcase'\".",
+    "fix": "Generate the clip again, asking for the line to be spoken with the mouth clearly forming the words before the eyes close and the head goes down; or check the new take s7a_t3 for this. A retime cannot fix it.",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "whole film, worst at 0-4.5 and 25.25-27.4",
+    "what": "On a phone speaker the music all but disappears, and it is not proven to sound current. Nearly all its level is bass under 150 Hz. Above 300 Hz it sits 14 dB under the screams on the ride, 10-18 dB under the clip sound elsewhere, and has nothing at all under Luna's last line. In the first 4.5 s the whole music is only about -33 dBFS. Asked blind, the watcher called it \"royalty-free stock music, EDM-lite vlog background, mixed quietly\"; with the picture it called it a current Afro-pop social beat.",
+    "evidence": "Ride: music -16.4 dBFS full band, -31.4 above 300 Hz; clip sound -17.9 above 300 Hz. Gate close-up: music -82 dBFS above 300 Hz. /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a3.txt, a8.txt, a12.txt.",
+    "fix": "Re-level with EQ: lift the beds about 6 dB and cut the same amount below 150 Hz so the peaks stay put. The lines have 13 dB or more of room in the speech band. Then judge on a phone at half volume.",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "4.58-5.85, 9.63-10.12, 25.38-27.40 (Luna); 10.9-14.0 (Timo)",
+    "what": "Luna's voice across shots is unproven in the current file. In the 08:22 render she was three voices: the watcher said \"DIFFERENT VOICES\" (child-like squeak, low adult, medium deadpan), matching measured pitch of 350, 189 and 245 Hz. That is the fault the client rejected before. The two replaced takes now give 350, 274 and 387 Hz, and her first and last lines match on the voice-similarity tool (0.83). \"Trust me\" is still the lowest and too short to measure well. Timo's new \"No, no, no\" is at 287 Hz against 122 Hz for his first line (the old take was 146 Hz); the tool still scores it as him (0.67-0.68).",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a10.txt and a2.txt (old render); pitch and similarity measured on both renders' clip-sound stems.",
+    "fix": "Listen to each character's lines back to back on the frozen file. If \"Trust me\" still stands apart, take it from a take in her high register.",
+    "sure": "unsure"
+   },
+   {
+    "severity": "major",
+    "at": "8.65-9.12 and 21.65-22.18",
+    "what": "The two cat sounds are the loudest things in the film: -8.7 and -7.8 LUFS momentary. Every spoken line is between -11.5 and -16.0, and the ride peaks at -8.3. The second meow is 4.5 dB louder than \"I love this suitcase\", which follows 0.2 s later. The script asks for \"one small mrrp\" and \"one small surprised mrrow\".",
+    "evidence": "Momentary loudness of the final mix of the current file. Watcher on the uphill shot: \"noticeably louder, sharper... a bit sudden and startling\" (/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a9.txt); in another answer it called both fine.",
+    "fix": "Re-level: take 6 dB off the cat in both shots (s2 from 8.6 s, s6 from 21.6 s).",
+    "sure": "likely"
+   },
+   {
+    "severity": "major",
+    "at": "27.42-28.75 (current render only)",
+    "what": "After the cut to Timo's open eyes, the sound comes from a different take than the picture. A high laugh (about 400 Hz) runs from 27.75 s while Luna's mouth stays closed until 28.3 s and Timo's mouth is the one that is open. Timo's own \"Huh?\", which sat exactly on his eyes in the 08:22 render, is gone. Not listened to.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/v2/fr/m_s7c.jpg; level curve of the clip-sound stem; recogniser reads \"[LAUGH]\".",
+    "fix": "Listen first. If the laugh seems to come from Timo: start it at 28.3 s where her mouth opens, and unmute take s7b_t3 for 0.3 s at 27.5 s to get his \"Huh?\" back.",
+    "sure": "unsure"
+   },
+   {
+    "severity": "minor",
+    "at": "4.58-5.85",
+    "what": "The joke line is heard as \"It's a small one\"; the caption says \"It's the small one!\" and the script \"This is the small one!\". With the caption visible the watcher wrote \"the\", so reading steers the ear. \"It's the\" is fast and lands on the entry of the bass riff at 4.60 s.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a1.txt and a8.txt (\"the word is 'a', pronounced clearly\"); one recogniser reads \"a\", the other \"the\".",
+    "fix": "Leave the caption as it is. If shot 1 is generated again, ask for \"THE\" to be stressed.",
+    "sure": "likely"
+   },
+   {
+    "severity": "minor",
+    "at": "0.0-6.0",
+    "what": "Too much to read at the start. Timo speaks at 0.85 s, not after two seconds as the script planned, so the headline is never read alone. His caption is up 1.92 s (needs about 2.3) and Luna's 1.46 s (needs about 1.7). A muted viewer who reads the headline first loses Timo's line.",
+    "evidence": "Caption frames 22-67 and 109-143 measured in the film; speech 0.85-2.50 and 4.58-5.85.",
+    "fix": "Retime: hold \"Did you bring your whole house?\" until 4.3 s. Nothing is said between 2.5 and 4.58 s.",
+    "sure": "likely"
+   },
+   {
+    "severity": "minor",
+    "at": "14.25 (the drop)",
+    "what": "The music restarts on the very sample of the cut, but only with a quiet pickup. The first heavy kick and bass hit lands 0.14-0.15 s later (14.39-14.40), about 3.5 frames after the cut. The scream does start on the cut. It was the same in the 08:22 render.",
+    "evidence": "Music stem under 150 Hz: -27 dBFS at the cut, -12 dBFS from +150 ms. The watcher said \"exactly on the cut\" once and \"slightly after\" once.",
+    "fix": "Retime: slide the drop bed 0.14 s earlier (trim its first 0.14 s) so the kick sits on the cut frame.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "12.30-12.52, 8.05-8.60, 16.6-19.2",
+    "what": "There is no bed of natural sound. Between events the clip sound drops to -65 to -90 dBFS, so the music stop leaves 0.2 s of near-digital silence (-79 to -86 dBFS) before \"No, no, no\". On the hill only music is left for half a second, and on the ride there is no wheel rumble between the laugh bursts. The last 0.3 s of the file is true zero after the final hit, which is fine for the loop.",
+    "evidence": "Final mix below -70 dBFS at 12.30-12.50. Watcher: \"the wheel rolling sound... is severely under-mixed/absent\".",
+    "fix": "Lay one quiet air and crowd bed (about -40 dBFS) under the whole film and a wheel rumble under 14.25-19.25.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "25.42-27.42; all captions in the 4:5 crop",
+    "what": "Caption edges. \"It can't come in, Timo\" runs to x=973, 106 px from the right edge, so the \"o\" of Timo sits under the app's right-hand buttons. In the 4:5 crop every spoken caption sits at 78-82 % of the height (the two-line one to 90 %), inside the bottom fifth, and the headline starts 44 px from the top. In both formats the headline lies on the stadium rim.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/v2/fr/cap_end.jpg and /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/v2/fr/misc.jpg; measured text boxes.",
+    "fix": "Reframe: break the last caption into two lines or set it smaller; in the 4:5 export raise the spoken captions about 110 px.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "4.58-5.85, 9.63-10.12, 22.35-24.05, 25.38-27.40",
+    "what": "By full-band level four lines are less than 6 dB above the music: \"It's the small one!\" 2.2 dB, \"Trust me\" 2.9, \"I love this suitcase\" 3.1, \"It can't come in, Timo\" 4.6. It is all bass: in the speech band every line is 13 dB or more above the music, and both recognisers read them from the mix. \"Did you bring your whole house?\" (14.2 dB) and \"No.\" (12.2 dB) pass; \"No, no, no\" is in the stop.",
+    "evidence": "Stem levels per line, current file: full band, K-weighted (5.3, 6.0, 7.2 and 9.7 dB for the four lines) and 300-3400 Hz.",
+    "fix": "The same EQ as for the phone finding (less below 150 Hz under the lines) covers it.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "15.05-15.45",
+    "what": "The scream is never heard as \"Luna\": both recognisers read \"Lana!\", the watcher \"Nooo!\" twice and \"Lana!... Noooo!\" once. One answer called it \"a stock library panic scream pasted into the scene... a different performer\"; two others called it clean and fitting. Nothing in the story depends on the name.",
+    "evidence": "/tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-sound/w/a1.txt, a2.txt, a6.txt.",
+    "fix": "None needed for this film. If the name matters for the series, generate shot 4 again with a clear \"Luuuna\".",
+    "sure": "likely"
+   },
+   {
+    "severity": "minor",
+    "at": "9.63-10.12",
+    "what": "\"Trust me\" is the quietest line, -16.0 LUFS momentary against -11.5 to -13.7 for the others, and \"me\" is 8 dB under \"Trust\". In the current render she starts 0.13 s after the cut. Both recognisers still read it.",
+    "evidence": "Momentary loudness and 50 ms level curve of the current file.",
+    "fix": "Re-level: +3 dB on the line; if the take allows, start the shot 3-4 frames earlier.",
+    "sure": "certain"
+   },
+   {
+    "severity": "minor",
+    "at": "0.03",
+    "what": "The opening thud starts with a one-sample jump of 0.44 of full scale, 2.8 times the largest step around it. It is the only click-like edge in the film and sits on the loop point. No cut has a click. The watcher noticed nothing.",
+    "evidence": "Final mix samples at 0.030 s: 0.019 then 0.454.",
+    "fix": "Add a 2-3 ms fade-in to the synth thud.",
+    "sure": "unsure"
+   }
+  ],
+  "heard": "All 12 questions were asked on the 08:22 render; two of its shots have since been replaced.\n\nVoices. Timo: a young adult man, mid-to-low, General American, \"clean studio\" sound. The watcher called his four spoken lines one voice both times (\"SAME VOICE\"), which fits the measured pitch of 122-170 Hz. Luna: both times it said the voice changes. \"It's the small one\" was child-like, squeaky and sing-song; \"Trust me\" adult, low and calm; \"It can't come in, Timo\" young adult, medium and deadpan. Verdict: \"DIFFERENT VOICES\" (measured 350, 189 and 245 Hz). With the picture blacked out it heard two voices: a man doing a \"straight-man cartoon voice\" and a woman \"high-pitched, squeaky, hyperactive... like an anime character\".\n\nUnderstanding. Every captioned line was written down correctly except \"a small one\". \"Too slow!\" was the only line it called hard to understand.\n\nMouths. Fine for Timo's first line and for Luna's lines in shot 1 and at the gate; \"entirely absent\" for \"love this suitcase\".\n\nMusic. With the picture: \"modern Afro-pop / dance-pop... current social-video beat\". Blind, and told to be picky: \"royalty-free stock music, EDM-lite vlog background\", \"mixed quietly\"; yet it guessed the clip to be \"an ordinary creator's funny video\", not an advert or a children's show. It heard no chant and no clap pattern on the ride. The first four seconds were \"quite quiet... can be quiet on low-volume phone speakers\", clearly audible from 4-5 s. The drop was \"exactly on the cut\" once and \"slightly after\" once; measured, it is 0.14 s after.\n\nMix. It found nothing distorted and missed any wheel sound on the ride. The quiet before the logo read as a deliberate pause. It called the laugh on the logo \"pitch-shifted / processed, chipmunk-like\" twice; that laugh has since been replaced.\n\nHow far to trust it. It contradicts itself on pitch (\"Trust me\" was \"high, childlike\" in one answer and low or mid-range in two), on how loud the opening music is and on how the music ends, and it invented picture details in the cat shot. I relied on it only where two answers agree or a measurement backs it.",
+  "verdict": "Not ready to show, and not signed off: the film was replaced under the check, and the changed shots (hilltop 9.5-14.25, everything after 25.25) have been measured but not listened to.\n\nSolid in both renders:\n- All six captioned lines are read back word for word from the final mix by two recognisers, apart from the doubtful \"the\"/\"a\" in Luna's first line; each caption appears within 0.07 s of the voice.\n- Loudness is -14.1 LUFS with a true peak of -1.9 dB; no clipping, no click at any cut, mono-safe.\n- The music stop is a true full stop (12.30-14.25) and restarts on the cut sample.\n- Timo's four spoken lines are one voice (heard in the 08:22 render); Luna's mouth matches her shot 1 line and her last line.\n\nWhat a viewer or the client would trip on, most serious first:\n1. \"Too slow!\", the pay-off of the cat joke, is heard as \"Look out!\" and not as Timo.\n2. Timo says \"I love this suitcase\" through a frozen grin.\n3. On a phone speaker the music nearly vanishes, and blind it was called stock music. The trendy music the client asked for is not audibly there.\n4. Luna was three different voices in the 08:22 render. The replaced takes measure much closer, but nobody has listened.\n5. Both cat sounds are the loudest things in the film.\n6. The new ending plays a laugh from another take while only Timo's mouth is open.\n\nThe rest are small retimes and re-levels.\n\nOutside my remit, seen in the frames: at the cut at 27.42 s Luna's hands change position between the two takes, and at 28.3-28.75 s the top of the frame cuts her face at the mouth. The 08:37 edit list already changes that framing."
+ },
+ "TikTok native": {
+  "first_second": "A thumb slows, but I do not think it stops. Frame 0 is a static two-shot of Luna, Timo and the yellow suitcase with no text on it: the top line \"When your friend packs for one night\" only arrives on frame 1 (0.04 s), so the default cover frame is textless. Nothing moves until Timo lifts his finger at about 0.75 s, and the first word comes at about 0.95 s. Sound in that second is one hit at 0.02 s and a vocal chop at 0.42 s, at roughly -19 to -26 dBFS RMS against -10 to -13 in the ride, and there is no steady kick until 4.6 s (the listening model did call the opening a bright vocal-chop hook, so something is there, but it is quiet). For it: the picture is warm and clean and the suitcase is a strong block of colour, so it looks expensive at a glance. Against it: it reads at once as a 3D brand cartoon. The top line is the right format (\"when your friend...\") but it is set in the same round, bubbly, navy-outlined type as the subtitles, with wide word gaps, which reads like a brand template and not like text typed in the app. It also tells the joke that Timo's first line then repeats. It sits at 15-23% of the height, clear of the app's top bar, and disappears on the cut at 6.0 s.",
+  "would_swipe_at": "Around 3 s. Timo's line ends near 2.4 s and Luna's does not start until about 4.1 s; in between they stand, she giggles, and the level falls to about -27 to -32 dBFS. If I stayed, the next exit is 11.4 to 12.5 s: the dead second between \"No.\" and \"No, no, no!\", with the music already gone. The first thing that actually happens, the ride, arrives at 14.25 s, which is 46% of the way through. From there it holds until 28.75 s, when the cream logo card comes up and there is no reason to sit through its 2 seconds. I would not let it loop: the last 2.3 s are a logo and then silence, and nothing pulls me back to the start.",
+  "good_do_not_touch": [
+   "The cat. The walk-past and meow at 6.0-9.5 s set it up; at 19.25-22.25 s the grumpy face, the eyes popping as they pass (frame 480, 20.0 s) and the meow on an open mouth at 21.75 s pay it off. It is the most shareable thing in the film and should be in every episode.",
+   "The cut into the ride as an idea: music out, \"No, no, no!\", then the kick and Timo's scream land on the first ride frame at 14.25 s exactly (measured). The listening model described the scream as about 0.8 s, comic, not distorted. Keep the frame-accurate drop; only the lead-up needs trimming.",
+   "Music pulled out for the cat (19.25-22.25 s) and for the punchline (from about 26.8 s), with Timo's eyes snapping open in near silence at 27.42 s. That is how comedy edits in the app are built.",
+   "The look: low warm sun, the coral, teal and yellow palette, the suitcase as the hero object, and the scuffs on it after the ride (22.25-25.25 s).",
+   "The story reads. Asked cold to retell it, the watching model got the owner, the destination, the reversal (\"I love this suitcase\") and the bag-rule punchline right. It is a kind viewer, but there was no confusion.",
+   "Caption size and height: capitals about 55 px (2.9% of the frame height), lines at 68-76% of the height, clear of the app's bottom text. Only \"It can't come in, Timo\" is too wide, running to 90% of the width where the right-hand buttons start.",
+   "Timo's last image, 28.46-28.71 s: the pout with both hands clamped on the suitcase. It is the funniest frame in the film and it is on screen for 6 frames."
+  ],
+  "cringe_or_dated": [
+   "The music, on the only evidence I have, since I cannot hear it. Asked twice in different words, the listening model guessed \"royalty-free library music for a brand advert\" both times, described pitched vocal chops over clean commercial pop, and placed it in 2016-2019. I measure about 136 BPM with an off-beat kick, so it may have been meant as garage, but it is not being heard as a sound people use. The request was trendy and fun; this is the part furthest from it.",
+   "Four giggles from Luna in 30 seconds (about 3.3, 17, 25 and 28.5 s), the last one laughing over the logo, plus a \"Wheee!\" at 14 s that the listening model picked as the most childish sound in the film.",
+   "The 1.7 s \"No, no, no!\" (12.52-14.2 s). On the spectrogram it is one long sliding wail: stage acting, not how a person says no. He also finishes it before the cut, so the drop interrupts nothing.",
+   "17.8-19.25 s: Luna drops her arms and gazes up at Timo while he fist-pumps. The ground stops blurring, the ride goes soft, and it looks like a couple in an advert.",
+   "A static logo card to finish, with crowd cheering under it.",
+   "A top line in sentence case that explains the joke before the dialogue does."
+  ],
+  "kids_or_advert_tells": [
+   "Caption type: round, bubbly, navy-outlined, in the same family as the VENUVOY wordmark. It is the biggest \"made by a brand\" and \"made for children\" signal on screen. Nothing is typed the way a person types: no lower case, no label box, no pop.",
+   "End card, 28.75-30.75 s: cream background, wordmark, \"football trip app\". It never says \"Plan, No Plan\", gives no episode number and has nothing to do with the joke. It is an advert sign-off glued onto a sketch.",
+   "The sound ends by being chopped: crowd and beat cut at 30.45 s, then 0.3 s of digital silence before the loop.",
+   "Luna's first line is high and squeaky next to her lower \"Trust me\" (listening model). With the toy town, bunting and lemon trees, that pushes the first shot toward pre-school television. The stadium bag-rule punchline is the grown-up part of the film.",
+   "The whoosh at about 19.4-20.1 s was classed as a stock cartoon effect by the listening model; it classed every other effect as realistic.",
+   "The suitcase streak past the cat (19.96-20.37 s, 10 frames, right to left) is lemon-neon, not the golden yellow of the real suitcase, and has no ground shadow. The watching model said twice that it looks like a flat blurred picture slid over the shot. At speed, with eyes on the cat, I think it passes, but it is the one obvious composite."
+  ],
+  "changes": [
+   "Tighten to about 22 s and start in motion (edit only; times are in the current film). Trim the first 0.7 s so frame 0 already has the top text and Timo's raised finger, with his line starting by 0.25 s. Remove 2.6-3.9 s between the two lines. Take the uphill shot from 3.5 s to about 2.5 s, keeping the cat's meow. Close the gap between \"No.\" (ends 11.4 s) and \"No, no, no!\" (starts 12.52 s) to about 0.3 s, and cut to the ride during the last \"no\" (about 13.9 s) so the drop interrupts him. Lose 18.3-19.25 s of the ride and the last 0.5 s of the cat. The ride then lands near 9.5 s instead of 14.25 s.",
+   "Replace the logo card with a held last frame (edit only). Freeze frame 689 (28.71 s, the pout with both hands on the suitcase) for about 0.9 s, put a small VENUVOY wordmark and \"Plan, No Plan - ep 1\" on it, and end the sound on one clean hit with no crowd, no laugh and no silent tail. The film then finishes on its best image and restarts straight into Timo's line.",
+   "Change the track and keep the cut map (music choice). Bass and a recognisable hook from frame 0, out on \"No.\", drop on the first ride frame, out for the cat, out for the eyes. Test each candidate with the same blind question I used (\"with no picture, where does this music come from?\") and reject it until the answer stops being \"library music for an advert\".",
+   "Retype and retime the text (edit only). Plain app-style type: a semi-bold grotesque, white with a thin black edge or in a white label box. Top line in lower case, present on frame 0, reworded so it does not repeat the dialogue, for example \"she said she packed light\". Show \"No.\" at 10.96 s and \"No, no, no!\" only when it is spoken (today the whole line is up 1.5 s early). Bring \"It's the small one!\" forward from 4.54 s to about 4.1 s. Hold \"I love this suitcase\" to 24.7 s; it leaves at 24.0 s while \"suitcase\" is still being said. Add big shaking \"LUNAAA!\" at about 15.1 s and \"YES!\" at about 16.3 s over the ride, which also covers the shout sounding like \"Lana\". Break \"It can't come in, Timo\" onto two lines.",
+   "One new clip plus two patches, for the client's eye. Regenerate the final close shot (25.25-28.75 s) from a start picture that carries the scuffed, horizontally ribbed suitcase and the tall gate posts of the shot before it, with Luna's whole face in frame (in the 4:5 crop her head is cut off completely from 27.42 s) and a longer hold on the clutch. In the edit: colour-match the suitcase in the streak to the golden yellow and add a ground shadow, and fill the 0.2 s of dead silence at 12.30-12.50 s."
+  ],
+  "post_text": "she said it was the small one. ep 1 of Plan, No Plan #awaydays #matchday #footballtrip #animation\n\nPinned first comment from the account: the cat is in every episode.",
+  "score_1_10": 5.5,
+  "verdict": "Not ready to show yet, but one edit pass away. As a post it is pretty, clear and slow: it looks like a brand's cartoon, is heard as a brand's music, and ends like a brand's advert. The plot is no longer the problem. I give it 5.5 now and would expect 7.5 to 8 after changes 1 to 4.\n\nSlips a careful client can find (seen in full-size frames or measured, unless marked):\n- Suitcase: the ribs run horizontally at 0-6, 9.5-14.25 and 22.25-25.25 s, as a grid at 6-9.5 s, and vertically at 25.25-28.75 s, where the scuffs from the shot before also vanish.\n- Gate: tall posts with a top bar and fans behind at 22.25-25.25 s; ball-topped posts, railings and houses at 25.25-28.75 s. The blurred figures behind the gate go from one to three.\n- Timo's cuffs are yellow at 16.25-19.25 s and teal with cream stripes everywhere else.\n- Luna's scarf has coral end bands at 6-9.5 s and 22.25 s and is plain teal elsewhere (fairly sure).\n- Sound: 0.2 s of digital silence at 12.30-12.50 s where the leftover music is chopped; hard chop at 30.45 s.\n- Luna's first word is swallowed: read back as \"It's a small one\" and \"That's the small one\", and dropped entirely on one pass.\n- Timo shouts \"Lana\", not \"Luna\" (both word readers and the listening model, twice).\n\nNot verified: whether each character keeps one voice between shots. The listening model says yes for both. The voice-comparison tool could not tell, because music sits under every line; Timo's two cleanest lines score 0.76, which is the same voice. I found nothing wrong with hands or faces on a 4-frames-a-second pass plus finer passes on the ride and the ending.\n\nThe film runs 30.75 s, and from the ride on every cut sits 0.25 s later than the shot list (14.25, 16.25, 19.25, 22.25, 25.25, card at 28.75). I used all 12 questions to the watching model.\n\nEverything is in /tmp/claude-0/-home-user/6c5eacab-9362-529e-a035-ffc0b493a7b7/scratchpad/proof-native/ (contact sheets in sheets, frames in full, spectrograms in audio, the model's answers in answers)."
+ }
+}

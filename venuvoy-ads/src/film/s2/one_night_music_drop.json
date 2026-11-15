@@ -1,25 +1,24 @@
 {
- "track": "src/film/assets/s2/music/A1_0.mp3",
+ "track": "src/film/assets/s2/music/jersey_1.mp3",
  "out": "src/film/assets/s2/music/bed_one_night_drop.wav",
- "length": 30.5,
+ "length": 26.333333333333332,
  "blocks": [
   {
-   "at": 14.0,
-   "len": 5.0,
-   "from_bar": 9,
+   "at": 10.5,
+   "len": 4.0,
+   "from_s": 14.235,
    "layer": "full",
    "gain_db": 0,
-   "fade_in": 0.002,
-   "fade_out": 0.03
+   "fade_in": 0.002
   },
   {
-   "at": 28.5,
-   "len": 1.62,
-   "from_bar": 17,
+   "at": 25.0833,
+   "len": 1.25,
+   "from_s": 59.855,
    "layer": "full",
-   "gain_db": -6,
+   "gain_db": -3,
    "fade_in": 0.002,
-   "fade_out": 0.06
+   "fade_out": 0.25
   }
  ]
 }

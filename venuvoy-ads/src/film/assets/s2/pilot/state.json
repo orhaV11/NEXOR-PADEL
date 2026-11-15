@@ -2,13 +2,13 @@
  "stills": {
   "s2": {
    "1": {
-    "url": "https://cdn.muapi.ai/outputs/generated/8e8fd765-67d9-4ce6-ba4b-275f8ff541ab_1f1d606d.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/ddd087b0-a764-4975-b5ea-c40b2f03ad98_de36cdae.jpg"
    },
    "2": {
-    "url": "https://cdn.muapi.ai/outputs/generated/fb29ecb9-63fc-4e7a-ba3e-c2112b6d724f_b91d6326.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/c366bd51-96c0-4d36-a21c-67733e3a08d2_27c2cd9a.jpg"
    },
    "3": {
-    "url": "https://cdn.muapi.ai/outputs/generated/50978ffc-b255-4f2b-be3b-a2c406943ac1_15bbcee8.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/97ee47ef-16b3-44b0-9524-467d2753a31d_2562f1c0.jpg"
    }
   },
   "s4": {
@@ -54,13 +54,13 @@
   },
   "s3": {
    "1": {
-    "url": "https://cdn.muapi.ai/outputs/generated/c17bbf87-35d4-42d6-836d-e32839987c3f_55d10552.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/4078fc79-4edb-4b68-99d4-2f7e135d6365_5d15610f.jpg"
    },
    "2": {
-    "url": "https://cdn.muapi.ai/outputs/generated/dc843e63-db98-436d-90fb-8d952eff5538_3fefd4ed.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/23c90695-1808-4276-89ad-d429965eb212_4d59c010.jpg"
    },
    "3": {
-    "url": "https://cdn.muapi.ai/outputs/generated/ee249905-e2d0-4471-bac3-37ca9e54e16e_25bb842d.jpg"
+    "url": "https://cdn.muapi.ai/outputs/generated/99aa36f3-b8ba-45a1-ba8c-cff203a0a9cf_dd81c462.jpg"
    }
   },
   "s7a": {
@@ -84,6 +84,17 @@
    "3": {
     "url": "https://cdn.muapi.ai/outputs/generated/d002cf32-b3c9-4f63-8865-365a467c033e_f6d65d25.jpg"
    }
+  },
+  "s6b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/6e45594e-3956-4121-96bc-32c6a9826b7b_e39d66f3.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/cac99f4c-1b40-43b3-abdc-3b74e0025544_befb379a.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/34cfc4b4-6146-4fba-ad3f-36c3a3190360_f2f10175.jpg"
+   }
   }
  },
  "clips": {
@@ -95,9 +106,16 @@
      "file": "src/film/assets/s2/pilot/clips/s2_t1.mp4",
      "pick": 1,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The friends strain against the heavy yellow suitcase, which hardly moves on the steep cobbles: @Luna leans back and pulls its handle with both hands, puffing; @Timo pushes with both hands and his shoulder, his cheek flat against the yellow shell. Along the top of the wall behind them @Cat strolls calmly uphill from right to left and overtakes them: it passes above Timo, above the suitcase, above Luna. Both friends' eyes follow the cat as it passes; their heads stay still. Ahead of them the cat stops and looks back at them once, unimpressed. The friends and the suitcase stay where they are. Sound: small wheels grinding slowly on cobblestones, both friends puffing with effort, trainers slipping, one small 'mrrp' from the cat. Nobody speaks."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/74ea9716-168c-4903-950e-1ffa0104452e_f5659002.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s2_t2.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The two friends strain against the heavy yellow suitcase, which hardly moves on the steep cobbles: @Luna leans back and pulls its handle with both hands, puffing; @Timo, his little teal backpack on his back, pushes with both hands and his shoulder, his cheek flat against the yellow shell. They keep straining and puffing for the whole clip, never standing still. Along the top of the wall behind them @Cat strolls calmly uphill from right to left, at an easy walking pace, all the way along the wall: it passes above Timo, above the suitcase, above Luna, and keeps walking until it is ahead of Luna, where it turns its head back to look at them once, unimpressed, without stopping. Both friends' eyes follow the cat as it passes; their heads stay still. Sound: small wheels grinding slowly on cobblestones, both friends puffing with effort, trainers slipping, one small 'mrrp' from the cat. Nobody speaks."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s2_t1.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s2_t2.mp4"
   },
   "s6": {
    "takes": [
@@ -131,9 +149,23 @@
      "file": "src/film/assets/s2/pilot/clips/s3_t1.mp4",
      "pick": 2,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, sitting on the suitcase and pointing down the hill, says with a huge grin: \"Trust me.\" @Timo, both palms up, answers at once: \"No.\" Luna pats the empty half of the suitcase top behind her twice, inviting him to sit. Timo shakes his head and says: \"No, no, no.\" and takes one step back. Luna keeps grinning without a sound. The suitcase does not move. Sound: a far crowd and drums rising from below, two hollow pats on the suitcase, their two voices."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/1b7b925d-6e2e-4dfd-a914-a9eacadd0304_9a291fd5.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s3_t2.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, sitting on the suitcase and pointing down the hill, says with a huge cheeky grin, warm and playful: \"Trust me.\" @Timo, both palms up, answers at once, alarmed, his voice jumping up: \"No.\" Luna pats the empty half of the suitcase top behind her twice, inviting him to sit. Timo shakes his head hard and says faster and higher, half laughing, half panicking, like a real person who knows he is about to lose: \"No, no, no!\" and takes one step back. Luna keeps grinning without a sound. The suitcase does not move. Both voices are lively, natural, acted performances full of feeling, never flat or robotic. Sound: a quiet sunny street, two hollow pats on the suitcase, their two voices."
+    },
+    {
+     "take": 3,
+     "url": "https://cdn.muapi.ai/outputs/generated/1c3df21d-3368-4995-941c-35710c64ee84_6af1b67c.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s3_t3.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, sitting on the suitcase and pointing down the hill, says with a huge cheeky grin, in a bright, high, delighted voice: \"Trust me.\" @Timo, both hands raised, answers at once, alarmed, his voice jumping up: \"No.\" Luna pats the empty half of the suitcase top beside her twice, inviting him to sit. Timo shakes his head hard and says faster and higher, half laughing, half panicking, like a real person who knows he is about to lose: \"No, no, no!\" and takes one small step back, staying inside the frame. He finishes speaking half a second before the end of the clip. Luna keeps grinning without a sound. The suitcase does not move. Both voices are lively, natural, acted performances full of feeling, never flat or robotic. Sound: a quiet sunny street, two hollow pats on the suitcase, their two voices."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s3_t1.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s3_t3.mp4"
   },
   "s4": {
    "takes": [
@@ -143,9 +175,16 @@
      "file": "src/film/assets/s2/pilot/clips/s4_t1.mp4",
      "pick": 1,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The two friends ride the big yellow suitcase fast down the steep cobbled street straight towards us; the camera races backwards just ahead of them; houses and lemon trees streak past; the suitcase bumps over the cobbles. @Timo, behind, clings to @Luna's shoulders with both hands, eyes huge, and screams her name as one long terrified scream: \"LUNAAA!\" @Luna, in front, keeps both arms high in the air and whoops with joy, her hair and scarf flying. They stay on the suitcase the whole time. Sound: his long scream, her whoop, small wheels roaring on cobblestones, wind."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/e1190ce0-b01b-4382-84f3-6c76fad1155e_a90f826e.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s4_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The two friends ride the big yellow suitcase fast down the steep cobbled street straight towards us; the camera races backwards just ahead of them; houses and lemon trees streak past; the suitcase bumps over the cobbles. @Timo, behind, clings to @Luna's shoulders with both hands, eyes huge, mouth wide open, and screams one long terrified wordless scream: \"AAAAAH!\" @Luna, in front, keeps both arms high in the air and whoops with joy: \"Wooo!\" Her hair stays one solid sculpted shape; her scarf flies. They stay on the suitcase the whole time. Sound: his long wordless scream, her whoop, small wheels roaring on cobblestones, wind. No words are spoken."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s4_t1.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s4_t2.mp4"
   },
   "s5": {
    "takes": [
@@ -162,9 +201,16 @@
      "file": "src/film/assets/s2/pilot/clips/s5_t2.mp4",
      "pick": 2,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The two friends ride the big yellow suitcase fast down the steep street straight towards us; the camera races backwards just ahead of them; the houses streak past. @Timo is now laughing as hard as @Luna: he shouts a joyful \"Yes!\" and laughs out loud, and both pump their raised arms twice. Luna, laughing, looks up at him over her shoulder and he looks down at her. They stay on the suitcase. Sound: his shout \"Yes!\" and his big laugh, her laugh, small wheels roaring on cobblestones, wind."
+    },
+    {
+     "take": 3,
+     "url": "https://cdn.muapi.ai/outputs/generated/e93880b2-23a3-47ce-bb46-fa11296a5d4a_2656a9ae.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s5_t3.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The two friends ride the big yellow suitcase fast down the steep street straight towards us; the camera races backwards just ahead of them; the houses streak past. @Timo is now laughing as hard as @Luna: he shouts a joyful \"Yes!\" and laughs out loud, and both pump their raised arms twice. Luna, laughing, looks up at him over her shoulder and he looks down at her. They stay on the suitcase. Sound: his shout \"Yes!\" and his big laugh, her laugh, small wheels roaring on cobblestones, wind."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s5_t2.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s5_t3.mp4"
   },
   "s7a": {
    "takes": [
@@ -181,9 +227,16 @@
      "file": "src/film/assets/s2/pilot/clips/s7a_t2.mp4",
      "pick": 1,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, on his knees, hugging the yellow suitcase, looks up beaming and says with all his heart: \"I love this suitcase.\" Then he lays his cheek on the top of the suitcase and closes his eyes, smiling, with a happy sigh. @Luna stays exactly where she is, leaning on the suitcase with one elbow; she does not touch Timo and does not lean on him; she only looks down at him with a teasing grin and slowly shakes her head. The suitcase does not move. One continuous shot from the same camera position: the camera does not cut and does not move closer. The background does not change. Sound: his voice, his happy sigh, the roar of a stadium crowd swelling behind the gate."
+    },
+    {
+     "take": 3,
+     "url": "https://cdn.muapi.ai/outputs/generated/cbd8591b-38f3-4bd3-9fe7-4bead5f8639c_22627958.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s7a_t3.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, upright on his knees, hugging the yellow suitcase with both arms, looks up at @Luna, beaming, and says the whole line clearly, his mouth moving on every word, with all his heart, in a warm, lively, happy voice: \"I love this suitcase.\" Only after the last word does he lay his cheek on the top of the suitcase and close his eyes, smiling, with a happy sigh. @Luna stays exactly where she is, leaning on the suitcase with one elbow; she does not touch Timo; she looks down at him with a teasing grin and slowly shakes her head. The suitcase does not move and does not change. The background does not change. Sound: his voice, his happy sigh, a quiet sunny square."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s7a_t2.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s7a_t3.mp4"
   },
   "s7b": {
    "takes": [
@@ -207,20 +260,43 @@
      "file": "src/film/assets/s2/pilot/clips/s7b_t3.mp4",
      "pick": 1,
      "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, grinning, says to him, teasing: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing. Behind them there are only the painted houses and the gate posts, exactly as in the picture, for the whole clip: no crowd, no spectators, no other people ever appear in the background. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny street."
+    },
+    {
+     "take": 4,
+     "url": "https://cdn.muapi.ai/outputs/generated/f473c634-c7e9-4f51-89be-b256d1fd067f_a4275037.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s7b_t4.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna, grinning, says to him in a bright, lively, teasing voice with a laugh in it: \"It can't come in, Timo.\" and pats the top of his head twice while she says it. Then @Timo's eyes snap wide open and stare straight into the camera, shocked, and he hugs the suitcase tighter; Luna bursts out laughing, a big real laugh. Her voice is a lively, natural, acted performance full of fun, never flat or robotic. Behind them there are only the gate posts and the painted houses, exactly as in the picture, for the whole clip: no crowd, no spectators, nobody else ever appears. The suitcase does not change. Sound: her voice, two soft pats on his hair, then her big laugh. A quiet sunny square."
     }
    ],
-   "file": "src/film/assets/s2/pilot/clips/s7b_t3.mp4"
+   "file": "src/film/assets/s2/pilot/clips/s7b_t4.mp4"
+  },
+  "s6b": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/0dd728af-d7f3-47ae-801c-9f80c72114cf_d80ffb90.mp4",
+     "file": "src/film/assets/s2/pilot/clips/s6b_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, riding behind @Luna, looks back over his shoulder straight into the camera with a huge cheeky grin and shouts back, loud, gleeful and teasing, a lively acted shout: \"Too slow!\" Then he laughs out loud and turns forward again. @Luna, in front, keeps both arms up and whoops. The camera follows right behind them at their speed for the whole clip, so they stay the same size in the frame; the houses stream past. The suitcase does not change. Nobody else appears. Sound: his shout and his laugh, suitcase wheels rattling fast on cobbles, wind."
+    }
+   ],
+   "file": "src/film/assets/s2/pilot/clips/s6b_t1.mp4"
   }
  },
  "uploads": {
   "s2_1": "https://cdn.muapi.ai/outputs/generated/0d9cc3bfd2fb4d7b85635ec293f79b4e.jpg",
   "s6_1": "https://cdn.muapi.ai/outputs/generated/07dab9e601494c60a647833db0295983.jpg",
   "s1_1": "https://cdn.muapi.ai/outputs/generated/118139c441a84daaa2fd38d4f87fc219.jpg",
-  "s3_2": "https://cdn.muapi.ai/outputs/generated/c03d7652550542018bd71c684a33e539.jpg",
-  "s4_1": "https://cdn.muapi.ai/outputs/generated/3fa417c5438048958a4f19eadfc7ee56.jpg",
+  "s3_2": "https://cdn.muapi.ai/outputs/generated/02a46337b72946aa8bc009e5db0df7a8.jpg",
+  "s4_1": "https://cdn.muapi.ai/outputs/generated/741d0b0c40f544e392adef0a4b2eb913.jpg",
   "s5_1": "https://cdn.muapi.ai/outputs/generated/a2e1983ca06b4ae7952bdfc097972234.jpg",
-  "s7a_1": "https://cdn.muapi.ai/outputs/generated/44d0d1b8f4464d9a83e0dbe5a0939bf8.jpg",
+  "s7a_1": "https://cdn.muapi.ai/outputs/generated/8f1dcbc9339a43a9b956632aa00f3fd5.jpg",
   "s7b_1": "https://cdn.muapi.ai/outputs/generated/826bf34bdfff4a82ac6ae563abe5c580.jpg",
-  "s5_2": "https://cdn.muapi.ai/outputs/generated/5f150edf4747498abf5b961559f59463.jpg"
+  "s5_2": "https://cdn.muapi.ai/outputs/generated/5f150edf4747498abf5b961559f59463.jpg",
+  "s2_2": "https://cdn.muapi.ai/outputs/generated/8327c9461d36462792a8f3092f4329e9.jpg",
+  "s5_3": "https://cdn.muapi.ai/outputs/generated/46182f7282d44419971544e759d3f6f9.jpg",
+  "s7b_2": "https://cdn.muapi.ai/outputs/generated/7fcd41f72575487fb39a4df2ff69643f.jpg",
+  "s6b_2": "https://cdn.muapi.ai/outputs/generated/a8c78ada018a48f4ac1c8c2dd87aea36.jpg"
  }
 }

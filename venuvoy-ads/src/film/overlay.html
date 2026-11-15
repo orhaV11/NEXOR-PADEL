@@ -32,14 +32,23 @@
   .fx-cap.chorus { font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 800; font-size: 82px; text-transform: none; letter-spacing: 0; color: #f4eee1; -webkit-text-stroke-width: 12px; }
   [dir="rtl"] .fx-cap.chorus { font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 800; font-size: 90px; }
   .fx-cap.chorus span.on { color: #f4eee1; }
-  /* cls "pnp" (the series "Plan, No Plan"): the spoken line, whole, in sentence case, the way the apps themselves set
-     text: plain white rounded letters with a thin dark outline, no plate, no word highlight, no pop.
-     cls "pnp hook": the one situation line at the top of the first shot, same letters, a little smaller. */
-  .fx-cap.pnp { left: 70px; right: 70px; font-family: "Nunito", "Heebo", sans-serif; font-weight: 900; font-size: 78px; line-height: 1.14; text-transform: none; letter-spacing: 0;
-    color: #fff; -webkit-text-stroke: 9px #1d1630; paint-order: stroke fill; filter: drop-shadow(0 5px 0 rgba(29, 22, 48, 0.28)); text-wrap: balance; }
+  /* cls "pnp" (the series "Plan, No Plan"): text the way the apps themselves set it, not the way a brand does.
+     "pnp": the spoken line, whole, in sentence case: white semi-bold grotesque with a thin black edge, no plate, no
+     word highlight, no pop; narrow enough to stay clear of the buttons at the right edge.
+     "pnp hook": a situation line typed by the poster: black on a white rounded label, lower case, there from frame 0.
+     "pnp sig" + "pnp brand": the signature on the held last frame: the series and episode, and the maker's name. */
+  .fx-cap.pnp { left: 150px; right: 150px; font-family: "Mont", "Heebo", sans-serif; font-weight: 800; font-size: 64px; line-height: 1.16; text-transform: none; letter-spacing: -0.005em;
+    color: #fff; -webkit-text-stroke: 7px #000; paint-order: stroke fill; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35)); text-wrap: balance; }
   .fx-cap.pnp span { margin: 0 0.1em; }
   .fx-cap.pnp span.on { color: #fff; }
-  .fx-cap.pnp.hook { font-size: 68px; left: 110px; right: 110px; }
+  .fx-cap.pnp.hook { left: 0; right: 0; width: fit-content; max-width: 800px; margin: 0 auto; padding: 14px 32px 18px; border-radius: 20px; background: #fff; color: #111; font-weight: 700; font-size: 52px;
+    -webkit-text-stroke-width: 0; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18)); }
+  .fx-cap.pnp.hook span.on { color: #111; }
+  .fx-cap.pnp.sig { font-weight: 700; font-size: 46px; -webkit-text-stroke: 6px #000; letter-spacing: 0.01em; }
+  .fx-cap.pnp.brand { left: 0; right: 0; width: fit-content; margin: 0 auto; padding: 12px 30px 14px 42px; border-radius: 999px; background: #fbf3e2; color: #3a2a63; font-family: "Nunito", sans-serif;
+    font-weight: 1000; font-size: 60px; letter-spacing: 0.16em; -webkit-text-stroke-width: 0; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
+  .fx-cap.pnp.brand span { margin: 0; }
+  .fx-cap.pnp.brand span.on { color: #3a2a63; }
   /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
   .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
     font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 68px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;
@@ -656,7 +665,7 @@
       const on = t >= c.t0 - 1e-3 && t < c.t1 - 1e-3;  // times are rounded to a millisecond: never hang a frame past a cut
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
-      const a = P(t, c.t0, 0.09);
+      const a = (c.cls || "").includes("hook") ? 1 : P(t, c.t0, 0.09);  // a typed label is simply there, from its first frame
       c.el.style.transform = (c.cls || "").startsWith("pnp") ? `scale(${0.94 + 0.06 * a})` : `scale(${0.86 + 0.14 * back(a)})`;
       c.el.style.opacity = Math.min(1, a * 2.5);
       c.spans.forEach((s, i) => {

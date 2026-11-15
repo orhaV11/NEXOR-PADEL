@@ -1,0 +1,12 @@
+{ "dur": 5.5, "name": "Away trip – who's in?", "sub": "8 members", "right": 760,
+  "events": [
+    { "t": 0,       "type": "pin", "text": "Kick-off: Mon…" },
+    { "t": 0,       "type": "typingbar", "who": "Danny" },
+    { "t": 0,       "type": "divider", "text": "SATURDAY" },
+
+    { "t": 0.25,    "type": "msg", "who": "Maya", "me": true, "text": "Gate 22. Wear the T-shirts.", "time": "06:02" },
+    { "t": 1.2083,  "type": "msg", "who": "Marcus", "text": "they say Saturday" },
+    { "t": 2.0417,  "type": "msg", "who": "Maya", "me": true, "text": "It is Saturday.", "time": "06:03" },
+
+    { "t": 2.9583,  "type": "msg", "who": "Maya", "me": true, "text": "Boarding. Danny,\nyou have Vic's phone.", "time": "06:51" }
+  ] }

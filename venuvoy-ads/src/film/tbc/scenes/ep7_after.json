@@ -9,7 +9,7 @@
 
     { "t": 2.5,   "type": "divider", "text": "Friday" },
     { "t": 2.9167,"type": "msg", "who": "Vic", "time": "09:02", "text": "Paid you." },
-    { "t": 3.5,   "type": "chip", "text": "OWE MAYA: 5" },
+    { "t": 3.5,   "type": "chip", "text": "OWE MAYA: 5", "big": true, "hold": 0.85 },
 
     { "t": 5.0833,"type": "msg", "who": "Danny", "time": "09:03", "text": "I'm in." }
   ] }

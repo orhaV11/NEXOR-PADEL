@@ -489,7 +489,9 @@
     "cx": 0.5,
     "cy": 0.45,
     "ease": "linear"
-   }
+   },
+   "mute": true
   }
- ]
+ ],
+ "_": "The last segment is muted because the clip carries a bass sting the video model added on its own cut; the delivered files were patched to match this without a full re-render (the engine's master up to 34.45 s, then the same mix without that clip sound)."
 }

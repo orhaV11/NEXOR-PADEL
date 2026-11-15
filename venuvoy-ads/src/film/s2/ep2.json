@@ -1,0 +1,167 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/ep2",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "shots": [
+  {
+   "id": "c1",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/ef93f1c5-b48d-475d-a202-ab4e2d4c3951_5531a273.jpg",
+    "https://cdn.muapi.ai/outputs/generated/c3d675ae-317c-415d-8950-2b10c0343441_563321e5.jpg",
+    "timo_face"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same station square, the same cream arches, bunting and morning light as the FIRST reference picture. TIMO alone, from the waist up, in the middle of the frame, his tiny teal backpack straps on his shoulders. He has taken the blank white page off his head and holds it in both hands in front of his chest, looking down at it with raised eyebrows, mouth closed. The empty blue folder is tucked under his left arm. A few white pages lie on the ground behind him, soft. Only Timo: no cat, no Luna, no suitcase.",
+   "video": "@Timo turns the blank page over, looks at its other side, then his eyes go wide and he cries out, his voice jumping high, a lively acted cry: \"My ticket was in the folder!\" He clutches the page to his chest and looks up at the sky. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, a light wind.",
+   "pick": 1
+  },
+  {
+   "id": "c2",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/c3d675ae-317c-415d-8950-2b10c0343441_563321e5.jpg",
+    "luna_face",
+    "big_side"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same station square, the same cream arches, bunting and morning light as the FIRST reference picture. LUNA alone, from the waist up, relaxed, one hand resting on the top of Big Yellow beside her, the other hand holding her phone up at chest height with its BACK to the camera (a plain coral case, no logo), a kind patient smile, mouth closed, looking to the right toward Timo, who is out of frame. Her plain teal scarf. Only Luna and the suitcase.",
+   "video": "@Luna lifts her phone a little and says, kind and bright: \"Timo, I have your\" and stops in the middle of the sentence, because she has been interrupted: her mouth stays open for a moment, eyebrows up, then she slowly closes her mouth and lowers the phone with an amused little smile. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, a light wind.",
+   "pick": 1
+  },
+  {
+   "id": "c3",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/ef93f1c5-b48d-475d-a202-ab4e2d4c3951_5531a273.jpg",
+    "https://cdn.muapi.ai/outputs/generated/c3d675ae-317c-415d-8950-2b10c0343441_563321e5.jpg",
+    "timo_face"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same station square, the same cream arches, bunting and morning light as the FIRST reference picture. TIMO alone, from the waist up, his tiny teal backpack straps on his shoulders: eyes shut, chin up, proud; his right arm is stretched out to the left with the palm open like a stop sign toward Luna, who is out of frame; his other hand holds the crumpled white page against his chest; the empty blue folder is tucked under that arm. Only Timo: no cat, no Luna.",
+   "video": "@Timo, eyes shut and palm out, says, firm and proud, in a lively acted voice: \"No. My plan is in here.\" On the words 'in here' he opens his eyes and taps his temple twice with one finger, nodding. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice.",
+   "pick": 2
+  },
+  {
+   "id": "swan",
+   "refs": [
+    "timo_front",
+    "timo_face",
+    "place_uphill"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: a sunny canal in the same model town: calm green water, a small cream stone bridge and painted houses behind, golden sun from the LEFT. TIMO alone sits in a small white swan-shaped pedal boat, seen from the front and a little to the side, pedalling so hard that water sprays up behind the boat. He leans forward, teeth clenched, eyebrows down, his teal-and-coral scarf streaming back, his tiny teal backpack on his back, one hand on the swan's neck and the other pointing forward. The swan boat is plain white with an orange beak, no letters. Only Timo and the swan boat.",
+   "video": "@Timo pedals furiously, water splashing up behind the white swan boat, and shouts ahead, breathless and determined, a lively acted shout: \"Step nineteen!\" The boat glides slowly forward in spite of all his pedalling. One continuous shot: the camera does not cut. Nobody else appears. Sound: his shout, fast splashing water, one duck quack.",
+   "pick": 1
+  },
+  {
+   "id": "train",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INSIDE a hand-built model train carriage of the same sunny toy world: soft cream-and-teal seats, a big window on the LEFT with sunny green countryside streaking past, golden light falling in through the window. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+   "refs": [
+    "luna_front",
+    "luna_face",
+    "cat_side",
+    "big_side"
+   ],
+   "elements": [
+    "Luna",
+    "Cat",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: LUNA alone asleep in a window seat, seen from the front and a little to the side: her head leans against the window on the left, her mouth a little open, her arms folded, peaceful. The fat ginger CAT is curled up asleep on her lap. Big Yellow, the giant yellow suitcase, stands in the aisle right beside her seat. Sunny countryside streaks past the window. We see her from the knees up. Only Luna, the cat and the suitcase: no Timo, no other passengers.",
+   "video": "@Luna sleeps peacefully in the window seat, breathing slowly with a tiny soft snore. The cat on her lap sleeps too; then it opens one eye, looks at the camera, and closes it again. The countryside streaks past the window and the carriage rocks gently. One continuous shot: the camera does not cut. Nobody else appears. Sound: a tiny snore, train wheels clicking softly.",
+   "pick": 2
+  },
+  {
+   "id": "donkey",
+   "refs": [
+    "timo_front",
+    "timo_face",
+    "place_uphill"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: a sunny dusty path at the edge of the same model town, a low cream wall and lemon trees behind, golden sun from the LEFT. TIMO alone sits on a small grey toy-like donkey that stands completely still, ears laid back, eyes half closed, stubborn. Timo sits very upright on it, his long legs almost touching the ground, his tiny teal backpack on his back, looking at the big yellow watch on his left wrist, sweating, eyebrows up in the middle, mouth closed. Seen from the side and a little from the front; we see the whole donkey. Only Timo and the donkey.",
+   "video": "The donkey stands completely still and flicks one ear. @Timo, sitting on it, looks at his watch, then pats the donkey's neck and says, pleading and out of breath, a lively acted voice: \"Step thirty-three. Please.\" The donkey slowly turns its head away from him and does not move. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, one donkey snort, cicadas.",
+   "pick": 2
+  },
+  {
+   "id": "arrive",
+   "refs": [
+    "place_station",
+    "luna_front",
+    "big_side",
+    "cat_front"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the small square outside the train station of the FOOTBALL town, the same place as the FIRST reference picture (a plain cream arch with a train carriage behind it; over the roofs the rim of the stadium with four floodlight masts), golden afternoon sun from the LEFT. LUNA alone stands in the middle, fresh and rested, both arms stretched high above her head in a big happy stretch, eyes closed, smiling. Big Yellow stands upright beside her and the fat ginger CAT sits on top of it. We see her from the knees up. Only Luna, the suitcase and the cat: no Timo.",
+   "video": "@Luna finishes a big happy stretch, drops her arms, looks around to the left and to the right, and calls, light and curious, in a lively acted voice: \"Timo?\" The cat on top of the suitcase yawns. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, birds, a far-away stadium hum.",
+   "pick": 1
+  },
+  {
+   "id": "wet",
+   "refs": [
+    "place_station",
+    "timo_front",
+    "timo_face"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same football-town station square as the FIRST reference picture (plain cream arch; the stadium rim with floodlights over the roofs), golden afternoon sun from the LEFT. TIMO alone, from the knees up, stands dripping wet: his jacket, scarf and trousers are dark with water and drops fall from his sleeves; a small plain white toy duck with an orange beak sits calmly on top of his flat-top hair. His face is blank and exhausted, eyes half closed, mouth a flat line. He holds up one finger. His tiny teal backpack straps on his shoulders, the yellow watch on his left wrist. Only Timo and the duck: no Luna, no suitcase, no cat.",
+   "video": "@Timo, dripping wet, with the small white duck sitting calmly on his head, holds up one finger and says, flat and exhausted but proud, in a lively acted voice: \"Step forty-two. Done.\" Water drips from his sleeves. The duck quacks once. He does not smile. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, dripping water, one quack.",
+   "pick": 2
+  },
+  {
+   "id": "pockets",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/c62dda43-bdbe-4ced-a7a8-9b6e69109596_a557db01.jpg",
+    "timo_face"
+   ],
+   "elements": [
+    "Timo"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same football-town station square as the FIRST reference picture (the stadium rim with floodlights over the roofs, painted houses, bunting), golden afternoon sun from the LEFT. TIMO alone, exactly as in the first reference picture (dripping wet, the small plain white toy duck with an orange beak sitting on top of his flat-top hair, tiny teal backpack straps, yellow watch on his left wrist), from the waist up. He has lowered his finger: he looks up and to the right toward the stadium floodlights with a small tired relieved smile, mouth closed, and both his hands lie flat on the pockets of his jacket. Only Timo and the duck: no Luna, no suitcase, no cat.",
+   "video": "@Timo smiles up at the stadium lights, then pats his jacket pockets, then his trouser pockets, faster and faster; his smile disappears; he freezes and says, quietly horrified, in a lively acted voice: \"I still have no ticket.\" The small white duck on his head looks down at him. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, patting, one small quack.",
+   "pick": 2
+  },
+  {
+   "id": "final",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/c62dda43-bdbe-4ced-a7a8-9b6e69109596_a557db01.jpg",
+    "https://cdn.muapi.ai/outputs/generated/5c24151b-d6c4-4ee6-99b0-e166fe46bce7_4650f99d.jpg",
+    "luna_face"
+   ],
+   "elements": [
+    "Luna",
+    "Timo"
+   ],
+   "duration": 5,
+   "still": "THE PICTURE: the same football-town station square as the FIRST reference picture (the stadium rim with floodlights over the roofs, painted houses, bunting), golden afternoon sun from the LEFT. A two-shot from the waist up. LUNA on the LEFT, fresh and dry, holds up her phone at chest height with its BACK to the camera (a plain coral case, no logo), with a kind patient smile, mouth closed, looking at Timo. TIMO on the RIGHT, exactly as in the first reference picture (dripping wet, the small plain white toy duck with an orange beak sitting on top of his flat-top hair, tiny teal backpack straps), has his eyes shut and his chin up, and holds one palm out toward Luna like a stop sign. There is a clear gap between them. Luna's plain teal scarf; Timo's teal-and-coral scarf. Only Luna, Timo and the duck: no suitcase, no cat.",
+   "video": "@Luna says, patient and bright: \"Timo, I have your\" and @Timo, eyes shut and palm out, cuts her off, firm: \"No.\" Luna stops and closes her mouth. Then she slowly turns her head and looks straight into the camera with a small helpless smile, and shrugs. Timo keeps his eyes shut and his chin up; the duck on his head turns and looks at the camera too. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: only the two voices, then a quiet square.",
+   "pick": 1
+  }
+ ],
+ "_": "Episode 2 of the serial: No Ticket."
+}

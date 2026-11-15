@@ -1,0 +1,26 @@
+{
+ "track": "src/film/assets/s2/music/jersey_1.mp3",
+ "out": "src/film/assets/s2/music/bed_ep2_hit.wav",
+ "length": 32.708333333333336,
+ "trim_db": -8,
+ "blocks": [
+  {
+   "at": 0.0,
+   "len": 1.7167,
+   "from_s": 59.855,
+   "layer": "phone",
+   "gain_db": -3,
+   "fade_in": 0.002,
+   "fade_out": 0.3
+  },
+  {
+   "at": 30.1917,
+   "len": 2.5167,
+   "from_s": 59.855,
+   "layer": "phone",
+   "gain_db": -2,
+   "fade_in": 0.002,
+   "fade_out": 0.25
+  }
+ ]
+}

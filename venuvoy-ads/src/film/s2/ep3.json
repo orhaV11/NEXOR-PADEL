@@ -1,0 +1,24 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/ep3",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own scarf, plain teal in two soft teal tones with no coral on it, hanging long), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "_": "Episode 3: Match day. One new clip; the rest is the pilot's suitcase footage.",
+ "shots": [
+  {
+   "id": "carry",
+   "refs": [
+    "place_station",
+    "luna_face",
+    "big_side"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the small square outside the train station of the football town, exactly the place of the FIRST reference picture (the plain cream arch with the train carriage behind it; over the roofs the rim of the stadium with four floodlight masts), golden late-afternoon sun from the LEFT. LUNA alone stands beside Big Yellow, one hand flat on its top, the thumb of her other hand pointing down at the suitcase, with a big teasing grin, mouth closed, looking to the right toward Timo, who is out of frame. We see her from the knees up; Big Yellow stands upright, its top at her chest. Only Luna and the suitcase: no cat, no Timo.",
+   "video": "@Luna pats the top of the suitcase twice and says, bright and teasing, in a lively acted voice: \"You're losing. You carry it.\" Then she gives the suitcase a little push to the right and grins. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, two pats on the suitcase, birds."
+  }
+ ]
+}

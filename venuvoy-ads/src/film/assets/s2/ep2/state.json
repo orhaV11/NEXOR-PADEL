@@ -1,0 +1,224 @@
+{
+ "stills": {
+  "c1": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/71e735b7-05d1-42c6-a7bb-a81a61b2b417_9c7bc77c.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/ba082df2-c3ea-4229-ac34-0f81bae82b41_1ae53886.jpg"
+   }
+  },
+  "c2": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c3acdb01-90af-49b7-a188-4bbfc489e0af_2817b851.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/7d7146d1-bd29-44bf-8150-f770dd65cbae_ac2733cd.jpg"
+   }
+  },
+  "c3": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/1d20ac44-579f-4237-9e90-824e914dc9ae_04e7f3b3.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/819fe523-a582-49e4-84cf-9ffaca970b21_ebedd05b.jpg"
+   }
+  },
+  "swan": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/8f619581-2da6-4f3e-a9b1-2b4c8bd2c5f6_b006676e.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/5886a00a-7153-49fa-aa06-8053710aa04c_8e7f037b.jpg"
+   }
+  },
+  "train": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/1347f975-109c-46d4-966e-d2b04488f57c_af67bdfb.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/4fadbacd-18c3-4485-8079-9828c51e1bc7_de6c08ed.jpg"
+   }
+  },
+  "donkey": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/b2a25de1-8050-4a0e-b0ee-31242613dd6e_9a16a1be.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/20fcc039-03fc-4a8a-b7d8-4085894daca0_29c8dd44.jpg"
+   }
+  },
+  "arrive": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/5c24151b-d6c4-4ee6-99b0-e166fe46bce7_4650f99d.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/0335ab25-b57f-43ba-9f77-7c8211ab081e_90d0d52d.jpg"
+   }
+  },
+  "wet": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/1e22205d-4143-43bd-8d4e-83fa6c9fee9b_cf6c9c64.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c62dda43-bdbe-4ced-a7a8-9b6e69109596_a557db01.jpg"
+   }
+  },
+  "pockets": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/a936f8ee-d1a6-42cf-8077-aec1acd90777_5082fb95.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/6e72571b-324c-4778-8ddc-976d28d4ef4b_136224d9.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/6831fc91-301b-4753-a1b1-a12e69fd8b64_195ba5a8.jpg"
+   }
+  },
+  "final": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/0f4d4ce6-8440-4f9b-a728-4a7a25f23c7f_2788a948.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/74c18f4c-4a3b-40c3-8b2e-d8ff798abb84_431cb099.jpg"
+   },
+   "3": {
+    "url": "https://cdn.muapi.ai/outputs/generated/23a53eb6-f1c5-4b27-8ac3-e082cd040ab1_68c5b3ed.jpg"
+   }
+  }
+ },
+ "clips": {
+  "c1": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/8fd18f64-608a-48bb-9be6-9362056525cd_6267d61e.mp4",
+     "file": "src/film/assets/s2/ep2/clips/c1_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo turns the blank page over, looks at its other side, then his eyes go wide and he cries out, his voice jumping high, a lively acted cry: \"My ticket was in the folder!\" He clutches the page to his chest and looks up at the sky. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, a light wind."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/c1_t1.mp4"
+  },
+  "c2": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/a306dbd8-1790-4055-9b9a-c0c4bcb64389_192a13ee.mp4",
+     "file": "src/film/assets/s2/ep2/clips/c2_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her phone a little and says, kind and bright: \"Timo, I have your\" and stops in the middle of the sentence, because she has been interrupted: her mouth stays open for a moment, eyebrows up, then she slowly closes her mouth and lowers the phone with an amused little smile. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, a light wind."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/c2_t1.mp4"
+  },
+  "c3": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/3032b69b-561a-47a9-b187-943f837728d3_e6c901e9.mp4",
+     "file": "src/film/assets/s2/ep2/clips/c3_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, eyes shut and palm out, says, firm and proud, in a lively acted voice: \"No. My plan is in here.\" On the words 'in here' he opens his eyes and taps his temple twice with one finger, nodding. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/c3_t1.mp4"
+  },
+  "swan": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/47d6166e-eb53-4a83-88c4-e9febea64d9c_b6d2f3a0.mp4",
+     "file": "src/film/assets/s2/ep2/clips/swan_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo pedals furiously, water splashing up behind the white swan boat, and shouts ahead, breathless and determined, a lively acted shout: \"Step nineteen!\" The boat glides slowly forward in spite of all his pedalling. One continuous shot: the camera does not cut. Nobody else appears. Sound: his shout, fast splashing water, one duck quack."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/swan_t1.mp4"
+  },
+  "train": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/5fa055ef-196b-4e1b-b06a-a5016cd0ee1e_463a2391.mp4",
+     "file": "src/film/assets/s2/ep2/clips/train_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna sleeps peacefully in the window seat, breathing slowly with a tiny soft snore. The cat on her lap sleeps too; then it opens one eye, looks at the camera, and closes it again. The countryside streaks past the window and the carriage rocks gently. One continuous shot: the camera does not cut. Nobody else appears. Sound: a tiny snore, train wheels clicking softly."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/train_t1.mp4"
+  },
+  "donkey": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/4949d9f1-e46d-4d28-b5e2-efc1e449e718_835435c0.mp4",
+     "file": "src/film/assets/s2/ep2/clips/donkey_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The donkey stands completely still and flicks one ear. @Timo, sitting on it, looks at his watch, then pats the donkey's neck and says, pleading and out of breath, a lively acted voice: \"Step thirty-three. Please.\" The donkey slowly turns its head away from him and does not move. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, one donkey snort, cicadas."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/donkey_t1.mp4"
+  },
+  "arrive": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/2e53eb6f-2b22-4d67-a308-5db2c9266ee8_3c08f94c.mp4",
+     "file": "src/film/assets/s2/ep2/clips/arrive_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna finishes a big happy stretch, drops her arms, looks around to the left and to the right, and calls, light and curious, in a lively acted voice: \"Timo?\" The cat on top of the suitcase yawns. One continuous shot: the camera does not cut. Nobody else appears. Sound: her voice, birds, a far-away stadium hum."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/arrive_t1.mp4"
+  },
+  "wet": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/8c8561f3-3206-4557-862f-44760aa415e6_765163d2.mp4",
+     "file": "src/film/assets/s2/ep2/clips/wet_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, dripping wet, with the small white duck sitting calmly on his head, holds up one finger and says, flat and exhausted but proud, in a lively acted voice: \"Step forty-two. Done.\" Water drips from his sleeves. The duck quacks once. He does not smile. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, dripping water, one quack."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/wet_t1.mp4"
+  },
+  "pockets": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/1f166277-af46-41d1-9fa6-7f71cfc8099a_c05a0c91.mp4",
+     "file": "src/film/assets/s2/ep2/clips/pockets_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo smiles up at the stadium lights, then pats his jacket pockets, then his trouser pockets, faster and faster; his smile disappears; he freezes and says, quietly horrified, in a lively acted voice: \"I still have no ticket.\" The small white duck on his head looks down at him. One continuous shot: the camera does not cut. Nobody else appears. Sound: his voice, patting, one small quack."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/pockets_t1.mp4"
+  },
+  "final": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/bc73aa0e-7872-4601-9d32-c2f9e684b909_3320bdfa.mp4",
+     "file": "src/film/assets/s2/ep2/clips/final_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna says, patient and bright: \"Timo, I have your\" and @Timo, eyes shut and palm out, cuts her off, firm: \"No.\" Luna stops and closes her mouth. Then she slowly turns her head and looks straight into the camera with a small helpless smile, and shrugs. Timo keeps his eyes shut and his chin up; the duck on his head turns and looks at the camera too. The screen of the phone is never seen. One continuous shot: the camera does not cut. Nobody else appears. Sound: only the two voices, then a quiet square."
+    }
+   ],
+   "file": "src/film/assets/s2/ep2/clips/final_t1.mp4"
+  }
+ },
+ "uploads": {
+  "c1_1": "https://cdn.muapi.ai/outputs/generated/a157c0a92f3b4c97a47d80778535da5e.jpg",
+  "c2_1": "https://cdn.muapi.ai/outputs/generated/dcb790433547499e9ed0920658520a99.jpg",
+  "c3_2": "https://cdn.muapi.ai/outputs/generated/96988db55647435e8aed70f076b0045c.jpg",
+  "swan_1": "https://cdn.muapi.ai/outputs/generated/15b9716108234eeb82e72b697189edd0.jpg",
+  "train_2": "https://cdn.muapi.ai/outputs/generated/a29c793c4e7f43a68e94e94b72e28992.jpg",
+  "donkey_2": "https://cdn.muapi.ai/outputs/generated/220039ac7b144f3fbaba89fc393bfab5.jpg",
+  "arrive_1": "https://cdn.muapi.ai/outputs/generated/83657e9d285c4d67b5cf592cfbee3a79.jpg",
+  "wet_2": "https://cdn.muapi.ai/outputs/generated/6571378b874c423baa9ad79c61b08fec.jpg",
+  "pockets_2": "https://cdn.muapi.ai/outputs/generated/c9fc276f0b4f4a45874011a6b138632b.jpg",
+  "final_1": "https://cdn.muapi.ai/outputs/generated/c6059c4d84544b30b43bb9e1d708d41a.jpg"
+ }
+}

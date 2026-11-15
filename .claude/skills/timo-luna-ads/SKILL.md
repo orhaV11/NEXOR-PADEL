@@ -5,8 +5,9 @@ description: Make an animated Venuvoy ad or episode with Timo and Luna, the two 
 
 # Timo and Luna: the faces of Venuvoy
 
-Everything lives in `venuvoy-ads/`. Read `venuvoy-ads/src/film/s2/docs/season_1.md` first (the serial, the canon, what
-was learned), then this file. The client is the founder: answer him in Hebrew, short and plain, result first.
+Everything lives in `venuvoy-ads/`. Read first `venuvoy-ads/src/film/s2/docs/venuvoy_facts.md` (what Venuvoy really
+is and what an ad may say), then `venuvoy-ads/src/film/s2/docs/season_1.md` (the serial, the canon, what was learned),
+then this file. The client is the founder: answer him in Hebrew, short and plain, result first.
 
 ## Who they are
 
@@ -19,21 +20,35 @@ was learned), then this file. The client is the founder: answer him in Hebrew, s
 - **Big Yellow**, her giant yellow suitcase, and **the cat**, fat, ginger, never impressed. Both are in every film.
 - Best friends, never a couple. Warm, funny, eye-level: they tease each other, nobody is humiliated.
 
-What Venuvoy is, the only product facts that may be shown or said: an app that plans a football trip abroad from one
-typed sentence: the match ticket, the flight, the hotel, the day around the match. Say "plan", never "book", unless
-the client confirms that it books. No prices, no "download now", no invented features. Never "soccer". No real club,
-league, player, stadium or city.
+What Venuvoy is (checked against the product's code on 15 Nov 2026, full sheet in `venuvoy_facts.md`): a sports-trip
+planner, a web app in Hebrew and English. You say where, when and which sports you love, in a form or in ONE typed
+sentence, and it builds two or three different, priced, day-by-day plans around real fixtures. Its own words:
+"Venuvoy plans sports trips around real fixtures." / "A sports trip you can trust."
+- Far more than football: 13 sports with events (football, basketball, baseball, ice hockey, American football,
+  motor racing, rugby, tennis, golf and a few more), about 11,700 events in 56 countries. Things travellers do
+  themselves: hikes, runs, golf rounds, about 16,000 places to play (padel, climbing, karting, pools), stadium tours
+  and sports museums. An opt-in, adults-only casino evening as a place to visit.
+- It does NOT sell or book anything: no tickets (it shows the official way to get one), no flights (no flight search
+  at all), no hotels (only a search link). Never write "book", "buy", "flight", "hotel", "AI plans your trip",
+  "anywhere in the world" or "download the app". Say plan, build, find, compare, check, track.
+- Always "sports trip", never only "football trip". A film may be about a football match; the sign-off stays broad.
+- Casinos are not shown in the mascot films until the founder decides how (the product's own rule: a place to visit,
+  adults only, "does not offer or promote gambling"; platforms restrict gambling content).
+- No prices, no invented features. Never "soccer". No real club, league, player, stadium or city.
 
 ## What is the same in every film
 
 1. The look: designer art-toy 3D figures in one sunny model town with a stadium. Prefixes for every picture and clip:
    `src/film/s2/series_look.json`. Reference pictures and voices: `src/film/assets/s2/cast/cast.json` (also the
    places already drawn, `place_*`).
-2. Venuvoy inside the story is drawn by the edit, never by the video model: the name chip, Luna's sentence appearing
-   word by word in a white bubble, then ticks (match ticket, flight, hotel, match day). Caption classes `vv chip`,
-   `vv type`, `vv tick` in `src/film/overlay.html`.
-3. The sign-off on the last shot: "one sentence. the whole football trip." / the chip "VENUVOY" / one small line
-   (follow for ep N, follow Timo & Luna).
+2. Venuvoy inside the story is drawn by the edit, never by the video model, in the product's own look ("Members'
+   Club": racing green, cream, brass): the name plate with the round V crest, Luna's sentence appearing word by word on
+   an ivory card, then ticks for what is planned. Caption classes `vvb chip`, `vvb type`, `vvb tick` in
+   `src/film/overlay.html` (the older `vv` classes, a cream pill with violet letters, are not the brand). Ticks may
+   only name things the planner really places: the match, a golf round, a hike, a run, a stadium tour, "day by day".
+3. The sign-off on the last shot: "one sentence. your sports trip, planned." (`pnp sig`) / the name plate
+   (`vvb chip`) / one small line of sports, "football, basketball, racing, tennis, golf and more" (`pnp more`).
+   Model: `src/film/s2/roll_edit.json`.
 4. Sound: the theme `src/film/assets/s2/music/jersey_1.mp3` with one map: groove under the talk, a full stop before
    the turn, the drop's first kick on a hard cut, a stop on the last look. The sung sonic logo
    `src/film/assets/s2/brand/sonic_logo.wav` ("Ven-nu-voy") under the sign-off of presenter spots; the series' final
@@ -44,7 +59,8 @@ league, player, stadium or city.
 
 - **Presenter spot** (15-20 s): the two speak to the camera. Model: `src/film/s2/meet.json` + `meet_edit.json`
   ("Meet Timo & Luna": "A football trip takes forty-two steps." / "Or one sentence." / "Done." / "He's fine.").
-- **"Done." spot** (10-15 s): one football-trip headache, Timo's way, Luna's one sentence, "Done.", his stare.
+- **"Done." spot** (10-16 s): one trip-planning headache, Timo's way, Luna's one sentence, "Done.", his stare.
+  Model: `src/film/s2/roll.json` + `roll_edit.json` ("40 metres long").
 - **Serial episode** (30-40 s): model `bet.json` + `bet_edit.json`; each opens with a one-second "previously" on the
   last image of the one before and ends on "follow for ep N".
 
@@ -86,5 +102,11 @@ multi-agent checking teams used up his usage, and was happy with one cold viewin
 - Props vanish between a wide shot and a closer one: name them in every start picture of the scene.
 - The video model adds its own music or a bass sting inside a clip: mute that segment.
 - A pasted-in voice never matches: every line must be spoken inside a clip by the character's own voice element.
+- The video model sometimes speaks the words of the voice sample instead of the line ("It's the small one"): read
+  every clip back with `asr.words`, and avoid lines that begin like the sample ("It's ...").
+- The video model pulls the camera back during a close shot whatever the text says: hold the size with
+  `zoom {from, to, cx, cy}` in the edit.
+- A sound in a clip that is not speech (a cat) still makes the music step back when `duck_mode` is "voice": leave
+  that option out when the film has loud music under shots without words.
 - The watching model sees only a few frames a second and is kinder than people: use it for retelling, look at the
   frames yourself for anything shorter than a second.

@@ -4,6 +4,12 @@ The client rejected the stand-alone pilot "One Night" (15 Nov): "you skimped on 
 checking teams wasted his usage. He approved this instead: a serial in which Venuvoy is part of the story. Work lean:
 write and check alone, no multi-agent proofs unless he asks.
 
+> **Correction, 15 Nov 2026.** The founder asked that Venuvoy never be shown as football only, and a study of the product
+> (`venuvoy_facts.md`) found that it does not handle flights or hotels. The four episodes below still close on "the whole
+> football trip" and tick "flight" and "hotel". Those texts are drawn by the edit: once the founder agrees, change them in
+> the four `*_edit.json` files to the wording of `roll_edit.json` (classes `vvb`, "one sentence. your sports trip,
+> planned.") and render again. No new filming is needed.
+
 ## The season in one sentence
 Timo planned the trip to the match for three weeks. Luna remembers the evening before, types ONE sentence into
 Venuvoy, and everything is planned. They bet on whose trip will be better. Loser carries her suitcase.

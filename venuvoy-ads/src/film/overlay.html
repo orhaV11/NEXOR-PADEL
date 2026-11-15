@@ -13,6 +13,7 @@
   @font-face { font-family: "Mont"; src: url(../../fonts/montserrat-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
   @font-face { font-family: "Heebo"; src: url(../../fonts/heebo-hebrew-wght-normal.woff2) format("woff2"); font-weight: 100 900; unicode-range: U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
   @font-face { font-family: "Heebo"; src: url(../../fonts/heebo-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Nunito"; src: url(../../fonts/nunito-latin-wght-normal.woff2) format("woff2"); font-weight: 200 1000; }
   @font-face { font-family: "Playfair"; src: url(../../fonts/playfair-display-latin-wght-italic.woff2) format("woff2"); font-weight: 400 900; font-style: italic; }
   @font-face { font-family: "Playfair"; src: url(../../fonts/playfair-display-latin-wght-normal.woff2) format("woff2"); font-weight: 400 900; font-style: normal; }
   @font-face { font-family: "FrankRuhl"; src: url(../../fonts/frank-ruhl-libre-hebrew-wght-normal.woff2) format("woff2"); font-weight: 300 900; }
@@ -31,6 +32,13 @@
   .fx-cap.chorus { font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 800; font-size: 82px; text-transform: none; letter-spacing: 0; color: #f4eee1; -webkit-text-stroke-width: 12px; }
   [dir="rtl"] .fx-cap.chorus { font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 800; font-size: 90px; }
   .fx-cap.chorus span.on { color: #f4eee1; }
+  /* cls "pnp" (the series "Plan, No Plan"): the spoken line, whole, in sentence case: cream rounded letters on a soft
+     deep-violet plate. No word highlight, no pop: it is simply there while the line is said. */
+  .fx-cap.pnp { left: 0; right: 0; width: fit-content; max-width: 880px; margin: 0 auto; padding: 16px 46px 22px; border-radius: 40px; background: #3a2a63;
+    font-family: "Nunito", "Heebo", sans-serif; font-weight: 900; font-size: 76px; line-height: 1.12; text-transform: none; letter-spacing: 0; color: #fff4dc;
+    -webkit-text-stroke-width: 0; filter: drop-shadow(0 10px 20px rgba(40, 22, 80, 0.32)); text-wrap: balance; }
+  .fx-cap.pnp span { margin: 0 0.1em; }
+  .fx-cap.pnp span.on { color: #fff4dc; }
   /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
   .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
     font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 68px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;
@@ -648,13 +656,13 @@
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = P(t, c.t0, 0.09);
-      c.el.style.transform = `scale(${0.86 + 0.14 * back(a)})`;
+      c.el.style.transform = c.cls === "pnp" ? `scale(${0.94 + 0.06 * a})` : `scale(${0.86 + 0.14 * back(a)})`;
       c.el.style.opacity = Math.min(1, a * 2.5);
       c.spans.forEach((s, i) => {
         const w = c.words[i], lit = t >= w.t0 - 0.02 && t < (c.words[i + 1]?.t0 ?? c.t1 + 1) - 0.02;
         s.className = lit ? "on" : "";
         const k = lit ? 1 - P(t, w.t0, 0.14) : 0;
-        s.style.transform = lit && c.cls !== "nar" ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+        s.style.transform = lit && c.cls !== "nar" && c.cls !== "pnp" ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
       });
     }
     for (const c of lts) {

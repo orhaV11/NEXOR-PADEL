@@ -1,0 +1,79 @@
+{
+ "track": "src/film/assets/s2/music/A1_0.mp3",
+ "out": "src/film/assets/s2/music/bed_one_night.wav",
+ "length": 28.5,
+ "blocks": [
+  {
+   "at": 0.0,
+   "len": 4.0,
+   "from_bar": 1,
+   "layer": "full",
+   "gain_db": 0,
+   "fade_in": 0.004
+  },
+  {
+   "at": 4.0,
+   "len": 6.0,
+   "from_bar": 3,
+   "layer": "full",
+   "gain_db": 0
+  },
+  {
+   "at": 4.0,
+   "len": 6.0,
+   "from_bar": 9,
+   "layer": "bass",
+   "gain_db": -2
+  },
+  {
+   "at": 10.0,
+   "len": 2.0,
+   "from_bar": 6,
+   "layer": "full",
+   "gain_db": -3,
+   "fade_out": 0.03
+  },
+  {
+   "at": 12.5,
+   "len": 5.0,
+   "from_bar": 9,
+   "layer": "full",
+   "gain_db": 0,
+   "fade_in": 0.002,
+   "fade_out": 0.03
+  },
+  {
+   "at": 17.5,
+   "len": 3.0,
+   "from_bar": 5,
+   "layer": "full",
+   "gain_db": -3
+  },
+  {
+   "at": 20.5,
+   "len": 3.0,
+   "from_bar": 13,
+   "layer": "full",
+   "gain_db": -3,
+   "fade_in": 0.002
+  },
+  {
+   "at": 23.5,
+   "len": 1.5,
+   "from_bar": 14,
+   "beat": 2,
+   "layer": "bass",
+   "gain_db": -3,
+   "fade_out": 0.02
+  },
+  {
+   "at": 26.5,
+   "len": 1.62,
+   "from_bar": 17,
+   "layer": "full",
+   "gain_db": -2,
+   "fade_in": 0.002,
+   "fade_out": 0.06
+  }
+ ]
+}

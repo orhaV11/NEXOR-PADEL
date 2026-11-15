@@ -32,13 +32,14 @@
   .fx-cap.chorus { font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 800; font-size: 82px; text-transform: none; letter-spacing: 0; color: #f4eee1; -webkit-text-stroke-width: 12px; }
   [dir="rtl"] .fx-cap.chorus { font-family: "FrankRuhl", "Heebo", serif; font-style: normal; font-weight: 800; font-size: 90px; }
   .fx-cap.chorus span.on { color: #f4eee1; }
-  /* cls "pnp" (the series "Plan, No Plan"): the spoken line, whole, in sentence case: cream rounded letters on a soft
-     deep-violet plate. No word highlight, no pop: it is simply there while the line is said. */
-  .fx-cap.pnp { left: 0; right: 0; width: fit-content; max-width: 880px; margin: 0 auto; padding: 16px 46px 22px; border-radius: 40px; background: #3a2a63;
-    font-family: "Nunito", "Heebo", sans-serif; font-weight: 900; font-size: 76px; line-height: 1.12; text-transform: none; letter-spacing: 0; color: #fff4dc;
-    -webkit-text-stroke-width: 0; filter: drop-shadow(0 10px 20px rgba(40, 22, 80, 0.32)); text-wrap: balance; }
+  /* cls "pnp" (the series "Plan, No Plan"): the spoken line, whole, in sentence case, the way the apps themselves set
+     text: plain white rounded letters with a thin dark outline, no plate, no word highlight, no pop.
+     cls "pnp hook": the one situation line at the top of the first shot, same letters, a little smaller. */
+  .fx-cap.pnp { left: 70px; right: 70px; font-family: "Nunito", "Heebo", sans-serif; font-weight: 900; font-size: 78px; line-height: 1.14; text-transform: none; letter-spacing: 0;
+    color: #fff; -webkit-text-stroke: 9px #1d1630; paint-order: stroke fill; filter: drop-shadow(0 5px 0 rgba(29, 22, 48, 0.28)); text-wrap: balance; }
   .fx-cap.pnp span { margin: 0 0.1em; }
-  .fx-cap.pnp span.on { color: #fff4dc; }
+  .fx-cap.pnp span.on { color: #fff; }
+  .fx-cap.pnp.hook { font-size: 68px; left: 110px; right: 110px; }
   /* the narrator: serif italics in sentence case, no word highlight (a voice from outside the scene) */
   .fx-cap.nar { left: 0; right: 0; width: fit-content; max-width: 860px; margin: 0 auto; padding: 14px 38px 20px; border-radius: 16px; background: rgba(11, 13, 12, 0.78);
     font-family: "Playfair", "Heebo", serif; font-style: italic; font-weight: 600; font-size: 68px; line-height: 1.16; text-transform: none; letter-spacing: 0; color: #f4eee1;
@@ -656,13 +657,13 @@
       c.el.style.display = on ? "block" : "none";
       if (!on) continue;
       const a = P(t, c.t0, 0.09);
-      c.el.style.transform = c.cls === "pnp" ? `scale(${0.94 + 0.06 * a})` : `scale(${0.86 + 0.14 * back(a)})`;
+      c.el.style.transform = (c.cls || "").startsWith("pnp") ? `scale(${0.94 + 0.06 * a})` : `scale(${0.86 + 0.14 * back(a)})`;
       c.el.style.opacity = Math.min(1, a * 2.5);
       c.spans.forEach((s, i) => {
         const w = c.words[i], lit = t >= w.t0 - 0.02 && t < (c.words[i + 1]?.t0 ?? c.t1 + 1) - 0.02;
         s.className = lit ? "on" : "";
         const k = lit ? 1 - P(t, w.t0, 0.14) : 0;
-        s.style.transform = lit && c.cls !== "nar" && c.cls !== "pnp" ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
+        s.style.transform = lit && c.cls !== "nar" && !(c.cls || "").startsWith("pnp") ? `scale(${1.06 + 0.1 * k}) translateY(${-4 - 6 * k}px)` : "";
       });
     }
     for (const c of lts) {

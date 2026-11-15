@@ -91,9 +91,19 @@ His product-defining messages in the build chat could not be reached. From the a
   gambling". Two cartoon mascots on a casino evening may be read as gambling aimed at the young, and ad platforms
   restrict gambling content. Until the founder decides, casinos are not shown in the mascot films.
 - It is a web app that can be added to the home screen; do not say "download the app" (no store app was found).
-- Films made before this sheet (the four episodes of season 1 and "Meet Timo & Luna") still say "the whole football
-  trip" and tick "flight" and "hotel". All of that text is drawn by the edit, so it can be corrected by re-rendering,
-  with no new filming. Waiting for the founder's yes.
+- Films made before this sheet (the four episodes of season 1 and "Meet Timo & Luna") were corrected and rendered again
+  on 15 Nov 2026 after the founder's yes; "40 metres long" too. Three skeptics first read the corrected wording
+  (truth, story, platform risk); what they found and what was done:
+  - A typed sentence must be one the product can read: a place, a time, a sport ("London this weekend, football, two of
+    us: me and Timo"). "plan a trip for me and Timo to tomorrow's match" returns nothing in the real product. Real
+    city names are therefore allowed inside the typed sentence only; no club, league or stadium names.
+  - "ticket guide" names the paid part of the product; the tick is "ticket links" (the official link is always free).
+  - "racing" reads as horse racing in Britain; the line says "motorsport".
+  - "the bet: Luna wins" straight after "GOAL!" reads as a sports bet; "bet" stays only in episode 1.
+  - The plot must not suggest that Venuvoy supplied Timo's ticket: labels now say Luna bought the tickets.
+  - Still as filmed, because they are spoken: "A football trip takes forty-two steps." (next time: "A sports trip"),
+    and the plot in which the typed sentence is why Timo gets in (next time Luna says "Then I bought two.").
+  - For season 2: let Timo win a round and let Luna carry; he loses every round of season 1.
 
 ## Every claim an ad might make, tested against the code
 

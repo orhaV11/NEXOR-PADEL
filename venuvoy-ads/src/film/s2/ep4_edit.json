@@ -167,7 +167,7 @@
    "out": 3.9167,
    "marks": {
     "listen": 0.125,
-    "two": 3.075
+    "two": 2.475
    },
    "speech": true,
    "cap": [
@@ -187,26 +187,26 @@
     },
     {
      "text": "VENUVOY",
-     "cls": "vv chip",
+     "cls": "vvb chip",
      "at": 1.6,
      "len": 0.05,
      "hold": 2.1,
      "y": 250
     },
     {
-     "text": "plan a trip for me AND TIMO to tomorrow's match",
-     "cls": "vv type",
+     "text": "London this weekend, football, two of us: me AND TIMO",
+     "cls": "vvb type",
      "at": 1.7,
      "len": 0.6,
      "hold": 1.45,
      "y": 345
     },
     {
-     "text": "2 match tickets",
-     "cls": "vv tick wide",
-     "at": 2.95,
+     "text": "the match, for 2",
+     "cls": "vvb tick wide",
+     "at": 2.35,
      "len": 0.05,
-     "hold": 0.75,
+     "hold": 1.35,
      "y": 545
     }
    ]
@@ -226,6 +226,14 @@
      "at": 0.85,
      "len": 1.4,
      "hold": 0.3
+    },
+    {
+     "text": "she bought both tickets last night",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.3,
+     "hold": 0.2,
+     "y": 330
     }
    ]
   },
@@ -327,7 +335,7 @@
    "speech": true,
    "cap": [
     {
-     "text": "the bet: Luna wins",
+     "text": "her plan wins. he carries.",
      "cls": "pnp hook",
      "at": 0.0,
      "len": 2.0,
@@ -364,51 +372,51 @@
    "cap": [
     {
      "text": "VENUVOY",
-     "cls": "vv chip",
+     "cls": "vvb chip",
      "at": 0.0,
      "len": 0.05,
-     "hold": 2.0,
+     "hold": 3.05,
      "y": 250
     },
     {
-     "text": "plan the next trip for me and Luna",
-     "cls": "vv type",
+     "text": "a week in New York, basketball, me and Luna",
+     "cls": "vvb type",
      "at": 0.05,
      "len": 0.65,
-     "hold": 1.35,
+     "hold": 2.4,
      "y": 345
     },
     {
-     "text": "match ticket",
-     "cls": "vv tick",
+     "text": "the game",
+     "cls": "vvb tick",
      "at": 0.75,
      "len": 0.05,
-     "hold": 1.25,
-     "y": 520
+     "hold": 2.3,
+     "y": 532
     },
     {
-     "text": "flight",
-     "cls": "vv tick r",
+     "text": "ticket links",
+     "cls": "vvb tick r",
      "at": 0.87,
      "len": 0.05,
-     "hold": 1.13,
-     "y": 520
+     "hold": 2.18,
+     "y": 532
     },
     {
-     "text": "hotel",
-     "cls": "vv tick",
+     "text": "getting around",
+     "cls": "vvb tick",
      "at": 0.99,
      "len": 0.05,
-     "hold": 1.01,
-     "y": 607
+     "hold": 2.06,
+     "y": 619
     },
     {
-     "text": "match day",
-     "cls": "vv tick r",
+     "text": "day by day",
+     "cls": "vvb tick r",
      "at": 1.11,
      "len": 0.05,
-     "hold": 0.89,
-     "y": 607
+     "hold": 1.94,
+     "y": 619
     },
     {
      "text": "Done.",
@@ -425,7 +433,7 @@
      "hold": 0.3
     },
     {
-     "text": "one sentence. the whole football trip.",
+     "text": "one sentence. your sports trip, planned.",
      "cls": "pnp sig",
      "at": 3.3,
      "len": 0.05,
@@ -434,7 +442,7 @@
     },
     {
      "text": "VENUVOY",
-     "cls": "vv chip",
+     "cls": "vvb chip",
      "at": 3.35,
      "len": 0.05,
      "hold": 6.0,

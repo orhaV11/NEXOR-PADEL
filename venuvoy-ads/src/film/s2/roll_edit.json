@@ -171,7 +171,7 @@
      "y": 250
     },
     {
-     "text": "a weekend away, two of us: football, golf and a hike",
+     "text": "4 nights in London, two of us: football, golf, a hike",
      "cls": "vvb type",
      "at": 0.05,
      "len": 1.6,
@@ -289,7 +289,7 @@
      "y": 1352
     },
     {
-     "text": "football, basketball, racing, tennis, golf and more",
+     "text": "football, basketball, motorsport, tennis, golf and more",
      "cls": "pnp more",
      "at": 2.45,
      "len": 0.05,

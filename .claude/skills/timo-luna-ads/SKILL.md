@@ -34,7 +34,11 @@ sentence, and it builds two or three different, priced, day-by-day plans around 
 - Always "sports trip", never only "football trip". A film may be about a football match; the sign-off stays broad.
 - Casinos are not shown in the mascot films until the founder decides how (the product's own rule: a place to visit,
   adults only, "does not offer or promote gambling"; platforms restrict gambling content).
-- No prices, no invented features. Never "soccer". No real club, league, player, stadium or city.
+- The sentence a character types must be one the product can read: a place, a time, a sport ("London this weekend,
+  football, two of us: me and Timo"). Real city names are allowed there, as in the product's own examples.
+- Tickets are bought by the characters, never supplied by Venuvoy. The tick is "ticket links", not "ticket guide".
+- No betting words next to a match. No prices, no invented features. Never "soccer". No real club, league, player or
+  stadium; "motorsport", not "racing".
 
 ## What is the same in every film
 
@@ -45,9 +49,11 @@ sentence, and it builds two or three different, priced, day-by-day plans around 
    Club": racing green, cream, brass): the name plate with the round V crest, Luna's sentence appearing word by word on
    an ivory card, then ticks for what is planned. Caption classes `vvb chip`, `vvb type`, `vvb tick` in
    `src/film/overlay.html` (the older `vv` classes, a cream pill with violet letters, are not the brand). Ticks may
-   only name things the planner really places: the match, a golf round, a hike, a run, a stadium tour, "day by day".
+   only name things the planner really gives: the match (the game), ticket links, getting around, "day by day", and,
+   where the typed sentence asks for them, a golf round, a hike, a run or a stadium tour.
 3. The sign-off on the last shot: "one sentence. your sports trip, planned." (`pnp sig`) / the name plate
-   (`vvb chip`) / one small line of sports, "football, basketball, racing, tennis, golf and more" (`pnp more`).
+   (`vvb chip`) / one small line of sports, "football, basketball, motorsport, tennis, golf and more" (`pnp more`). Episodes add
+   "ep N · follow for ep N+1" (`pnp brand`) between the plate and the sports line.
    Model: `src/film/s2/roll_edit.json`.
 4. Sound: the theme `src/film/assets/s2/music/jersey_1.mp3` with one map: groove under the talk, a full stop before
    the turn, the drop's first kick on a hard cut, a stop on the last look. The sung sonic logo

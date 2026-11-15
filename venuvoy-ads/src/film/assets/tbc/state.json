@@ -247,6 +247,21 @@
    "heard": "I never said I was coming. It was fun. It was fine.",
    "score": 0.86,
    "line": "I never said I was coming. It was fine."
+  },
+  "b2_g1b": {
+   "takes": [
+    {
+     "url": "https://cdn.muapi.ai/outputs/generated/fec09209-3368-491d-999f-6da37ec2e93b_177e6575.mp4",
+     "heard": "This isn't my phone. Danny left it with me.",
+     "score": 1.0
+    }
+   ],
+   "file": "src/film/assets/tbc/shots/b2_g1b.mp4",
+   "url": "https://cdn.muapi.ai/outputs/generated/fec09209-3368-491d-999f-6da37ec2e93b_177e6575.mp4",
+   "endpoint": "veo3.1-lite-image-to-video",
+   "heard": "This isn't my phone. Danny left it with me.",
+   "score": 1.0,
+   "line": "This isn't my phone. Danny left it with me."
   }
  },
  "away": {}

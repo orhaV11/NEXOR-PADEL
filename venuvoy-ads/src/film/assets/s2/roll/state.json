@@ -39,7 +39,56 @@
    }
   }
  },
- "clips": {},
+ "clips": {
+  "r1": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/aae6e70f-0199-420d-ac56-ed522b4ad296_d609bbb5.mp4",
+     "file": "src/film/assets/s2/roll/clips/r1_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, proud, lifts the top of the plan paper a little higher, looks into the camera and says, in a lively acted voice: \"My plan. Forty metres long.\" While he speaks, the thick roll of plan paper at his feet starts to roll by itself: it rolls forward along the cobbles, towards the camera, faster and faster, and out of the bottom of the frame, unrolling, so the strip of plan paper now runs from his hands along the ground and out of the bottom of the frame. He does not notice. @Luna watches the roll go, both eyebrows rising. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: his voice, paper unrolling, the roll bumping over cobbles."
+    }
+   ],
+   "file": "src/film/assets/s2/roll/clips/r1_t1.mp4"
+  },
+  "r2": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/1980b27f-07a7-4b9a-b3f9-e946009bd560_5a1a13f9.mp4",
+     "file": "src/film/assets/s2/roll/clips/r2_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The thick roll of plan paper rolls fast across the street from right to left, unrolling its strip behind it, and leaves the frame on the left within one second; the long strip of plan paper stays lying on the cobbles. The cat on the wall follows the roll with its head, its eyes going wide. Then the cat hops down from the wall onto the street and trots after the roll, out of the frame on the left. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: paper unrolling fast, the roll bumping over cobbles, one small cat meow."
+    }
+   ],
+   "file": "src/film/assets/s2/roll/clips/r2_t1.mp4"
+  },
+  "r3": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/08bf7c2c-ec33-485c-b15c-11ff46b13b76_fdef9e22.mp4",
+     "file": "src/film/assets/s2/roll/clips/r3_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. @Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, soft thumb taps."
+    }
+   ],
+   "file": "src/film/assets/s2/roll/clips/r3_t1.mp4"
+  },
+  "r4": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/21805e99-3629-4de2-a50b-96873b5a5fe2_8194d6a5.mp4",
+     "file": "src/film/assets/s2/roll/clips/r4_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Stylised 3D animation of designer art-toy figures in a sunny hand-built model town; they move and act like living people, with expressive eyebrows and mouths; slightly snappy, never floaty. Golden late-afternoon light from the left. A friend seems to hold the camera: a tiny natural wobble. No music. No subtitles, no captions, no on-screen text, no letters. The strip of plan paper in @Timo's hands is tugged from far away: it twitches and slides forward a little along the cobbles, again and again. @Timo does not move: he stares straight into the camera, stunned, without a word, and blinks once, slowly. @Luna, shading her eyes and looking past the camera into the distance, says, amused and warm, in a lively acted voice: \"It's still rolling.\" Then she lowers her hand and smiles at the camera. One continuous shot: the camera does not cut and does not move. Nobody else appears. Sound: her voice, paper rustling."
+    }
+   ],
+   "file": "src/film/assets/s2/roll/clips/r4_t1.mp4"
+  }
+ },
  "uploads": {
   "r1_1": "https://cdn.muapi.ai/outputs/generated/5d66faf19f854d69b09569153f362621.jpg",
   "r2_1": "https://cdn.muapi.ai/outputs/generated/250cd897757449b493490192f5cf6204.jpg",

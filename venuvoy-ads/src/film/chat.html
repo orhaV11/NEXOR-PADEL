@@ -194,6 +194,8 @@
   //   { t, type: "chip", text: "OWE MAYA: 6", slot? }
   //        a gold-outlined chip in the header's right block: rows 348-400, right edge at x 1040, never left
   //        of x 620. It pops in once and stays; a later "chip" replaces the text with a small tick.
+  //        "big": true (on the replacing chip)  the change is the point of the scene: the chip grows from its
+  //                             right edge, fills gold for "hold" seconds (0.9) and settles back.
   //        "slot": "tag"        a second chip in rows 274-326. Those rows belong to the edit engine's tag
   //                             ("96 DAYS BEFORE*"), so use it only on a screen where the engine draws none.
   //   { t, type: "pin", text, kicker?: "Pinned", big?, dim?, stamp? }
@@ -256,7 +258,7 @@
       tbars.push({ t0, t1: e.until ?? Infinity, el: mk(msgs, "tyb", `<span class="dots"><i></i><i></i><i></i></span><span class="w">${esc(tr(e.text) ?? typingWords(who))}</span>`) });
       continue;
     }
-    if (e.type === "chip") { chips.push({ t0, slot: e.slot === "tag" ? "tag" : "", text: tr(e.text) }); continue; }
+    if (e.type === "chip") { chips.push({ t0, slot: e.slot === "tag" ? "tag" : "", text: tr(e.text), big: !!e.big, hold: e.hold ?? 0.9 }); continue; }
     if (e.type === "stamp") { addStamp({ size: 104, rot: -8, ...e, t: T0(e.t) }, { x: e.x ?? 540, y: e.y ?? 820, until: e.until ?? Infinity }); continue; }
     if (e.type === "pin") {
       const big = !!e.big, st = e.stamp;
@@ -341,6 +343,13 @@
       el.textContent = c.text;
       el.style.opacity = mine.length > 1 ? 1 : Math.min(1, a * 2.5);
       el.style.transform = `scale(${mine.length > 1 ? 1 + 0.1 * (1 - out(a)) : 0.72 + 0.28 * back(a)})`;
+      el.style.background = ""; el.style.color = "";
+      if (c.big && mine.length > 1) {  // the change everyone waited for: grow, fill gold, settle
+        const k = back(P(t, c.t0, 0.2)) * (1 - out(P(t, c.t0 + c.hold, 0.32)));
+        el.style.transform = `scale(${1 + 0.5 * k})`;
+        el.style.background = `rgba(230, 196, 122, ${clamp(k, 0, 1)})`;
+        el.style.color = k > 0.5 ? "#16392b" : "";
+      }
     }
 
     // pinned bar: its height, which of its texts shows, how far the thread under it fades back

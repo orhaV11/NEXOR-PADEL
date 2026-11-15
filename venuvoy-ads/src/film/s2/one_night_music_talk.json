@@ -25,7 +25,7 @@
    "len": 1.3397,
    "from_s": 9.3543,
    "layer": "phone",
-   "gain_db": 4,
+   "gain_db": 2,
    "fade_in": 0.004,
    "fade_out": 0.02
   },

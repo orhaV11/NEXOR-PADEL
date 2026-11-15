@@ -3,7 +3,7 @@
 Read this first when picking the pilot up again. The script and its reasons are in `pilot_and_toolkit.md`; the proof
 reports are in `proof_raw.json` (first proof, on an earlier 30 s cut) and `proof2_raw.json` (second proof, on this cut).
 
-## The film as cut (25.33 s, 24 fps)
+## The film as cut (25.08 s, 24 fps)
 
 Edit list: `src/film/s2/one_night.json`. Render: `python3 src/film/cut.py src/film/s2/one_night.json en` (about ten
 minutes) writes `ads/17-pnp/venuvoy-pnp-one-night-en_9x16_1080x1920.mp4` and `_4x5_1080x1350.mp4`. The version without
@@ -13,17 +13,29 @@ music is mixed from the dialogue and effects stems afterwards (see "Version with
 |---|---|---|
 | 0.00-2.04 | station, wide (`s1_t1` 0.71-2.75) | label "she said she packed light"; Timo: "Did you bring your whole house?" |
 | 2.04-4.04 | single on Luna (`s1_t1` 4.0-6.0, 1.8x) | "It's the small one!" |
-| 4.04-7.17 | uphill (`s2_t2`) | the cat walks past them on the wall; label "overtaken by a cat" |
-| 7.17-9.00 | hilltop, wide (`s3_t3g`) | Luna: "Trust me." Timo: "No." The music stops after "Trust me". |
-| 9.00-10.50 | single on Timo (`s3_t3g`, 1.95x) | "No, no, no!", cut off by the drop |
-| 10.50-12.29 | ride (`s4_t2`) | the drop's first kick is on the cut |
-| 12.29-14.50 | ride, closer (`s5_t3`, 1.3x) | "Yes!" |
-| 14.50-16.04 | the cat (`s6_streak`) | the riders shoot past in front of it (a still laid over the clip) |
-| 16.04-17.58 | from behind (`s6b_t1`, 1.25x) | Timo looks back: "Too slow!" |
-| 17.58-18.46 | the cat (`s6_streak`) | a meow |
-| 18.46-20.96 | gate, wide (`s7a_t3` 0.21-2.71, 1.15x) | "I love this suitcase." and his cheek goes down |
-| 20.96-24.08 | closer (`s7b_t4`) | Luna: "It can't come in, Timo." His eyes open at 23.5 s; the music stops there. |
-| 24.08-25.33 | the last frame, held | signature: "Plan, No Plan · ep 1" and the VENUVOY chip; one final hit |
+| 4.04-6.25 | uphill (`s2_t2`) | the cat walks past them on the wall; label "overtaken by a cat" |
+| 6.25-8.08 | hilltop, wide (`s3_t3g`) | Luna: "Trust me." Timo: "No." The music stops after "Trust me". |
+| 8.08-9.58 | single on Timo (`s3_t3g`, 1.95x) | "No, no, no!", cut off by the drop |
+| 9.58-11.38 | ride (`s4_t2`) | the drop's first kick is on the cut |
+| 11.38-13.58 | ride, closer (`s5_t3`, 1.12x) | "Yes!" |
+| 13.58-15.13 | the cat (`s6_streak`) | the riders shoot past in front of it (a still laid over the clip) |
+| 15.13-16.67 | from behind (`s6b_t1`, 1.25x) | Timo looks back: "Too slow!" |
+| 16.67-17.54 | the cat (`s6_streak`) | a meow |
+| 17.54-20.29 | gate, wide (`s7ax_t1`, 1.12x) | label "stadium rule: small bags only"; "I love this suitcase." and his head goes down |
+| 20.29-23.83 | closer (`s7bx_t1`) | Luna: "It can't come in, Timo." His eyes open at 23.25 s; the music stops there. |
+| 23.83-25.08 | the same shot runs on | signature in plain text: "Plan, No Plan · ep 1" / "by VENUVOY"; one final hit |
+
+The second proof (`proof2_raw.json`) was run on the cut before this one. What it found and what was done:
+the opening label covered Luna's eyes after the first cut (label now ends on the cut); the signature was missing on
+the last frame (now held past the end); scarves floating in opposite directions at the gate and Luna's scarf turning
+coral (both gate shots filmed again: `s7ax` is drawn from the start picture of `s7bx`, so the gate, the suitcase and
+the scarves match); nobody read the place as a stadium, so the last line sounded like a plot hole (the gate label);
+the uphill push was where viewers would swipe (0.9 s shorter, its grunts 7 dB lower); Luna's last line was 6-8
+semitones lower than her others (the new take sits at 291 Hz against 333 and 296); the laid-over riders did not
+match the clips in colour (`riders_side_graded.jpg`, made with a colour transform fitted on five anchors:
+suitcase, jacket, shirt, trousers, shoes). Still open and left as they are: the suitcase's ribs are horizontal in
+the standing shots and vertical in the ride shots; "It's the" in Luna's first line is nearly swallowed (the caption
+carries it); the watching model sometimes reads the reverse angle at 15 s as the riders having swapped seats.
 
 ## Things learned the hard way
 

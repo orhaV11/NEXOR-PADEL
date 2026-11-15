@@ -2,4 +2,4 @@
   "rows": [
     { "t": 0.4167, "label": "FIRST NAME", "value": "DANNY" },
     { "t": 1.4583, "label": "SURNAME",
-      "stamp": { "t": 2.4167, "text": "TO BE CONFIRMED", "color": "red", "big": true } } ] }
+      "stamp": { "t": 2.4167, "text": "TO BE CONFIRMED", "color": "red", "big": true, "size": 68, "dx": -42 } } ] }

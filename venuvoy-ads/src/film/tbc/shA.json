@@ -1,0 +1,293 @@
+{
+ "slug": "tbc-shA",
+ "title": "In the Chat: Danny Football",
+ "out": "ads/16-tbc/venuvoy-tbc-shA",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_mode": "voice",
+ "look": {
+  "pop": 0.03,
+  "shake": 0,
+  "sharpen": 0.12,
+  "grain": 3.0,
+  "cap_y": 1260,
+  "nar_y": 1300
+ },
+ "labels": [
+  {
+   "text": "12 DAYS BEFORE*",
+   "small": "*to be confirmed",
+   "from": "chat",
+   "to": "signoff",
+   "y": 262,
+   "xr": 1040
+  },
+  {
+   "text": "OWE MAYA: 6",
+   "from": "chat",
+   "to": "chat+0.54",
+   "y": 348,
+   "xr": 1040,
+   "cls": "chip"
+  }
+ ],
+ "sources": {
+  "jo": {
+   "path": "src/film/assets/tbc/shots/b2_j0.mp4"
+  },
+  "chat": {
+   "path": "src/film/assets/tbc/scenes/shA_chat.mp4"
+  },
+  "board": {
+   "path": "src/film/assets/tbc/scenes/shA_board.mp4"
+  },
+  "gran": {
+   "path": "src/film/assets/tbc/clips/gran_go.mp4"
+  }
+ },
+ "narration": [
+  {
+   "file": "src/film/assets/tbc/vo/en/shA_n1.wav",
+   "at": "chat+4.25",
+   "y": 1288,
+   "gain_db": 0.0,
+   "text": "They have known him | for eleven years."
+  }
+ ],
+ "music": [
+  {
+   "file": "src/film/assets/apa/audio/bed_hall_quiet.flac",
+   "at": 0.0,
+   "offset": 3.0,
+   "gain_db": -8,
+   "duck_db": 0,
+   "fade_in": 0.02,
+   "fade_out": 0.004
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "msg",
+   "at": "m_maya+0.04",
+   "gain_db": -15
+  },
+  {
+   "synth": "msg",
+   "at": "m_marcus+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "msg",
+   "at": "m_lee+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "typing",
+   "args": [
+    6.1,
+    0.11,
+    69
+   ],
+   "at": "chat+0.9",
+   "gain_db": -26
+  },
+  {
+   "synth": "msg",
+   "at": "m_priya+0.04",
+   "gain_db": -10
+  },
+  {
+   "synth": "typing",
+   "args": [
+    1.15,
+    0.11,
+    70
+   ],
+   "at": "m_priya+0.35",
+   "gain_db": -21
+  },
+  {
+   "synth": "click",
+   "at": "r1+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "click",
+   "at": "r2+0.04",
+   "gain_db": -18
+  },
+  {
+   "synth": "thud",
+   "at": "stamp+0.06",
+   "gain_db": -6
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+0.15",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+0.95",
+   "gain_db": -8
+  },
+  {
+   "synth": "two_note",
+   "at": "signoff+1.35",
+   "gain_db": -12
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+1.75",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+2.55",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "at": "signoff+3.35",
+   "gain_db": -8
+  },
+  {
+   "synth": "clock_tick",
+   "args": [
+    1
+   ],
+   "at": "signoff+4.15",
+   "gain_db": -8
+  }
+ ],
+ "segments": [
+  {
+   "src": "jo",
+   "in": 2.9167,
+   "out": 7.2083,
+   "audio_out": 7.45,
+   "a_fade_out": 0.2,
+   "marks": {
+    "open": 2.9167
+   },
+   "lt": {
+    "name": "JO",
+    "what": "FRIEND OF DANNY",
+    "at": 0.0,
+    "y": 1100
+   },
+   "line": "He's in my phone as Danny Football. Danny Football.",
+   "no_caps": true,
+   "cap": [
+    {
+     "text": "He's in my phone as",
+     "at": -0.1,
+     "len": 1.7,
+     "hold": 0.55
+    },
+    {
+     "text": "Danny Football.",
+     "at": 2.2,
+     "len": 0.8,
+     "hold": 0.0
+    },
+    {
+     "text": "Danny Football.",
+     "at": 3.08,
+     "len": 0.74,
+     "hold": 0.55
+    }
+   ],
+   "hold": 0.0833
+  },
+  {
+   "src": "chat",
+   "in": 0.0,
+   "out": 0.4167,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "chat": 0.0,
+    "m_maya": 0.125
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.4167,
+   "out": 0.8333,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587,
+    "ease": "inout"
+   }
+  },
+  {
+   "src": "chat",
+   "in": 0.8333,
+   "out": 8.625,
+   "mute": true,
+   "pop": 0,
+   "zoom": {
+    "from": 1.235,
+    "to": 1.235,
+    "cx": 0.0,
+    "cy": 0.587
+   },
+   "marks": {
+    "m_marcus": 2.5,
+    "m_lee": 3.2917,
+    "m_priya": 7.0833
+   }
+  },
+  {
+   "src": "board",
+   "in": 0.0,
+   "out": 3.6667,
+   "mute": true,
+   "pop": 0,
+   "marks": {
+    "board": 0.0,
+    "r1": 0.4167,
+    "r2": 1.4583,
+    "stamp": 2.4167
+   }
+  },
+  {
+   "src": "gran",
+   "in": 3.25,
+   "out": 6.85,
+   "mute": true,
+   "zoom": {
+    "from": 1.06,
+    "to": 1.12,
+    "cx": 0.5,
+    "cy": 0.45
+   },
+   "marks": {
+    "signoff": 3.25
+   },
+   "gfx": [
+    {
+     "type": "status",
+     "at": 0.15,
+     "name": "DANNY'S GRANDMOTHER",
+     "status": "KNOWS HIS FULL NAME.",
+     "foot": "Next episode: Thursday. Confirmed.",
+     "foot_at": 1.2,
+     "foot_size": 52
+    }
+   ],
+   "fit": 4.3
+  }
+ ]
+}

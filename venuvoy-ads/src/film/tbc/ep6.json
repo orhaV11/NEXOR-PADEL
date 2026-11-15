@@ -287,10 +287,8 @@
   {
    "src": "lee",
    "in": 0.4583,
-   "out": 6.375,
-   "audio_out": 6.6,
+   "out": 4.75,
    "a_fade_in": 0.08,
-   "a_fade_out": 0.2,
    "marks": {
     "lee": 0.4583
    },
@@ -298,9 +296,10 @@
     "name": "LEE",
     "what": "COMPARES FLIGHTS",
     "at": 0.0,
-    "y": 1085
+    "y": 1085,
+    "len": 5.9167
    },
-   "line": "Three flights and a bus. I get in before kick-off, depending on kick-off.",
+   "line": "Three flights and a bus. I get in before kick-off,",
    "no_caps": true,
    "cap": [
     {
@@ -326,20 +325,36 @@
      "at": 3.52,
      "len": 0.62,
      "hold": 0.26
-    },
+    }
+   ]
+  },
+  {
+   "src": "lee",
+   "in": 4.75,
+   "out": 6.375,
+   "audio_out": 6.6,
+   "a_fade_out": 0.2,
+   "marks": {
+    "lee2": 4.75
+   },
+   "line": "depending on kick-off.",
+   "no_caps": true,
+   "cap": [
     {
      "text": "depending on",
-     "at": 4.42,
+     "at": 0.1283,
      "len": 0.58,
      "hold": 0.0
     },
     {
      "text": "kick-off.",
-     "at": 5.01,
+     "at": 0.7183,
      "len": 0.32,
      "hold": 0.58
     }
-   ]
+   ],
+   "gain_db": 1.5,
+   "pop": 0
   },
   {
    "src": "board",

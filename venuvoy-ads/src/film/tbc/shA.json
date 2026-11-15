@@ -25,7 +25,7 @@
   {
    "text": "OWE MAYA: 6",
    "from": "chat",
-   "to": "chat+0.54",
+   "to": "board",
    "y": 348,
    "xr": 1040,
    "cls": "chip"

@@ -3,10 +3,10 @@
  "timo_34": "https://cdn.muapi.ai/outputs/generated/6302a46f-5b90-40ea-b100-1877d052eb12_4e3d870b.jpg",
  "timo_back": "https://cdn.muapi.ai/outputs/generated/c666ac41-f082-4b50-824d-e74125d09118_8b71e71e.jpg",
  "timo_face": "https://cdn.muapi.ai/outputs/generated/3a242e87-7636-4aed-a630-016777170d3a_51a74a44.jpg",
- "luna_front": "https://cdn.muapi.ai/outputs/generated/2c781285-ec2b-491f-8393-5099488e7104_73ea1b6f.jpg",
- "luna_34": "https://cdn.muapi.ai/outputs/generated/0f99cc14-95bc-430c-8690-6e36375e0218_6f9e6553.jpg",
- "luna_back": "https://cdn.muapi.ai/outputs/generated/5a5debca-f9ef-4134-ac98-3098efd5d171_7ee72b8c.jpg",
- "luna_face": "https://cdn.muapi.ai/outputs/generated/7c140fb1-d21d-4dc9-8646-b895ff913088_6085a34f.jpg",
+ "luna_front": "https://cdn.muapi.ai/outputs/generated/cafc1b59-ac79-4c0a-9b66-d9fe606b2019_6190eccb.jpg",
+ "luna_34": "https://cdn.muapi.ai/outputs/generated/da235b15-8a3a-417b-98ab-1f8a8dcade2b_28f01a83.jpg",
+ "luna_back": "https://cdn.muapi.ai/outputs/generated/ef710d11-99ce-43df-a92b-7f49501021a2_ad3109e4.jpg",
+ "luna_face": "https://cdn.muapi.ai/outputs/generated/b0103055-098c-4020-b6e8-ee1252a72c59_412fc643.jpg",
  "big_34": "https://cdn.muapi.ai/outputs/generated/cab7b6ad-b1a1-4153-bbf5-f8881bfbec19_c97c4491.jpg",
  "big_side": "https://cdn.muapi.ai/outputs/generated/c82cb1a3-3ffb-4f08-868d-e40d8423f7ce_456a32c6.jpg",
  "cat_side": "https://cdn.muapi.ai/outputs/generated/dbd68a09-e8db-4358-93e5-a8c4070c774d_15618c3c.jpg",
@@ -27,5 +27,9 @@
  "place_catwall": "https://cdn.muapi.ai/outputs/generated/ac808e0f-5dc9-451a-87b0-7f35fa8d95f1_9f6a8894.jpg",
  "place_ride_behind": "https://cdn.muapi.ai/outputs/generated/cac99f4c-1b40-43b3-abdc-3b74e0025544_befb379a.jpg",
  "place_gate_close": "https://cdn.muapi.ai/outputs/generated/aa2ca555-33c5-44ec-90f4-8209cdbb1907_42aff995.jpg",
- "place_gate_wide": "https://cdn.muapi.ai/outputs/generated/cb0e9f26daa7409aa387f98301c595d8.jpg"
+ "place_gate_wide": "https://cdn.muapi.ai/outputs/generated/cb0e9f26daa7409aa387f98301c595d8.jpg",
+ "luna_front_v1": "https://cdn.muapi.ai/outputs/generated/2c781285-ec2b-491f-8393-5099488e7104_73ea1b6f.jpg",
+ "luna_34_v1": "https://cdn.muapi.ai/outputs/generated/0f99cc14-95bc-430c-8690-6e36375e0218_6f9e6553.jpg",
+ "luna_face_v1": "https://cdn.muapi.ai/outputs/generated/7c140fb1-d21d-4dc9-8646-b895ff913088_6085a34f.jpg",
+ "luna_back_v1": "https://cdn.muapi.ai/outputs/generated/5a5debca-f9ef-4134-ac98-3098efd5d171_7ee72b8c.jpg"
 }

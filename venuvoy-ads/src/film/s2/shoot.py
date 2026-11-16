@@ -1,7 +1,8 @@
 """Shoot a film of "Plan, No Plan": a start picture for every shot, then the clip.
 
     python3 src/film/s2/shoot.py <plan.json> stills [id ...] [--n 2]      draw start pictures (n candidates each)
-    python3 src/film/s2/shoot.py <plan.json> video  [id ...]              film the clips from the picked pictures
+    python3 src/film/s2/shoot.py <plan.json> video  [id ...] [--takes 2]  film the clips from the picked pictures
+                                                                          (--takes N: until every shot has N takes)
     python3 src/film/s2/shoot.py <plan.json> cost                         what the clips will cost, nothing spent
     python3 src/film/s2/shoot.py <plan.json> sheet                        one contact sheet of every picked picture
 
@@ -47,7 +48,7 @@ ELEMENTS = {  # name -> (pictures in cast.json, tag, description, voice key)
     "Cat": (["cat_side", "cat_front"], "animal", "fat ginger street cat, cream belly, grumpy half-closed eyes", None),
 }
 
-VALUED = {"--n"}  # options that take a value
+VALUED = {"--n", "--takes"}  # options that take a value
 args, _skip = [], False
 for _a in sys.argv[1:]:
     if _skip:
@@ -162,18 +163,25 @@ def payload_of(s):
 
 
 def do_video():
-    todo = [s for s in shots() if (s["id"] not in state["clips"] or REDO) and s.get("video")]
-    for s in todo:
-        s["_payload"] = payload_of(s)
+    want = int(opt("--takes", 1))
+    todo = []  # (shot, take number): with --takes N a shot is filmed until it has N takes; --redo adds one more
+    for s in shots():
+        if not s.get("video"):
+            continue
+        have = len(state["clips"].get(s["id"], {}).get("takes", []))
+        new_takes = max(0, want - have) or (1 if REDO or not have else 0)
+        if new_takes:
+            s["_payload"] = payload_of(s)
+        todo += [(s, have + k + 1) for k in range(new_takes)]
 
-    def one(s):
+    def one(job):
+        s, take = job
         t0 = time.time()
-        take = len(state["clips"].get(s["id"], {}).get("takes", [])) + 1
         path = OUT / "clips" / f'{s["id"]}_t{take}.mp4'
         url, err = run(VIDEO_MODEL, s["_payload"], path)
         return s, take, path, url, err, round(time.time() - t0)
 
-    with ThreadPoolExecutor(4) as ex:
+    with ThreadPoolExecutor(6) as ex:
         for s, take, path, url, err, secs in ex.map(one, todo):
             if url:
                 c = state["clips"].setdefault(s["id"], {"takes": []})

@@ -1,0 +1,153 @@
+[
+ {
+  "shot": "r3",
+  "take": 1,
+  "file": "src/film/assets/s2/roll/clips/r3_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "One",
+    0.4,
+    0.88
+   ],
+   [
+    "sentence",
+    0.88,
+    4.16
+   ],
+   [
+    "done.",
+    4.16,
+    4.76
+   ]
+  ],
+  "text": "One sentence. Done.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "pitch": 235,
+  "quiet": -81,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/roll/review/_r3_t1.jpg"
+ },
+ {
+  "shot": "r3x",
+  "take": 1,
+  "file": "src/film/assets/s2/roll/clips/r3x_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "One",
+    0.4,
+    0.8
+   ],
+   [
+    "sentence",
+    0.8,
+    4.08
+   ],
+   [
+    "done.",
+    4.08,
+    4.68
+   ]
+  ],
+  "text": "one sentence done",
+  "cuts": [],
+  "zoom": 0.92,
+  "shift": [
+   12,
+   -206
+  ],
+  "pitch": 302,
+  "quiet": -68,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/roll/review/_r3x_t1.jpg"
+ },
+ {
+  "shot": "r4",
+  "take": 1,
+  "file": "src/film/assets/s2/roll/clips/r4_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "It's",
+    0.8,
+    1.12
+   ],
+   [
+    "the",
+    1.12,
+    1.52
+   ],
+   [
+    "small",
+    1.52,
+    2.24
+   ],
+   [
+    "one.",
+    2.24,
+    2.84
+   ]
+  ],
+  "text": "It's the small one.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "pitch": 296,
+  "quiet": -45,
+  "loud": -8,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/roll/review/_r4_t1.jpg"
+ },
+ {
+  "shot": "r4",
+  "take": 2,
+  "file": "src/film/assets/s2/roll/clips/r4_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "The",
+    0.64,
+    1.04
+   ],
+   [
+    "Cat",
+    1.04,
+    1.52
+   ],
+   [
+    "Has",
+    1.52,
+    1.84
+   ],
+   [
+    "Your",
+    1.84,
+    2.16
+   ],
+   [
+    "Plan.",
+    2.16,
+    2.76
+   ]
+  ],
+  "text": "The cat has your plan.",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   0,
+   0
+  ],
+  "pitch": 246,
+  "quiet": -62,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/roll/review/_r4_t2.jpg"
+ }
+]

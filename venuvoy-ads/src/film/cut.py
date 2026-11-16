@@ -851,6 +851,33 @@ def fit(a, n):
     return np.pad(a, ((0, max(0, n - len(a))), (0, 0)))[:n]
 
 
+_DN = None
+
+
+def clean_voice(a, keep_db=-60):
+    """The voice alone: a (n, 2) signal at SR through the DPDFNet speech enhancer (work/denoise/dpdfnet2_48khz_hr.onnx,
+    from the sherpa-onnx releases). keep_db mixes a little of the original back in (-60: none) so that a voice does not
+    sound cut out of its world."""
+    global _DN
+    if _DN is None:
+        import sherpa_onnx
+        model = ROOT / "work" / "denoise" / "dpdfnet2_48khz_hr.onnx"
+        if not model.exists():
+            model.parent.mkdir(parents=True, exist_ok=True)
+            run(["curl", "-sS", "-L", "-o", model, "https://github.com/k2-fsa/sherpa-onnx/releases/download/speech-enhancement-models/dpdfnet2_48khz_hr.onnx"])
+        cfg = sherpa_onnx.OfflineSpeechDenoiserConfig(model=sherpa_onnx.OfflineSpeechDenoiserModelConfig(
+            dpdfnet=sherpa_onnx.OfflineSpeechDenoiserDpdfNetModelConfig(model=str(model)), num_threads=4, provider="cpu"))
+        _DN = sherpa_onnx.OfflineSpeechDenoiser(cfg)
+    mono = a.mean(axis=1).astype(np.float32)
+    pad = int(0.25 * SR)  # the enhancer needs a moment to settle: give it a lead-in of the clip's own start, mirrored
+    x = np.concatenate([mono[:pad][::-1], mono]) if len(mono) > pad else mono
+    y = np.array(_DN(x, SR).samples, dtype=np.float64)
+    y = y[len(x) - len(mono):] if len(mono) > pad else y
+    y = np.pad(y, (0, max(0, len(mono) - len(y))))[: len(mono)]
+    out = np.stack([y, y], axis=1)
+    return out + a * db(keep_db) if keep_db > -59 else out
+
+
 NS = int(round(TOTAL * SR))
 dialog = np.zeros((NS + SR, 2))
 ambient = np.zeros((NS + SR, 2))  # the natural sound of cutaways (sources with "bus": "fx"): mixed with the effects
@@ -867,6 +894,11 @@ for s in segs:
     a = fit(read_audio(source(s["src"]), s["in"], a_out - s["in"], s["speed"], EDL["sources"][s["src"]].get("af")), n)
     if "audio_out" not in s:
         a = np.pad(a, ((0, int(round(s["dur"] * SR)) - n), (0, 0)))
+    # "clean": every generated clip brings its own background (a hum, birds, a room); cut together, that background
+    # jumps at each cut. A spoken segment is therefore stripped down to the voice (DPDFNet, 48 kHz) and the film gets
+    # ONE background of its own ("ambience"). Set "clean": false on a segment whose own sound is wanted as it is.
+    if s.get("clean", EDL["sources"][s["src"]].get("clean", EDL.get("clean", False))) and (s.get("speech") or s.get("line")):
+        a = clean_voice(a, s.get("clean_keep_db", EDL.get("clean_keep_db", -60)))
     s["audio"] = a
     parts.setdefault(s["src"], []).append(s)
 for name, ps in parts.items():
@@ -947,7 +979,11 @@ if EDL.get("duck_mode") == "voice":
     speech_spans = [(a / 100 - 0.06, b / 100 + 0.08) for a, b in merged] + [(a, b) for a, b in speech_spans if a in fx_voice_starts]
 for a, b in speech_spans:
     speech[max(0, int(max(a, duck_from) * SR)): min(NS, int(b * SR))] = 1
-att, rel = math.exp(-1 / (0.03 * SR)), math.exp(-1 / (0.25 * SR))
+lead = int(EDL.get("duck_lead", 0.0) * SR)  # the music starts to lean back this long before the first word
+if lead:
+    speech = np.minimum(1, speech + np.concatenate([speech[lead:], np.zeros(lead)]))
+    speech = np.maximum.reduce([speech] + [np.concatenate([speech[k:], np.zeros(k)]) for k in range(0, lead, max(1, lead // 8))])
+att, rel = math.exp(-1 / (EDL.get("duck_attack", 0.03) * SR)), math.exp(-1 / (EDL.get("duck_release", 0.25) * SR))
 env = np.maximum(ss.lfilter([1 - att], [1, -att], speech), ss.lfilter([1 - rel], [1, -rel], speech))
 env = np.clip(env * 1.3, 0, 1)
 # "unduck": at these times a line has just ended and the music must be back at once (before a stop, a drop, the end card)
@@ -1036,7 +1072,62 @@ for x in sfx:
         a[-fo:] *= np.linspace(1, 0, fo)[:, None]
     place(fx, a, x["at"], db(x.get("gain_db", -6)))
 
+# "ambience": the film's own background, one bed per place: [{"file", "at", "until", "gain_db", "fade_in", "fade_out"}].
+# The file is looped with half-second crossfades to cover its span, and beds overlap by their fades at a change of place.
+for x in EDL.get("ambience", []):
+    a = read_audio(ROOT / x["file"], af=x.get("af"))
+    t0, t1 = when(x.get("at", 0.0)), (when(x["until"]) if "until" in x else TOTAL)
+    need, xf = int((t1 - t0) * SR), int(0.5 * SR)
+    bed = a.copy()
+    while len(bed) < need and len(a) > 2 * xf:
+        w = np.linspace(0, 1, xf)[:, None]
+        bed = np.concatenate([bed[:-xf], bed[-xf:] * (1 - w) + a[:xf] * w, a[xf:]])
+    bed = bed[:need]
+    fi, fo = int(x.get("fade_in", 0.3) * SR), int(x.get("fade_out", 0.3) * SR)
+    if fi and len(bed) > fi:
+        bed[:fi] *= np.linspace(0, 1, fi)[:, None]
+    if fo and len(bed) > fo:
+        bed[-fo:] *= np.linspace(1, 0, fo)[:, None]
+    place(fx, bed, t0, db(x.get("gain_db", -30)))
+
+# "dialog_fx": the voices as one cast in one place. Generated voices arrive bright, dry and close, as if read into a
+# microphone; a gentle cut of the top, a little warmth and a trace of short room put them into the picture.
+#   {"shelf_db": -2.5, "shelf_hz": 6500, "warm_db": 1.5, "warm_hz": 220, "room_db": -26, "room_s": 0.16}
+dfx = EDL.get("dialog_fx")
+if dfx:
+    def _biquad(kind, f0, gain_db, q=0.7):
+        A, w0 = 10 ** (gain_db / 40), 2 * math.pi * f0 / SR
+        al, cw = math.sin(w0) / (2 * q), math.cos(w0)
+        if kind == "highshelf":
+            sq = 2 * math.sqrt(A) * al
+            b = [A * ((A + 1) + (A - 1) * cw + sq), -2 * A * ((A - 1) + (A + 1) * cw), A * ((A + 1) + (A - 1) * cw - sq)]
+            a = [(A + 1) - (A - 1) * cw + sq, 2 * ((A - 1) - (A + 1) * cw), (A + 1) - (A - 1) * cw - sq]
+        else:  # peaking
+            b = [1 + al * A, -2 * cw, 1 - al * A]
+            a = [1 + al / A, -2 * cw, 1 - al / A]
+        return np.array(b) / a[0], np.array(a) / a[0]
+    if dfx.get("shelf_db"):
+        b, a = _biquad("highshelf", dfx.get("shelf_hz", 6500), dfx["shelf_db"])
+        dialog = ss.lfilter(b, a, dialog, axis=0)
+    if dfx.get("warm_db"):
+        b, a = _biquad("peak", dfx.get("warm_hz", 220), dfx["warm_db"], 0.9)
+        dialog = ss.lfilter(b, a, dialog, axis=0)
+    if dfx.get("room_db", -99) > -60:
+        rs = np.random.default_rng(7)
+        n = int(dfx.get("room_s", 0.16) * 4 * SR)
+        t = np.arange(n) / SR
+        ir = rs.standard_normal((n, 2)) * np.exp(-t / dfx.get("room_s", 0.16))[:, None]
+        ir = ss.sosfilt(ss.butter(2, [250, 5000], "bandpass", fs=SR, output="sos"), ir, axis=0)
+        ir = np.concatenate([np.zeros((int(0.012 * SR), 2)), ir])  # 12 ms before the first reflection
+        ir /= np.sqrt((ir ** 2).sum(axis=0))[None, :]
+        wet = np.stack([ss.fftconvolve(dialog[:, k], ir[:, k])[: len(dialog)] for k in (0, 1)], axis=1)
+        dialog = dialog + wet * db(dfx["room_db"])
+
 mix = dialog + music + fx
+tail = int(EDL.get("tail_fade", 0.0) * SR)  # the last moment of sound eases out instead of being cut with the picture
+if tail:
+    for buf in (mix, dialog, music, fx):
+        buf[-tail:] *= (np.linspace(1, 0, tail) ** 1.5)[:, None]
 for name, x in (("stem_dialog.wav", dialog), ("stem_music.wav", music), ("stem_fx.wav", fx)):
     wavfile.write(CUT / name, SR, (np.clip(x, -1, 1) * 32767).astype(np.int16))
 np.save(CUT / "speech_mask.npy", speech[:: SR // 100])

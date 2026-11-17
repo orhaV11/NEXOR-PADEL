@@ -1,0 +1,133 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; sitting high in a full stadium stand, speaking up a little into her phone over the crowd; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he stands just behind her in the stand and never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; sitting high in a full stadium stand, speaking up a little into her phone over the crowd; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he stands just behind her in the stand and never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, hungry, to the camera, over the crowd] Two minutes left! Then dinner."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[low and quiet, a calm warning] It's American football."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[hours later: flat, hollow, tired, not looking up] How long now?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[calm, even, exactly the same tone as before, no mercy] A minute fifty."
+   }
+  ],
+  "scene": "A phone vlog high in the stand at an American football game. The first two lines are spoken in warm late-afternoon sun with a full, loud crowd all around; the last two are spoken hours later, at night, in the very same seats, the crowd tired. Luna holds the phone at arm's length and talks to it; Timo stands upright just behind her.",
+  "sample_context": "An eight-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; at first she is thrilled and hungry, sure that the game is nearly over; hours later she is worn out and hollow, with no smile left in her voice, but never sarcastic. TIMO, about 30, is slow, dry and proud; he never raises his voice; he knows how long the last two minutes of this game take, and he says both of his lines in exactly the same calm, even, unhurried tone. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Two",
+   0.24,
+   0.56
+  ],
+  [
+   "minutes",
+   0.56,
+   1.04
+  ],
+  [
+   "left.",
+   1.04,
+   1.6
+  ],
+  [
+   "Then",
+   1.6,
+   1.92
+  ],
+  [
+   "dinner.",
+   1.92,
+   2.56
+  ],
+  [
+   "This",
+   2.56,
+   2.88
+  ],
+  [
+   "American",
+   2.88,
+   3.36
+  ],
+  [
+   "football.",
+   3.36,
+   4.0
+  ],
+  [
+   "How",
+   4.0,
+   4.24
+  ],
+  [
+   "long",
+   4.24,
+   4.56
+  ],
+  [
+   "now?",
+   4.56,
+   5.04
+  ],
+  [
+   "A",
+   5.04,
+   5.2
+  ],
+  [
+   "minute",
+   5.2,
+   5.52
+  ],
+  [
+   "fifty.",
+   5.52,
+   6.05
+  ]
+ ],
+ "text": "Two minutes left. Then dinner. It's American football. How long now? A minute fifty."
+}

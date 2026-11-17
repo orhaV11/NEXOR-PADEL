@@ -7,16 +7,20 @@ American football game, hours apart and joined by a whip: gold afternoon, then n
 
 Run ep_minutes_sound.py first: every time below is read from its timeline.
 
-Three things here are this film's own, because the kit has no statement for them:
+Two things here are this film's own, because the kit has no statement for them:
 _paintings()  ONE painting was bought (bg_stand_1, the stand in late-afternoon gold). From it, by code: bg_stand_1x
               (the same with the yard numbers on the field painted out: nothing readable in a background; and
               without the fourth light mast, which stood exactly where his head is) and bg_stand_night (the same
               place at night: a deep blue sky, the stands cold and dark, the field green under the lights, the
               banks of lamps switched on).
-Hours         the kit gives her one look for a whole film; here she has the neat bob by day and her hair and scarf
-              blown about at night (the two looks of the rig, changed on the cut), so that the second take reads as
-              much later while he stands exactly as he stood.
 gold(), cold()  the light on the two of them: warm by day, cold and a little dark at night (grade= of each shot).
+_tired()      her face at night (luna_tired): the rig's eyes-down face with heavy upper lids drawn on by code (no
+              drawing bought); it stands in for "read_b". And a small round mouth "o" (from the rig's "oh" face) for
+              her tired words: her own O is a big "oh!" and her C an open smile.
+
+An open stand: her windy look all through (his scarf flaps too). Two takes joined by a whip: by day the two of them
+as usual, his eyes shut in the first frame (he knows this game) and open on her for his warning; at night she is
+closer to her phone and worn out, and his eyes are shut from the first frame of the take to the last.
 """
 import sys
 from pathlib import Path
@@ -29,21 +33,53 @@ import duo  # noqa: E402
 from vlog import ROOT, Vlog  # noqa: E402
 
 
-class Hours(Vlog):
-    """Two takes hours apart: by day her calm look, from `self.later` on her windy one (his scarf flaps then too)."""
-    later = None
+def _tired(src="luna_read3b", name="luna_tired", mid=0.54, side=0.46, lid_tone=0.95):
+    """Her face at night, made by code from the rig's luna_read3b (eyes down, mouth a small closed line): heavy
+    upper lids drawn over both eyes. Each eye's white is found, the part of the eye above a gentle arc (`mid` of the
+    eye's height in the middle, `side` at its ends) is filled with her skin a shade darker (the lid), and a lid line
+    in the ink of her outlines and at their weight runs across it, clipped to the eye's own outline. Nothing else of
+    the drawing changes, so it sits on luna_w1 like every other face. Made once (--paint makes it again)."""
+    out = ROOT / "work" / "minutes" / "art" / f"{name}.png"
+    art = duo.Art("minutes")
+    if art.has(name) and "--paint" not in sys.argv:
+        return name
+    X = cv2.imread(str(art / src), cv2.IMREAD_COLOR)
+    H, W = X.shape[:2]
+    x0, y0, x1, y1 = 380, 860, 950, 1110                         # round her eyes (duo.L_EYES and a margin)
+    white = np.zeros((H, W), np.uint8)
+    white[y0:y1, x0:x1] = X[y0:y1, x0:x1].min(axis=2) > 200
+    n, cc, st, _ = cv2.connectedComponentsWithStats(white)
+    skin = np.median(X[1180:1200, 520:560].reshape(-1, 3), axis=0)                # her cheek beside the mouth
+    ink = np.median(X[y0:y1, x0:x1][X[y0:y1, x0:x1].max(axis=2) < 80], axis=0)      # the ink of her outlines
+    N = X.astype(np.float32)
+    yy, xx = np.mgrid[0:H, 0:W]
+    for i in range(1, n):
+        if st[i, cv2.CC_STAT_AREA] < 5000:
+            continue
+        cs, _ = cv2.findContours((cc == i).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        eye = np.zeros((H, W), np.uint8)
+        cv2.drawContours(eye, cs, -1, 1, -1)                     # the white with the pupil in it
+        eye = cv2.morphologyEx(eye, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
+        ex, ey, ew, eh = st[i, :4]
+        xc, thick = ex + ew / 2, 9                               # her eye outlines are 9 px
+        lid = lambda x: ey + eh * (side + (mid - side) * (1 - np.clip((x - xc) / (ew / 2), -1, 1) ** 2))   # noqa: E731
+        cover = cv2.GaussianBlur(((yy < lid(xx)) & (cv2.dilate(eye, np.ones((5, 5), np.uint8)) > 0)).astype(np.float32), (0, 0), 0.8) \
+            * cv2.GaussianBlur(eye.astype(np.float32), (0, 0), 0.8)
+        N = N * (1 - cover[..., None]) + skin * lid_tone * cover[..., None]
+        xs = np.arange(ex - thick, ex + ew + thick + 1)
+        line = np.zeros((H, W), np.uint8)
+        cv2.polylines(line, [np.round(np.stack([xs, lid(xs)], 1) * 16).astype(np.int32)], False, 255, thick, cv2.LINE_AA, 4)
+        a = line.astype(np.float32) / 255 * cv2.GaussianBlur(cv2.dilate(eye, np.ones((thick + 1, thick + 1), np.uint8)).astype(np.float32), (0, 0), 1.0)
+        N = N * (1 - a[..., None]) + ink * a[..., None]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(out), np.clip(N + 0.5, 0, 255).astype(np.uint8))
+    return name
 
-    def _draw(self, st, t, T):
-        if self.later is not None and T >= self.later - 1e-6:
-            self.luna, self.look = self.luna_wind, "wind"
-        else:
-            self.luna, self.look = self.luna_calm, "calm"
-        super()._draw(st, t, T)
 
-
-v = Hours("minutes", "ads/21-vlog/venuvoy-vlog-12-minutes", luna="calm", timo="timo_clean")
-v.luna_calm, v.luna_wind = v.luna, duo.luna(v.art, v.s_luna, "wind")
-v.later = v.t("cut1")
+# her face at night is the tired one: it takes the place of "read_b" (eyes down, mouth shut), so that her head still
+# bows to it as the kit bows it for read_b
+v = Vlog("minutes", "ads/21-vlog/venuvoy-vlog-12-minutes", luna="wind", timo="timo_clean", extra_faces={"read_b": _tired()})
+v.luna.add("3mouth", "o", v.art / "luna_down", duo.L_MOUTH)     # a small round mouth (from the rig's "oh" face): her tired words barely open it
 
 # Four short lines: every mouth is set by hand, twelve steps a second from the start of each line, against the word
 # times of the sound file (- is the shut mouth). Left to itself the kit, which opens a mouth by loudness, gave his
@@ -54,7 +90,7 @@ MOUTHS = {
     #        I  t  s  A  m  e  ri c  a  n  f  oo t  b  a  ll
     "T2": "C C - C - C C - C C O - - O C -",                                 # low: the small mouth, round on "foot" and "ball"
     #        .  h  ow .  l  o  ng n  ow .
-    "L3": "- C O O C O C C O O -",                                           # hollow: small and round, never the smile
+    "L3": "- o o - o - - - o o -",                                           # hollow: the small round mouth, barely open (her O is a big "oh!", her C an open smile)
     #        A  m  i  nu t  f  i  f  t  y  .
     "T4": "C - C C - - C - C C C -",                                         # exactly as flat as the first
 }
@@ -172,7 +208,14 @@ def _paintings(src="bg_stand_1", day="bg_stand_1x", night="bg_stand_night"):
     even = grey * (1 + shade * (SUN_OVER_SHADE - 1))
     grass = c(*GRASS) * (even / 0.62) ** 1.3 * 0.82 + P * c(0.55, 0.72, 0.85) * 0.18
     N = land * (1 - field) + grass * field
-    t = (np.clip((rim[None] - yy) / 720.0, 0, 1) ** 0.75)[..., None]
+    # what stands on the field (its white lines, the yellow goalpost, the players) keeps its own colours under the
+    # white lights instead of turning green with the grass: all that differs from the grass round it (a median of
+    # 41 px) by more than LINE_DIFF in Lab
+    lab = lambda a: cv2.cvtColor(a, cv2.COLOR_BGR2LAB).astype(np.float32)                 # noqa: E731
+    diff = np.linalg.norm(lab(X8) - lab(cv2.medianBlur(X8, 41)), axis=2)
+    mark = cv2.GaussianBlur(np.clip((diff - LINE_DIFF) / 10.0, 0, 1), (0, 0), 0.8)[..., None] * field
+    N = N * (1 - mark) + P * c(*LIT) * mark
+    t =(np.clip((rim[None] - yy) / 720.0, 0, 1) ** 0.75)[..., None]
     night_sky = (c(*HAZE) * (1 - t) + c(*DEEP) * t) * (1 + (lum - cv2.GaussianBlur(lum, (0, 0), 60))[..., None] * 1.5)   # deep blue above, a haze of light over the stadium, its own soft streaks
     s = cv2.GaussianBlur(sky.astype(np.float32), (0, 0), 1.0)[..., None]
     N = N * (1 - s) + night_sky * s
@@ -185,11 +228,12 @@ def _paintings(src="bg_stand_1", day="bg_stand_1x", night="bg_stand_night"):
     return day, night
 
 
-HALO = (0.50, 0.26)                                    # how strong the halo of a bank of lamps is: near it, and far round it
+HALO = (0.25, 0.08)                                    # how strong the halo of a bank of lamps is: near it, and far round it (kept faint: no glow in the house style)
 LAND, GRASS = (0.40, 0.49, 0.80), (0.33, 0.55, 0.28)   # the night's colour on the stands; the green of the field under the lights
 SUN_OVER_SHADE = 1.40                                  # how much lighter the sunlit grass of the painting is than its shaded grass
 FAR_END = [(0, 1080), (100, 1077), (200, 1077), (257, 1080), (300, 1094), (400, 1128), (500, 1166), (600, 1209), (640, 1228), (600, 1262), (0, 1262)]   # the shaded far end of the field
 HAZE, DEEP = (0.185, 0.255, 0.470), (0.050, 0.085, 0.215)   # the night sky just over the stadium, and high above
+LINE_DIFF, LIT = 10.0, (0.86, 0.94, 1.05)              # how far from the grass a mark on the field is; the floodlight on it
 DAY, NIGHT = _paintings()
 v.art / "bg_stand_1"                                   # (asked for every time: pack.py keeps the bought painting itself too)
 
@@ -204,13 +248,17 @@ def cold(frame, T):
     return (frame * 0.90 + g[..., None] * 0.10) * np.array([0.84, 0.89, 1.0], np.float32)
 
 
-# ---- two takes of one framing: the rim of the far stand and its lamps over her head, the field behind her shoulder
+# ---- two takes: by day the two of them as usual, the rim of the far stand and its lamps over her head, the field
+#      behind her shoulder; at night (after a whip) closer, the lit lamps between her head and his.
 #      drawing, a point in it (the rim of the far stand, at the left), where that lands in the frame, size
 #      (the tops of the goalpost stay behind her head: two yellow sticks out of her hair would be a fault)
-#      He stands in the very same place in both; clear of the third mast, whose lamps are over his shoulder.
-TIMO = (885, 1020, 0.92)
-v.shot("start", bg=(DAY, (300, 760), (170, 503), 0.78), luna=(362, 1580, 0.92, -1.0), timo=TIMO, grade=gold)
-v.shot("cut1", bg=(NIGHT, (300, 760), (160, 497), 0.80), luna=(350, 1596, 0.92, 1.2), timo=TIMO, grade=cold)   # "cut1" is a whip in the sound plan
+LUNA2, TIMO2 = (345, 1490, 1.16, 1.0), (890, 830, 1.16)              # the kit's close places: both 26 per cent bigger
+NIGHT2 = (NIGHT, (300, 760), (60, 560), 0.92)                          # the painting closer too
+#      by day she stands at the kit's wide place (her chin then stays clear of the caption under it), he 35 px higher
+#      with her (his mouth over her hair: y < 1545 - 487 x 0.92 - 90 = 1007), and the painting 60 px higher (less
+#      empty sky over them in the first second)
+v.shot("start", bg=(DAY, (300, 760), (170, 443), 0.78), luna=(362, 1545, 0.92, -1.0), timo=(885, 985, 0.92), grade=gold)
+v.shot("cut1", bg=NIGHT2, luna=LUNA2, timo=TIMO2, grade=cold)   # "cut1" is a whip in the sound plan
 
 # ---- her face
 v.faces(("start", None),                  # sunny, to us: two minutes left!
@@ -220,15 +268,15 @@ v.tilt(L1=3.2, L3=0.8)
 v.blinks(luna=[1.36, "T2+0.50", "plate+0.70"],
          timo=[])                         # he does not blink: shut, open on her, and shut again
 
-# ---- his eyes: shut from the first frame (he knows this game); on her to warn her; on her, unchanged, at night;
-#      and shut again when the whistle goes: exactly as he stood in daylight
+# ---- his eyes: shut in the first frame (he knows this game); open on her to warn her; and at night shut from the
+#      first frame of the take to the last, "A minute fifty." said without opening them
 v.eyes(("start", "shut"),
        ("L1.end+0.02", None),
-       ("whistle+0.38", "shut"))
+       ("cut1", "shut"))
 
 # ---- the words on screen
 v.captions(
-    hold={"L1": ("Two minutes left!\n", "Then dinner.", "L1@then")},     # the dinner arrives when she says it
+    split={"L1": [("Two minutes left!", None), ("Then dinner.", "L1@then")]},   # one line at a time, each low under her chin; the dinner arrives when she says it
     text={"T2": "It’s American football."},
     off={"T4": "plate-0.06"})                                            # the punchline stays up through the whistle and her look
 v.plate(x=352, y=300, size=0.74)                                         # he is still standing: the plate goes beside his head

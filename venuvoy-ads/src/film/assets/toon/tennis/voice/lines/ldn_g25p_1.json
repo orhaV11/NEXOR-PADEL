@@ -1,0 +1,198 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Tennis. One sentence.",
+  "t0": 0.23,
+  "t1": 2.38,
+  "dur": 2.15,
+  "words": [
+   [
+    "tennis",
+    0.01,
+    1.05
+   ],
+   [
+    "one",
+    1.05,
+    1.37
+   ],
+   [
+    "sentence",
+    1.37,
+    2.1
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "tennis one sentence",
+  "wrong": [],
+  "peak_db": -7.1
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Four thousand people keep quiet so two people can grunt.",
+  "t0": 2.72,
+  "t1": 6.33,
+  "dur": 3.61,
+  "words": [
+   [
+    "four",
+    0.0,
+    0.32
+   ],
+   [
+    "thousand",
+    0.32,
+    0.8
+   ],
+   [
+    "people",
+    0.8,
+    1.12
+   ],
+   [
+    "keep",
+    1.12,
+    1.44
+   ],
+   [
+    "quiet",
+    1.44,
+    2.08
+   ],
+   [
+    "so",
+    2.08,
+    2.32
+   ],
+   [
+    "two",
+    2.32,
+    2.56
+   ],
+   [
+    "people",
+    2.56,
+    2.88
+   ],
+   [
+    "can",
+    2.88,
+    3.12
+   ],
+   [
+    "grunt",
+    3.12,
+    3.56
+   ]
+  ],
+  "matched": "10/10",
+  "heard": "four thousand people keep quiet so two people can grunt",
+  "wrong": [],
+  "peak_db": -6.5
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "That can't be all of it.",
+  "t0": 6.66,
+  "t1": 7.95,
+  "dur": 1.29,
+  "words": [
+   [
+    "that",
+    -0.02,
+    0.22
+   ],
+   [
+    "cant",
+    0.22,
+    0.54
+   ],
+   [
+    "be",
+    0.54,
+    0.7
+   ],
+   [
+    "all",
+    0.7,
+    0.94
+   ],
+   [
+    "of",
+    0.94,
+    1.1
+   ],
+   [
+    "it",
+    1.1,
+    1.24
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "that cant be all of it",
+  "wrong": [],
+  "peak_db": -8.0
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "There's also a man on a very tall chair.",
+  "t0": 8.33,
+  "t1": 11.13,
+  "dur": 2.8,
+  "words": [
+   [
+    "theres",
+    -0.01,
+    0.31
+   ],
+   [
+    "also",
+    0.31,
+    0.63
+   ],
+   [
+    "a",
+    0.63,
+    0.87
+   ],
+   [
+    "man",
+    0.87,
+    1.27
+   ],
+   [
+    "on",
+    1.27,
+    1.43
+   ],
+   [
+    "a",
+    1.43,
+    1.67
+   ],
+   [
+    "very",
+    1.67,
+    1.91
+   ],
+   [
+    "tall",
+    1.91,
+    2.31
+   ],
+   [
+    "chair",
+    2.31,
+    2.75
+   ]
+  ],
+  "matched": "9/9",
+  "heard": "theres also a man on a very tall chair",
+  "wrong": [],
+  "peak_db": -4.9
+ }
+]

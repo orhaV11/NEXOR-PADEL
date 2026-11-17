@@ -1,0 +1,133 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Was that a goal?",
+  "t0": 0.18,
+  "t1": 0.93,
+  "dur": 0.75,
+  "words": [
+   [
+    "was",
+    -0.1,
+    0.14
+   ],
+   [
+    "that",
+    0.14,
+    0.3
+   ],
+   [
+    "a",
+    0.3,
+    0.46
+   ],
+   [
+    "goal",
+    0.46,
+    0.7
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "was that a goal",
+  "wrong": [],
+  "peak_db": -1.6
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "That was a goal.",
+  "t0": 1.15,
+  "t1": 1.96,
+  "dur": 0.81,
+  "words": [
+   [
+    "that",
+    0.05,
+    0.21
+   ],
+   [
+    "was",
+    0.21,
+    0.37
+   ],
+   [
+    "a",
+    0.37,
+    0.53
+   ],
+   [
+    "goal",
+    0.53,
+    0.76
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "that was a goal",
+  "wrong": [],
+  "peak_db": -3.2
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Who for?",
+  "t0": 2.22,
+  "t1": 2.82,
+  "dur": 0.6,
+  "words": [
+   [
+    "who",
+    0.02,
+    0.26
+   ],
+   [
+    "for",
+    0.26,
+    0.55
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "who for",
+  "wrong": [],
+  "peak_db": -3.3
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "The people in the stadium.",
+  "t0": 2.95,
+  "t1": 4.09,
+  "dur": 1.14,
+  "words": [
+   [
+    "the",
+    0.09,
+    0.25
+   ],
+   [
+    "people",
+    0.25,
+    0.41
+   ],
+   [
+    "in",
+    0.41,
+    0.57
+   ],
+   [
+    "the",
+    0.57,
+    0.65
+   ],
+   [
+    "stadium",
+    0.65,
+    1.09
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "the people in the stadium",
+  "wrong": [],
+  "peak_db": -2.4
+ }
+]

@@ -1,0 +1,157 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Over here! I never get the free shirt!",
+  "t0": 0.23,
+  "t1": 3.04,
+  "dur": 2.81,
+  "words": [
+   [
+    "over",
+    0.01,
+    0.41
+   ],
+   [
+    "here",
+    0.41,
+    1.13
+   ],
+   [
+    "i",
+    1.13,
+    1.29
+   ],
+   [
+    "never",
+    1.29,
+    1.61
+   ],
+   [
+    "get",
+    1.61,
+    1.85
+   ],
+   [
+    "the",
+    1.85,
+    2.01
+   ],
+   [
+    "free",
+    2.01,
+    2.33
+   ],
+   [
+    "shirt",
+    2.33,
+    2.76
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "over here i never get the free shirt",
+  "wrong": [],
+  "peak_db": -4.2
+ },
+ {
+  "n": 2,
+  "who": "L",
+  "text": "Eleven games. Never once.",
+  "t0": 3.52,
+  "t1": 5.86,
+  "dur": 2.34,
+  "words": [
+   [
+    "eleven",
+    -0.08,
+    0.56
+   ],
+   [
+    "games",
+    0.56,
+    1.44
+   ],
+   [
+    "never",
+    1.44,
+    1.84
+   ],
+   [
+    "once",
+    1.84,
+    2.29
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "eleven games never once",
+  "wrong": [],
+  "peak_db": -9.1
+ },
+ {
+  "n": 3,
+  "who": "T",
+  "text": "Luna.",
+  "t0": 6.31,
+  "t1": 6.93,
+  "dur": 0.62,
+  "words": [
+   [
+    "luna",
+    0.01,
+    0.57
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "luna",
+  "wrong": [],
+  "peak_db": -5.9
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "Not now.",
+  "t0": 7.22,
+  "t1": 8.14,
+  "dur": 0.92,
+  "words": [
+   [
+    "not",
+    0.06,
+    0.38
+   ],
+   [
+    "now",
+    0.38,
+    0.87
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "not now",
+  "wrong": [],
+  "peak_db": -4.0
+ },
+ {
+  "n": 5,
+  "who": "T",
+  "text": "They're reloading.",
+  "t0": 8.54,
+  "t1": 9.55,
+  "dur": 1.01,
+  "words": [
+   [
+    "theyre",
+    -0.06,
+    0.26
+   ],
+   [
+    "reloading",
+    0.26,
+    0.86
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "theyre reloading",
+  "wrong": [],
+  "peak_db": -5.2
+ }
+]

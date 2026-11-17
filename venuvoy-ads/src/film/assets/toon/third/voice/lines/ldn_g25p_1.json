@@ -1,0 +1,186 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Question. 'How many games fit in one weekend?'",
+  "t0": 1.0,
+  "t1": 3.82,
+  "dur": 2.82,
+  "words": [
+   [
+    "how",
+    0.28,
+    0.52
+   ],
+   [
+    "many",
+    0.52,
+    0.68
+   ],
+   [
+    "games",
+    0.68,
+    1.16
+   ],
+   [
+    "fit",
+    1.16,
+    1.56
+   ],
+   [
+    "in",
+    1.56,
+    1.8
+   ],
+   [
+    "one",
+    1.8,
+    2.12
+   ],
+   [
+    "week",
+    2.12,
+    2.6
+   ]
+  ],
+  "matched": "7/8",
+  "heard": "how many games fit in one week",
+  "wrong": [
+   "\"week\" for \"weekend\""
+  ],
+  "peak_db": -5.1
+ },
+ {
+  "n": 2,
+  "who": "L",
+  "text": "Four!",
+  "t0": 4.26,
+  "t1": 5.01,
+  "dur": 0.75,
+  "words": [
+   [
+    "four",
+    0.06,
+    0.7
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "four",
+  "wrong": [],
+  "peak_db": -2.4
+ },
+ {
+  "n": 3,
+  "who": "T",
+  "text": "Two. And you remember both.",
+  "t0": 5.44,
+  "t1": 7.38,
+  "dur": 1.94,
+  "words": [
+   [
+    "two",
+    0.0,
+    0.64
+   ],
+   [
+    "and",
+    0.64,
+    0.88
+   ],
+   [
+    "you",
+    0.88,
+    1.04
+   ],
+   [
+    "remember",
+    1.04,
+    1.52
+   ],
+   [
+    "both",
+    1.52,
+    1.89
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "two and you remember both",
+  "wrong": [],
+  "peak_db": -2.5
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "We did four in a weekend.",
+  "t0": 7.89,
+  "t1": 10.19,
+  "dur": 2.3,
+  "words": [
+   [
+    "we",
+    0.03,
+    0.27
+   ],
+   [
+    "did",
+    0.27,
+    0.67
+   ],
+   [
+    "four",
+    0.67,
+    1.15
+   ],
+   [
+    "in",
+    1.15,
+    1.31
+   ],
+   [
+    "a",
+    1.31,
+    1.47
+   ],
+   [
+    "week",
+    1.47,
+    1.87
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "we did four in a week",
+  "wrong": [
+   "\"week\" for \"weekend\""
+  ],
+  "peak_db": -2.6
+ },
+ {
+  "n": 5,
+  "who": "T",
+  "text": "Name the third.",
+  "t0": 10.5,
+  "t1": 11.59,
+  "dur": 1.09,
+  "words": [
+   [
+    "name",
+    0.06,
+    0.38
+   ],
+   [
+    "the",
+    0.38,
+    0.62
+   ],
+   [
+    "third",
+    0.62,
+    1.04
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "name the third",
+  "wrong": [],
+  "peak_db": -5.5
+ }
+]

@@ -1,0 +1,143 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "What do you pack for a sports trip?",
+  "t0": 0.11,
+  "t1": 1.94,
+  "dur": 1.83,
+  "words": [
+   [
+    "what",
+    -0.11,
+    0.21
+   ],
+   [
+    "do",
+    0.21,
+    0.37
+   ],
+   [
+    "you",
+    0.37,
+    0.45
+   ],
+   [
+    "pack",
+    0.45,
+    0.77
+   ],
+   [
+    "for",
+    0.77,
+    0.93
+   ],
+   [
+    "a",
+    0.93,
+    1.01
+   ],
+   [
+    "sports",
+    1.01,
+    1.41
+   ],
+   [
+    "trip",
+    1.41,
+    1.78
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "what do you pack for a sports trip",
+  "wrong": [],
+  "peak_db": -5.1
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "What's on the list.",
+  "t0": 2.2,
+  "t1": 3.03,
+  "dur": 0.83,
+  "words": [
+   [
+    "whats",
+    -0.04,
+    0.28
+   ],
+   [
+    "on",
+    0.28,
+    0.36
+   ],
+   [
+    "the",
+    0.36,
+    0.52
+   ],
+   [
+    "list",
+    0.52,
+    0.78
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "whats on the list",
+  "wrong": [],
+  "peak_db": -5.2
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "There's a list?",
+  "t0": 3.23,
+  "t1": 4.5,
+  "dur": 1.27,
+  "words": [
+   [
+    "theres",
+    0.05,
+    0.37
+   ],
+   [
+    "a",
+    0.37,
+    0.61
+   ],
+   [
+    "list",
+    0.61,
+    1.22
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "theres a list",
+  "wrong": [],
+  "peak_db": -5.2
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "It's laminated.",
+  "t0": 4.71,
+  "t1": 5.64,
+  "dur": 0.93,
+  "words": [
+   [
+    "its",
+    -0.07,
+    0.17
+   ],
+   [
+    "laminated",
+    0.17,
+    0.77
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "its laminated",
+  "wrong": [],
+  "peak_db": -5.4
+ }
+]

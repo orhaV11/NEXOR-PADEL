@@ -1,0 +1,163 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera] When do you leave a game?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, at once, flat] Eighty-five minutes. Beat the crowd."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, accusing] He's missed four winning goals."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat] And not one train."
+   }
+  ],
+  "scene": "A phone vlog from high in the open stand of a full American football stadium in late afternoon sun. A big crowd all round.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "When",
+   0.24,
+   0.64
+  ],
+  [
+   "do",
+   0.64,
+   0.8
+  ],
+  [
+   "you",
+   0.8,
+   1.04
+  ],
+  [
+   "leave",
+   1.04,
+   1.36
+  ],
+  [
+   "a",
+   1.36,
+   1.52
+  ],
+  [
+   "game?",
+   1.52,
+   2.08
+  ],
+  [
+   "Eighty-five",
+   2.08,
+   2.64
+  ],
+  [
+   "minutes.",
+   2.64,
+   3.12
+  ],
+  [
+   "Beat",
+   3.12,
+   3.44
+  ],
+  [
+   "the",
+   3.44,
+   3.52
+  ],
+  [
+   "crowd.",
+   3.52,
+   4.24
+  ],
+  [
+   "He's",
+   4.24,
+   4.56
+  ],
+  [
+   "missed",
+   4.56,
+   5.04
+  ],
+  [
+   "four",
+   5.04,
+   5.44
+  ],
+  [
+   "winning",
+   5.44,
+   6.0
+  ],
+  [
+   "goals.",
+   6.0,
+   6.8
+  ],
+  [
+   "And",
+   6.8,
+   7.04
+  ],
+  [
+   "not",
+   7.04,
+   7.28
+  ],
+  [
+   "one",
+   7.28,
+   7.6
+  ],
+  [
+   "train.",
+   7.6,
+   8.2
+  ]
+ ],
+ "text": "When do you leave the game? 85 minutes, beat the crowd. He's missed four winning goals. And not one train."
+}

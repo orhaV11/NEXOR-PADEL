@@ -1,3 +1,7 @@
 {"t": "2026-11-17 11:52", "purpose": "voice readings gemini-2-5-pro-tts: ldn x3", "cost": 0.0261, "balance": 149.593}
 {"t": "2026-11-17 11:52", "purpose": "listening model: the best take of each line (3 takes)", "cost": 0.0097, "balance": 149.584}
 {"t": "2026-11-17 12:18", "purpose": "watching model: three askings of venuvoy-vlog-23-uphill-en_9x16_1080x1920.mp4", "cost": 0.0238, "balance": 149.254}
+{"t": "2026-11-17 13:50", "purpose": "voice readings gemini-2-5-pro-tts: ldn x3", "cost": 0.0235, "balance": 147.796}
+{"t": "2026-11-17 13:52", "purpose": "voice readings gemini-2-5-pro-tts: ldn x3", "cost": 0.044, "balance": 147.752}
+{"t": "2026-11-17 13:53", "purpose": "listening model: the best take of each line (3 takes)", "cost": 0.0165, "balance": 147.736}
+{"t": "2026-11-17 14:21", "purpose": "watching model: three askings of venuvoy-vlog-23-uphill-en_9x16_1080x1920.mp4", "cost": 0.0247, "balance": 147.307}

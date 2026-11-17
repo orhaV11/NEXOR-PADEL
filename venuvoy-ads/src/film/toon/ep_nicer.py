@@ -22,9 +22,10 @@ from vlog import ROOT, Vlog, wind  # noqa: E402
 # get their mouth shapes by hand.
 v = Vlog("nicer", "ads/21-vlog/venuvoy-vlog-11-nicer", luna="wind", timo="timo_clean",
          said={"basketball": "A A C C C O O O", "night": "A A C", "look": "O C", "got": "O C", "thats": "A C", "other": "A C", "teams": "C C M C"})
-# Her "It's nicer." is a plain, pleased fact, said long, to him: on the turned head the open mouth is a shout, so the
-# word gets her grin first and the small mouth after (the kit gives one set of shapes per word for both speakers).
-v.talk["L3"] = Talk(v.LINE["L3"]["words"], ROOT / v.LINE["L3"]["wav"], have=duo.LUNA_MOUTHS, quiet=0.10, said={"its": "C", "nicer": "E E C C C"})
+# Her "It's nicer." is a plain fact, said long, to him: on the turned head the open mouth is a shout and the toothy
+# one a grimace, so the word has only the small mouth, shut for a moment on its "c" (the kit gives one set of shapes per
+# word for both speakers, so her line has its own Talk).
+v.talk["L3"] = Talk(v.LINE["L3"]["words"], ROOT / v.LINE["L3"]["wav"], have=duo.LUNA_MOUTHS, quiet=0.10, said={"its": "C", "nicer": "C C M C C"})
 # His last line is one loud word ("is") and the rest low, so the kit, which opens a mouth by loudness, gave him one
 # small shape all through the punchline. Set by hand, twelve steps a second from the start of the line:
 #                    It  .  .  -  -  IS .  .  .  .  ni .  ce .  r  .  -  -  -  Put it a  w  ay .  -
@@ -122,7 +123,7 @@ def _scarf_pieces():
 
 SCARF = _scarf_pieces()
 LIFT, DX = 150, 0                                      # how much higher than drawn she holds it (pixels of the frame at size 1)
-WON = "T4@nicer+0.30"                                  # "It is nicer." has landed: she turns to us with it, beaming (and then he goes on)
+WON = "T4@nicer+0.30"                                  # "It is nicer." has landed: she turns to us with it, pleased (and then he goes on)
 
 
 def scarf(st, t, T):
@@ -150,37 +151,26 @@ v.shot("start", bg=BG, luna=LUNA_AT, timo=TIMO_AT, front=scarf)
 v.faces(("start", None),                  # sunny, to us: look what I got
         ("T2@other+0.05", "read_b"),      # he has spoken: she looks down at it, pleased with it, mouth shut
         ("L3-0.10", "turn"),              # and turns to him: a simple fact
-        (WON, None),                      # he agrees: she beams at us (told you) ... and the smile stays on while he finishes
+        (WON, None),                      # he agrees: she looks at us with her plain closed smile (told you) ... which freezes while he finishes
         ("sink+0.08", "guilty"))          # it goes down: a sideways look at him, a crooked smile
 v.tilt(L1=3.2, L3=2.2)
-_state = v.luna_state
-
-
-def _beam(T):
-    """She is not speaking when she turns back to us, so the kit keeps her mouth shut: here it is her widest grin,
-    until "away" has reached her (then the small smile that was under it, which stays on)."""
-    st = _state(T)
-    if v.t(WON) + 0.04 <= T < v.t("T4@away+0.10") and st.get("1face") is None:
-        st["3mouth"] = "E"
-    return st
-
-
-v.luna_state = _beam
 v.blinks(luna=[0.92, "T2+0.30", "T4.end+0.17", "plate+0.75"],     # one blink in the frozen smile after "Put it away."
          timo=[1.25, "L3+0.25"])                                   # none at the end: his look at us does not blink (the watching model took a blink there for shut eyes)
 
 # ---- his eyes: on her and on the thing; narrowed while he weighs it; on her to say it; on us when it is gone
 v.eyes(("start", None),
-       ("L3.end+0.06", "narrow"),
-       ("T4-0.04", None),
+       ("L3.end+0.06", "narrow"),                 # he weighs it through the pause and his "It" ...
+       ("T4@is-0.05", None),                      # ... and gives her the "is" to her face
        ("sink.end-0.16", "lens"))
 
-# ---- the words on screen: under her chin, left of the scarf
+# ---- the words on screen: under her chin, left of the scarf. Her first line is two captions of one row each, set a
+#      little lower: as two rows its top row lay on her chin while her mouth was open and her head dipped.
 CAP = (345, 1430)
 v.captions(
-    place={"L1": CAP, "T2": CAP, "L3": CAP, "T4": CAP},
+    place={"L1": (345, 1455), "T2": CAP, "L3": CAP, "T4": CAP},
+    split={"L1": [("Basketball night!", None), ("Look what I got!", "L1@look")]},
     hold={"T4": ("It is nicer.\n", "Put it away.", "T4@put")},                    # the order arrives when he gives it
-    text={"L1": "Basketball night!\nLook what I got!", "T2": "That’s the\nother team’s.", "L3": "It’s nicer."},
+    text={"T2": "That’s the\nother team’s.", "L3": "It’s nicer."},
     off={"T4": "plate-0.06"})                                                     # the punchline stays up while nobody moves and while the scarf goes
 v.plate(y=320)
 

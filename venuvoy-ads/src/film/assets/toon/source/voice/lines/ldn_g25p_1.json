@@ -1,0 +1,173 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Sunday, four p.m.: the match.",
+  "t0": 0.17,
+  "t1": 2.87,
+  "dur": 2.7,
+  "words": [
+   [
+    "sunday",
+    0.15,
+    0.87
+   ],
+   [
+    "four",
+    0.87,
+    1.27
+   ],
+   [
+    "pm",
+    1.27,
+    1.91
+   ],
+   [
+    "the",
+    1.91,
+    2.07
+   ],
+   [
+    "match",
+    2.07,
+    2.65
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "sunday four pm the match",
+  "wrong": [],
+  "peak_db": -2.8
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Source?",
+  "t0": 3.04,
+  "t1": 3.73,
+  "dur": 0.69,
+  "words": [
+   [
+    "source",
+    0.08,
+    0.64
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "source",
+  "wrong": [],
+  "peak_db": -4.0
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "...It actually says the source. And the day they checked it.",
+  "t0": 3.98,
+  "t1": 7.53,
+  "dur": 3.55,
+  "words": [
+   [
+    "it",
+    0.02,
+    0.26
+   ],
+   [
+    "actually",
+    0.26,
+    0.66
+   ],
+   [
+    "says",
+    0.66,
+    0.98
+   ],
+   [
+    "the",
+    0.98,
+    1.22
+   ],
+   [
+    "source",
+    1.22,
+    2.1
+   ],
+   [
+    "and",
+    2.1,
+    2.42
+   ],
+   [
+    "the",
+    2.42,
+    2.58
+   ],
+   [
+    "day",
+    2.58,
+    2.82
+   ],
+   [
+    "they",
+    2.82,
+    2.98
+   ],
+   [
+    "checked",
+    2.98,
+    3.38
+   ],
+   [
+    "it",
+    3.38,
+    3.5
+   ]
+  ],
+  "matched": "11/11",
+  "heard": "it actually says the source and the day they checked it",
+  "wrong": [],
+  "peak_db": -3.9
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "I don't travel on a rumor.",
+  "t0": 7.74,
+  "t1": 9.16,
+  "dur": 1.42,
+  "words": [
+   [
+    "i",
+    0.02,
+    0.1
+   ],
+   [
+    "dont",
+    0.1,
+    0.34
+   ],
+   [
+    "travel",
+    0.34,
+    0.66
+   ],
+   [
+    "on",
+    0.66,
+    0.82
+   ],
+   [
+    "a",
+    0.82,
+    0.98
+   ],
+   [
+    "rumor",
+    0.98,
+    1.37
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "i dont travel on a rumor",
+  "wrong": [],
+  "peak_db": -2.6
+ }
+]

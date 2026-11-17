@@ -1,0 +1,158 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "When do you leave a game?",
+  "t0": 0.24,
+  "t1": 1.88,
+  "dur": 1.64,
+  "words": [
+   [
+    "when",
+    -0.0,
+    0.4
+   ],
+   [
+    "do",
+    0.4,
+    0.56
+   ],
+   [
+    "you",
+    0.56,
+    0.8
+   ],
+   [
+    "leave",
+    0.8,
+    1.12
+   ],
+   [
+    "a",
+    1.12,
+    1.28
+   ],
+   [
+    "game",
+    1.28,
+    1.59
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "when do you leave a game",
+  "wrong": [],
+  "peak_db": -4.8
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Eighty-five minutes. Beat the crowd.",
+  "t0": 2.1,
+  "t1": 3.83,
+  "dur": 1.73,
+  "words": [
+   [
+    "eightyfive",
+    -0.02,
+    0.54
+   ],
+   [
+    "minutes",
+    0.54,
+    1.02
+   ],
+   [
+    "beat",
+    1.02,
+    1.34
+   ],
+   [
+    "the",
+    1.34,
+    1.42
+   ],
+   [
+    "crowd",
+    1.42,
+    1.68
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "eightyfive minutes beat the crowd",
+  "wrong": [],
+  "peak_db": -4.4
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "He's missed four winning goals.",
+  "t0": 4.19,
+  "t1": 6.51,
+  "dur": 2.32,
+  "words": [
+   [
+    "hes",
+    0.05,
+    0.37
+   ],
+   [
+    "missed",
+    0.37,
+    0.85
+   ],
+   [
+    "four",
+    0.85,
+    1.25
+   ],
+   [
+    "winning",
+    1.25,
+    1.81
+   ],
+   [
+    "goals",
+    1.81,
+    2.27
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "hes missed four winning goals",
+  "wrong": [],
+  "peak_db": -4.4
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "And not one train.",
+  "t0": 6.69,
+  "t1": 8.17,
+  "dur": 1.48,
+  "words": [
+   [
+    "and",
+    0.11,
+    0.35
+   ],
+   [
+    "not",
+    0.35,
+    0.59
+   ],
+   [
+    "one",
+    0.59,
+    0.91
+   ],
+   [
+    "train",
+    0.91,
+    1.43
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "and not one train",
+  "wrong": [],
+  "peak_db": -2.3
+ }
+]

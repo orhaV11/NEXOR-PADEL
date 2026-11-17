@@ -1,0 +1,207 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading off her phone] Question. 'Do I need the language?'"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera] No! Just smile!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat, counting] You need three words. Two. Please. Which gate."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, triumphant] That's four words."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] Which gate is one word when you're late."
+   }
+  ],
+  "scene": "A phone vlog on the street outside an arena on game night, a crowd some way behind. A breeze.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Question.",
+   0.4,
+   1.12
+  ],
+  [
+   "Do",
+   1.12,
+   1.44
+  ],
+  [
+   "I",
+   1.44,
+   1.68
+  ],
+  [
+   "need",
+   1.68,
+   2.0
+  ],
+  [
+   "the",
+   2.0,
+   2.24
+  ],
+  [
+   "language?",
+   2.24,
+   3.36
+  ],
+  [
+   "No,",
+   3.36,
+   4.08
+  ],
+  [
+   "just",
+   4.08,
+   4.4
+  ],
+  [
+   "smile.",
+   4.4,
+   5.44
+  ],
+  [
+   "You",
+   5.44,
+   5.6
+  ],
+  [
+   "need",
+   5.6,
+   5.92
+  ],
+  [
+   "three",
+   5.92,
+   6.16
+  ],
+  [
+   "words.",
+   6.16,
+   7.04
+  ],
+  [
+   "Two.",
+   7.04,
+   7.92
+  ],
+  [
+   "Please.",
+   7.92,
+   8.8
+  ],
+  [
+   "Which",
+   8.8,
+   9.12
+  ],
+  [
+   "gate?",
+   9.12,
+   9.76
+  ],
+  [
+   "That's",
+   9.76,
+   10.32
+  ],
+  [
+   "four",
+   10.32,
+   10.8
+  ],
+  [
+   "words.",
+   10.8,
+   11.76
+  ],
+  [
+   "Which",
+   11.76,
+   12.08
+  ],
+  [
+   "gate",
+   12.08,
+   12.48
+  ],
+  [
+   "is",
+   12.48,
+   12.72
+  ],
+  [
+   "one",
+   12.72,
+   12.96
+  ],
+  [
+   "word",
+   12.96,
+   13.36
+  ],
+  [
+   "when",
+   13.36,
+   13.6
+  ],
+  [
+   "you're",
+   13.6,
+   13.84
+  ],
+  [
+   "late.",
+   13.84,
+   14.25
+  ]
+ ],
+ "text": "Question. Do I need the language? No, just smile. You need three words. Two. Please. Which gate? That's four words. Which gate is one word when you're late?"
+}

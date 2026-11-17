@@ -1,5 +1,5 @@
 """The sound of the sketch "Really Slowly" (vlog 04, "slowly"): nine whispered lines in the hush of a tennis stand, a
-crisp packet, a thousand people going "shhh", then the sung name.
+crisp packet that is far too loud, then a silence, then the sung name.
 
     python3 src/film/toon/ep_slowly_sound.py            the soundtrack and the timeline (work/slowly/sound)
 
@@ -9,12 +9,15 @@ because the kit has no statement for them:
                 second) has its taps where they fell; here the same taps are laid as a slow rally that is heard in the
                 quiet before "I'll do it really slowly." and STOPS when the packet starts. The kit then plays that file.
   lay()         a sound laid in as a stretch of a bought file with its own level and shape (the kit's fx start 50 ms
-                before the loudest instant and last 0.7 s, which is right for a thud only): the long crinkle, the
-                crowd's shush (the second half of "shush2": its first second is crowd chatter), the last small rustle.
+                before the loudest instant and last 0.7 s, which is right for a thud only): the long crinkle and the
+                last small rustle.
   last_words()  the recogniser times the last word of a line badly (stretched through the silence after it, or, with
                 these whispers, ended a third of a second early): its mouth shapes then spread too thin or stop too
                 soon. Every last word ends where the voice does.
 His "Luna, no" is not cut off: the packet simply starts under the "no".
+There is no crowd "Shhh!": two bought ones came back as cheering and as a gasp, and one made of many hisses was heard by
+the watching model only as part of the tearing packet. The stretch called "shush" is the silence after the packet: the
+rally has stopped, she is caught, he shuts his eyes.
 """
 import json
 import subprocess
@@ -23,7 +26,6 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-from scipy import signal as ss
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vlog_sound import ASSETS, ROOT, SR, build, db, fade, hp, lp  # noqa: E402
@@ -42,7 +44,7 @@ PLAN = [
     ("L5", "L", A, 5, 1.22, {}),                      # 1.2 s nobody speaks: two strokes of the rally far below; she eyes the packet
     ("T6", "T", B, 6, 0.06, {}),                      # at once: he knows what "slowly" means
     ("HOLD", "crinkle", -0.28, 1.56),                 # the packet starts under his "no": one long slow crinkle
-    ("HOLD", "shush", 0.02, 0.62),                    # a thousand people: "Shhh!". She is caught; nothing moves
+    ("HOLD", "shush", 0.02, 0.62),                    # silence: the whole stand has heard it. She is caught; nothing moves
     ("HOLD", "sink", 0.0, 0.85),                      # the packet goes down out of sight, slowly, with one last small rustle
     ("CUT", 0.12),                                    # wider: the two of them in the silence, and all those hats
     ("T7", "T", C, 7, 0.26, {}),                      # eyes shut, to nobody
@@ -167,20 +169,6 @@ def crackle(rms, ceiling=-3.0):
     return f
 
 
-def hush(rms, body=-9.0):
-    """The crowd's shush. As bought it is a crowd's breathy noise with most of its energy between 500 and 2000 Hz: the
-    watching model heard that, in the first render, as "a collective gasp or groan". A "shhh" is the same breath two
-    octaves higher, so the part of the sound between 1.7 and 7.5 kHz is made the main thing and the rest is kept 9 dB
-    under it. It comes all at once, stays half a second and dies away."""
-    def f(x):
-        hiss = ss.sosfilt(ss.butter(2, [1700, 7500], "band", fs=SR, output="sos"), x)
-        low = hp(x, 600)
-        x = hiss * np.sqrt(np.mean(low ** 2)) / (np.sqrt(np.mean(hiss ** 2)) + 1e-9) + low * db(body)
-        x = x * shape(len(x), 0.04, 0.50, 0.0)
-        return x * db(rms) / (np.sqrt(np.mean(x[int(0.06 * SR):int(0.50 * SR)] ** 2)) + 1e-9)
-    return f
-
-
 def rustle(rms):
     def f(x):
         x = hp(x, 250)
@@ -194,8 +182,7 @@ if __name__ == "__main__":
     strokes = rally_air(ev)
     ev = build(FILM, PLAN, bed=None, ambience=dict(air, file="air_rally"))   # and with the rally where the film wants it
     last_words()
-    lay([("crinkle", "crinkle", (0.02, 1.62), ev["crinkle"][0], crackle(-17.0)),
-         ("shush", "shush2", (1.25, 2.40), ev["shush"][0], hush(-19.0)),
+    lay([("crinkle", "crinkle", (0.02, 1.62), ev["crinkle"][0], crackle(-16.0)),
          ("rustle", "crinkle", (3.02, 3.62), ev["sink"][0] + 0.12, rustle(-27.0))])
     tl = json.loads((OUT / "timeline.json").read_text())
     tl["events"]["strokes"] = strokes

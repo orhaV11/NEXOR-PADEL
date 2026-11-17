@@ -37,12 +37,16 @@
   ],
   "dialogue_turns": [
    {
+    "speaker_id": "Speaker 1",
+    "text": "[out of breath, big eyes, to the camera] Okay."
+   },
+   {
     "speaker_id": "Speaker 2",
-    "text": "[flat, not out of breath, to the camera] Day three of the trip. The morning run."
+    "text": "[flat, not out of breath, to the camera] Day three. The morning run."
    },
    {
     "speaker_id": "Speaker 1",
-    "text": "[out of breath, big eyes, to the camera] Nobody said it was uphill."
+    "text": "[out of breath, to the camera] Nobody said it was uphill."
    },
    {
     "speaker_id": "Speaker 2",
@@ -59,115 +63,105 @@
  },
  "words": [
   [
+   "Okay.",
+   0.32,
+   1.36
+  ],
+  [
    "Day",
-   0.16,
-   0.48
+   1.36,
+   1.76
   ],
   [
-   "three",
-   0.48,
-   0.72
-  ],
-  [
-   "of",
-   0.72,
-   0.88
+   "three:",
+   1.76,
+   2.32
   ],
   [
    "the",
-   0.88,
-   0.96
-  ],
-  [
-   "trip",
-   0.96,
-   1.52
-  ],
-  [
-   "the",
-   1.52,
-   1.68
+   2.32,
+   2.48
   ],
   [
    "morning",
-   1.68,
-   2.24
+   2.48,
+   2.96
   ],
   [
    "run.",
-   2.24,
-   3.04
+   2.96,
+   3.6
   ],
   [
    "Nobody",
-   3.04,
-   3.52
+   3.6,
+   4.0
   ],
   [
    "said",
-   3.52,
-   3.76
+   4.0,
+   4.24
   ],
   [
    "it",
-   3.76,
-   3.84
+   4.24,
+   4.4
   ],
   [
    "was",
-   3.84,
-   4.08
+   4.4,
+   4.56
   ],
   [
    "uphill.",
-   4.08,
-   5.36
+   4.56,
+   5.44
   ],
   [
    "You",
-   5.36,
-   5.76
+   5.44,
+   5.68
   ],
   [
    "added",
-   5.76,
-   6.08
+   5.68,
+   6.0
   ],
   [
    "it",
-   6.08,
-   6.32
+   6.0,
+   6.16
   ],
   [
    "to",
+   6.16,
+   6.32
+  ],
+  [
+   "the",
    6.32,
    6.48
   ],
   [
-   "the",
-   6.48,
-   6.64
-  ],
-  [
    "plan.",
-   6.64,
-   7.44
+   6.48,
+   7.2
   ],
   [
    "She",
-   7.44,
-   7.68
+   7.2,
+   7.44
   ],
   [
    "loves",
-   7.68,
-   8.0
+   7.44,
+   7.76
   ],
   [
    "it.",
-   8.0,
-   8.37
+   7.76,
+   8.09
   ]
  ],
- "text": "Day 3 of the trip, the morning run. Nobody said it was uphill. You added it to the plan. She loves it."
+ "text": "Okay. Day three, the morning run. Nobody said it was uphill. You added it to the plan. She loves it."
 }

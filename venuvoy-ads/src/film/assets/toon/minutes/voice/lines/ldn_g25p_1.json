@@ -1,0 +1,128 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Two minutes left! Then dinner.",
+  "t0": 0.08,
+  "t1": 2.5,
+  "dur": 2.42,
+  "words": [
+   [
+    "two",
+    0.08,
+    0.4
+   ],
+   [
+    "minutes",
+    0.4,
+    0.8
+   ],
+   [
+    "left",
+    0.8,
+    1.36
+   ],
+   [
+    "then",
+    1.36,
+    1.68
+   ],
+   [
+    "dinner",
+    1.68,
+    2.37
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "two minutes left then dinner",
+  "wrong": [],
+  "peak_db": -3.1
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "It's American football.",
+  "t0": 2.85,
+  "t1": 4.21,
+  "dur": 1.36,
+  "words": [
+   [
+    "its",
+    -0.05,
+    0.27
+   ],
+   [
+    "american",
+    0.27,
+    0.83
+   ],
+   [
+    "football",
+    0.83,
+    1.31
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "its american football",
+  "wrong": [],
+  "peak_db": -4.6
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "How long now?",
+  "t0": 4.44,
+  "t1": 5.26,
+  "dur": 0.82,
+  "words": [
+   [
+    "how",
+    0.04,
+    0.28
+   ],
+   [
+    "long",
+    0.28,
+    0.52
+   ],
+   [
+    "now",
+    0.52,
+    0.77
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "how long now",
+  "wrong": [],
+  "peak_db": -2.7
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "A minute fifty.",
+  "t0": 5.58,
+  "t1": 6.54,
+  "dur": 0.96,
+  "words": [
+   [
+    "a",
+    -0.06,
+    0.1
+   ],
+   [
+    "minute",
+    0.1,
+    0.5
+   ],
+   [
+    "fifty",
+    0.5,
+    0.91
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "a minute fifty",
+  "wrong": [],
+  "peak_db": -3.5
+ }
+]

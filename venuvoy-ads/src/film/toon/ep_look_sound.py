@@ -56,7 +56,7 @@ PLAN = [
     ("HOLD", "stare", -0.20, 0.62),                  # his eyes come down on her, and stay (her line's last 0.27 s is silence: the stretch starts inside it; 0.74 s from "look?" to "Sorry!")
     ("L6", "L", A, 6, 0.00, {}),                     # a reflex: "Sorry!" (the pause before "What did I do?" is the reading's own, uncut)
     ("T7", "T", C, 7, 0.32, {}),                     # quiet, satisfied; the vlog music stops dead as he ends
-    ("CUT", 0.22),                                   # a jump cut, a fifth closer
+    ("CUT", 0.22),                                   # a jump cut, a quarter closer, him larger
     ("HOLD", "look", 0.18, 0.78),                    # his eyes lift to us: the flat look, in silence
     ("HOLD", "miss", 0.00, 1.05),                    # the crowd groans: the shooter has missed
     ("L8", "L", B, 8, 0.00, {}),                     # hushed, to him, over the end of the groan

@@ -1,0 +1,178 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "The fixtures are out! I've picked three weekends.",
+  "t0": 0.01,
+  "t1": 2.71,
+  "dur": 2.7,
+  "words": [
+   [
+    "the",
+    -0.01,
+    0.23
+   ],
+   [
+    "fixtures",
+    0.23,
+    0.79
+   ],
+   [
+    "are",
+    0.79,
+    0.87
+   ],
+   [
+    "out",
+    0.87,
+    1.11
+   ],
+   [
+    "ive",
+    1.11,
+    1.35
+   ],
+   [
+    "picked",
+    1.35,
+    1.67
+   ],
+   [
+    "three",
+    1.67,
+    1.91
+   ],
+   [
+    "weekends",
+    1.91,
+    2.65
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "the fixtures are out ive picked three weekends",
+  "wrong": [],
+  "peak_db": -5.2
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "They came out four minutes ago.",
+  "t0": 2.83,
+  "t1": 4.19,
+  "dur": 1.36,
+  "words": [
+   [
+    "they",
+    -0.03,
+    0.21
+   ],
+   [
+    "came",
+    0.21,
+    0.45
+   ],
+   [
+    "out",
+    0.45,
+    0.61
+   ],
+   [
+    "four",
+    0.61,
+    0.85
+   ],
+   [
+    "minutes",
+    0.85,
+    1.17
+   ],
+   [
+    "ago",
+    1.17,
+    1.31
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "they came out four minutes ago",
+  "wrong": [],
+  "peak_db": -4.8
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Four good minutes.",
+  "t0": 4.35,
+  "t1": 5.85,
+  "dur": 1.5,
+  "words": [
+   [
+    "four",
+    0.13,
+    0.53
+   ],
+   [
+    "good",
+    0.53,
+    0.85
+   ],
+   [
+    "minutes",
+    0.85,
+    1.45
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "four good minutes",
+  "wrong": [],
+  "peak_db": -6.1
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "They'll move every one of those games.",
+  "t0": 6.05,
+  "t1": 7.97,
+  "dur": 1.92,
+  "words": [
+   [
+    "theyll",
+    -0.05,
+    0.27
+   ],
+   [
+    "move",
+    0.27,
+    0.67
+   ],
+   [
+    "every",
+    0.67,
+    0.91
+   ],
+   [
+    "one",
+    0.91,
+    1.07
+   ],
+   [
+    "of",
+    1.07,
+    1.23
+   ],
+   [
+    "those",
+    1.23,
+    1.47
+   ],
+   [
+    "games",
+    1.47,
+    1.87
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "theyll move every one of those games",
+  "wrong": [],
+  "peak_db": -4.3
+ }
+]

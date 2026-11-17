@@ -1,0 +1,157 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading off her phone, small] The draw's out. We got them away."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] How far away?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[still reading, smaller] ...Far."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[eyes shut, resigned] It'll be a Tuesday night."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[sunny, to the camera, delighted] Sports trip!"
+   }
+  ],
+  "scene": "A phone vlog on the street outside an arena on game night, a crowd some way behind. A breeze.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "The",
+   0.0,
+   0.24
+  ],
+  [
+   "draw's",
+   0.24,
+   0.8
+  ],
+  [
+   "out,",
+   0.8,
+   1.04
+  ],
+  [
+   "we",
+   1.04,
+   1.2
+  ],
+  [
+   "got",
+   1.2,
+   1.36
+  ],
+  [
+   "them",
+   1.36,
+   1.6
+  ],
+  [
+   "away.",
+   1.6,
+   2.56
+  ],
+  [
+   "How",
+   2.56,
+   2.8
+  ],
+  [
+   "far",
+   2.8,
+   3.12
+  ],
+  [
+   "away?",
+   3.12,
+   4.08
+  ],
+  [
+   "Far.",
+   4.08,
+   4.96
+  ],
+  [
+   "It'll",
+   4.96,
+   5.28
+  ],
+  [
+   "be",
+   5.28,
+   5.44
+  ],
+  [
+   "a",
+   5.44,
+   5.6
+  ],
+  [
+   "Tuesday",
+   5.6,
+   6.32
+  ],
+  [
+   "night.",
+   6.32,
+   7.28
+  ],
+  [
+   "Sports",
+   7.28,
+   7.84
+  ],
+  [
+   "trip!",
+   7.84,
+   8.44
+  ]
+ ],
+ "text": "The drawers out, we've got them away! How far away? Far. It'll be a Tuesday night. Sports trip!"
+}

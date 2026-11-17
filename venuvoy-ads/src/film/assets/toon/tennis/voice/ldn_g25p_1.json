@@ -1,0 +1,203 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, close to the phone, almost a whisper, a dare] Tennis. One sentence."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, close to the phone, almost a whisper, exact] Four thousand people keep quiet so two people can grunt."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, almost a whisper, turning to him, doubtful] That can't be all of it."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, almost a whisper, flat] There's also a man on a very tall chair."
+   }
+  ],
+  "scene": "A phone vlog from the back rows above a tennis court on a still, sunny day. Everybody is whispering; far off, a ball is hit.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Tennis.",
+   0.24,
+   1.28
+  ],
+  [
+   "One",
+   1.28,
+   1.6
+  ],
+  [
+   "sentence.",
+   1.6,
+   2.72
+  ],
+  [
+   "Four",
+   2.72,
+   3.04
+  ],
+  [
+   "thousand",
+   3.04,
+   3.52
+  ],
+  [
+   "people",
+   3.52,
+   3.84
+  ],
+  [
+   "keep",
+   3.84,
+   4.16
+  ],
+  [
+   "quiet",
+   4.16,
+   4.8
+  ],
+  [
+   "so",
+   4.8,
+   5.04
+  ],
+  [
+   "two",
+   5.04,
+   5.28
+  ],
+  [
+   "people",
+   5.28,
+   5.6
+  ],
+  [
+   "can",
+   5.6,
+   5.84
+  ],
+  [
+   "grunt.",
+   5.84,
+   6.64
+  ],
+  [
+   "That",
+   6.64,
+   6.88
+  ],
+  [
+   "can't",
+   6.88,
+   7.2
+  ],
+  [
+   "be",
+   7.2,
+   7.36
+  ],
+  [
+   "all",
+   7.36,
+   7.6
+  ],
+  [
+   "of",
+   7.6,
+   7.76
+  ],
+  [
+   "it.",
+   7.76,
+   8.32
+  ],
+  [
+   "There's",
+   8.32,
+   8.64
+  ],
+  [
+   "also",
+   8.64,
+   8.96
+  ],
+  [
+   "a",
+   8.96,
+   9.2
+  ],
+  [
+   "man",
+   9.2,
+   9.6
+  ],
+  [
+   "on",
+   9.6,
+   9.76
+  ],
+  [
+   "a",
+   9.76,
+   10.0
+  ],
+  [
+   "very",
+   10.0,
+   10.24
+  ],
+  [
+   "tall",
+   10.24,
+   10.64
+  ],
+  [
+   "chair.",
+   10.64,
+   11.17
+  ]
+ ],
+ "text": "Tennis - one sentence 4000 people keep quiet so two people can grunt That can't be all of it There's also a man on a very tall chair"
+}

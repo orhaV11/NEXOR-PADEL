@@ -92,6 +92,12 @@ Run it; it prints every line's times and the events. Listen with your eyes: read
   redraw shows where the base drawing has only background, so it works on the calm look too. `lift` raises it
   (the sleeve runs on below): up to about 110 is safe; ask for the hand at the height you want rather than lifting
   far. A caption in the middle may collide with a raised hand: look, and move the caption with `place=`.
+  On the CALM look (indoors, a still day) draw it from `work/duo/art/luna_calm2.png` instead and pass
+  `base="luna_calm2"` to `v.piece`. A tall thing (a foam finger, a scarf held up) needs its own box, e.g.
+  `box=(1140, 560, 1792, 2400)`. A thing that is waved, lowered and raised again cannot be a `piece` (it only rises,
+  holds and drops): draw it with a `front=` hook of your own, as `ep_queue.py` and `ep_look.py` do. Stand her arm a
+  little toward her (about 45 px) so the sleeve meets her coat: in the free-arm place bottom right, a watching model
+  took a foam finger for Timo's.
 - **Something Timo wears or carries** (9:16, from `work/duo/art/timo_clean.png`): "Redraw the reference picture ...
   with ONE change only. THE CHANGE: he now wears <thing>, <where exactly>. His face, eyes, brows, mouth, head,
   scarf, jacket and pose do not change or move. Change NOTHING else ..." The thing must leave his brows, eyes and
@@ -168,6 +174,14 @@ frame, both sides of every cut, every moment a hand, a thing or Timo enters or l
 - Timo: dry, clever, dignified. Luna: a grown woman.
 - No real name of a club, league, player, stadium, sponsor or city anywhere; nothing readable in a background.
 - Product words: plan, build, find, compare, check, track. Never book, buy, sell, reserve, flight, hotel, price, AI.
+- Every line in its speaker's voice. The speech model now and then reads a line of Timo's in a woman's voice (most
+  often when HE speaks first in the dialogue: let her speak first) with every word right, so the word check does not
+  catch it. Test it: `python3 -c "import sys,json; sys.path.insert(0,'src/film/toon'); from pitch import right_voice;
+  [print(l['id'], right_voice(l['wav'], l['who'])) for l in json.load(open('work/<name>/sound/timeline.json'))['lines']]"`
+  (False = swapped: take that line from another reading). Timo sits at 90-140 Hz, Luna at 200-260.
+- A mouth shut on a loud word, or the wide mouth on a quiet one: the default shapes come from the spelling, and the
+  recogniser stretches the last word of a line. Set the word by hand in `said=` (e.g. `{"best": "C", "trips": "C A C"}`).
+- Timo's `rise()` is now even (it used to overshoot by 250 px); `sink()` is unchanged.
 
 Then ask the watching model once (3 cents): `python3 src/film/toon/check.py <name>`. Compare what it HEARD with
 the script word for word; look yourself at every fault it names with a time; fix what is real, render again.

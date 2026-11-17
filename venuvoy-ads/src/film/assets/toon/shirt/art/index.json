@@ -1,0 +1,24 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/e10f6e2ab25b431f96b92ece0ed66de4.png"
+ },
+ "bg_stand_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/feb54279-9734-4c85-9343-8e637e67366c_c938fd0d.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters in the foreground: the only people are a far crowd painted as soft blurred shapes with no faces. Vertical 9:16. Inside a big indoor basketball arena during a time-out, seen from a standing person's eye height in the lower rows of the seats, looking back up the stand behind (the court is behind the viewer and is NOT in the picture), the way a phone held at arm's length sees what is behind its owner (never from above). A bank of dusty-blue seats rises from the middle of the picture toward the top, filled with spectators: hundreds of small soft blobs of heads and shoulders in muted colours; here and there some of them stand with both arms stretched up in the air, as simple soft shapes. Above the crowd, across the top quarter of the picture, the dark steel roof of the arena; in the UPPER LEFT third hangs a long row of round floodlights that glow warm and soft, the brightest and liveliest part of the picture, with a haze of warm light under them falling on the crowd there. The upper right third is calmer and a little darker: plain crowd in mid tones under the dark roof, no lamps. The lower third of the picture is quiet and plain: a few rows of empty dusty-blue seat backs close by, soft and simple, nobody near. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no numbers, no logos, no crests, no scoreboard, no screens, no advertising boards, no flags, no banners, no balls.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "roll_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/14fef7d5-9f7c-4722-b02e-f5a4e969fe23_ad80199f.jpg",
+  "prompt": "One small object drawn alone in the middle of a completely flat, even, pure magenta (#FF00FF) background, for a 2D animated comedy: a rolled-up T-shirt of the kind that is fired into the crowd at sports games. It is a tight, short, fat roll of plain cream-white cotton cloth lying on its side: a horizontal cylinder about twice as long as it is thick, seen from the side and a little from the front, so that the spiral of the rolled cloth shows at its right end; one red rubber band is wrapped tightly round its middle and pinches it a little. Plain cloth: no print, no letters, no logo, no stripes. Drawn in the manner of the two characters in the reference picture: flat colours, a thick even black outline all round, two or three short dark crease lines, one flat darker cream tone on its underside, no gradients, no glow, and no shadow on the background. The roll is about half as wide as the picture; everything around it is flat magenta. Take only the drawing manner from the reference picture and nothing of what it shows. No text.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "upload:work/duo/art/luna_calm2.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/bc6363d1fd0b48ef9270c2ab6a44972b.png"
+ }
+}

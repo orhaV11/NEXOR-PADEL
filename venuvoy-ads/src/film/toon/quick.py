@@ -53,7 +53,7 @@ PLACES = {
     "stand": {"look": "calm", "scene": "A phone vlog from high in the open stand of a full American football stadium in late afternoon sun. A big crowd all round.",
               "wide": (("bg_afstand_1", (300, 760), (170, 503), 0.78), (362, 1580, 0.92, -1.0), (885, 1020, 0.92)),
               "close": (("bg_afstand_1", (300, 760), (150, 420), 0.94), (345, 1500, 1.12, 1.0), (880, 935, 1.12)),
-              "air": {"file": "air_stand", "db": -32.0, "gusts": False}, "plate": {"x": 352, "y": 300, "size": 0.74}},
+              "air": {"file": "air_stand", "db": -32.0, "gusts": False}, "plate": {"x": 352, "y": 300, "size": 0.74}, "cap_y": 1432},
     "dusk": {"look": "calm", "scene": "A phone vlog on the forecourt of a stadium at dusk, ten minutes before the game: a queue at the turnstiles behind, floodlights coming on.",
              "wide": (("bg_dusk_1", (560, 1380), (330, 760), 0.80), (372, 1556, 1.00, -1.2), (872, 1010, 1.00)),
              "close": (("bg_dusk_1", (560, 1380), (300, 640), 0.95), (345, 1490, 1.16, 1.0), (888, 905, 1.16)),
@@ -61,7 +61,7 @@ PLACES = {
     "street": {"look": "wind", "scene": "A phone vlog on the street outside an arena on game night, a crowd some way behind. A breeze.",
                "wide": (("bg_street_1", (700, 1150), (330, 640), 1.0), (362, 1560, 0.86, 0.0), (884, 1036, 0.84)),
                "close": (("bg_street_1", (700, 1150), (300, 540), 1.2), (345, 1500, 1.04, 1.0), (888, 960, 1.02)),
-               "air": {"file": "air_street", "db": -33.0, "gusts": False}, "plate": {"y": 320}},
+               "air": {"file": "air_street", "db": -33.0, "gusts": False}, "plate": {"y": 320}, "cap_y": 1432},
     "court": {"look": "calm", "scene": "A phone vlog from the back rows above a tennis court on a still, sunny day. Everybody is whispering; far off, a ball is hit.",
               "wide": (("bg_tennis_1", (430, 960), (330, 560), 0.92), (366, 1552, 0.96, -1.0), (892, 960, 0.96)),
               "close": (("bg_tennis_1", (430, 960), (265, 440), 1.06), (318, 1495, 1.11, 1.0), (886, 880, 1.11)),
@@ -100,40 +100,52 @@ SHORTS = {
     "view": {"nn": "20", "title": "Timo reviews: the view", "place": "hill", "lines": [
         ("L", "[bright, over the wind, to the camera] Timo reviews: the view.", {"face": None, "eyes": "lens"}),
         ("T", "[flat, looking at it] Sky. Grass. A stadium, very small.", {"eyes": "lens", "gap": 0.30, "opts": {"tighten": 0.18}}),
-        ("L", "[turning to him, bright] Out of ten?", {"face": "turn", "gap": 0.18, "stop": True}),
+        ("L", "[turning to him, bright] Out of ten?", {"face": "turn", "eyes": None, "gap": 0.18, "stop": True}),      # he looks down at her as she turns to him
         ("T", "[flat, after a beat] Four. It's a ten from inside.", {"face": None, "eyes": "lens", "gap": 0.40, "cut": True})],
-        "end": {"face": "guilty"}, "hold": 0.75},
+        "end": {"face": "guilty"}, "hold": 0.75, "said": {"timo": "C E E E M O O O"},
+        "captions": {"split": {"T2": [("Sky. Grass.", None), ("A stadium, very small.", "T2@a-0.04")],
+                               "T4": [("Four.", None), ("It's a ten from inside.", "T4@its+0.20")]},       # the punchline is not read before he says it
+                     "off": {"T4": "T4.end+0.45"}}},
     "football": {"nn": "21", "title": "One sentence: football", "place": "hill", "lines": [
-        ("L", "[bright, to the camera, a dare] Football. One sentence.", {"face": None, "eyes": None}),
+        ("L", "[bright, to the camera, a dare] Football. One sentence.", {"face": None, "eyes": "narrow"}),       # he is already working out his sentence
         ("T", "[slow, exact, to the camera] Ninety minutes of complaining, and one of them is the best minute of your year.", {"eyes": "lens", "gap": 0.35, "stop": True, "opts": {"tighten": 0.16}}),
         ("L", "[quiet, turning to him, meaning it] ...That's actually lovely.", {"face": "turn", "gap": 0.55}),
         ("T", "[at once, flat] It was an accident.", {"eyes": None, "gap": 0.10})],
-        "end": {"face": None, "eyes": "lens"}, "hold": 0.7,
-        "captions": {"split": {"T2": [("Ninety minutes of complaining,", None), ("and one of them is the best minute of your year.", "T2@and")]}}},
+        "end": {"eyes": "lens"}, "hold": 0.75,           # she stays turned to him with a small smile; he is caught being nice, and looks at us
+        "more_faces": [("T2@best-0.10", "down")],         # she hears it: eyes down, touched
+        "said": {"football": "O C C", "minutes": "C A C", "best": "C", "minute": "C A C", "thats": "C", "actually": "C"},
+        "captions": {"split": {"T2": [("Ninety minutes of complaining,", None), ("and one of them is the best minute of your year.", "T2@and")]},
+                     "off": {"T4": "T4.end+0.5"}, "on": {"L3": "L3-0.10"}}},
     "roar": {"nn": "22", "title": "The people in the stadium", "place": "hill", "roar": True, "lines": [
-        ("L", "[turning to him, quick] Was that a goal?", {"face": "turn", "eyes": None, "gap": 1.25}),
+        ("L", "[turning to him, quick] Was that a goal?", {"gap": 0.95}),
         ("T", "[flat] That was a goal.", {"gap": 0.12}),
         ("L", "[eager] Who for?", {"gap": 0.10, "stop": True}),
-        ("T", "[to the camera, after a beat] The people in the stadium.", {"face": "guilty", "eyes": "lens", "gap": 0.45})],
-        "end": {}, "hold": 0.8},
+        ("T", "[to the camera, after a beat] The people in the stadium.", {"gap": 0.45})],
+        "end": {}, "hold": 0.8, "takes": {3: "ldn_g25p_3"},              # 'Who for?' of reading 3: reading 1 starts with an 'uh'
+        "faces": [("start", None), ("roar+0.45", "turn"), ("T4.end+0.22", None)],     # she turns to him on the roar; good news to her, always
+        "eyes_at": [("start", None), ("L3.end+0.02", "lens")],                         # his look at us comes with the music's stop
+        "said": {"people": "M C M C", "stadium": "C C C M"},
+        "captions": {"off": {"T4": "plate"}}},
     "uphill": {"nn": "23", "title": "She loves it", "place": "hill", "lines": [
-        ("T", "[flat, not out of breath, to the camera] Day three of the trip. The morning run.", {"face": "defend", "eyes": "lens"}),
-        ("L", "[out of breath, big eyes, to the camera] Nobody said it was uphill.", {"gap": 0.20}),
+        ("L", "[out of breath, big eyes, to the camera] Okay.", {"face": "defend", "eyes": "lens"}),      # she speaks first: the speech model gives the first speaker her voice
+        ("T", "[flat, not out of breath, to the camera] Day three. The morning run.", {"gap": 0.20}),
+        ("L", "[out of breath, to the camera] Nobody said it was uphill.", {"gap": 0.20}),
         ("T", "[flat, to her] You added it to the plan.", {"face": "guilty", "eyes": None, "gap": 0.14, "stop": True}),
         ("T", "[to the camera, lightly, copying her sunny tune] She loves it.", {"eyes": "lens", "gap": 0.75, "cut": True})],
-        "end": {"face": "defend"}, "hold": 0.7},
+        "end": {"face": "guilty"}, "hold": 0.7, "said": {"uphill": "A M C"}},
     "nogame": {"nn": "24", "title": "The weekend with no game", "place": "gates", "lines": [
-        ("L", "[tragic, to the camera] No game this weekend. Not ours. Not anybody's.", {"face": "defend", "eyes": None, "opts": {"tighten": 0.16}}),
-        ("T", "[flat, counting] There's basketball. Ice hockey. Rugby. Golf.", {"face": "guilty", "gap": 0.25, "opts": {"tighten": 0.16}}),
+        ("L", "[tragic, to the camera] No game this weekend. Not anybody's.", {"face": "defend", "eyes": None, "opts": {"tighten": 0.16}}),
+        ("T", "[flat, counting] There's basketball. Rugby. Golf.", {"face": "guilty", "eyes": "narrow", "gap": 0.25, "opts": {"tighten": 0.28}}),
         ("L", "[turning to him, doubtful] You'd watch golf?", {"face": "turn", "gap": 0.16, "stop": True}),
         ("T", "[to the camera, dry] I'd watch you stay quiet for four hours.", {"eyes": "lens", "gap": 0.40})],
-        "end": {"face": "defend"}, "hold": 0.75},
+        "end": {"face": "down"}, "hold": 0.75, "said": {"weekend": "O C C", "watch": "O C C", "anybodys": "C M O C"}},
     "ironed": {"nn": "25", "title": "He ironed the scarf", "place": "gates", "lines": [
-        ("L", "[low, to the camera, confiding] Stadium tour at ten. He's been ready since six.", {"face": "guilty", "eyes": "lens", "opts": {"tighten": 0.18}}),
-        ("T", "[flat, to the camera] I'm fine either way.", {"gap": 0.20}),
+        ("L", "[low, to the camera, confiding] Stadium tour at ten. He's been ready since six.", {"face": "guilty", "eyes": None, "opts": {"tighten": 0.18}}),
+        ("T", "[flat, to the camera] I'm fine either way.", {"eyes": "lens", "gap": 0.20}),
         ("L", "[to the camera, delighted, a secret] He ironed the scarf.", {"face": None, "gap": 0.30, "stop": True}),
-        ("L", "[sunny, to the camera] He loves it.", {"eyes": "shut", "gap": 0.80, "cut": True})],
-        "end": {}, "hold": 0.6},
+        ("T", "[to the camera, flat, proud] I did yours as well.", {"face": "down", "eyes": "lens", "gap": 0.80, "cut": True})],    # his topper: she looks down at her own scarf
+        "end": {"face": "guilty"}, "hold": 0.5, "said": {"im": "C", "stadium": "C E C"},
+        "captions": {"split": {"L1": [("Stadium tour at ten.", None), ("He's been ready since six.", "L1@hes")]}}},
     # ---- "One sentence.": she names the sport they are at, he gets one sentence
     "basket": {"nn": "30", "title": "One sentence: basketball", "place": "arena", "lines": [
         ("L", "[bright, over the crowd, to the camera, a dare] Basketball. One sentence.", {"face": None, "eyes": None}),
@@ -190,7 +202,7 @@ SHORTS = {
         ("L", "[reading off her phone] Question. 'How early should I get there?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("T", "[to the camera, at once, flat] Two hours.", {"face": None, "eyes": "lens", "gap": 0.12}),
         ("L", "[turning to him, baffled] What do you do for two hours?", {"face": "turn", "gap": 0.22, "stop": True}),
-        ("T", "[flat, to her, after a beat] Watch you not be there.", {"eyes": None, "gap": 0.40})],
+        ("T", "[flat, to her, after a beat] Wait for you.", {"eyes": None, "gap": 0.40})],
         "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"what": "O E", "hours": "E O C"},
         "captions": {"split": {"L1": [("Question.", None), ("'How early should I get there?'", "L1@how")]}}},
     "language": {"nn": "44", "title": "Question: the language", "place": "street", "lines": [
@@ -238,9 +250,10 @@ SHORTS = {
         ("L", "[reading off her phone, pleased] Sunday, four p.m.: the match.", {"face": "read", "eyes": None, "piece": "phone", "piece_to": 3}),
         ("T", "[flat, to her, suspicious] Source?", {"eyes": "narrow", "gap": 0.30}),
         ("L", "[reading on, surprised] ...It actually says the source. And the day they checked it.", {"gap": 0.40, "opts": {"tighten": 0.18}}),
-        ("T", "[to the camera, proud] I don't travel on a rumour.", {"eyes": "lens", "gap": 0.35, "stop": True})],
+        ("T", "[to the camera, proud] I don't travel on a rumor.", {"eyes": "lens", "gap": 0.35, "stop": True})],    # spelt as the recogniser spells it; the caption is British
         "end": {"face": None}, "hold": 0.8,
-        "captions": {"text": {"L1": "'Sunday, 4 p.m.: the match.'"}}},
+        "captions": {"text": {"L1": "'Sunday, 4 p.m.: the match.'", "T4": "I don't travel on a rumour."},
+                     "split": {"L3": [("...It actually says the source.", None), ("And the day they checked it.", "L3@and")]}}},
 }
 
 
@@ -260,6 +273,7 @@ def voices(name):
                               "lines": [[who, text] for who, text, _ in sh["lines"]], "casts": {"ldn": LDN}}, indent=1, ensure_ascii=False))
     takes = [f"ldn_g25p_{k}" for k in (1, 2, 3)]
     run(sys.executable, HERE / "voices.py", js, "ldn", "--model", "gemini-2-5-pro-tts", "--n", "3")
+    takes = [t for t in takes if (ROOT / "work" / name / "voice" / f"{t}.json").exists()]     # a reading that failed is left out
     run(sys.executable, HERE / "lines.py", js, *takes)
     run(sys.executable, HERE / "pick.py", js, *takes)
 
@@ -273,14 +287,21 @@ def chosen(name):
     picks = {int(k): v for k, v in json.loads((V / "picks.json").read_text()).items()} if (V / "picks.json").exists() else {}
     rows = {t: {r["n"]: r for r in json.loads((V / "lines" / f"{t}.json").read_text())} for t in (f"ldn_g25p_{k}" for k in (1, 2, 3)) if (V / "lines" / f"{t}.json").exists()}
 
+    from pitch import right_voice
+    lines = SHORTS[name]["lines"]
+    voiced = {}
+
     def clean(t, n):
         r = rows.get(t, {}).get(n)
-        return bool(r) and not r.get("missing") and not r.get("wrong") and r["matched"].split("/")[0] == r["matched"].split("/")[1]
+        if not (bool(r) and not r.get("missing") and not r.get("wrong") and r["matched"].split("/")[0] == r["matched"].split("/")[1]):
+            return False
+        if (t, n) not in voiced:      # the words can be right in the wrong voice: the speech model now and then reads his line as a woman
+            voiced[(t, n)] = right_voice(V / "lines" / f"{t}_{n:02d}.wav", lines[n - 1][0])[0]
+        return voiced[(t, n)]
 
-    lines = SHORTS[name]["lines"]
-    out = {}
+    out = dict(SHORTS[name].get("takes", {}))      # takes named by hand: {line number: "ldn_g25p_3"}
     for who in ("L", "T"):
-        mine = [n for n, (w, _, _) in enumerate(lines, 1) if w == who]
+        mine = [n for n, (w, _, _) in enumerate(lines, 1) if w == who and n not in out]
         whole = [t for t in rows if all(clean(t, n) for n in mine)]
         if whole:
             best = max(whole, key=lambda t: sum(picks.get(n) == t for n in mine))
@@ -322,11 +343,13 @@ def picture(name):
     sh, P, I = SHORTS[name], PLACES[SHORTS[name]["place"]], ids(SHORTS[name])
     borrow(name)
     v = Vlog(name, f"ads/21-vlog/venuvoy-vlog-{sh['nn']}-{name}", luna=P["look"], timo="timo_clean", said=sh.get("said"))
+    v.turn_shout = sh.get("shout", False)      # her turned head never gapes in a short unless a line is a shout
+    v.no_teeth = ("defend",)                   # nor a clenched grin on her caught face
     bg, lu, ti = P["wide"]
-    v.shot("start", bg=bg, luna=lu, timo=ti)
+    v.shot("start", bg=bg, luna=lu, timo=ti, cap_y=P.get("cap_y"))
     if any(o.get("cut") for _, _, o in sh["lines"]):
         bg, lu, ti = P["close"]
-        v.shot("cut1", bg=bg, luna=lu, timo=ti)
+        v.shot("cut1", bg=bg, luna=lu, timo=ti, cap_y=P.get("cap_y"))
     faces, eyes = [], []
     for n, (who, text, o) in enumerate(sh["lines"]):
         when = "start" if n == 0 else ("cut1" if o.get("cut") else f"{I[n]}-0.10")
@@ -341,6 +364,10 @@ def picture(name):
         faces.append((f"{I[-1]}.end+0.22", end["face"]))
     if "eyes" in end:
         eyes.append((f"{I[-1]}.end+0.12", end["eyes"]))
+    faces = list(sh["faces"]) if "faces" in sh else faces + list(sh.get("more_faces", []))     # "faces" replaces what the lines say; "more_faces" adds
+    eyes = list(sh["eyes_at"]) if "eyes_at" in sh else eyes + list(sh.get("more_eyes", []))
+    faces.sort(key=lambda f: v.t(f[0]))
+    eyes.sort(key=lambda e: v.t(e[0]))
     if faces:
         v.faces(*faces)
     if eyes:

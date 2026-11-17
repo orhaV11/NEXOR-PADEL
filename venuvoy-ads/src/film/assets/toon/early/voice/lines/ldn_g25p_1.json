@@ -1,0 +1,153 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Question. 'How early should I get there?'",
+  "t0": 0.12,
+  "t1": 2.51,
+  "dur": 2.39,
+  "words": [
+   [
+    "question",
+    0.28,
+    0.84
+   ],
+   [
+    "how",
+    0.84,
+    1.08
+   ],
+   [
+    "early",
+    1.08,
+    1.48
+   ],
+   [
+    "should",
+    1.48,
+    1.72
+   ],
+   [
+    "i",
+    1.72,
+    1.88
+   ],
+   [
+    "get",
+    1.88,
+    2.12
+   ],
+   [
+    "there",
+    2.12,
+    2.34
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "question how early should i get there",
+  "wrong": [],
+  "peak_db": -4.3
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Two hours.",
+  "t0": 2.86,
+  "t1": 3.61,
+  "dur": 0.75,
+  "words": [
+   [
+    "two",
+    -0.06,
+    0.26
+   ],
+   [
+    "hours",
+    0.26,
+    0.7
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "two hours",
+  "wrong": [],
+  "peak_db": -3.8
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "What do you do for two hours?",
+  "t0": 3.84,
+  "t1": 5.87,
+  "dur": 2.03,
+  "words": [
+   [
+    "what",
+    -0.0,
+    0.16
+   ],
+   [
+    "do",
+    0.16,
+    0.32
+   ],
+   [
+    "you",
+    0.32,
+    0.48
+   ],
+   [
+    "do",
+    0.48,
+    0.64
+   ],
+   [
+    "for",
+    0.64,
+    0.88
+   ],
+   [
+    "two",
+    0.88,
+    1.36
+   ],
+   [
+    "hours",
+    1.36,
+    1.98
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "what do you do for two hours",
+  "wrong": [],
+  "peak_db": -3.1
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "Wait for you.",
+  "t0": 6.17,
+  "t1": 7.02,
+  "dur": 0.85,
+  "words": [
+   [
+    "wait",
+    -0.01,
+    0.39
+   ],
+   [
+    "for",
+    0.39,
+    0.47
+   ],
+   [
+    "you",
+    0.47,
+    0.8
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "wait for you",
+  "wrong": [],
+  "peak_db": -3.5
+ }
+]

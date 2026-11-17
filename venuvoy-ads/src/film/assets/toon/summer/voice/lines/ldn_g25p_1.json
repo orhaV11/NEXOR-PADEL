@@ -1,0 +1,123 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "The season ended yesterday.",
+  "t0": 0.24,
+  "t1": 1.73,
+  "dur": 1.49,
+  "words": [
+   [
+    "the",
+    -0.24,
+    0.16
+   ],
+   [
+    "season",
+    0.16,
+    0.56
+   ],
+   [
+    "ended",
+    0.56,
+    0.96
+   ],
+   [
+    "yesterday",
+    0.96,
+    1.44
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "the season ended yesterday",
+  "wrong": [],
+  "peak_db": -4.6
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Wake me in August.",
+  "t0": 2.04,
+  "t1": 3.36,
+  "dur": 1.32,
+  "words": [
+   [
+    "wake",
+    -0.04,
+    0.36
+   ],
+   [
+    "me",
+    0.36,
+    0.6
+   ],
+   [
+    "in",
+    0.6,
+    0.76
+   ],
+   [
+    "august",
+    0.76,
+    1.27
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "wake me in august",
+  "wrong": [],
+  "peak_db": -3.4
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "There's baseball all summer.",
+  "t0": 3.72,
+  "t1": 5.22,
+  "dur": 1.5,
+  "words": [
+   [
+    "theres",
+    -0.04,
+    0.28
+   ],
+   [
+    "baseball",
+    0.28,
+    0.92
+   ],
+   [
+    "all",
+    0.92,
+    1.16
+   ],
+   [
+    "summer",
+    1.16,
+    1.45
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "theres baseball all summer",
+  "wrong": [],
+  "peak_db": -6.5
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "...Where?",
+  "t0": 5.68,
+  "t1": 6.36,
+  "dur": 0.68,
+  "words": [
+   [
+    "where",
+    0.08,
+    0.63
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "where",
+  "wrong": [],
+  "peak_db": -5.7
+ }
+]

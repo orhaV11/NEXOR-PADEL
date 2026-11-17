@@ -26,7 +26,7 @@ from vlog import Vlog  # noqa: E402
 v = Vlog("look", "ads/21-vlog/venuvoy-vlog-03-look", luna="calm", timo="timo_clean",
          said={"basketball": "M A C M O C", "behind": "M C A C", "basket": "M A A C", "everybody": "C M A E", "distracts": "C A C", "shooter": "O C",
                "dont": "O C", "wave": "O A C", "then": "C", "do": "O", "something": "A M C C", "ill": "A C", "give": "C", "him": "C M",
-               "look": "C O C", "sorry": "C O E", "exactly": "C A C", "missed": "M E C C", "knows": "O C"})
+               "look": "C O C", "sorry": "C O E", "exactly": "C C C", "missed": "M E C C", "knows": "O C"})
 
 # drawing, a point in it (the liveliest patch of waving sticks), where that lands in the frame, size. At these sizes the
 # dark roof and the padded barrier are out of the frame: the two of them stand IN the stand, the crowd all round them.
@@ -103,29 +103,32 @@ def crowd(st, t, T):
 ARM = duo.arm(v.art, "luna_foam", v.s_luna, (1140, 560, 1792, 2400), "luna_calm2")
 PIVOT = (1480, 2330)                                    # the middle of the sleeve where it leaves the frame (pixels of her drawing): it turns about this
 NEARER = -45.0                                          # frame pixels toward her
-UP, LOW, SHIELD, GONE = -70.0, 640.0, -150.0, 1180.0    # how far below its drawn place it is (frame pixels): pumping; hanging at the bottom edge; held up; out
+UP, SHIELD, GONE = -70.0, -150.0, 1180.0                # how far below its drawn place it is (frame pixels): pumping; held up; out of the frame
 
 
 def _foam_pose(T):
-    """(pixels below its drawn place, turn in degrees) of the foam finger at the time T."""
+    """(pixels below its drawn place, turn in degrees) of the foam finger at the time T. Her pumping and trembling are
+    drawn on twos like her; the three fast moves (the drop, the shield, the sink) on ones, so none jumps."""
     t = on_twos(T)
-    drop, shield, sink0, sink1 = v.t("L3-0.04"), v.t("L6-0.06"), v.t("T7+0.28"), v.t("cut1")
-    if t < drop:                                                         # she pumps it at the shooter, hard; "I don't wave." stops it
+    drop, shield = v.t("L3-0.04"), v.t("L6-0.06")
+    calm, sink0, sink1 = v.t("L6@what-0.20"), v.t("L6@what+0.30"), v.t("L6.end+0.15")
+    if T < drop:                                                         # she pumps it at the shooter, hard; "I don't wave." stops it
         amp = 1.0 - ease(t, 1.0, 1.6, 0.0, 0.2, "io") - ease(t, v.t("T2+0.10"), v.t("T2+0.45"), 0.0, 0.8, "io")   # hardest in the first second
         w = 2 * math.pi * 3.2 * t
         return UP - 42.0 * amp * math.sin(w), 2.0 + 2.6 * amp * math.sin(w + 1.3)
-    if t < shield:                                                       # she rounds on him: it drops to the bottom edge and hangs there
-        return ease(t, drop, drop + 0.24, UP, LOW, "io"), ease(t, drop, drop + 0.24, 2.0, 4.5, "io") + math.sin(t * 2.3) * 0.5
-    if t < sink0:                                                        # the look: it flies up between them, a shield, and trembles
-        k = ease(t, shield, shield + 0.15, 0.0, 1.05, "out") - ease(t, shield + 0.15, shield + 0.30, 0.0, 0.05, "io")
-        return LOW + (SHIELD - LOW) * k, 4.5 + (0.5 - 4.5) * min(k, 1.0) + math.sin(2 * math.pi * 5.0 * t) * 0.8 * min(1.0, (t - shield) / 0.3)
-    p = min(1.0, (t - sink0) / (sink1 - sink0))                          # "Exactly.": it sinks away, at an even speed, and is gone by the cut
-    return SHIELD + (GONE - SHIELD) * p, 0.5 + 4.5 * p
+    if T < shield:                                                       # she rounds on him: it drops right out of the frame (a lone finger
+        return ease(T, drop, drop + 0.45, UP, GONE, "io"), ease(T, drop, drop + 0.45, 2.0, 6.0, "io")   # left at the edge read as HIS objection)
+    if T < sink0:                                                        # the look: it shoots up from below between them, a shield, trembles,
+        k = ease(T, shield, shield + 0.25, 0.0, 1.03, "out") - ease(T, shield + 0.25, shield + 0.40, 0.0, 0.03, "io")    # and is still
+        shiver = 0.8 * min(1.0, max(0.0, t - shield) / 0.3) * (1.0 - ease(t, calm - 0.25, calm, 0.0, 1.0, "io"))         # before it goes
+        return GONE + (SHIELD - GONE) * k, 6.0 + (0.5 - 6.0) * min(k, 1.0) + math.sin(2 * math.pi * 5.0 * t) * shiver
+    p = min(1.0, (T - sink0) / (sink1 - sink0))                          # "...What did I do?": she lowers it out of the frame at an even
+    return SHIELD + (GONE - SHIELD) * p, 0.5 + 4.5 * p                   # speed; "Exactly." plays on a clean frame
 
 
 def foam(st, t, T):
-    if T >= v.t("cut1"):
-        return
+    if T >= v.t("cut1") or v.t("L3-0.04") + 0.45 <= T < v.t("L6-0.06") or T >= v.t("L6.end+0.15"):
+        return                                                           # out of the frame
     x0, y0, k, lean = v.shot_at(T)["luna"]
     dx, dy, turn, sx, sy = v.luna_move(T)                                # it is hers: it sways and pops with her body
     s = v.s_luna * k
@@ -138,9 +141,10 @@ def foam(st, t, T):
 
 
 # ---- two shots: the two of them in the waving stand; then a quarter closer for the look (a fifth closer was not
-#      seen as a cut by the watching model)
+#      seen as a cut by the watching model). In the closer shot he grows more than she does (0.92 to 1.26, as the script
+#      has it: "Timo larger") and she sits a little lower: the look is the picture, not her caught face
 v.shot("start", bg=WIDE, luna=(362, 1545, 0.92, -0.6), timo=(872, 960, 0.92), behind=crowd, front=foam)
-v.shot("cut1", bg=NEAR, luna=(338, 1490, 1.16, 1.0), timo=(856, 975, 1.16), behind=crowd, front=foam)     # his whole head inside the frame, in the 4:5 version too: the look is the picture
+v.shot("cut1", bg=NEAR, luna=(330, 1540, 1.16, 1.0), timo=(872, 1060, 1.26), behind=crowd, front=foam)    # his hair top at y 216: inside the 4:5 version (from 180)
 
 # ---- her face
 v.faces(("start", None),                  # sunny, shouting it over the crowd
@@ -153,14 +157,16 @@ v.faces(("start", None),                  # sunny, shouting it over the crowd
         ("L6@what-0.05", "defend"),       # "...What did I do?" to us
         ("T7+0.22", "guilty"),            # "Exactly.": another look at him
         ("cut1", "defend"),               # the shot: big eyes on the court (on us)
-        ("L8-0.14", "turn"),              # she turns to him: "He missed!"
-        ("T9.end+0.45", "defend"))        # and back to us, wide-eyed, before the name comes
+        ("L8-0.14", "turn"))              # she turns to him: "He missed!", and stays looking up at him, a small smile, through
+                                          # the name (the script's end picture; turned back to us, caught, she read as cowed)
 v.tilt(L1=3.0, L3=2.4, L5=2.0, L6=-3.0, L8=2.2)
 v.blinks(luna=[1.25, 3.30, "T2+0.56", "T4+0.55", "L6.end+0.14", "groan+0.24", "plate+1.05"],
-         timo=[1.9, "L3+0.45", "L6+1.55", "T9.end+0.50", "plate+1.45"])       # never during a look
+         timo=["T4-0.30", "L6+1.55", "T9.end+0.50", "plate+1.45"])       # never during a look (his eyes are shut until she pushes him)
 
-# ---- his eyes: on the court (on us) from the start; down on her once; then the look, at us
-v.eyes(("start", "lens"),
+# ---- his eyes: the look into the lens is kept for the payoff. Shut and serene in the waving stand; narrowed when she
+#      pushes him (he is working it out); down on her once; then, for the first time, on us
+v.eyes(("start", "shut"),
+       ("L3+0.30", "narrow"),             # "Then do something!"
        ("stare", None),                   # "What look?": his eyes come down on her, and stay
        ("look", "lens"))                  # after the cut they lift to us; the music has stopped
 
@@ -186,9 +192,9 @@ v.captions(
     split={"L1": [("Basketball!", None), ("Behind the basket,", "L1@behind"), ("everybody distracts\nthe shooter!", "L1@everybody")],
            "L6": [("Sorry!", None), ("…What did I do?", "L6@what")]},
     text={"T2": "I don’t wave.", "T4": "I’ll give him\nthe look."},
-    on={"L1": "L1-0.12", "T2": "T2-0.12", "T4": "T4-0.15"},               # his short lines are up a moment early: time to read them
-    off={"L1": "T2-0.14", "L3": "T4-0.17", "T9": "plate-0.06"})            # the last word stays up through the look
-v.plate(x=360, y=300, size=0.70)          # beside his head, above hers: he is standing at the end
+    on={"L1": "L1-0.12", "T2": "T2-0.12", "T4": "T4-0.30"},               # his short lines are up a moment early: time to read them
+    off={"L1": "T2-0.14", "L3": "T4-0.32", "T9": "plate-0.06"})            # the last word stays up through the look
+v.plate(x=345, y=300, size=0.68)          # beside his head, above hers: he is standing at the end (clear of his hair by about 60 px)
 
 if __name__ == "__main__":
     v.main()

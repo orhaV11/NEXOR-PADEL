@@ -1,0 +1,13 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/e7db6a55b59e444aa7c7d456a98ede59.png"
+ },
+ "bg_stand_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/5725dcee-177c-495d-a775-70c6932ef7f6_78ecfe89.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters in the foreground: the only people are a far crowd painted as small soft blurred shapes with no faces. Vertical 9:16. Seen from a standing person's eye height high up in the upper tier of a big open-air American football stadium, the way a phone held at arm's length sees what is behind its owner (never from above): we look out across the stadium bowl. In the UPPER LEFT third of the picture, far below, lies the field: soft green grass crossed by thin white yard lines with NO numbers on it, a plain single-colour end zone with nothing written in it, one yellow Y-shaped goalpost, and two small clusters of tiny players as soft blobs. Beyond the field rises the opposite stand, packed with a crowd painted as a soft speckled mass, and above its rim stand four tall floodlight masts, each with a plain rectangular bank of lamps that are switched OFF (dull grey), against a wide, clear, empty late-afternoon sky of warm gold and pale peach that fills the top quarter of the picture. Low golden sunlight from the left falls across the far stand and the field, with long soft shadows. The right side of the picture and the whole lower half are the nearer rows of our own stand sloping down and away in soft warm shade: plain rows of seats with a soft crowd seen from behind as small simple shapes, quiet, nothing close to us. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no numbers, no logos, no crests, no flags, no banners, no scoreboard, no screens, no advertising boards.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

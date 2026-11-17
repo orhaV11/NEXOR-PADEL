@@ -3,7 +3,7 @@
  "cap": 4.0,
  "temperature": 1,
  "scene": "A phone vlog from the stands of a big indoor basketball arena during a time-out, with a loud happy crowd all round. Down on the court, far away, the staff are firing rolled-up free T-shirts into the stands. Luna holds the phone at arm's length and waves her other arm at them; Timo stands just behind her with his hands in his pockets.",
- "context": "A nine-second comedy sketch played by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she wants a free T-shirt more than anything and has never caught one; she is eager and sincere, never sarcastic. TIMO, about 30, is slow, dry and calm; he never raises his voice; he has something to tell her and she will not listen. They answer each other fast, with no gaps between the lines.",
+ "context": "A nine-second comedy sketch played by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she wants a free T-shirt more than anything and has never caught one; she is eager and sincere, never sarcastic. TIMO, about 30, is slow, dry and calm; he never raises his voice; a free T-shirt has just landed on his head behind her back, and she will not listen to him; his last words are said flatly to the camera, explaining her. They answer each other fast, with no gaps between the lines.",
  "lines": [
   [
    "L",
@@ -19,7 +19,11 @@
   ],
   [
    "L",
-   "[at once, urgent and hushed, not looking at him, eyes on the court] Not now. They're reloading."
+   "[at once, urgent, not looking at him, eyes on the court] Not now."
+  ],
+  [
+   "T",
+   "[flat and dry, to the camera, unbothered] They're reloading."
   ]
  ],
  "casts": {

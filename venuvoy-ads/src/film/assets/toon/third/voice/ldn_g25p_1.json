@@ -1,0 +1,192 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading off her phone] Question. 'How many games fit in one weekend?'"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera, certain] Four!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat] Two. And you remember both."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, indignant] We did four in a weekend."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] Name the third."
+   }
+  ],
+  "scene": "A phone vlog on the street outside an arena on game night, a crowd some way behind. A breeze.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Q.",
+   0.48,
+   1.28
+  ],
+  [
+   "How",
+   1.28,
+   1.52
+  ],
+  [
+   "many",
+   1.52,
+   1.68
+  ],
+  [
+   "games",
+   1.68,
+   2.16
+  ],
+  [
+   "fit",
+   2.16,
+   2.56
+  ],
+  [
+   "in",
+   2.56,
+   2.8
+  ],
+  [
+   "one",
+   2.8,
+   3.12
+  ],
+  [
+   "week",
+   3.12,
+   3.6
+  ],
+  [
+   "end?",
+   3.6,
+   4.32
+  ],
+  [
+   "Four.",
+   4.32,
+   5.44
+  ],
+  [
+   "Two,",
+   5.44,
+   6.08
+  ],
+  [
+   "and",
+   6.08,
+   6.32
+  ],
+  [
+   "you",
+   6.32,
+   6.48
+  ],
+  [
+   "remember",
+   6.48,
+   6.96
+  ],
+  [
+   "both?",
+   6.96,
+   7.92
+  ],
+  [
+   "We",
+   7.92,
+   8.16
+  ],
+  [
+   "did",
+   8.16,
+   8.56
+  ],
+  [
+   "four",
+   8.56,
+   9.04
+  ],
+  [
+   "in",
+   9.04,
+   9.2
+  ],
+  [
+   "a",
+   9.2,
+   9.36
+  ],
+  [
+   "week",
+   9.36,
+   9.76
+  ],
+  [
+   "end.",
+   9.76,
+   10.56
+  ],
+  [
+   "Name",
+   10.56,
+   10.88
+  ],
+  [
+   "the",
+   10.88,
+   11.12
+  ],
+  [
+   "third.",
+   11.12,
+   11.72
+  ]
+ ],
+ "text": "Question. How many games fit in one weekend? Four! Two. And you remember both. We did four in a weekend. Name the third."
+}

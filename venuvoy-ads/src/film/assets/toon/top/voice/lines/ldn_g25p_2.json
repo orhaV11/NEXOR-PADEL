@@ -1,0 +1,148 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "First day of the season! We're top of the table.",
+  "t0": 0.22,
+  "t1": 2.8,
+  "dur": 2.58,
+  "words": [
+   [
+    "first",
+    0.02,
+    0.42
+   ],
+   [
+    "day",
+    0.42,
+    0.58
+   ],
+   [
+    "of",
+    0.58,
+    0.74
+   ],
+   [
+    "the",
+    0.74,
+    0.82
+   ],
+   [
+    "season",
+    0.82,
+    1.38
+   ],
+   [
+    "were",
+    1.38,
+    1.7
+   ],
+   [
+    "top",
+    1.7,
+    1.94
+   ],
+   [
+    "of",
+    1.94,
+    2.1
+   ],
+   [
+    "the",
+    2.1,
+    2.18
+   ],
+   [
+    "table",
+    2.18,
+    2.53
+   ]
+  ],
+  "matched": "10/10",
+  "heard": "first day of the season were top of the table",
+  "wrong": [],
+  "peak_db": -1.3
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Nobody has played.",
+  "t0": 3.16,
+  "t1": 4.31,
+  "dur": 1.15,
+  "words": [
+   [
+    "nobody",
+    0.04,
+    0.52
+   ],
+   [
+    "has",
+    0.52,
+    0.76
+   ],
+   [
+    "played",
+    0.76,
+    1.1
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "nobody has played",
+  "wrong": [],
+  "peak_db": -3.1
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "And we're top.",
+  "t0": 4.71,
+  "t1": 6.04,
+  "dur": 1.33,
+  "words": [
+   [
+    "and",
+    0.09,
+    0.49
+   ],
+   [
+    "were",
+    0.49,
+    0.81
+   ],
+   [
+    "top",
+    0.81,
+    1.28
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "and were top",
+  "wrong": [],
+  "peak_db": -2.2
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "It's alphabetical.",
+  "t0": 6.63,
+  "t1": 7.76,
+  "dur": 1.13,
+  "words": [
+   [
+    "its",
+    -0.15,
+    0.17
+   ],
+   [
+    "alphabetical",
+    0.17,
+    0.77
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "its alphabetical",
+  "wrong": [],
+  "peak_db": -2.1
+ }
+]

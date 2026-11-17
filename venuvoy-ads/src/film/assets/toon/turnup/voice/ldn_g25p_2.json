@@ -1,0 +1,227 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading off her phone] Question. 'Do you even need a plan? Can't you just turn up?'"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera] Yes! Just turn up!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat] We just turned up once."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, fondly] That was a great weekend."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] The game was the weekend after."
+   }
+  ],
+  "scene": "A phone vlog on the empty forecourt of a stadium, shut gates and empty crowd barriers behind. A still day, very quiet.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Question.",
+   0.32,
+   1.2
+  ],
+  [
+   "Do",
+   1.2,
+   1.44
+  ],
+  [
+   "you",
+   1.44,
+   1.68
+  ],
+  [
+   "even",
+   1.68,
+   1.92
+  ],
+  [
+   "need",
+   1.92,
+   2.32
+  ],
+  [
+   "a",
+   2.32,
+   2.48
+  ],
+  [
+   "plan?",
+   2.48,
+   2.96
+  ],
+  [
+   "Can't",
+   2.96,
+   3.2
+  ],
+  [
+   "you",
+   3.2,
+   3.36
+  ],
+  [
+   "just",
+   3.36,
+   3.6
+  ],
+  [
+   "turn",
+   3.6,
+   4.0
+  ],
+  [
+   "up?",
+   4.0,
+   4.56
+  ],
+  [
+   "Yes,",
+   4.56,
+   5.04
+  ],
+  [
+   "just",
+   5.04,
+   5.36
+  ],
+  [
+   "turn",
+   5.36,
+   5.68
+  ],
+  [
+   "up.",
+   5.68,
+   6.24
+  ],
+  [
+   "We",
+   6.24,
+   6.4
+  ],
+  [
+   "just",
+   6.4,
+   6.64
+  ],
+  [
+   "turned",
+   6.64,
+   6.96
+  ],
+  [
+   "up",
+   6.96,
+   7.12
+  ],
+  [
+   "once.",
+   7.12,
+   7.76
+  ],
+  [
+   "That",
+   7.76,
+   7.92
+  ],
+  [
+   "was",
+   7.92,
+   8.16
+  ],
+  [
+   "a",
+   8.16,
+   8.32
+  ],
+  [
+   "great",
+   8.32,
+   8.56
+  ],
+  [
+   "weekend.",
+   8.56,
+   9.52
+  ],
+  [
+   "The",
+   9.52,
+   9.76
+  ],
+  [
+   "game",
+   9.76,
+   10.16
+  ],
+  [
+   "was",
+   10.16,
+   10.4
+  ],
+  [
+   "the",
+   10.4,
+   10.56
+  ],
+  [
+   "weekend",
+   10.56,
+   11.04
+  ],
+  [
+   "after.",
+   11.04,
+   11.45
+  ]
+ ],
+ "text": "Question. Do you even need a plan? Can't you just turn up? Yes, just turn up. We just turned up once. That was a great weekend. The game was the weekend after."
+}

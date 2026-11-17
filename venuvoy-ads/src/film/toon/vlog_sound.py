@@ -123,8 +123,10 @@ def build(film, plan, bed=None, ending="sung", plate_hold=2.4, ambience=None, fx
     just before its loudest moment (0.7 s); add "whole": True (with "start", "len", "fade_in", "fade_out") to lay a
     soft sound as recorded. An "at" may also name a line: ("L3", 1, 0.2) is 0.2 s after line L3 ends, ("L3", 0, 0) its start."""
     work, keep = ROOT / "work" / film, ASSETS / film
-    lines_dir = keep / "voice" / "lines" if (keep / "voice" / "lines").exists() else work / "voice" / "lines"
-    raws = [d for d in (keep / "sound" / "raw", work / "sound" / "raw", ASSETS / RIG / "sound" / "raw", ROOT / "work" / RIG / "sound" / "raw") if d.exists()]
+    # the working folder first (it has every reading, and a line read again replaces the packed one); the packed copy
+    # is for a fresh checkout without work/
+    lines_dir = work / "voice" / "lines" if any((work / "voice" / "lines").glob("*.json")) else keep / "voice" / "lines"
+    raws = [d for d in (work / "sound" / "raw", keep / "sound" / "raw", ROOT / "work" / RIG / "sound" / "raw", ASSETS / RIG / "sound" / "raw") if d.exists()]
 
     def raw(name):
         for d in raws:

@@ -304,10 +304,11 @@ class Vlog:
         if i:
             m = self.talk[i].shape(T - self.LINE[i]["t0"])
             if m:
-                if face in ("read", "read_b") and m == "E":
-                    m = "C"                      # no bared teeth while she reads
+                if face in ("read", "read_b") + tuple(getattr(self, "no_teeth", ())) and m == "E":
+                    m = "C"                      # no bared teeth while she reads (or on faces a film names in no_teeth: the 'defend' face's E is a clenched grin)
                 # the turned head has three mouths: the round one becomes the small one (the wide one only where a word is set as "A": a shout)
-                st["3mouth"] = ({"C": "tC", "A": "tA", "E": "tE", "O": "tC"}[m] if face == "turn" else m)
+                # (turn_shout = False: no line is a shout, the wide mouth becomes the middle one)
+                st["3mouth"] = ({"C": "tC", "A": "tA" if getattr(self, "turn_shout", True) else "tE", "E": "tE", "O": "tC"}[m] if face == "turn" else m)
         return st
 
     def luna_move(self, T):
@@ -403,7 +404,7 @@ class Vlog:
                     stretch = 1 + 0.10 * p
             elif T >= a:
                 seen = True
-                drop = ease(t, a, b, 2100.0, 0.0, "back") if T < b else 0.0
+                drop = ease(t, a, b, 2100.0, 0.0, "io") if T < b else 0.0      # evenly, no bounce past his place (a "back" ease overshot by 250 px)
         return drop, stretch, seen
 
     # ------------------------------------------------------------ drawing

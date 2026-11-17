@@ -1,0 +1,173 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "The fixtures are out! I've picked three weekends.",
+  "t0": 0.08,
+  "t1": 2.68,
+  "dur": 2.6,
+  "words": [
+   [
+    "the",
+    -0.08,
+    0.24
+   ],
+   [
+    "fixtures",
+    0.24,
+    0.72
+   ],
+   [
+    "are",
+    0.72,
+    0.88
+   ],
+   [
+    "out",
+    0.88,
+    1.2
+   ],
+   [
+    "picked",
+    1.36,
+    1.68
+   ],
+   [
+    "three",
+    1.68,
+    1.92
+   ],
+   [
+    "weekends",
+    1.92,
+    2.55
+   ]
+  ],
+  "matched": "7/8",
+  "heard": "the fixtures are out picked three weekends",
+  "wrong": [],
+  "peak_db": -2.1
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "They came out four minutes ago.",
+  "t0": 2.75,
+  "t1": 4.34,
+  "dur": 1.59,
+  "words": [
+   [
+    "they",
+    0.05,
+    0.21
+   ],
+   [
+    "came",
+    0.21,
+    0.37
+   ],
+   [
+    "out",
+    0.37,
+    0.61
+   ],
+   [
+    "four",
+    0.61,
+    0.85
+   ],
+   [
+    "minutes",
+    0.85,
+    1.25
+   ],
+   [
+    "ago",
+    1.25,
+    1.54
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "they came out four minutes ago",
+  "wrong": [],
+  "peak_db": -4.7
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Four good minutes.",
+  "t0": 4.55,
+  "t1": 6.25,
+  "dur": 1.7,
+  "words": [
+   [
+    "four",
+    0.09,
+    0.65
+   ],
+   [
+    "good",
+    0.65,
+    0.97
+   ],
+   [
+    "minutes",
+    0.97,
+    1.65
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "four good minutes",
+  "wrong": [],
+  "peak_db": -5.2
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "They'll move every one of those games.",
+  "t0": 6.39,
+  "t1": 8.37,
+  "dur": 1.98,
+  "words": [
+   [
+    "theyll",
+    -0.07,
+    0.25
+   ],
+   [
+    "move",
+    0.25,
+    0.57
+   ],
+   [
+    "every",
+    0.57,
+    0.89
+   ],
+   [
+    "one",
+    0.89,
+    1.13
+   ],
+   [
+    "of",
+    1.13,
+    1.29
+   ],
+   [
+    "those",
+    1.29,
+    1.45
+   ],
+   [
+    "games",
+    1.45,
+    1.93
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "theyll move every one of those games",
+  "wrong": [],
+  "peak_db": -4.7
+ }
+]

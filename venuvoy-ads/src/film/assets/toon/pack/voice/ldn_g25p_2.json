@@ -1,0 +1,148 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera] What do you pack for a sports trip?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat] What's on the list."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, alarmed] There's a list?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat, proud] It's laminated."
+   }
+  ],
+  "scene": "A phone vlog on the empty forecourt of a stadium, shut gates and empty crowd barriers behind. A still day, very quiet.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "What",
+   0.0,
+   0.32
+  ],
+  [
+   "do",
+   0.32,
+   0.48
+  ],
+  [
+   "you",
+   0.48,
+   0.64
+  ],
+  [
+   "pack",
+   0.64,
+   0.88
+  ],
+  [
+   "for",
+   0.88,
+   1.04
+  ],
+  [
+   "a",
+   1.04,
+   1.2
+  ],
+  [
+   "sports",
+   1.2,
+   1.52
+  ],
+  [
+   "trip?",
+   1.52,
+   2.16
+  ],
+  [
+   "What's",
+   2.16,
+   2.48
+  ],
+  [
+   "on",
+   2.48,
+   2.64
+  ],
+  [
+   "the",
+   2.64,
+   2.8
+  ],
+  [
+   "list?",
+   2.8,
+   3.36
+  ],
+  [
+   "There's",
+   3.36,
+   3.6
+  ],
+  [
+   "a",
+   3.6,
+   3.84
+  ],
+  [
+   "list?",
+   3.84,
+   4.48
+  ],
+  [
+   "It's",
+   4.48,
+   4.72
+  ],
+  [
+   "laminated.",
+   4.72,
+   5.32
+  ]
+ ],
+ "text": "What do you pack for a sports trip? What's on the list? There's a list? It's laminated."
+}

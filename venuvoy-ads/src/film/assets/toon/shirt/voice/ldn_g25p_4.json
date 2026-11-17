@@ -1,0 +1,152 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; in a noisy indoor arena, excited, lifting her voice over the crowd when she calls out; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, patient, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; in a noisy indoor arena, excited, lifting her voice over the crowd when she calls out; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, patient, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[calling out loud and happy to people far away, past the camera, waving] Over here! I never get the free shirt!"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[lower, to the camera, wistful, a little sorry for herself] Eleven games. Never once."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[quiet, patient, trying to get her attention] Luna."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[at once, urgent, not looking at him, eyes on the court] Not now."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and dry, to the camera, unbothered] They're reloading."
+   }
+  ],
+  "scene": "A phone vlog from the stands of a big indoor basketball arena during a time-out, with a loud happy crowd all round. Down on the court, far away, the staff are firing rolled-up free T-shirts into the stands. Luna holds the phone at arm's length and waves her other arm at them; Timo stands just behind her with his hands in his pockets.",
+  "sample_context": "A nine-second comedy sketch played by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she wants a free T-shirt more than anything and has never caught one; she is eager and sincere, never sarcastic. TIMO, about 30, is slow, dry and calm; he never raises his voice; a free T-shirt has just landed on his head behind her back, and she will not listen to him; his last words are said flatly to the camera, explaining her. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Over",
+   0.24,
+   0.56
+  ],
+  [
+   "here",
+   0.56,
+   1.28
+  ],
+  [
+   "I",
+   1.28,
+   1.52
+  ],
+  [
+   "never",
+   1.52,
+   1.84
+  ],
+  [
+   "get",
+   1.84,
+   2.0
+  ],
+  [
+   "the",
+   2.0,
+   2.16
+  ],
+  [
+   "free",
+   2.16,
+   2.48
+  ],
+  [
+   "shirt.",
+   2.48,
+   3.36
+  ],
+  [
+   "Eleven",
+   3.36,
+   4.08
+  ],
+  [
+   "games,",
+   4.08,
+   4.8
+  ],
+  [
+   "never",
+   4.8,
+   5.2
+  ],
+  [
+   "once.",
+   5.2,
+   6.16
+  ],
+  [
+   "Luna?",
+   6.16,
+   7.12
+  ],
+  [
+   "Not",
+   7.12,
+   7.44
+  ],
+  [
+   "now.",
+   7.44,
+   8.16
+  ],
+  [
+   "They're",
+   8.16,
+   8.48
+  ],
+  [
+   "reloading.",
+   8.48,
+   9.08
+  ]
+ ],
+ "text": "Over here! I never get the free shirt. 11 games, never once. Luna? Not now. They're reloading."
+}

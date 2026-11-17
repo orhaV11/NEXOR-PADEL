@@ -1,0 +1,163 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[sunny, to the camera] First day of the season! We're top of the table."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] Nobody has played."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[sunny, unmoved, to the camera] And we're top."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, after a beat] It's alphabetical."
+   }
+  ],
+  "scene": "A phone vlog on the forecourt of a stadium at dusk, ten minutes before the game: a queue at the turnstiles behind, floodlights coming on.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "First",
+   0.24,
+   0.64
+  ],
+  [
+   "day",
+   0.64,
+   0.88
+  ],
+  [
+   "of",
+   0.88,
+   1.04
+  ],
+  [
+   "the",
+   1.04,
+   1.2
+  ],
+  [
+   "season,",
+   1.2,
+   1.84
+  ],
+  [
+   "we're",
+   1.84,
+   2.16
+  ],
+  [
+   "top",
+   2.16,
+   2.48
+  ],
+  [
+   "of",
+   2.48,
+   2.56
+  ],
+  [
+   "the",
+   2.56,
+   2.72
+  ],
+  [
+   "table.",
+   2.72,
+   3.84
+  ],
+  [
+   "Nobody",
+   3.84,
+   4.32
+  ],
+  [
+   "has",
+   4.32,
+   4.72
+  ],
+  [
+   "played.",
+   4.72,
+   5.36
+  ],
+  [
+   "We're",
+   5.36,
+   5.76
+  ],
+  [
+   "top",
+   5.76,
+   6.08
+  ],
+  [
+   "of",
+   6.08,
+   6.24
+  ],
+  [
+   "the",
+   6.24,
+   6.4
+  ],
+  [
+   "table.",
+   6.4,
+   7.44
+  ],
+  [
+   "It's",
+   7.44,
+   7.76
+  ],
+  [
+   "alphabetical.",
+   7.76,
+   8.36
+  ]
+ ],
+ "text": "First day of the season, we're top of the table. Nobody has played. We're top of the table. It's alphabetical."
+}

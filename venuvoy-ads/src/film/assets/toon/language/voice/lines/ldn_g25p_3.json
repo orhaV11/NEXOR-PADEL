@@ -1,0 +1,212 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Question. 'Do I need the language?'",
+  "t0": 0.22,
+  "t1": 3.02,
+  "dur": 2.8,
+  "words": [
+   [
+    "question",
+    0.18,
+    0.9
+   ],
+   [
+    "do",
+    0.9,
+    1.22
+   ],
+   [
+    "i",
+    1.22,
+    1.46
+   ],
+   [
+    "need",
+    1.46,
+    1.78
+   ],
+   [
+    "the",
+    1.78,
+    2.02
+   ],
+   [
+    "language",
+    2.02,
+    2.75
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "question do i need the language",
+  "wrong": [],
+  "peak_db": -2.4
+ },
+ {
+  "n": 2,
+  "who": "L",
+  "text": "No! Just smile!",
+  "t0": 3.24,
+  "t1": 5.18,
+  "dur": 1.94,
+  "words": [
+   [
+    "no",
+    0.12,
+    0.84
+   ],
+   [
+    "just",
+    0.84,
+    1.16
+   ],
+   [
+    "smile",
+    1.16,
+    1.89
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "no just smile",
+  "wrong": [],
+  "peak_db": -7.9
+ },
+ {
+  "n": 3,
+  "who": "T",
+  "text": "You need three words. Two. Please. Which gate.",
+  "t0": 5.36,
+  "t1": 9.54,
+  "dur": 4.18,
+  "words": [
+   [
+    "you",
+    0.08,
+    0.24
+   ],
+   [
+    "need",
+    0.24,
+    0.56
+   ],
+   [
+    "three",
+    0.56,
+    0.8
+   ],
+   [
+    "words",
+    0.8,
+    1.68
+   ],
+   [
+    "two",
+    1.68,
+    2.56
+   ],
+   [
+    "please",
+    2.56,
+    3.44
+   ],
+   [
+    "which",
+    3.44,
+    3.76
+   ],
+   [
+    "gate",
+    3.76,
+    4.13
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "you need three words two please which gate",
+  "wrong": [],
+  "peak_db": -5.7
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "That's four words.",
+  "t0": 9.74,
+  "t1": 11.6,
+  "dur": 1.86,
+  "words": [
+   [
+    "thats",
+    0.02,
+    0.58
+   ],
+   [
+    "four",
+    0.58,
+    1.06
+   ],
+   [
+    "words",
+    1.06,
+    1.81
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "thats four words",
+  "wrong": [],
+  "peak_db": -3.6
+ },
+ {
+  "n": 5,
+  "who": "T",
+  "text": "Which gate is one word when you're late.",
+  "t0": 11.8,
+  "t1": 14.17,
+  "dur": 2.37,
+  "words": [
+   [
+    "which",
+    -0.04,
+    0.28
+   ],
+   [
+    "gate",
+    0.28,
+    0.68
+   ],
+   [
+    "is",
+    0.68,
+    0.92
+   ],
+   [
+    "one",
+    0.92,
+    1.16
+   ],
+   [
+    "word",
+    1.16,
+    1.56
+   ],
+   [
+    "when",
+    1.56,
+    1.8
+   ],
+   [
+    "youre",
+    1.8,
+    2.04
+   ],
+   [
+    "late",
+    2.04,
+    2.32
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "which gate is one word when youre late",
+  "wrong": [],
+  "peak_db": -1.8
+ }
+]

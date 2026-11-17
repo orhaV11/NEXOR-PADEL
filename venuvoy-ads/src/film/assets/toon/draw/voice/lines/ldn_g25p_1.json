@@ -1,0 +1,162 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "The draw's out. We got them away.",
+  "t0": 0.15,
+  "t1": 2.16,
+  "dur": 2.01,
+  "words": [
+   [
+    "the",
+    -0.15,
+    0.09
+   ],
+   [
+    "draws",
+    0.09,
+    0.65
+   ],
+   [
+    "out",
+    0.65,
+    0.89
+   ],
+   [
+    "we",
+    0.89,
+    1.05
+   ],
+   [
+    "got",
+    1.05,
+    1.21
+   ],
+   [
+    "them",
+    1.21,
+    1.45
+   ],
+   [
+    "away",
+    1.45,
+    1.96
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "the draws out we got them away",
+  "wrong": [],
+  "peak_db": -3.6
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "How far away?",
+  "t0": 2.53,
+  "t1": 3.53,
+  "dur": 1.0,
+  "words": [
+   [
+    "how",
+    0.03,
+    0.27
+   ],
+   [
+    "far",
+    0.27,
+    0.59
+   ],
+   [
+    "away",
+    0.59,
+    0.95
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "how far away",
+  "wrong": [],
+  "peak_db": -4.5
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "...Far.",
+  "t0": 3.87,
+  "t1": 4.59,
+  "dur": 0.72,
+  "words": [
+   [
+    "far",
+    0.21,
+    0.67
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "far",
+  "wrong": [],
+  "peak_db": -8.8
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "It'll be a Tuesday night.",
+  "t0": 5.01,
+  "t1": 6.91,
+  "dur": 1.9,
+  "words": [
+   [
+    "itll",
+    -0.05,
+    0.27
+   ],
+   [
+    "be",
+    0.27,
+    0.43
+   ],
+   [
+    "a",
+    0.43,
+    0.59
+   ],
+   [
+    "tuesday",
+    0.59,
+    1.31
+   ],
+   [
+    "night",
+    1.31,
+    1.85
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "itll be a tuesday night",
+  "wrong": [],
+  "peak_db": -7.4
+ },
+ {
+  "n": 5,
+  "who": "L",
+  "text": "Sports trip!",
+  "t0": 7.13,
+  "t1": 8.5,
+  "dur": 1.37,
+  "words": [
+   [
+    "sports",
+    0.15,
+    0.71
+   ],
+   [
+    "trip",
+    0.71,
+    1.31
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "sports trip",
+  "wrong": [],
+  "peak_db": -3.3
+ }
+]

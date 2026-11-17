@@ -1,20 +1,20 @@
 {
  "track": "src/film/assets/s2/music/jersey_1.mp3",
  "out": "src/film/assets/s2/music/bed_s2e1_talk.wav",
- "length": 44.49999999999999,
+ "length": 44.83333333333332,
  "trim_db": -8,
  "blocks": [
   {
    "at": 0.0,
-   "len": 2.4103,
-   "from_s": 4.7357,
+   "len": 2.8136,
+   "from_s": 4.3324,
    "layer": "phone",
    "gain_db": -1.5,
    "fade_in": 0.05,
    "fade_out": 0.004
   },
   {
-   "at": 2.4103,
+   "at": 2.8136,
    "len": 7.089,
    "from_s": 7.146,
    "layer": "phone",
@@ -23,7 +23,7 @@
    "fade_out": 0.004
   },
   {
-   "at": 9.4993,
+   "at": 9.9026,
    "len": 7.089,
    "from_s": 7.146,
    "layer": "phone",
@@ -32,7 +32,7 @@
    "fade_out": 0.02
   },
   {
-   "at": 20.9583,
+   "at": 21.5417,
    "len": 0.6,
    "from_s": 14.235,
    "layer": "phone",
@@ -41,7 +41,7 @@
    "fade_out": 0.004
   },
   {
-   "at": 21.5583,
+   "at": 22.1417,
    "len": 2.2333,
    "from_s": 14.834999999999999,
    "layer": "phone",
@@ -50,7 +50,7 @@
    "fade_out": 0.004
   },
   {
-   "at": 23.7917,
+   "at": 24.375,
    "len": 8.4583,
    "from_s": 17.0683,
    "layer": "phone",
@@ -59,8 +59,8 @@
    "fade_out": 0.004
   },
   {
-   "at": 32.25,
-   "len": 6.7083,
+   "at": 32.8333,
+   "len": 5.9583,
    "from_s": 25.5267,
    "layer": "phone",
    "gain_db": -2.5,

@@ -118,5 +118,19 @@ check in proportion and always show him the story first.
   `zoom {from, to, cx, cy}` in the edit.
 - A sound in a clip that is not speech (a cat) still makes the music step back when `duck_mode` is "voice": leave
   that option out when the film has loud music under shots without words.
+- The cat (and any small prop) becomes another cat when its reference pictures are not the FIRST references of the
+  start picture: put `cat_front`, `cat_side` and a crop of the cat from an earlier clip first, and describe it
+  ("plain ginger felt, no stripes, flat grumpy face, cream muzzle"). Check every shot's cat against the cast sheet.
+- A background brings writing with it (a taxi's roof sign) and a detail that reads wrong (a ball on a roof): ask
+  the start picture for no vehicles and no signs, and correct a picture with an edit pass rather than a crop.
+- Two captions of one segment print over each other when the first one's `hold` runs into the second one's `at`:
+  look at a frame at EVERY caption change before the final render. Labels and plates start at y 276 or lower and
+  everything ends above y 1570, or the 4:5 version touches or cuts them.
+- A sentence typed in a film says when ("next week", "next weekend"): without it the product has no dates.
+- The voice cleaner can take 6 to 15 dB off a bright, shouted word; the engine then keeps that segment's own sound
+  and says so in the log. Set `"clean": false` on such a segment so that the result does not flip between renders.
+- A take can look right and sound wrong. Before the cut, put each character's lines on a numbered reel and ask the
+  listening model which clip is not the same person or sounds flat; film that line again.
+- Do not let a checker run the product's code: tell every agent that the product repository is for reading only.
 - The watching model sees only a few frames a second and is kinder than people: use it for retelling, look at the
   frames yourself for anything shorter than a second.

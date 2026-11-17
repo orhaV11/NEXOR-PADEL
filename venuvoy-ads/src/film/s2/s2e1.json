@@ -296,6 +296,59 @@
    "still": "THE PICTURE: exactly the same place, background and light as the FIRST reference picture: the same pale stone pavement, the same low cream wall, the same hoop with the plain white backboard and the same toy brownstone houses, all soft behind. No car, no taxi, no arena and no ball anywhere. A close shot of TIMO from the chest up on the RIGHT half of the frame, his face in the UPPER half, turned in three-quarter view toward the left: his proud smile is gone, eyes wide, mouth a small flat line. The two straps of his tiny square teal backpack on his shoulders (the pack is small and ends at the middle of his back), teal-and-coral scarf, yellow watch on his LEFT wrist. Behind him on the LEFT, smaller and soft: BIG YELLOW closed and standing upright, its flat top as high as Luna's chest and its body wider than she is; on its top lies the fat ginger CAT, exactly the cat of the cat reference pictures: a very round, heavy body of plain ginger felt with NO stripes, a wide FLAT grumpy face, a cream muzzle, chin and belly, small ears, half-shut green-gold eyes, the mouth turned down, a thick tail, loafed; and LUNA stands beside the suitcase with a thick closed blue folder clamped under her LEFT arm and her phone in her RIGHT hand, hanging at her side with its plain coral back outward, grinning at Timo. The lower third of the frame is his teal jacket and plain pale pavement. Only Timo, Luna, the suitcase and the cat.",
    "video": "@Timo says one word in a small worried voice: \"Golf?\" Then he slowly turns his head to the camera and stares straight into it, stunned, without another word, and blinks once, slowly. Behind him @Luna keeps grinning; the cat does not move. One continuous shot. Nobody else appears. Sound: his small voice, quiet street air.",
    "pick": 1
+  },
+  {
+   "id": "a4c",
+   "look": "",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/63dc79dc-9ced-4847-a949-d163e148a99c_7bef43e0.jpg"
+   ],
+   "elements": [
+    "Luna",
+    "Timo",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 4,
+   "still": "Edit the reference picture and keep everything else EXACTLY as it is: the same two characters with the same faces, poses, clothes and colours, the same yellow suitcase and cat, the same street, light, framing and style. Make only these three changes. 1) Remove the giant orange basketball from the roof of the round cream building at the far left: that roof is now plain, low and flat, with only sky above it. 2) The small yellow taxi parked at the right has NO roof sign at all and no checker stripe: its roof and its door are plain yellow. 3) Move TIMO (the tall thin man with his hands clasped behind his head) to the right, so that he walks just in front of the suitcase with a small clear gap, and there is a wide stretch of empty pavement between him and the left edge of the frame. He keeps exactly the same pose, size and clothes. Nothing else changes. No letters, numbers or signs anywhere.",
+   "video": "@Luna pushes the heavy suitcase slowly from right to left, leaning hard, with a small grunt. Just ahead of her @Timo strolls at the same slow speed, hands clasped behind his head, and says without looking back, in his usual relaxed warm voice, light, amused and a little smug, with a smile in it: \"I packed one sentence.\" Both stay fully inside the frame for the whole shot. The cat rides on the suitcase without moving. One continuous shot. Nobody else appears. Sound: heavy suitcase wheels on stone, her small grunt, his voice.",
+   "pick": 2
+  },
+  {
+   "id": "a6z",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in NEW YORK built as the same hand-made model world, grown a little taller: a quiet side street of toy brownstone houses in cream, terracotta, mint and sky blue with front steps and small iron railings, round wooden water towers on the flat roofs, a wide pavement of big pale stone slabs, plain cream bunting between the houses. Low golden morning sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own long knitted scarf in ONE plain teal colour, with no coral, no stripe and no pattern anywhere on it), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/87d64e16-38bb-43ba-8eb2-8c5bde1b346e_ce21e9bb.jpg",
+    "luna_34",
+    "luna_face",
+    "big_side",
+    "cat_side",
+    "https://cdn.muapi.ai/outputs/generated/1385ea62cade46888dd47b9c691ee528.jpg"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same place, light and softness as the FIRST reference picture (the same pale stone pavement, the same low cream wall and toy brownstone houses soft behind; no car, no arena, no ball). A close shot from a little above: BIG YELLOW now lies FLAT on its back on the pavement, closed, filling the lower half of the frame from edge to edge, its long dark-violet zipper line running straight across the frame along the near edge of its shell, with ONE small violet zipper pull at the far LEFT end of the zip. LUNA kneels on the pavement behind the suitcase, seen from the knees up, leaning over it: her LEFT hand flat on the yellow shell, her RIGHT hand pinching the zipper pull at the left end, her eyes down on it, eyebrows low, lips pressed, determined. Coral bob with the full fringe, coral football shirt with the cream collar, long plain teal scarf, light-blue denim shorts. On the pavement at the RIGHT end of the suitcase sits the fat ginger CAT, exactly the cat of the cat reference pictures: a very round, heavy body of plain ginger felt with NO stripes, a wide FLAT grumpy face, a cream muzzle, chin and belly, small ears, half-shut green-gold eyes, the mouth turned down, a thick tail, upright and heavy, staring at the zipper pull. Her face is in the upper third of the frame. Only Luna, the suitcase and the cat: no Timo. No writing anywhere.",
+   "video": "@Luna pulls the zipper pull in one quick, smooth stroke along the whole near edge of the suitcase from the left end to the right end, her hand travelling across the frame; the cat's head turns to follow the zipper pull. Then she grips the edge of the lid with both hands. The suitcase does not change shape, size or colour and stays closed until the end. One continuous shot. Nobody else appears. Sound: one long clear zip of a suitcase zipper, then quiet.",
+   "pick": 1
+  },
+  {
+   "id": "a6y",
+   "look": "",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/76d288e0-425c-42ee-aa18-7e8b05606c0a_601d7cef.jpg",
+    "big_side"
+   ],
+   "elements": [
+    "BigYellow"
+   ],
+   "duration": 4,
+   "still": "An EXTREME CLOSE-UP in exactly the stylised 3D art-toy style, materials and warm low golden morning light of the first reference picture. The camera is very near and level with the near side of the same giant sunflower-yellow hard-shell suitcase lying flat: smooth matte yellow shell fills the whole frame above and below, and its dark-violet ZIPPER LINE runs perfectly horizontally across the middle of the frame from the left edge to the right edge, closed. At the far LEFT of the frame, the fingertips of one small hand with light skin come in from the left edge and pinch the single small violet zipper pull between thumb and forefinger; a little of a coral sleeve with a cream cuff shows at the wrist. Nothing else in the frame: no face, no cat, no floor, no writing, no logo. Vertical 9:16 frame, shallow depth of field, soft violet shadow under the hand.",
+   "video": "The hand pulls the zipper pull quickly and smoothly along the zipper line from the left edge of the frame all the way to the right edge and out of the frame; behind the pull the zipper parts into a thin dark gap. The suitcase does not move or change shape or colour. Nothing else appears. One continuous shot. Sound: one long clear zip of a suitcase zipper.",
+   "pick": 1
   }
  ]
 }

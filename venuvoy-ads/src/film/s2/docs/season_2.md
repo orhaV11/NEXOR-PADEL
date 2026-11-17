@@ -12,11 +12,11 @@ EP 2, Forty-Two Swings (Manchester, a football match and a round of golf): Luna 
 EP 3, Pit Stop (a motorsport weekend): a wheel comes off Big Yellow on the way to the track, one sentence cannot mend a suitcase, and Timo's 42-step pit stop can: his first win that is no trick, in a field Venuvoy never claims; Luna types a match and a hike in the mountains.
 EP 4, Uphill (a match and a hike): Big Yellow has to go up a mountain and neither way works alone, so they carry it together, one side each; at the top the coral page is his surprise, a sentence written by hand for a sport neither has tried, and she typed one for him the same night: two "Done."s, this time Luna stares into the camera, follow for season 3. (Before episodes 3 and 4 are written, place and month are checked against the catalog: motorsport with no fixed race date, the hike only in one of the nine countries where the planner places hikes, the last sport only one with events, such as tennis or rugby.)
 
-Corrections made when episode 1 was cut: Luna's typed sentence is "4 nights in London: football and golf, me and Timo"
+Corrections made when episode 1 was cut: Luna's typed sentence is "4 nights in London next weekend: football and golf, me and Timo"
 (golf rounds are placed only around London and Manchester, and a four-night London stay was checked against the planner),
 so episode 2 plays in London, not Manchester. The raw room records are in `s2e1_script_room.json`.
 
-## Episode 1, "No Folder" (43.5 s)
+## Episode 1, "No Folder" (44.8 s)
 
 Plan `s2e1.json`, edit `s2e1_edit.json`, music `s2e1_music.py` (run it after any change of timing), clips in
 `src/film/assets/s2/s2e1/`. Output `ads/19-pnp-s2/venuvoy-pnp-s2-ep1-no-folder-en_*`.
@@ -24,16 +24,23 @@ Plan `s2e1.json`, edit `s2e1_edit.json`, music `s2e1_music.py` (run it after any
 | shot | what happens | words |
 |---|---|---|
 | 1 room, wide | the wall is bare, one blank sheet | "No notes. No folder. One sentence." (label: he says he quit planning) |
-| 2 Timo | his sentence appears on the Venuvoy card, four ticks | "Nine words. I counted." "Done." |
+| 2 Timo | his sentence appears on the Venuvoy card: "next week in New York, basketball, me and Luna"; four ticks | "Nine words. I counted." "Done." |
 | 3 Luna | on the bean bag with a basketball | "Done? That's MY word!" |
-| 4 New York, wide | she pushes Big Yellow, he strolls | "I carry one sentence." (label: so today, she carries) |
-| 5 Luna | out of breath over the suitcase; the music stops on "pack" | "What did I pack?" |
-| 6 Timo | silence | "Maybe... the cat?" |
-| 7 the suitcase, open | zip, hard cut, the drop: the cat sits on his folder | (label: his plan for having no plan) |
+| 4 New York, wide | she pushes Big Yellow, he strolls | "I packed one sentence." (label: so today, she pushes) |
+| 5 Luna | lifts her head off the suitcase, out of breath; the music stops on "pack" | "What did I pack?" |
+| 6 Timo | silence; the pause between his two halves is played faster (0.85 s instead of 1.35) | "Maybe..." "the cat?" (two captions, so the second half is not read early) |
+| 6b her hand | close on the zipper: one stroke, the zip in silence | |
+| 7 the suitcase, open, from above | hard cut, the drop, a slow push-in: the cat sits on his folder | (label: his plan for having no plan) |
 | 8 Luna | reads the folder | "Step one: say 'Done.'" "Step two: Luna pushes Big Yellow?!" (label: he planned her too) |
 | 9 Timo | palms open | "Step three: Luna carries the folder." (label: his plan wins. she carries.) |
-| 10 Luna | types; card and ticks | "My turn. Golf!" "Done!" |
-| 11 Timo | turns, walks up to the camera, stares; the sung name | "Golf?" (label: he has no plan for golf) |
+| 10 Luna | types "4 nights in London next weekend: football and golf, me and Timo"; four ticks | "My turn. Golf!" "Done." |
+| 11 Timo | the music stops on the cut; one small word, the turn, the stare; the sung name | "Golf?" (label: he has no plan for golf) |
+
+Shots 4, 5, 7 and 11 are second versions (`a4c`, `a5b`, `a7b`, `a11b` in the plan) and 6b was added (`a6y`): three independent checkers looked
+at the frames of the first cut and found a different cat in the suitcase, a third cat behind Timo at the end, a line of
+Timo's that sounded flat, letters on a taxi's roof sign, two captions printed over each other for half a second, and a
+caption cut by the 4:5 crop. All were fixed before the final render. What the checkers found that could NOT be fixed
+without filming everything again is listed under "Known limits" below.
 
 ## How this episode was made (the method for every film from now on)
 
@@ -70,7 +77,39 @@ Plan `s2e1.json`, edit `s2e1_edit.json`, music `s2e1_music.py` (run it after any
    `pending.json` and collects it on the next run; a clip that was paid for can also be found again through the
    service's history (`GET /api/v1/history`).
 
+9. **Three checkers on the frames, each with one job** (continuity against the cast pictures; text and layout,
+   including the 4:5 crop; truth of every claim and how the story reads with the sound off). Give them frames at
+   every caption change, not at three moments of a shot: an overlap of two captions lasted half a second and sat
+   between the frames. Tell them not to run the product's code; a sentence can be checked by reading the parser.
+10. **A typed sentence says when** ("next week", "next weekend", "this weekend"). "A week in New York" gives the
+    product a length but no dates, and the planner then waits on its first step.
+11. **A wide shot may take its voice from another take.** Lips are a few pixels high there. The better way is still
+    a new take: the second version of shot 4 was filmed from a corrected start picture with a clearer line.
+12. **Pick the take by ear as well as by eye**: a numbered reel of one character's lines, with the question "which
+    clip does not sound like the same person, and which is flat". Twice the take that looked best had the worse voice
+    (a pitch far above or below the character's range is the measurable sign).
+13. **Background writing** (a taxi's roof sign) is painted out on a clean frame and laid over the shot, or the start
+    picture is corrected with an edit pass ("keep everything exactly, change only: ...") and the shot filmed again.
+
+## Known limits of episode 1 (for episode 2)
+
+- Who stands on which side changes between shots (Timo is left of Luna in the wide shot, right of her at the end).
+  From episode 2: one side per character per place, written into every start picture.
+- The room of shot 2 does not show the pins and the sheet where shot 1 has them.
+- Luna's scarf is teal in the wide shots and greyer in her close-ups. Write "the same saturated teal as Timo's jacket".
+- Timo's backpack is larger in side views than on the cast sheet. Write "tiny, square, ends at mid-back".
+- The blue folder is a thick hard-cover folder everywhere now; keep the frame of shot 10 as its reference.
+
 ## Money
 
-Balance before this episode 200.0 dollars; after it about 163. Start pictures and plates about 2, clips about 34
-(11 shots twice, four shots filmed again), sound beds and tests about 1.
+Balance before this episode 200.0 dollars; after it 152.6. Start pictures and plates about 3, clips about 44
+(11 shots twice, nine shots filmed again or added), sound beds, listening and watching about 1.
+
+## What the watching model can and cannot tell
+
+Asked "rate clarity, funny, polished, next episode", the same film got 9/7/9/7.5 with one wording of the question and
+6/5/6/5 with another, eight times in a row, before and after the last four fixes. Its numbers do not measure a change.
+What it does well: retelling the story cold, reading every text back, describing one stretch shot by shot ("is it
+clear how the suitcase came to be open?"), comparing takes of one line on a numbered reel, and naming its weakest
+moment: when five answers of eight name the same second, that second needs work (here: the cut to the open suitcase,
+which got the zipper close-up before it).

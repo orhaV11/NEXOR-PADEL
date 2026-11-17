@@ -38,33 +38,11 @@
    "level": -19
   },
   "a4": {
-   "path": "src/film/assets/s2/s2e1/clips/a4_t2.mp4",
-   "level": -19,
-   "fix": [
-    {
-     "plate": [
-      10,
-      425,
-      275,
-      655
-     ],
-     "file": "src/film/assets/s2/s2e1/plates/a4_plate2.jpg",
-     "feather": 12
-    },
-    {
-     "plate": [
-      954,
-      987,
-      994,
-      1009
-     ],
-     "file": "src/film/assets/s2/s2e1/plates/a4_sign.png",
-     "feather": 3
-    }
-   ]
+   "path": "src/film/assets/s2/s2e1/clips/a4c_t1.mp4",
+   "level": -19
   },
   "a5": {
-   "path": "src/film/assets/s2/s2e1/clips/a5_t6.mp4",
+   "path": "src/film/assets/s2/s2e1/clips/a5b_t2.mp4",
    "level": -19
   },
   "a6": {
@@ -72,7 +50,7 @@
    "level": -19
   },
   "a7": {
-   "path": "src/film/assets/s2/s2e1/clips/a7_t1.mp4",
+   "path": "src/film/assets/s2/s2e1/clips/a7b_t2.mp4",
    "level": -19
   },
   "a8": {
@@ -88,20 +66,12 @@
    "level": -19
   },
   "a11": {
-   "path": "src/film/assets/s2/s2e1/clips/a11_t1.mp4",
-   "level": -19,
-   "fix": [
-    {
-     "plate": [
-      10,
-      425,
-      275,
-      655
-     ],
-     "file": "src/film/assets/s2/s2e1/plates/a11_plate1.jpg",
-     "feather": 12
-    }
-   ]
+   "path": "src/film/assets/s2/s2e1/clips/a11b_t2.mp4",
+   "level": -19
+  },
+  "a6y": {
+   "path": "src/film/assets/s2/s2e1/clips/a6y_t1.mp4",
+   "level": -19
   }
  },
  "music": [
@@ -109,7 +79,7 @@
    "file": "src/film/assets/s2/music/bed_s2e1_talk.wav",
    "at": 0.0,
    "gain_db": 4,
-   "duck_db": 9,
+   "duck_db": 11,
    "fade_in": 0.0,
    "fade_out": 0.0
   },
@@ -123,7 +93,7 @@
   },
   {
    "file": "src/film/assets/s2/brand/sonic_logo.wav",
-   "at": "golf+3.02",
+   "at": "sign+0.19",
    "gain_db": -2,
    "duck_db": 0,
    "fade_in": 0.0,
@@ -191,27 +161,27 @@
   },
   {
    "synth": "ding",
-   "at": "done2+0.27",
-   "gain_db": -9
-  },
-  {
-   "synth": "pop",
-   "at": "done2+0.27",
+   "at": "done2+0.45",
    "gain_db": -11
   },
   {
    "synth": "pop",
-   "at": "done2+0.37",
+   "at": "done2+0.45",
    "gain_db": -11
   },
   {
    "synth": "pop",
-   "at": "done2+0.47",
+   "at": "done2+0.55",
    "gain_db": -11
   },
   {
    "synth": "pop",
-   "at": "done2+0.57",
+   "at": "done2+0.65",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done2+0.75",
    "gain_db": -11
   },
   {
@@ -220,8 +190,8 @@
     0.78,
     1.66
    ],
-   "at": "drop-0.62",
-   "gain_db": -9,
+   "at": "zip+0.0",
+   "gain_db": -7,
    "fade_in": 0.02,
    "fade_out": 0.08
   }
@@ -359,7 +329,7 @@
    },
    "cap": [
     {
-     "text": "so today, she carries",
+     "text": "so today, she pushes",
      "cls": "pnp hook",
      "at": 0.0,
      "len": 2.5,
@@ -367,7 +337,7 @@
      "y": 300
     },
     {
-     "text": "I carry one sentence.",
+     "text": "I packed one sentence.",
      "cls": "pnp wide",
      "at": 0.41,
      "len": 2.1,
@@ -375,58 +345,93 @@
      "y": 1482
     }
    ],
-   "foley_db": -2
+   "foley_db": -5,
+   "punch": 1.2,
+   "cx": 0.6,
+   "cy": 0.75
   },
   {
    "src": "a5",
-   "in": 1.0,
-   "out": 3.7083,
+   "in": 0.9167,
+   "out": 4.0,
    "speech": true,
    "marks": {
-    "heavy": 1.0,
-    "pack": 2.88
+    "heavy": 0.9167,
+    "pack": 3.2
    },
    "cap": [
     {
      "text": "What did I pack?",
      "cls": "pnp",
-     "at": 0.71,
-     "len": 1.72,
-     "hold": 0.12,
-     "y": 1420
+     "at": 1.52,
+     "len": 1.3,
+     "hold": 0.2,
+     "y": 1330
     }
    ],
-   "punch": 1.24,
-   "cx": 1.0,
+   "punch": 1.05,
+   "cx": 0.0,
    "cy": 0.5
   },
   {
    "src": "a6",
    "in": 0.75,
-   "out": 3.9583,
+   "out": 1.75,
    "speech": true,
    "marks": {
     "cat": 0.75
    },
    "cap": [
     {
-     "text": "Maybe... the cat?",
+     "text": "Maybe...",
      "cls": "pnp",
-     "at": 0.21,
-     "len": 2.9,
-     "hold": 0.1
+     "at": 0.2,
+     "len": 0.5,
+     "hold": 1.08
     }
-   ],
-   "hold": 0.3333
+   ]
+  },
+  {
+   "src": "a6",
+   "in": 1.75,
+   "out": 3.0833,
+   "speed": 1.6,
+   "mute": true
+  },
+  {
+   "src": "a6",
+   "in": 3.0833,
+   "out": 3.9583,
+   "hold": 0.125,
+   "speech": true,
+   "cap": [
+    {
+     "text": "the cat?",
+     "cls": "pnp",
+     "at": 0.05,
+     "len": 0.55,
+     "hold": 0.35
+    }
+   ]
+  },
+  {
+   "src": "a6y",
+   "in": 0.4167,
+   "out": 1.7917,
+   "speed": 1.5,
+   "mute": true,
+   "marks": {
+    "zip": 0.4167
+   }
   },
   {
    "src": "a7",
-   "in": 0.875,
-   "out": 3.7083,
+   "in": 1.0,
+   "out": 3.8333,
+   "mute": true,
    "marks": {
-    "drop": 0.875
+    "drop": 1.0
    },
-   "gain_db": -3,
    "cap": [
     {
      "text": "his plan for having no plan",
@@ -436,7 +441,13 @@
      "hold": 0.2,
      "y": 300
     }
-   ]
+   ],
+   "zoom": {
+    "from": 1.0,
+    "to": 1.18,
+    "cx": 0.72,
+    "cy": 0.5
+   }
   },
   {
    "src": "a8",
@@ -559,47 +570,47 @@
    "hold": 1.5,
    "speech": true,
    "marks": {
-    "done2": 4.16
+    "done2": 4.28
    },
    "cap": [
     {
      "text": "Done.",
      "cls": "pnp",
-     "at": 0.16,
+     "at": 0.28,
      "len": 0.45,
-     "hold": 1.882,
+     "hold": 1.762,
      "y": 1215
     },
     {
      "text": "the match",
      "cls": "vvb tick",
-     "at": 0.43,
+     "at": 0.73,
      "len": 0.05,
-     "hold": 2.012,
+     "hold": 1.712,
      "y": 1352
     },
     {
      "text": "ticket links",
      "cls": "vvb tick r",
-     "at": 0.53,
+     "at": 0.83,
      "len": 0.05,
-     "hold": 1.912,
+     "hold": 1.612,
      "y": 1352
     },
     {
      "text": "a golf round",
      "cls": "vvb tick",
-     "at": 0.63,
+     "at": 0.93,
      "len": 0.05,
-     "hold": 1.812,
+     "hold": 1.512,
      "y": 1439
     },
     {
      "text": "day by day",
      "cls": "vvb tick r",
-     "at": 0.73,
+     "at": 1.03,
      "len": 0.05,
-     "hold": 1.712,
+     "hold": 1.412,
      "y": 1439
     }
    ],
@@ -611,33 +622,35 @@
   },
   {
    "src": "a11",
-   "in": 0.1667,
+   "in": 0.9167,
    "out": 5.0417,
-   "hold": 1.5,
+   "hold": 2.0,
    "speech": true,
    "marks": {
-    "golf": 0.1667
+    "golf": 0.9167,
+    "look": 1.0,
+    "sign": 3.5
    },
    "cap": [
     {
      "text": "he has no plan for golf",
      "cls": "pnp hook",
      "at": 0.05,
-     "len": 2.45,
+     "len": 2.2,
      "hold": 0.2,
      "y": 300
     },
     {
      "text": "Golf?",
      "cls": "pnp",
-     "at": 0.12,
-     "len": 0.75,
-     "hold": 0.25
+     "at": 0.2,
+     "len": 0.6,
+     "hold": 0.3
     },
     {
      "text": "one sentence. your sports trip, planned.",
      "cls": "pnp sig",
-     "at": 2.85,
+     "at": 2.603,
      "len": 0.05,
      "hold": 9.0,
      "y": 1130
@@ -645,7 +658,7 @@
     {
      "text": "VENUVOY",
      "cls": "vvb chip",
-     "at": 2.95,
+     "at": 2.703,
      "len": 0.05,
      "hold": 9.0,
      "y": 1305
@@ -653,7 +666,7 @@
     {
      "text": "season 2 · ep 1 · follow for ep 2",
      "cls": "pnp brand ep",
-     "at": 2.95,
+     "at": 2.703,
      "len": 0.05,
      "hold": 9.0,
      "y": 1400
@@ -661,13 +674,19 @@
     {
      "text": "football, basketball, motorsport, tennis, golf and more",
      "cls": "pnp more",
-     "at": 2.95,
+     "at": 2.703,
      "len": 0.05,
      "hold": 9.0,
      "y": 1470
     }
    ],
-   "foley_db": -3
+   "foley_db": -3,
+   "zoom": {
+    "from": 1.0,
+    "to": 1.08,
+    "cx": 0.62,
+    "cy": 0.33
+   }
   }
  ]
 }

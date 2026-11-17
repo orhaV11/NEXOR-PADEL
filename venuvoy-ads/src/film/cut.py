@@ -183,7 +183,8 @@ def fix_frame(f, fixes):
     calm:  fade marks that are redder than the skin around them (spots, a scar) without repainting anything;
     key:   move one colour range to another hue (curtains that should match the hall);
     grade: gain, per-channel gains and saturation (so clips of one room sit together);
-    shade: darken the top of the frame and the corners, so a bright bare wall stops pulling the eye off the face."""
+    shade: darken the top of the frame and the corners, so a bright bare wall stops pulling the eye off the face;
+    plate: {"plate": [x0, y0, x1, y1], "file": "clean_still.jpg"} lays that box of a clean still over every frame."""
     k = W / 1080
     for fx in fixes:
         if "clone" in fx:
@@ -246,6 +247,20 @@ def fix_frame(f, fixes):
             for c, keep in ((0, q.get("l_keep", 0.3)), (1, q.get("keep", 0.1)), (2, q.get("keep", 0.1))):
                 lab[:, :, c] = lab[:, :, c] * (1 - m) + (med[c] + (lab[:, :, c] - med[c]) * keep) * m
             f = cv2.cvtColor(np.clip(lab, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+        elif "plate" in fx:  # a box of the frame replaced by the same box of a clean still (a locked-off shot only):
+            # something in the background that should not be there is drawn out once, in a still, and laid over
+            # every frame. The still is nudged to the frame's own colour around the box, so its edge does not show.
+            x0, y0, x1, y1 = [int(round(v * k)) for v in fx["plate"]]
+            if fx["file"] not in _PLATES:
+                _PLATES[fx["file"]] = cv2.resize(cv2.imread(str(ROOT / fx["file"])), (W, H), interpolation=cv2.INTER_AREA).astype(np.float32)
+            pl = _PLATES[fx["file"]]
+            g = int(24 * k)
+            ring = np.zeros((H, W), bool)
+            ring[max(0, y0 - g):y1 + g, max(0, x0 - g):x1 + g] = True
+            ring[y0:y1, x0:x1] = False
+            off = f[ring].astype(np.float32).mean(axis=0) - pl[ring].mean(axis=0)
+            m = _box_mask(x0, y0, x1, y1, fx.get("feather", 10) * k)
+            f = np.clip(f * (1 - m) + (pl + off) * m, 0, 255).astype(np.uint8)
         elif "soften" in fx:  # blur a box until lettering or a crest in it cannot be read
             x0, y0, x1, y1 = [int(round(v * k)) for v in fx["soften"]]
             m = _box_mask(x0, y0, x1, y1, fx.get("feather", 14) * k)
@@ -273,6 +288,7 @@ def fix_frame(f, fixes):
 
 _FIXES = None
 _SHADE = {}
+_PLATES = {}
 
 
 def fixes_of(path):
@@ -874,6 +890,16 @@ def clean_voice(a, keep_db=-60):
     y = np.array(_DN(x, SR).samples, dtype=np.float64)
     y = y[len(x) - len(mono):] if len(mono) > pad else y
     y = np.pad(y, (0, max(0, len(mono) - len(y))))[: len(mono)]
+    # the enhancer keeps what it takes for speech; a shouted, breathy or squeaky line can be thrown out with the noise.
+    # Compare the loud fifth of the clip before and after: if the voice lost more than 6 dB, keep the clip as it was.
+    h = int(0.05 * SR)
+    def top(z):
+        r = np.array([np.sqrt(np.mean(z[k:k + h] ** 2)) for k in range(0, max(1, len(z) - h), h)]) + 1e-9
+        return 20 * np.log10(np.mean(np.sort(r)[-max(1, len(r) // 5):]))
+    lost = top(mono.astype(np.float64)) - top(y)
+    if lost > 6:
+        print(f"  note: the voice cleaner took {lost:.0f} dB off a line; this segment keeps its own sound")
+        return a
     out = np.stack([y, y], axis=1)
     return out + a * db(keep_db) if keep_db > -59 else out
 
@@ -898,13 +924,21 @@ for s in segs:
     # jumps at each cut. A spoken segment is therefore stripped down to the voice (DPDFNet, 48 kHz) and the film gets
     # ONE background of its own ("ambience"). Set "clean": false on a segment whose own sound is wanted as it is.
     if s.get("clean", EDL["sources"][s["src"]].get("clean", EDL.get("clean", False))) and (s.get("speech") or s.get("line")):
+        whole = a
         a = clean_voice(a, s.get("clean_keep_db", EDL.get("clean_keep_db", -60)))
+        # "foley_db": what the cleaner took away is the clip's own sound of things moving (wheels, steps, paper).
+        # Laid back in as an effect at this level under the voice (never on the dialogue bus, so the music does not
+        # duck for it), a shot keeps the sound of its action without bringing its room back at full strength.
+        if "foley_db" in s and a is not whole:
+            s["foley"] = whole - a
     s["audio"] = a
     parts.setdefault(s["src"], []).append(s)
 for name, ps in parts.items():
     m = np.concatenate([p["audio"].mean(axis=1) for p in ps])
     h = int(0.05 * SR)
     r = np.array([np.sqrt(np.mean(m[k:k + h] ** 2)) for k in range(0, max(1, len(m) - h), h)]) + 1e-9
+    loud = r[r > db(-50)]  # a cleaned clip is silent between its words: measure the level on what sounds, or one word
+    r = loud if len(loud) >= 4 else r  # in five quiet seconds would be turned up until it clips
     lvl = 20 * np.log10(np.percentile(r, 85))
     target = ps[0].get("level", EDL["sources"][name].get("level", -18))
     g = db(float(np.clip(target - lvl, -14, 20)))
@@ -918,6 +952,12 @@ for name, ps in parts.items():
         a[-fo:] *= np.linspace(1, 0, fo)[:, None]
         i0 = int(round(p["t"] * SR))
         bus[i0: i0 + len(a)] += a[: len(bus) - i0]
+        if "foley" in p:
+            fol = p["foley"] * g * db(p["foley_db"])
+            ff = max(edge, int(0.04 * SR))
+            fol[:ff] *= np.linspace(0, 1, ff)[:, None]
+            fol[-ff:] *= np.linspace(1, 0, ff)[:, None]
+            ambient[i0: i0 + len(fol)] += fol[: len(ambient) - i0]
 for nr in narr:  # the narrator is a voice like any other: same bus, so the music ducks and the margins are measured
     a = nr["a"]
     mm = a.mean(axis=1)

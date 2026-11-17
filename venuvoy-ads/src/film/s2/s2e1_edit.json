@@ -1,0 +1,661 @@
+{
+ "slug": "pnp-s2e1",
+ "title": "Plan, No Plan, season 2, ep 1: No Folder",
+ "out": "ads/19-pnp-s2/venuvoy-pnp-s2-ep1-no-folder",
+ "fps": 24,
+ "duck_from": 0.0,
+ "duck_attack": 0.1,
+ "duck_release": 0.4,
+ "duck_lead": 0.1,
+ "clean": true,
+ "tail_fade": 0.35,
+ "dialog_fx": {
+  "shelf_db": -2.0,
+  "shelf_hz": 6500,
+  "warm_db": 1.5,
+  "warm_hz": 220,
+  "room_db": -27,
+  "room_s": 0.14
+ },
+ "look": {
+  "pop": 0,
+  "shake": 0,
+  "sharpen": 0.1,
+  "grain": 1.5,
+  "cap_y": 1230
+ },
+ "sources": {
+  "a1": {
+   "path": "src/film/assets/s2/s2e1/clips/a1_t2.mp4",
+   "level": -19
+  },
+  "a2": {
+   "path": "src/film/assets/s2/s2e1/clips/a2_t2.mp4",
+   "level": -19
+  },
+  "a3": {
+   "path": "src/film/assets/s2/s2e1/clips/a3b_t2.mp4",
+   "level": -19
+  },
+  "a4": {
+   "path": "src/film/assets/s2/s2e1/clips/a4_t2.mp4",
+   "level": -19,
+   "fix": [
+    {
+     "plate": [
+      10,
+      425,
+      275,
+      655
+     ],
+     "file": "src/film/assets/s2/s2e1/plates/a4_plate2.jpg",
+     "feather": 12
+    }
+   ]
+  },
+  "a5": {
+   "path": "src/film/assets/s2/s2e1/clips/a5_t6.mp4",
+   "level": -19,
+   "fix": [
+    {
+     "plate": [
+      0,
+      365,
+      240,
+      595
+     ],
+     "file": "src/film/assets/s2/s2e1/plates/a5_plate1.jpg",
+     "feather": 12
+    }
+   ]
+  },
+  "a6": {
+   "path": "src/film/assets/s2/s2e1/clips/a6_t1.mp4",
+   "level": -19
+  },
+  "a7": {
+   "path": "src/film/assets/s2/s2e1/clips/a7_t1.mp4",
+   "level": -19
+  },
+  "a8": {
+   "path": "src/film/assets/s2/s2e1/clips/a8_t1.mp4",
+   "level": -19
+  },
+  "a9": {
+   "path": "src/film/assets/s2/s2e1/clips/a9_t2.mp4",
+   "level": -19
+  },
+  "a10": {
+   "path": "src/film/assets/s2/s2e1/clips/a10_t4.mp4",
+   "level": -19
+  },
+  "a11": {
+   "path": "src/film/assets/s2/s2e1/clips/a11_t1.mp4",
+   "level": -19,
+   "fix": [
+    {
+     "plate": [
+      10,
+      425,
+      275,
+      655
+     ],
+     "file": "src/film/assets/s2/s2e1/plates/a11_plate1.jpg",
+     "feather": 12
+    }
+   ]
+  }
+ },
+ "music": [
+  {
+   "file": "src/film/assets/s2/music/bed_s2e1_talk.wav",
+   "at": 0.0,
+   "gain_db": 4,
+   "duck_db": 9,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  },
+  {
+   "file": "src/film/assets/s2/music/bed_s2e1_hit.wav",
+   "at": 0.0,
+   "gain_db": 8,
+   "duck_db": 0,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  },
+  {
+   "file": "src/film/assets/s2/brand/sonic_logo.wav",
+   "at": "golf+3.02",
+   "gain_db": -2,
+   "duck_db": 0,
+   "fade_in": 0.0,
+   "fade_out": 0.0
+  }
+ ],
+ "ambience": [
+  {
+   "file": "src/film/assets/s2/sound/amb_room.wav",
+   "at": 0.0,
+   "until": "street+0.5",
+   "gain_db": 0,
+   "fade_in": 0.1,
+   "fade_out": 0.8
+  },
+  {
+   "file": "src/film/assets/s2/sound/amb_ny.wav",
+   "at": "street-0.6",
+   "gain_db": 1,
+   "fade_in": 0.9,
+   "fade_out": 0.4
+  }
+ ],
+ "sfx": [
+  {
+   "synth": "typing",
+   "args": [
+    1.5
+   ],
+   "at": "type1+0.0",
+   "gain_db": -10
+  },
+  {
+   "synth": "ding",
+   "at": "done1+0.30",
+   "gain_db": -9
+  },
+  {
+   "synth": "pop",
+   "at": "done1+0.30",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done1+0.42",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done1+0.54",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done1+0.66",
+   "gain_db": -11
+  },
+  {
+   "synth": "typing",
+   "args": [
+    1.5
+   ],
+   "at": "type2+0.05",
+   "gain_db": -10
+  },
+  {
+   "synth": "ding",
+   "at": "done2+0.30",
+   "gain_db": -9
+  },
+  {
+   "synth": "pop",
+   "at": "done2+0.30",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done2+0.42",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done2+0.54",
+   "gain_db": -11
+  },
+  {
+   "synth": "pop",
+   "at": "done2+0.66",
+   "gain_db": -11
+  },
+  {
+   "file": "src/film/assets/s2/sound/zip_a.mp3",
+   "trim": [
+    0.78,
+    1.66
+   ],
+   "at": "drop-0.62",
+   "gain_db": -9,
+   "fade_in": 0.02,
+   "fade_out": 0.08
+  }
+ ],
+ "segments": [
+  {
+   "src": "a1",
+   "in": 0.2083,
+   "out": 3.875,
+   "speech": true,
+   "marks": {
+    "open": 0.2083
+   },
+   "cap": [
+    {
+     "text": "he says he quit planning",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 3.3,
+     "hold": 0.25,
+     "y": 300
+    },
+    {
+     "text": "No notes. No folder. One sentence.",
+     "cls": "pnp",
+     "at": 0.1,
+     "len": 3.4,
+     "hold": 0.15,
+     "y": 1400
+    }
+   ]
+  },
+  {
+   "src": "a2",
+   "in": 0.5833,
+   "out": 5.0,
+   "hold": 0.7083,
+   "speech": true,
+   "marks": {
+    "type1": 0.75,
+    "done1": 3.76
+   },
+   "cap": [
+    {
+     "text": "VENUVOY",
+     "cls": "vvb chip",
+     "at": 0.1,
+     "len": 0.05,
+     "hold": 4.925,
+     "y": 250
+    },
+    {
+     "text": "a week in New York, basketball, me and Luna",
+     "cls": "vvb type",
+     "at": 0.17,
+     "len": 1.5,
+     "hold": 3.405,
+     "y": 345
+    },
+    {
+     "text": "Nine words. I counted.",
+     "cls": "pnp",
+     "at": 0.2,
+     "len": 2.9,
+     "hold": 0.642,
+     "y": 1310
+    },
+    {
+     "text": "Done.",
+     "cls": "pnp",
+     "at": 3.18,
+     "len": 0.45,
+     "hold": 1.449,
+     "y": 1310
+    },
+    {
+     "text": "the game",
+     "cls": "vvb tick",
+     "at": 3.48,
+     "len": 0.05,
+     "hold": 1.579,
+     "y": 1425
+    },
+    {
+     "text": "ticket links",
+     "cls": "vvb tick r",
+     "at": 3.6,
+     "len": 0.05,
+     "hold": 1.459,
+     "y": 1425
+    },
+    {
+     "text": "getting around",
+     "cls": "vvb tick",
+     "at": 3.72,
+     "len": 0.05,
+     "hold": 1.339,
+     "y": 1512
+    },
+    {
+     "text": "day by day",
+     "cls": "vvb tick r",
+     "at": 3.84,
+     "len": 0.05,
+     "hold": 1.219,
+     "y": 1512
+    }
+   ]
+  },
+  {
+   "src": "a3",
+   "in": 0.0833,
+   "out": 3.0833,
+   "speech": true,
+   "marks": {
+    "word": 0.0833
+   },
+   "cap": [
+    {
+     "text": "Done? That's MY word!",
+     "cls": "pnp",
+     "at": 0.15,
+     "len": 2.5,
+     "hold": 0.2
+    }
+   ]
+  },
+  {
+   "src": "a4",
+   "in": 0.7917,
+   "out": 3.5833,
+   "speech": true,
+   "marks": {
+    "street": 0.7917
+   },
+   "cap": [
+    {
+     "text": "so today, she carries",
+     "cls": "pnp hook",
+     "at": 0.0,
+     "len": 2.5,
+     "hold": 0.2,
+     "y": 300
+    },
+    {
+     "text": "I carry one sentence.",
+     "cls": "pnp",
+     "at": 0.41,
+     "len": 2.1,
+     "hold": 0.15,
+     "y": 1480
+    }
+   ],
+   "foley_db": -2
+  },
+  {
+   "src": "a5",
+   "in": 1.0,
+   "out": 3.7083,
+   "speech": true,
+   "marks": {
+    "heavy": 1.0,
+    "pack": 2.88
+   },
+   "cap": [
+    {
+     "text": "What did I pack?",
+     "cls": "pnp",
+     "at": 0.71,
+     "len": 1.72,
+     "hold": 0.12
+    }
+   ],
+   "punch": 1.25,
+   "cx": 0.25,
+   "cy": 0.3
+  },
+  {
+   "src": "a6",
+   "in": 0.75,
+   "out": 3.9583,
+   "speech": true,
+   "marks": {
+    "cat": 0.75
+   },
+   "cap": [
+    {
+     "text": "Maybe... the cat?",
+     "cls": "pnp",
+     "at": 0.21,
+     "len": 2.9,
+     "hold": 0.1
+    }
+   ],
+   "hold": 0.3333
+  },
+  {
+   "src": "a7",
+   "in": 0.875,
+   "out": 3.7083,
+   "marks": {
+    "drop": 0.875
+   },
+   "gain_db": -3,
+   "cap": [
+    {
+     "text": "his plan for having no plan",
+     "cls": "pnp hook",
+     "at": 0.3,
+     "len": 2.3,
+     "hold": 0.2,
+     "y": 300
+    }
+   ]
+  },
+  {
+   "src": "a8",
+   "in": 0.0833,
+   "out": 5.0417,
+   "speech": true,
+   "marks": {
+    "read": 0.0833
+   },
+   "cap": [
+    {
+     "text": "Step one: say \"Done.\"",
+     "cls": "pnp",
+     "at": 0.08,
+     "len": 2.3,
+     "hold": 0.12
+    },
+    {
+     "text": "he planned her too",
+     "cls": "pnp hook",
+     "at": 2.45,
+     "len": 2.3,
+     "hold": 0.15,
+     "y": 300
+    },
+    {
+     "text": "Step two: Luna pushes Big Yellow?!",
+     "cls": "pnp",
+     "at": 2.5,
+     "len": 2.4,
+     "hold": 0.05
+    }
+   ],
+   "foley_db": -8
+  },
+  {
+   "src": "a9",
+   "in": 0.5,
+   "out": 4.0,
+   "speech": true,
+   "marks": {
+    "three": 0.5
+   },
+   "cap": [
+    {
+     "text": "Step three: Luna carries the folder.",
+     "cls": "pnp",
+     "at": 0.14,
+     "len": 3.3,
+     "hold": 0.05
+    },
+    {
+     "text": "his plan wins. she carries.",
+     "cls": "pnp hook",
+     "at": 1.7,
+     "len": 1.75,
+     "hold": 0.05,
+     "y": 300
+    }
+   ]
+  },
+  {
+   "src": "a10",
+   "in": 0.2917,
+   "out": 1.9167,
+   "speech": true,
+   "marks": {
+    "turn": 0.2917
+   },
+   "cap": [
+    {
+     "text": "My turn. Golf!",
+     "cls": "pnp",
+     "at": 0.19,
+     "len": 1.3,
+     "hold": 0.1
+    }
+   ]
+  },
+  {
+   "src": "a10",
+   "in": 1.9167,
+   "out": 4.0,
+   "speed": 1.25,
+   "mute": true,
+   "marks": {
+    "type2": 1.9167
+   },
+   "cap": [
+    {
+     "text": "VENUVOY",
+     "cls": "vvb chip",
+     "at": 0.0,
+     "len": 0.05,
+     "hold": 3.859,
+     "y": 250
+    },
+    {
+     "text": "4 nights in London: football and golf, me and Timo",
+     "cls": "vvb type",
+     "at": 0.07,
+     "len": 1.5,
+     "hold": 2.339,
+     "y": 345
+    }
+   ]
+  },
+  {
+   "src": "a10",
+   "in": 4.0,
+   "out": 5.0417,
+   "hold": 1.25,
+   "speech": true,
+   "marks": {
+    "done2": 4.16
+   },
+   "cap": [
+    {
+     "text": "Done!",
+     "cls": "pnp",
+     "at": 0.16,
+     "len": 0.45,
+     "hold": 1.632,
+     "y": 1215
+    },
+    {
+     "text": "the match",
+     "cls": "vvb tick",
+     "at": 0.46,
+     "len": 0.05,
+     "hold": 1.762,
+     "y": 1352
+    },
+    {
+     "text": "ticket links",
+     "cls": "vvb tick r",
+     "at": 0.58,
+     "len": 0.05,
+     "hold": 1.642,
+     "y": 1352
+    },
+    {
+     "text": "a golf round",
+     "cls": "vvb tick",
+     "at": 0.7,
+     "len": 0.05,
+     "hold": 1.522,
+     "y": 1439
+    },
+    {
+     "text": "day by day",
+     "cls": "vvb tick r",
+     "at": 0.82,
+     "len": 0.05,
+     "hold": 1.402,
+     "y": 1439
+    }
+   ]
+  },
+  {
+   "src": "a11",
+   "in": 0.1667,
+   "out": 5.0417,
+   "hold": 0.9167,
+   "speech": true,
+   "marks": {
+    "golf": 0.1667
+   },
+   "cap": [
+    {
+     "text": "he has no plan for golf",
+     "cls": "pnp hook",
+     "at": 0.05,
+     "len": 2.45,
+     "hold": 0.2,
+     "y": 300
+    },
+    {
+     "text": "Golf?",
+     "cls": "pnp",
+     "at": 0.12,
+     "len": 0.75,
+     "hold": 0.25
+    },
+    {
+     "text": "one sentence. your sports trip, planned.",
+     "cls": "pnp sig",
+     "at": 2.85,
+     "len": 0.05,
+     "hold": 9.0,
+     "y": 1130
+    },
+    {
+     "text": "VENUVOY",
+     "cls": "vvb chip",
+     "at": 2.95,
+     "len": 0.05,
+     "hold": 9.0,
+     "y": 1305
+    },
+    {
+     "text": "season 2 · ep 1 · follow for ep 2",
+     "cls": "pnp more",
+     "at": 2.95,
+     "len": 0.05,
+     "hold": 9.0,
+     "y": 1392
+    },
+    {
+     "text": "football, basketball, motorsport, tennis, golf and more",
+     "cls": "pnp more",
+     "at": 2.95,
+     "len": 0.05,
+     "hold": 9.0,
+     "y": 1456
+    }
+   ],
+   "foley_db": -3
+  }
+ ]
+}

@@ -812,8 +812,7 @@
   "pitch": 333,
   "quiet": -63,
   "loud": -5,
-  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t1.jpg",
-  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:02:** A 3D-animated girl with pink hair leans against a large yellow suitcase, crying and sniffling. An orange cat sits motionless on top of the suitcase.  \n  * **Girl:** *(gasping/sniffling)*\n* **00:02 – 00:03:** The girl's eyes pop open wide in shock and her mouth opens in realization as she speaks.  \n  * **Girl:** \"What did I pack?!\"\n\n---\n\n### **Visual Artifacts & Unnatural Elements**\n* **Frozen Cat:** The cat on the luggage is completely static throughout the entire clip (no breathing, blinking, or tail movement).\n* **Unnatural Facial Morphing:** The transition at 00:02 from closed-eye crying to wide-eyed shock snaps abruptly and morphs unnaturally.\n* **Hand Positioning:** The girl's hand resting on the suitcase handle lacks natural finger joints or fine movement.\n\n---\n\n### **Audio Artifacts**\n* **Synthetic Voice:** The gasping/sniffling sounds and the spoken line sound slightly synthetic and artificially generated."
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t1.jpg"
  },
  {
   "shot": "a5",
@@ -860,8 +859,200 @@
   "pitch": 286,
   "quiet": -66,
   "loud": -6,
-  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t2.jpg",
-  "watch": "Here is the second-by-second breakdown, transcription, and list of anomalies for the clip:\n\n### **Second-by-Second Breakdown & Transcription**\n\n* **00:00 – 00:01**: A 3D animated girl with pink hair rests her head sadly on a large yellow suitcase next to an orange cat sitting on top. \n  * **Girl**: *(sighs)* \"Huh...\"\n* **00:01 – 00:02**: The girl suddenly gasps as her eyes open wide in shock.\n  * **Girl**: *(gasps)* \"Huh!\"\n* **00:02 – 00:04**: She looks at the suitcase with a panicked expression.\n  * **Girl**: \"What did I pack?\"\n\n---\n\n### **Visual Anomalies (Broken / Morphing / Unnatural)**\n* **Floating Basketball**: A oversized basketball floats frozen in mid-air in the left background.\n* **Frozen Cat**: The orange cat resting on the luggage is completely static and unmoving, looking like a rigid model or toy.\n* **Frozen Taxi**: The yellow car in the background is completely static and miniature.\n* **Stiff/Clipping Hands**: The girl's hands holding the suitcase handle appear rigid and slightly clip into the handle texture.\n\n---\n\n### **Audio Anomalies**\n* **AI-Generated Voice**: The voice has a slightly synthetic quality typical of AI speech generation."
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t2.jpg"
+ },
+ {
+  "shot": "a5",
+  "take": 3,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t3.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "What",
+    2.32,
+    2.56
+   ],
+   [
+    "did",
+    2.56,
+    2.72
+   ],
+   [
+    "I",
+    2.72,
+    2.96
+   ],
+   [
+    "pack?",
+    2.96,
+    3.56
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.0,
+   0.01,
+   0.01,
+   0.01,
+   0.01,
+   0.01
+  ],
+  "pitch": 364,
+  "quiet": -65,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t3.jpg"
+ },
+ {
+  "shot": "a5",
+  "take": 4,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t4.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Huh?",
+    0.96,
+    2.48
+   ],
+   [
+    "What",
+    2.48,
+    2.88
+   ],
+   [
+    "did",
+    2.88,
+    3.04
+   ],
+   [
+    "I",
+    3.04,
+    3.28
+   ],
+   [
+    "pack?",
+    3.28,
+    3.88
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.0,
+   0.01,
+   0.0,
+   0.0,
+   0.01,
+   0.0
+  ],
+  "pitch": 291,
+  "quiet": -62,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t4.jpg"
+ },
+ {
+  "shot": "a5",
+  "take": 5,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t5.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "What",
+    0.64,
+    1.12
+   ],
+   [
+    "did",
+    1.12,
+    1.28
+   ],
+   [
+    "I",
+    1.28,
+    1.68
+   ],
+   [
+    "pack?",
+    1.68,
+    2.28
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.01,
+   0.02,
+   0.02,
+   0.01,
+   0.01,
+   0.01
+  ],
+  "pitch": 278,
+  "quiet": -60,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t5.jpg"
+ },
+ {
+  "shot": "a5",
+  "take": 6,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t6.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "What",
+    1.76,
+    2.24
+   ],
+   [
+    "did",
+    2.24,
+    2.48
+   ],
+   [
+    "I",
+    2.48,
+    2.88
+   ],
+   [
+    "pack?",
+    2.88,
+    3.48
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.01,
+   0.05,
+   0.06,
+   0.07,
+   0.06,
+   0.06
+  ],
+  "pitch": 368,
+  "quiet": -59,
+  "loud": -8,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t6.jpg"
  },
  {
   "shot": "a6",

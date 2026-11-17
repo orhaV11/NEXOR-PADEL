@@ -219,9 +219,41 @@
      "pick": 2,
      "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head, out of breath, looks down at the suitcase under her arms and asks, baffled and loud: \"What did I pack?!\" The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: her breath, her voice.",
      "rid": "e02e0974-9783-4c60-a78c-46c380159d26"
+    },
+    {
+     "take": 3,
+     "url": "https://cdn.muapi.ai/outputs/generated/aa283a6d-174b-4f3e-82f6-6a97c4bde88f_86f269c6.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t3.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head, looks down at the suitcase under her arms and asks, loud, clear and baffled, in her usual bright lively voice: \"What did I pack?!\" Her eyes are wide. The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: only her clear voice.",
+     "rid": "aa283a6d-174b-4f3e-82f6-6a97c4bde88f"
+    },
+    {
+     "take": 4,
+     "url": "https://cdn.muapi.ai/outputs/generated/02b2679a-7096-4b52-887d-abc016352d81_330ef895.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t4.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head, looks down at the suitcase under her arms and asks, loud, clear and baffled, in her usual bright lively voice: \"What did I pack?!\" Her eyes are wide. The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: only her clear voice.",
+     "rid": "02b2679a-7096-4b52-887d-abc016352d81"
+    },
+    {
+     "take": 5,
+     "url": "https://cdn.muapi.ai/outputs/generated/5a944734-defe-4973-9838-8e650311205e_a283f84f.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t5.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head from her arms, looks down at the suitcase and asks, puzzled and amused, in her normal bright speaking voice, not shouting: \"What did I pack?\" She frowns at the suitcase. The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: only her clear voice.",
+     "rid": "5a944734-defe-4973-9838-8e650311205e"
+    },
+    {
+     "take": 6,
+     "url": "https://cdn.muapi.ai/outputs/generated/da3a5b29-3687-4277-a6b7-d3557283d94e_1b24404d.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t6.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head from her arms, looks down at the suitcase and asks, puzzled and amused, in her normal bright speaking voice, not shouting: \"What did I pack?\" She frowns at the suitcase. The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: only her clear voice.",
+     "rid": "da3a5b29-3687-4277-a6b7-d3557283d94e"
     }
    ],
-   "file": "src/film/assets/s2/s2e1/clips/a5_t2.mp4"
+   "file": "src/film/assets/s2/s2e1/clips/a5_t6.mp4"
   },
   "a6": {
    "takes": [

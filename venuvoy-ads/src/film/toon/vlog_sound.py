@@ -115,7 +115,7 @@ def _mono(path):
     return ss.resample_poly(x, SR, sr) if sr != SR else x
 
 
-def build(film, plan, bed=None, ending="sung", plate_hold=2.4, ambience=None, fx=(), bed_db=-11.0, logo_db=-5.5, lead_out=None):
+def build(film, plan, bed=None, ending="sung", plate_hold=2.4, ambience=None, fx=(), bed_db=-7.5, logo_db=-5.5, lead_out=None):
     """bed: None, or {"stop": "<line id>"} (the vlog music from the start; it stops dead as that line ends) or
     {"stop": "PLATE"}. ending: "sung" (the sung name on the plate), "beat" (a bar of the series' track, for a short)
     or None. ambience: {"file": "wind_a", "db": -33, "gusts": True} (default) - a file in the film's or the rig's

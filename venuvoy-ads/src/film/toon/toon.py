@@ -392,8 +392,9 @@ class Talk:
 
     FALLBACK = {"F": ["C", "E", "M"], "C": ["E", "A", "M"], "E": ["C", "A"], "O": ["C", "A"], "A": ["O", "E", "C"], "M": []}
 
-    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10, wide_min=2, teeth_min=3, said=None):
-        """said: {"word": "A C"}: the shapes of a word set by hand (the words a joke rests on)."""
+    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10, wide_min=2, teeth_min=3, said=None, open_min=0.45):
+        """said: {"word": "A C"}: the shapes of a word set by hand (the words a joke rests on).
+        open_min: the open mouth shows only where the voice is at least this loud (a flat, quiet speaker needs less)."""
         self.env = loudness(wav)
         self.lead, self.quiet, self.have = lead, quiet, set(have)
         said = said or {}
@@ -412,7 +413,7 @@ class Talk:
                 seq.append(None)
                 continue
             s = next((s for a, b, s in events if a <= t < b), "C")
-            if s == "A" and self.level(t) < 0.45:
+            if s == "A" and self.level(t) < open_min:
                 s = "C"
             if s not in self.have:
                 s = next((f for f in self.FALLBACK.get(s, []) if f in self.have), None)

@@ -1,0 +1,71 @@
+{
+ "work": "work/glove",
+ "cap": 5.0,
+ "temperature": 1,
+ "scene": "A phone vlog from the top rows of a baseball park on a still, sunny afternoon, during a game; a relaxed crowd murmurs far below. Luna holds the phone at arm's length and talks to it; Timo stands just behind her with an old baseball glove held open in front of his chest, his eyes shut.",
+ "context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, fond of him and amused by him; she is innocent, never sarcastic. TIMO, about 30, is slow, dry and proud; he has brought his glove to every game for twenty years and is serenely sure of himself; he never raises his voice, and he sounds exactly the same when he is overjoyed as when he is bored. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[to the camera, amused, fond] He's brought a glove."
+  ],
+  [
+   "T",
+   "[proud, flat] Twenty years."
+  ],
+  [
+   "L",
+   "[innocent, really asking] Ever caught one?"
+  ],
+  [
+   "T",
+   "[serene and unhurried, a small lecture with his eyes shut] It's not about catching. It's about being ready. You don't chase the ball, the ball—"
+  ],
+  [
+   "L",
+   "[cutting in fast, quiet, urgent] Timo."
+  ],
+  [
+   "T",
+   "[calm, unbothered, eyes still shut] I'm not finished."
+  ],
+  [
+   "L",
+   "[small, hushed, staring at it] Your glove."
+  ],
+  [
+   "T",
+   "[very flat, slow, not looking down; a statement, not a question] It's in there, isn't it."
+  ],
+  [
+   "L",
+   "[whispered, awed] It's in there."
+  ],
+  [
+   "T",
+   "[flat and level, no joy showing at all] I've won baseball."
+  ],
+  [
+   "L",
+   "[sunny again, to the camera] He's thrilled."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; relaxed in the sun at a ball game and amused by her friend; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, serenely sure of himself; he never raises his voice."
+   }
+  }
+ }
+}

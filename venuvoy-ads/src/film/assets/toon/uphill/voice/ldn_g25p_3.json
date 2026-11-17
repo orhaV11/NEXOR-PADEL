@@ -1,0 +1,173 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, not out of breath, to the camera] Day three of the trip. The morning run."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[out of breath, big eyes, to the camera] Nobody said it was uphill."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to her] You added it to the plan."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, lightly, copying her sunny tune] She loves it."
+   }
+  ],
+  "scene": "A phone vlog on a windy hill above a small city with a stadium far below. Wind.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Day",
+   0.16,
+   0.48
+  ],
+  [
+   "three",
+   0.48,
+   0.72
+  ],
+  [
+   "of",
+   0.72,
+   0.88
+  ],
+  [
+   "the",
+   0.88,
+   0.96
+  ],
+  [
+   "trip",
+   0.96,
+   1.52
+  ],
+  [
+   "the",
+   1.52,
+   1.68
+  ],
+  [
+   "morning",
+   1.68,
+   2.24
+  ],
+  [
+   "run.",
+   2.24,
+   3.04
+  ],
+  [
+   "Nobody",
+   3.04,
+   3.52
+  ],
+  [
+   "said",
+   3.52,
+   3.76
+  ],
+  [
+   "it",
+   3.76,
+   3.84
+  ],
+  [
+   "was",
+   3.84,
+   4.08
+  ],
+  [
+   "uphill.",
+   4.08,
+   5.36
+  ],
+  [
+   "You",
+   5.36,
+   5.76
+  ],
+  [
+   "added",
+   5.76,
+   6.08
+  ],
+  [
+   "it",
+   6.08,
+   6.32
+  ],
+  [
+   "to",
+   6.32,
+   6.48
+  ],
+  [
+   "the",
+   6.48,
+   6.64
+  ],
+  [
+   "plan.",
+   6.64,
+   7.44
+  ],
+  [
+   "She",
+   7.44,
+   7.68
+  ],
+  [
+   "loves",
+   7.68,
+   8.0
+  ],
+  [
+   "it.",
+   8.0,
+   8.37
+  ]
+ ],
+ "text": "Day 3 of the trip, the morning run. Nobody said it was uphill. You added it to the plan. She loves it."
+}

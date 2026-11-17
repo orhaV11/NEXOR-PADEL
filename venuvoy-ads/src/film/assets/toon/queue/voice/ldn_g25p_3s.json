@@ -1,0 +1,148 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing still, speaking low and close to her phone on a quiet empty forecourt; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, quietly pleased with himself; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing still, speaking low and close to her phone on a quiet empty forecourt; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, quietly pleased with himself; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[low and quick, to the camera, a quiet cry for help so that he does not hear] Gates open at five. It's one."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[proud, flat, satisfied] Front of the queue."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, reasonable, plain] There's no queue."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[at once, patient, as if it is obvious] Because we're the front."
+   }
+  ],
+  "scene": "A phone vlog on the empty paving in front of the shut gates of a stadium at one in the afternoon, four hours before the gates open. A still, quiet day; nobody else is there. Luna holds the phone at arm's length and talks to it in a low voice; Timo stands upright just behind her.",
+  "sample_context": "An eight-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, but right now she is quietly asking her viewers for help: he has made them come four hours early; she is reasonable, never sarcastic. TIMO, about 30, is slow, dry and proud; he is completely content to be first, he never raises his voice, and to him his logic is obvious. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Gates",
+   0.24,
+   0.64
+  ],
+  [
+   "open",
+   0.64,
+   1.12
+  ],
+  [
+   "at",
+   1.12,
+   1.36
+  ],
+  [
+   "five.",
+   1.36,
+   2.0
+  ],
+  [
+   "It's",
+   2.0,
+   2.4
+  ],
+  [
+   "one.",
+   2.4,
+   3.12
+  ],
+  [
+   "Front",
+   3.12,
+   3.44
+  ],
+  [
+   "of",
+   3.44,
+   3.52
+  ],
+  [
+   "the",
+   3.52,
+   3.6
+  ],
+  [
+   "queue.",
+   3.6,
+   4.24
+  ],
+  [
+   "There's",
+   4.24,
+   4.48
+  ],
+  [
+   "no",
+   4.48,
+   4.72
+  ],
+  [
+   "queue.",
+   4.72,
+   5.68
+  ],
+  [
+   "Because",
+   5.68,
+   6.08
+  ],
+  [
+   "we're",
+   6.08,
+   6.48
+  ],
+  [
+   "the",
+   6.48,
+   6.56
+  ],
+  [
+   "front.",
+   6.56,
+   7.05
+  ]
+ ],
+ "text": "Gates open at five. It's one. Front of the queue. There's no queue. Because we're the front."
+}

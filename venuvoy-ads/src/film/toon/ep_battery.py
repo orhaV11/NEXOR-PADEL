@@ -6,6 +6,7 @@
 
 Run ep_battery_sound.py first: every time below is read from its timeline (the event "black" is the frame her phone dies).
 """
+import math
 import sys
 from pathlib import Path
 
@@ -16,8 +17,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import duo  # noqa: E402
 from toon import bend, ease, on_twos, wobble  # noqa: E402
 from vlog import ROOT, Vlog  # noqa: E402
-
-math_sin = np.sin
 
 
 class Gate(Vlog):
@@ -31,7 +30,7 @@ class Gate(Vlog):
         ang, hx, hy, lean = self.timo_head(T)
         s = self.s_timo
         img = bend(self.timo.get(**self.timo_state(T)), (duo.T_NECK[0] * s, duo.T_NECK[1] * s), duo.T_STILL * s, duo.T_FULL * s, ang, hx, hy)
-        breathe = 1 + float(math_sin(t * 1.9)) * 0.004
+        breathe = 1 + math.sin(t * 1.9) * 0.004
         st.put(img, x0 - lean * 7 + dx, y0 + lean * 4 + dy, scale=k * near, turn=wobble(t, 7.0, 0.8) * 0.3 - lean * 1.3 + tip, sy=breathe,
                anchor=duo.T_ANCHOR, depth=0.82)
 
@@ -57,25 +56,28 @@ def _longer(name="bg_gate_1", new="bg_gate_1x", more=560):
 BG = (_longer(), (560, 1380), (330, 760), 0.80)
 
 # ---- Timo's lean, in the order it happens: (tip in degrees, size, shift x, shift y)
-PEER = (-6.5, 1.08, -6.0, 34.0)       # into the lens, at the corner where her battery is
+PEER = (-7.5, 1.10, -8.0, 36.0)       # into the lens, at the corner where her battery is
 UP = (-1.0, 1.00, 0.0, 0.0)           # he has his answer: he straightens
 TO_HER = (-4.5, 1.02, -8.0, 10.0)     # and explains it to her, patiently
 
 
 def pose(t):
-    a = ease(t, 0.0, 1.7, 0.55, 1.0, "io")                                   # he comes nearer and nearer the lens while she talks
-    b = ease(t, v.t("L3@four+0.30"), v.t("L3@four+0.62"), 0.0, 1.0, "back")   # "Four.": up, away from it
+    a = ease(t, 0.0, 1.7, 0.45, 1.0, "io")                                   # he comes nearer and nearer the lens while she talks
+    b = ease(t, v.t("L3@four+0.45"), v.t("L3@four+0.75"), 0.0, 1.0, "back")   # "Four.": up, away from it (in her breath before "Why?")
     c = ease(t, v.t("T4-0.16"), v.t("T4+0.30"), 0.0, 1.0, "io")              # "Because...": down to her
     return tuple(UP[i] + (PEER[i] - UP[i]) * a * (1 - b) + (TO_HER[i] - UP[i]) * c for i in range(4))
 
 
 # ---- her phone dies: from the event "black" on the picture is black (the caption and the plate are laid over it by the kit)
+BLACK = round(v.t("black") * 24) / 24      # the frame itself (the timeline keeps three decimals: 6.917 for 166/24)
+
+
 def dead(frame, T):
-    return np.zeros_like(frame) if T >= v.t("black") - 1e-4 else frame
+    return np.zeros_like(frame) if T >= BLACK - 1e-4 else frame
 
 
 # ---- one shot: her face close, his larger than usual over her shoulder, the gate and its queue above her head
-v.shot("start", bg=BG, luna=(372, 1556, 1.00, -1.2), timo=(835, 1010, 1.22), grade=dead)
+v.shot("start", bg=BG, luna=(372, 1556, 1.00, -1.2), timo=(835, 1040, 1.22), grade=dead)
 
 # ---- her face
 v.faces(("start", None),                  # sunny: ten minutes!
@@ -83,11 +85,11 @@ v.faces(("start", None),                  # sunny: ten minutes!
         ("L3@why-0.08", None),            # innocent again
         ("T4@tickets+0.12", "guilty"))    # it dawns: a look at him
 v.tilt(L1=3.2, L3=-2.6)
-v.blinks(luna=[1.93, "L3.end+0.22"], timo=[1.15, "T4+0.72"])
+v.blinks(luna=[1.93, "T4+0.25"], timo=[])       # he does not blink: a stare, then eyes shut, then eyes on her
 
 # ---- his eyes
 v.eyes(("start", "narrow"),               # narrowed at the lens: he is reading her screen
-       ("L3@four+0.30", "shut"),          # four. He closes his eyes.
+       ("L3@four+0.45", "shut"),          # four. He closes his eyes.
        ("T4-0.14", None))                 # and opens them on her
 
 # ---- the words on screen
@@ -95,7 +97,8 @@ v.captions(
     hold={"L3": ("…Four. ", "Why?", "L3@why"),                                  # each arrives when it is said
           "T4": ("Because the tickets\nare on that ", "ph—", "T4@phone")},
     text={"T2": "What’s your battery?"},
-    off={"T4": "black+0.30"})                                                    # his half sentence stays on the black for 0.3 s
+    place={"T4": (540, 1436)},                                                   # two lines: a little lower, clear of her chin
+    off={"T4": BLACK + 0.30})                                                    # his half sentence stays on the black for 0.3 s
 v.plate(y=860)                                                                   # on black: in the middle (of the 4:5 version too)
 
 if __name__ == "__main__":

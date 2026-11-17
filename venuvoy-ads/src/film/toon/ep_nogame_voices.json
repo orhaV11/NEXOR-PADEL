@@ -1,0 +1,43 @@
+{
+ "work": "work/nogame",
+ "cap": 3.0,
+ "temperature": 1,
+ "scene": "A phone vlog on the empty forecourt of a stadium, shut gates and empty crowd barriers behind. A still day, very quiet.",
+ "context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+ "lines": [
+  [
+   "L",
+   "[tragic, to the camera] No game this weekend. Not ours. Not anybody's."
+  ],
+  [
+   "T",
+   "[flat, counting] There's basketball. Ice hockey. Rugby. Golf."
+  ],
+  [
+   "L",
+   "[turning to him, doubtful] You'd watch golf?"
+  ],
+  [
+   "T",
+   "[to the camera, dry] I'd watch you stay quiet for four hours."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  }
+ }
+}

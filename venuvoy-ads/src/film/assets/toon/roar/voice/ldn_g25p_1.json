@@ -1,0 +1,138 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, quick] Was that a goal?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat] That was a goal."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[eager] Who for?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, after a beat] The people in the stadium."
+   }
+  ],
+  "scene": "A phone vlog on a windy hill above a small city with a stadium far below. Wind.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Was",
+   0.0,
+   0.32
+  ],
+  [
+   "that",
+   0.32,
+   0.48
+  ],
+  [
+   "a",
+   0.48,
+   0.64
+  ],
+  [
+   "goal?",
+   0.64,
+   1.2
+  ],
+  [
+   "That",
+   1.2,
+   1.44
+  ],
+  [
+   "was",
+   1.44,
+   1.6
+  ],
+  [
+   "a",
+   1.6,
+   1.68
+  ],
+  [
+   "goal.",
+   1.68,
+   2.32
+  ],
+  [
+   "Who",
+   2.32,
+   2.56
+  ],
+  [
+   "for?",
+   2.56,
+   3.04
+  ],
+  [
+   "The",
+   3.04,
+   3.2
+  ],
+  [
+   "people",
+   3.2,
+   3.44
+  ],
+  [
+   "in",
+   3.44,
+   3.6
+  ],
+  [
+   "the",
+   3.6,
+   3.76
+  ],
+  [
+   "stadium.",
+   3.76,
+   4.33
+  ]
+ ],
+ "text": "Was that a goal? That was a goal. Who for? The people in the stadium."
+}

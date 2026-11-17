@@ -41,6 +41,8 @@ dash and the next line starts fast. No stage directions outside the brackets.
 Three readings cost about 3 cents; if the first three give no usable take of some line, read three more.
 `lines.py` now also prints `WRONG WORD HEARD` when a word came back as another word ("fronts" for "front"): such a
 line is out, whatever `pick.py` says. A line shown as `MISSING` was not found: use another reading.
+Take all the lines of a speaker from ONE reading when it is clean throughout (the voice colour shifts between
+readings); mix readings only for a line that is wrong in the best one.
 `voices.py` prints the words heard back in each reading: a reading in which a direction was read aloud, a word is
 missing or the speakers are swapped is out. `lines.py` cuts each reading into its lines and prints `matched n/n` per
 line: use only lines that matched fully. `pick.py` lets the listening model name the best take of each line
@@ -76,7 +78,8 @@ Run it; it prints every line's times and the events. Listen with your eyes: read
     art.make({"bg_track": (PROMPT, ["work/switch/art/style_a_vector.png"])}, ratio="9:16", res="2k", purpose="background: the track")
 
 - **A background** (9:16): "A background painting for a 2D animated comedy, with NO characters and no people.
-  Vertical 9:16. <the place, plainly: what is near, what is far, where the light is>. The horizon is tilted two or
+  Vertical 9:16. Seen from a standing person's eye height, the way a phone held at arm's length sees what is behind
+  its owner (never from above). <the place, plainly: what is near, what is far, where the light is>. The horizon is tilted two or
   three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted
   colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the
   painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no logos." Ask for the interesting thing (the court, the track, the pitch) to sit in the UPPER
@@ -148,6 +151,9 @@ Whatever you add must still look drawn by the same hand: flat colours, a dark ou
 
 ## 5. Check it yourself before you say it is done
 
+Look at every strip `work/<name>/qc/around_<time>.jpg` (EVERY frame round each cut, each hand coming up or going
+down, each change of face, the plate: a fault two frames long hides between frames taken four a second). Words she
+says while turned to him show the small mouth unless the word is set as a shout (`said={"no": "A"}` in `Vlog(...)`).
 Look at `work/<name>/qc/sheet.jpg` and at full-size frames (`--stills ... --full`, or ffmpeg from the film) of: the first
 frame, both sides of every cut, every moment a hand, a thing or Timo enters or leaves, the last frame.
 

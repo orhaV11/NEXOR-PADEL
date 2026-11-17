@@ -1,0 +1,13 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/c0cf019331f545c58434bbfd98a1ffc5.png"
+ },
+ "bg_gate_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/6cf2e8cb-8768-4b3a-94ae-2c0f03c08f9c_85e4bf80.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters. Vertical 9:16. The forecourt outside a big football stadium at early dusk, ten minutes before a match, seen from head height. In the UPPER LEFT third of the picture stands the stadium's entrance: a row of open turnstile gates under a wide canopy, warm yellow light inside each gate, and the plain curved outer wall of the stand rising above them; over the top of the stand the white glow of the floodlights spreads into a soft lilac and blue evening sky that is still light. In front of the gates, far away and small, a busy queue of fans as soft simple shapes without faces or features, a few with scarves, and one steward's yellow jacket far off as a small blob. The right side of the picture and the whole lower half are plain open paving in soft evening shade with a few pale pools of lamplight, quiet and empty. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. No text, no signs, no letters, no numbers, no logos, no crests, no flags, no banners, no screens.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

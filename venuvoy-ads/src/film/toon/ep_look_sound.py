@@ -1,5 +1,5 @@
-"""The sound of the sketch "The Look" (vlog 03, "look"): nine lines behind the basket of an indoor arena, two cuts of
-silence (his look at her, his look at us), a crowd's groan for the miss, then the sung name.
+"""The sound of the sketch "The Look" (vlog 03, "look"): nine lines behind the basket of an indoor arena, two stretches
+without talk (his look at her, his look at us), a crowd's groan for the miss, then the sung name.
 
     python3 src/film/toon/ep_look_sound.py            the soundtrack and the timeline (work/look/sound)
 
@@ -52,8 +52,8 @@ PLAN = [
     ("T2", "T", C, 2, 0.18, {}),                     # flat. He does not move
     ("L3", "L", A, 3, 0.10, {}),                     # she rounds on him at once
     ("T4", "T", C, 4, 0.38, {}),                     # a beat: he decides (reading 1, the listening model's choice, drops 17 dB on "the look": reading 3 keeps the words level)
-    ("L5", "L", B, 5, 0.14, {}),                     # amused
-    ("HOLD", "stare", -0.20, 0.55),                  # his eyes come down on her, and stay (her line's last 0.27 s is silence: the stretch starts inside it; 0.67 s from "look?" to "Sorry!")
+    ("L5", "L", B, 5, 0.30, {}),                     # amused: she has shared it with us first, then turns to ask
+    ("HOLD", "stare", -0.20, 0.62),                  # his eyes come down on her, and stay (her line's last 0.27 s is silence: the stretch starts inside it; 0.74 s from "look?" to "Sorry!")
     ("L6", "L", A, 6, 0.00, {}),                     # a reflex: "Sorry!" (the pause before "What did I do?" is the reading's own, uncut)
     ("T7", "T", C, 7, 0.32, {}),                     # quiet, satisfied; the vlog music stops dead as he ends
     ("CUT", 0.22),                                   # a jump cut, a fifth closer

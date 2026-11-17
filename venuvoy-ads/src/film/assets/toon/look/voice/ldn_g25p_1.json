@@ -1,0 +1,253 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a noisy indoor arena, excited, speaking up to be heard on her phone; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, quietly sure of himself; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a noisy indoor arena, excited, speaking up to be heard on her phone; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, quietly sure of himself; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, calling happily over the crowd, to the camera] Basketball! Behind the basket, everybody distracts the shooter!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, calm, final] I don't wave."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, urgent, quick] Then do something!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[calm and low, a decision] I'll give him the look."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[amused, half laughing] What look?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[a small startled reflex, then puzzled and quieter, to the camera] Sorry! ... What did I do?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[quiet, satisfied] Exactly."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[amazed, hushed, to him] He missed!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, dry, unhurried] He knows what he did."
+   }
+  ],
+  "scene": "A phone vlog from the front rows right behind the basket in a loud indoor basketball arena, during a game. The home crowd all around is noisy and waving things at the shooter; Luna holds the phone at arm's length and calls into it over the noise; Timo stands perfectly still just behind her.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she is thrilled to be behind the basket and joins in with the whole stand; she is innocent, never sarcastic. TIMO, about 30, is slow, dry and proud; he will not wave anything, he never raises his voice even in the noise, and he is calmly sure of himself. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Basketball",
+   0.24,
+   0.96
+  ],
+  [
+   "behind",
+   0.96,
+   1.28
+  ],
+  [
+   "the",
+   1.28,
+   1.44
+  ],
+  [
+   "basket.",
+   1.44,
+   2.0
+  ],
+  [
+   "Everybody",
+   2.0,
+   2.4
+  ],
+  [
+   "distracts",
+   2.4,
+   2.96
+  ],
+  [
+   "the",
+   2.96,
+   3.04
+  ],
+  [
+   "shooter.",
+   3.04,
+   3.84
+  ],
+  [
+   "I",
+   3.84,
+   4.0
+  ],
+  [
+   "don't",
+   4.0,
+   4.24
+  ],
+  [
+   "wave.",
+   4.24,
+   4.8
+  ],
+  [
+   "Then",
+   4.8,
+   5.12
+  ],
+  [
+   "do",
+   5.12,
+   5.36
+  ],
+  [
+   "something.",
+   5.36,
+   6.48
+  ],
+  [
+   "I'll",
+   6.48,
+   6.72
+  ],
+  [
+   "give",
+   6.72,
+   6.88
+  ],
+  [
+   "him",
+   6.88,
+   7.04
+  ],
+  [
+   "the",
+   7.04,
+   7.2
+  ],
+  [
+   "look.",
+   7.2,
+   7.68
+  ],
+  [
+   "What",
+   7.68,
+   8.16
+  ],
+  [
+   "look?",
+   8.16,
+   8.96
+  ],
+  [
+   "Sorry?",
+   8.96,
+   9.84
+  ],
+  [
+   "What",
+   9.84,
+   10.0
+  ],
+  [
+   "did",
+   10.0,
+   10.24
+  ],
+  [
+   "I",
+   10.24,
+   10.48
+  ],
+  [
+   "do?",
+   10.48,
+   11.2
+  ],
+  [
+   "Exactly.",
+   11.2,
+   12.16
+  ],
+  [
+   "He",
+   12.16,
+   12.4
+  ],
+  [
+   "missed.",
+   12.4,
+   13.44
+  ],
+  [
+   "He",
+   13.44,
+   13.68
+  ],
+  [
+   "knows",
+   13.68,
+   13.92
+  ],
+  [
+   "what",
+   13.92,
+   14.08
+  ],
+  [
+   "he",
+   14.08,
+   14.24
+  ],
+  [
+   "did.",
+   14.24,
+   14.61
+  ]
+ ],
+ "text": "Basketball! Behind the basket everybody distracts the shooter. I don't wave. Then do something! I'll give him the look. What look? Sorry? What did I do? Exactly. He missed! He knows what he did."
+}

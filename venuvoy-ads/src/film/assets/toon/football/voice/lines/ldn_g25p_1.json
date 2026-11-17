@@ -1,0 +1,183 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Football. One sentence.",
+  "t0": 0.11,
+  "t1": 1.82,
+  "dur": 1.71,
+  "words": [
+   [
+    "football",
+    0.05,
+    0.77
+   ],
+   [
+    "one",
+    0.77,
+    1.09
+   ],
+   [
+    "sentence",
+    1.09,
+    1.66
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "football one sentence",
+  "wrong": [],
+  "peak_db": -1.8
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Ninety minutes of complaining, and one of them is the best minute of your year.",
+  "t0": 1.97,
+  "t1": 7.46,
+  "dur": 5.49,
+  "words": [
+   [
+    "ninety",
+    0.11,
+    0.51
+   ],
+   [
+    "minutes",
+    0.51,
+    0.91
+   ],
+   [
+    "of",
+    0.91,
+    1.07
+   ],
+   [
+    "complaining",
+    1.07,
+    2.19
+   ],
+   [
+    "and",
+    2.19,
+    2.43
+   ],
+   [
+    "one",
+    2.43,
+    2.75
+   ],
+   [
+    "of",
+    2.75,
+    2.99
+   ],
+   [
+    "them",
+    2.99,
+    3.23
+   ],
+   [
+    "is",
+    3.23,
+    3.55
+   ],
+   [
+    "the",
+    3.55,
+    3.79
+   ],
+   [
+    "best",
+    3.79,
+    4.11
+   ],
+   [
+    "minute",
+    4.11,
+    4.59
+   ],
+   [
+    "of",
+    4.59,
+    4.91
+   ],
+   [
+    "your",
+    4.91,
+    5.15
+   ],
+   [
+    "year",
+    5.15,
+    5.44
+   ]
+  ],
+  "matched": "15/15",
+  "heard": "ninety minutes of complaining and one of them is the best minute of your year",
+  "wrong": [],
+  "peak_db": -4.2
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "...That's actually lovely.",
+  "t0": 7.83,
+  "t1": 9.0,
+  "dur": 1.17,
+  "words": [
+   [
+    "thats",
+    -0.07,
+    0.33
+   ],
+   [
+    "actually",
+    0.33,
+    0.65
+   ],
+   [
+    "lovely",
+    0.65,
+    1.12
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "thats actually lovely",
+  "wrong": [],
+  "peak_db": -3.0
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "It was an accident.",
+  "t0": 9.23,
+  "t1": 10.25,
+  "dur": 1.02,
+  "words": [
+   [
+    "it",
+    -0.03,
+    0.13
+   ],
+   [
+    "was",
+    0.13,
+    0.29
+   ],
+   [
+    "an",
+    0.29,
+    0.45
+   ],
+   [
+    "accident",
+    0.45,
+    0.97
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "it was an accident",
+  "wrong": [],
+  "peak_db": -4.6
+ }
+]

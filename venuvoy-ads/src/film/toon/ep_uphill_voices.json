@@ -1,0 +1,43 @@
+{
+ "work": "work/uphill",
+ "cap": 3.0,
+ "temperature": 1,
+ "scene": "A phone vlog on a windy hill above a small city with a stadium far below. Wind.",
+ "context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+ "lines": [
+  [
+   "T",
+   "[flat, not out of breath, to the camera] Day three of the trip. The morning run."
+  ],
+  [
+   "L",
+   "[out of breath, big eyes, to the camera] Nobody said it was uphill."
+  ],
+  [
+   "T",
+   "[flat, to her] You added it to the plan."
+  ],
+  [
+   "T",
+   "[to the camera, lightly, copying her sunny tune] She loves it."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  }
+ }
+}

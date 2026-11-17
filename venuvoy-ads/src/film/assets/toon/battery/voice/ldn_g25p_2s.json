@@ -1,0 +1,183 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in an arriving crowd outside a stadium, speaking up a little into her phone; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he speaks from close behind her shoulder and never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in an arriving crowd outside a stadium, speaking up a little into her phone; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he speaks from close behind her shoulder and never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, excited, to the camera, over the crowd] Ten minutes to kick-off!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[low, suspicious, close behind her] What's your battery?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[small and quiet, reading it off her screen; then light and innocent] Four. Why?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[slow, patient, flat, going straight on without a stop] Because the tickets are on that phone, and that phone is about to die."
+   }
+  ],
+  "scene": "A phone vlog in the crowd outside the turnstile gate of a football stadium at dusk, ten minutes before kick-off; the floodlights are on and people are arriving all around. Luna holds the phone at arm's length and talks to it; Timo stands just behind her and leans in over her shoulder.",
+  "sample_context": "An eight-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she is thrilled to be at the gate; asked about her battery she goes small for one word and is innocent again at once, never sarcastic. TIMO, about 30, is slow, dry and proud; he never raises his voice; he has spotted a problem before she has, and he explains it slowly and patiently, in one unhurried breath. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Ten",
+   0.24,
+   0.56
+  ],
+  [
+   "minutes",
+   0.56,
+   0.88
+  ],
+  [
+   "to",
+   0.88,
+   1.12
+  ],
+  [
+   "kick",
+   1.12,
+   1.36
+  ],
+  [
+   "off.",
+   1.36,
+   1.92
+  ],
+  [
+   "What's",
+   1.92,
+   2.32
+  ],
+  [
+   "your",
+   2.32,
+   2.48
+  ],
+  [
+   "battery?",
+   2.48,
+   3.44
+  ],
+  [
+   "Four.",
+   3.44,
+   4.08
+  ],
+  [
+   "Why?",
+   4.08,
+   4.8
+  ],
+  [
+   "Because",
+   4.8,
+   5.04
+  ],
+  [
+   "the",
+   5.04,
+   5.12
+  ],
+  [
+   "tickets",
+   5.12,
+   5.6
+  ],
+  [
+   "are",
+   5.6,
+   5.76
+  ],
+  [
+   "on",
+   5.76,
+   6.0
+  ],
+  [
+   "that",
+   6.0,
+   6.24
+  ],
+  [
+   "phone",
+   6.24,
+   6.72
+  ],
+  [
+   "and",
+   6.72,
+   6.96
+  ],
+  [
+   "that",
+   6.96,
+   7.2
+  ],
+  [
+   "phone",
+   7.2,
+   7.52
+  ],
+  [
+   "is",
+   7.52,
+   7.76
+  ],
+  [
+   "about",
+   7.76,
+   7.92
+  ],
+  [
+   "to",
+   7.92,
+   8.08
+  ],
+  [
+   "die.",
+   8.08,
+   8.65
+  ]
+ ],
+ "text": "Ten minutes to kick off. What's your battery? Four. Why? Because the tickets are on that phone and that phone is about to die."
+}

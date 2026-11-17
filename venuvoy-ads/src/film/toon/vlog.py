@@ -80,7 +80,8 @@ class Vlog:
         self.luna = duo.luna(self.art, s_luna, luna, extra_faces)
         self.timo = duo.timo(self.art, s_timo, timo, extra_eyes) if timo else None
         said = dict(SAID, **(said or {}))
-        self.talk = {i: Talk(l["words"], ROOT / l["wav"], have=duo.LUNA_MOUTHS if l["who"] == "L" else duo.TIMO_MOUTHS, quiet=0.10 if l["who"] == "L" else 0.055, said=said)
+        self.talk = {i: Talk(l["words"], ROOT / l["wav"], have=duo.LUNA_MOUTHS if l["who"] == "L" else duo.TIMO_MOUTHS, quiet=0.10 if l["who"] == "L" else 0.055, said=said,
+                             open_min=0.45 if l["who"] == "L" else 0.25)     # he speaks flat and low: his open mouth must not wait for a shout
                      for i, l in self.LINE.items()}
         self.shots, self._faces, self._eyes = [], [(0.0, None)], [(0.0, None)]
         self._pieces, self._fingers, self._moves, self._shakes, self._bg, self._imgs = [], [], [], [], {}, {}
@@ -305,7 +306,8 @@ class Vlog:
             if m:
                 if face in ("read", "read_b") and m == "E":
                     m = "C"                      # no bared teeth while she reads
-                st["3mouth"] = ({"C": "tC", "A": "tA", "E": "tE", "O": "tA"}[m] if face == "turn" else m)
+                # the turned head has three mouths: the round one becomes the small one (the wide one only where a word is set as "A": a shout)
+                st["3mouth"] = ({"C": "tC", "A": "tA", "E": "tE", "O": "tC"}[m] if face == "turn" else m)
         return st
 
     def luna_move(self, T):
@@ -494,7 +496,7 @@ class Vlog:
         P = self.EV["plate"]
         if T >= P:
             k = ease(T, P, P + 0.22, 0.6, 1.0, "back")
-            st.put(self.plate_pic.get(), self.plate_x or W / 2, self.plate_y, scale=k * 1.04 * self.plate_size, alpha=clamp((T - P) / 0.08), depth=0.0)
+            st.put(self.plate_pic.get(), self.plate_x or W / 2, self.plate_y, scale=k * 1.04 * self.plate_size, alpha=clamp((T - P) / 0.2), depth=0.0)   # it arrives over five pictures
 
     def _camera(self, shot):
         def cam(t, T):
@@ -582,9 +584,22 @@ class Vlog:
                 f.unlink()
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", tall, "-vf", "fps=4,scale=540:960", "-q:v", "3", str(qc / "f_%03d.jpg")], check=True)
             self.sheet(qc / "sheet.jpg")
+            # a fault of two frames hides between frames taken four a second: EVERY frame round each change, as one strip per moment
+            moments = sorted({round(t, 2) for t in [s["t0"] for s in self.shots[1:]] + [p[k] for p in self._pieces for k in ("up", "down")] + [f[k] for f in self._fingers for k in ("up", "down")]
+                              + [m[1] for m in self._moves] + [m[2] for m in self._moves] + [a for a, _ in self._faces[1:]] + [self.EV["plate"]] if 0.3 < t < self.END - 0.3})
+            cap = cv2.VideoCapture(tall)
+            for t in moments:
+                row = []
+                for n in range(int(round((t - 0.21) * FPS)), int(round((t + 0.33) * FPS))):
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, n)
+                    ok, f = cap.read()
+                    if ok:
+                        row.append(cv2.resize(f, (216, 384), interpolation=cv2.INTER_AREA))
+                if row:
+                    cv2.imwrite(str(qc / f"around_{t:05.2f}.jpg"), np.hstack(row))
             print("film", tall)
             print("feed", feed)
-            print("frames for checking (four a second) and a contact sheet in", qc)
+            print("frames for checking (four a second), a contact sheet, and every frame round each change (around_<time>.jpg) in", qc)
         self.art.save_used()
 
 

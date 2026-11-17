@@ -15,12 +15,39 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import duo  # noqa: E402
-from toon import ease, on_twos, premul, read, wobble  # noqa: E402
-from vlog import Vlog, held  # noqa: E402
+from toon import Talk, ease, on_twos, premul, read, wobble  # noqa: E402
+from vlog import ROOT, Vlog, held  # noqa: E402
 
-# a still midday on bare paving: her calm hair, him without the blade of grass. The words the joke rests on get their mouth shapes by hand.
-v = Vlog("queue", "ads/21-vlog/venuvoy-vlog-02-queue", luna="calm", timo="timo_clean",
-         said={"queue": "C O", "front": "C A C", "because": "M C O C", "theres": "C A C", "gates": "C A C", "open": "O M C", "its": "C", "of": "C"})
+# a still midday on bare paving: her calm hair, him without the blade of grass. The kit plans the mouths of L1 from these word shapes.
+MOUTHS = {"queue": "C O", "front": "C A C", "because": "C O C", "theres": "C A C", "gates": "C A C", "open": "O M C", "its": "C", "of": "C"}
+v = Vlog("queue", "ads/21-vlog/venuvoy-vlog-02-queue", luna="calm", timo="timo_clean", said=MOUTHS)
+
+
+def mouths(line, cut, plan):
+    """The mouth of one line set by hand against its sound: one letter for every two frames from the start of the line
+    (A open, O round, C a little open, E teeth, - shut). cut: the reading, the number of the line in it and its length,
+    which the plan was set against; with any other cut of the line the kit's own plan stays, and this says so."""
+    l = v.LINE[line]
+    if (l["take"], l["n"]) != cut[:2] or abs(l["t1"] - l["t0"] - cut[2]) > 0.02:
+        print(f"  the hand-set mouth of {line} belongs to {cut}; the line is now {l['take']} {l['n']}, {l['t1'] - l['t0']:.2f} s: the kit's plan is used. Set it again.")
+        return
+    v.talk[line].seq = [None if c == "-" else c for c in plan.replace(" ", "")]
+
+
+# Set from the loudness of each cut line in 10 ms steps (the recogniser's word times are up to 0.15 s off here), the way
+# the kit's own rules would: nothing wide for less than four frames, and a shut mouth only where the voice is shut.
+# L3 "There's no queue." is said on the turned head, which has no round mouth: the kit draws a round one as its WIDEST
+# (jaw down, tongue), so she gaped on "no" and for a quarter second on "queue"; its toothy one is a bared grin.
+# Plain and reasonable is the small open mouth alone (whatever the reading), shut after "There's" and in the silence
+# before "queue": one bite a word.
+v.talk["L3"] = Talk(v.LINE["L3"]["words"], ROOT / v.LINE["L3"]["wav"], have=("C",), quiet=0.10)
+mouths("L3", ("ldn_g25p_3s", 3, 1.17), "CC- CCC - CCCCC")
+# T4 "Because we're the front.": the mouth opens with the voiced "Be-" (it stood shut through it), is open through the
+# long "-cause", round on the "w", shut on the "f" and open on "front", the word he hits (it had no movement at all).
+mouths("T4", ("ldn_g25p_3s", 4, 1.49), "CC- OAAO CC OCC C- AAC")
+# T2 "Front of the queue.": it was one small shape for 0.63 s; now shut on the "nt" and in the silence before "queue",
+# and round from where "queue" sounds. No wide mouth: he says this one flat.
+mouths("T2", ("ldn_g25p_1", 2, 1.00), "CC- CCC - COOO")
 
 # drawing, a point in it (the nearest shutter), where that lands in the frame, size. At this size the empty lanes fill the
 # upper left, the shutters stand over his head, and the far stadium the painter copied from the style picture is out of frame.
@@ -67,20 +94,22 @@ PECKS = (1.25, 1.67)                                   # two pecks at the paving
 #      calm Luna that edge showed as a cut; this one is a redraw of the calm drawing. It joins her coat only where it was
 #      drawn (no lift), and the kit's piece would hold it stock-still for three seconds: here it sinks while he explains.
 LUNA_AT = (362, 1545, 0.92, 0.0)
+SINK = 35.0                                            # how far the hand sinks during his answer (70 left only fingertips in the 4:5 version)
 ARM = duo.arm(v.art, "luna_shrug_calm", v.s_luna, (1000, 1340, 1792, 2400), "luna_calm2")
 
 
 def hand(st, t, T):
     up, down = v.t("L3+0.02"), v.t("T4.end+0.04")
-    if not (up - 0.05 <= T < down + 0.35):
+    if not (up - 0.14 <= T < down + 0.35):
         return
     t2 = on_twos(T)
     x0, y0, k, lean = LUNA_AT
     dx, dy, turn, sx, sy = v.luna_move(T)                                       # it is part of her: it sways and pops with her body
-    y = ease(t2, up, up + 0.2, 760.0, 0.0, "back")                              # up from below the frame with her first word
+    y = ease(t2, up - 0.12, up + 0.21, 760.0, 0.0, "out")                       # up from below the frame into her first word: seen coming, and never
+    #                                                                             above its drawn height (it overshot by 60 px, and this arm joins her coat only there)
     hit = v.t("L3@queue")
     sh = math.sin((t2 - hit) * 30) * 14 * math.exp(-(t2 - hit) * 7) if t2 >= hit else 0.0    # one beat on "queue"
-    y += ease(t2, v.t("T4@were"), v.t("T4.end"), 0.0, 70.0, "io")               # it sinks while he explains: she is losing
+    y += ease(t2, v.t("T4@were"), v.t("T4.end"), 0.0, SINK, "io")               # it sinks while he explains: she is losing
     y += ease(t2, down, down + 0.25, 0.0, 760.0, "in")                          # and falls away when he has said it
     st.put(ARM, x0 + dx + sh + wobble(t2, 11.0, 2.2) * 2.5, y0 + dy + y - abs(sh) * 0.6 + wobble(t2, 12.0, 1.9) * 3, scale=k,
            turn=turn + lean + sh * 0.12 + wobble(t2, 13.0, 1.6) * 0.7, sx=sx, sy=sy, anchor=duo.L_ANCHOR, depth=1.0)

@@ -1,0 +1,63 @@
+{
+ "work": "work/slowly",
+ "cap": 5.0,
+ "temperature": 1,
+ "scene": "A phone vlog from the top row of an outdoor tennis stand on a still, sunny afternoon, in the hush while a point is played: a thousand people sit silent and a ball is hit far below. Luna holds the phone at arm's length and whispers to it, a packet of crisps in her other hand; Timo stands just behind her and whispers too.",
+ "context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. Both speak very low, close to the phone, almost whispering, because the whole stand is silent during play; every word stays clear. LUNA, about 25, is cheerful and quick; she is hungry, and to her opening the packet very slowly is a perfectly reasonable plan; she is innocent, never sarcastic. TIMO, about 30, is slow, dry and proud; he knows exactly what will happen, and he never raises his voice. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[very low, close to the phone, almost a whisper, thrilled] We're at the tennis."
+  ],
+  [
+   "T",
+   "[very low, close to the phone, almost a whisper, a warning] Don't open that."
+  ],
+  [
+   "L",
+   "[very low, close to the phone, almost a whisper, pleading] I'm starving."
+  ],
+  [
+   "T",
+   "[very low, close to the phone, almost a whisper, firm] Wait for the clapping."
+  ],
+  [
+   "L",
+   "[very low, close to the phone, almost a whisper, as if it is a perfectly reasonable plan] I'll do it really slowly."
+  ],
+  [
+   "T",
+   "[very low, close to the phone, almost a whisper, urgent] Luna, no—"
+  ],
+  [
+   "T",
+   "[after a pause, very low, close to the phone, almost a whisper, flat, to nobody] I'm not with her."
+  ],
+  [
+   "L",
+   "[very low, close to the phone, almost a whisper, indignant] We have the same scarf."
+  ],
+  [
+   "T",
+   "[very low, close to the phone, almost a whisper, flat and final] Coincidence."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; sitting still in a silent tennis crowd, speaking very low and close to her phone, almost whispering, the words still clear; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; speaking very low, almost whispering, so that the people around do not hear; he never raises his voice."
+   }
+  }
+ }
+}

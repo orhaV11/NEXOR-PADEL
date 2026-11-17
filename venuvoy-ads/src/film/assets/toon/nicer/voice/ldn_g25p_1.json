@@ -1,0 +1,153 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a busy street on a cool evening, speaking up a little over the crowd, pleased with what she is holding; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and fair-minded; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a busy street on a cool evening, speaking up a little over the crowd, pleased with what she is holding; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and fair-minded; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera, showing it off] Basketball night! Look what I got!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and low, looking at it] That's the other team's."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, plain and light, a simple fact] It's nicer."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[a beat; honest, giving her that, the weight on the word is; then low, firm and final] It is nicer. Put it away."
+   }
+  ],
+  "scene": "A phone vlog in the street outside an indoor arena on the evening of a basketball game, a little before it starts. Home fans stream past; a light evening wind. Luna holds the phone at arm's length and talks to it while she holds up a scarf she has just got; Timo stands upright just behind her.",
+  "sample_context": "A nine-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she is delighted with the scarf she has just got, and to her 'it's nicer' is a plain fact, said without sarcasm and without apology. TIMO, about 30, is slow, dry and proud; he never raises his voice; he is honest enough to agree with her and firm enough to have the scarf put away all the same. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Basketball",
+   0.16,
+   0.88
+  ],
+  [
+   "night,",
+   0.88,
+   1.36
+  ],
+  [
+   "look",
+   1.36,
+   1.52
+  ],
+  [
+   "what",
+   1.52,
+   1.76
+  ],
+  [
+   "I",
+   1.76,
+   2.0
+  ],
+  [
+   "got.",
+   2.0,
+   2.64
+  ],
+  [
+   "That's",
+   2.64,
+   2.96
+  ],
+  [
+   "the",
+   2.96,
+   3.2
+  ],
+  [
+   "other",
+   3.2,
+   3.52
+  ],
+  [
+   "teams.",
+   3.52,
+   4.48
+  ],
+  [
+   "It's",
+   4.48,
+   4.88
+  ],
+  [
+   "nicer.",
+   4.88,
+   6.16
+  ],
+  [
+   "It",
+   6.16,
+   6.4
+  ],
+  [
+   "is",
+   6.4,
+   6.88
+  ],
+  [
+   "nicer.",
+   6.88,
+   7.92
+  ],
+  [
+   "Put",
+   7.92,
+   8.16
+  ],
+  [
+   "it",
+   8.16,
+   8.32
+  ],
+  [
+   "away.",
+   8.32,
+   8.73
+  ]
+ ],
+ "text": "Basketball night, look what I got. That's the other teams. It's nicer. It is nicer. Put it away."
+}

@@ -1,0 +1,158 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Stadium tour at ten. He's been ready since six.",
+  "t0": 0.24,
+  "t1": 4.08,
+  "dur": 3.84,
+  "words": [
+   [
+    "stadium",
+    0.16,
+    0.8
+   ],
+   [
+    "tour",
+    0.8,
+    1.2
+   ],
+   [
+    "at",
+    1.2,
+    1.44
+   ],
+   [
+    "ten",
+    1.44,
+    2.08
+   ],
+   [
+    "hes",
+    2.08,
+    2.4
+   ],
+   [
+    "been",
+    2.4,
+    2.56
+   ],
+   [
+    "ready",
+    2.56,
+    2.88
+   ],
+   [
+    "since",
+    2.88,
+    3.2
+   ],
+   [
+    "six",
+    3.2,
+    3.79
+   ]
+  ],
+  "matched": "9/9",
+  "heard": "stadium tour at ten hes been ready since six",
+  "wrong": [],
+  "peak_db": -4.4
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "I'm fine either way.",
+  "t0": 4.46,
+  "t1": 5.44,
+  "dur": 0.98,
+  "words": [
+   [
+    "im",
+    -0.14,
+    0.18
+   ],
+   [
+    "fine",
+    0.18,
+    0.5
+   ],
+   [
+    "either",
+    0.5,
+    0.82
+   ],
+   [
+    "way",
+    0.82,
+    0.93
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "im fine either way",
+  "wrong": [],
+  "peak_db": -8.3
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "He ironed the scarf.",
+  "t0": 5.8,
+  "t1": 8.41,
+  "dur": 2.61,
+  "words": [
+   [
+    "he",
+    0.2,
+    0.44
+   ],
+   [
+    "ironed",
+    0.44,
+    1.4
+   ],
+   [
+    "the",
+    1.4,
+    1.64
+   ],
+   [
+    "scarf",
+    1.64,
+    2.56
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "he ironed the scarf",
+  "wrong": [],
+  "peak_db": -2.7
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "He loves it.",
+  "t0": 8.91,
+  "t1": 9.8,
+  "dur": 0.89,
+  "words": [
+   [
+    "he",
+    -0.03,
+    0.21
+   ],
+   [
+    "loves",
+    0.21,
+    0.61
+   ],
+   [
+    "it",
+    0.61,
+    0.84
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "he loves it",
+  "wrong": [],
+  "peak_db": -1.9
+ }
+]

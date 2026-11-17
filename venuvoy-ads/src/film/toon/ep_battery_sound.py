@@ -123,7 +123,10 @@ PLAN = [
 if __name__ == "__main__":
     prepare()
     if "--prepare" not in sys.argv:
-        build(FILM, PLAN, bed={"stop": "PLATE"},                                 # her vlog music would run to the plate: die() cuts it in the middle of a bar
-              ambience={"file": "crowd", "db": -31.0, "gusts": False},           # bought: heard back as "the continuous ambient chatter of a crowd, indistinct voices"
+        # Her vlog music would run to the plate: die() cuts it in the middle of a bar. It is 1.5 dB over the kit's level and
+        # the crowd 2 dB under the first mix: at the kit's level the watching model heard no music under the talk (the
+        # babble of a crowd hides it more than wind does), and here the music must be heard to die.
+        build(FILM, PLAN, bed={"stop": "PLATE", "db": -9.5},
+              ambience={"file": "crowd", "db": -33.0, "gusts": False},           # bought: heard back as "the continuous ambient chatter of a crowd, indistinct voices"
               ending="beat", plate_hold=1.5)
         die()

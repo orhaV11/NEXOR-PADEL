@@ -1,0 +1,233 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; sitting still in a silent tennis crowd, speaking very low and close to her phone, almost whispering, the words still clear; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; speaking very low, almost whispering, so that the people around do not hear; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; sitting still in a silent tennis crowd, speaking very low and close to her phone, almost whispering, the words still clear; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; speaking very low, almost whispering, so that the people around do not hear; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, close to the phone, almost a whisper, thrilled] We're at the tennis."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, close to the phone, almost a whisper, a warning] Don't open that."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, close to the phone, almost a whisper, pleading] I'm starving."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, close to the phone, almost a whisper, firm] Wait for the clapping."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, close to the phone, almost a whisper, as if it is a perfectly reasonable plan] I'll do it really slowly."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, close to the phone, almost a whisper, urgent] Luna, no—"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[after a pause, very low, close to the phone, almost a whisper, flat, to nobody] I'm not with her."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[very low, close to the phone, almost a whisper, indignant] We have the same scarf."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very low, close to the phone, almost a whisper, flat and final] Coincidence."
+   }
+  ],
+  "scene": "A phone vlog from the top row of an outdoor tennis stand on a still, sunny afternoon, in the hush while a point is played: a thousand people sit silent and a ball is hit far below. Luna holds the phone at arm's length and whispers to it, a packet of crisps in her other hand; Timo stands just behind her and whispers too.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. Both speak very low, close to the phone, almost whispering, because the whole stand is silent during play; every word stays clear. LUNA, about 25, is cheerful and quick; she is hungry, and to her opening the packet very slowly is a perfectly reasonable plan; she is innocent, never sarcastic. TIMO, about 30, is slow, dry and proud; he knows exactly what will happen, and he never raises his voice. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "We're",
+   0.24,
+   0.48
+  ],
+  [
+   "at",
+   0.48,
+   0.64
+  ],
+  [
+   "the",
+   0.64,
+   0.72
+  ],
+  [
+   "tennis.",
+   0.72,
+   1.76
+  ],
+  [
+   "Don't",
+   1.76,
+   2.08
+  ],
+  [
+   "open",
+   2.08,
+   2.4
+  ],
+  [
+   "that.",
+   2.4,
+   3.04
+  ],
+  [
+   "I'm",
+   3.04,
+   3.36
+  ],
+  [
+   "starving.",
+   3.36,
+   4.48
+  ],
+  [
+   "Wait",
+   4.48,
+   4.8
+  ],
+  [
+   "for",
+   4.8,
+   4.88
+  ],
+  [
+   "the",
+   4.88,
+   5.04
+  ],
+  [
+   "clapping.",
+   5.04,
+   6.0
+  ],
+  [
+   "I'll",
+   6.0,
+   6.32
+  ],
+  [
+   "do",
+   6.32,
+   6.48
+  ],
+  [
+   "it",
+   6.48,
+   6.72
+  ],
+  [
+   "really",
+   6.72,
+   7.04
+  ],
+  [
+   "slowly.",
+   7.04,
+   8.08
+  ],
+  [
+   "Luna,",
+   8.08,
+   8.88
+  ],
+  [
+   "no.",
+   8.88,
+   9.76
+  ],
+  [
+   "I'm",
+   9.76,
+   10.08
+  ],
+  [
+   "not",
+   10.08,
+   10.32
+  ],
+  [
+   "with",
+   10.32,
+   10.72
+  ],
+  [
+   "her.",
+   10.72,
+   11.36
+  ],
+  [
+   "We",
+   11.36,
+   11.52
+  ],
+  [
+   "have",
+   11.52,
+   11.76
+  ],
+  [
+   "the",
+   11.76,
+   11.92
+  ],
+  [
+   "same",
+   11.92,
+   12.16
+  ],
+  [
+   "scarf.",
+   12.16,
+   13.04
+  ],
+  [
+   "Coincidence.",
+   13.04,
+   13.64
+  ]
+ ],
+ "text": "We're at the tennis. Don't open that. I'm starving. Wait for the clapping. I'll do it really slowly. Luna, no. I'm not with her. We have the same scarf. Coincidence."
+}

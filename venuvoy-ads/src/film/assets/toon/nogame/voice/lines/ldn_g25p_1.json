@@ -1,0 +1,183 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "No game this weekend. Not ours. Not anybody's.",
+  "t0": 0.13,
+  "t1": 4.01,
+  "dur": 3.88,
+  "words": [
+   [
+    "no",
+    0.19,
+    0.43
+   ],
+   [
+    "game",
+    0.43,
+    0.83
+   ],
+   [
+    "this",
+    0.83,
+    0.99
+   ],
+   [
+    "weekend",
+    0.99,
+    1.79
+   ],
+   [
+    "not",
+    1.79,
+    2.03
+   ],
+   [
+    "ours",
+    2.03,
+    2.75
+   ],
+   [
+    "not",
+    2.75,
+    3.07
+   ],
+   [
+    "anybodys",
+    3.07,
+    3.83
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "no game this weekend not ours not anybodys",
+  "wrong": [],
+  "peak_db": -2.9
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "There's basketball. Ice hockey. Rugby. Golf.",
+  "t0": 4.23,
+  "t1": 8.97,
+  "dur": 4.74,
+  "words": [
+   [
+    "theres",
+    0.09,
+    0.65
+   ],
+   [
+    "basketball",
+    0.65,
+    1.69
+   ],
+   [
+    "ice",
+    1.69,
+    2.09
+   ],
+   [
+    "hockey",
+    2.09,
+    2.97
+   ],
+   [
+    "rugby",
+    2.97,
+    4.25
+   ],
+   [
+    "golf",
+    4.25,
+    4.69
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "theres basketball ice hockey rugby golf",
+  "wrong": [],
+  "peak_db": -1.6
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "You'd watch golf?",
+  "t0": 9.22,
+  "t1": 10.72,
+  "dur": 1.5,
+  "words": [
+   [
+    "youd",
+    0.06,
+    0.46
+   ],
+   [
+    "watch",
+    0.46,
+    0.86
+   ],
+   [
+    "golf",
+    0.86,
+    1.45
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "youd watch golf",
+  "wrong": [],
+  "peak_db": -4.7
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "I'd watch you stay quiet for four hours.",
+  "t0": 10.97,
+  "t1": 13.94,
+  "dur": 2.97,
+  "words": [
+   [
+    "id",
+    -0.01,
+    0.31
+   ],
+   [
+    "watch",
+    0.31,
+    0.71
+   ],
+   [
+    "you",
+    0.71,
+    1.11
+   ],
+   [
+    "stay",
+    1.11,
+    1.51
+   ],
+   [
+    "quiet",
+    1.51,
+    1.99
+   ],
+   [
+    "for",
+    1.99,
+    2.23
+   ],
+   [
+    "four",
+    2.23,
+    2.47
+   ],
+   [
+    "hours",
+    2.47,
+    2.92
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "id watch you stay quiet for four hours",
+  "wrong": [],
+  "peak_db": -2.3
+ }
+]

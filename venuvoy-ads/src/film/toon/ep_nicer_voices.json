@@ -1,0 +1,43 @@
+{
+ "work": "work/nicer",
+ "cap": 4.0,
+ "temperature": 1,
+ "scene": "A phone vlog in the street outside an indoor arena on the evening of a basketball game, a little before it starts. Home fans stream past; a light evening wind. Luna holds the phone at arm's length and talks to it while she holds up a scarf she has just got; Timo stands upright just behind her.",
+ "context": "A nine-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she is delighted with the scarf she has just got, and to her 'it's nicer' is a plain fact, said without sarcasm and without apology. TIMO, about 30, is slow, dry and proud; he never raises his voice; he is honest enough to agree with her and firm enough to have the scarf put away all the same. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[bright, to the camera, showing it off] Basketball night! Look what I got!"
+  ],
+  [
+   "T",
+   "[flat and low, looking at it] That's the other team's."
+  ],
+  [
+   "L",
+   "[turning to him, plain and light, a simple fact] It's nicer."
+  ],
+  [
+   "T",
+   "[a beat; honest, giving her that, the weight on the word is; then low, firm and final] It is nicer. Put it away."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a busy street on a cool evening, speaking up a little over the crowd, pleased with what she is holding; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and fair-minded; he never raises his voice."
+   }
+  }
+ }
+}

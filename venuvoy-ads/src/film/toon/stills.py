@@ -132,6 +132,27 @@ POSTS = {
 }
 
 
+# places the episodes paid for (copied into work/duo/art under their own names)
+DUSK2 = ("bg_dusk_1", (560, 1380), (330, 760), 0.80)
+DUSK3 = ("bg_dusk_1", (560, 1380), (300, 640), 0.95)
+STREET2 = ("bg_street_1", (700, 1150), (330, 640), 1.0)
+STREET3 = ("bg_street_1", (700, 1150), (300, 540), 1.2)
+AF2 = ("bg_afstand_1", (300, 760), (170, 503), 0.78)
+AF3 = ("bg_afstand_1", (300, 760), (150, 420), 0.94)
+TENNIS2 = ("bg_tennis_1", (430, 960), (330, 560), 0.92)
+TENNIS3 = ("bg_tennis_1", (430, 960), (265, 440), 1.06)
+
+POSTS.update({
+    "feelitout": she_he(GATES, GATES, "calm", "We don't need a plan.\nWe'll feel it out.", "Last time we felt it out,\nwe heard the first goal\nfrom a bus."),
+    "twogames": she_he(DUSK3, DUSK2, "calm", "Two games in one day.\nI checked. It works.", "Show me the bit\nin between.", his_eyes="narrow"),
+    "toprow": she_he(AF3, AF2, "calm", "Top row!\nYou can see everything.", "I can see the weather."),
+    "climbing": she_he(DUSK3, DUSK2, "calm", "There's a climbing wall\nnear the stadium!", "There's a bench\nnear the stadium.", third=("L", "The bench is in the plan.", None)),   # she wins this one
+    "statue": she_he(STREET3, STREET2, "wind", "The group chat says\nmeet at the statue.", "There are four statues."),
+    "shower": she_he(STREET3, STREET2, "wind", "It's only a shower.", "It's been a shower\nsince Thursday."),
+    "quiet": she_he(TENNIS3, TENNIS2, "calm", "Why's everyone so quiet?", "Luna.", his_eyes="shut"),
+})
+
+
 CREAM = "#f4eee1"
 T_SOLO, L_SOLO = (560, 1410, 1.42), (500, 1420, 1.24, 0.0)      # one of them alone, large
 GUIDE_SAY = (540, 1420)

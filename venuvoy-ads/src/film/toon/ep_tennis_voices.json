@@ -1,0 +1,43 @@
+{
+ "work": "work/tennis",
+ "cap": 3.0,
+ "temperature": 1,
+ "scene": "A phone vlog from the back rows above a tennis court on a still, sunny day. Everybody is whispering; far off, a ball is hit.",
+ "context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+ "lines": [
+  [
+   "L",
+   "[very low, close to the phone, almost a whisper, a dare] Tennis. One sentence."
+  ],
+  [
+   "T",
+   "[very low, close to the phone, almost a whisper, exact] Four thousand people keep quiet so two people can grunt."
+  ],
+  [
+   "L",
+   "[very low, almost a whisper, turning to him, doubtful] That can't be all of it."
+  ],
+  [
+   "T",
+   "[very low, almost a whisper, flat] There's also a man on a very tall chair."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  }
+ }
+}

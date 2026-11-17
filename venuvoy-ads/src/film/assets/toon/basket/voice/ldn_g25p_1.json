@@ -1,0 +1,213 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, over the crowd, to the camera, a dare] Basketball. One sentence."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[unhurried, exact, to the camera] Both teams score a hundred times, and it's settled in the last four seconds, which take half an hour."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, pleased with herself] That was two sentences."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[at once, flat, to her] There was a comma."
+   }
+  ],
+  "scene": "A phone vlog from the seats of a full indoor basketball arena before the game. A big, warm crowd murmur all round.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Basketball.",
+   0.24,
+   1.2
+  ],
+  [
+   "One",
+   1.2,
+   1.52
+  ],
+  [
+   "sentence.",
+   1.52,
+   2.48
+  ],
+  [
+   "Both",
+   2.48,
+   2.8
+  ],
+  [
+   "teams",
+   2.8,
+   3.2
+  ],
+  [
+   "score",
+   3.2,
+   3.52
+  ],
+  [
+   "a",
+   3.52,
+   3.6
+  ],
+  [
+   "hundred",
+   3.6,
+   4.0
+  ],
+  [
+   "times",
+   4.0,
+   4.32
+  ],
+  [
+   "and",
+   4.32,
+   4.56
+  ],
+  [
+   "it's",
+   4.56,
+   4.8
+  ],
+  [
+   "settled",
+   4.8,
+   5.2
+  ],
+  [
+   "in",
+   5.2,
+   5.36
+  ],
+  [
+   "the",
+   5.36,
+   5.52
+  ],
+  [
+   "last",
+   5.52,
+   5.76
+  ],
+  [
+   "four",
+   5.76,
+   6.0
+  ],
+  [
+   "seconds",
+   6.0,
+   6.56
+  ],
+  [
+   "which",
+   6.56,
+   6.72
+  ],
+  [
+   "take",
+   6.72,
+   6.96
+  ],
+  [
+   "half",
+   6.96,
+   7.2
+  ],
+  [
+   "an",
+   7.2,
+   7.36
+  ],
+  [
+   "hour.",
+   7.36,
+   7.92
+  ],
+  [
+   "That",
+   7.92,
+   8.08
+  ],
+  [
+   "was",
+   8.08,
+   8.32
+  ],
+  [
+   "two",
+   8.32,
+   8.64
+  ],
+  [
+   "sentences.",
+   8.64,
+   9.68
+  ],
+  [
+   "There",
+   9.68,
+   9.84
+  ],
+  [
+   "was",
+   9.84,
+   9.92
+  ],
+  [
+   "a",
+   9.92,
+   10.08
+  ],
+  [
+   "comma.",
+   10.08,
+   10.61
+  ]
+ ],
+ "text": "Basketball, one sentence. Both teams score a hundred times and it's settled in the last four seconds which take half an hour. That was two sentences. There was a comma."
+}

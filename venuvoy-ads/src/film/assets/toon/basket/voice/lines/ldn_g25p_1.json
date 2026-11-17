@@ -1,0 +1,208 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Basketball. One sentence.",
+  "t0": 0.25,
+  "t1": 2.17,
+  "dur": 1.92,
+  "words": [
+   [
+    "basketball",
+    -0.01,
+    0.95
+   ],
+   [
+    "one",
+    0.95,
+    1.27
+   ],
+   [
+    "sentence",
+    1.27,
+    1.87
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "basketball one sentence",
+  "wrong": [],
+  "peak_db": -1.4
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Both teams score a hundred times, and it's settled in the last four seconds, which take half an hour.",
+  "t0": 2.5,
+  "t1": 7.63,
+  "dur": 5.13,
+  "words": [
+   [
+    "both",
+    -0.02,
+    0.3
+   ],
+   [
+    "teams",
+    0.3,
+    0.7
+   ],
+   [
+    "score",
+    0.7,
+    1.02
+   ],
+   [
+    "a",
+    1.02,
+    1.1
+   ],
+   [
+    "hundred",
+    1.1,
+    1.5
+   ],
+   [
+    "times",
+    1.5,
+    1.82
+   ],
+   [
+    "and",
+    1.82,
+    2.06
+   ],
+   [
+    "its",
+    2.06,
+    2.3
+   ],
+   [
+    "settled",
+    2.3,
+    2.7
+   ],
+   [
+    "in",
+    2.7,
+    2.86
+   ],
+   [
+    "the",
+    2.86,
+    3.02
+   ],
+   [
+    "last",
+    3.02,
+    3.26
+   ],
+   [
+    "four",
+    3.26,
+    3.5
+   ],
+   [
+    "seconds",
+    3.5,
+    4.06
+   ],
+   [
+    "which",
+    4.06,
+    4.22
+   ],
+   [
+    "take",
+    4.22,
+    4.46
+   ],
+   [
+    "half",
+    4.46,
+    4.7
+   ],
+   [
+    "an",
+    4.7,
+    4.86
+   ],
+   [
+    "hour",
+    4.86,
+    5.08
+   ]
+  ],
+  "matched": "19/19",
+  "heard": "both teams score a hundred times and its settled in the last four seconds which take half an hour",
+  "wrong": [],
+  "peak_db": -3.8
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "That was two sentences.",
+  "t0": 7.91,
+  "t1": 9.44,
+  "dur": 1.53,
+  "words": [
+   [
+    "that",
+    0.01,
+    0.17
+   ],
+   [
+    "was",
+    0.17,
+    0.41
+   ],
+   [
+    "two",
+    0.41,
+    0.73
+   ],
+   [
+    "sentences",
+    0.73,
+    1.48
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "that was two sentences",
+  "wrong": [],
+  "peak_db": -0.4
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "There was a comma.",
+  "t0": 9.67,
+  "t1": 10.5,
+  "dur": 0.83,
+  "words": [
+   [
+    "there",
+    0.01,
+    0.17
+   ],
+   [
+    "was",
+    0.17,
+    0.25
+   ],
+   [
+    "a",
+    0.25,
+    0.41
+   ],
+   [
+    "comma",
+    0.41,
+    0.78
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "there was a comma",
+  "wrong": [],
+  "peak_db": -7.8
+ }
+]

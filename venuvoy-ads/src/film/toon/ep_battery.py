@@ -63,7 +63,7 @@ TO_HER = (-4.5, 1.02, -8.0, 10.0)     # and explains it to her, patiently
 
 def pose(t):
     a = ease(t, 0.0, 1.7, 0.45, 1.0, "io")                                   # he comes nearer and nearer the lens while she talks
-    b = ease(t, v.t("L3@four+0.45"), v.t("L3@four+0.75"), 0.0, 1.0, "back")   # "Four.": up, away from it (in her breath before "Why?")
+    b = ease(t, v.t("L3@four+0.40"), v.t("L3@four+0.95"), 0.0, 1.0, "io")     # "Four.": a weary straightening, up and away from it (0.55 s, through her breath before "Why?")
     c = ease(t, v.t("T4-0.16"), v.t("T4+0.30"), 0.0, 1.0, "io")              # "Because...": down to her
     return tuple(UP[i] + (PEER[i] - UP[i]) * a * (1 - b) + (TO_HER[i] - UP[i]) * c for i in range(4))
 

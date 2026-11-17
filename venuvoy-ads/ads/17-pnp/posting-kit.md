@@ -3,7 +3,7 @@
 המטרה: שכל פרק ישלח צופים לעמוד כדי לראות את הפרק הבא.
 המנגנון כבר בתוך הסרטונים: כל פרק נגמר ב-"follow for ep N", והצופים יודעים משהו שטימו לא יודע (הכרטיס שלו אצל לונה).
 
-כל הקבצים רונדרו מחדש ב-15 בנובמבר עם הנוסח המתוקן. סימן הזיהוי של גרסה נכונה: בסוף כתוב
+כל הקבצים רונדרו מחדש ב-15 בנובמבר עם הנוסח המתוקן; פרק 1, פרק 4 ושני הספוטים רונדרו שוב ב-17 בנובמבר (המשפט המוקלד כולל עכשיו מועד, והלוחית של Venuvoy לא נוגעת בקצה בגרסת 4:5). סימן הזיהוי של גרסה נכונה: בסוף כתוב
 "one sentence. your sports trip, planned." והשם VENUVOY מופיע על לוחית ירוקה. קובץ שכתוב בו "the whole football trip" הוא ישן.
 
 ## הקבצים
@@ -91,7 +91,7 @@ his plan is 40 metres long. hers is one sentence.
 
 - **מה הסרטונים אומרים על Venuvoy** (תוקן ב-15 בנובמבר לפי המוצר עצמו): "one sentence. your sports trip, planned.", ומתחת לשם: "football, basketball, motorsport, tennis, golf and more". אחרי המשפט מופיעים: the match, ticket links, getting around, day by day (ב-40 metres long: the match, golf round, a hike, day by day). המילים flight ו-hotel ירדו, כי Venuvoy לא מוכרת כרטיסים, טיסות או מלונות.
 - **הכרטיסים בסיפור.** Venuvoy מראה איפה קונים, ולונה קנתה בעצמה את שני הכרטיסים. לכן כתוב עכשיו "in her pocket: both match tickets", "she bought his ticket" ו-"she bought both tickets last night". אם שואלים בתגובות: `Luna planned for two, then bought both tickets from the official seller. Venuvoy shows the official way to get tickets; it does not sell them.`
-- **המשפטים שמקלידים** הם עכשיו משפטים שהמוצר באמת יודע לקרוא, עם מקום, זמן וענף: "London this weekend, football, two of us: me and Timo", "a week in New York, basketball, me and Luna", "4 nights in London, two of us: football, golf, a hike". במוצר המשפט ממלא את הטופס ואז לוחצים "ליצור מסלולים"; בסרטונים זה מקוצר ל-"Done.".
+- **המשפטים שמקלידים** הם עכשיו משפטים שהמוצר באמת יודע לקרוא, עם מקום, זמן וענף: "London this weekend, football, two of us: me and Timo", "next week in New York, basketball, me and Luna", "4 nights in London next weekend: two of us, football, golf, a hike". כל משפט כולל מועד ("this weekend", "next week", "next weekend"): בלי מועד המוצר לא יודע את התאריכים ונשאר בשלב הראשון. במוצר המשפט ממלא את הטופס ואז לוחצים "ליצור מסלולים"; בסרטונים זה מקוצר ל-"Done.".
 - **המילה bet.** נשארה רק בפרק 1, שם רואים שההתערבות היא על סחיבת מזוודה. בפרקים 3 ו-4 הוחלפה ("so far: her plan 2, his plan 0", "her plan wins. he carries.") כדי שלא ייקרא כהימור על משחק.
 - **מה שאי אפשר לשנות בלי לצלם מחדש:** המשפטים שהדמויות אומרות בקול. בספוט ההיכרות טימו אומר "A football trip takes forty-two steps."; בצילום הבא: "A sports trip". בעלילה, המשפט שלונה הקלידה הוא עדיין הסיבה שטימו נכנס למשחק.
 - **תווית בינה מלאכותית.** התמונה, הקולות והמוזיקה נוצרו בכלי בינה מלאכותית. בזמן ההעלאה מפעילים את התווית "נוצר בבינה מלאכותית" בכל פלטפורמה שמציעה אותה, ובטיקטוק גם את הגילוי על תוכן שמקדם את העסק שלכם.

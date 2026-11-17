@@ -191,7 +191,7 @@
      "at": 1.6,
      "len": 0.05,
      "hold": 2.1,
-     "y": 250
+     "y": 276
     },
     {
      "text": "London this weekend, football, two of us: me AND TIMO",
@@ -199,7 +199,7 @@
      "at": 1.7,
      "len": 0.6,
      "hold": 1.45,
-     "y": 345
+     "y": 370
     },
     {
      "text": "the match, for 2",
@@ -207,7 +207,7 @@
      "at": 2.35,
      "len": 0.05,
      "hold": 1.35,
-     "y": 545
+     "y": 558
     }
    ]
   },
@@ -376,15 +376,15 @@
      "at": 0.0,
      "len": 0.05,
      "hold": 3.05,
-     "y": 250
+     "y": 262
     },
     {
-     "text": "a week in New York, basketball, me and Luna",
+     "text": "next week in New York,| basketball, me and Luna",
      "cls": "vvb type",
      "at": 0.05,
      "len": 0.65,
      "hold": 2.4,
-     "y": 345
+     "y": 356
     },
     {
      "text": "the game",
@@ -392,7 +392,7 @@
      "at": 0.75,
      "len": 0.05,
      "hold": 2.3,
-     "y": 532
+     "y": 541
     },
     {
      "text": "ticket links",
@@ -400,7 +400,7 @@
      "at": 0.87,
      "len": 0.05,
      "hold": 2.18,
-     "y": 532
+     "y": 541
     },
     {
      "text": "getting around",
@@ -408,7 +408,7 @@
      "at": 0.99,
      "len": 0.05,
      "hold": 2.06,
-     "y": 619
+     "y": 624
     },
     {
      "text": "day by day",
@@ -416,7 +416,7 @@
      "at": 1.11,
      "len": 0.05,
      "hold": 1.94,
-     "y": 619
+     "y": 624
     },
     {
      "text": "Done.",
@@ -438,7 +438,7 @@
      "at": 3.3,
      "len": 0.05,
      "hold": 6.0,
-     "y": 255
+     "y": 262
     },
     {
      "text": "VENUVOY",
@@ -446,7 +446,7 @@
      "at": 3.35,
      "len": 0.05,
      "hold": 6.0,
-     "y": 420
+     "y": 425
     },
     {
      "text": "the end · follow for season 2",
@@ -454,7 +454,7 @@
      "at": 3.35,
      "len": 0.05,
      "hold": 6.0,
-     "y": 520
+     "y": 523
     }
    ]
   }

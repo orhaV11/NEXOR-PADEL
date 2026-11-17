@@ -94,6 +94,8 @@ His product-defining messages in the build chat could not be reached. From the a
 - Films made before this sheet (the four episodes of season 1 and "Meet Timo & Luna") were corrected and rendered again
   on 15 Nov 2026 after the founder's yes; "40 metres long" too. Three skeptics first read the corrected wording
   (truth, story, platform risk); what they found and what was done:
+  - (17 Nov: "a time" means WHEN, as in "this weekend", "next week", "next weekend". A length alone, "a week in New York"
+    or "4 nights in London", leaves the dates empty and the planner on its first step. All films now say when.)
   - A typed sentence must be one the product can read: a place, a time, a sport ("London this weekend, football, two of
     us: me and Timo"). "plan a trip for me and Timo to tomorrow's match" returns nothing in the real product. Real
     city names are therefore allowed inside the typed sentence only; no club, league or stadium names.

@@ -168,15 +168,15 @@
      "at": 0.0,
      "len": 0.05,
      "hold": 3.483,
-     "y": 250
+     "y": 276
     },
     {
-     "text": "4 nights in London, two of us: football, golf, a hike",
+     "text": "4 nights in London next weekend:| two of us, football, golf, a hike",
      "cls": "vvb type",
      "at": 0.05,
      "len": 1.6,
      "hold": 1.883,
-     "y": 345
+     "y": 370
     }
    ],
    "zoom": {

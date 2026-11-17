@@ -34,7 +34,7 @@ sentence, and it builds two or three different, priced, day-by-day plans around 
 - Always "sports trip", never only "football trip". A film may be about a football match; the sign-off stays broad.
 - Casinos are not shown in the mascot films until the founder decides how (the product's own rule: a place to visit,
   adults only, "does not offer or promote gambling"; platforms restrict gambling content).
-- The sentence a character types must be one the product can read: a place, a time, a sport ("London this weekend,
+- The sentence a character types must be one the product can read: a place, WHEN ("this weekend", "next week", "next weekend"; a length alone, "a week in ...", gives the product no dates), a sport ("London this weekend,
   football, two of us: me and Timo"). Real city names are allowed there, as in the product's own examples.
 - Tickets are bought by the characters, never supplied by Venuvoy. The tick is "ticket links", not "ticket guide".
 - No betting words next to a match. No prices, no invented features. Never "soccer". No real club, league, player or

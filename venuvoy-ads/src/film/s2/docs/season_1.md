@@ -29,7 +29,7 @@ Venuvoy, and everything is planned. They bet on whose trip will be better. Loser
    One new clip. Plan `ep3.json`, edit `ep3_edit.json` (built from `one_night.json`).
 4. **Full Time** (32 s). "No ticket. No plan. Nothing!" "Timo! Listen. I typed: me AND Timo." "Since yesterday?"
    "You kept saying no." "I love your plan." They run in; the cat guards Big Yellow; the goal; Luna wins the bet and
-   rides home on the suitcase; Timo secretly types his first sentence ("a week in New York, basketball, me and Luna");
+   rides home on the suitcase; Timo secretly types his first sentence ("next week in New York, basketball, me and Luna"; until 17 Nov it read "a week in New York", which gives the product no dates);
    "I saw that!"; his stare. A label says where the tickets came from: "she bought both tickets last night".
    Plan `ep4.json`, edit `ep4_edit.json`.
 

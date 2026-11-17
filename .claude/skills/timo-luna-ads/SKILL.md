@@ -39,7 +39,15 @@ sound good"). The first one is "The Switch" (`venuvoy-ads/ads/20-sketches/`). No
 characters are still drawings moved in code. A whole film costs about 2 dollars. The scripts still to make are in
 `venuvoy-ads/src/film/reset/RESET.md` (the script bank); the next one should be about another sport.
 
-Everything is in `venuvoy-ads/src/film/toon/`. For a new sketch copy the four `switch_*` files and change them.
+Everything is in `venuvoy-ads/src/film/toon/`. On 17 Nov the founder asked for volume ("run episodes, lots, so there
+is content to upload, and other content ideas"), so the first film's code was turned into a KIT: a new sketch is
+three small files. Read `RIG.md` (the format "Luna's trip vlog", what the two puppets can do, what a new drawing
+costs, what two rounds of checking taught) and `BUILD.md` (the steps and commands), then copy `example_sound.py` and
+`example_film.py` (the first film written with the kit; they run). The kit: `duo.py` (the cast; looks "wind" and
+"calm", `timo_clean`), `vlog_sound.py` (a table of lines and gaps), `vlog.py` (statements about who does what when;
+times are written against the soundtrack, like "L7.end+0.3"), `pick.py` (best take of each line), `sfx.py` (one
+bought sound, heard back), `check.py` (the watching model on a finished film), `pack.py <film>`. The `switch_*`
+files are the first film as delivered and are left alone. What follows describes the method underneath the kit.
 
 1. **Voices first** (`voices.py`, a sketch json like `switch_voices.json`): the whole dialogue is read in one go by the
    dialogue speech model (`gemini-2-5-pro-tts`, 2 to 5 cents a reading), with a scene, a note on each voice and a

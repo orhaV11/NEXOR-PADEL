@@ -1,0 +1,52 @@
+{
+ "upload:/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/luna_turn_dots.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/193c9f7060eb495d843bf0575b37f1f8.png"
+ },
+ "upload:/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/luna_w1.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/ef3f59f03f6a45d1b65783d8f31d10ec.png"
+ },
+ "luna_calm": {
+  "url": "https://cdn.muapi.ai/outputs/generated/8591f920-2d9e-46fe-9487-df1f9b4e7ada_b5a90b87.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta, filming herself at arm's length) with ONE change only. THE CHANGE: there is no wind now. Her orange bob hangs calm and neat: the hair on the RIGHT side of the picture, which was blowing out sideways in long strands, now hangs straight down beside her face to chin length, a simple rounded bob that mirrors the hair on the left side and stays close to her head; and the loose end of her scarf, which was flying out to the right, now hangs straight down over the front of her coat beside the other end. Her face does not change at all: the same fringe, brows, eyes, nose, freckles, smile, ears and earrings in exactly the same place; her head, neck, the knot of the scarf, her yellow coat and her outstretched arm do not move. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Same framing, same black outline weights, same flat colours, no shading on the face, the same flat magenta background. No text.",
+  "refs": [
+   "/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/luna_w1.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_turn_calm": {
+  "url": "https://cdn.muapi.ai/outputs/generated/20459899-3a21-4194-9940-d043b72c23f6_f67ee820.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a young woman on flat magenta, her head turned toward the right side of the picture) with ONE change only. THE CHANGE: there is no wind now. Her orange bob hangs calm and neat: the hair on the RIGHT side of the picture, which was blowing out sideways in long strands, now hangs down close to her head to chin length, a simple rounded bob; and the loose end of her scarf, which was flying out to the right, now hangs straight down over the front of her coat. Her turned face does not change at all: the same fringe, brows, eyes, nose, freckles, mouth, ear and earring in exactly the same place; her neck, the knot of the scarf, her yellow coat and her outstretched arm do not move. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Same framing, same black outline weights, same flat colours, no shading on the face, the same flat magenta background. No text.",
+  "refs": [
+   "/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/luna_turn_dots.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "upload:/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/timo_up_4.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/03aa0c79548f4e658023a3f1240802de.png"
+ },
+ "timo_clean": {
+  "url": "https://cdn.muapi.ai/outputs/generated/3852fe66-4796-4ff6-875d-e4352a391dd8_d3211e0e.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a tall man in a teal track jacket and a striped scarf on flat magenta) with ONE change only. THE CHANGE: the thin green blade of grass that was stuck on his cheek is gone; that part of his cheek is now plain skin of the same flat brown as the rest of his face. His face, eyes, brows, nose, mouth, ear, hair, scarf, jacket, arms and pose do not change or move. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Same framing, same black outline weights, same flat colours, no shading on the face, the same flat magenta background. No text.",
+  "refs": [
+   "/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/timo_up_4.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_calm2": {
+  "url": "https://cdn.muapi.ai/outputs/generated/f433ace1-efba-478d-9f49-e91bfe8c792a_e9aa3292.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta, filming herself at arm's length) with ONE change only. THE CHANGE: the short loose end of her striped scarf that sticks out sideways to the RIGHT of the knot (with the dark green fringe at its tip) is gone from there: the magenta background shows where it was. The scarf now has only the knot at her neck and the one long end that already hangs down the front of her coat. Her head, hair, face, the knot, the hanging end, her yellow coat and her outstretched arm do not change or move. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Same framing, same black outline weights, same flat colours, the same flat magenta background. No text.",
+  "refs": [
+   "luna_calm"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_turn_calm2": {
+  "url": "https://cdn.muapi.ai/outputs/generated/39b6bbbd-8658-4a6b-9b25-ff415bb40085_3d98483b.jpg",
+  "prompt": "Redraw the FIRST reference picture (an animation sprite of a young woman on flat magenta, her head turned toward the right side of the picture, her hair blowing in the wind) with ONE change only. THE CHANGE: there is no wind now, and her hair is the short, neat, ROUNDED bob of the SECOND reference picture: it curves in under her jaw and ends at chin level on both sides, close to her head; it does NOT reach her shoulders and has no straight-cut ends and no long strands. The loose end of her scarf that was flying out to the right is gone: only the knot and the one end hanging down the front of her coat remain, as in the second reference. Her turned face does not change at all: the same fringe, brows, eyes, nose, freckles, mouth, ear and earring in exactly the same place and at the same size as in the first reference; her neck, the knot of the scarf, her yellow coat and her outstretched arm do not move. Change NOTHING else. Same framing, same black outline weights, same flat colours, no shading on the face, the same flat magenta background. No text.",
+  "refs": [
+   "/home/user/NEXOR-PADEL/venuvoy-ads/work/switch/art/luna_turn_dots.png",
+   "luna_calm2"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

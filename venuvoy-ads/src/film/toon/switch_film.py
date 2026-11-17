@@ -43,7 +43,7 @@ plate = Picture(WORK / "text" / "plate.png")
 
 # the mouth shapes of the words the jokes rest on, set by hand (A open, O round, C a little open, M shut)
 SAID = {"day": "C A", "two": "O", "trip": "C M", "why": "O A", "mountain": "M O C", "planner": "M A C", "switch": "O C", "said": "C", "hikes": "A C", "you": "O",
-        "hate": "A C", "like": "A C", "idea": "A C A", "so": "O", "did": "C", "fl": "C", "flip": "C M", "it": "C", "was": "O A", "what": "O A", "else": "C",
+        "hate": "A C M", "like": "A C", "idea": "A C A", "so": "O", "did": "C", "fl": "C", "flip": "C M", "it": "C", "was": "O A", "what": "O A", "else": "C M",
         "tomorrow": "C O M O", "morning": "M O C", "run": "A C", "back": "M A C", "he": "C", "loves": "A C"}
 talk = {i: Talk(l["words"], ROOT / l["wav"], have=("A", "E", "O", "C") if l["who"] == "L" else ("A", "O", "C"), quiet=0.10 if l["who"] == "L" else 0.055, said=SAID)
         for i, l in LINE.items()}
@@ -56,7 +56,7 @@ T_NECK, T_STILL, T_FULL = (600 * S_TIMO, 1150 * S_TIMO), 1290 * S_TIMO, 1100 * S
 # where each of them stands in each shot: the anchor's place in the frame, the size, a lean of the whole figure
 PLACE = {1: {"luna": (362, 1545, 0.92, 0.0)},
          2: {"luna": (372, 1556, 1.00, -1.2), "timo": (872, 935, 1.00)},
-         3: {"luna": (400, 1455, 1.05, 1.0), "timo": (884, 850, 1.05)}}
+         3: {"luna": (345, 1490, 1.16, 1.0), "timo": (890, 830, 1.16)}}   # sixteen per cent closer than the second: a punch-in, not a bump
 P_POS, P_TURN = (1046, 652), -12.0     # Timo on the ground in the first shot: his ankles, and the slope he lies on
 
 
@@ -77,20 +77,21 @@ LOOK_DOWN, BACK_TO_US = THUD + 0.12, LINE["L11"]["t0"] - 0.15
 
 # ---------------------------------------------------------------- captions: one at a time, each where its speaker is
 LOW, SKY = (W / 2, 1395), (600, 345)
+LOW1 = (W / 2, 1440)   # in the first shot she is lower in the frame: two lines of caption must stay off her chin
 _L = LINE
 CAPS = [  # name, who, words (and a held-back last word), on, off, place, pops in
-    ("L1", "L", "Day two of the football trip!", None, _L["L1"]["t0"], _L["T2"]["t0"], LOW, True),
+    ("L1", "L", "Day two of the football trip!", None, _L["L1"]["t0"], _L["T2"]["t0"], LOW1, True),
     ("T2", "T", "Why is there a mountain in the football trip?", None, _L["T2"]["t0"], _L["L3"]["t0"], SKY, True),      # above him: he is the one on the ground
-    ("L3a", "L", "The planner had a switch.", None, _L["L3"]["t0"], word_time("L3", "it"), LOW, True),
-    ("L3b", "L", "It said “hikes”.", None, word_time("L3", "it"), CUT1 + 0.04, LOW, True),
+    ("L3a", "L", "The planner had a switch.", None, _L["L3"]["t0"], word_time("L3", "it"), LOW1, True),
+    ("L3b", "L", "It said “hikes”.", None, word_time("L3", "it"), CUT1 + 0.04, LOW1, True),
     ("T4", "T", "You hate hikes.", None, _L["T4"]["t0"], _L["L5"]["t0"], LOW, True),
     ("L5", "L", "I like the idea of hikes.", None, _L["L5"]["t0"], _L["T6"]["t0"], LOW, True),
     ("T6", "T", "So why did you fl—", None, _L["T6"]["t0"], _L["L7"]["t0"], LOW, True),
     ("L7", "L", "It was a switch!", None, _L["L7"]["t0"], LENS + 0.06, LOW, True),                                       # gone as he looks at us
-    ("T8", "T", "…What else did you flip?", None, _L["T8"]["t0"] - 0.04, _L["L9"]["t0"], LOW, True),
-    ("L9a", "L", "“Tomorrow morning.\n", "Run.”", _L["L9"]["t0"], RUN, (394, 1420), True),                               # beside the phone she reads from;
-    ("L9b", "L", "“Tomorrow morning.\nRun.”", None, RUN, _L["L9"]["t1"] + 0.30, (394, 1420), False),                     # the word arrives when she says it
-    ("T10", "T", "Flip it back.", None, _L["T10"]["t0"], _L["L11"]["t0"], (735, 1395), True),                            # low on the right, where he went down
+    ("T8", "T", "…What else did you flip?", None, _L["T8"]["t0"] - 0.04, PHONE_UP, LOW, True),                             # gone when her phone comes up
+    ("L9a", "L", "“Tomorrow morning.\n", "Run.”", _L["L9"]["t0"], RUN, (394, 1352), True),                               # beside the phone she reads from;
+    ("L9b", "L", "“Tomorrow morning.\nRun.”", None, RUN, _L["L9"]["t1"] + 0.30, (394, 1352), False),                     # the word arrives when she says it
+    ("T10", "T", "Flip it back.", None, _L["T10"]["t0"], _L["L11"]["t0"], (560, 1395), True),                            # beside his finger, which comes up where he went down
     ("L11", "L", "He loves it.", None, _L["L11"]["t0"], _L["L11"]["t1"] + 0.16, LOW, True),
 ]
 if not all((WORK / "text" / f"{c[0]}.png").exists() for c in CAPS) or "--text" in sys.argv:   # set the captions in type
@@ -106,7 +107,9 @@ def luna_face(T):
     if T < CUT1:
         if T < LINE["T2"]["t0"] + 0.95:
             return None                      # delighted: it is day two!
-        return None if T >= HIKES - 0.04 else "guilty"   # caught... and then "hikes" is good news again
+        if T >= HIKES - 0.04:
+            return None                      # "hikes" is good news again
+        return "defend" if LINE["L3"]["t0"] - 0.08 <= T < word_time("L3", "it") - 0.05 else "guilty"   # caught; she explains it to US, big-eyed; a look back at him
     if T < CUT2:
         if T >= GLANCE:
             return "guilty"                  # he is looking at us; she steals a look at him, and smiles as if nothing
@@ -114,18 +117,20 @@ def luna_face(T):
             return "turn"                    # she rounds on him
         return "guilty" if T >= SIDE else "defend"   # his question is coming: a look out of the corner of her eye
     if T < READ0:
-        return "guilty"                      # what else did she flip
+        return "defend" if T < CUT2 + 0.30 else "guilty"   # what else did she flip: caught, then sheepish
     if T < READ1:
         return "read"                        # she reads it off her phone, pleased
     if T < LOOK_DOWN:
         return None                          # and beams at us: a run!
-    if T < BACK_TO_US:
+    if T < LOOK_DOWN + 0.42:
         return "down"                        # where did he go
+    if T < BACK_TO_US:
+        return "read_b"                      # ah. There he is. (eyes down, mouth shut: the next line is his, not hers)
     return None
 
 
-FACE_CHANGES = [LINE["T2"]["t0"] + 0.95, HIKES - 0.04, SIDE, LINE["L7"]["t0"] - 0.10, GLANCE, READ0, READ1, LOOK_DOWN, BACK_TO_US]
-LUNA_BLINKS = [1.02, 3.6, 5.9, 7.72, CUT1 + 0.75, LINE["L5"]["t0"] - 0.22, LINE["L5"]["t1"] + 0.12, SIDE + 0.42, CUT2 + 0.5, READ1 + 0.42, LOOK_DOWN + 0.5, BACK_TO_US + 1.6,
+FACE_CHANGES = [LINE["T2"]["t0"] + 0.95, LINE["L3"]["t0"] - 0.08, word_time("L3", "it") - 0.05, HIKES - 0.04, CUT2 + 0.30, SIDE, LINE["L7"]["t0"] - 0.10, GLANCE, READ0, READ1, LOOK_DOWN, LOOK_DOWN + 0.42, BACK_TO_US]
+LUNA_BLINKS = [1.02, 3.6, 5.9, 7.72, CUT1 + 0.75, LINE["L5"]["t0"] - 0.22, LINE["L5"]["t1"] + 0.12, SIDE + 0.42, CUT2 + 0.5, READ1 + 0.16, LOOK_DOWN + 0.5, BACK_TO_US + 1.6,
                BACK_TO_US + 3.0]   # every face she blinks on has its own drawn blink
 TIMO_BLINKS = [LINE["T4"]["t1"] + 0.3, LINE["L5"]["t0"] + 1.5, LINE["L7"]["t0"] + 0.14, LINE["T8"]["t1"] + 0.2]   # the third: he is cut off, and blinks
 
@@ -135,11 +140,9 @@ def blink(T, times, d=0.125):
 
 
 def wind(T, seed=0.0, rate=6.5):
-    """Which drawing of the wind-blown parts shows now: the base and two others, changing about six times a second,
-    never in a regular loop."""
-    k = int(T * rate + seed * 3.1)
-    r = (math.sin(k * 12.9898 + seed * 78.233) * 43758.5453) % 1.0
-    return (None, "1", "2")[int(r * 3)] if k % 2 else (None, "1", None, "2")[(k // 2) % 4]
+    """Which drawing of the wind-blown parts shows now: the base and two others, changing about four times a second."""
+    u = T * rate * 0.62 + seed * 3.1 + 0.35 * math.sin(T * 1.7 + seed)      # uneven holds of about a fifth to a third of a second
+    return (None, "1", None, "2")[int(u) % 4]                                 # always through the base drawing: no jump from one far state to the other
 
 
 def speaking(T, who):
@@ -169,9 +172,7 @@ def luna_state(T):
         if m:
             if face == "read" and m == "E":
                 m = "C"                      # no bared teeth while she reads
-            st["3mouth"] = ({"C": "tC", "A": "tA", "E": "tE", "O": "tC"}[m] if face == "turn" else m)
-    if face == "turn" and "3mouth" not in st:
-        st["3mouth"] = "tC"                  # the turned head was drawn without a mouth: silent, her lips are a little apart
+            st["3mouth"] = ({"C": "tC", "A": "tA", "E": "tE", "O": "tA"}[m] if face == "turn" else m)   # the turned head has no round mouth: the open one holds the vowel
     return st
 
 
@@ -291,11 +292,11 @@ def draw_luna(st, T, shot):
         rise = ease(t, HAND_UP, HAND_UP + 0.2, 720.0, 0.0, "back") + ease(t, HAND_DOWN, HAND_DOWN + 0.22, 0.0, 720.0, "in")
         hit = word_time("L7", "switch")
         shake = math.sin((t - hit) * 30) * 14 * math.exp(-(t - hit) * 7) if t >= hit else 0.0
-        st.put(hand, x0 + dx + 26 + shake, y0 + dy - 46 + rise - abs(shake) * 0.6, scale=k, turn=turn + tilt + shake * 0.12, sx=sx, sy=sy, anchor=L_ANCHOR, depth=1.0)
+        st.put(hand, x0 + dx + 26 + shake, y0 + dy - 105 + rise - abs(shake) * 0.6, scale=k, turn=turn + tilt + shake * 0.12, sx=sx, sy=sy, anchor=L_ANCHOR, depth=1.0)
     if shot == 3 and PHONE_UP - 0.05 <= T < PHONE_DOWN + 0.3:   # her other hand brings the phone up from below, and drops it when he drops
         t = on_twos(T)
         rise = ease(t, PHONE_UP, PHONE_UP + 0.36, 760.0, 0.0, "back") + ease(t, PHONE_DOWN, PHONE_DOWN + 0.2, 0.0, 760.0, "in")
-        st.put(phone, x0 + dx + wobble(t, 11.0, 2.2) * 2.5, y0 + dy + rise + wobble(t, 12.0, 1.9) * 3, scale=k, turn=turn + tilt + wobble(t, 13.0, 1.6) * 0.7,
+        st.put(phone, x0 + dx + wobble(t, 11.0, 2.2) * 2.5, y0 + dy - 110 + rise + wobble(t, 12.0, 1.9) * 3, scale=k, turn=turn + tilt + wobble(t, 13.0, 1.6) * 0.7,
                sx=sx, sy=sy, anchor=L_ANCHOR, depth=1.0)
 
 
@@ -313,7 +314,7 @@ def draw_timo(st, T, shot, drop=0.0, stretch=1.0):
 
 FAR = ((335, 1200), (196, 640), 0.87)      # the far background: its stadium lands here, at this size
 NEAR2 = ((370, 1660), (238, 596), 1.28)    # the near background in the second shot
-NEAR3 = ((370, 1660), (262, 470), 1.40)    # and in the third: closer, the horizon lower
+NEAR3 = ((370, 1660), (250, 440), 1.50)    # and in the third: closer, the horizon lower
 
 
 def _still_frame(draw):
@@ -386,20 +387,22 @@ def shot3(st, t, T):
     lay(st, bg_near, *NEAR3)
     if T < SINK1 + 0.3:   # he goes straight down, the way a puppet leaves
         t2 = on_twos(T)
-        drop = -ease(t2, SINK0 - 0.17, SINK0, 0.0, 26.0, "out") + ease(t2, SINK0, SINK1, 0.0, 2500.0, "in")   # up a little, then gone
-        draw_timo(st, T, 3, drop=drop, stretch=1 + 0.16 * clamp((t2 - SINK0) / (SINK1 - SINK0)))
+        drop = -ease(t2, SINK0 - 0.25, SINK0, 0.0, 60.0, "io") + 2300.0 * clamp((t2 - SINK0) / (SINK1 - SINK0)) ** 1.3   # up a little, then down, steadily: a lift going down
+        draw_timo(st, T, 3, drop=drop, stretch=1 + 0.10 * clamp((t2 - SINK0) / (SINK1 - SINK0)))
     draw_luna(st, T, 3)
     caption(st, T)
-    if T >= FINGER:   # one finger comes up from below, in front of everything: the same objection as on the hill
+    if FINGER <= T < FINGER_DOWN + 0.6:   # his finger comes up from where he fell, with his line: the same objection as on the hill
         t2 = on_twos(T)
-        rise = ease(t2, FINGER, FINGER + 0.36, 900.0, 0.0, "back")
-        st.put(arm, 880, 2100 + rise, scale=1.5, turn=-5 + wobble(t2, 9.0, 2.0) * 1.2, anchor=(0.5, 1.0), depth=0.9)
+        jab = talk["T10"].accent(T - LINE["T10"]["t0"]) if LINE["T10"]["t0"] <= T <= LINE["T10"]["t1"] else 0.0
+        gone = ease(t2, FINGER_DOWN, FINGER_DOWN + 0.5, 0.0, 1.0, "in")       # "He loves it." The finger gives up: it tips over and sinks
+        rise = ease(t2, FINGER, FINGER + 0.32, 900.0, 0.0, "back") + gone * 950
+        st.put(arm, 925 + gone * 40, 2010 + rise - jab * 22, scale=1.5, turn=-5 + wobble(t2, 9.0, 2.0) * 1.2 - jab * 3 + gone * 24, anchor=(0.5, 1.0), depth=0.9)
     if T >= PLATE:
         k = ease(T, PLATE, PLATE + 0.22, 0.6, 1.0, "back")
         st.put(plate.get(), W / 2, 352, scale=k * 1.04, alpha=clamp((T - PLATE) / 0.08), depth=0.0)   # in the sky, where he stood: her face stays clear
 
 
-FINGER = LINE["L11"]["t1"] + 0.14      # "He loves it." And beside her, from the ground, one finger disagrees. Then the name.
+FINGER, FINGER_DOWN = LINE["T10"]["t0"] - 0.16, LINE["L11"]["t1"] + 0.10
 _f = key_out(read(cast.ART / "prone_finger.png")[..., :3])[215:770, 640:800]   # his raised arm, cut from the drawing of him on the ground
 arm = premul(np.ascontiguousarray(_f))
 

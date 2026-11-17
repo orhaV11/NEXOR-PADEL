@@ -21,9 +21,9 @@ const css = `
 @font-face { font-family: "Assistant"; src: url(${font('assistant-latin-wght-normal.woff2')}); font-weight: 200 800; }
 html, body { margin: 0; background: transparent; }
 .item { display: inline-block; padding: 30px; }
-.cap { width: 1000px; text-align: center; font-family: "Mont", sans-serif; font-weight: 800; font-size: 62px; line-height: 1.14; letter-spacing: -0.01em;
+.cap { width: 820px; text-align: center; font-family: "Mont", sans-serif; font-weight: 800; font-size: 62px; line-height: 1.14; letter-spacing: -0.01em;
   color: #fff; -webkit-text-stroke: 8px #101010; paint-order: stroke fill; text-wrap: balance; filter: drop-shadow(0 4px 3px rgba(0,0,0,.35)); }
-.cap.T { color: #a8f0e4; }  /* his words in a pale tint of his jacket, hers in white: with the sound off you still know who speaks */
+.cap.T { color: #7fe0d0; }  /* his words in a pale tint of his jacket, hers in white: with the sound off you still know who speaks */
 .plate { display: inline-flex; flex-direction: column; align-items: center; gap: 16px; filter: drop-shadow(0 8px 12px rgba(0,0,0,.35)); }
 .chip { position: relative; padding: 16px 34px 18px 112px; border-radius: 6px; background: #16392b; color: #f3ecdc; font-family: "Playfair", serif; font-weight: 500; font-size: 62px;
   letter-spacing: 0.2em; text-transform: uppercase; outline: 2px solid rgba(201,169,106,.9); outline-offset: -8px; }

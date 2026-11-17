@@ -1,7 +1,7 @@
 """The drawn cast of "The Switch": each character is ONE base drawing with patches laid on it.
 
 Luna (base luna_w1, 1792 x 2400): expressions replace the whole face area, a blink replaces the eye area, talking
-mouths replace the mouth area. Her turned head is a second set of patches. Timo (base timo_up_3, 1536 x 2752): eyes
+mouths replace the mouth area. Her turned head is a second set of patches. Timo (base timo_up_4, 1536 x 2752): eyes
 and mouth patches. Boxes are in the pixels of the base drawing. Each sprite is given a point of plain skin, so that a
 redraw that came back a shade off is brought to the base drawing's skin and no box shows on the face.
 """
@@ -40,13 +40,14 @@ T_EYES, T_BROWS, T_MOUTH = (418, 662, 722, 772), (392, 556, 768, 774), (498, 898
 def luna(scale):
     s = Sprite(ART / "luna_w1.png", scale=scale, skin=(665, 960), pad_bottom=L_PAD, pad="repeat")   # her coat runs on below the drawing: a shake of the camera never shows its end
     for w in ("1", "2"):   # two more drawings of the hair tips and the scarf tail in the wind: only what changed is taken
-        s.add("0wind", w, ART / f"luna_wind{w}.png", (1050, 380, 1792, 2150), mode="diff", grow=11, feather=4)
+        # the box starts well left of where the scarf tail leaves the knot: a box edge across the tail showed as a step
+        s.add("0wind", w, ART / f"luna_wind{w}.png", (640, 300, 1792, 2150), mode="diff", grow=11, feather=6)
     # reading her phone: two drawings with the eyes in two places (she reads along the line); "down": she looks down at where he fell
     for name, file in (("guilty", "luna_guilty"), ("defend", "luna_defend"), ("read", "luna_read3"), ("read_b", "luna_read3b"), ("down", "luna_down")):
         s.add("1face", name, ART / f"{file}.png", L_FACE)
     for name in ("guilty", "defend"):   # these two faces have their own drawn blink (their brows reach into the eyes)
         s.add("1face", name + "_shut", ART / f"luna_{name}_blink.png", L_FACE)
-    s.add("1face", "turn", ART / "luna_turn.png", L_HEAD)  # the whole head: its skin and its mouths come from the same drawing
+    s.add("1face", "turn", ART / "luna_turn_dots.png", L_HEAD)  # the whole head, turned to him (redrawn once more so that its eyes are the same dots as on her other faces)
     s.add("2eyes", "shut", ART / "luna_blink.png", L_EYES)
     s.add("2eyes", "scan", ART / "luna_read3b.png", L_EYES)   # the reading eyes a little further along the line
     for m in "CAEO":
@@ -63,6 +64,10 @@ def _arm(file, box, scale):
     other, _ = align(base, read(ART / file)[..., :3], None)
     m = patch_mask(base, other, box, thr=0.07, grow=9, feather=3)
     m[-14:] = m[-15]            # the mask fades out at the edge of its box; at the bottom the sleeve must run on whole
+    m[:1575, :1325] = 0         # the end of her scarf lies here and every redraw shifts it a little: it is not part of the arm
+    n, lab, stats, _ = cv2.connectedComponentsWithStats((m > 0.25).astype(np.uint8))   # the arm only: a redraw also shifts a scrap
+    big = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))                              # of scarf fringe, which must not travel with it
+    m = m * cv2.dilate((lab == big).astype(np.uint8), np.ones((9, 9), np.uint8))
     piece = key_out(other)
     piece[..., 3] *= m
     piece = np.concatenate([piece, np.repeat(piece[-1:], L_PAD, axis=0)], axis=0)   # the same canvas as Luna's, so the same placing fits
@@ -78,7 +83,7 @@ def hand(scale):
 
 
 def timo(scale):
-    s = Sprite(ART / "timo_up_3.png", scale=scale, pad_bottom=1100, skin=(570, 610))  # his legs run on below the drawing, behind Luna
+    s = Sprite(ART / "timo_up_4.png", scale=scale, pad_bottom=1100, skin=(570, 610))   # timo_up_3 with two mud blots on the scarf painted out by hand  # his legs run on below the drawing, behind Luna
     for w in ("1", "2"):
         s.add("0scarf", w, ART / f"timo_wind{w}.png", T_SCARF)
     s.add("2eyes", "lens", ART / "timo_lens.png", T_EYES)

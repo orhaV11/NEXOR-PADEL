@@ -27,14 +27,14 @@ RAW = KEEP / "sound" / "raw" if (KEEP / "sound" / "raw").exists() else WORK / "s
 OUT = WORK / "sound"
 (OUT / "lines").mkdir(parents=True, exist_ok=True)
 SR = 48000
-BED_DB = -13.0   # the vlog music sits this far under the voices in the band where speech lives (300-3400 Hz)
+BED_DB = -11.0   # the vlog music sits this far under the voices in the band where speech lives (300-3400 Hz)
 B, D = "ldn_g25p_3", "ldn_g25p_5"  # the quicker reading (all of Timo, Luna's first line) and the livelier one (the rest of Luna)
 
 # id, who, reading, number in the reading, gap before it (seconds after the previous line ends; negative = talks over), options
 PLAN = [
     ("L1", "L", B, 1, 0.25, {}),
     ("T2", "T", B, 2, 0.10, {"ground": True}),
-    ("L3", "L", D, 3, 0.30, {"tighten": 0.20}),   # caught: she takes a moment
+    ("L3", "L", D, 3, 0.18, {"tighten": 0.16}),   # caught: she takes a breath, no more: the shot must not sit
     ("CUT", 0.10),
     ("T4", "T", B, 4, 0.14, {}),
     ("L5", "L", D, 5, 0.05, {"tighten": 0.10}),
@@ -43,10 +43,10 @@ PLAN = [
     ("CUT", 0.77),   # he looks at us for this long
     ("T8", "T", B, 8, 0.22, {"even": 12.0}),   # "did you flip?" drops to a murmur in this reading: lift it out of the wind
     ("L9", "L", D, 9, 0.42, {}),   # she gets her phone out first; the pause before "Run." is hers, uncut
-    ("SINK", 0.45, 0.44),  # he stands quite still for this long after her line, then sinks, and takes this long
-    ("T10", "T", B, 10, 0.26, {"ground": True}),
+    ("SINK", 0.65, 0.72),  # he stands quite still for this long after her line, then sinks, and takes this long: slow enough to be watched
+    ("T10", "T", B, 10, 0.45, {"ground": True}),   # the thud has its own laugh first
     ("L11", "L", D, 11, 0.38, {}),   # she looks down at him, then back at us
-    ("PLATE", 1.0),   # first his finger comes up beside her; then the name
+    ("PLATE", 0.70),  # first his finger gives up and drops; then the name
 ]
 TEXT = {"L1": "Day two of the football trip!", "T2": "Why is there a mountain in the football trip?", "L3": "The planner had a switch. It said “hikes”.",
         "T4": "You hate hikes.", "L5": "I like the idea of hikes.", "T6": "So why did you fl—", "L7": "It was a switch!",
@@ -175,7 +175,7 @@ for row in PLAN:
     T = t0 + len(x) / SR
 
 plate = events["plate"]
-END = round(plate + 2.2, 3)
+END = round(plate + 2.4, 3)
 events["end"] = END
 N = int(END * SR)
 voices = voices[:N]
@@ -247,7 +247,7 @@ if ENDING == "sung":
     logo = logo.mean(axis=1) if logo.ndim > 1 else logo
     logo = ss.resample_poly(logo, SR, lsr) if lsr != SR else logo
     t_logo = plate + 0.12
-    logo = logo * db(-3.5)
+    logo = logo * db(-5.5)   # measured: no louder than the loudest spoken word
 else:
     raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "14.235", "-t", "2.6", "-i", str(ROOT / "src/film/assets/s2/music/jersey_1.mp3"), "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
     logo = np.frombuffer(raw, np.float32).astype(np.float64)

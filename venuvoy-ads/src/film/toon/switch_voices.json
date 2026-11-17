@@ -1,0 +1,123 @@
+{
+ "work": "work/switch",
+ "cap": 5.0,
+ "temperature": 1,
+ "scene": "A phone vlog on a windy hill path above a small city, on the second day of a football weekend. Wind. Luna holds the phone at arm's length and talks to it; Timo lies face down on the path just behind her.",
+ "context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and a little out of breath; to her everything is good news and she is innocent, never sarcastic. TIMO, about 30, is slow, dry, proud and exhausted; he never raises his voice. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[bright, calling over the wind, out of breath] Day two of the football trip!"
+  ],
+  [
+   "T",
+   "[muffled and flat, face down in the grass] Why is there a mountain in the football trip?"
+  ],
+  [
+   "L",
+   "[to the camera, a little less sure] The planner had a switch. It said: hikes."
+  ],
+  [
+   "T",
+   "[dry, accusing] You hate hikes."
+  ],
+  [
+   "L",
+   "[quick, defensive] I like the idea of hikes."
+  ],
+  [
+   "T",
+   "[slow, patient] So why did you flip it?"
+  ],
+  [
+   "L",
+   "[amazed that he has to ask, as if this explains everything] It was a switch!"
+  ],
+  [
+   "T",
+   "[after a beat, low and suspicious] What else did you flip?"
+  ],
+  [
+   "L",
+   "[quietly, reading it off her phone] Tomorrow morning. Run."
+  ],
+  [
+   "T",
+   "[from the ground, muffled, a tired plea] Flip it back."
+  ],
+  [
+   "L",
+   "[sunny again, to the camera] He loves it."
+  ],
+  [
+   "T",
+   "[a long, low, tired groan from the ground] Uuuugh."
+  ]
+ ],
+ "casts": {
+  "us": {
+   "L": {
+    "voice_name": "Leda",
+    "accent": "American (Gen)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Algenib",
+    "accent": "American (Gen)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, tired man of 30 with a low, dry, slightly gravelly voice; slow, proud, deadpan; he never raises his voice."
+   }
+  },
+  "uk": {
+   "L": {
+    "voice_name": "Zephyr",
+    "accent": "British (RP)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Umbriel",
+    "accent": "British (RP)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, tired man of 30 with a low, dry voice; slow, proud, deadpan; he never raises his voice."
+   }
+  },
+  "nt": {
+   "L": {
+    "voice_name": "Aoede",
+    "accent": "Neutral",
+    "style": "Vocal Smile",
+    "pace": "Natural",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Charon",
+    "accent": "Neutral",
+    "style": "Deadpan",
+    "pace": "The Drift",
+    "audio_profile": "A tall, tired man of 30 with a low, dry voice; slow, proud, deadpan; he never raises his voice."
+   }
+  },
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, tired man of 30 with a low, dry, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  }
+ }
+}

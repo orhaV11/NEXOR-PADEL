@@ -1,0 +1,380 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, tired man of 30 with a low, dry, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; a little out of breath from walking uphill; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, tired man of 30 with a low, dry, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, calling over the wind, out of breath] Day two of the football trip!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[muffled and flat, face down in the grass] Why is there a mountain in the football trip?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[to the camera, a little less sure] The planner had a switch. It said: hikes."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[dry, accusing] You hate hikes."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[quick, defensive] I like the idea of hikes."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[slow, patient] So why did you flip it?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[amazed that he has to ask, as if this explains everything] It was a switch!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[after a beat, low and suspicious] What else did you flip?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[quietly, reading it off her phone] Tomorrow morning. Run."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[from the ground, muffled, a tired plea] Flip it back."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[sunny again, to the camera] He loves it."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[a long, low, tired groan from the ground] Uuuugh."
+   }
+  ],
+  "scene": "A phone vlog on a windy hill path above a small city, on the second day of a football weekend. Wind. Luna holds the phone at arm's length and talks to it; Timo lies face down on the path just behind her.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and a little out of breath; to her everything is good news and she is innocent, never sarcastic. TIMO, about 30, is slow, dry, proud and exhausted; he never raises his voice. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Day",
+   0.24,
+   0.48
+  ],
+  [
+   "two",
+   0.48,
+   0.72
+  ],
+  [
+   "of",
+   0.72,
+   0.88
+  ],
+  [
+   "the",
+   0.88,
+   1.04
+  ],
+  [
+   "football",
+   1.04,
+   1.44
+  ],
+  [
+   "trip.",
+   1.44,
+   2.16
+  ],
+  [
+   "Why",
+   2.16,
+   2.4
+  ],
+  [
+   "is",
+   2.4,
+   2.56
+  ],
+  [
+   "there",
+   2.56,
+   2.72
+  ],
+  [
+   "a",
+   2.72,
+   2.88
+  ],
+  [
+   "mountain",
+   2.88,
+   3.28
+  ],
+  [
+   "in",
+   3.28,
+   3.44
+  ],
+  [
+   "the",
+   3.44,
+   3.6
+  ],
+  [
+   "football",
+   3.6,
+   4.16
+  ],
+  [
+   "trip?",
+   4.16,
+   4.8
+  ],
+  [
+   "The",
+   4.8,
+   5.04
+  ],
+  [
+   "planner",
+   5.04,
+   5.52
+  ],
+  [
+   "had",
+   5.52,
+   5.68
+  ],
+  [
+   "a",
+   5.68,
+   5.84
+  ],
+  [
+   "switch.",
+   5.84,
+   6.48
+  ],
+  [
+   "It",
+   6.48,
+   6.64
+  ],
+  [
+   "said",
+   6.64,
+   6.96
+  ],
+  [
+   "hikes.",
+   6.96,
+   8.0
+  ],
+  [
+   "You",
+   8.0,
+   8.24
+  ],
+  [
+   "hate",
+   8.24,
+   8.56
+  ],
+  [
+   "hikes.",
+   8.56,
+   9.44
+  ],
+  [
+   "I",
+   9.44,
+   9.6
+  ],
+  [
+   "like",
+   9.6,
+   9.92
+  ],
+  [
+   "the",
+   9.92,
+   10.08
+  ],
+  [
+   "idea",
+   10.08,
+   10.56
+  ],
+  [
+   "of",
+   10.56,
+   10.8
+  ],
+  [
+   "hikes.",
+   10.8,
+   11.84
+  ],
+  [
+   "So",
+   11.84,
+   12.16
+  ],
+  [
+   "why",
+   12.16,
+   12.4
+  ],
+  [
+   "did",
+   12.4,
+   12.64
+  ],
+  [
+   "you",
+   12.64,
+   12.8
+  ],
+  [
+   "flip",
+   12.8,
+   13.2
+  ],
+  [
+   "it?",
+   13.2,
+   13.76
+  ],
+  [
+   "It",
+   13.76,
+   13.92
+  ],
+  [
+   "was",
+   13.92,
+   14.16
+  ],
+  [
+   "a",
+   14.16,
+   14.4
+  ],
+  [
+   "switch.",
+   14.4,
+   15.44
+  ],
+  [
+   "What",
+   15.44,
+   15.68
+  ],
+  [
+   "else",
+   15.68,
+   15.92
+  ],
+  [
+   "did",
+   15.92,
+   16.08
+  ],
+  [
+   "you",
+   16.08,
+   16.24
+  ],
+  [
+   "flip?",
+   16.24,
+   16.96
+  ],
+  [
+   "Tomorrow",
+   16.96,
+   17.68
+  ],
+  [
+   "morning,",
+   17.68,
+   18.48
+  ],
+  [
+   "run.",
+   18.48,
+   19.28
+  ],
+  [
+   "Flip",
+   19.28,
+   19.76
+  ],
+  [
+   "it",
+   19.76,
+   19.92
+  ],
+  [
+   "back.",
+   19.92,
+   20.64
+  ],
+  [
+   "He",
+   20.64,
+   20.88
+  ],
+  [
+   "loves",
+   20.88,
+   21.36
+  ],
+  [
+   "it.",
+   21.36,
+   22.0
+  ],
+  [
+   "Ugh.",
+   22.0,
+   22.6
+  ]
+ ],
+ "text": "Day two of the football trip. Why is there a mountain in the football trip? The planner had a switch. It said hikes. You hate hikes. I like the idea of hikes. So why did you flip it? It was a switch. What else did you flip? Tomorrow morning, run. Flip it back. He loves it."
+}

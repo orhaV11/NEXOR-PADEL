@@ -106,5 +106,137 @@
    }
   }
  },
- "clips": {}
+ "clips": {
+  "a1": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/24ba31df-60a9-4d12-83a2-65fa0d5a12ac_e1c729a0.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a1_t1.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo sweeps his arm across the empty wall, ends pointing at the single sheet with his chin up, and says, proud and lively, like a presenter: \"No notes. No folder. One sentence.\" He ends beaming. @Luna, lying on the bean bag with the basketball, only looks up at the wall, one eyebrow raised. The cat sleeps on the suitcase. The wall does not change. One continuous shot. Nobody else appears. Sound: his voice, a quiet room.",
+     "rid": "24ba31df-60a9-4d12-83a2-65fa0d5a12ac"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/a6b039c8-27bf-473d-8f83-ecc5ba4b57fd_f8e4a530.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a1_t2.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo sweeps his arm across the empty wall, ends pointing at the single sheet with his chin up, and says, proud and lively, like a presenter: \"No notes. No folder. One sentence.\" He ends beaming. @Luna, lying on the bean bag with the basketball, only looks up at the wall, one eyebrow raised. The cat sleeps on the suitcase. The wall does not change. One continuous shot. Nobody else appears. Sound: his voice, a quiet room.",
+     "rid": "a6b039c8-27bf-473d-8f83-ecc5ba4b57fd"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a1_t2.mp4"
+  },
+  "a2": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/e4d58bd8-dda2-43fd-83f7-3865e991fb9d_3dc31111.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a2_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo stands still with a small smug smile for one full second. Then he says, dry and proud: \"Nine words. I counted.\" He gives one slow, proud nod and says, very pleased with himself: \"Done.\" The phone stays flat against his chest and its screen is never seen. One continuous shot. Nobody else appears. Sound: his voice, a quiet room.",
+     "rid": "e4d58bd8-dda2-43fd-83f7-3865e991fb9d"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/e1fd8e82-09c0-4cb8-af95-b4a9bc6bbf3e_5f9d7e9a.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a2_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo stands still with a small smug smile for one full second. Then he says, dry and proud: \"Nine words. I counted.\" He gives one slow, proud nod and says, very pleased with himself: \"Done.\" The phone stays flat against his chest and its screen is never seen. One continuous shot. Nobody else appears. Sound: his voice, a quiet room.",
+     "rid": "e1fd8e82-09c0-4cb8-af95-b4a9bc6bbf3e"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a2_t2.mp4"
+  },
+  "a3": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/2d72818f-476a-49b6-8d56-9341e608622d_d6099baf.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a3_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna points to the right with her whole open right hand and says, outraged and delighted at once, loud and lively: \"Done? That's MY word!\" Her outrage breaks into a wide grin. The basketball stays against her chest; the cat behind her does not move. One continuous shot. Nobody else appears. Sound: her voice.",
+     "rid": "2d72818f-476a-49b6-8d56-9341e608622d"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/5fd7baae-6d89-4e29-a181-3b7759853189_3a599d1d.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a3_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna points to the right with her whole open right hand and says, outraged and delighted at once, loud and lively: \"Done? That's MY word!\" Her outrage breaks into a wide grin. The basketball stays against her chest; the cat behind her does not move. One continuous shot. Nobody else appears. Sound: her voice.",
+     "rid": "5fd7baae-6d89-4e29-a181-3b7759853189"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a3_t2.mp4"
+  },
+  "a4": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/96f56d22-f536-422d-9089-5c127b5b92b5_4d28cc11.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a4_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna pushes the heavy suitcase slowly from right to left, leaning hard, with a small grunt. Ahead of her @Timo strolls at the same slow speed, hands clasped behind his head, and says without looking back, light and smug: \"I carry one sentence.\" The cat rides on the suitcase without moving. One continuous shot. Nobody else appears. Sound: heavy suitcase wheels on stone, her small grunt, his voice.",
+     "rid": "96f56d22-f536-422d-9089-5c127b5b92b5"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/3f8c19df-b0a8-4a4e-8e00-35547d3fd4d8_f4070528.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a4_t2.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna pushes the heavy suitcase slowly from right to left, leaning hard, with a small grunt. Ahead of her @Timo strolls at the same slow speed, hands clasped behind his head, and says without looking back, light and smug: \"I carry one sentence.\" The cat rides on the suitcase without moving. One continuous shot. Nobody else appears. Sound: heavy suitcase wheels on stone, her small grunt, his voice.",
+     "rid": "3f8c19df-b0a8-4a4e-8e00-35547d3fd4d8"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a4_t2.mp4"
+  },
+  "a5": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/97f76e92-bf8d-485f-a94b-8bd1c327cc36_e01bd0fc.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t1.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head, out of breath, looks down at the suitcase under her arms and asks, baffled and loud: \"What did I pack?!\" The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: her breath, her voice.",
+     "rid": "97f76e92-bf8d-485f-a94b-8bd1c327cc36"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/e02e0974-9783-4c60-a78c-46c380159d26_c502ef04.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a5_t2.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna lifts her head, out of breath, looks down at the suitcase under her arms and asks, baffled and loud: \"What did I pack?!\" The cat on the suitcase does not move. One continuous shot. Nobody else appears. Sound: her breath, her voice.",
+     "rid": "e02e0974-9783-4c60-a78c-46c380159d26"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a5_t2.mp4"
+  },
+  "a6": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/202a1190-ca48-4fc6-97ab-2f6a1d8e5b54_48c4f276.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a6_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo does not move his head. Only his eyes slide slowly to one side. Then, in a small innocent voice, he says: \"Maybe... the cat?\" He keeps the frozen smile. One continuous shot. Nobody else appears. Sound: quiet street air, his voice.",
+     "rid": "202a1190-ca48-4fc6-97ab-2f6a1d8e5b54"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a6_t1.mp4"
+  }
+ },
+ "uploads": {
+  "a1_3": "https://cdn.muapi.ai/outputs/generated/3bf28ae32d1a407590e9c6fe15c22569.jpg",
+  "a2_1": "https://cdn.muapi.ai/outputs/generated/4e7e25ab1a7147039417718e69a55ca4.jpg",
+  "a3_1": "https://cdn.muapi.ai/outputs/generated/773b881b9e9c4f1ebe69f8c53d2ecdeb.jpg",
+  "a4_2": "https://cdn.muapi.ai/outputs/generated/039775fd2032473f8d0569829921336a.jpg",
+  "a5_2": "https://cdn.muapi.ai/outputs/generated/10ea3df519d24e8ba0a52cb5c175f5ce.jpg",
+  "a6_1": "https://cdn.muapi.ai/outputs/generated/4d19a94ec4f4455083c4f27193bcd8f7.jpg",
+  "a7_1": "https://cdn.muapi.ai/outputs/generated/e8967007d57a4e9fb29e890128c7d5b4.jpg",
+  "a8_2": "https://cdn.muapi.ai/outputs/generated/f90d6c2c71fe41379e1db96c80d23886.jpg",
+  "a9_2": "https://cdn.muapi.ai/outputs/generated/dd0a384f25864cedbfc52f8ade7b5a8c.jpg",
+  "a10_2": "https://cdn.muapi.ai/outputs/generated/49a4d972aae24e288b355df7adcd390b.jpg",
+  "a11_2": "https://cdn.muapi.ai/outputs/generated/4098040b212c47a4a3a023ace1747a39.jpg"
+ }
 }

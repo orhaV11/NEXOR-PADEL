@@ -31,6 +31,7 @@ Nothing is made twice: state.json remembers every picture and clip. To make one 
 import json
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -174,21 +175,71 @@ def do_video():
             s["_payload"] = payload_of(s)
         todo += [(s, have + k + 1) for k in range(new_takes)]
 
+    # A job is paid for when it is submitted and takes minutes; if this machine restarts meanwhile, the clip must not
+    # be lost or paid twice. So every request id is written to pending.json the moment it exists, and a new run first
+    # collects what an earlier run left there.
+    PENDING = OUT / "pending.json"
+    lock = threading.Lock()
+
+    def pending(add=None, drop=None):
+        with lock:
+            cur = json.loads(PENDING.read_text()) if PENDING.exists() else []
+            if add:
+                cur.append(add)
+            if drop:
+                cur = [x for x in cur if x["rid"] != drop]
+            PENDING.write_text(json.dumps(cur, indent=1))
+            return cur
+
+    def collect(sid, take, rid, prompt, pick):
+        path = OUT / "clips" / f"{sid}_t{take}.mp4"
+        res = muapi.wait(rid, every=8, limit=1500)
+        url = muapi.output_url(res)
+        if not url:
+            if str(res.get("status")) != "timeout":
+                pending(drop=rid)
+            return None, json.dumps(res, ensure_ascii=False)[:400], path
+        muapi.download(url, path)
+        with lock:
+            c = state["clips"].setdefault(sid, {"takes": []})
+            c["takes"] = [t for t in c["takes"] if t["take"] != take] + [{"take": take, "url": url, "file": str(path.relative_to(ROOT)), "pick": pick, "prompt": prompt, "rid": rid}]
+            c["takes"].sort(key=lambda t: t["take"])
+            c["file"] = str(path.relative_to(ROOT))
+            save()
+        pending(drop=rid)
+        return url, None, path
+
+    left = pending()
+    if left:
+        print(f"collecting {len(left)} clip(s) an earlier run was waiting for", flush=True)
+        with ThreadPoolExecutor(6) as ex:
+            for x, (url, err, path) in zip(left, ex.map(lambda x: collect(x["shot"], x["take"], x["rid"], x.get("prompt", ""), x.get("pick", 1)), left)):
+                print(f'clip {x["shot"]} take {x["take"]}: {"ok (collected)" if url else "FAILED " + str(err)}', flush=True)
+        state.update(json.loads(STATE.read_text()))
+        todo = []
+        for s in shots():
+            if not s.get("video"):
+                continue
+            have = len(state["clips"].get(s["id"], {}).get("takes", []))
+            new_takes = max(0, want - have) or (1 if REDO or not have else 0)
+            if new_takes:
+                s["_payload"] = payload_of(s)
+            todo += [(s, have + k + 1) for k in range(new_takes)]
+
     def one(job):
         s, take = job
         t0 = time.time()
-        path = OUT / "clips" / f'{s["id"]}_t{take}.mp4'
-        url, err = run(VIDEO_MODEL, s["_payload"], path)
+        try:
+            rid = muapi.submit(VIDEO_MODEL, s["_payload"])
+        except Exception as e:  # noqa: BLE001
+            return s, take, None, None, f"submit failed: {str(e)[:300]}", round(time.time() - t0)
+        pending(add={"shot": s["id"], "take": take, "rid": rid, "prompt": s["_payload"]["prompt"], "pick": s.get("pick", 1)})
+        url, err, path = collect(s["id"], take, rid, s["_payload"]["prompt"], s.get("pick", 1))
         return s, take, path, url, err, round(time.time() - t0)
 
     with ThreadPoolExecutor(6) as ex:
         for s, take, path, url, err, secs in ex.map(one, todo):
-            if url:
-                c = state["clips"].setdefault(s["id"], {"takes": []})
-                c["takes"].append({"take": take, "url": url, "file": str(path.relative_to(ROOT)), "pick": s.get("pick", 1), "prompt": s["_payload"]["prompt"]})
-                c["file"] = str(path.relative_to(ROOT))
-            print(f'clip {s["id"]} take {take}: {"ok" if url else "FAILED " + err} ({secs} s)', flush=True)
-            save()
+            print(f'clip {s["id"]} take {take}: {"ok" if url else "FAILED " + str(err)} ({secs} s)', flush=True)
     print("balance", muapi.balance().get("balance"))
 
 

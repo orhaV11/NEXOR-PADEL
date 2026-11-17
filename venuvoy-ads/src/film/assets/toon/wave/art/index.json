@@ -1,0 +1,13 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/eec43a67cf6d46aeb762df82cb5f8a41.png"
+ },
+ "bg_park_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/a5d4e12c-c5b1-4c77-94c2-fa27c2267bce_7a44b855.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters in the foreground: the only people are spectators far away, painted as soft blurred shapes with no faces. Vertical 9:16. The top rows of the upper deck of a big open-air baseball stadium on a bright sunny afternoon, seen from a standing person's eye height at the top of the stand, looking out across the stadium (not straight down), the way a phone held at arm's length sees what is behind its owner. In the UPPER LEFT third, far below and far away, the small bright green baseball field with its brown dirt diamond and white bases; beyond it, across the upper part of the picture, the opposite grandstand, tier on tier, packed with thousands of spectators as tiny soft dots of muted colour, and above it a strip of pale blue sky with a few soft white clouds. On the RIGHT half of the picture, the upper deck we stand in curves away from us round the stadium: long rows of dusty-blue seats stepping down steeply, filled with seated spectators seen from behind and from the side as simple soft blobs of heads and shoulders in muted colours, smaller and smaller as the rows curve away. The lower third of the picture is quiet and plain: the backs of a few rows of dusty-blue seats just below, soft and simple, nobody close. Warm sunlight from the upper left. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no numbers, no logos, no crests, no scoreboard, no screens, no advertising boards, no flags, no banners, no foul poles with writing.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

@@ -54,13 +54,17 @@ PLACES = {
               "wide": (("bg_afstand_1", (300, 760), (170, 503), 0.78), (362, 1580, 0.92, -1.0), (885, 1020, 0.92)),
               "close": (("bg_afstand_1", (300, 760), (150, 420), 0.94), (345, 1500, 1.12, 1.0), (880, 935, 1.12)),
               "air": {"file": "air_stand", "db": -32.0, "gusts": False}, "plate": {"x": 352, "y": 300, "size": 0.74}, "cap_y": 1432},
+    "fstand": {"look": "calm", "scene": "A phone vlog from high in the open stand of a full football stadium in late afternoon sun. A big crowd all round.",
+               "wide": (("bg_fstand_1", (420, 1450), (270, 690), 1.00), (362, 1580, 0.92, -1.0), (885, 1020, 0.92)),
+               "close": (("bg_fstand_1", (420, 1450), (240, 610), 1.18), (345, 1500, 1.12, 1.0), (880, 935, 1.12)),
+               "air": {"file": "air_stand", "db": -32.0, "gusts": False}, "plate": {"x": 352, "y": 300, "size": 0.74}, "cap_y": 1432},
     "dusk": {"look": "calm", "scene": "A phone vlog on the forecourt of a stadium at dusk, ten minutes before the game: a queue at the turnstiles behind, floodlights coming on.",
              "wide": (("bg_dusk_1", (560, 1380), (330, 760), 0.80), (372, 1556, 1.00, -1.2), (872, 1010, 1.00)),
              "close": (("bg_dusk_1", (560, 1380), (300, 640), 0.95), (345, 1490, 1.16, 1.0), (888, 905, 1.16)),
              "air": {"file": "air_dusk", "db": -33.0, "gusts": False}, "plate": {"x": 352, "y": 300, "size": 0.74}},
     "street": {"look": "wind", "scene": "A phone vlog on the street outside an arena on game night, a crowd some way behind. A breeze.",
-               "wide": (("bg_street_1", (700, 1150), (330, 640), 1.0), (362, 1560, 0.86, 0.0), (884, 1036, 0.84)),
-               "close": (("bg_street_1", (700, 1150), (300, 540), 1.2), (345, 1500, 1.04, 1.0), (888, 960, 1.02)),
+               "wide": (("bg_street_2", (760, 1380), (380, 760), 1.0), (362, 1560, 0.86, 0.0), (884, 1036, 0.84)),     # painted for the shorts: a loose crowd, nobody repeated
+               "close": (("bg_street_2", (760, 1380), (340, 700), 1.2), (345, 1500, 1.04, 1.0), (888, 960, 1.02)),
                "air": {"file": "air_street", "db": -33.0, "gusts": False}, "plate": {"y": 320}, "cap_y": 1432},
     "court": {"look": "calm", "scene": "A phone vlog from the back rows above a tennis court on a still, sunny day. Everybody is whispering; far off, a ball is hit.",
               "wide": (("bg_tennis_1", (430, 960), (330, 560), 0.92), (366, 1552, 0.96, -1.0), (892, 960, 0.96)),
@@ -71,7 +75,7 @@ PLACES = {
 # what a place borrows from the episode that paid for it: (episode, its file) -> the shared name
 BORROW = {"art": {"bg_arena_in_1": ("look", "bg_arena_1"), "bg_afstand_1": ("minutes", "bg_stand_1x"), "bg_dusk_1": ("battery", "bg_gate_1x"),
                   "bg_street_1": ("nicer", "bg_arena_1")},
-          "air": {"air_arena": ("look", "air"), "air_stand": ("minutes", "air"), "air_dusk": ("battery", "crowd"), "air_street": ("nicer", "air"), "air_court": ("slowly", "air")}}
+          "air": {"air_arena": ("look", "air"), "air_stand": ("minutes", "air"), "air_dusk": ("battery", "crowd"), "air_street": ("nicer", "air"), "air_court": ("slowly", "air2")}}     # air2: soft air and far taps (the first air was a murmuring crowd)
 
 
 def borrow(name):
@@ -102,7 +106,7 @@ SHORTS = {
         ("T", "[flat, looking at it] Sky. Grass. A stadium, very small.", {"eyes": "lens", "gap": 0.30, "opts": {"tighten": 0.18}}),
         ("L", "[turning to him, bright] Out of ten?", {"face": "turn", "eyes": None, "gap": 0.18, "stop": True}),      # he looks down at her as she turns to him
         ("T", "[flat, after a beat] Four. It's a ten from inside.", {"face": None, "eyes": "lens", "gap": 0.40, "cut": True})],
-        "end": {"face": "guilty"}, "hold": 0.75, "said": {"timo": "C E E E M O O O"},
+        "end": {"face": "guilty"}, "hold": 0.75, "said": {"timo": "C C C M O O O", "reviews": "M O O O C", "four": "O", "from": "M O", "inside": "C A A C"},
         "captions": {"split": {"T2": [("Sky. Grass.", None), ("A stadium, very small.", "T2@a-0.04")],
                                "T4": [("Four.", None), ("It's a ten from inside.", "T4@its+0.20")]},       # the punchline is not read before he says it
                      "off": {"T4": "T4.end+0.45"}}},
@@ -112,8 +116,8 @@ SHORTS = {
         ("L", "[quiet, turning to him, meaning it] ...That's actually lovely.", {"face": "turn", "gap": 0.55}),
         ("T", "[at once, flat] It was an accident.", {"eyes": None, "gap": 0.10})],
         "end": {"eyes": "lens"}, "hold": 0.75,           # she stays turned to him with a small smile; he is caught being nice, and looks at us
-        "more_faces": [("T2@best-0.10", "down")],         # she hears it: eyes down, touched
-        "said": {"football": "O C C", "minutes": "C A C", "best": "C", "minute": "C A C", "thats": "C", "actually": "C"},
+        "more_faces": [("T2@best-0.10", "read_b")],       # she hears it: eyes down, mouth shut, touched ('down' is the round 'oh' of surprise)
+        "said": {"football": "O C C", "minutes": "C A A C", "best": "A C", "minute": "C A A C", "complaining": "C C A C", "thats": "C", "actually": "C"},
         "captions": {"split": {"T2": [("Ninety minutes of complaining,", None), ("and one of them is the best minute of your year.", "T2@and")]},
                      "off": {"T4": "T4.end+0.5"}, "on": {"L3": "L3-0.10"}}},
     "roar": {"nn": "22", "title": "The people in the stadium", "place": "hill", "roar": True, "lines": [
@@ -124,7 +128,7 @@ SHORTS = {
         "end": {}, "hold": 0.8, "takes": {3: "ldn_g25p_3"},              # 'Who for?' of reading 3: reading 1 starts with an 'uh'
         "faces": [("start", None), ("roar+0.45", "turn"), ("T4.end+0.22", None)],     # she turns to him on the roar; good news to her, always
         "eyes_at": [("start", None), ("L3.end+0.02", "lens")],                         # his look at us comes with the music's stop
-        "said": {"people": "M C M C", "stadium": "C C C M"},
+        "said": {"people": "M M C", "stadium": "C C C M", "goal": "C O O"},
         "captions": {"off": {"T4": "plate"}}},
     "uphill": {"nn": "23", "title": "She loves it", "place": "hill", "lines": [
         ("L", "[out of breath, big eyes, to the camera] Okay.", {"face": "defend", "eyes": "lens"}),      # she speaks first: the speech model gives the first speaker her voice
@@ -132,19 +136,21 @@ SHORTS = {
         ("L", "[out of breath, to the camera] Nobody said it was uphill.", {"gap": 0.20}),
         ("T", "[flat, to her] You added it to the plan.", {"face": "guilty", "eyes": None, "gap": 0.14, "stop": True}),
         ("T", "[to the camera, lightly, copying her sunny tune] She loves it.", {"eyes": "lens", "gap": 0.75, "cut": True})],
-        "end": {"face": "guilty"}, "hold": 0.7, "said": {"uphill": "A M C"}},
+        "end": {"face": "guilty"}, "hold": 0.7, "said": {"uphill": "A M C C C C C"}},
     "nogame": {"nn": "24", "title": "The weekend with no game", "place": "gates", "lines": [
         ("L", "[tragic, to the camera] No game this weekend. Not anybody's.", {"face": "defend", "eyes": None, "opts": {"tighten": 0.16}}),
         ("T", "[flat, counting] There's basketball. Rugby. Golf.", {"face": "guilty", "eyes": "narrow", "gap": 0.25, "opts": {"tighten": 0.28}}),
         ("L", "[turning to him, doubtful] You'd watch golf?", {"face": "turn", "gap": 0.16, "stop": True}),
         ("T", "[to the camera, dry] I'd watch you stay quiet for four hours.", {"eyes": "lens", "gap": 0.40})],
-        "end": {"face": "down"}, "hold": 0.75, "said": {"weekend": "O C C", "watch": "O C C", "anybodys": "C M O C"}},
+        "end": {"face": "read_b"}, "hold": 0.75,           # a grown-up sulk: eyes down, mouth shut ('down' is the round 'oh')
+        "said": {"weekend": "O C C", "watch": "C C M", "youd": "C C M", "game": "C C M", "anybodys": "C M O C"}},
     "ironed": {"nn": "25", "title": "He ironed the scarf", "place": "gates", "lines": [
         ("L", "[low, to the camera, confiding] Stadium tour at ten. He's been ready since six.", {"face": "guilty", "eyes": None, "opts": {"tighten": 0.18}}),
         ("T", "[flat, to the camera] I'm fine either way.", {"eyes": "lens", "gap": 0.20}),
         ("L", "[to the camera, delighted, a secret] He ironed the scarf.", {"face": None, "gap": 0.30, "stop": True}),
-        ("T", "[to the camera, flat, proud] I did yours as well.", {"face": "down", "eyes": "lens", "gap": 0.80, "cut": True})],    # his topper: she looks down at her own scarf
-        "end": {"face": "guilty"}, "hold": 0.5, "said": {"im": "C", "stadium": "C E C"},
+        ("T", "[to the camera, flat, proud] I did yours as well.", {"eyes": "lens", "gap": 0.80, "cut": True})],    # his topper
+        "end": {"face": "guilty"}, "hold": 0.5, "said": {"im": "C", "stadium": "C E C", "since": "C C C"},
+        "more_faces": [("T4@yours+0.08", "down")],         # she looks down at her own scarf only once he has said it
         "captions": {"split": {"L1": [("Stadium tour at ten.", None), ("He's been ready since six.", "L1@hes")]}}},
     # ---- "One sentence.": she names the sport they are at, he gets one sentence
     "basket": {"nn": "30", "title": "One sentence: basketball", "place": "arena", "lines": [
@@ -152,106 +158,126 @@ SHORTS = {
         ("T", "[unhurried, exact, to the camera] Both teams score a hundred times, and it's settled in the last four seconds, which take half an hour.", {"eyes": "lens", "gap": 0.35, "opts": {"tighten": 0.16}}),
         ("L", "[turning to him, pleased with herself] That was two sentences.", {"face": "turn", "gap": 0.30}),
         ("T", "[at once, flat, to her] There was a comma.", {"eyes": None, "gap": 0.10, "stop": True})],
-        "end": {"eyes": "lens"}, "hold": 0.8,
-        "captions": {"split": {"T2": [("Both teams score a hundred times,", None), ("and it's settled in the last four seconds,", "T2@and"), ("which take half an hour.", "T2@which")]}}},
+        "end": {"eyes": "lens"}, "hold": 0.8, "more_faces": [("T2@and", "guilty")],      # she starts counting his sentences
+        "said": {"basketball": "A C A C", "sentence": "C M C", "sentences": "C M C", "teams": "C M", "score": "O C", "hundred": "A M", "times": "C M",
+                 "settled": "C M", "last": "C M", "seconds": "C M", "take": "C M", "half": "A M", "hour": "O M"},
+        "captions": {"split": {"T2": [("Both teams score a hundred times,", None), ("and it's settled in the last four seconds,", "T2@and"), ("which take half an hour.", "T2@which")]},
+                     "off": {"T4": "T4.end+0.5"}}},
     "gridiron": {"nn": "31", "title": "One sentence: American football", "place": "stand", "lines": [
         ("L", "[bright, over the crowd, to the camera, a dare] American football. One sentence.", {"face": None, "eyes": None}),
         ("T", "[flat, exact, to the camera] Eleven seconds of sport, and then a meeting.", {"eyes": "lens", "gap": 0.35, "stop": True}),
         ("L", "[turning to him, curious] And after the meeting?", {"face": "turn", "gap": 0.35}),
-        ("T", "[flat, to her, at once] Another meeting.", {"eyes": None, "gap": 0.12})],
-        "end": {"face": None, "eyes": "lens"}, "hold": 0.75},
+        ("T", "[flat, to her, at once] A meeting about the meeting.", {"eyes": None, "gap": 0.12})],     # the topper climbs (it was 'Another meeting.')
+        "end": {"face": None, "eyes": "lens"}, "hold": 0.75,
+        "said": {"sport": "O O C", "american": "A C A C", "football": "O C C", "meeting": "C C C", "about": "A O C"},
+        "captions": {"split": {"T2": [("Eleven seconds of sport,", None), ("and then a meeting.", "T2@and")]}, "off": {"T4": "plate"}}},
     # ---- "Question.": she reads a question off her phone; her answer is cheerful and wrong, his is one dry line
     "alone": {"nn": "40", "title": "Question: on your own", "place": "dusk", "lines": [
         ("L", "[reading off her phone, bright] Question. 'Is it weird to go to a game on your own?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("T", "[to the camera, at once, flat] No. It's the best way to go.", {"face": None, "eyes": "lens", "gap": 0.12}),
         ("L", "[turning to him, amused] You've never been on your own.", {"face": "turn", "gap": 0.25, "stop": True}),
         ("T", "[flat, to her, after a beat] I've never been allowed.", {"eyes": None, "gap": 0.40})],
-        "end": {"eyes": "lens"}, "hold": 0.75,
-        "captions": {"split": {"L1": [("Question.", None), ("'Is it weird to go to a game on your own?'", "L1@is")]}}},
+        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.75,         # caught as the one who never lets him go
+        "takes": {1: "ldn_g25p_2", 3: "ldn_g25p_1"},                       # her question from reading 2 (206 Hz; reading 1's sat at 157)
+        "said": {"never": "C M M C", "been": "M M C", "best": "C"},
+        "captions": {"split": {"L1": [("Question.", None), ("'Is it weird to go to a game on your own?'", 0.70)]}}},
     "third": {"nn": "41", "title": "Question: name the third", "place": "street", "lines": [
         ("L", "[reading off her phone] Question. 'How many games fit in one weekend?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("L", "[bright, to the camera, certain] Four!", {"face": None, "gap": 0.22}),
         ("T", "[to the camera, flat] Two. And you remember both.", {"eyes": "lens", "gap": 0.16}),
-        ("L", "[turning to him, indignant] We did four in a weekend.", {"face": "turn", "gap": 0.14}),
-        ("T", "[flat, to her] Name the third.", {"eyes": None, "gap": 0.14, "stop": True})],
-        "end": {"face": "down", "eyes": "lens"}, "hold": 0.9, "said": {"did": "C E", "weekend": "E E C"},
+        ("L", "[turning to him, indignant] We did four in a weekend.", {"face": "turn", "gap": 0.14, "stop": True}),
+        ("T", "[flat, to her] Name the third.", {"eyes": None, "gap": 0.40})],
+        "end": {"face": "down", "eyes": "lens"}, "hold": 0.9, "phone_lift": 160,
+        "said": {"did": "C M M", "weekend": "C C M", "fit": "C M M", "one": "O O C", "both": "O C"},
         "captions": {"split": {"L1": [("Question.", None), ("'How many games fit in one weekend?'", "L1@how")]}}},
     "turnup": {"nn": "42", "title": "Question: just turn up", "place": "gates", "lines": [
-        ("L", "[reading off her phone] Question. 'Do you even need a plan? Can't you just turn up?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
+        ("L", "[reading off her phone] Question. 'Can't you just turn up?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("L", "[bright, to the camera] Yes! Just turn up!", {"face": None, "gap": 0.22}),
         ("T", "[to the camera, flat] We just turned up once.", {"eyes": "lens", "gap": 0.16}),
         ("L", "[turning to him, fondly] That was a great weekend.", {"face": "turn", "gap": 0.16, "stop": True}),
         ("T", "[flat, to her] The game was the weekend after.", {"eyes": None, "gap": 0.30})],
-        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"that": "E C", "was": "O E", "great": "C E C", "weekend": "E E C"},
-        "captions": {"split": {"L1": [("Question.", None), ("'Do you even need a plan?'", "L1@do"), ("'Can't you just turn up?'", "L1@can")]}}},
+        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"that": "C", "was": "O C", "great": "C C", "weekend": "C C M"},
+        "captions": {"split": {"L1": [("Question.", None), ("'Can't you just turn up?'", "L1@can")]},
+                     "hold": {"T5": ("The game was\n", "the weekend after.", "T5@weekend-0.10")}}},
     # ---- "It's that week.": the moments of every fan's year, nothing named
     "top": {"nn": "50", "title": "First day of the season", "place": "dusk", "lines": [
         ("L", "[sunny, to the camera] First day of the season! We're top of the table.", {"face": None, "eyes": None, "opts": {"tighten": 0.18}}),
         ("T", "[flat, to her] Nobody has played.", {"gap": 0.14}),
         ("L", "[sunny, unmoved, to the camera] And we're top.", {"gap": 0.12, "stop": True}),
-        ("T", "[to the camera, after a beat] It's alphabetical.", {"eyes": "lens", "gap": 0.45})],
-        "end": {}, "hold": 0.8},
+        ("T", "[to the camera, after a beat] It's alphabetical.", {"gap": 0.60})],
+        "end": {}, "hold": 0.8, "eyes_at": [("start", None), ("L3.end+0.02", "lens")],      # his stare at us comes with the music's stop
+        "captions": {"off": {"T4": "plate"}}},
     "tennis": {"nn": "32", "title": "One sentence: tennis", "place": "court", "bed": None, "lines": [      # no music: everybody whispers
         ("L", "[very low, close to the phone, almost a whisper, a dare] Tennis. One sentence.", {"face": None, "eyes": None}),
         ("T", "[very low, close to the phone, almost a whisper, exact] Four thousand people keep quiet so two people can grunt.", {"eyes": "lens", "gap": 0.35, "opts": {"tighten": 0.16}}),
-        ("L", "[very low, almost a whisper, turning to him, doubtful] That can't be all of it.", {"face": "turn", "gap": 0.30}),
+        ("L", "[very low, almost a whisper, turning to him, doubtful] That can't be all of it.", {"face": "turn", "gap": 0.65}),
         ("T", "[very low, almost a whisper, flat] There's also a man on a very tall chair.", {"eyes": None, "gap": 0.14})],
-        "end": {"face": None, "eyes": "lens"}, "hold": 0.8, "said": {"that": "E C", "cant": "C E C", "all": "O C"},
-        "captions": {"split": {"T2": [("Four thousand people keep quiet", None), ("so two people can grunt.", "T2@so")]}}},
+        "end": {"face": None, "eyes": "lens"}, "hold": 0.8, "said": {"that": "C", "cant": "C C C", "all": "O C", "be": "M C"},
+        "captions": {"split": {"T2": [("Four thousand people keep quiet", None), ("so two people can grunt.", "T2@so")],
+                               "T4": [("There's also a man", None), ("on a very tall chair.", "T4@on")]}}},
     "early": {"nn": "43", "title": "Question: how early?", "place": "arena", "lines": [
         ("L", "[reading off her phone] Question. 'How early should I get there?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("T", "[to the camera, at once, flat] Two hours.", {"face": None, "eyes": "lens", "gap": 0.12}),
         ("L", "[turning to him, baffled] What do you do for two hours?", {"face": "turn", "gap": 0.22, "stop": True}),
         ("T", "[flat, to her, after a beat] Wait for you.", {"eyes": None, "gap": 0.40})],
-        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"what": "O E", "hours": "E O C"},
-        "captions": {"split": {"L1": [("Question.", None), ("'How early should I get there?'", "L1@how")]}}},
+        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"what": "O C", "hours": "O O C"},
+        "captions": {"text": {"L1": "Question: 'How early should I get there?'"}}},
     "language": {"nn": "44", "title": "Question: the language", "place": "street", "lines": [
         ("L", "[reading off her phone] Question. 'Do I need the language?'", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("L", "[bright, to the camera] No! Just smile!", {"face": None, "gap": 0.22}),
         ("T", "[to the camera, flat, counting] You need three words. Two. Please. Which gate.", {"eyes": "lens", "gap": 0.16, "opts": {"tighten": 0.16}}),
         ("L", "[turning to him, triumphant] That's four words.", {"face": "turn", "gap": 0.20, "stop": True}),
         ("T", "[flat, to her] Which gate is one word when you're late.", {"eyes": None, "gap": 0.30})],
-        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"thats": "E C", "four": "C O", "words": "O C"},
+        "end": {"face": "guilty", "eyes": "lens"}, "hold": 0.8, "said": {"no": "A", "thats": "C", "four": "C O", "words": "O C"},
+        "takes": {2: "ldn_g25p_1"}, "more_faces": [("T3@two-0.10", "down")],       # 'No!' of reading 1: reading 3's is a squeal at 314 Hz
         "captions": {"split": {"L1": [("Question.", None), ("'Do I need the language?'", "L1@do")],
                                "T3": [("You need three words.", None), ("'Two.' 'Please.' 'Which gate.'", "T3@two")]},
-                     "text": {"T5": "'Which gate' is one word when you're late."}}},
+                     "text": {"T5": "'Which gate' is one word\nwhen you're late."}, "off": {"T5": "T5.end+0.5"}}},
     "summer": {"nn": "51", "title": "The day after the season", "place": "gates", "lines": [
         ("L", "[low, to the camera, a secret] The season ended yesterday.", {"face": "guilty", "eyes": "shut"}),
         ("T", "[eyes shut, not moving, flat] Wake me in August.", {"gap": 0.30}),
         ("L", "[reading off her phone, innocent] There's baseball all summer.", {"face": "read", "piece": "phone", "gap": 0.30, "stop": True}),
-        ("T", "[after a long beat, slowly, suddenly interested] ...Where?", {"eyes": "narrow", "gap": 0.75})],
-        "end": {"face": None}, "hold": 0.8},
+        ("T", "[after a long beat, slowly, suddenly interested] ...Where?", {"gap": 0.90})],
+        "end": {"face": None}, "hold": 0.8, "takes": {1: "ldn_g25p_2"},      # her first line of reading 1 sat at 158 Hz, too near his voice
+        "eyes_at": [("start", "shut"), ("L3.end+0.30", "narrow")],              # his eyes snap open on 'baseball' and stay on her phone before he asks
+        "said": {"ended": "A C", "yesterday": "C M C", "baseball": "C A C", "me": "C"}},
     "draw": {"nn": "52", "title": "The draw", "place": "street", "lines": [
-        ("L", "[reading off her phone, small] The draw's out. We got them away.", {"face": "read", "eyes": None, "piece": "phone", "piece_to": 3}),
+        ("L", "[reading off her phone, small] The draw's out. We got them away.", {"face": "read", "eyes": None, "piece": "phone"}),
         ("T", "[flat, to her] How far away?", {"gap": 0.16}),
         ("L", "[still reading, smaller] ...Far.", {"gap": 0.35}),
         ("T", "[eyes shut, resigned] It'll be a Tuesday night.", {"eyes": "shut", "gap": 0.35, "stop": True}),
-        ("L", "[sunny, to the camera, delighted] Sports trip!", {"face": None, "gap": 0.25})],
-        "end": {}, "hold": 0.7},
+        ("L", "[sunny, to the camera, delighted] Sports trip!", {"face": None, "gap": 0.40})],
+        "end": {"eyes": "lens"}, "hold": 0.7, "said": {"away": "C O C", "them": "C C", "sports": "C A C"},
+        "captions": {"split": {"L1": [("The draw's out.", None), ("We got them away.", "L1@we")]}}},
     "fixtures": {"nn": "53", "title": "The fixtures are out", "place": "dusk", "lines": [
         ("L", "[reading off her phone, fast, thrilled] The fixtures are out! I've picked three weekends.", {"face": "read", "eyes": None, "piece": "phone", "opts": {"tighten": 0.18}}),
         ("T", "[flat, to her] They came out four minutes ago.", {"gap": 0.14}),
         ("L", "[sunny, to the camera] Four good minutes.", {"face": None, "gap": 0.16, "stop": True}),
-        ("T", "[to the camera, after a beat] They'll move every one of those games.", {"eyes": "lens", "gap": 0.40})],
-        "end": {"face": "guilty"}, "hold": 0.75},
-    "leave": {"nn": "60", "title": "When do you leave?", "place": "stand", "lines": [
+        ("T", "[to the camera, after a beat] They'll move every one of those games.", {"gap": 0.55})],
+        "end": {"face": "guilty"}, "hold": 0.6, "phone_lift": 160,
+        "eyes_at": [("start", None), ("L3.end+0.02", "lens")], "said": {"minutes": "C C M", "ago": "C O"},
+        "takes": {2: "ldn_g25p_2", 4: "ldn_g25p_2"}},      # both his lines from one reading: reading 1's first one was lighter (158 Hz)
+    "leave": {"nn": "60", "title": "When do you leave?", "place": "fstand", "lines": [
         ("L", "[bright, to the camera] When do you leave a game?", {"face": None, "eyes": None}),
         ("T", "[to the camera, at once, flat] Eighty-five minutes. Beat the crowd.", {"eyes": "lens", "gap": 0.12}),
-        ("L", "[turning to him, accusing] He's missed four winning goals.", {"face": "turn", "gap": 0.22, "stop": True}),
-        ("T", "[to the camera, flat] And not one train.", {"gap": 0.35})],
-        "end": {"face": None}, "hold": 0.8, "said": {"hes": "C E C", "winning": "C E C", "goals": "O C"}},
+        ("L", "[turning to him, accusing] He's missed four winning goals.", {"face": "turn", "eyes": None, "gap": 0.22, "stop": True}),
+        ("T", "[to the camera, flat] And not one train.", {"gap": 0.60})],
+        "end": {"face": None}, "hold": 0.8, "more_eyes": [("L3.end+0.02", "lens")],
+        "said": {"hes": "C E C", "missed": "C", "winning": "C E C", "goals": "O C", "and": "C"}},
     "pack": {"nn": "61", "title": "What do you pack?", "place": "gates", "lines": [
         ("L", "[bright, to the camera] What do you pack for a sports trip?", {"face": None, "eyes": None}),
         ("T", "[to the camera, flat] What's on the list.", {"eyes": "lens", "gap": 0.14}),
         ("L", "[turning to him, alarmed] There's a list?", {"face": "turn", "gap": 0.20, "stop": True}),
         ("T", "[to the camera, flat, proud] It's laminated.", {"gap": 0.45})],
-        "end": {"face": "guilty"}, "hold": 0.8, "said": {"theres": "E E C", "list": "C E C"}},
-    "source": {"nn": "62", "title": "Source?", "place": "dusk", "lines": [
-        ("L", "[reading off her phone, pleased] Sunday, four p.m.: the match.", {"face": "read", "eyes": None, "piece": "phone", "piece_to": 3}),
+        "end": {}, "hold": 0.8, "more_faces": [("T4@laminated+0.10", "guilty")],          # her face falls on the word
+        "blinks": {"timo": [1.7, "T4.end+1.0"]}, "said": {"theres": "E E C", "list": "C E C", "laminated": "C M C C"}},
+    "source": {"nn": "62", "title": "Source?", "place": "gates", "lines": [        # the day before, at the shut gates (at dusk by the queue, asking for a source looked slow)
+        ("L", "[reading off her phone, pleased] Sunday, four p.m.: the match.", {"face": "read", "eyes": "narrow", "piece": "phone"}),
         ("T", "[flat, to her, suspicious] Source?", {"eyes": "narrow", "gap": 0.30}),
         ("L", "[reading on, surprised] ...It actually says the source. And the day they checked it.", {"gap": 0.40, "opts": {"tighten": 0.18}}),
         ("T", "[to the camera, proud] I don't travel on a rumor.", {"eyes": "lens", "gap": 0.35, "stop": True})],    # spelt as the recogniser spells it; the caption is British
-        "end": {"face": None}, "hold": 0.8,
+        "end": {"face": None}, "hold": 0.8, "blinks": {"timo": [1.7, 5.2, "T4.end+1.0"]}, "more_eyes": [("L3@and-0.10", None)],
+        "said": {"pm": "E C M", "match": "A C", "says": "C E M", "day": "M A", "checked": "C E M", "dont": "C O M", "travel": "C A A M", "on": "O C"},
         "captions": {"text": {"L1": "'Sunday, 4 p.m.: the match.'", "T4": "I don't travel on a rumour."},
                      "split": {"L3": [("...It actually says the source.", None), ("And the day they checked it.", "L3@and")]}}},
 }
@@ -342,7 +368,7 @@ def picture(name):
     from vlog import Vlog
     sh, P, I = SHORTS[name], PLACES[SHORTS[name]["place"]], ids(SHORTS[name])
     borrow(name)
-    v = Vlog(name, f"ads/21-vlog/venuvoy-vlog-{sh['nn']}-{name}", luna=P["look"], timo="timo_clean", said=sh.get("said"))
+    v = Vlog(name, f"ads/21-vlog/venuvoy-vlog-{sh['nn']}-{name}", luna=P["look"], timo="timo_clean", said=sh.get("said"), drive=True)   # mouths led by the voice's loudness
     v.turn_shout = sh.get("shout", False)      # her turned head never gapes in a short unless a line is a shout
     v.no_teeth = ("defend",)                   # nor a clenched grin on her caught face
     bg, lu, ti = P["wide"]
@@ -357,8 +383,20 @@ def picture(name):
             faces.append((when, o["face"]))
         if "eyes" in o:
             eyes.append((when, o["eyes"]))
-        if o.get("piece"):     # "piece_to": the number of the last line it stays up for
-            v.piece(o["piece"], up=f"{I[n]}-0.38", down=f"{I[o.get('piece_to', n + 1) - 1]}.end+0.25", lift=110 if o["piece"] == "phone" else 100)
+        if o.get("piece"):
+            if "piece_to" in o:            # the number of the last line it stays up for
+                down = f"{I[o['piece_to'] - 1]}.end+0.25"
+            else:                          # her phone stays up for as long as she is reading it: until her face leaves "read"
+                later = [(m, oo["face"]) for m, (_, _, oo) in enumerate(sh["lines"]) if m > n and "face" in oo]
+                leave = next((m for m, f in later if f not in ("read", "read_b")), None)
+                if leave is not None:
+                    down = f"{I[leave]}-0.10"
+                elif o.get("face") in ("read", "read_b") and "face" in sh.get("end", {}):
+                    down = f"{I[-1]}.end+0.22"
+                else:
+                    down = f"{I[n]}.end+0.25"
+            v.piece(o["piece"], up=f"{I[n]}-0.38", down=down, dx=o.get("piece_dx", 0),
+                    lift=sh.get("phone_lift", 110) if o["piece"] == "phone" else 100)
     end = sh.get("end", {})
     if "face" in end:
         faces.append((f"{I[-1]}.end+0.22", end["face"]))
@@ -372,7 +410,11 @@ def picture(name):
         v.faces(*faces)
     if eyes:
         v.eyes(*eyes)
-    v.captions(**sh.get("captions", {}))
+    caps = {k: dict(x) for k, x in sh.get("captions", {}).items()}
+    caps.setdefault("on", {}).setdefault(I[0], "start")         # her first words are up from the first frame: the hook with the sound off
+    v.captions(**caps)
+    if "blinks" in sh:                          # blinks set by hand: never on a punchline
+        v.blinks(**sh["blinks"])
     if P["plate"]:
         v.plate(**P["plate"])
     return v

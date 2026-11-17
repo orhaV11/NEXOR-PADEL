@@ -1,0 +1,361 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Good news! Ice hockey tickets!",
+  "t0": 0.22,
+  "t1": 2.24,
+  "dur": 2.02,
+  "words": [
+   [
+    "good",
+    -0.06,
+    0.26
+   ],
+   [
+    "news",
+    0.26,
+    0.74
+   ],
+   [
+    "ice",
+    0.74,
+    1.06
+   ],
+   [
+    "hockey",
+    1.06,
+    1.46
+   ],
+   [
+    "tickets",
+    1.46,
+    1.97
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "good news ice hockey tickets",
+  "wrong": [],
+  "peak_db": -3.2
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "From where?",
+  "t0": 2.61,
+  "t1": 3.35,
+  "dur": 0.74,
+  "words": [
+   [
+    "from",
+    0.03,
+    0.43
+   ],
+   [
+    "where",
+    0.43,
+    0.69
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "from where",
+  "wrong": [],
+  "peak_db": -2.7
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "A man sent me a link. Official Dave.",
+  "t0": 3.84,
+  "t1": 6.23,
+  "dur": 2.39,
+  "words": [
+   [
+    "a",
+    -0.16,
+    0.08
+   ],
+   [
+    "man",
+    0.08,
+    0.32
+   ],
+   [
+    "sent",
+    0.32,
+    0.56
+   ],
+   [
+    "me",
+    0.56,
+    0.64
+   ],
+   [
+    "a",
+    0.64,
+    0.72
+   ],
+   [
+    "link",
+    0.72,
+    1.2
+   ],
+   [
+    "official",
+    1.2,
+    1.76
+   ],
+   [
+    "dave",
+    1.76,
+    2.34
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "a man sent me a link official dave",
+  "wrong": [],
+  "peak_db": -3.6
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "Official Dave.",
+  "t0": 6.74,
+  "t1": 8.09,
+  "dur": 1.35,
+  "words": [
+   [
+    "official",
+    -0.02,
+    0.78
+   ],
+   [
+    "dave",
+    0.78,
+    1.3
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "official dave",
+  "wrong": [],
+  "peak_db": -3.0
+ },
+ {
+  "n": 5,
+  "who": "L",
+  "text": "It's in his name!",
+  "t0": 8.55,
+  "t1": 9.73,
+  "dur": 1.18,
+  "words": [
+   [
+    "its",
+    -0.07,
+    0.25
+   ],
+   [
+    "in",
+    0.25,
+    0.49
+   ],
+   [
+    "his",
+    0.49,
+    0.73
+   ],
+   [
+    "name",
+    0.73,
+    1.13
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "its in his name",
+  "wrong": [],
+  "peak_db": -5.3
+ },
+ {
+  "n": 6,
+  "who": "T",
+  "text": "The planner checks ticket links. Paste it.",
+  "t0": 10.23,
+  "t1": 13.04,
+  "dur": 2.81,
+  "words": [
+   [
+    "the",
+    -0.07,
+    0.17
+   ],
+   [
+    "planner",
+    0.17,
+    0.65
+   ],
+   [
+    "checks",
+    0.65,
+    1.05
+   ],
+   [
+    "ticket",
+    1.05,
+    1.37
+   ],
+   [
+    "links",
+    1.37,
+    2.09
+   ],
+   [
+    "paste",
+    2.09,
+    2.65
+   ],
+   [
+    "it",
+    2.65,
+    2.76
+   ]
+  ],
+  "matched": "7/7",
+  "heard": "the planner checks ticket links paste it",
+  "wrong": [],
+  "peak_db": -3.8
+ },
+ {
+  "n": 7,
+  "who": "L",
+  "text": "You never trust any\u2014",
+  "t0": 13.54,
+  "t1": 14.95,
+  "dur": 1.41,
+  "words": [
+   [
+    "you",
+    -0.02,
+    0.22
+   ],
+   [
+    "never",
+    0.22,
+    0.46
+   ],
+   [
+    "trust",
+    0.46,
+    0.86
+   ],
+   [
+    "any",
+    0.86,
+    1.36
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "you never trust any",
+  "wrong": [],
+  "peak_db": -4.3
+ },
+ {
+  "n": 8,
+  "who": "T",
+  "text": "Paste.",
+  "t0": 15.48,
+  "t1": 16.07,
+  "dur": 0.59,
+  "words": [
+   [
+    "paste",
+    -0.12,
+    0.54
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "paste",
+  "wrong": [],
+  "peak_db": -6.3
+ },
+ {
+  "n": 9,
+  "who": "L",
+  "text": "Could not verify.",
+  "t0": 16.6,
+  "t1": 17.8,
+  "dur": 1.2,
+  "words": [
+   [
+    "could",
+    -0.12,
+    0.28
+   ],
+   [
+    "not",
+    0.28,
+    0.44
+   ],
+   [
+    "verify",
+    0.6,
+    1.15
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "could not verify",
+  "wrong": [],
+  "peak_db": -5.6
+ },
+ {
+  "n": 10,
+  "who": "L",
+  "text": "He says hurry.",
+  "t0": 18.5,
+  "t1": 19.34,
+  "dur": 0.84,
+  "words": [
+   [
+    "he",
+    -0.1,
+    0.06
+   ],
+   [
+    "says",
+    0.06,
+    0.38
+   ],
+   [
+    "hurry",
+    0.38,
+    0.79
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "he says hurry",
+  "wrong": [],
+  "peak_db": -8.4
+ },
+ {
+  "n": 11,
+  "who": "L",
+  "text": "Bye, Dave.",
+  "t0": 19.88,
+  "t1": 20.78,
+  "dur": 0.9,
+  "words": [
+   [
+    "bye",
+    -0.12,
+    0.36
+   ],
+   [
+    "dave",
+    0.36,
+    0.85
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "bye dave",
+  "wrong": [],
+  "peak_db": -15.3
+ }
+]

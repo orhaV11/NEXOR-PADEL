@@ -392,9 +392,12 @@ class Talk:
 
     FALLBACK = {"F": ["C", "E", "M"], "C": ["E", "A", "M"], "E": ["C", "A"], "O": ["C", "A"], "A": ["O", "E", "C"], "M": []}
 
-    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10, wide_min=2, teeth_min=3, said=None, open_min=0.45):
+    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10, wide_min=2, teeth_min=3, said=None, open_min=0.45, drive=False):
         """said: {"word": "A C"}: the shapes of a word set by hand (the words a joke rests on).
-        open_min: the open mouth shows only where the voice is at least this loud (a flat, quiet speaker needs less)."""
+        open_min: the open mouth shows only where the voice is at least this loud (a flat, quiet speaker needs less).
+        drive: let the loudness of the voice lead (the recogniser's word times run late and the spelling puts closed
+        lips on loud vowels): a closed shape from the spelling counts only where the voice really dips, and a mouth
+        held open for long closes where the voice dips inside it and opens wider on its loudest steps."""
         self.env = loudness(wav)
         self.lead, self.quiet, self.have = lead, quiet, set(have)
         said = said or {}
@@ -417,6 +420,8 @@ class Talk:
                 s = "C"
             if s not in self.have:
                 s = next((f for f in self.FALLBACK.get(s, []) if f in self.have), None)
+            if drive and s in ("M", None) and self.level(t) >= 0.6 * self._speaking(quiet):
+                s = "C"                      # the voice is loud here: the lips are not closed
             seq.append(None if s == "M" else s)
         # runs: (shape, first step, length)
         def runs(q):
@@ -435,7 +440,24 @@ class Talk:
         for sh, i, n in runs(seq):   # a one-step blip between two equal neighbours
             if n == 1 and 0 < i < len(seq) - 1 and seq[i - 1] == seq[i + 1] and seq[i - 1] is not None:
                 seq[i] = seq[i - 1]
+        if drive:                    # a mouth held in one shape for half a second or more moves with the voice inside it
+            for sh, i, n in runs(seq):
+                if sh is None or n < 6:
+                    continue
+                lv = [self.level(k / 12 + lead) for k in range(i, i + n)]
+                mid = sorted(lv)[len(lv) // 2]
+                for j, v in enumerate(lv):
+                    if 0 < j < n - 1 and v < 0.55 * mid and v <= lv[j - 1] and v <= lv[j + 1]:
+                        seq[i + j] = None                     # a dip: the lips meet for a moment
+                    elif sh == "C" and v > 1.25 * mid and v >= open_min and "O" in self.have and j % 2 == 0:
+                        seq[i + j] = "O"                      # a peak: a little wider
         self.seq = seq
+
+    def _speaking(self, quiet):
+        if not hasattr(self, "_spk"):
+            v = [x for x in self.env if x >= quiet]
+            self._spk = float(sorted(v)[len(v) // 2]) if v else 1.0
+        return self._spk
 
     def level(self, t):
         i = int(t * FPS)

@@ -1,0 +1,158 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Stadium tour at ten. He's been ready since six.",
+  "t0": 0.14,
+  "t1": 4.38,
+  "dur": 4.24,
+  "words": [
+   [
+    "stadium",
+    0.1,
+    0.66
+   ],
+   [
+    "tour",
+    0.66,
+    1.14
+   ],
+   [
+    "at",
+    1.14,
+    1.38
+   ],
+   [
+    "hes",
+    1.94,
+    2.26
+   ],
+   [
+    "been",
+    2.26,
+    2.5
+   ],
+   [
+    "ready",
+    2.5,
+    2.9
+   ],
+   [
+    "since",
+    2.9,
+    3.46
+   ]
+  ],
+  "matched": "7/9",
+  "heard": "stadium tour at hes been ready since",
+  "wrong": [],
+  "peak_db": -7.1
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "I'm fine either way.",
+  "t0": 4.7,
+  "t1": 5.67,
+  "dur": 0.97,
+  "words": [
+   [
+    "im",
+    -0.14,
+    0.18
+   ],
+   [
+    "fine",
+    0.18,
+    0.5
+   ],
+   [
+    "either",
+    0.5,
+    0.82
+   ],
+   [
+    "way",
+    0.82,
+    0.92
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "im fine either way",
+  "wrong": [],
+  "peak_db": -6.7
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "He ironed the scarf.",
+  "t0": 5.91,
+  "t1": 8.25,
+  "dur": 2.34,
+  "words": [
+   [
+    "he",
+    0.09,
+    0.33
+   ],
+   [
+    "ironed",
+    0.33,
+    1.21
+   ],
+   [
+    "the",
+    1.21,
+    1.45
+   ],
+   [
+    "scarf",
+    1.45,
+    2.29
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "he ironed the scarf",
+  "wrong": [],
+  "peak_db": -10.6
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "I did yours as well.",
+  "t0": 8.61,
+  "t1": 9.66,
+  "dur": 1.05,
+  "words": [
+   [
+    "i",
+    -0.05,
+    0.11
+   ],
+   [
+    "did",
+    0.11,
+    0.35
+   ],
+   [
+    "yours",
+    0.35,
+    0.67
+   ],
+   [
+    "as",
+    0.67,
+    0.75
+   ],
+   [
+    "well",
+    0.75,
+    1.0
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "i did yours as well",
+  "wrong": [],
+  "peak_db": -5.7
+ }
+]

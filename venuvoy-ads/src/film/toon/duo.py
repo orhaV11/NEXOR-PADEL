@@ -50,7 +50,7 @@ class Art:
 
 # ---------------------------------------------------------------- Luna
 L_FACE, L_EYES, L_MOUTH = (400, 770, 930, 1325), (405, 880, 925, 1088), (450, 1110, 895, 1318)
-L_HEAD, L_TMOUTH = (220, 300, 1045, 1440), (560, 1100, 975, 1312)
+L_HEAD, L_TMOUTH = (220, 300, 1075, 1440), (560, 1100, 975, 1312)   # the box reaches past the far ear (at 1045 it cut the ear and left a seam in the hair)
 L_PAD = 320                      # rows added below her drawing: a shake of the camera never shows where it ends
 L_SIZE = (1792, 2400 + L_PAD)
 L_ANCHOR = (663 / L_SIZE[0], 1680 / L_SIZE[1])       # the knot of her scarf: she turns and squashes about it
@@ -82,7 +82,7 @@ def luna(art, scale, look="wind", extra_faces=None):
         s.add("1face", name + "_shut", art / f"luna_{name}_blink", L_FACE)
     turn = {"wind": "luna_turn_dots", "calm": "luna_turn_calm2"}.get(look, f"luna_turn_{look}")
     if art.has(turn):
-        s.add("1face", "turn", art / turn, L_HEAD)      # the whole head, turned to him
+        s.add("1face", "turn", art / turn, L_HEAD, feather=24)      # the whole head, turned to him (a wide soft edge: its hair is a shade off the base drawing's)
         for m in "CAE":                                  # the turned head has its own mouths, in another place
             s.add("3mouth", "t" + m, art / f"luna_turn_m{m}", L_TMOUTH)
     s.add("2eyes", "shut", art / "luna_blink", L_EYES)

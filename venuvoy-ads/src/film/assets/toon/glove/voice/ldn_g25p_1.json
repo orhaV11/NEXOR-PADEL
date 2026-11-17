@@ -1,0 +1,306 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; relaxed in the sun at a ball game and amused by her friend; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, serenely sure of himself; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; relaxed in the sun at a ball game and amused by her friend; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, serenely sure of himself; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[to the camera, amused, fond] He's brought a glove."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[proud, flat] Twenty years."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[innocent, really asking] Ever caught one?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[serene and unhurried, a small lecture with his eyes shut] It's not about catching. It's about being ready. You don't chase the ball, the ball—"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[cutting in fast, quiet, urgent] Timo."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[calm, unbothered, eyes still shut] I'm not finished."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[small, hushed, staring at it] Your glove."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[very flat, slow, not looking down; a statement, not a question] It's in there, isn't it."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[whispered, awed] It's in there."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and level, no joy showing at all] I've won baseball."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[sunny again, to the camera] He's thrilled."
+   }
+  ],
+  "scene": "A phone vlog from the top rows of a baseball park on a still, sunny afternoon, during a game; a relaxed crowd murmurs far below. Luna holds the phone at arm's length and talks to it; Timo stands just behind her with an old baseball glove held open in front of his chest, his eyes shut.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, fond of him and amused by him; she is innocent, never sarcastic. TIMO, about 30, is slow, dry and proud; he has brought his glove to every game for twenty years and is serenely sure of himself; he never raises his voice, and he sounds exactly the same when he is overjoyed as when he is bored. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "He's",
+   0.0,
+   0.32
+  ],
+  [
+   "bought",
+   0.32,
+   0.56
+  ],
+  [
+   "a",
+   0.56,
+   0.64
+  ],
+  [
+   "glove.",
+   0.64,
+   1.12
+  ],
+  [
+   "Twenty",
+   1.12,
+   1.52
+  ],
+  [
+   "years.",
+   1.52,
+   2.08
+  ],
+  [
+   "Ever",
+   2.08,
+   2.4
+  ],
+  [
+   "caught",
+   2.4,
+   2.64
+  ],
+  [
+   "one?",
+   2.64,
+   3.12
+  ],
+  [
+   "It's",
+   3.12,
+   3.36
+  ],
+  [
+   "not",
+   3.36,
+   3.6
+  ],
+  [
+   "about",
+   3.6,
+   3.84
+  ],
+  [
+   "catching,",
+   3.84,
+   4.64
+  ],
+  [
+   "it's",
+   4.64,
+   4.96
+  ],
+  [
+   "about",
+   4.96,
+   5.2
+  ],
+  [
+   "being",
+   5.2,
+   5.52
+  ],
+  [
+   "ready.",
+   5.52,
+   6.4
+  ],
+  [
+   "You",
+   6.4,
+   6.56
+  ],
+  [
+   "don't",
+   6.56,
+   6.8
+  ],
+  [
+   "chase",
+   6.8,
+   7.2
+  ],
+  [
+   "the",
+   7.2,
+   7.36
+  ],
+  [
+   "ball.",
+   7.36,
+   7.92
+  ],
+  [
+   "The",
+   7.92,
+   8.08
+  ],
+  [
+   "ball.",
+   8.08,
+   8.72
+  ],
+  [
+   "Timo.",
+   8.72,
+   9.44
+  ],
+  [
+   "I'm",
+   9.44,
+   9.68
+  ],
+  [
+   "not",
+   9.68,
+   9.84
+  ],
+  [
+   "finished.",
+   9.84,
+   10.48
+  ],
+  [
+   "Your",
+   10.48,
+   10.72
+  ],
+  [
+   "glove.",
+   10.72,
+   11.36
+  ],
+  [
+   "It's",
+   11.36,
+   11.6
+  ],
+  [
+   "in",
+   11.6,
+   11.76
+  ],
+  [
+   "there,",
+   11.76,
+   12.0
+  ],
+  [
+   "isn't",
+   12.0,
+   12.32
+  ],
+  [
+   "it?",
+   12.32,
+   12.64
+  ],
+  [
+   "It's",
+   12.64,
+   12.88
+  ],
+  [
+   "in",
+   12.88,
+   13.12
+  ],
+  [
+   "there.",
+   13.12,
+   13.6
+  ],
+  [
+   "I've",
+   13.6,
+   13.92
+  ],
+  [
+   "won",
+   13.92,
+   14.24
+  ],
+  [
+   "baseball.",
+   14.24,
+   15.12
+  ],
+  [
+   "He's",
+   15.12,
+   15.6
+  ],
+  [
+   "thrilled.",
+   15.6,
+   16.2
+  ]
+ ],
+ "text": "He's bought a glove. 20 years? Ever caught one. It's not about catching. It's about being ready. You don't chase the ball. The ball... Teemo. I'm not finished. Your glove. It's in there, isn't it? It's in there. I've won baseball. He's thrilled."
+}

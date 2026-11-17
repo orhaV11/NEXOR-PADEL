@@ -38,11 +38,11 @@
   "dialogue_turns": [
    {
     "speaker_id": "Speaker 1",
-    "text": "[tragic, to the camera] No game this weekend. Not ours. Not anybody's."
+    "text": "[tragic, to the camera] No game this weekend. Not anybody's."
    },
    {
     "speaker_id": "Speaker 2",
-    "text": "[flat, counting] There's basketball. Ice hockey. Rugby. Golf."
+    "text": "[flat, counting] There's basketball. Rugby. Golf."
    },
    {
     "speaker_id": "Speaker 1",
@@ -71,118 +71,98 @@
   [
    "this",
    0.96,
-   1.12
+   1.2
   ],
   [
-   "weekend?",
-   1.12,
-   1.92
-  ],
-  [
-   "Not",
-   1.92,
-   2.16
-  ],
-  [
-   "ours?",
-   2.16,
-   2.88
+   "weekend.",
+   1.2,
+   2.0
   ],
   [
    "Not",
-   2.88,
-   3.2
+   2.0,
+   2.24
   ],
   [
    "anybody's.",
-   3.2,
-   4.32
+   2.24,
+   3.44
   ],
   [
    "There's",
-   4.32,
-   4.88
+   3.44,
+   3.84
   ],
   [
    "basketball,",
-   4.88,
-   5.92
-  ],
-  [
-   "ice",
-   5.92,
-   6.32
-  ],
-  [
-   "hockey,",
-   6.32,
-   7.2
+   3.84,
+   4.96
   ],
   [
    "rugby,",
-   7.2,
-   8.48
+   4.96,
+   6.0
   ],
   [
    "golf.",
-   8.48,
-   9.28
+   6.0,
+   6.88
   ],
   [
    "You'd",
-   9.28,
-   9.68
+   6.88,
+   7.2
   ],
   [
    "watch",
-   9.68,
-   10.08
+   7.2,
+   7.52
   ],
   [
    "golf?",
-   10.08,
-   10.96
+   7.52,
+   8.32
   ],
   [
    "I'd",
-   10.96,
-   11.28
+   8.32,
+   8.64
   ],
   [
    "watch",
-   11.28,
-   11.68
+   8.64,
+   8.88
   ],
   [
-   "you",
-   11.68,
-   12.08
+   "You",
+   8.88,
+   9.12
   ],
   [
-   "stay",
-   12.08,
-   12.48
+   "Stay",
+   9.12,
+   9.36
   ],
   [
-   "quiet",
-   12.48,
-   12.96
+   "Quiet",
+   9.44,
+   9.68
   ],
   [
    "for",
-   12.96,
-   13.2
+   9.68,
+   9.76
   ],
   [
    "four",
-   13.2,
-   13.44
+   9.76,
+   10.0
   ],
   [
    "hours.",
-   13.44,
-   14.04
+   10.0,
+   10.49
   ]
  ],
- "text": "No game this weekend, not ours, not anybody's. There's basketball, ice hockey, rugby, golf. You'd watch golf? I'd watch you stay quiet for four hours."
+ "text": "No game this weekend. Not anybody's. There's basketball, rugby, golf. You'd watch golf? I'd watch you stay quiet for four hours."
 }

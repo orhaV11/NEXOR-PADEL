@@ -1,0 +1,13 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/d67268661446477e96326b492b192c74.png"
+ },
+ "bg_forecourt_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/a882ed43-038d-4b12-b6b6-67aac9b4566d_e7ee04ac.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters and no people close by. Vertical 9:16. Seen from a standing person's eye height, the way a phone held at arm's length sees what is behind its owner (never from above). The wide open paved forecourt in front of a big indoor ice hockey arena at blue winter dusk, before a game. In the UPPER LEFT third, some way off across the forecourt, stands the arena: a huge rounded wall of pale concrete and dark glass that curves away, with a low row of tall entrance doors glowing warm amber at its foot. Far away, near the doors, a few small loose groups of people drift toward them as very soft, blurred smudges of muted colour (dark green, cream, grey, navy, a little rust), many in woolly hats, with no outlines, no faces, no details, NO rows of identical figures, nothing repeated. Two bare winter trees in low round planters stand on the forecourt, and a thin dusting of old snow lies along the edges of the paving and on the planters. The lower half of the picture is wet dark-blue paving that softly reflects the warm light of the doors, empty. The UPPER RIGHT of the picture is open sky: a clear winter sky, deep blue at the top fading to a pale cold turquoise and a soft haze toward the horizon; a cold haze lies low over the forecourt; two plain lamp posts with a small warm glow. Dusk, gentle mid tones, everything can be seen clearly. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no numbers, no logos, no crests, no flags, no banners, no screens.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

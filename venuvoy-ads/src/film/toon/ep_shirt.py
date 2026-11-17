@@ -53,7 +53,8 @@ ROLL_LONG = 262.0                                      # frame pixels from end t
 HAIR = (640, 194)                                      # the middle of the top of his flat-top (pixels of his drawing): the roll's underside sits here
 ROLL_TILT = -3.5                                       # it lies a little crooked
 LAND = "land"                                          # it lands as her line ends (the stretch "land" in the sound plan)
-FALL = 0.24                                            # it drops in from the top edge in this long (six pictures)
+FALL = 0.45                                            # it drops in from above the top edge in this long: it is already moving when it comes into the
+                                                       # frame (during "...free shirt!"), so it is seen falling for about 7 frames, not popping on
 
 
 def timo_point(T, p):
@@ -85,7 +86,7 @@ def shirt(st, t, T):
     scale = ROLL_LONG * k / ROLL.shape[1]
     if T < land:                                       # falling: from above the top edge, faster and faster, turning over a little;
         p = (T - (land - FALL)) / FALL                 # it is going away from the lens, so it shrinks a touch as it falls
-        p2 = p * p
+        p2 = 0.6 * p + 0.4 * p * p                     # thrown from far away: moving from the start, a little faster at the end
         y_top = -ROLL.shape[0] * scale * 0.8
         st.put(ROLL, x + 34 * (1 - p), y_top + (y - y_top) * p2, scale=scale * (1.18 - 0.18 * p), turn=ROLL_TILT + turn + 32 * (1 - p),
                anchor=(0.5, 0.92), depth=0.82)
@@ -101,19 +102,31 @@ def shirt(st, t, T):
 #      travel with the hand): taken out; and the sleeve's inner edge, cut along her coat, gets its own outline, so that
 #      when the forearm swings away from her a drawn edge shows, not a cut.
 PIVOT = (1282, 2286)                                   # where the sleeve meets her coat (pixels of her drawing)
+SLEEVE = ((1247, 1700), (1197, 1852))                  # two points on the inner edge of the sleeve's own drawn outline: it runs straight down
+                                                       # and to the left until it meets her coat at about row 1908
 
 
 def _arm():
     a = duo.arm(v.art, "luna_shrug_calm", 1.0, (1000, 1340, 1792, 2400), "luna_calm2")
-    a[1735:1885, :1196] = 0                            # the sliver
     alpha = a[..., 3]
+    (xa, ya), (xb, yb) = SLEEVE
+    slope = (xb - xa) / (yb - ya)
+    cols = np.arange(a.shape[1], dtype=np.float32)
+    meet = PIVOT[1]
+    for y in range(ya, PIVOT[1]):                      # the sliver: whatever lies left of the sleeve's outline is her coat's edge, row by row,
+        edge = xa + slope * (y - ya)                   # with a soft pixel at the cut (no step, no rectangle)
+        solid = np.where(alpha[y] > 0.5)[0]
+        if y > yb and len(solid) and solid[0] >= edge - 1:   # from here down the arm's edge is the cut along her coat
+            meet = y
+            break
+        a[y] *= np.clip(cols - edge + 0.5, 0.0, 1.0)[:, None]
     ink = np.zeros_like(alpha)
-    for y in range(1862, PIVOT[1] + 4):                # the inner edge, row by row: a line as heavy as the drawing's own
-        xs = np.where(alpha[y] > 0.5)[0]
+    for y in range(meet - 12, PIVOT[1] + 4):           # the inner edge below that, row by row, carrying on the sleeve's own line as heavy as it is
+        xs = np.where(alpha[y] > 0.05)[0]              # from the very edge, so no yellow fringe shows outside the line
         if len(xs):
-            ink[y, xs[0]:xs[0] + 11] = 1.0
-    ink = cv2.GaussianBlur(ink, (0, 0), 1.0) * (alpha > 0.02)
-    a[..., :3] = a[..., :3] * (1 - ink[..., None]) + np.array([0.09, 0.07, 0.08], np.float32) * ink[..., None] * alpha[..., None]
+            ink[y, xs[0]:xs[0] + 10] = 1.0
+    ink = cv2.GaussianBlur(ink, (0, 0), 0.8) * (alpha > 0.02)
+    a[..., :3] = a[..., :3] * (1 - ink[..., None]) + np.array([0.03, 0.02, 0.02], np.float32) * ink[..., None] * alpha[..., None]
     return cv2.resize(a, None, fx=v.s_luna, fy=v.s_luna, interpolation=cv2.INTER_AREA)     # premultiplied, as duo.arm gives it
 
 
@@ -122,23 +135,31 @@ GONE = 820.0                                           # frame pixels below its 
 
 
 def _wave(T):
-    """(pixels below its drawn place, turn in degrees) of her arm now. It turns about the sleeve's foot: to her
-    (negative) and back, never far away from her coat. On twos, like her."""
+    """(pixels below its drawn place, turn in degrees) of her arm now. It turns about the sleeve's foot, side to side
+    across her own place (a real wave, not a rocking palm): the bigger half of the swing goes toward him, so the hand
+    stays clear of the caption on her side. Harder and quicker when the cannon goes. On twos, like her."""
     t = on_twos(T)
     down0, down1 = v.t("L2-0.30"), v.t("L2+0.12")      # the waving stops (she gives up on this round), and the hand sinks away while she starts to moan
     up = v.t("L4-0.14")                                # "Not now.": it shoots up again
-    hard = max(math.exp(-max(0.0, t - v.t("cannon")) * 1.6) * (t >= v.t("cannon")), math.exp(-max(0.0, t - v.t("again")) * 1.6) * (t >= v.t("again")))
-    amp = 5.5 + 3.5 * hard                             # harder when the cannon goes
-    rate = 2.4 + 0.9 * hard
+    hard, extra = 0.0, 0.0
+    for c, push in ((v.t("cannon"), 1.0), (v.t("again"), 0.6)):     # the second one less: the hand must stay clear of his last caption
+        if t >= c:
+            hard = max(hard, push * math.exp(-(t - c) * 1.6))
+            extra += push * (1 - math.exp(-(t - c) * 1.6)) / 1.6       # the phase the quicker waving has gained (no jump when it slows again)
+    amp = 12.0 + 5.0 * hard
+    phase = 2 * math.pi * (2.7 * t + 0.5 * extra)     # 2.7 a second (4 to 5 pictures a wave on twos), up to 3.2 when the cannon goes
     if T < down1:
         calm = ease(t, v.t("land+0.30"), down0, 1.0, 0.0, "io")      # the waving dies away after the landing she has not seen
-        swing = math.sin(2 * math.pi * rate * t) * amp * calm
+        swing = math.sin(phase) * amp * calm
         y = ease(T, down0 + 0.05, down1, 0.0, GONE, "in")             # then the hand goes down out of the frame
-        return y, -5.0 + swing
+        return y, CENTRE * calm - 5.0 * (1 - calm) + swing
     if T < up - 0.05:
         return None
-    swing = math.sin(2 * math.pi * rate * (t - up)) * amp * min(1.0, (t - up) / 0.25)
-    return ease(T, up - 0.05, up + 0.20, GONE, 0.0, "out"), -5.0 + swing
+    swing = math.sin(phase - 2 * math.pi * 2.7 * up) * amp * min(1.0, (t - up) / 0.25)
+    return ease(T, up - 0.05, up + 0.20, GONE, 0.0, "out"), CENTRE + swing
+
+
+CENTRE = 2.0                                           # the middle of the wave (degrees; it was drawn turned 5 degrees toward her)
 
 
 def hand(st, t, T):
@@ -160,13 +181,10 @@ v.shot("start", bg=BG, luna=LUNA_AT, timo=TIMO_AT, mid=shirt, front=hand)
 
 # ---- her face: she never looks at him (she would see the shirt)
 v.faces(("start", None),                  # sunny, shouting over the crowd to the cannon behind the phone
-        ("L2-0.10", "defend"),            # to us, sorry for herself
-        ("L2@never-0.04", "down"),        # "Never once.": eyes down
-        ("L2.end+0.10", None),            # her eyes go back past the lens to the court
-        ("L4-0.10", "defend"),            # "Not now.": urgent, big eyes on the court
+        ("L2-0.10", "defend"),            # to us, sorry for herself; she stays so through his "Luna." (she will not look) into an urgent "Not now."
         ("L4.end+0.12", None))            # and eager again, waving, to the end
 v.tilt(L1=3.0, L2=-2.6, L4=2.4)
-v.blinks(luna=[1.85, "L2+0.45", "T5+0.40", "plate+0.85"],
+v.blinks(luna=[1.85, "L2+0.45", "T3+0.30", "T5+0.40", "plate+0.85"],
          timo=[1.45, "L4+0.30", "plate+1.10"])          # never during his looks; a slow one while she says "Not now."
 
 # ---- his eyes: on her; on us the moment the shirt has landed; on her for "Luna."; on us for the last word, and stay
@@ -176,15 +194,16 @@ v.eyes(("start", None),
        ("T5-0.24", "lens"))
 
 # ---- the words on screen: under her chin, left of her waving hand
-CAP = (375, 1440)                         # the hand reaches x 663 when it swings toward her: every caption ends left of it
+CAP = (375, 1440)                         # the waving hand comes within about x 616 at its leftmost (measured on every frame): every caption box
+                                          # ends left of it with 12 px to spare; his long last one sits 10 px further left for it
 v.captions(
-    place=dict({i: CAP for i in ("L1", "L2", "T3", "L4")}, T5=(352, 1440)),
+    place=dict({i: CAP for i in ("L1", "L2", "T3", "L4")}, T5=(342, 1440)),
     split={"L1": [("Over here!", None), ("I never get\nthe free shirt!", "L1@i")],
            "L2": [("Eleven games.", None), ("Never once.", "L2@never")]},
     text={"T5": "They’re reloading."},
-    on={"L1": "L1-0.12", "T3": "T3-0.10", "T5": "T5-0.06"},
+    on={"L1": "start", "T3": "T3-0.10", "T5": "T5-0.06"},
     off={"L1": "land+0.40", "L2": "T3-0.12", "L4": "T5-0.08", "T5": "plate-0.05"})   # one caption at a time: hers go before his come up early        # the last word stays up through his look
-v.plate(x=345, y=300, size=0.68)          # beside his head, above hers: he is standing at the end with the shirt on
+v.plate(x=352, y=310, size=0.74)          # beside his head, above hers: he is standing at the end with the shirt on
 
 if __name__ == "__main__":
     v.main()

@@ -2,182 +2,162 @@
  {
   "n": 1,
   "who": "L",
-  "text": "No game this weekend. Not ours. Not anybody's.",
-  "t0": 0.13,
-  "t1": 4.01,
-  "dur": 3.88,
+  "text": "No game this weekend. Not anybody's.",
+  "t0": 0.11,
+  "t1": 3.05,
+  "dur": 2.94,
   "words": [
    [
     "no",
-    0.19,
-    0.43
+    0.21,
+    0.45
    ],
    [
     "game",
-    0.43,
-    0.83
+    0.45,
+    0.85
    ],
    [
     "this",
-    0.83,
-    0.99
+    0.85,
+    1.09
    ],
    [
     "weekend",
-    0.99,
-    1.79
+    1.09,
+    1.89
    ],
    [
     "not",
-    1.79,
-    2.03
-   ],
-   [
-    "ours",
-    2.03,
-    2.75
-   ],
-   [
-    "not",
-    2.75,
-    3.07
+    1.89,
+    2.13
    ],
    [
     "anybodys",
-    3.07,
-    3.83
+    2.13,
+    2.89
    ]
   ],
-  "matched": "8/8",
-  "heard": "no game this weekend not ours not anybodys",
+  "matched": "6/6",
+  "heard": "no game this weekend not anybodys",
   "wrong": [],
-  "peak_db": -2.9
+  "peak_db": -7.9
  },
  {
   "n": 2,
   "who": "T",
-  "text": "There's basketball. Ice hockey. Rugby. Golf.",
-  "t0": 4.23,
-  "t1": 8.97,
-  "dur": 4.74,
+  "text": "There's basketball. Rugby. Golf.",
+  "t0": 3.3,
+  "t1": 6.48,
+  "dur": 3.18,
   "words": [
    [
     "theres",
-    0.09,
-    0.65
+    0.14,
+    0.54
    ],
    [
     "basketball",
-    0.65,
-    1.69
-   ],
-   [
-    "ice",
-    1.69,
-    2.09
-   ],
-   [
-    "hockey",
-    2.09,
-    2.97
+    0.54,
+    1.66
    ],
    [
     "rugby",
-    2.97,
-    4.25
+    1.66,
+    2.7
    ],
    [
     "golf",
-    4.25,
-    4.69
+    2.7,
+    3.13
    ]
   ],
-  "matched": "6/6",
-  "heard": "theres basketball ice hockey rugby golf",
+  "matched": "4/4",
+  "heard": "theres basketball rugby golf",
   "wrong": [],
-  "peak_db": -1.6
+  "peak_db": -2.2
  },
  {
   "n": 3,
   "who": "L",
   "text": "You'd watch golf?",
-  "t0": 9.22,
-  "t1": 10.72,
-  "dur": 1.5,
+  "t0": 6.74,
+  "t1": 8.12,
+  "dur": 1.38,
   "words": [
    [
     "youd",
-    0.06,
+    0.14,
     0.46
    ],
    [
     "watch",
     0.46,
-    0.86
+    0.78
    ],
    [
     "golf",
-    0.86,
-    1.45
+    0.78,
+    1.33
    ]
   ],
   "matched": "3/3",
   "heard": "youd watch golf",
   "wrong": [],
-  "peak_db": -4.7
+  "peak_db": -6.1
  },
  {
   "n": 4,
   "who": "T",
   "text": "I'd watch you stay quiet for four hours.",
-  "t0": 10.97,
-  "t1": 13.94,
-  "dur": 2.97,
+  "t0": 8.31,
+  "t1": 10.3,
+  "dur": 1.99,
   "words": [
    [
     "id",
-    -0.01,
-    0.31
+    0.01,
+    0.33
    ],
    [
     "watch",
-    0.31,
-    0.71
+    0.33,
+    0.57
    ],
    [
     "you",
-    0.71,
-    1.11
+    0.57,
+    0.81
    ],
    [
     "stay",
-    1.11,
-    1.51
+    0.81,
+    1.05
    ],
    [
     "quiet",
-    1.51,
-    1.99
+    1.13,
+    1.37
    ],
    [
     "for",
-    1.99,
-    2.23
+    1.37,
+    1.45
    ],
    [
     "four",
-    2.23,
-    2.47
+    1.45,
+    1.69
    ],
    [
     "hours",
-    2.47,
-    2.92
+    1.69,
+    1.94
    ]
   ],
   "matched": "8/8",
   "heard": "id watch you stay quiet for four hours",
   "wrong": [],
-  "peak_db": -2.3
+  "peak_db": -2.5
  }
 ]

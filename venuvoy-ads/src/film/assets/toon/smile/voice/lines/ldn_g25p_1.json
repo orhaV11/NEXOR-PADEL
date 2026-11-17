@@ -1,0 +1,143 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "We're at the golf! Timo, smile!",
+  "t0": 0.1,
+  "t1": 2.74,
+  "dur": 2.64,
+  "words": [
+   [
+    "were",
+    0.06,
+    0.3
+   ],
+   [
+    "at",
+    0.3,
+    0.46
+   ],
+   [
+    "the",
+    0.46,
+    0.62
+   ],
+   [
+    "golf",
+    0.62,
+    1.34
+   ],
+   [
+    "timo",
+    1.34,
+    2.06
+   ],
+   [
+    "smile",
+    2.06,
+    2.59
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "were at the golf timo smile",
+  "wrong": [],
+  "peak_db": -2.8
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "This is me smiling.",
+  "t0": 2.97,
+  "t1": 4.16,
+  "dur": 1.19,
+  "words": [
+   [
+    "this",
+    0.07,
+    0.23
+   ],
+   [
+    "is",
+    0.23,
+    0.39
+   ],
+   [
+    "me",
+    0.39,
+    0.63
+   ],
+   [
+    "smiling",
+    0.63,
+    1.14
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "this is me smiling",
+  "wrong": [],
+  "peak_db": -3.5
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Do the big one.",
+  "t0": 4.34,
+  "t1": 5.39,
+  "dur": 1.05,
+  "words": [
+   [
+    "do",
+    0.06,
+    0.22
+   ],
+   [
+    "the",
+    0.22,
+    0.38
+   ],
+   [
+    "big",
+    0.38,
+    0.7
+   ],
+   [
+    "one",
+    0.7,
+    1.0
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "do the big one",
+  "wrong": [],
+  "peak_db": -7.5
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "Okay. Too much.",
+  "t0": 5.61,
+  "t1": 7.07,
+  "dur": 1.46,
+  "words": [
+   [
+    "okay",
+    0.07,
+    0.71
+   ],
+   [
+    "too",
+    0.71,
+    1.03
+   ],
+   [
+    "much",
+    1.03,
+    1.41
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "okay too much",
+  "wrong": [],
+  "peak_db": -4.7
+ }
+]

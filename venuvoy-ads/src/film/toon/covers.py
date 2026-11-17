@@ -56,6 +56,16 @@ COVERS = {
     "ads/21-vlog/venuvoy-vlog-41-third": ("Question: how many games?", 0.0),
     "ads/21-vlog/venuvoy-vlog-42-turnup": ("Question: just turn up?", 0.0),
     "ads/21-vlog/venuvoy-vlog-50-top": ("First day of the season", 0.0),
+    "ads/21-vlog/venuvoy-vlog-32-tennis": ("One sentence: tennis", 0.0),
+    "ads/21-vlog/venuvoy-vlog-43-early": ("Question: how early?", 0.0),
+    "ads/21-vlog/venuvoy-vlog-44-language": ("Question: the language", 0.0),
+    "ads/21-vlog/venuvoy-vlog-51-summer": ("The season ended yesterday", 0.0),
+    "ads/21-vlog/venuvoy-vlog-52-draw": ("The draw", 0.0),
+    "ads/21-vlog/venuvoy-vlog-53-fixtures": ("The fixtures are out", 0.0),
+    "ads/21-vlog/venuvoy-vlog-60-leave": ("When do you leave?", 0.0),
+    "ads/21-vlog/venuvoy-vlog-61-pack": ("What do you pack?", 0.0),
+    "ads/21-vlog/venuvoy-vlog-62-source": ("Sunday, 4 p.m.", 0.0),
+    "ads/21-vlog/venuvoy-vlog-90-sofar": ("The trip so far", 0.3),
 }
 LOW = 1440          # the title's last row stands here (inside the square middle, under her chin)
 

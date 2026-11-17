@@ -1,0 +1,148 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing by the rope at a golf tournament on a breezy morning, speaking a little hushed into her phone because everyone round her is quiet; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he speaks from just behind her shoulder, completely unbothered, and never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing by the rope at a golf tournament on a breezy morning, speaking a little hushed into her phone because everyone round her is quiet; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan; he speaks from just behind her shoulder, completely unbothered, and never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, a little hushed, to the camera] We're at the golf! Timo, smile!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and calm, to the camera, a plain fact] This is me smiling."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, coaxing, warm] Do the big one."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[a moment later, quick, wincing, a little taken aback] Okay. Too much."
+   }
+  ],
+  "scene": "A phone vlog beside the spectators' rope along a golf fairway on a bright, breezy morning, during a tournament; the people along the rope keep quiet and a far green waits in the sun. Luna holds the phone at arm's length and talks to it a little hushed; Timo stands upright just behind her.",
+  "sample_context": "An eight-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, a little hushed because golf crowds keep quiet; she wants a happy picture of her friend for her vlog, and she really does see a huge grin on his face at the end, so her last words are honest and quick, never sarcastic. TIMO, about 30, is slow, dry and proud; he never raises his voice and his face never moves; he says his line with complete calm, as a plain fact. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "We're",
+   0.16,
+   0.4
+  ],
+  [
+   "at",
+   0.4,
+   0.56
+  ],
+  [
+   "the",
+   0.56,
+   0.72
+  ],
+  [
+   "Golf.",
+   0.72,
+   1.44
+  ],
+  [
+   "Timo,",
+   1.44,
+   2.16
+  ],
+  [
+   "smile.",
+   2.16,
+   3.04
+  ],
+  [
+   "This",
+   3.04,
+   3.2
+  ],
+  [
+   "is",
+   3.2,
+   3.36
+  ],
+  [
+   "me",
+   3.36,
+   3.6
+  ],
+  [
+   "smiling.",
+   3.6,
+   4.4
+  ],
+  [
+   "Do",
+   4.4,
+   4.56
+  ],
+  [
+   "the",
+   4.56,
+   4.72
+  ],
+  [
+   "big",
+   4.72,
+   5.04
+  ],
+  [
+   "one.",
+   5.04,
+   5.68
+  ],
+  [
+   "Okay,",
+   5.68,
+   6.32
+  ],
+  [
+   "too",
+   6.32,
+   6.64
+  ],
+  [
+   "much.",
+   6.64,
+   7.17
+  ]
+ ],
+ "text": "We're at the golf! Timo, smile! This is me smiling. Do the big one. Okay, too much."
+}

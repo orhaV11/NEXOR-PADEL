@@ -60,94 +60,104 @@
  "words": [
   [
    "First",
-   0.24,
-   0.64
+   0.16,
+   0.48
   ],
   [
    "day",
+   0.48,
+   0.64
+  ],
+  [
+   "of",
    0.64,
    0.8
   ],
   [
-   "of",
-   0.8,
-   0.96
-  ],
-  [
    "the",
-   0.96,
-   1.04
+   0.8,
+   0.88
   ],
   [
-   "season,",
-   1.04,
-   1.6
+   "season.",
+   0.88,
+   1.36
   ],
   [
-   "we're",
-   1.6,
-   1.92
+   "We're",
+   1.36,
+   1.68
   ],
   [
    "top",
-   1.92,
-   2.16
+   1.68,
+   1.92
   ],
   [
    "of",
-   2.16,
-   2.32
+   1.92,
+   2.0
   ],
   [
    "the",
-   2.32,
-   2.4
+   2.0,
+   2.16
   ],
   [
    "table.",
-   2.4,
-   3.2
+   2.16,
+   2.88
   ],
   [
    "Nobody",
-   3.2,
-   3.68
+   2.88,
+   3.36
   ],
   [
    "has",
-   3.68,
-   3.92
+   3.36,
+   3.6
   ],
   [
    "played.",
-   3.92,
+   3.6,
+   4.16
+  ],
+  [
+   "We're",
+   4.16,
+   4.4
+  ],
+  [
+   "top",
+   4.4,
+   4.64
+  ],
+  [
+   "of",
+   4.64,
    4.8
   ],
   [
-   "And",
+   "the",
    4.8,
-   5.2
+   4.88
   ],
   [
-   "we're",
-   5.2,
-   5.52
-  ],
-  [
-   "top.",
-   5.52,
-   6.48
+   "table.",
+   4.88,
+   5.6
   ],
   [
    "It's",
-   6.48,
-   6.8
+   5.6,
+   5.92
   ],
   [
    "alphabetical.",
-   6.8,
-   7.4
+   5.92,
+   6.52
   ]
  ],
- "text": "First day of the season, we're top of the table. Nobody has played. And we're top. It's alphabetical."
+ "text": "First day of the season, we're top of the table. Nobody has played. We're top of the table. It's alphabetical."
 }

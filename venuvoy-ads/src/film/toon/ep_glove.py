@@ -9,9 +9,11 @@ Run ep_glove_sound.py first: every time below is read from its timeline.
 
 Timo has brought his glove, as he has for twenty years: he stands behind her with it held open at his chest, eyes
 shut, and lectures her on readiness; on "ready" a ball drops out of the sky into it. He does not look down. Two things
-are this film's own, drawn between him and her by one hook: his forearm with the open glove (its own drawing on flat
-magenta, not a redraw of him: it sits at his chest from the first frame and moves with him), and the ball (drawn
-here in code: a white circle with a dark outline and two red seams).
+are this film's own, drawn between him and her by one hook: his forearm with the open glove held palm up like a bowl
+(its own drawing on flat magenta, glove_2, not a redraw of him: it sits at his chest from the first frame and moves
+with him), and the ball (drawn here in code: a white circle with a dark outline and two red seams), which falls with
+three short speed dashes trailing well clear of it and comes to rest IN the bowl, its bottom behind the glove's near
+rim.
 """
 import math
 import sys
@@ -77,44 +79,69 @@ LUNA_B, TIMO_B = (352, 1525, 1.08, 0.6), (882, 1060, 1.08)
 LUNA_C, TIMO_C = (342, 1505, 1.26, -0.4), (895, 1110, 1.26)
 
 
-# ---- his forearm with the glove (its own drawing on flat magenta): the sleeve comes in from the drawing's bottom left
-#      corner at 38 degrees. Stood upright, cut where it is as long as his forearm, and closed with a rounded elbow made
-#      from its own last row (outlines and stripe drawn in). Each frame it is laid from his elbow to his chest; the
+# ---- his forearm with the glove (its own drawing on flat magenta, glove_2: the glove held palm UP, a bowl open to the
+#      sky; glove_1, the first try, came back upright facing the lens): the sleeve comes in from the drawing's bottom
+#      left corner at 32 degrees. Stood upright, cut where it is as long as his forearm, and closed with a rounded elbow
+#      made from its own last row (outlines and stripe drawn in). Each frame it is laid from his elbow to his chest; the
 #      pocket of the glove (where the ball lands) is its anchor.
-ARM_TURN = 38.3                                        # the sleeve's slant in the drawing (degrees from vertical)
-CHEST = (610, 1600)                                    # where the pocket sits on him (pixels of his drawing; his chest is (614, 1514), the scarf ends at 1340)
-GLOVE_PER_SIZE = 0.24                                  # the drawing's scale for each unit of Timo's size: the glove nearly a head wide
-CUFF = 715                                             # the bottom of the cuff, below the pocket (pixels of the upright drawing)
+GLOVE_ART = "glove_2"
+ARM_TURN = 32.5                                        # the sleeve's slant in the drawing (degrees from vertical; the mean of its two edges)
+SLEEVE_MID = (332.0, 1900.0)                           # a point on the sleeve's middle line, below the cuff (pixels of the drawing)
+CHEST = (565, 1600)                                    # where the pocket sits on him (pixels of his drawing; his chest is (614, 1514), the scarf ends at 1340;
+                                                       #   a little to his near side, so the wide open glove stays inside the frame in the closest shot)
+GLOVE_PER_SIZE = 0.21                                  # the drawing's scale for each unit of Timo's size: the glove nearly a head wide
+CUFF = 650                                             # the bottom of the cuff, below the pocket (pixels of the upright drawing)
 SLIM = 0.78                                            # the sleeve below the cuff, as wide as his own arm
+GLOVE_W = 1355                                         # the glove's width in the drawing
+HOLLOW = np.array([0.437, 0.270, 0.210], np.float32)   # the flat dark brown of the inside of the pocket
+
+
+def _hollow():
+    """The dark brown hollow of the glove (a mask in pixels of the drawing)."""
+    rgb = read(v.art / GLOVE_ART)[..., :3]
+    d = np.abs(rgb - HOLLOW).max(axis=2) < 0.035
+    d[1100:] = False                                   # not the wrist
+    n, lab, st, cen = cv2.connectedComponentsWithStats(d.astype(np.uint8))
+    i = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+    return lab == i
 
 
 def _pocket():
-    """The middle of the dark brown hollow of the glove (pixels of the drawing)."""
-    rgb = read(v.art / "glove_1")[..., :3]
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-    dark = (r > g + 0.06) & (r > b + 0.08) & (r < 0.42) & (r > 0.22)
-    dark[:, :560] = False                              # not the laces of the thumb on the left
-    dark[1150:] = False
-    n, lab, st, cen = cv2.connectedComponentsWithStats(dark.astype(np.uint8))
-    i = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
-    return float(cen[i][0]), float(cen[i][1])
+    """The middle of the hollow, and the y of its near (lower) rim below that middle (pixels of the drawing)."""
+    ys, xs = np.where(HOLLOW_MASK)
+    cx, cy = float(xs.mean()), float(ys.mean())
+    rim = float(np.where(HOLLOW_MASK[:, int(cx)])[0].max())
+    return (cx, cy), rim
 
 
 def _arm():
-    """(premultiplied picture, anchor = the pocket as fractions, the vector pocket -> elbow in its pixels)."""
-    rgb = read(v.art / "glove_1")[..., :3]
+    """(premultiplied picture, anchor = the pocket as fractions, the vector pocket -> elbow in its pixels,
+    the near rim of the glove alone (laid again over the ball that rests in it), the ball's resting place as a vector
+    from the pocket in the picture's pixels)."""
+    rgb = read(v.art / GLOVE_ART)[..., :3]
     k = key_out(rgb)
     h, w = k.shape[:2]
+    ys_, xs_ = np.mgrid[0:h, 0:w]
+    hx0, hx1 = np.where(HOLLOW_MASK.any(axis=0))[0][[0, -1]]
+    low = np.full(w, h, np.float32)                    # the hollow's near rim, column by column
+    cols = np.where(HOLLOW_MASK.any(axis=0))[0]
+    low[cols] = h - 1 - np.argmax(HOLLOW_MASK[::-1, cols], axis=0)
+    lip = ((ys_ > low[None, :] - 2) & (xs_ >= hx0 - 40) & (xs_ <= hx1 + 40) & (ys_ < 1180)).astype(np.float32)
+    lip = cv2.GaussianBlur(lip, (0, 0), 1.2)
     pad = 900
     big = np.zeros((h + 2 * pad, w + 2 * pad, 4), np.float32)
     big[pad:pad + h, pad:pad + w] = k
+    lipb = np.zeros(big.shape[:2], np.float32)
+    lipb[pad:pad + h, pad:pad + w] = lip
     inside = np.zeros(big.shape[:2], np.float32)
     inside[pad:pad + h, pad:pad + w] = 1
-    c = (pad + 550.0, pad + 1975.0)                    # the middle of the sleeve
+    c = (pad + SLEEVE_MID[0], pad + SLEEVE_MID[1])     # the middle of the sleeve
     M = cv2.getRotationMatrix2D(c, ARM_TURN, 1.0)      # stood upright (turned against the clock): the sleeve now points straight down
     big = cv2.warpAffine(big, M, big.shape[1::-1], flags=cv2.INTER_LINEAR)
+    lipb = cv2.warpAffine(lipb, M, lipb.shape[1::-1], flags=cv2.INTER_LINEAR)
     inside = cv2.warpAffine(inside, M, inside.shape[1::-1], flags=cv2.INTER_NEAREST)
     px, py = M @ np.array([pad + POCKET[0], pad + POCKET[1], 1.0])
+    rest = M @ np.array([pad + POCKET[0], pad + RIM - BALL_D * (0.5 - TUCK), 1.0])   # the ball: its lowest TUCK behind the near rim
     a = big[..., 3] > 0.5
     whole = None
     for y in range(int(c[1]), big.shape[0]):           # the lowest row where the sleeve is whole, outlines and all...
@@ -166,11 +193,20 @@ def _arm():
     ys, xs = np.where(body[..., 3] > 0.01)
     x0, x1, y0 = xs.min() - 4, xs.max() + 5, ys.min() - 4
     body = np.ascontiguousarray(body[y0:, x0:x1])
-    return premul(body), ((px - x0) / body.shape[1], (py - y0) / body.shape[0]), (ax - px, cut - py)
+    front = np.zeros(body.shape[:2], np.float32)       # the near rim, in the same window (the sleeve's run-on below has none)
+    rows = min(body.shape[0], lipb.shape[0] - y0)
+    front[:rows] = lipb[y0:y0 + rows, x0:x1]
+    arm = premul(body)
+    return (arm, ((px - x0) / body.shape[1], (py - y0) / body.shape[0]), (ax - px, cut - py),
+            np.ascontiguousarray(arm * front[..., None]), (rest[0] - px, rest[1] - py))
 
 
-POCKET = _pocket()
-ARM, ARM_ANCHOR, ARM_VEC = _arm()
+BALL_PER_SIZE = 0.31                                   # the ball is this much of the glove's width
+BALL_D = BALL_PER_SIZE * GLOVE_W                       # its diameter in pixels of the glove drawing
+TUCK = 0.24                                            # the share of the ball (from below) hidden behind the glove's near rim
+HOLLOW_MASK = _hollow()
+POCKET, RIM = _pocket()
+ARM, ARM_ANCHOR, ARM_VEC, ARM_LIP, BALL_REST = _arm()
 
 
 def body_point(T, p):
@@ -226,20 +262,34 @@ def _ball(d=240):
 
 
 BALL = _ball()
-BALL_PER_SIZE = 0.30                                   # the ball is this much of the glove's width
 FALL = 0.25                                            # it drops in from the top edge in a quarter of a second
 LAND = "land"                                          # it lands on "ready" (the effect "land" in the sound plan)
 
 
-def _streaks(h=230, w=60):
-    """Two short speed lines, grey, for the falling ball (drawn above it)."""
-    img = np.zeros((h * 4, w * 4, 4), np.float32)
-    for x, l in ((w * 4 * 0.30, 0.95), (w * 4 * 0.70, 0.70)):
-        cv2.line(img, (int(x), int(h * 4 * (1 - l))), (int(x), h * 4 - 8), (0.30, 0.30, 0.34, 0.85), 11, cv2.LINE_AA)
-    return premul(cv2.resize(img, (w, h), interpolation=cv2.INTER_AREA))
+def _streaks(d=240):
+    """Three short speed dashes for the falling ball, in a picture as wide as the ball (d): tapered (thick at the
+    bottom, a point at the top), the middle one longest. Laid with a clear gap above the ball, never touching it
+    (dashes that touched it read as strings, a ball lowered like a puppet)."""
+    s = 4
+    h = int(d * 1.0)
+    img = np.zeros((h * s, d * s, 4), np.float32)
+    ink = (0.09, 0.07, 0.08, 1.0)
+    for fx, l, top in ((0.24, 0.62, 0.30), (0.50, 0.95, 0.00), (0.76, 0.55, 0.40)):
+        x = fx * d * s
+        y1, y0 = h * s - 2 * s, h * s - 2 * s - l * h * s
+        y1 -= top * 0.15 * h * s                       # the side dashes start a little higher: a fan, not a comb
+        y0 -= top * 0.15 * h * s
+        wb = 0.035 * d * s                             # half its width at the bottom
+        poly = np.array([(x - wb, y1), (x + wb, y1), (x + 0.6, y0), (x - 0.6, y0)], np.float32)
+        cv2.fillPoly(img, [poly.astype(np.int32)], ink, cv2.LINE_AA)
+        cv2.circle(img, (int(x), int(y1)), int(wb), ink, -1, cv2.LINE_AA)
+    img[..., 3] *= 0.75
+    img[..., :3] = ink[:3]                             # straight colour everywhere: only the alpha draws
+    return premul(cv2.resize(img, (d, h), interpolation=cv2.INTER_AREA))
 
 
 STREAKS = _streaks()
+GAP = 0.32                                             # the gap between the ball's top and the dashes, in ball diameters
 
 
 def _dip(q, A):
@@ -259,21 +309,32 @@ def glove(st, t, T):
     scale = math.hypot(wx, wy) / math.hypot(*ARM_VEC)
     turn = math.degrees(math.atan2(wy, wx) - math.atan2(ARM_VEC[1], ARM_VEC[0]))
     st.put(ARM, px, py, scale=scale, turn=turn, anchor=ARM_ANCHOR, depth=0.82)
-    bd = BALL_PER_SIZE * 1347 * scale / BALL.shape[1]
+    bd = BALL_D * scale / BALL.shape[1]
     if T < land - FALL:
         return
-    bx, by = px - 6 * k, py + 10 * k                               # it rests a little low in the pocket
-    if T < land:                                                   # falling: from above the top edge, faster and faster, drawn long
+    a = math.radians(turn)                                         # where the ball rests in the bowl, turned with the glove
+    u, w_ = BALL_REST
+    bx = px + scale * (math.cos(a) * u - math.sin(a) * w_)
+    by = py + scale * (math.sin(a) * u + math.cos(a) * w_)
+    D = BALL.shape[0] * bd                                         # the ball's diameter in the frame
+    if T < land:                                                   # falling: from above the top edge, faster and faster
         p = (T - (land - FALL)) / FALL
-        y_top = -BALL.shape[0] * bd
+        y_top = -D * 0.7
         yy = y_top + (by - y_top) * p ** 1.6
-        xx = bx - 260 * k * (1 - p ** 4)                           # down the sky between their heads (clear of his face), into the glove at the last moment
-        st.put(STREAKS, xx, yy - BALL.shape[0] * bd * 0.55, scale=bd * 1.4, anchor=(0.5, 1.0), depth=0.82)
-        st.put(BALL, xx, yy, scale=bd, sx=0.86, sy=1.28, depth=0.82)
+        drift = 200 * k
+        xx = bx - drift * (1 - p ** 4)                             # down the sky between their heads (clear of his face), into the glove at the last moment
+        vx, vy = drift * 4 * p ** 3, (by - y_top) * 1.6 * max(p, 0.05) ** 0.6
+        lean = -math.degrees(math.atan2(vx, vy))                   # the dashes trail behind it, along its path
+        e = math.radians(lean)
+        gx, gy = math.sin(e), -math.cos(e)                         # straight back up its path
+        off = D * (0.5 * 1.06 + GAP)
+        st.put(STREAKS, xx + gx * off, yy + gy * off, scale=bd, turn=lean, anchor=(0.5, 1.0), depth=0.82)
+        st.put(BALL, xx, yy, scale=bd, sx=0.96, sy=1.08, turn=lean, depth=0.82)
         return
     q = T - land                                                   # landed: it squashes once into the leather and stays
-    squash = math.exp(-q * 18) * math.cos(q * 30) * 0.12
-    st.put(BALL, bx, by, scale=bd, sx=1 + squash, sy=1 - squash, turn=20, anchor=(0.5, 0.5), depth=0.82)
+    squash = math.exp(-q * 18) * math.cos(q * 30) * 0.10
+    st.put(BALL, bx, by, scale=bd, sx=1 + squash, sy=1 - squash, turn=turn + 20, anchor=(0.5, 0.5), depth=0.82)
+    st.put(ARM_LIP, px, py, scale=scale, turn=turn, anchor=ARM_ANCHOR, depth=0.82)   # the near rim of the glove over its bottom: it is IN there
 
 
 v.shot("start", bg=BG_A, luna=LUNA_A, timo=TIMO_A, mid=glove)
@@ -288,8 +349,9 @@ v.faces(("start", None),                  # to us, amused, fond
         ("L5-0.10", "turn"),              # "Timo."
         ("L5.end+0.16", "defend"),        # "I'm not finished.": big eyes at us
         ("L7-0.08", "guilty"),            # "Your glove.": small, a sideways look at it
-        ("L9-0.12", "turn"),              # "It's in there.": whispered, to him
-        ("L9.end+0.20", "defend"),        # "I've won baseball.": big eyes at us
+        ("L9-0.12", "turn"),              # "It's in there.": whispered, to him; and she stays turned to him, a small
+                                          #   closed smile, while he says "I've won baseball." into the lens (the
+                                          #   "defend" pout here read as close to tears and pulled the eye off him)
         ("L11-0.12", None))               # "He's thrilled.": sunny again, to the end
 v.tilt(L1=3.0, L3=2.4, L5=2.2, L7=-2.2, L9=2.0, L11=-3.0)
 
@@ -305,7 +367,7 @@ v.blinks(luna=[1.2, "T2+0.5", "T4+0.9", "T4+3.3", "T6+0.6", "T8+0.3", "T10+0.5",
 
 # ---- the words on screen
 v.captions(
-    split={"T4": [("It’s not about catching.", None), ("It’s about being ready.", "T4+1.18"), ("You don’t chase the ball—", "T4@you")]},     # (said: "…the ball, the ba—"; the full words cannot be read in 1.3 s)
+    split={"T4": [("It's not about catching.", None), ("It's about being ready.", "T4+1.18"), ("You don't chase the ball—", "T4@you")]},     # (said: "…the ball, the ba—"; the full words cannot be read in 1.3 s; straight apostrophes, as in every other caption)
     text={"L3": "Ever caught one?"})
 v.plate(x=345, y=290, size=0.68)          # beside his head, above hers: he is standing at the end
 

@@ -28,9 +28,11 @@ from vlog_sound import ASSETS, ROOT, SR, build, db, fade, hp, lp  # noqa: E402
 
 FILM = "glove"
 A, B, C = "ldn_g25p_1", "ldn_g25p_2", "ldn_g25p_3"   # three readings of the whole sketch (all words heard back in all three,
-#   except "brought" in reading 1's first line). His lines are reading 2's (one dark, low, flat voice throughout), except
-#   "I've won baseball." from reading 1: the listening model's choice for the punchline, and measured no further from
-#   reading 2's voice than reading 2's own take. Her lines are the listening model's choices (her readings do not differ
+#   except "brought" in reading 1's first line). ALL his lines are reading 2's (one dark, low, flat voice throughout),
+#   the punchline "I've won baseball." too: the listening model chose reading 1's take, but measured frame by frame its
+#   "won" rises from about 95 to 238 Hz and falls back (more than an octave: the most animated line he has), where the
+#   direction is "flat and level, no joy showing at all" and that flatness is the joke. Reading 2's take stays at
+#   89-150 Hz (all three words matched, no wrong word); reading 3's sits at 186-261 Hz, out. Her lines are the listening model's choices (her readings do not differ
 #   in colour more than her lines do within one reading); her whisper "It's in there." is reading 1's, the only true whisper.
 LAND_AFTER_READY = 0.06                              # the ball lands just after "ready" begins: on the stressed syllable
 
@@ -116,7 +118,7 @@ PLAN = [
     ("CUT", 0.06),                                   # tighter: both faces and the glove with the ball in it
     ("T8", "T", B, 8, 0.95, {}),                     # his eyes open on us and stay there 0.8 s before he speaks
     ("L9", "L", A, 9, 0.22, {}),                     # whispered, awed, turned to him
-    ("T10", "T", A, 10, 0.42, {}),                   # a beat; to the lens, the same flat face (uncut: the punchline)
+    ("T10", "T", B, 10, 0.42, {}),                   # a beat; to the lens, the same flat face (uncut: the punchline; reading 2, flat)
     ("L11", "L", A, 11, 0.30, {}),                   # sunny, to us
     ("PLATE", 0.75),                                 # she beams; he stares at us with the ball in his glove
 ]

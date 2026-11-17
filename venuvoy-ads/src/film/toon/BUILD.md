@@ -182,6 +182,18 @@ frame, both sides of every cut, every moment a hand, a thing or Timo enters or l
 - A mouth shut on a loud word, or the wide mouth on a quiet one: the default shapes come from the spelling, and the
   recogniser stretches the last word of a line. Set the word by hand in `said=` (e.g. `{"best": "C", "trips": "C A C"}`).
 - Timo's `rise()` is now even (it used to overshoot by 250 px); `sink()` is unchanged.
+- `Vlog(..., drive=True)` lets the loudness of the voice lead the mouths: closed lips from the spelling only where
+  the voice really dips, and a mouth held open for long closes at the dips inside it. All the quick shorts use it;
+  it removed most of the "mouth shut on a loud word / frozen open" faults the checkers found.
+- Her free arm now leaves in 0.7 s at an even speed (it used to vanish in one picture). Keep her phone up for as
+  long as her face is "read": a reading face over an empty hand reads as a glitch.
+- On her turned head the "E" mouth is a clenched grin and the "A" a gape: set `v.turn_shout = False` unless a line
+  is a shout (both then become the small mouth). Her "down" face is the round "oh" of surprise; eyes down with the
+  mouth shut is "read_b".
+- His look into the lens is best when it lands WITH the music's stop, before his line (in quick.py: `"eyes_at"`);
+  set blinks by hand (`v.blinks(timo=[...])`) so none falls on a punchline.
+- A caption must not give the punchline before it is said: split it at the word (`split`) or hold the last words
+  (`hold`). Her first caption is up from frame 1 (`on={"L1": "start"}`): the first frame is often the cover.
 
 Then ask the watching model once (3 cents): `python3 src/film/toon/check.py <name>`. Compare what it HEARD with
 the script word for word; look yourself at every fault it names with a time; fix what is real, render again.

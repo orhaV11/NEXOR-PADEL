@@ -1,0 +1,89 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "The wave! Here it comes! Wooo!",
+  "t0": 0.1,
+  "t1": 2.11,
+  "dur": 2.01,
+  "words": [
+   [
+    "the",
+    0.14,
+    0.3
+   ],
+   [
+    "wave",
+    0.3,
+    1.02
+   ],
+   [
+    "here",
+    1.02,
+    1.26
+   ],
+   [
+    "it",
+    1.26,
+    1.5
+   ],
+   [
+    "comes",
+    1.5,
+    1.96
+   ]
+  ],
+  "matched": "5/6",
+  "heard": "the wave here it comes",
+  "wrong": [],
+  "peak_db": -2.7
+ },
+ {
+  "n": 2,
+  "who": "L",
+  "text": "It's gone.",
+  "t0": 3.9,
+  "t1": 4.77,
+  "dur": 0.87,
+  "words": [
+   [
+    "gone",
+    0.26,
+    0.82
+   ]
+  ],
+  "matched": "1/2",
+  "heard": "gone",
+  "wrong": [],
+  "peak_db": -11.5
+ },
+ {
+  "n": 3,
+  "who": "T",
+  "text": "They were early.",
+  "t0": 4.96,
+  "t1": 5.711,
+  "dur": 0.751,
+  "words": [
+   [
+    "they",
+    0.0,
+    0.16
+   ],
+   [
+    "were",
+    0.16,
+    0.32
+   ],
+   [
+    "early",
+    0.32,
+    0.701
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "they were early",
+  "wrong": [],
+  "peak_db": -6.1
+ }
+]

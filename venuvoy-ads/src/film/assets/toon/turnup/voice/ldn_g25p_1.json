@@ -38,7 +38,7 @@
   "dialogue_turns": [
    {
     "speaker_id": "Speaker 1",
-    "text": "[reading off her phone] Question. 'Do you even need a plan? Can't you just turn up?'"
+    "text": "[reading off her phone] Question. 'Can't you just turn up?'"
    },
    {
     "speaker_id": "Speaker 1",
@@ -63,165 +63,135 @@
  },
  "words": [
   [
-   "Q.",
-   0.4,
-   1.12
-  ],
-  [
-   "Do",
-   1.12,
+   "Question",
+   0.48,
    1.36
   ],
   [
-   "you",
-   1.36,
-   1.6
-  ],
-  [
-   "even",
-   1.6,
-   1.84
-  ],
-  [
-   "need",
-   1.84,
-   2.16
-  ],
-  [
-   "a",
-   2.16,
-   2.32
-  ],
-  [
-   "plan?",
-   2.32,
-   2.88
-  ],
-  [
    "Can't",
-   2.88,
-   3.2
+   1.36,
+   1.76
   ],
   [
    "you",
-   3.2,
-   3.28
+   1.76,
+   2.0
   ],
   [
    "just",
-   3.28,
-   3.44
+   2.0,
+   2.24
   ],
   [
    "turn",
-   3.44,
-   3.76
+   2.24,
+   2.8
   ],
   [
    "up?",
-   3.76,
-   4.32
+   2.8,
+   3.84
   ],
   [
    "Yes,",
-   4.32,
-   4.88
+   3.84,
+   4.64
   ],
   [
    "just",
-   4.88,
-   5.28
+   4.64,
+   4.96
   ],
   [
    "turn",
-   5.28,
-   5.68
+   4.96,
+   5.36
   ],
   [
-   "up.",
-   5.68,
-   6.32
+   "up",
+   5.36,
+   6.24
   ],
   [
    "We",
-   6.32,
+   6.24,
    6.48
   ],
   [
    "just",
    6.48,
-   6.64
+   6.72
   ],
   [
    "turned",
-   6.64,
-   6.96
-  ],
-  [
-   "up",
-   6.96,
+   6.72,
    7.12
   ],
   [
-   "once.",
+   "up",
    7.12,
-   7.84
+   7.28
   ],
   [
-   "That",
-   7.84,
+   "once.",
+   7.28,
    8.08
   ],
   [
-   "was",
+   "That",
    8.08,
-   8.4
+   8.32
+  ],
+  [
+   "was",
+   8.32,
+   8.56
   ],
   [
    "a",
-   8.4,
-   8.64
+   8.56,
+   8.72
   ],
   [
    "great",
-   8.64,
+   8.72,
    8.96
   ],
   [
    "weekend.",
    8.96,
-   9.92
+   9.84
   ],
   [
-   "The",
-   9.92,
-   10.08
+   "But",
+   9.84,
+   10.16
   ],
   [
    "game",
-   10.08,
-   10.4
+   10.16,
+   10.48
   ],
   [
    "was",
-   10.4,
+   10.48,
    10.56
   ],
   [
    "the",
    10.56,
-   10.64
+   10.72
   ],
   [
    "weekend",
-   10.64,
-   11.04
+   10.72,
+   11.12
   ],
   [
    "after.",
-   11.04,
-   11.53
+   11.12,
+   11.72
   ]
  ],
- "text": "Question. Do you even need a plan? Can't you just turn up? Yes, just turn up. We just turned up once. That was a great weekend. The game was the weekend after."
+ "text": "Question. Can't you just turn up? Yes, just turn up! We just turned up once? That was a great weekend. The game was the weekend after."
 }

@@ -1,0 +1,172 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog outdoors; a little wind in her face."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog outdoors; a little wind in her face."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera, like the start of a vlog] Hi! I'm Luna, and that's Timo."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[proud, simple] We go on sports trips."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, a plain fact] She plans them."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, delighted, as if praised] I plan them!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, dry, slow] That was a warning."
+   }
+  ],
+  "scene": "A phone vlog on a windy hill above a small city. Luna holds the phone at arm's length and introduces herself and her friend to people who have never seen them. Timo is just out of the picture at first, then stands behind her.",
+  "sample_context": "A ten-second introduction played as comedy by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and proud of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Hi,",
+   0.24,
+   0.8
+  ],
+  [
+   "I'm",
+   0.8,
+   1.12
+  ],
+  [
+   "Luna,",
+   1.12,
+   1.76
+  ],
+  [
+   "and",
+   1.76,
+   1.92
+  ],
+  [
+   "that's",
+   1.92,
+   2.24
+  ],
+  [
+   "Timo.",
+   2.24,
+   3.2
+  ],
+  [
+   "We",
+   3.2,
+   3.44
+  ],
+  [
+   "go",
+   3.44,
+   3.68
+  ],
+  [
+   "on",
+   3.68,
+   3.92
+  ],
+  [
+   "sports",
+   3.92,
+   4.48
+  ],
+  [
+   "trips.",
+   4.48,
+   5.28
+  ],
+  [
+   "She",
+   5.28,
+   5.52
+  ],
+  [
+   "plans",
+   5.52,
+   6.0
+  ],
+  [
+   "them.",
+   6.0,
+   6.56
+  ],
+  [
+   "I",
+   6.56,
+   6.96
+  ],
+  [
+   "plan",
+   6.96,
+   7.44
+  ],
+  [
+   "them.",
+   7.44,
+   8.0
+  ],
+  [
+   "That",
+   8.0,
+   8.24
+  ],
+  [
+   "was",
+   8.24,
+   8.4
+  ],
+  [
+   "a",
+   8.4,
+   8.48
+  ],
+  [
+   "warning.",
+   8.48,
+   9.08
+  ]
+ ],
+ "text": "Hi, I'm Luna and that's Timo. We go on sports trips. She plans them. I plan them. That was a warning."
+}

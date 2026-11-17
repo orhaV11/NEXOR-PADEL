@@ -1,0 +1,298 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a busy open car park on a crisp morning, speaking up a little over the chatter, pleased with herself; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and quietly content; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing in a busy open car park on a crisp morning, speaking up a little over the chatter, pleased with herself; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and quietly content; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, to the camera, proud of the sandwich] American football! The tailgate! We brought a sandwich."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[lower, confiding to the camera, amused] Timo hates it. He says it's just a car park—"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[cutting in, calm and level, right behind her] Gary says hello."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, thrown] Who's Gary?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, as if that explains everything] Gary has a grill."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[accusing but fond] You don't like people."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[a plain fact, quietly proud] He's invited me for Thanksgiving."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[after a beat, small and hopeful, not looking up] Can I come?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and final, to the camera] It's a family thing."
+   }
+  ],
+  "scene": "A phone vlog in the car park of a big stadium on a bright autumn morning, hours before an American football game: the tailgate party. Pick-up trucks, grills smoking, people chatting and laughing some way off. Luna holds the phone at arm's length and talks to it while she holds up the one flat sandwich they brought; Timo stands upright just behind her.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick; she is proud of the one sandwich they brought and gossips happily to the camera about Timo, who she thinks is sulking somewhere; by the end she is small and hopeful. TIMO, about 30, is slow, dry and proud; he never raises his voice; today he is calm and quietly pleased with himself, because a stranger with a grill has made friends with him, and he states each thing as a plain fact. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "American",
+   0.24,
+   0.88
+  ],
+  [
+   "football,",
+   0.88,
+   1.76
+  ],
+  [
+   "the",
+   1.76,
+   1.92
+  ],
+  [
+   "Tailgate!",
+   1.92,
+   3.04
+  ],
+  [
+   "We",
+   3.04,
+   3.28
+  ],
+  [
+   "brought",
+   3.28,
+   3.76
+  ],
+  [
+   "a",
+   3.76,
+   4.0
+  ],
+  [
+   "sandwich.",
+   4.0,
+   5.68
+  ],
+  [
+   "Timo",
+   5.68,
+   6.48
+  ],
+  [
+   "hates",
+   6.48,
+   7.04
+  ],
+  [
+   "it.",
+   7.04,
+   7.52
+  ],
+  [
+   "He",
+   7.52,
+   7.68
+  ],
+  [
+   "says",
+   7.68,
+   7.92
+  ],
+  [
+   "it's",
+   7.92,
+   8.24
+  ],
+  [
+   "just",
+   8.24,
+   8.4
+  ],
+  [
+   "a",
+   8.4,
+   8.72
+  ],
+  [
+   "car",
+   8.72,
+   9.04
+  ],
+  [
+   "park.",
+   9.04,
+   9.84
+  ],
+  [
+   "Gary",
+   9.84,
+   10.32
+  ],
+  [
+   "says",
+   10.32,
+   10.56
+  ],
+  [
+   "hello.",
+   10.56,
+   11.28
+  ],
+  [
+   "Who's",
+   11.28,
+   11.6
+  ],
+  [
+   "Gary?",
+   11.6,
+   12.64
+  ],
+  [
+   "Gary",
+   12.64,
+   13.2
+  ],
+  [
+   "has",
+   13.2,
+   13.36
+  ],
+  [
+   "a",
+   13.36,
+   13.44
+  ],
+  [
+   "grill.",
+   13.44,
+   14.24
+  ],
+  [
+   "You",
+   14.24,
+   14.4
+  ],
+  [
+   "don't",
+   14.4,
+   14.96
+  ],
+  [
+   "like",
+   14.96,
+   15.28
+  ],
+  [
+   "people.",
+   15.28,
+   16.32
+  ],
+  [
+   "He's",
+   16.32,
+   16.64
+  ],
+  [
+   "invited",
+   16.64,
+   17.2
+  ],
+  [
+   "me",
+   17.2,
+   17.44
+  ],
+  [
+   "for",
+   17.44,
+   17.6
+  ],
+  [
+   "Thanksgiving.",
+   17.6,
+   18.8
+  ],
+  [
+   "Can",
+   18.8,
+   19.2
+  ],
+  [
+   "I",
+   19.2,
+   19.52
+  ],
+  [
+   "come?",
+   19.52,
+   20.16
+  ],
+  [
+   "It's",
+   20.16,
+   20.4
+  ],
+  [
+   "a",
+   20.4,
+   20.56
+  ],
+  [
+   "family",
+   20.56,
+   20.88
+  ],
+  [
+   "thing.",
+   20.88,
+   21.29
+  ]
+ ],
+ "text": "American football, the tailgates, we brought a sandwich. Timo hates it. He says it's just a car park. - Go says hello. - Who's Gary? - Gary has a grill. - You don't like people. - He's invited me for Thanksgiving. - Can I come? - It's a family thing."
+}

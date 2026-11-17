@@ -1,0 +1,67 @@
+{
+ "work": "work/safety",
+ "cap": 5.0,
+ "temperature": 1,
+ "scene": "A phone vlog in the front row of a grandstand at a motor racing circuit on a windy, overcast day; behind a tall wire fence the racing cars scream past now and then. Luna holds the phone at arm's length and talks to it over the wind and the engines, a small flag in her other hand; Timo stands just behind her.",
+ "context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and loud over the engines; she is delighted with the car she has picked to cheer for, she is innocent and never sarcastic, and every answer of his only makes her surer. TIMO, about 30, knows the sport; he is slow, dry, patient and fond of her; he never raises his voice, and at the end he gives in with a flat, deadpan cheer. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[shouting over a passing engine, delighted] Motor racing! I've picked a driver!"
+  ],
+  [
+   "T",
+   "[flat, already suspicious] Which one?"
+  ],
+  [
+   "L",
+   "[proud, to the camera] Lights on the roof. He's winning!"
+  ],
+  [
+   "T",
+   "[dry, patient] That's the safety car."
+  ],
+  [
+   "L",
+   "[unbothered, cheerful] He's in front."
+  ],
+  [
+   "T",
+   "[slow and kind, as to a friend he likes] He's not in the race."
+  ],
+  [
+   "L",
+   "[honestly puzzled] Then why is nobody passing him?"
+  ],
+  [
+   "T",
+   "[flat] They're not allowed."
+  ],
+  [
+   "L",
+   "[amazed, as if it explains everything] So he can't lose!"
+  ],
+  [
+   "T",
+   "[after a long pause, flat and deadpan, a cheer with no cheer in it] Come on, safety car."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; calling over the wind and the engines at a race track; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall man of 30 with a low, dry, casual voice; slow, proud, patient and deadpan; he never raises his voice."
+   }
+  }
+ }
+}

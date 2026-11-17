@@ -1,0 +1,343 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "American football! The tailgate! We brought a sandwich.",
+  "t0": 0.28,
+  "t1": 4.92,
+  "dur": 4.64,
+  "words": [
+   [
+    "american",
+    -0.04,
+    0.6
+   ],
+   [
+    "football",
+    0.6,
+    1.48
+   ],
+   [
+    "the",
+    1.48,
+    1.64
+   ],
+   [
+    "tailgate",
+    1.64,
+    2.76
+   ],
+   [
+    "we",
+    2.76,
+    3.0
+   ],
+   [
+    "brought",
+    3.0,
+    3.48
+   ],
+   [
+    "a",
+    3.48,
+    3.72
+   ],
+   [
+    "sandwich",
+    3.72,
+    4.59
+   ]
+  ],
+  "matched": "8/8",
+  "heard": "american football the tailgate we brought a sandwich",
+  "wrong": [],
+  "peak_db": -1.5
+ },
+ {
+  "n": 2,
+  "who": "L",
+  "text": "Timo hates it. He says it's just a car park\u2014",
+  "t0": 5.69,
+  "t1": 9.6,
+  "dur": 3.91,
+  "words": [
+   [
+    "timo",
+    -0.01,
+    0.79
+   ],
+   [
+    "hates",
+    0.79,
+    1.35
+   ],
+   [
+    "it",
+    1.35,
+    1.83
+   ],
+   [
+    "he",
+    1.83,
+    1.99
+   ],
+   [
+    "says",
+    1.99,
+    2.23
+   ],
+   [
+    "its",
+    2.23,
+    2.55
+   ],
+   [
+    "just",
+    2.55,
+    2.71
+   ],
+   [
+    "a",
+    2.71,
+    3.03
+   ],
+   [
+    "car",
+    3.03,
+    3.35
+   ],
+   [
+    "park",
+    3.35,
+    3.86
+   ]
+  ],
+  "matched": "10/10",
+  "heard": "timo hates it he says its just a car park",
+  "wrong": [],
+  "peak_db": -2.3
+ },
+ {
+  "n": 3,
+  "who": "T",
+  "text": "Gary says hello.",
+  "t0": 9.84,
+  "t1": 10.77,
+  "dur": 0.93,
+  "words": [
+   [
+    "gary",
+    0.0,
+    0.48
+   ],
+   [
+    "says",
+    0.48,
+    0.72
+   ],
+   [
+    "hello",
+    0.72,
+    0.88
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "gary says hello",
+  "wrong": [],
+  "peak_db": -1.7
+ },
+ {
+  "n": 4,
+  "who": "L",
+  "text": "Who's Gary?",
+  "t0": 11.3,
+  "t1": 12.3,
+  "dur": 1.0,
+  "words": [
+   [
+    "whos",
+    -0.02,
+    0.3
+   ],
+   [
+    "gary",
+    0.3,
+    0.95
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "whos gary",
+  "wrong": [],
+  "peak_db": -6.0
+ },
+ {
+  "n": 5,
+  "who": "T",
+  "text": "Gary has a grill.",
+  "t0": 12.65,
+  "t1": 13.86,
+  "dur": 1.21,
+  "words": [
+   [
+    "gary",
+    -0.01,
+    0.55
+   ],
+   [
+    "has",
+    0.55,
+    0.71
+   ],
+   [
+    "a",
+    0.71,
+    0.79
+   ],
+   [
+    "grill",
+    0.79,
+    1.16
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "gary has a grill",
+  "wrong": [],
+  "peak_db": -2.8
+ },
+ {
+  "n": 6,
+  "who": "L",
+  "text": "You don't like people.",
+  "t0": 14.11,
+  "t1": 15.97,
+  "dur": 1.86,
+  "words": [
+   [
+    "you",
+    0.13,
+    0.29
+   ],
+   [
+    "dont",
+    0.29,
+    0.85
+   ],
+   [
+    "like",
+    0.85,
+    1.17
+   ],
+   [
+    "people",
+    1.17,
+    1.81
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "you dont like people",
+  "wrong": [],
+  "peak_db": -1.9
+ },
+ {
+  "n": 7,
+  "who": "T",
+  "text": "He's invited me for Thanksgiving.",
+  "t0": 16.38,
+  "t1": 18.41,
+  "dur": 2.03,
+  "words": [
+   [
+    "hes",
+    -0.06,
+    0.26
+   ],
+   [
+    "invited",
+    0.26,
+    0.82
+   ],
+   [
+    "me",
+    0.82,
+    1.06
+   ],
+   [
+    "for",
+    1.06,
+    1.22
+   ],
+   [
+    "thanksgiving",
+    1.22,
+    1.98
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "hes invited me for thanksgiving",
+  "wrong": [],
+  "peak_db": -3.3
+ },
+ {
+  "n": 8,
+  "who": "L",
+  "text": "Can I come?",
+  "t0": 18.74,
+  "t1": 19.92,
+  "dur": 1.18,
+  "words": [
+   [
+    "can",
+    0.06,
+    0.46
+   ],
+   [
+    "i",
+    0.46,
+    0.78
+   ],
+   [
+    "come",
+    0.78,
+    1.13
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "can i come",
+  "wrong": [],
+  "peak_db": -14.7
+ },
+ {
+  "n": 9,
+  "who": "T",
+  "text": "It's a family thing.",
+  "t0": 20.23,
+  "t1": 21.17,
+  "dur": 0.94,
+  "words": [
+   [
+    "its",
+    -0.07,
+    0.17
+   ],
+   [
+    "a",
+    0.17,
+    0.33
+   ],
+   [
+    "family",
+    0.33,
+    0.65
+   ],
+   [
+    "thing",
+    0.65,
+    0.89
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "its a family thing",
+  "wrong": [],
+  "peak_db": -2.8
+ }
+]

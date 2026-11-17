@@ -1,0 +1,32 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/8bd32081a65a4a519b773611e1a45519.png"
+ },
+ "bg_golf_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/25379db4-1625-49aa-90ff-62a4f5b5778c_b569a8d9.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters and no people close by: the only people are far-off spectators painted as small soft blurred shapes of colour with no faces. Vertical 9:16. Seen from a standing person's eye height, the way a phone held at arm's length sees what is behind its owner (never from above). A golf course on a bright, fresh, breezy morning during a tournament. In the UPPER LEFT third of the picture, far away at the end of the fairway: the green, a smooth oval of lighter, finer grass on a gentle rise, with a small plain red flag on a thin white pole in its hole, the flag blowing out sideways in the breeze, and a pale sand bunker curving in front of it. The fairway runs from the bottom of the picture away into the distance toward that green: closely mown bright green grass in broad soft stripes of two greens, empty. Along the far side of the fairway and round behind the green runs a low rope on short white stakes, and behind the rope stands a long, quiet line of spectators painted only as small soft shapes of muted colour (pale blue, white, khaki, soft red) with no faces and no details; behind them a band of tall, soft, rounded green trees whose tops lean a little in the wind. Above, a clear, fresh pale-blue morning sky with a few small soft white clouds, filling the top quarter of the picture. Low warm morning sunlight from the left, long soft shadows on the grass, a faint haze far away. The whole lower half of the picture is only the near fairway grass, plain, bright and quiet. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no numbers, no logos, no scoreboards, no leaderboards, no screens, no banners, no tents, nothing written on the flag; no golf ball, no golf club, no golf cart, no players on the fairway.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "upload:work/switch/art/luna_shrug.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/45b56ab91788424cb9432c5d271cbb54.png"
+ },
+ "hand_lens_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/e261a4d4-d6f1-4acc-9c04-b2a0ed69872d_63070368.jpg",
+  "prompt": "One cut-out drawn alone on a completely flat, even, pure magenta (#FF00FF) background, for a 2D animated comedy: the open hand of the young woman in the reference picture, pushed right up close to the camera to block it, seen from the palm side. ONLY the hand, the wrist and the end of the sleeve: no arm above the wrist, no body, no head, no face, no hair. The hand is big and fills the upper two thirds of the picture, upright: the flat palm faces us, the four fingers point straight up and are held together with only thin gaps between them, and the thumb sticks out to the LEFT side of the palm. The skin is the same pale peach as her face and her hand in the reference picture, with two or three simple palm lines. Below the wrist the cuff of the same bright yellow raincoat sleeve as in the reference picture, wide and plain with its black outline on both sides, runs straight down and is cut off by the bottom edge of the picture. Drawn exactly in the manner of the reference picture: flat colours, a thick even black outline all round, one flat slightly darker skin tone for shading, no gradients, no glow, no blur, no shadow on the background. Flat magenta all round the hand and on both sides of the sleeve. No text, no ring, no nail polish, no watch, no bracelet.",
+  "refs": [
+   "work/switch/art/luna_shrug.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "hand_lens_2": {
+  "url": "https://cdn.muapi.ai/outputs/generated/455c0506-4c0e-4fa5-8e68-1da2148b382c_c9007741.jpg",
+  "prompt": "Redraw the reference picture (a cut-out drawing of a big open hand on flat magenta) with ONE change only. THE CHANGE: everything below the palm goes: the woman's body, her yellow coat, her outstretched arm on the left, the green-and-cream scarf and the small hand on the right are all removed and replaced by the same flat magenta background. Instead, the bottom of the palm narrows into the wrist, and the wrist goes straight down into the cuff of a plain bright yellow raincoat sleeve, a little narrower than the palm, with a thick black outline on both sides and a black line across the top of the cuff; the sleeve runs straight down and is cut off by the bottom edge of the picture. Flat magenta on both sides of the sleeve, all the way down to the bottom edge, and nothing else anywhere. The big hand itself, its four fingers, its thumb, its palm lines, its outline and its colours do not change or move. Same framing, same black outline weights, same flat colours, no blur. No text.",
+  "refs": [
+   "hand_lens_1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

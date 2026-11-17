@@ -40,7 +40,9 @@ def main(name):
     for k, (film, base, a, b, after) in enumerate(spec["pieces"]):
         L, ev = lines(film)
         t0 = L[a]["t0"] - 0.04
-        t1 = ev["end"] if b == "END" else L[b]["t1"] + after
+        order = sorted(L.values(), key=lambda l: l["t0"])
+        nxt = next((l["t0"] for l in order if l["t0"] > L[b]["t0"]), None) if b != "END" else None
+        t1 = ev["end"] if b == "END" else min(L[b]["t1"] + after, (nxt - 0.08) if nxt else 1e9, ev.get("plate", 1e9) - 0.04)   # never into the next caption or the plate
         src = str(ROOT / (base + "-en_9x16_1080x1920.mp4"))
         out = TMP / f"{name}_{k:02d}.mp4"
         d = t1 - t0

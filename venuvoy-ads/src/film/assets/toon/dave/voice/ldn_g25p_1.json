@@ -1,0 +1,296 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing outside an arena on a cold winter evening, pleased with herself and trusting, speaking up a little over the far crowd; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, patient, deadpan and quietly certain; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing outside an arena on a cold winter evening, pleased with herself and trusting, speaking up a little over the far crowd; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, patient, deadpan and quietly certain; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[bright, thrilled, to the camera, showing it off] Good news! Ice hockey tickets!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat and dry] From where?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[pleased, then reading the name off her phone with great respect] A man sent me a link. Official Dave."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[repeating it slowly, dead flat] Official Dave."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[turning to him, amazed that he has to ask] It's in his name!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[calm and patient, a plain fact] The planner checks ticket links. Paste it."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[quick and defensive, cut off] You never trust any—"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[cutting in over her, calm and firm] Paste."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading it off her phone, small and quiet] Could not verify."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading a new message, smaller still] He says hurry."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[softly, to her phone, fond] Bye, Dave."
+   }
+  ],
+  "scene": "A phone vlog on the wide paved forecourt of a big indoor ice hockey arena at blue winter dusk, before the game; cold air, a far muffled crowd drifting toward the lit doors. Luna holds the phone at arm's length and talks to it, her own other phone held up in her free hand like a trophy; Timo stands upright just behind her.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and trusting; she is thrilled with the tickets a stranger sent her a link for, and she says the stranger's name, Official Dave, with real respect; when the link check comes back she goes small and quiet, and in the end she is fond and a little sad. TIMO, about 30, is slow, dry and proud; he never raises his voice; today he is calm, patient and quietly certain, and he never says I told you so. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Good",
+   0.24,
+   0.56
+  ],
+  [
+   "news!",
+   0.56,
+   1.2
+  ],
+  [
+   "Ice",
+   1.2,
+   1.52
+  ],
+  [
+   "hockey",
+   1.52,
+   1.92
+  ],
+  [
+   "tickets!",
+   1.92,
+   2.8
+  ],
+  [
+   "From",
+   2.8,
+   3.12
+  ],
+  [
+   "where?",
+   3.12,
+   3.68
+  ],
+  [
+   "A",
+   3.68,
+   3.84
+  ],
+  [
+   "man",
+   3.84,
+   4.16
+  ],
+  [
+   "sent",
+   4.16,
+   4.4
+  ],
+  [
+   "me",
+   4.4,
+   4.48
+  ],
+  [
+   "a",
+   4.48,
+   4.64
+  ],
+  [
+   "link.",
+   4.64,
+   5.28
+  ],
+  [
+   "Official",
+   5.28,
+   6.0
+  ],
+  [
+   "Dave.",
+   6.0,
+   7.04
+  ],
+  [
+   "Official",
+   7.04,
+   7.84
+  ],
+  [
+   "Dave.",
+   7.84,
+   8.96
+  ],
+  [
+   "It's",
+   8.96,
+   9.2
+  ],
+  [
+   "in",
+   9.2,
+   9.36
+  ],
+  [
+   "his",
+   9.36,
+   9.6
+  ],
+  [
+   "name.",
+   9.6,
+   10.24
+  ],
+  [
+   "The",
+   10.24,
+   10.4
+  ],
+  [
+   "planner",
+   10.4,
+   10.88
+  ],
+  [
+   "checks",
+   10.88,
+   11.28
+  ],
+  [
+   "ticket",
+   11.28,
+   11.68
+  ],
+  [
+   "links.",
+   11.68,
+   12.32
+  ],
+  [
+   "Paste",
+   12.32,
+   12.8
+  ],
+  [
+   "it.",
+   12.8,
+   13.36
+  ],
+  [
+   "You",
+   13.36,
+   13.52
+  ],
+  [
+   "never",
+   13.52,
+   13.84
+  ],
+  [
+   "trust",
+   13.84,
+   14.24
+  ],
+  [
+   "any.",
+   14.24,
+   15.04
+  ],
+  [
+   "Paste.",
+   15.04,
+   16.24
+  ],
+  [
+   "Could",
+   16.24,
+   16.72
+  ],
+  [
+   "not",
+   16.72,
+   16.96
+  ],
+  [
+   "verify.",
+   17.12,
+   18.24
+  ],
+  [
+   "He",
+   18.24,
+   18.64
+  ],
+  [
+   "says",
+   18.64,
+   19.36
+  ],
+  [
+   "hurry.",
+   19.36,
+   20.24
+  ],
+  [
+   "Bye,",
+   20.24,
+   20.64
+  ],
+  [
+   "Dave.",
+   20.64,
+   21.24
+  ]
+ ],
+ "text": "Good news! Ice hockey tickets! From where? A man sent me a link. Official Dave. Official Dave! It's in his name! The planner checks ticket links. Paste it. You never trust any... Paste! Could not verify. He says, \"Hurry!\" Bye, Dave."
+}

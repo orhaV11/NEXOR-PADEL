@@ -2,226 +2,186 @@
  {
   "n": 1,
   "who": "L",
-  "text": "Question. 'Do you even need a plan? Can't you just turn up?'",
-  "t0": 1.09,
-  "t1": 3.94,
-  "dur": 2.85,
+  "text": "Question. 'Can't you just turn up?'",
+  "t0": 0.21,
+  "t1": 3.08,
+  "dur": 2.87,
   "words": [
    [
-    "do",
-    0.03,
-    0.27
-   ],
-   [
-    "you",
+    "question",
     0.27,
-    0.51
-   ],
-   [
-    "even",
-    0.51,
-    0.75
-   ],
-   [
-    "need",
-    0.75,
-    1.07
-   ],
-   [
-    "a",
-    1.07,
-    1.23
-   ],
-   [
-    "plan",
-    1.23,
-    1.79
+    1.15
    ],
    [
     "cant",
-    1.79,
-    2.11
+    1.15,
+    1.55
    ],
    [
     "you",
-    2.11,
-    2.19
+    1.55,
+    1.79
    ],
    [
     "just",
-    2.19,
-    2.35
+    1.79,
+    2.03
    ],
    [
     "turn",
-    2.35,
-    2.67
+    2.03,
+    2.59
    ],
    [
     "up",
-    2.67,
-    2.8
+    2.59,
+    2.82
    ]
   ],
-  "matched": "11/12",
-  "heard": "do you even need a plan cant you just turn up",
+  "matched": "6/6",
+  "heard": "question cant you just turn up",
   "wrong": [],
-  "peak_db": -4.6
+  "peak_db": -3.0
  },
  {
   "n": 2,
   "who": "L",
   "text": "Yes! Just turn up!",
-  "t0": 4.31,
-  "t1": 6.14,
-  "dur": 1.83,
+  "t0": 3.7,
+  "t1": 5.87,
+  "dur": 2.17,
   "words": [
    [
     "yes",
-    0.01,
-    0.57
+    0.14,
+    0.94
    ],
    [
     "just",
-    0.57,
-    0.97
+    0.94,
+    1.26
    ],
    [
     "turn",
-    0.97,
-    1.37
+    1.26,
+    1.66
    ],
    [
     "up",
-    1.37,
-    1.78
+    1.66,
+    2.12
    ]
   ],
   "matched": "4/4",
   "heard": "yes just turn up",
   "wrong": [],
-  "peak_db": -2.6
+  "peak_db": -1.8
  },
  {
   "n": 3,
   "who": "T",
   "text": "We just turned up once.",
-  "t0": 6.31,
-  "t1": 7.52,
-  "dur": 1.21,
+  "t0": 6.12,
+  "t1": 7.78,
+  "dur": 1.66,
   "words": [
    [
     "we",
-    0.01,
-    0.17
+    0.12,
+    0.36
    ],
    [
     "just",
-    0.17,
-    0.33
+    0.36,
+    0.6
    ],
    [
     "turned",
-    0.33,
-    0.65
+    0.6,
+    1.0
    ],
    [
     "up",
-    0.65,
-    0.81
+    1.0,
+    1.16
    ],
    [
     "once",
-    0.81,
-    1.16
+    1.16,
+    1.61
    ]
   ],
   "matched": "5/5",
   "heard": "we just turned up once",
   "wrong": [],
-  "peak_db": -5.5
+  "peak_db": -4.4
  },
  {
   "n": 4,
   "who": "L",
   "text": "That was a great weekend.",
-  "t0": 7.77,
-  "t1": 9.62,
-  "dur": 1.85,
+  "t0": 8.05,
+  "t1": 9.57,
+  "dur": 1.52,
   "words": [
    [
     "that",
-    0.07,
-    0.31
+    0.03,
+    0.27
    ],
    [
     "was",
-    0.31,
-    0.63
+    0.27,
+    0.51
    ],
    [
     "a",
-    0.63,
-    0.87
+    0.51,
+    0.67
    ],
    [
     "great",
-    0.87,
-    1.19
+    0.67,
+    0.91
    ],
    [
     "weekend",
-    1.19,
-    1.8
+    0.91,
+    1.47
    ]
   ],
   "matched": "5/5",
   "heard": "that was a great weekend",
   "wrong": [],
-  "peak_db": -3.3
+  "peak_db": -1.8
  },
  {
   "n": 5,
   "who": "T",
   "text": "The game was the weekend after.",
-  "t0": 9.96,
-  "t1": 11.39,
-  "dur": 1.43,
+  "t0": 10.28,
+  "t1": 11.55,
+  "dur": 1.27,
   "words": [
    [
     "the",
-    -0.04,
-    0.12
-   ],
-   [
-    "game",
-    0.12,
+    0.28,
     0.44
    ],
    [
-    "was",
-    0.44,
-    0.6
-   ],
-   [
-    "the",
-    0.6,
-    0.68
-   ],
-   [
     "weekend",
-    0.68,
-    1.08
+    0.44,
+    0.84
    ],
    [
     "after",
-    1.08,
-    1.38
+    0.84,
+    1.22
    ]
   ],
-  "matched": "6/6",
-  "heard": "the game was the weekend after",
+  "matched": "3/6",
+  "heard": "the weekend after",
   "wrong": [],
-  "peak_db": -3.2
+  "peak_db": -3.1
  }
 ]

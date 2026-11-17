@@ -1,0 +1,173 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[low, to the camera, confiding] Stadium tour at ten. He's been ready since six."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, to the camera] I'm fine either way."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[to the camera, delighted, a secret] He ironed the scarf."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[to the camera, flat, proud] I did yours as well."
+   }
+  ],
+  "scene": "A phone vlog on the empty forecourt of a stadium, shut gates and empty crowd barriers behind. A still day, very quiet.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Stadium",
+   0.24,
+   0.8
+  ],
+  [
+   "tour",
+   0.8,
+   1.28
+  ],
+  [
+   "at",
+   1.28,
+   1.52
+  ],
+  [
+   "10.",
+   1.68,
+   2.08
+  ],
+  [
+   "He's",
+   2.08,
+   2.4
+  ],
+  [
+   "been",
+   2.4,
+   2.64
+  ],
+  [
+   "ready",
+   2.64,
+   3.04
+  ],
+  [
+   "since",
+   3.04,
+   3.6
+  ],
+  [
+   "6.",
+   3.76,
+   4.56
+  ],
+  [
+   "I'm",
+   4.56,
+   4.88
+  ],
+  [
+   "fine",
+   4.88,
+   5.2
+  ],
+  [
+   "either",
+   5.2,
+   5.52
+  ],
+  [
+   "way.",
+   5.52,
+   6.0
+  ],
+  [
+   "He",
+   6.0,
+   6.24
+  ],
+  [
+   "ironed",
+   6.24,
+   7.12
+  ],
+  [
+   "the",
+   7.12,
+   7.36
+  ],
+  [
+   "scarf.",
+   7.36,
+   8.56
+  ],
+  [
+   "I",
+   8.56,
+   8.72
+  ],
+  [
+   "did",
+   8.72,
+   8.96
+  ],
+  [
+   "yours",
+   8.96,
+   9.28
+  ],
+  [
+   "as",
+   9.28,
+   9.36
+  ],
+  [
+   "well.",
+   9.36,
+   9.69
+  ]
+ ],
+ "text": "Stadium tour at 10. He's been ready since 6. I'm fine either way. He ironed the scarf. I did yours as well."
+}

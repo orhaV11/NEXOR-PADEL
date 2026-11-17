@@ -1,0 +1,371 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "He's brought a glove.",
+  "t0": 0.08,
+  "t1": 1.56,
+  "dur": 1.48,
+  "words": [
+   [
+    "hes",
+    -0.08,
+    0.4
+   ],
+   [
+    "brought",
+    0.4,
+    0.72
+   ],
+   [
+    "a",
+    0.72,
+    0.88
+   ],
+   [
+    "glove",
+    0.88,
+    1.43
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "hes brought a glove",
+  "wrong": [],
+  "peak_db": -10.0
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Twenty years.",
+  "t0": 1.56,
+  "t1": 2.45,
+  "dur": 0.89,
+  "words": [
+   [
+    "twenty",
+    0.12,
+    0.44
+   ],
+   [
+    "years",
+    0.44,
+    0.84
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "twenty years",
+  "wrong": [],
+  "peak_db": -3.1
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Ever caught one?",
+  "t0": 2.51,
+  "t1": 3.3,
+  "dur": 0.79,
+  "words": [
+   [
+    "ever",
+    0.05,
+    0.29
+   ],
+   [
+    "caught",
+    0.29,
+    0.53
+   ],
+   [
+    "one",
+    0.53,
+    0.74
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "ever caught one",
+  "wrong": [],
+  "peak_db": -4.3
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "It's not about catching. It's about being ready. You don't chase the ball, the ball\u2014",
+  "t0": 3.38,
+  "t1": 7.51,
+  "dur": 4.13,
+  "words": [
+   [
+    "its",
+    -0.02,
+    0.22
+   ],
+   [
+    "not",
+    0.22,
+    0.38
+   ],
+   [
+    "about",
+    0.38,
+    0.54
+   ],
+   [
+    "catching",
+    0.54,
+    1.18
+   ],
+   [
+    "its",
+    1.18,
+    1.42
+   ],
+   [
+    "about",
+    1.42,
+    1.66
+   ],
+   [
+    "being",
+    1.66,
+    1.9
+   ],
+   [
+    "ready",
+    1.9,
+    2.46
+   ],
+   [
+    "you",
+    2.46,
+    2.62
+   ],
+   [
+    "dont",
+    2.62,
+    2.86
+   ],
+   [
+    "chase",
+    2.86,
+    3.18
+   ],
+   [
+    "the",
+    3.18,
+    3.26
+   ],
+   [
+    "ball",
+    3.26,
+    3.66
+   ],
+   [
+    "the",
+    3.66,
+    3.82
+   ],
+   [
+    "ball",
+    3.82,
+    4.08
+   ]
+  ],
+  "matched": "15/15",
+  "heard": "its not about catching its about being ready you dont chase the ball the ball",
+  "wrong": [],
+  "peak_db": -1.6
+ },
+ {
+  "n": 5,
+  "who": "L",
+  "text": "Timo.",
+  "t0": 7.59,
+  "t1": 8.09,
+  "dur": 0.5,
+  "words": [
+   [
+    "timo",
+    0.01,
+    0.45
+   ]
+  ],
+  "matched": "1/1",
+  "heard": "timo",
+  "wrong": [],
+  "peak_db": -4.4
+ },
+ {
+  "n": 6,
+  "who": "T",
+  "text": "I'm not finished.",
+  "t0": 8.17,
+  "t1": 9.31,
+  "dur": 1.14,
+  "words": [
+   [
+    "im",
+    0.07,
+    0.31
+   ],
+   [
+    "not",
+    0.31,
+    0.55
+   ],
+   [
+    "finished",
+    0.55,
+    1.09
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "im not finished",
+  "wrong": [],
+  "peak_db": -3.8
+ },
+ {
+  "n": 7,
+  "who": "L",
+  "text": "Your glove.",
+  "t0": 9.44,
+  "t1": 10.21,
+  "dur": 0.77,
+  "words": [
+   [
+    "your",
+    0.08,
+    0.32
+   ],
+   [
+    "glove",
+    0.32,
+    0.72
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "your glove",
+  "wrong": [],
+  "peak_db": -7.3
+ },
+ {
+  "n": 8,
+  "who": "T",
+  "text": "It's in there, isn't it.",
+  "t0": 10.31,
+  "t1": 11.35,
+  "dur": 1.04,
+  "words": [
+   [
+    "its",
+    0.01,
+    0.25
+   ],
+   [
+    "in",
+    0.25,
+    0.41
+   ],
+   [
+    "there",
+    0.41,
+    0.65
+   ],
+   [
+    "isnt",
+    0.65,
+    0.89
+   ],
+   [
+    "it",
+    0.89,
+    0.99
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "its in there isnt it",
+  "wrong": [],
+  "peak_db": -4.3
+ },
+ {
+  "n": 9,
+  "who": "L",
+  "text": "It's in there.",
+  "t0": 11.38,
+  "t1": 12.13,
+  "dur": 0.75,
+  "words": [
+   [
+    "its",
+    0.14,
+    0.3
+   ],
+   [
+    "in",
+    0.3,
+    0.46
+   ],
+   [
+    "there",
+    0.46,
+    0.7
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "its in there",
+  "wrong": [],
+  "peak_db": -11.7
+ },
+ {
+  "n": 10,
+  "who": "T",
+  "text": "I've won baseball.",
+  "t0": 12.25,
+  "t1": 14.06,
+  "dur": 1.81,
+  "words": [
+   [
+    "ive",
+    0.07,
+    0.39
+   ],
+   [
+    "won",
+    0.39,
+    0.87
+   ],
+   [
+    "baseball",
+    0.87,
+    1.76
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "ive won baseball",
+  "wrong": [],
+  "peak_db": -5.0
+ },
+ {
+  "n": 11,
+  "who": "L",
+  "text": "He's thrilled.",
+  "t0": 14.26,
+  "t1": 15.29,
+  "dur": 1.03,
+  "words": [
+   [
+    "hes",
+    0.06,
+    0.38
+   ],
+   [
+    "thrilled",
+    0.38,
+    0.98
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "hes thrilled",
+  "wrong": [],
+  "peak_db": -6.8
+ }
+]

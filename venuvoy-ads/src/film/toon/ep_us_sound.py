@@ -14,7 +14,7 @@ PLAN = [
     ("HOLD", "up", 0.40, 0.65),           # his finger goes down; then he comes up into the frame behind her
     ("L2", "L", A, 2, 0.10, {}),          # "We go on sports trips."
     ("T3", "T", A, 3, 0.15, {}),          # "She plans them."
-    ("L4", "L", B, 4, 0.06, {}),          # "I plan them!"   the music stops as she ends
+    ("L4", "L", "ldn_g25p_3", 4, 0.06, {}),   # "I plan them!"   the brightest reading (246 Hz): proud, not stern; the music stops as she ends
     ("CUT", 0.30),                        # closer
     ("T5", "T", A, 5, 0.45, {}),          # "That was a warning."   to us, after a stare of 0.75 s from her last word
     ("PLATE", 0.85),

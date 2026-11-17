@@ -72,7 +72,7 @@ def word_times():
 
 # id, who, reading, number of the line in the reading, gap before it (s after the previous line ends), options
 PLAN = [
-    ("L1", "L", A, 1, 0.10, {"tighten": 0.22}),      # she shouts it over the crowd, waving (the setup: the pause after "Over here!" kept to 0.22 s; the cannon fires in it)
+    ("L1", "L", A, 1, 0.0, {"tighten": 0.22}),       # she shouts it over the crowd, waving, from the first frame (the setup: the pause after "Over here!" kept to 0.22 s; the cannon fires in it)
     ("HOLD", "land", 0.02, 0.70),                    # the shirt lands on his hair as her line ends; the music stops dead; his eyes come to us; nobody else moves
     ("L2", "L", A, 2, 0.03, {}),                     # she has not seen it: to us, sorry for herself
     ("T3", "T", C, 3, 0.20, {}),                     # he waits for her to finish: patient

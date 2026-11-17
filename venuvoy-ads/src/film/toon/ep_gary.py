@@ -29,12 +29,12 @@ v = Vlog("gary", "ads/21-vlog/venuvoy-vlog-06-gary", luna="calm", timo="timo_cle
          said={"american": "A M E C A C", "football": "O O A", "tailgate": "C A C A", "brought": "M O C", "sandwich": "C A C E C",
                "timo": "C E M O", "hates": "A C", "says": "C E C", "just": "C A C", "car": "C A", "park": "M A C",
                "gary": "C A E", "hello": "E O", "whos": "O C", "has": "A C", "grill": "C E C", "dont": "O C", "people": "M E M O",
-               "hes": "E C", "invited": "E M A C E", "thanksgiving": "C A C C E M", "can": "C", "i": "C", "come": "C O M",   # "...Can I come?" stays small
+               "hes": "E C", "invited": "E M A C E", "thanksgiving": "C A C C E M", "can": "O M", "i": "O", "come": "O M",   # "...Can I come?" stays small: only the small round mouth
                "family": "M A M E", "thing": "C E C"})
 
 # drawing, a point in it (the tailgate party: the red canopy and the grill), where that lands in the frame, size
-WIDE = ("bg_carpark_1", (450, 1000), (250, 640), 0.88)
-NEAR = ("bg_carpark_1", (450, 1000), (225, 600), 1.04)       # eighteen per cent closer
+WIDE = ("bg_carpark_1", (450, 1000), (250, 640), 0.85)
+NEAR = ("bg_carpark_1", (450, 1000), (225, 600), 1.04)       # a fifth closer (at eighteen per cent the watching model did not see the cut)
 
 
 # ---- the background: the painter put a can and a cup in two far party-goers' hands. Painted out (grown in from round
@@ -120,31 +120,42 @@ def hat(st, t, T):
 
 
 # ---- her sandwich: its own drawing (a redraw of the calm Luna with only the arm added) and its own movement, drawn in
-#      front of her: it comes up proud, gives one little wiggle on "sandwich", sinks when she sees the hat, is held low
-#      in the closer shot while she looks down at it, and droops a little more at the end.
+#      front of her. It rises evenly on "The tailgate!" and settles as she says "We brought...", gives one little wiggle
+#      on "sandwich", and sinks when she sees the hat. In the closer shot it is held low at her chest; in the silence
+#      after "Thanksgiving" she lifts it a little and looks down at it, and after the last line it droops.
 ARM = duo.arm(v.art, "luna_sandwich", v.s_luna, (1100, 800, 1792, 2400), "luna_calm2")
 PIVOT = (1490, 2330)                                    # the middle of the sleeve where it leaves the frame (pixels of her drawing)
-NEARER = -45.0                                          # frame pixels toward her: the sleeve meets her coat
-PROUD, LOW, GONE = -30.0, 70.0, 900.0                   # how far below its drawn place it is (frame pixels)
+# frame pixels toward her, in each shot: the sleeve joins her coat, with no strip of his trousers between, and the hand
+# is in front of her own shoulder (at -95, in the closer shot the sleeve rose out of his trousers in front of his chest
+# and the watching model took the sandwich for HIS)
+NEARER = {"start": -175.0, "cut1": -310.0}
+TURN = {"start": 6.0, "cut1": 0.0}                      # more lean of the forearm (degrees, + = its top toward Timo): in the
+                                                        # wide shot the sandwich stays off her cheek while the sleeve meets her coat
+PROUD, GONE = 40.0, 900.0                               # how far below its drawn place it is (frame pixels)
+HELD, LOOK = 380.0, 230.0                               # the closer shot: low at her chest under the captions; lifted to look at
 
 
 def _sandwich_pose(T):
+    """(how far below its drawn place, extra turn in degrees, how far toward her) at time T, or None."""
     t = on_twos(T)
-    up, wig, see, cut, droop = v.t("L1@we-0.34"), v.t("L1@sandwich"), v.t("L4-0.05"), v.t("cut1"), v.t("T9.end+0.05")
+    up, wig, see, cut, droop = v.t("L1@we-0.75"), v.t("L1@sandwich"), v.t("L4-0.05"), v.t("cut1"), v.t("T9.end+0.05")
     if T < up - 0.05:
         return None
     if T < cut:
-        y = ease(t, up, up + 0.36, GONE, PROUD, "back") + ease(t, see, see + 0.45, 0.0, 55.0, "io")
+        y = ease(t, up, up + 0.7, GONE, PROUD, "io") + ease(t, see, see + 0.45, 0.0, 55.0, "io")   # an even rise, no pop
         w = math.sin((t - wig) * 22) * 3.5 * math.exp(-(t - wig) * 4) if t >= wig else 0.0     # a proud little wiggle
-        return y - abs(w) * 3, -1.0 + w + ease(t, see, see + 0.45, 0.0, 5.0, "io")
-    return LOW + ease(t, droop, droop + 0.7, 0.0, 22.0, "io"), 5.0 + ease(t, droop, droop + 0.7, 0.0, 4.0, "io")
+        sink = ease(t, see, see + 0.45, 0.0, 1.0, "io")          # it sinks and tips toward him; the sleeve stays on her coat
+        return y - abs(w) * 3, -1.0 + w + sink * 2.0, -sink * 35.0
+    lift = v.t("T7.end+0.25")
+    y = ease(t, lift, lift + 0.6, HELD, LOOK, "io") + ease(t, droop, droop + 0.7, 0.0, 22.0, "io")
+    return y, 5.0 + ease(t, droop, droop + 0.7, 0.0, 4.0, "io"), 0.0
 
 
 def sandwich(st, t, T):
     pose = _sandwich_pose(T)
     if pose is None:
         return
-    off, ang = pose
+    off, ang, nearer = pose
     x0, y0, k, lean = v.shot_at(T)["luna"]
     dx, dy, turn, sx, sy = v.luna_move(T)                                # it is hers: it sways and pops with her body
     s = v.s_luna * k
@@ -152,20 +163,25 @@ def sandwich(st, t, T):
     px, py = (PIVOT[0] - 663) * s, (PIVOT[1] - 1680) * s                 # from the knot of her scarf to the pivot
     x, y = x0 + dx + px * math.cos(a) - py * math.sin(a), y0 + dy + px * math.sin(a) + py * math.cos(a)
     anchor = (PIVOT[0] / duo.L_SIZE[0], PIVOT[1] / duo.L_SIZE[1])
-    st.put(ARM, x + NEARER, y + off, scale=k, turn=turn + lean + ang, sx=sx, sy=sy, anchor=anchor, depth=1.0)
+    which = "start" if T < v.t("cut1") else "cut1"
+    st.put(ARM, x + NEARER[which] + nearer, y + off, scale=k, turn=turn + lean + ang + TURN[which], sx=sx, sy=sy, anchor=anchor, depth=1.0)
 
 
-# ---- two shots: the two of them, he smaller and lower than usual so that the whole hat is in the picture; then a jump
-#      cut eighteen per cent closer for "You don't like people." (the whole hat still in)
-v.shot("start", bg=WIDE, luna=(330, 1560, 0.92, -0.6), timo=(650, 1035, 0.74), behind=car_park, mid=hat, front=sandwich)
-v.shot("cut1", bg=NEAR, luna=(300, 1640, 1.09, 0.8), timo=(625, 1085, 0.86), behind=car_park, mid=hat, front=sandwich)
+# ---- two shots: the two of them, he smaller than usual so that the whole hat is in the picture, yet big and low enough
+#      that his legs run out of the bottom of the frame (at 0.71 his drawing ended in a straight edge 50 px above it:
+#      its bottom is at y + 1169 x size); then a jump cut for "You don't like people." (her a quarter closer, him 15 per
+#      cent, the whole hat still in)
+v.shot("start", bg=WIDE, luna=(340, 1560, 0.88, -0.6), timo=(662, 1062, 0.78), behind=car_park, mid=hat, front=sandwich)
+v.shot("cut1", bg=NEAR, luna=(300, 1640, 1.09, 0.8), timo=(618, 1112, 0.90), behind=car_park, mid=hat, front=sandwich)
 
 # ---- her face
-v.faces(("start", None),                  # sunny, proud of the sandwich
+v.faces(("start", None),                  # sunny
+        ("L1@we-0.05", "read"),           # "We brought a...": a proud look down at it (it is HERS)
+        ("L1@sandwich+0.12", None),       # and back to us
         ("T3+0.12", "defend"),            # talked over from behind her: big eyes on us
         ("L4-0.10", "turn"),              # she turns to him: "Who's Gary?" (and sees the hat)
         ("L4.end+0.22", "guilty"),        # a sideways look at him: lost
-        ("L6-0.10", "turn"),              # "You don't like people." to him, fond
+        ("cut1", "turn"),                 # "You don't like people." to him, fond (from the first frame of the shot: no flash of another face)
         ("T7+0.30", "defend"),            # Thanksgiving: back to us, stunned
         ("T7.end+0.22", "read_b"))        # the music has stopped: eyes down at her sandwich; "...Can I come?" and the end
 v.tilt(L1=3.0, L2=-2.8, L4=2.6, L6=2.4, L8=-1.6)
@@ -181,11 +197,12 @@ v.captions(
     split={"L1": [("American football!", None), ("The tailgate!", "L1@the"), ("We brought a sandwich.", "L1@we")],
            "L2": [("Timo hates it.", None), ("He says it’s just a car park—", "L2@he-0.15")]},
     hold={"T7": ("He’s invited me\n", "for Thanksgiving.", "T7@for")},     # the second half arrives as he says it
-    place={"L2": (590, 1432), "T7": (600, 1430)},   # two-line captions: clear of her chin and inside the 4:5 version
-    text={"L8": "…Can I come?"},
+    place={"L2": (590, 1432), "T7": (600, 1422),    # two-line captions: clear of her chin and inside the 4:5 version
+           "L6": (455, 1445), "L8": (290, 1452), "T9": (345, 1452)},   # the closer shot: left, over her scarf, off most of the sandwich
+    text={"L4": "Who’s Gary?", "L6": "You don’t like people.", "L8": "…Can I come?", "T9": "It’s a family thing."},   # one kind of apostrophe
     on={"T3": "T3+0.20", "L4": "L4+0.12"},  # he talks over her: her words stay up a moment under his voice, then his come
     off={"L2": "T3+0.18", "T3": "L4+0.10", "T9": "plate-0.06"})
-v.plate(x=282, y=650, size=0.55)          # the hat fills the top right: the plate goes left of his face, over the far party, above her head
+v.plate(x=285, y=268, size=0.55)          # the hat fills the top right: the plate goes top left, over the sky and the stadium rim, left of the crown
 
 if __name__ == "__main__":
     v.main()

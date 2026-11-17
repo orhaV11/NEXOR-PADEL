@@ -1,0 +1,71 @@
+{
+ "work": "work/dave",
+ "cap": 5.0,
+ "temperature": 1,
+ "scene": "A phone vlog on the wide paved forecourt of a big indoor ice hockey arena at blue winter dusk, before the game; cold air, a far muffled crowd drifting toward the lit doors. Luna holds the phone at arm's length and talks to it, her own other phone held up in her free hand like a trophy; Timo stands upright just behind her.",
+ "context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and trusting; she is thrilled with the tickets a stranger sent her a link for, and she says the stranger's name, Official Dave, with real respect; when the link check comes back she goes small and quiet, and in the end she is fond and a little sad. TIMO, about 30, is slow, dry and proud; he never raises his voice; today he is calm, patient and quietly certain, and he never says I told you so. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[bright, thrilled, to the camera, showing it off] Good news! Ice hockey tickets!"
+  ],
+  [
+   "T",
+   "[flat and dry] From where?"
+  ],
+  [
+   "L",
+   "[pleased, then reading the name off her phone with great respect] A man sent me a link. Official Dave."
+  ],
+  [
+   "T",
+   "[repeating it slowly, dead flat] Official Dave."
+  ],
+  [
+   "L",
+   "[turning to him, amazed that he has to ask] It's in his name!"
+  ],
+  [
+   "T",
+   "[calm and patient, a plain fact] The planner checks ticket links. Paste it."
+  ],
+  [
+   "L",
+   "[quick and defensive, cut off] You never trust any—"
+  ],
+  [
+   "T",
+   "[cutting in over her, calm and firm] Paste."
+  ],
+  [
+   "L",
+   "[reading it off her phone, small and quiet] Could not verify."
+  ],
+  [
+   "L",
+   "[reading a new message, smaller still] He says hurry."
+  ],
+  [
+   "L",
+   "[softly, to her phone, fond] Bye, Dave."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing outside an arena on a cold winter evening, pleased with herself and trusting, speaking up a little over the far crowd; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, patient, deadpan and quietly certain; he never raises his voice."
+   }
+  }
+ }
+}

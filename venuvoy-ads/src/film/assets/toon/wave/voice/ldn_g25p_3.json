@@ -1,0 +1,114 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; first shouting happily over a big ballpark crowd, then soft and kind; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall man of 30 with a low, dry, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; first shouting happily over a big ballpark crowd, then soft and kind; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall man of 30 with a low, dry, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[shouting with joy over the roaring crowd, rising] The wave! Here it comes! Wooo!"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[to him, gently, a little sorry for him] It's gone."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, unhurried, no apology] They were early."
+   }
+  ],
+  "scene": "A phone vlog in the top rows of a ballpark's upper deck on a bright afternoon, on a baseball weekend away; the whole crowd roars as the wave comes round the stadium. Luna stands and films herself cheering; Timo stays sitting beside her and only stands up once the wave has gone past.",
+  "sample_context": "A ten-second comedy short played by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is loud with joy when the wave comes, then gentle and kind to him; she is never sarcastic. TIMO, about 30, is dry, proud and unhurried; he never raises his voice and never apologises: in his view the stadium got it wrong, not him.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "The",
+   0.24,
+   0.48
+  ],
+  [
+   "wave!",
+   0.48,
+   1.36
+  ],
+  [
+   "Here",
+   1.36,
+   1.52
+  ],
+  [
+   "it",
+   1.52,
+   1.68
+  ],
+  [
+   "comes!",
+   1.68,
+   2.24
+  ],
+  [
+   "Woo!",
+   2.24,
+   4.48
+  ],
+  [
+   "It's",
+   4.48,
+   4.8
+  ],
+  [
+   "gone.",
+   4.8,
+   5.6
+  ],
+  [
+   "They",
+   5.6,
+   5.76
+  ],
+  [
+   "were",
+   5.76,
+   5.92
+  ],
+  [
+   "early.",
+   5.92,
+   6.33
+  ]
+ ],
+ "text": "The wave! Here it comes! Woooo! It's gone. They were early."
+}

@@ -1,0 +1,35 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/e2c45259c16e4aeab6029cc6f0730db6.png"
+ },
+ "upload:work/duo/art/timo_clean.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/588faff60431472dab0f0f7ffa440f02.png"
+ },
+ "glove_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/56c45ca6-a875-4017-8351-7cb6409d0b4c_ff86c2f4.jpg",
+  "prompt": "One cut-out drawn alone in the middle of a completely flat, even, pure magenta (#FF00FF) background, for a 2D animated comedy: a man's forearm holding up an open baseball glove. ONLY the forearm and the gloved hand: no shoulder, no body, no head, no face. The forearm is in the teal track-jacket sleeve of the man in the second reference picture: the same teal colour, the same cream-white stripe running along the outer side of the sleeve, the same black outline. It comes up into the picture from the bottom left corner, rising diagonally up and to the right, and the sleeve is cut off by the bottom edge of the picture. At its top end, in the upper middle of the picture, his hand is inside a big, old, well-worn brown leather baseball glove held palm up and wide open, like a bowl waiting to catch rain: the glove is seen from the front and a little from above, so that the inside of its pocket shows as a darker brown hollow facing up; its fingers point up and away, the thumb on the left, the laced webbing between the thumb and the fingers; pale scuffed patches on the old leather, a few laces and stitches. The glove is empty: no ball. Where the glove meets the sleeve a little of his dark brown wrist shows. Drawn in the manner of the two characters in the reference pictures: flat colours, a thick even black outline all round, one flat darker tone for shading, no gradients, no glow, and no shadow on the background. The glove is about half as wide as the picture; flat magenta all round the glove and on both sides of the sleeve. No text, no letters, no logo, no brand mark on the glove.",
+  "refs": [
+   "work/switch/art/style_a_vector.png",
+   "work/duo/art/timo_clean.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "bg_park_1": {
+  "url": null,
+  "note": "address lost: two drawings finished at once and one overwrote the index",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters and no people close by: the only people are far-off spectators painted as soft blurred dots of colour with no faces. Vertical 9:16. Seen from a standing person's eye height in the top row of the upper deck of a big outdoor baseball park on a still, sunny summer afternoon, the way a phone held at arm's length sees what is behind its owner (never from above). The top third of the picture is a big, clear, warm blue sky with two small soft white clouds, empty and calm. Below the sky, in the UPPER LEFT third of the picture, far below and far away, the baseball field: the pale brown dirt diamond of the infield with its green grass square inside, the green outfield in soft mowed stripes, small and soft, in warm sunlight; around it the curve of the lower tiers of the stands, full of spectators painted only as soft dots of colour; beyond the field the far stands and a soft hazy skyline of trees. The middle and lower part of the picture: the steep concrete rows of the upper deck falling away below, with rows of plain empty seats in one flat dusty blue close by at the bottom. Warm afternoon light from the upper left, soft short shadows. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No scoreboard, no screens, no text, no signs, no letters, no numbers, no logos, no flags, no banners, no advertising boards.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "glove_2": {
+  "url": "https://cdn.muapi.ai/outputs/generated/f6b5f5c1-d616-4343-bfaa-568ca6a6be35_b05161b6.jpg",
+  "prompt": "One cut-out drawn alone in the middle of a completely flat, even, pure magenta (#FF00FF) background, for a 2D animated comedy: a man's forearm holding an open baseball glove PALM UP, like a bowl held out to catch rain. ONLY the forearm and the gloved hand: no shoulder, no body, no head, no face. The forearm is in the teal track-jacket sleeve of the man in the second reference picture: the same teal colour, the same cream-white stripe running along the outer side of the sleeve, the same black outline. It comes up into the picture from the bottom left corner, rising diagonally up and to the right, and the sleeve is cut off by the bottom edge of the picture. At its top end the wrist is bent back so that the hand is turned palm up, the way a waiter carries a tray: the big, old, well-worn brown leather baseball glove lies open and flat on his upturned hand, its palm facing straight UP at the sky. The glove is seen from in front and well above, so its open pocket is a wide, horizontal oval bowl: a dark brown hollow facing up, ringed all round by the rolled leather rim of the glove; the fingers of the glove lie level and point to the right, away from the forearm, NOT up; the laced webbing on the far side of the bowl. It is NOT held upright and NOT turned to face the viewer like a catcher showing his mitt: the opening faces the sky. Pale scuffed patches on the old leather, a few laces and stitches. The glove is empty: no ball. Where the glove meets the sleeve a little of his dark brown wrist shows. Drawn in the manner of the two characters in the reference pictures: flat colours, a thick even black outline all round, one flat darker tone for shading, no gradients, no glow, and no shadow on the background. The glove is about half as wide as the picture, in the upper middle; flat magenta all round the glove and on both sides of the sleeve. No text, no letters, no logo, no brand mark on the glove.",
+  "refs": [
+   "work/switch/art/style_a_vector.png",
+   "work/duo/art/timo_clean.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

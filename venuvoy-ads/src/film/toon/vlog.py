@@ -65,7 +65,7 @@ def held(t, on, off, rise=0.16, fall=0.35):
 
 
 class Vlog:
-    def __init__(self, film, out, luna="wind", timo="timo_up_4", s_luna=0.64, s_timo=0.50, said=None, extra_faces=None, extra_eyes=None, seed=0):
+    def __init__(self, film, out, luna="wind", timo="timo_up_4", s_luna=0.64, s_timo=0.50, said=None, extra_faces=None, extra_eyes=None, seed=0, drive=False):
         """film: the name of the work folder (work/<film>). out: the delivery file without its ending, from the project
         root. luna: her look ("wind" or "calm"). timo: his base drawing, or None for a film without him."""
         self.film, self.work, self.out, self.seed = film, ROOT / "work" / film, ROOT / out, seed
@@ -81,7 +81,7 @@ class Vlog:
         self.timo = duo.timo(self.art, s_timo, timo, extra_eyes) if timo else None
         said = dict(SAID, **(said or {}))
         self.talk = {i: Talk(l["words"], ROOT / l["wav"], have=duo.LUNA_MOUTHS if l["who"] == "L" else duo.TIMO_MOUTHS, quiet=0.10 if l["who"] == "L" else 0.055, said=said,
-                             open_min=0.45 if l["who"] == "L" else 0.25)     # he speaks flat and low: his open mouth must not wait for a shout
+                             open_min=0.45 if l["who"] == "L" else 0.25, drive=drive)     # he speaks flat and low: his open mouth must not wait for a shout
                      for i, l in self.LINE.items()}
         self.shots, self._faces, self._eyes = [], [(0.0, None)], [(0.0, None)]
         self._pieces, self._fingers, self._moves, self._shakes, self._bg, self._imgs = [], [], [], [], {}, {}
@@ -308,7 +308,9 @@ class Vlog:
                     m = "C"                      # no bared teeth while she reads (or on faces a film names in no_teeth: the 'defend' face's E is a clenched grin)
                 # the turned head has three mouths: the round one becomes the small one (the wide one only where a word is set as "A": a shout)
                 # (turn_shout = False: no line is a shout, the wide mouth becomes the middle one)
-                st["3mouth"] = ({"C": "tC", "A": "tA" if getattr(self, "turn_shout", True) else "tE", "E": "tE", "O": "tC"}[m] if face == "turn" else m)
+                # without shouts (turn_shout = False) the turned head keeps its small mouth: its "E" and its wide one are a clenched grin and a gape
+                shout = getattr(self, "turn_shout", True)
+                st["3mouth"] = ({"C": "tC", "A": "tA" if shout else "tC", "E": "tE" if shout else "tC", "O": "tC"}[m] if face == "turn" else m)
         return st
 
     def luna_move(self, T):
@@ -417,9 +419,10 @@ class Vlog:
         st.put(img, x0 + dx, y0 + dy, scale=k, turn=turn + lean, sx=sx, sy=sy, anchor=duo.L_ANCHOR, depth=1.0)
         t = on_twos(T)
         for n, p in enumerate(self._pieces):     # her other hand brings something up from below, and drops it
-            if not (p["up"] - 0.05 <= T < p["down"] + 0.3):
+            if not (p["up"] - 0.05 <= T < p["down"] + 0.75):
                 continue
-            rise = ease(t, p["up"], p["up"] + p["rise"], 760.0, 0.0, "back") + ease(t, p["down"], p["down"] + 0.2, 0.0, 760.0, "in")
+            # it goes down as it is seen going: 0.7 s at an even speed (in 0.2 s on twos it vanished in one picture)
+            rise = ease(t, p["up"], p["up"] + p["rise"], 760.0, 0.0, "back") + ease(t, p["down"], p["down"] + 0.7, 0.0, 760.0, "linear")
             hit = p["shake"]
             sh = math.sin((t - hit) * 30) * 14 * math.exp(-(t - hit) * 7) if hit is not None and t >= hit else 0.0
             st.put(p["img"], x0 + dx + p["dx"] + sh + wobble(t, 11.0 + n, 2.2) * 2.5, y0 + dy - p["lift"] + rise - abs(sh) * 0.6 + wobble(t, 12.0 + n, 1.9) * 3, scale=k,

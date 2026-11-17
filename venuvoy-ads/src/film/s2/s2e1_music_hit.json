@@ -1,11 +1,11 @@
 {
  "track": "src/film/assets/s2/music/jersey_1.mp3",
  "out": "src/film/assets/s2/music/bed_s2e1_hit.wav",
- "length": 43.49999999999999,
+ "length": 44.49999999999999,
  "trim_db": -8,
  "blocks": [
   {
-   "at": 40.5416,
+   "at": 40.9583,
    "len": 0.9,
    "from_s": 59.855,
    "layer": "phone",

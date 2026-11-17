@@ -115,6 +115,30 @@
    "3": {
     "url": "https://cdn.muapi.ai/outputs/generated/05fe101b-b53c-439e-a59f-609cd048a995_1e43d2d8.jpg"
    }
+  },
+  "a7b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/763ae52d-113b-44df-b1dd-0523b0905537_ca1c5038.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/54ad9c23-b088-4ba2-bdf4-41e47b99d1fe_2cda4728.jpg"
+   }
+  },
+  "a5b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/87d64e16-38bb-43ba-8eb2-8c5bde1b346e_ce21e9bb.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/88742a1b-d65c-44ba-95e0-e484d079af40_ea83f074.jpg"
+   }
+  },
+  "a11b": {
+   "1": {
+    "url": "https://cdn.muapi.ai/outputs/generated/c70db804-b065-4c02-9afe-4143ad64e82e_bac0c602.jpg"
+   },
+   "2": {
+    "url": "https://cdn.muapi.ai/outputs/generated/9d771bfb-9e39-439a-a7cd-d34859de1d65_fd47e4e9.jpg"
+   }
   }
  },
  "clips": {
@@ -431,6 +455,9 @@
   "a9_2": "https://cdn.muapi.ai/outputs/generated/dd0a384f25864cedbfc52f8ade7b5a8c.jpg",
   "a10_2": "https://cdn.muapi.ai/outputs/generated/49a4d972aae24e288b355df7adcd390b.jpg",
   "a11_2": "https://cdn.muapi.ai/outputs/generated/4098040b212c47a4a3a023ace1747a39.jpg",
-  "a3b_3": "https://cdn.muapi.ai/outputs/generated/9ad9618ae5704fd9856effbe7d0a76c9.jpg"
+  "a3b_3": "https://cdn.muapi.ai/outputs/generated/9ad9618ae5704fd9856effbe7d0a76c9.jpg",
+  "a7b_2": "https://cdn.muapi.ai/outputs/generated/0684e4e076844e5e96a0d15630e659e2.jpg",
+  "a5b_1": "https://cdn.muapi.ai/outputs/generated/e6cb32baa2fa4414bbdfeca9af07d8c3.jpg",
+  "a11b_1": "https://cdn.muapi.ai/outputs/generated/93b67b6ad6524ca7b307c5742024a157.jpg"
  }
 }

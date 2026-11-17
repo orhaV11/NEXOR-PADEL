@@ -49,6 +49,9 @@
   .fx-cap.pnp.sig { font-weight: 700; font-size: 56px; -webkit-text-stroke: 7px #000; letter-spacing: 0.01em; }
   .fx-cap.pnp.brand { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 50px; letter-spacing: 0.1em; -webkit-text-stroke: 7px #000; }
   .fx-cap.pnp.brand span { margin: 0 0.12em; }
+  .fx-cap.pnp.wide { left: 100px; right: 100px; }  /* a line of four or five words kept on one line (a wide shot with people in the lower half) */
+  .fx-cap.pnp.brand.ep { left: 60px; right: 60px; font-size: 42px; letter-spacing: 0.06em; }
+  .fx-cap.pnp.brand.ep span { margin: 0 0.04em; }  /* the episode line of the end card when it also names the season */
   .fx-cap.pnp.more { left: 110px; right: 110px; font-weight: 700; font-size: 41px; line-height: 1.22; letter-spacing: 0.015em; -webkit-text-stroke: 6px #000; }  /* the small line under the name: what Venuvoy covers */
   /* cls "vv": Venuvoy inside the story (the serial "Plan, No Plan"): what Luna types and what comes back, drawn by
      the edit so that every letter is crisp. "vv chip": the name. "vv type": her one sentence, appearing word by word
@@ -367,7 +370,8 @@
     const el = mk("fx-cap" + (c.cls ? " " + c.cls : ""), "");
     el.style.top = `${c.y ?? 1240}px`;
     if (c.size) el.style.fontSize = `${c.size}px`;
-    const spans = c.words.map((w) => { const s = document.createElement("span"); s.textContent = w.w; el.appendChild(s); el.appendChild(document.createTextNode(" ")); return s; });
+    const spans = c.words.map((w) => { const s = document.createElement("span"); const br = w.w.endsWith("|");  // "word|" in a caption's text: the line breaks after this word
+      s.textContent = br ? w.w.slice(0, -1) : w.w; el.appendChild(s); el.appendChild(br ? document.createElement("br") : document.createTextNode(" ")); return s; });
     return { ...c, el, spans };
   });
   const lts = (TL.lts || []).map((c) => {

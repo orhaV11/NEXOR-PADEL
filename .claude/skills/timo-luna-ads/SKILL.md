@@ -67,39 +67,43 @@ sentence, and it builds two or three different, priced, day-by-day plans around 
   ("Meet Timo & Luna": "A football trip takes forty-two steps." / "Or one sentence." / "Done." / "He's fine.").
 - **"Done." spot** (10-16 s): one trip-planning headache, Timo's way, Luna's one sentence, "Done.", his stare.
   Model: `src/film/s2/roll.json` + `roll_edit.json` ("40 metres long").
-- **Serial episode** (30-40 s): model `bet.json` + `bet_edit.json`; each opens with a one-second "previously" on the
-  last image of the one before and ends on "follow for ep N".
+- **Serial episode** (30-45 s): model `s2e1.json` + `s2e1_edit.json` (season 2; season 1: `bet.json`). It ends on
+  Timo's stare, the sung name and "follow for ep N"; from episode 2 it opens with a one-second "previously".
 
 ## How a film is made
 
-1. **Write it first and show the client the story in a few lines** before spending. He rejected films twice when
-   this was skipped, and approved at once when it was done. One sentence a twelve-year-old could retell; lines of at
-   most 8 words; something moving in every shot; an ending on a face.
-2. **Plan** `src/film/s2/<film>.json`: for each shot the reference pictures, the start picture in words, who is in
-   it, what moves and what is said. Copy the wording of `bet.json`: it names clothes, the watch wrist, the backpack,
-   "the screen of the phone is never seen", "One continuous shot: the camera does not cut".
-3. **Start pictures**: `python3 src/film/s2/shoot.py src/film/s2/<film>.json stills <ids> --n 2`. Draw one master
-   picture per place and draw the others FROM it (its URL as the first reference), so the place and props match.
-   Look at every candidate: reject off-model faces, wrong scarves, a suitcase or cat that should not be there.
-4. **Clips**: `... video <ids>` (four at a time; Kling 4.0 reference-to-video, 4 s 0.94 dollars, 5 s 1.18). Then for
-   every clip: a frame strip, the words (`asr.words`), and a search for a cut the model made inside the clip
-   (`ffmpeg ... select='gt(scene,0.3)'`): it happens in a third of the clips; the part after the cut is often a
-   usable closer shot. Use only what is clean.
-5. **Edit** `src/film/s2/<film>_edit.json` for `src/film/cut.py`, music with `src/film/s2/arrange.py` (blocks placed
-   by `from_s`, layer `phone`). `punch` scales about (`cx`, `cy`): `cx 0` keeps the left edge, `cx 1` the right.
-   Keep labels off faces (labels sit at 17-23 % of the height, captions at 64-72 %).
-6. **Draft, check, final**: `cut.py <edit> en --draft` (two minutes), look at a contact sheet, measure the stems
-   (every line at least 7 dB above the music in 300-3400 Hz), ask the watching model
-   (`src/film/watch.py <mp4> "<question>"`) for a cold retelling and for faults, fix, then the full render
-   (about fourteen minutes) and `src/film/s2/nomusic.py` for the version without music.
+Read `venuvoy-ads/src/film/s2/docs/season_2.md` ("How this episode was made"): it is the method, step by step, with
+the commands. In short:
+
+1. **Write it first and show the client the story in a few lines** before spending. For an episode, use a writers'
+   room (several drafts, judges, one head writer). One sentence a twelve-year-old could retell; lines of at most 8
+   words; something moving in every shot; an ending on a face; one open question.
+2. **Plan** `src/film/s2/<film>.json` from `s2e1.json`: its wording names clothes, the watch wrist, the backpack,
+   "the screen of the phone is never seen". Look and film prefixes come from `series_look.json` (camera locked off).
+   Decide who stands on which side; every close-up looks and points toward the other person's side.
+3. **Start pictures**: `shoot.py <plan> stills <ids> --n 2`. One master picture per place, the others drawn FROM it.
+   Draw each picture at its final framing (nothing is enlarged in the edit by more than a quarter) and leave the top
+   third empty where the Venuvoy card will sit. Reject off-model faces, wrong clothes, a second cat.
+4. **Clips**: `shoot.py <plan> video <ids> --takes 2`, then `takes.py <plan> <ids> --watch`. Throw out a take that
+   reframes, cuts, starts from another framing or speaks in another voice. Compare each character's lines side by
+   side with the listening model.
+5. **Edit** `<film>_edit.json` for `src/film/cut.py` from `s2e1_edit.json`: `"clean": true`, one `"ambience"` bed
+   per place, `"foley_db"` where an action must be heard, the Venuvoy graphics (`vvb chip`, `vvb type`, `vvb tick`),
+   labels and captions kept off faces and inside rows 250 to 1600 (the 4:5 crop). Music from the theme with a script
+   like `s2e1_music.py`, so a change of timing rebuilds it.
+6. **Draft, check, final**: `cut.py <edit> en --draft`, a contact sheet, margins of every line against the music,
+   the watching model (cold retelling, read-back of every text, the soundtrack described), independent checkers on
+   the frames; fix; full render; `nomusic.py` for the version without music.
 7. Commit sources and renders, push, send the file. Say plainly what was checked and what needs the client's ear:
-   nobody here can hear, so voices and the jingle are his to judge.
+   nobody here can hear, so voices and the sung name are his to judge.
 
 ## Money and usage
 
-About 1 dollar a clip; a 17 s presenter spot costs about 6 dollars, a 35 s episode about 10 to 15. Spend only the
-existing MuAPI balance, never buy; the key is injected by the proxy. Work alone and lean: the client complained when
-multi-agent checking teams used up his usage, and was happy with one cold viewing plus measurements.
+About 1 dollar a clip (4 s 0.94, 5 s 1.18 at 1080p); with two takes a shot and a few retakes, a 40 s episode costs
+about 35 dollars and a 16 s spot about 15. Spend only the MuAPI balance, never buy; the key is injected by the proxy
+(the `muapi` command-line tool, installed with `pip install muapi-cli`, works with `MUAPI_API_KEY=proxy-injected`).
+The client asked for the highest level; he also once objected to usage spent on checking a film he did not like, so
+check in proportion and always show him the story first.
 
 ## What goes wrong
 

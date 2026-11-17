@@ -870,7 +870,7 @@ def fit(a, n):
 _DN = None
 
 
-def clean_voice(a, keep_db=-60):
+def clean_voice(a, keep_db=-60, tag=""):
     """The voice alone: a (n, 2) signal at SR through the DPDFNet speech enhancer (work/denoise/dpdfnet2_48khz_hr.onnx,
     from the sherpa-onnx releases). keep_db mixes a little of the original back in (-60: none) so that a voice does not
     sound cut out of its world."""
@@ -891,15 +891,20 @@ def clean_voice(a, keep_db=-60):
     y = y[len(x) - len(mono):] if len(mono) > pad else y
     y = np.pad(y, (0, max(0, len(mono) - len(y))))[: len(mono)]
     # the enhancer keeps what it takes for speech; a shouted, breathy or squeaky line can be thrown out with the noise.
-    # Compare the loud fifth of the clip before and after: if the voice lost more than 6 dB, keep the clip as it was.
+    # Take the loudest fifth of the moments that sound in the clip as it was (a held frame adds silence, which must not
+    # count) and compare those same moments after cleaning: if the voice lost more than 6 dB there, keep the clip.
     h = int(0.05 * SR)
-    def top(z):
-        r = np.array([np.sqrt(np.mean(z[k:k + h] ** 2)) for k in range(0, max(1, len(z) - h), h)]) + 1e-9
-        return 20 * np.log10(np.mean(np.sort(r)[-max(1, len(r) // 5):]))
-    lost = top(mono.astype(np.float64)) - top(y)
+    def frames(z):
+        return np.array([np.sqrt(np.mean(z[k:k + h] ** 2)) for k in range(0, max(1, len(z) - h), h)]) + 1e-9
+    r0, r1 = frames(mono.astype(np.float64)), frames(y)
+    snd = np.where(r0 > db(-50))[0]
+    snd = snd if len(snd) >= 4 else np.arange(len(r0))
+    top = snd[np.argsort(r0[snd])[-max(1, len(snd) // 5):]]
+    lost = 20 * np.log10(np.mean(r0[top])) - 20 * np.log10(np.mean(r1[top]))
     if lost > 6:
-        print(f"  note: the voice cleaner took {lost:.0f} dB off a line; this segment keeps its own sound")
+        print(f"  note: the voice cleaner took {lost:.0f} dB off a line{tag}; this segment keeps its own sound")
         return a
+    print(f"  cleaned{tag}: the loud moments keep their level within {lost:.1f} dB")
     out = np.stack([y, y], axis=1)
     return out + a * db(keep_db) if keep_db > -59 else out
 
@@ -925,7 +930,7 @@ for s in segs:
     # ONE background of its own ("ambience"). Set "clean": false on a segment whose own sound is wanted as it is.
     if s.get("clean", EDL["sources"][s["src"]].get("clean", EDL.get("clean", False))) and (s.get("speech") or s.get("line")):
         whole = a
-        a = clean_voice(a, s.get("clean_keep_db", EDL.get("clean_keep_db", -60)))
+        a = clean_voice(a, s.get("clean_keep_db", EDL.get("clean_keep_db", -60)), f' ({s["src"]} {s["in"]:.2f}-{a_out:.2f})')
         # "foley_db": what the cleaner took away is the clip's own sound of things moving (wheels, steps, paper).
         # Laid back in as an effect at this level under the voice (never on the dialogue bus, so the music does not
         # duck for it), a shot keeps the sound of its action without bringing its room back at full strength.

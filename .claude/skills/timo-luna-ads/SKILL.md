@@ -32,6 +32,48 @@ seconds on screen with every delivery. The `--takes 2` habit written further dow
 
 Do not start a new film until the founder has agreed to a direction in words. Words cost nothing; show him the script.
 
+## The method now: drawn cut-out sketches (agreed by the founder on 17 Nov: "this is more the direction")
+
+The founder agreed to: Timo and Luna as a comic duo in short drawn 2D sketches, voices from a voice model ("make it
+sound good"). The first one is "The Switch" (`venuvoy-ads/ads/20-sketches/`). No video model is used at all: the
+characters are still drawings moved in code. A whole film costs about 2 dollars. The scripts still to make are in
+`venuvoy-ads/src/film/reset/RESET.md` (the script bank); the next one should be about another sport.
+
+Everything is in `venuvoy-ads/src/film/toon/`. For a new sketch copy the four `switch_*` files and change them.
+
+1. **Voices first** (`voices.py`, a sketch json like `switch_voices.json`): the whole dialogue is read in one go by the
+   dialogue speech model (`gemini-2-5-pro-tts`, 2 to 5 cents a reading), with a scene, a note on each voice and a
+   direction in square brackets before a line. Make several readings, read every one back (a direction is sometimes
+   spoken aloud), cut them into lines at the real silences (`lines.py`), and choose line by line on a numbered reel
+   with the listening model (`hear.py`). The cast that won: Luna = Laomedeia, Timo = Zubenelgenubi, accent "British
+   (Brixton)". Nobody here can hear: say so to the founder; he is the first human ear.
+2. **Sound and timing** (`switch_sound.py`): one table of lines and the gaps between them. The gaps ARE the comic
+   timing: a beat needs 0.3 to 0.45 s of air, a stare 0.75 s; a retort may come after 0.05 s; an interruption runs
+   0.2 s under the other voice. Wind bed with gusts, the vlog music under the first shots (thinned for phone speakers,
+   13 dB under the voices where speech lives) which stops dead on the stare, a thud, the sung name on the plate. It
+   writes `timeline.json`; the picture reads every time from it.
+3. **Drawings** (`draw.py`, 2.2 cents each): ONE base drawing of each character on flat magenta, clean TV-animation
+   line, flat colours. Every other state is a redraw of that same picture with "ONE change only ... Change NOTHING
+   else", at the SAME aspect ratio as the base (otherwise it is reframed and useless). Only a box (a face, the eyes,
+   a mouth) or the differing pixels (hair in the wind, a raised arm) is taken from it, so the rest stays the very same
+   pixels. Needed per character: three or four mouths, a blink FOR EACH FACE whose brows differ, the expressions the
+   script names, two wind states. An arm that comes up beside the body (a phone, a shrug) is its own piece and can
+   rise and fall. Give each sprite a point of plain skin: redraws come back a shade off.
+4. **The film** (`switch_film.py` on `toon.py`): who does what when, in film time. What makes it read as animation
+   and not as a slideshow: the head moves on the shoulders (`bend`: tilt into each line, dip on stressed words),
+   a pop at every change of face, held poses on twos, blinks, eyes that move while reading, a different framing for
+   every shot, a whip across a cut that skips time, a handheld camera, captions one at a time in the speaker's colour.
+   A figure on the ground needs ground contact: grass of the background laid back over its lower edge and a shadow.
+   Let every body run on below the frame (`pad_bottom`), or a camera shake shows where the drawing ends.
+5. **Check before sending**: frames at every caption hand-over and at every new piece; the watching model for story,
+   craft and sound (three questions, about 3 cents); then independent checkers on frames. Fix, render, then send ONE
+   file. Tell the founder what was checked by a model and what only he can judge (the voices, the sung name).
+6. **Keep it**: `python3 src/film/toon/pack.py switch --scan` stores the drawings, voices and sounds the film uses in
+   `src/film/assets/toon/switch/` (the `work/` folder is not in git).
+
+Captions are set by `text.mjs` in the project's own fonts; it fails if a font did not load (a page built in memory
+cannot read font files: it must be opened as a file).
+
 Everything lives in `venuvoy-ads/`. Read first `venuvoy-ads/src/film/s2/docs/venuvoy_facts.md` (what Venuvoy really
 is and what an ad may say), then `venuvoy-ads/src/film/s2/docs/season_1.md` (the serial, the canon, what was learned),
 then this file. The client is the founder: answer him in Hebrew, short and plain, result first.

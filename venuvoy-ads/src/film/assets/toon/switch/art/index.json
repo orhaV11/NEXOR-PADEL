@@ -377,5 +377,61 @@
    "timo_prone_1"
   ],
   "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_read3": {
+  "url": "https://cdn.muapi.ai/outputs/generated/9e5aef72-cc81-450a-bae5-080cad9af887_228734c4.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta) with ONE change only. THE CHANGE: she is now reading something on the phone she holds out in front of her: her eyes are wide open and look DOWN and a little to the left, toward the phone (both pupils low in the eyes), her brows are raised in mild, innocent curiosity, and her mouth is a small closed line. She looks sweet and absorbed, not angry. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Her head, hair and body do not move. Same framing, same black outline weights, same flat colours, no shading on the face, no lines or bags under the eyes, no frown lines, the same flat magenta background. No text.",
+  "refs": [
+   "luna_w1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_read3b": {
+  "url": "https://cdn.muapi.ai/outputs/generated/82fc92d7-e0b7-4c29-b71c-c0b5bac26449_8d0e4435.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta) with ONE change only. THE CHANGE: she is now reading something on the phone she holds out in front of her: her eyes are wide open and look DOWN and a little to the right (both pupils low in the eyes, a little right of centre), her brows are raised in mild, innocent curiosity, and her mouth is a small closed line. She looks sweet and absorbed, not angry. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Her head, hair and body do not move. Same framing, same black outline weights, same flat colours, no shading on the face, no lines or bags under the eyes, no frown lines, the same flat magenta background. No text.",
+  "refs": [
+   "luna_w1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_down": {
+  "url": "https://cdn.muapi.ai/outputs/generated/359af8df-f75b-4012-85e0-43effd5943cc_a050d01a.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta) with ONE change only. THE CHANGE: she now looks down toward the lower RIGHT corner of the picture, at something on the ground beside her: both pupils are low and to the right in her wide eyes, her brows are raised, and her mouth is a small rounded 'oh' of mild surprise. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size. Her head, hair and body do not move. Same framing, same black outline weights, same flat colours, no shading on the face, no lines or bags under the eyes, no frown lines, the same flat magenta background. No text.",
+  "refs": [
+   "luna_w1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "timo_up_3": {
+  "url": "https://cdn.muapi.ai/outputs/generated/93e5692e-737f-46a3-8727-474a8c163842_67248cac.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a man on flat magenta) with ONE change only. THE CHANGE: the brown smear of mud on his NOSE is gone: his nose is plain, clean brown skin with its outline. Keep the blade of green grass stuck to his cheek and keep the mud stain on his scarf. Change NOTHING else: every other line, shape and colour stays exactly as in the reference, in the same place and at the same size, with the same framing, the same black outline weights, the same flat colours and the same flat magenta background. No text.",
+  "refs": [
+   "timo_up_1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_guilty_blink": {
+  "url": "https://cdn.muapi.ai/outputs/generated/e7112884-171b-45ce-b485-6e74b5575d10_186c7bbd.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a woman on flat magenta) with ONE change only. THE CHANGE: her eyes are now closed in a blink: each eye is a single downward-curved black line with short lashes, on plain skin, where the eye was. Her brows keep exactly the shape and tilt they have in the reference, and her mouth is untouched. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size: the same hair, face outline, nose, ears, earrings, freckles, body, arm, jacket, scarf and flat magenta background. Same framing, same black outline weights, same flat colours, no shading on the face. No text.",
+  "refs": [
+   "luna_guilty"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_defend_blink": {
+  "url": "https://cdn.muapi.ai/outputs/generated/957c1014-5d0f-44cb-9a20-e4c113c5f0ba_481b7d8d.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a woman on flat magenta) with ONE change only. THE CHANGE: her eyes are now closed in a blink: each eye is a single downward-curved black line with short lashes, on plain skin, where the eye was. Her brows keep exactly the shape and tilt they have in the reference, and her mouth is untouched. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size: the same hair, face outline, nose, ears, earrings, freckles, body, arm, jacket, scarf and flat magenta background. Same framing, same black outline weights, same flat colours, no shading on the face. No text.",
+  "refs": [
+   "luna_defend"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "luna_shrug": {
+  "url": "https://cdn.muapi.ai/outputs/generated/65b61b44-8fdf-49f5-ac37-a84065a20780_498ed999.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta) with ONE change only. THE CHANGE: her free hand (the one on the RIGHT side of the picture) now comes up from the bottom edge beside her body in an exasperated 'what do you want from me' gesture: the forearm in the same yellow coat sleeve rises from the bottom right, and the open hand, palm up, fingers spread, is at the height of her chest, to the RIGHT of her body, drawn over the magenta background and clear of her scarf and hair. Her face, head, hair, scarf and body do not move or change. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size: the same hair, face outline, nose, ears, earrings, freckles, body, arm, jacket, scarf and flat magenta background. Same framing, same black outline weights, same flat colours, no shading on the face. No text.",
+  "refs": [
+   "luna_w1"
+  ],
+  "endpoint": "nano-banana-pro-edit"
  }
 }

@@ -1,12 +1,16 @@
 """The drawn cast of "The Switch": each character is ONE base drawing with patches laid on it.
 
 Luna (base luna_w1, 1792 x 2400): expressions replace the whole face area, a blink replaces the eye area, talking
-mouths replace the mouth area. Her turned head is a second set of patches. Timo (base timo_up_1, 1536 x 2752): eyes
-and mouth patches. Boxes are in the pixels of the base drawing.
+mouths replace the mouth area. Her turned head is a second set of patches. Timo (base timo_up_3, 1536 x 2752): eyes
+and mouth patches. Boxes are in the pixels of the base drawing. Each sprite is given a point of plain skin, so that a
+redraw that came back a shade off is brought to the base drawing's skin and no box shows on the face.
 """
 from pathlib import Path
 
-from toon import Picture, Sprite
+import cv2
+import numpy as np
+
+from toon import Picture, Sprite, align, key_out, patch_mask, premul, read
 
 ROOT = Path(__file__).resolve().parent.parent.parent.parent
 KEEP, WORK = ROOT / "src" / "film" / "assets" / "toon" / "switch" / "art", ROOT / "work" / "switch" / "art"
@@ -26,22 +30,25 @@ class _Art:
 
 ART = _Art()
 
-L_FACE, L_EYES, L_MOUTH = (400, 770, 930, 1325), (405, 880, 925, 1088), (505, 1122, 848, 1318)
+L_FACE, L_EYES, L_MOUTH = (400, 770, 930, 1325), (405, 880, 925, 1088), (450, 1110, 895, 1318)   # the mouth box holds the widest (teeth) mouth whole
+L_PAD = 320   # rows added below Luna's drawing
 L_HEAD, L_TMOUTH = (220, 300, 1045, 1440), (560, 1100, 975, 1312)
-L_HAIR, L_SCARF = (1045, 380, 1792, 1300), (780, 1300, 1792, 2150)   # what the wind moves
 T_SCARF = (1040, 560, 1536, 1340)
 T_EYES, T_BROWS, T_MOUTH = (418, 662, 722, 772), (392, 556, 768, 774), (498, 898, 732, 1072)
 
 
 def luna(scale):
-    s = Sprite(ART / "luna_w1.png", scale=scale)
-    for w in ("1", "2"):   # two more drawings of the hair tips and the scarf tail in the wind
-        s.add("0hair", w, ART / f"luna_wind{w}.png", L_HAIR)
-        s.add("0scarf", w, ART / f"luna_wind{w}.png", L_SCARF)
-    for name, file in (("guilty", "luna_guilty"), ("defend", "luna_defend"), ("side", "luna_read"), ("read", "luna_read2")):
+    s = Sprite(ART / "luna_w1.png", scale=scale, skin=(665, 960), pad_bottom=L_PAD, pad="repeat")   # her coat runs on below the drawing: a shake of the camera never shows its end
+    for w in ("1", "2"):   # two more drawings of the hair tips and the scarf tail in the wind: only what changed is taken
+        s.add("0wind", w, ART / f"luna_wind{w}.png", (1050, 380, 1792, 2150), mode="diff", grow=11, feather=4)
+    # reading her phone: two drawings with the eyes in two places (she reads along the line); "down": she looks down at where he fell
+    for name, file in (("guilty", "luna_guilty"), ("defend", "luna_defend"), ("read", "luna_read3"), ("read_b", "luna_read3b"), ("down", "luna_down")):
         s.add("1face", name, ART / f"{file}.png", L_FACE)
+    for name in ("guilty", "defend"):   # these two faces have their own drawn blink (their brows reach into the eyes)
+        s.add("1face", name + "_shut", ART / f"luna_{name}_blink.png", L_FACE)
     s.add("1face", "turn", ART / "luna_turn.png", L_HEAD)  # the whole head: its skin and its mouths come from the same drawing
     s.add("2eyes", "shut", ART / "luna_blink.png", L_EYES)
+    s.add("2eyes", "scan", ART / "luna_read3b.png", L_EYES)   # the reading eyes a little further along the line
     for m in "CAEO":
         s.add("3mouth", m, ART / f"luna_m{m}.png", L_MOUTH)
     for m in "CAE":  # the turned head has its own mouths, in another place
@@ -49,8 +56,29 @@ def luna(scale):
     return s
 
 
+def _arm(file, box, scale):
+    """Her other arm, taken from a drawing in which it comes up beside her: a piece on Luna's own canvas, to be laid
+    over her with the very same placing, so that it can come up from below the frame and drop again."""
+    base = read(ART / "luna_w1.png")[..., :3]
+    other, _ = align(base, read(ART / file)[..., :3], None)
+    m = patch_mask(base, other, box, thr=0.07, grow=9, feather=3)
+    m[-14:] = m[-15]            # the mask fades out at the edge of its box; at the bottom the sleeve must run on whole
+    piece = key_out(other)
+    piece[..., 3] *= m
+    piece = np.concatenate([piece, np.repeat(piece[-1:], L_PAD, axis=0)], axis=0)   # the same canvas as Luna's, so the same placing fits
+    return premul(cv2.resize(piece, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA))
+
+
+def phone(scale):
+    return _arm("luna_read3b.png", (1150, 1480, 1740, 2400), scale)   # she holds up her phone and reads from it
+
+
+def hand(scale):
+    return _arm("luna_shrug.png", (1150, 1380, 1792, 2400), scale)    # an open hand: what do you want from me
+
+
 def timo(scale):
-    s = Sprite(ART / "timo_up_1.png", scale=scale, pad_bottom=1100)  # his legs run on below the drawing, behind Luna
+    s = Sprite(ART / "timo_up_3.png", scale=scale, pad_bottom=1100, skin=(570, 610))  # his legs run on below the drawing, behind Luna
     for w in ("1", "2"):
         s.add("0scarf", w, ART / f"timo_wind{w}.png", T_SCARF)
     s.add("2eyes", "lens", ART / "timo_lens.png", T_EYES)
@@ -64,7 +92,7 @@ def timo(scale):
 def prone(scale):
     s = Sprite(ART / "timo_prone_1.png", scale=scale)
     for w in ("1", "2"):   # the loose end of his scarf in the wind
-        s.add("0scarf", w, ART / f"prone_wind{w}.png", (880, 300, 1800, 800))
+        s.add("0scarf", w, ART / f"prone_wind{w}.png", (700, 250, 1900, 1050), mode="diff", grow=11, feather=4)
     s.add("1pose", "finger", ART / "prone_finger.png", (600, 200, 880, 880))   # one finger raised, face still in the grass
     return s
 

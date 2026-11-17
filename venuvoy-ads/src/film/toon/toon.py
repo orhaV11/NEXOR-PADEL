@@ -121,12 +121,30 @@ class Sprite:
     Groups are laid in the order of their names ("1face", "2eyes", "3mouth"). `pad_bottom` repeats the last row of the
     drawing downward (legs that must reach below the frame)."""
 
-    def __init__(self, base, scale=1.0, pad_bottom=0):
+    def __init__(self, base, scale=1.0, pad_bottom=0, skin=None, pad="legs"):
+        """skin: a point (x, y) of plain skin in the drawing. Redraws come back a shade off; every patch is brought
+        to the base drawing's skin colour so that no faint box shows round a mouth or the eyes.
+        pad: how the drawing runs on below its last row for pad_bottom pixels: "legs" (flat trouser colour, the side
+        outlines continued, a seam between the legs) or "repeat" (every line of the last row runs straight on)."""
         rgb = read(base)[..., :3]
         self.src_rgb = rgb
+        self.skin = np.median(rgb[skin[1] - 5:skin[1] + 6, skin[0] - 5:skin[0] + 6].reshape(-1, 3), axis=0) if skin else None
         rgba = key_out(rgb)
-        if pad_bottom:
+        if pad_bottom and pad == "repeat":
             rgba = np.concatenate([rgba, np.repeat(rgba[-1:], pad_bottom, axis=0)], axis=0)
+        elif pad_bottom:   # legs that run on below the drawing: flat trouser colour, the side outlines continued, a seam between the legs
+            last = rgba[-1]
+            solid = last[:, 3] > 0.5
+            xs = np.where(solid)[0]
+            dark = solid & (last[:, :3].max(axis=1) < 0.25)
+            fill = np.median(last[solid & ~dark][:, :3], axis=0)
+            row = np.zeros_like(last)
+            row[solid, :3], row[solid, 3] = fill, 1.0
+            row[dark, :3] = last[dark, :3]
+            pad = np.repeat(row[None], pad_bottom, axis=0)
+            mid = (xs.min() + xs.max()) // 2
+            pad[40:, mid - 5:mid + 5, :3] = last[dark][:, :3].mean(axis=0) if dark.any() else 0.05
+            rgba = np.concatenate([rgba, pad], axis=0)
         self.scale = scale
         self.size = (rgba.shape[1], rgba.shape[0])  # of the drawing, before scaling
         self.base = premul(self._small(rgba))
@@ -143,6 +161,14 @@ class Sprite:
             other = cv2.resize(other, (self.src_rgb.shape[1], self.src_rgb.shape[0]), interpolation=cv2.INTER_AREA)
         other, shift = align(self.src_rgb, other, box)
         x0, y0, x1, y1 = box
+        if self.skin is not None:   # bring the redraw's skin to the base's skin
+            part = other[y0:y1, x0:x1]
+            near = np.abs(part - self.skin).max(axis=2) < 0.075
+            if near.sum() > 200:
+                theirs = np.median(part[near], axis=0)
+                w = np.clip(1 - np.abs(part - theirs).max(axis=2) / 0.09, 0, 1)[..., None]
+                other = other.copy()
+                other[y0:y1, x0:x1] = np.clip(part + (self.skin - theirs) * w, 0, 1)
         if mode == "box":
             m = np.zeros(self.src_rgb.shape[:2], np.float32)
             m[y0 + feather:y1 - feather, x0 + feather:x1 - feather] = 1
@@ -186,6 +212,37 @@ class Picture:
 
     def get(self, **_):
         return self.img
+
+
+_grids = {}
+
+
+def bend(img, pivot, y_still, y_full, angle=0.0, dx=0.0, dy=0.0):
+    """Move the upper part of a picture on its own: everything above y_full turns by `angle` degrees about `pivot`
+    and shifts by (dx, dy); everything below y_still stays; between them the picture bends smoothly (a neck inside a
+    scarf). This is how a head tilts and nods on a body drawn in one piece."""
+    if abs(angle) < 0.02 and abs(dx) < 0.2 and abs(dy) < 0.2:
+        return img
+    h, w = img.shape[:2]
+    if (h, w) not in _grids:
+        ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+        _grids[(h, w)] = (xs, ys)
+    xs, ys = _grids[(h, w)]
+    wgt = smooth(y_still, y_full, ys)   # 0 below, 1 above (y grows downward)
+    a = np.radians(angle) * wgt
+    ca, sa = np.cos(a), np.sin(a)
+    px, py = pivot
+    rx, ry = xs - px - dx * wgt, ys - py - dy * wgt
+    map_x = (px + ca * rx + sa * ry).astype(np.float32)   # where each pixel comes from (the turn undone)
+    map_y = (py - sa * rx + ca * ry).astype(np.float32)
+    return cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+
+def bend_x(img, pivot, x_still, x_full, angle=0.0, dx=0.0, dy=0.0):
+    """The same for a figure that lies down: everything beyond x_full turns about `pivot` (a head lifting off the
+    ground), everything on the other side of x_still stays."""
+    out = bend(np.ascontiguousarray(img.transpose(1, 0, 2)), (pivot[1], pivot[0]), x_still, x_full, -angle, dy, dx)
+    return out if out is img else np.ascontiguousarray(out.transpose(1, 0, 2))
 
 
 # ---------------------------------------------------------------- the stage
@@ -277,29 +334,42 @@ def handheld(t, amount=1.0, seed=0.0):
 
 # ---------------------------------------------------------------- talking
 
-VOWELS = {"a": "A", "e": "E", "i": "E", "y": "E", "o": "O", "u": "O", "w": "O"}
 CLOSED, TEETH = set("mbp"), set("fv")
+PAIRS = {"ee": "E", "ea": "E", "ie": "E", "oo": "O", "ou": "O", "ow": "O", "oa": "O", "ai": "A", "ay": "A", "au": "A", "aw": "A"}
 
 
 def word_shapes(word):
-    """The mouth shapes of a word, from its spelling: A open, E wide, O round, C a little open, M shut, F teeth on lip."""
+    """The mouth shapes of a word, from its spelling: A open, E wide, O round, C a little open, M shut, F teeth on lip.
+    English spelling is a rough guide, so the rules err toward the small open mouth: a short e or i is C, not a grin."""
     w = "".join(c for c in word.lower() if c.isalpha())
-    out = []
-    for i, c in enumerate(w):
-        if c in CLOSED:
+    out, i = [], 0
+    while i < len(w):
+        c, two = w[i], w[i:i + 2]
+        if two in PAIRS:
+            s, i = PAIRS[two], i + 1
+        elif c in CLOSED:
             s = "M"
         elif c in TEETH:
             s = "F"
-        elif c in VOWELS:
-            s = VOWELS[c]
-            if c == "e" and i == len(w) - 1 and len(w) > 2:
-                continue  # a silent last e
+        elif c == "a":
+            s = "A"
+        elif c in "ow":
+            s = "O"
+        elif c == "u":
+            s = "A"
+        elif c == "i" and i + 2 < len(w) and w[i + 2] == "e" and w[i + 1] not in "aeiou":
+            s = "A"                       # the long i of "like", "hike"
+        elif c == "y" and i == len(w) - 1 and len(w) > 2:
+            s = "E"
+        elif c == "e" and i == len(w) - 1 and len(w) > 2:
+            i += 1
+            continue                      # a silent last e
         else:
             s = "C"
         if not out or out[-1] != s:
             out.append(s)
-    # consonants between vowels pass quickly: keep the vowels and the lip sounds, thin the rest
-    keep = [s for i, s in enumerate(out) if s != "C" or i == 0 or i == len(out) - 1 or out[i - 1] == "C"]
+        i += 1
+    keep = [s for k, s in enumerate(out) if s != "C" or k == 0 or k == len(out) - 1 or out[k - 1] == "C"]
     return keep or ["C"]
 
 
@@ -316,36 +386,63 @@ def loudness(wav_path, hop=1 / FPS):
 class Talk:
     """Mouth shapes for a line: Talk(words, wav).shape(t) with t in seconds from the start of the line.
     words: [[word, start, end], ...] inside the line. The shapes of each word are spread over its length; where the
-    voice is nearly silent the mouth is shut. `have` lists the shapes this character has drawings for; a missing
-    shape falls back to the nearest one."""
+    voice is nearly silent the mouth is shut. The line is worked out once, twelve steps a second, and then cleaned the
+    way an animator would: a wide or toothy shape that would flash for one step becomes the small open mouth, and a
+    one-step blip between two equal shapes is dropped. `have` lists the shapes this character has drawings for."""
 
-    FALLBACK = {"F": ["C", "E", "M"], "C": ["E", "A", "M"], "E": ["C", "A"], "O": ["A", "C"], "A": ["O", "E", "C"], "M": []}
+    FALLBACK = {"F": ["C", "E", "M"], "C": ["E", "A", "M"], "E": ["C", "A"], "O": ["C", "A"], "A": ["O", "E", "C"], "M": []}
 
-    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10):
+    def __init__(self, words, wav, have=("A", "E", "O", "C", "M"), lead=1 / FPS, quiet=0.10, wide_min=2, teeth_min=3, said=None):
+        """said: {"word": "A C"}: the shapes of a word set by hand (the words a joke rests on)."""
         self.env = loudness(wav)
         self.lead, self.quiet, self.have = lead, quiet, set(have)
-        self.events = []
+        said = said or {}
+        events = []
         for w, a, b in words:
-            shapes = word_shapes(w)
+            key = "".join(c for c in w.lower() if c.isalpha())
+            shapes = said[key].split() if key in said else word_shapes(w)
             step = (b - a) / len(shapes)
             for i, s in enumerate(shapes):
-                self.events.append((a + i * step, a + (i + 1) * step, s))
+                events.append((a + i * step, a + (i + 1) * step, s))
         self.end = max((b for _, _, b in words), default=0) + 0.12
+        seq = []
+        for k in range(int(self.end * 12) + 2):
+            t = k / 12 + lead
+            if t > self.end or self.level(t) < quiet:
+                seq.append(None)
+                continue
+            s = next((s for a, b, s in events if a <= t < b), "C")
+            if s == "A" and self.level(t) < 0.45:
+                s = "C"
+            if s not in self.have:
+                s = next((f for f in self.FALLBACK.get(s, []) if f in self.have), None)
+            seq.append(None if s == "M" else s)
+        # runs: (shape, first step, length)
+        def runs(q):
+            out, i = [], 0
+            while i < len(q):
+                j = i
+                while j < len(q) and q[j] == q[i]:
+                    j += 1
+                out.append((q[i], i, j - i))
+                i = j
+            return out
+        for shape, need in (("E", teeth_min), ("A", wide_min)):
+            for sh, i, n in runs(seq):
+                if sh == shape and n < need:
+                    seq[i:i + n] = ["C"] * n
+        for sh, i, n in runs(seq):   # a one-step blip between two equal neighbours
+            if n == 1 and 0 < i < len(seq) - 1 and seq[i - 1] == seq[i + 1] and seq[i - 1] is not None:
+                seq[i] = seq[i - 1]
+        self.seq = seq
 
     def level(self, t):
         i = int(t * FPS)
         return float(self.env[i]) if 0 <= i < len(self.env) else 0.0
 
     def shape(self, t):
-        t = on_twos(t) + self.lead
-        if t < 0 or t > self.end or self.level(t) < self.quiet:
-            return None  # the resting mouth of the drawing
-        s = next((s for a, b, s in self.events if a <= t < b), "C")
-        if s == "A" and self.level(t) < 0.45:
-            s = "C"
-        if s not in self.have:
-            s = next((f for f in self.FALLBACK.get(s, []) if f in self.have), None)
-        return None if s == "M" else s
+        k = int(math.floor(t * 12 + 1e-6))
+        return self.seq[k] if 0 <= k < len(self.seq) else None
 
     def accent(self, t):
         """0..1: how hard the voice hits just now (for a small nod of the head on the stressed words)."""
@@ -357,7 +454,12 @@ class Talk:
 class Film:
     def __init__(self, work, out):
         self.work, self.out = Path(work), Path(out)
-        self.shots = []
+        self.shots, self.whips = [], []
+
+    def whip(self, t, dur=0.09, far=300, blur=340):
+        """A quick sideways whip of the camera across the cut at t: the last two pictures before it smear away to the
+        left, the first two after it arrive from the right. It tells the eye that this is a new take, not a glitch."""
+        self.whips.append((t, dur, far, blur))
 
     def shot(self, t0, t1, draw, camera=None):
         """draw(stage, t, T): t counts from the start of the shot, T from the start of the film."""
@@ -374,6 +476,12 @@ class Film:
                 if camera:
                     st.cam = camera(T - t0, T)
                 draw(st, T - t0, T)
+        for t, dur, far, blur in self.whips:
+            d = T - t
+            if -dur <= d < dur:
+                k = 1 - abs(d) / dur
+                M = np.float32([[1, 0, -far * k if d < 0 else far * k], [0, 1, 0]])
+                st.frame = cv2.blur(cv2.warpAffine(st.frame, M, (W, H), borderMode=cv2.BORDER_REFLECT), (int(30 + blur * k) | 1, 1))
         return st.frame
 
     def still(self, T, path, size=None):

@@ -21,9 +21,9 @@ const css = `
 @font-face { font-family: "Assistant"; src: url(${font('assistant-latin-wght-normal.woff2')}); font-weight: 200 800; }
 html, body { margin: 0; background: transparent; }
 .item { display: inline-block; padding: 30px; }
-.cap { width: 900px; text-align: center; font-family: "Mont", sans-serif; font-weight: 800; font-size: 66px; line-height: 1.14; letter-spacing: -0.005em;
-  color: #fff; -webkit-text-stroke: 9px #101010; paint-order: stroke fill; text-wrap: balance; filter: drop-shadow(0 4px 3px rgba(0,0,0,.35)); }
-.cap.L { color: #fff; }  /* both speak in white: her yellow was lost on her yellow jacket */
+.cap { width: 1000px; text-align: center; font-family: "Mont", sans-serif; font-weight: 800; font-size: 62px; line-height: 1.14; letter-spacing: -0.01em;
+  color: #fff; -webkit-text-stroke: 8px #101010; paint-order: stroke fill; text-wrap: balance; filter: drop-shadow(0 4px 3px rgba(0,0,0,.35)); }
+.cap.T { color: #a8f0e4; }  /* his words in a pale tint of his jacket, hers in white: with the sound off you still know who speaks */
 .plate { display: inline-flex; flex-direction: column; align-items: center; gap: 16px; filter: drop-shadow(0 8px 12px rgba(0,0,0,.35)); }
 .chip { position: relative; padding: 16px 34px 18px 112px; border-radius: 6px; background: #16392b; color: #f3ecdc; font-family: "Playfair", serif; font-weight: 500; font-size: 62px;
   letter-spacing: 0.2em; text-transform: uppercase; outline: 2px solid rgba(201,169,106,.9); outline-offset: -8px; }
@@ -34,13 +34,22 @@ html, body { margin: 0; background: transparent; }
 `;
 const html = `<!doctype html><meta charset="utf-8"><style>${css}</style><body>` + spec.items.map((it) => {
   if (it.kind === 'plate') return `<div class="item" id="${it.name}"><div class="plate"><div class="chip">VENUVOY</div><div class="line">one sentence. your sports trip, planned.</div></div></div>`;
-  return `<div class="item" id="${it.name}"><div class="cap ${it.who || ''}">${esc(it.text)}</div></div>`;
+  const held = it.hidden ? `<span style="visibility:hidden">${esc(it.hidden)}</span>` : '';   // a word that arrives later keeps its place
+  return `<div class="item" id="${it.name}"><div class="cap ${it.who || ''}">${esc(it.text).replace(/\n/g, '<br>')}${held}</div></div>`;   // "\n" in the text breaks the line
 }).join('<br>') + '</body>';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 1 });
-await page.setContent(html);
+const file = path.join(out, '_text.html');   // opened as a file, so the font files beside the project may be read
+fs.writeFileSync(file, html);
+await page.goto(url.pathToFileURL(file).href);
 await page.evaluate(() => document.fonts.ready);
+const loaded = await page.evaluate(async () => {
+  const want = ['800 62px "Mont"', '500 62px "Playfair"', '700 44px "Assistant"'];
+  await Promise.all(want.map((f) => document.fonts.load(f)));
+  return want.map((f) => [f, document.fonts.check(f)]);
+});
+if (loaded.some(([, ok]) => !ok)) { console.error('fonts did not load:', JSON.stringify(loaded)); process.exit(1); }
 for (const it of spec.items) {
   await page.locator('#' + it.name).screenshot({ path: path.join(out, it.name + '.png'), omitBackground: true });
 }

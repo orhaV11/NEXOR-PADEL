@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 cast = __import__(f"{name}_cast")
 USED = set(json.loads((KEEP / "used.json").read_text())) if (KEEP / "used.json").exists() else set()
 if "--scan" in sys.argv or not USED:   # load the cast once to learn which drawings it uses
-    cast.luna(0.25), cast.timo(0.25), cast.prone(0.25), cast.background("bg_hill_1", 0.25), cast.background("bg_hill_2", 0.25)
+    cast.luna(0.25), cast.timo(0.25), cast.prone(0.25), cast.phone(0.25), cast.hand(0.25), cast.background("bg_hill_1", 0.25), cast.background("bg_hill_2", 0.25)
     USED = set(cast.USED) | {"sheet_1", "style_a_vector"}
     (KEEP / "used.json").write_text(json.dumps(sorted(USED), indent=1))
 n = 0

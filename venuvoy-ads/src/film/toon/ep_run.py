@@ -79,10 +79,12 @@ v.shot("start", bg=BG, luna=LUNA_AT, timo=TIMO_AT)
 
 # ---- her face
 v.faces(("start", "down"),                # oh: eyes down at the phone in her hand
-        ("L1-0.08", "turn"),              # she rounds on him: "Why is there a run in the plan?"
-        ("L1.end+0.10", "guilty"),        # worried brows, a sideways look up at him: there's a switch (she knows switches)
+        ("L1+0.02", "turn"),              # she rounds on him: "Why is there a run in the plan?" (on her first word: the turned head
+                                          # is a closed smile while silent, and she is alarmed)
+        ("L1@plan.end-0.08", "guilty"),   # as "plan" dies away (the recogniser stretches it): worried brows, a sideways look up at him: there's a switch (she knows switches)
         ("T2@flipped+0.06", "defend"),    # big eyes on us: he flipped it
-        ("L3-0.08", "turn"),              # "You hate running!" and she stays turned to him in the silence: her closed smile, gotcha
+        ("L3+0.01", "turn"),              # "You hate running!" (her voice starts 0.04 s into the line; the recogniser says 0.18) and she stays turned to him
+                                          # in the silence: her closed smile, gotcha
         ("T4@less-0.04", "guilty"),       # "...less than you": the smile goes crooked, the brows worry
         ("T4.end+0.12", "defend"))        # and then at us, caught, with a small duck
 v.tilt(L1=3.2, L3=2.6)

@@ -15,8 +15,9 @@ second, goes down out of the picture at an even speed (the kit's piece drops in 
 
 After the independent check (render 3):
 - She no longer smiles through the bad news. Her reading face rests on the small flat mouth of luna_read3b (a copy
-  of luna_read3 with that mouth put in: work/dave/art/luna_read3q.png, made here from the two drawings, nothing
-  bought), and on 'Could not verify.', "He says hurry." and "Bye, Dave." she talks only with the small round mouth,
+  of luna_read3 with that mouth put in: work/dave/art/luna_read3q.png, packed as luna_read3q.webp; made from the two
+  drawings, nothing bought: luna_read3b's box x 565-770, y 1160-1230 laid over luna_read3 through a mask feathered
+  6 px), and on 'Could not verify.', "He says hurry." and "Bye, Dave." she talks only with the small round mouth,
   shut where the voice dips (no open mouth with teeth on these three lines).
 - She is sure of herself until the check: sunny under his flat "Official Dave." and while he explains (the worried
   'defend' and 'guilty' faces before the check are gone); her eyes drop to the phone the moment he says "Paste.".

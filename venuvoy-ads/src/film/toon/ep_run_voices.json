@@ -1,0 +1,43 @@
+{
+ "work": "work/run",
+ "cap": 4.0,
+ "temperature": 1,
+ "scene": "A phone vlog on a quiet riverside path at first light, early on the morning of a sports trip; the air is cool and still, mist lies on the water, a few birds, now and then someone jogs past. Luna holds the phone at arm's length and has just read the day's plan; Timo stands very upright just behind her, in a white sweatband, quietly pleased with himself.",
+ "context": "A nine-second comedy short played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, but this morning she has just found a run in the trip's plan and she hates running; she is alarmed, then outraged, never sarcastic. TIMO, about 30, is slow, dry and proud; he never raises his voice; he turned the run on himself, not because he likes running but because she will suffer more than he will, and he is calmly, quietly pleased about it. He states each thing as a plain fact. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[alarmed, looking up from her phone and turning to him] Why's there a run in the plan?"
+  ],
+  [
+   "T",
+   "[calm and level, quietly pleased with himself] There's a switch. I flipped it."
+  ],
+  [
+   "L",
+   "[loud, outraged] You hate running!"
+  ],
+  [
+   "T",
+   "[flat and unhurried, to the camera, a plain fact] I hate it less than you."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing on a still riverside path early in the morning, a little alarmed at what she has just read on her phone; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan and quietly content; he speaks from just behind her shoulder, completely unbothered, and never raises his voice."
+   }
+  }
+ }
+}

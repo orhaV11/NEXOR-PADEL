@@ -3,146 +3,161 @@
   "n": 1,
   "who": "L",
   "text": "American football. One sentence.",
-  "t0": 0.09,
-  "t1": 2.29,
-  "dur": 2.2,
+  "t0": 0.05,
+  "t1": 2.41,
+  "dur": 2.36,
   "words": [
    [
     "american",
-    0.07,
-    0.55
+    0.11,
+    0.59
    ],
    [
     "football",
-    0.55,
-    1.11
+    0.59,
+    1.39
    ],
    [
     "one",
-    1.11,
-    1.43
+    1.39,
+    1.71
    ],
    [
     "sentence",
-    1.43,
-    2.15
+    1.71,
+    2.31
    ]
   ],
   "matched": "4/4",
   "heard": "american football one sentence",
   "wrong": [],
-  "peak_db": -2.1
+  "peak_db": -4.3
  },
  {
   "n": 2,
   "who": "T",
   "text": "Eleven seconds of sport, and then a meeting.",
-  "t0": 2.52,
-  "t1": 4.83,
-  "dur": 2.31,
+  "t0": 2.57,
+  "t1": 5.31,
+  "dur": 2.74,
   "words": [
    [
     "eleven",
-    -0.04,
-    0.44
+    -0.01,
+    0.47
    ],
    [
     "seconds",
-    0.44,
-    0.84
+    0.47,
+    0.87
    ],
    [
     "of",
-    0.84,
-    1.0
+    0.87,
+    1.03
    ],
    [
     "sport",
-    1.0,
-    1.48
+    1.03,
+    1.91
    ],
    [
     "and",
-    1.48,
-    1.64
+    1.91,
+    2.07
    ],
    [
     "then",
-    1.64,
-    1.88
+    2.07,
+    2.31
    ],
    [
     "a",
-    1.88,
-    1.96
+    2.31,
+    2.39
    ],
    [
     "meeting",
-    1.96,
-    2.26
+    2.39,
+    2.69
    ]
   ],
   "matched": "8/8",
   "heard": "eleven seconds of sport and then a meeting",
   "wrong": [],
-  "peak_db": -3.1
+  "peak_db": -4.2
  },
  {
   "n": 3,
   "who": "L",
   "text": "And after the meeting?",
-  "t0": 5.06,
-  "t1": 6.08,
-  "dur": 1.02,
+  "t0": 5.54,
+  "t1": 6.75,
+  "dur": 1.21,
   "words": [
    [
     "and",
     0.06,
-    0.22
+    0.38
    ],
    [
     "after",
-    0.22,
-    0.46
-   ],
-   [
-    "the",
-    0.46,
+    0.38,
     0.62
    ],
    [
-    "meeting",
+    "the",
     0.62,
-    0.97
+    0.78
+   ],
+   [
+    "meeting",
+    0.78,
+    1.16
    ]
   ],
   "matched": "4/4",
   "heard": "and after the meeting",
   "wrong": [],
-  "peak_db": -6.1
+  "peak_db": -5.0
  },
  {
   "n": 4,
   "who": "T",
-  "text": "Another meeting.",
-  "t0": 6.3,
-  "t1": 7.04,
-  "dur": 0.74,
+  "text": "A meeting about the meeting.",
+  "t0": 6.9,
+  "t1": 8.31,
+  "dur": 1.41,
   "words": [
    [
-    "another",
-    0.02,
-    0.34
+    "a",
+    0.06,
+    0.22
    ],
    [
     "meeting",
-    0.34,
-    0.69
+    0.22,
+    0.62
+   ],
+   [
+    "about",
+    0.62,
+    0.94
+   ],
+   [
+    "the",
+    0.94,
+    1.02
+   ],
+   [
+    "meeting",
+    1.02,
+    1.36
    ]
   ],
-  "matched": "2/2",
-  "heard": "another meeting",
+  "matched": "5/5",
+  "heard": "a meeting about the meeting",
   "wrong": [],
-  "peak_db": -7.6
+  "peak_db": -2.5
  }
 ]

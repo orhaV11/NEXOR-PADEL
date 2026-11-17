@@ -1,0 +1,128 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[low, to the camera, a secret] The season ended yesterday."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[eyes shut, not moving, flat] Wake me in August."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[reading off her phone, innocent] There's baseball all summer."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[after a long beat, slowly, suddenly interested] ...Where?"
+   }
+  ],
+  "scene": "A phone vlog on the empty forecourt of a stadium, shut gates and empty crowd barriers behind. A still day, very quiet.",
+  "sample_context": "A ten-second comedy moment played by two close friends on a sports trip. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and sure of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "The",
+   0.0,
+   0.4
+  ],
+  [
+   "season",
+   0.4,
+   0.88
+  ],
+  [
+   "ended",
+   0.88,
+   1.36
+  ],
+  [
+   "yesterday.",
+   1.36,
+   2.56
+  ],
+  [
+   "Wake",
+   2.56,
+   2.96
+  ],
+  [
+   "me",
+   2.96,
+   3.12
+  ],
+  [
+   "in",
+   3.12,
+   3.28
+  ],
+  [
+   "August.",
+   3.28,
+   4.16
+  ],
+  [
+   "There's",
+   4.16,
+   4.48
+  ],
+  [
+   "baseball",
+   4.48,
+   5.04
+  ],
+  [
+   "all",
+   5.04,
+   5.28
+  ],
+  [
+   "summer.",
+   5.28,
+   6.56
+  ],
+  [
+   "Where?",
+   6.56,
+   7.13
+  ]
+ ],
+ "text": "The season ended yesterday. Wake me in August. There's baseball all summer. Mmm, where?"
+}

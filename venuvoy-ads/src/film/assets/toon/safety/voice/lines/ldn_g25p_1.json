@@ -1,0 +1,357 @@
+[
+ {
+  "n": 1,
+  "who": "L",
+  "text": "Motor racing! I've picked a driver!",
+  "t0": 0.23,
+  "t1": 2.62,
+  "dur": 2.39,
+  "words": [
+   [
+    "motor",
+    0.09,
+    0.57
+   ],
+   [
+    "racing",
+    0.57,
+    1.29
+   ],
+   [
+    "ive",
+    1.29,
+    1.53
+   ],
+   [
+    "picked",
+    1.53,
+    1.77
+   ],
+   [
+    "a",
+    1.77,
+    1.93
+   ],
+   [
+    "driver",
+    1.93,
+    2.34
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "motor racing ive picked a driver",
+  "wrong": [],
+  "peak_db": -3.8
+ },
+ {
+  "n": 2,
+  "who": "T",
+  "text": "Which one?",
+  "t0": 3.0,
+  "t1": 3.67,
+  "dur": 0.67,
+  "words": [
+   [
+    "which",
+    -0.04,
+    0.28
+   ],
+   [
+    "one",
+    0.28,
+    0.62
+   ]
+  ],
+  "matched": "2/2",
+  "heard": "which one",
+  "wrong": [],
+  "peak_db": -1.8
+ },
+ {
+  "n": 3,
+  "who": "L",
+  "text": "Lights on the roof. He's winning!",
+  "t0": 3.98,
+  "t1": 6.07,
+  "dur": 2.09,
+  "words": [
+   [
+    "lights",
+    0.02,
+    0.42
+   ],
+   [
+    "on",
+    0.42,
+    0.5
+   ],
+   [
+    "the",
+    0.5,
+    0.58
+   ],
+   [
+    "roof",
+    0.58,
+    1.14
+   ],
+   [
+    "hes",
+    1.14,
+    1.46
+   ],
+   [
+    "winning",
+    1.46,
+    2.04
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "lights on the roof hes winning",
+  "wrong": [],
+  "peak_db": -1.9
+ },
+ {
+  "n": 4,
+  "who": "T",
+  "text": "That's the safety car.",
+  "t0": 6.28,
+  "t1": 7.69,
+  "dur": 1.41,
+  "words": [
+   [
+    "thats",
+    0.04,
+    0.36
+   ],
+   [
+    "the",
+    0.36,
+    0.6
+   ],
+   [
+    "safety",
+    0.6,
+    1.08
+   ],
+   [
+    "car",
+    1.08,
+    1.36
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "thats the safety car",
+  "wrong": [],
+  "peak_db": -1.8
+ },
+ {
+  "n": 5,
+  "who": "L",
+  "text": "He's in front.",
+  "t0": 7.84,
+  "t1": 8.9,
+  "dur": 1.06,
+  "words": [
+   [
+    "hes",
+    0.08,
+    0.32
+   ],
+   [
+    "in",
+    0.32,
+    0.56
+   ],
+   [
+    "front",
+    0.56,
+    1.01
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "hes in front",
+  "wrong": [],
+  "peak_db": -2.4
+ },
+ {
+  "n": 6,
+  "who": "T",
+  "text": "He's not in the race.",
+  "t0": 9.24,
+  "t1": 10.8,
+  "dur": 1.56,
+  "words": [
+   [
+    "hes",
+    0.04,
+    0.44
+   ],
+   [
+    "not",
+    0.44,
+    0.68
+   ],
+   [
+    "in",
+    0.68,
+    0.84
+   ],
+   [
+    "the",
+    0.84,
+    1.0
+   ],
+   [
+    "race",
+    1.0,
+    1.51
+   ]
+  ],
+  "matched": "5/5",
+  "heard": "hes not in the race",
+  "wrong": [],
+  "peak_db": -4.6
+ },
+ {
+  "n": 7,
+  "who": "L",
+  "text": "Then why is nobody passing him?",
+  "t0": 11.13,
+  "t1": 12.87,
+  "dur": 1.74,
+  "words": [
+   [
+    "then",
+    -0.09,
+    0.15
+   ],
+   [
+    "why",
+    0.15,
+    0.31
+   ],
+   [
+    "is",
+    0.31,
+    0.55
+   ],
+   [
+    "nobody",
+    0.55,
+    0.95
+   ],
+   [
+    "passing",
+    0.95,
+    1.43
+   ],
+   [
+    "him",
+    1.43,
+    1.69
+   ]
+  ],
+  "matched": "6/6",
+  "heard": "then why is nobody passing him",
+  "wrong": [],
+  "peak_db": -1.5
+ },
+ {
+  "n": 8,
+  "who": "T",
+  "text": "They're not allowed.",
+  "t0": 13.23,
+  "t1": 14.35,
+  "dur": 1.12,
+  "words": [
+   [
+    "theyre",
+    -0.03,
+    0.29
+   ],
+   [
+    "not",
+    0.29,
+    0.53
+   ],
+   [
+    "allowed",
+    0.53,
+    1.07
+   ]
+  ],
+  "matched": "3/3",
+  "heard": "theyre not allowed",
+  "wrong": [],
+  "peak_db": -4.5
+ },
+ {
+  "n": 9,
+  "who": "L",
+  "text": "So he can't lose!",
+  "t0": 14.69,
+  "t1": 16.44,
+  "dur": 1.75,
+  "words": [
+   [
+    "so",
+    0.03,
+    0.27
+   ],
+   [
+    "he",
+    0.27,
+    0.51
+   ],
+   [
+    "cant",
+    0.51,
+    0.99
+   ],
+   [
+    "lose",
+    0.99,
+    1.7
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "so he cant lose",
+  "wrong": [],
+  "peak_db": -6.0
+ },
+ {
+  "n": 10,
+  "who": "T",
+  "text": "Come on, safety car.",
+  "t0": 16.77,
+  "t1": 18.0,
+  "dur": 1.23,
+  "words": [
+   [
+    "come",
+    -0.05,
+    0.19
+   ],
+   [
+    "on",
+    0.19,
+    0.43
+   ],
+   [
+    "safety",
+    0.43,
+    0.83
+   ],
+   [
+    "car",
+    0.83,
+    1.18
+   ]
+  ],
+  "matched": "4/4",
+  "heard": "come on safety car",
+  "wrong": [],
+  "peak_db": -2.6
+ }
+]

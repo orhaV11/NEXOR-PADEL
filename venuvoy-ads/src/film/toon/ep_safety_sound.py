@@ -100,7 +100,7 @@ PLAN = [
     ("L9", "L", A, 9, 0.30, {}),                 # a beat while it sinks in: amazed. The music stops dead as it ends
     ("HOLD", "look", 0.00, 0.75),                # he looks at us; she turns back to us and the flag comes up
     ("HOLD", "narrow", 0.00, 0.45),              # one brow down: he works it out and finds no hole in it
-    ("T10", "T", A, 10, 0.06, {}),               # to us, flat: he changes sides
+    ("T10", "T", A, 10, 0.06, {"db": 2.0}),      # to us, flat: he changes sides (2 dB up: the watching model found it much quieter than the rest)
     ("HOLD", "pass", 0.18, 0.55),                # a car goes by behind them; she waves the flag
     ("PLATE", 0.40),
 ]

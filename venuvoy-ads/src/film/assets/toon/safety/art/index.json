@@ -1,0 +1,24 @@
+{
+ "upload:work/switch/art/style_a_vector.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/7bc7a71a34974f138ef2d26eb2462edc.png"
+ },
+ "bg_track_1": {
+  "url": "https://cdn.muapi.ai/outputs/generated/db39ad42-092b-4d7a-a51c-c0e562a23182_34f3aed2.jpg",
+  "prompt": "A background painting for a 2D animated comedy, with NO characters and no people close by: the only people are far-off spectators painted as small soft blurred shapes of colour with no faces. Vertical 9:16. Seen from a standing person's eye height in the front row of a grandstand beside a motor racing circuit on a windy, bright overcast day, the way a phone held at arm's length sees what is behind its owner (never from above). The top fifth of the picture is a bright, pale, overcast sky of soft white and light grey clouds. Below the sky, on the far side of the track, a long low far grandstand with a plain flat grey roof, its seats full of spectators painted only as a soft speckled band of muted colours, and a few soft trees. In front of it, running straight across the whole width of the picture at about one third of the way down from the top, the race track: a wide, flat, empty band of smooth dark-grey tarmac with a thin white line along each edge and low red-and-white striped kerbs along its near edge, empty, no cars on it; it is seen most clearly in the UPPER LEFT third of the picture. On our side of the track a strip of green grass and a low plain grey concrete wall. Close behind the viewer, across the whole picture from the bottom up to well above the track, stands the catch fence: a few tall thin grey steel posts far apart and a fine, faint diamond wire mesh between them, painted lightly so that the track and everything behind it is clearly seen through it. The lower half of the picture is quiet and plain: the fence in front of the grass verge and the top of the plain grey concrete wall at the front of our grandstand. Soft even daylight from the overcast sky, no strong shadows. The horizon is tilted two or three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the painting manner from the reference picture and nothing of what it shows. No cars, no text, no signs, no letters, no numbers, no logos, no flags, no banners, no advertising boards, no screens, no scoreboard, nothing written on the walls or the roof.",
+  "refs": [
+   "work/switch/art/style_a_vector.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ },
+ "upload:work/switch/art/luna_w1.png": {
+  "url": "https://cdn.muapi.ai/outputs/generated/6beff1ec3e354231a3e5a5dcbad045e2.png"
+ },
+ "luna_flag": {
+  "url": "https://cdn.muapi.ai/outputs/generated/ad812c64-276d-4da0-9ae0-29c2b8bf822f_5cc98282.jpg",
+  "prompt": "Redraw the reference picture (an animation sprite of a cheerful young woman on flat magenta, her hair and scarf blowing to the right in the wind) with ONE change only. THE CHANGE: her free hand (the one on the RIGHT side of the picture) now comes up from the bottom edge beside her body holding a small hand flag: the forearm in the same yellow coat sleeve rises from the bottom right, drawn whole with its own black outline on both sides, and her hand, at the height of her chest and a little below the flying end of her scarf, grips a short thin dark brown wooden stick that points straight up. At the top of the stick a small plain rectangular cloth flag, about half as wide as her face, blows out to the RIGHT in the wind with a gentle ripple: its upper half plain dark green and its lower half plain cream (the dark green and cream of her scarf), flat colours with a black outline, no emblem, no writing, no number, no pattern, no crest. The forearm, hand, stick and flag are all to the RIGHT of her body, drawn over the magenta background, below her flying hair and to the right of the flying end of her scarf, and all of it is inside the picture with magenta to its right and above it. A strip of magenta background stays visible between her body and the forearm, all the way down to the bottom edge. Her face, head, hair, scarf and body do not move or change. Change NOTHING else: every other line, shape and colour of the picture stays exactly as in the reference, in the same place and at the same size: the same hair, face outline, nose, ears, earrings, freckles, body, arm, jacket, scarf and flat magenta background. Same framing, same black outline weights, same flat colours, no shading on the face. No text.",
+  "refs": [
+   "work/switch/art/luna_w1.png"
+  ],
+  "endpoint": "nano-banana-pro-edit"
+ }
+}

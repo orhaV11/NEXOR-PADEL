@@ -50,7 +50,7 @@
    },
    {
     "speaker_id": "Speaker 2",
-    "text": "[flat, to her, at once] Another meeting."
+    "text": "[flat, to her, at once] A meeting about the meeting."
    }
   ],
   "scene": "A phone vlog from high in the open stand of a full American football stadium in late afternoon sun. A big crowd all round.",
@@ -64,90 +64,105 @@
    0.64
   ],
   [
-   "football",
+   "football,",
    0.64,
-   1.2
+   1.44
   ],
   [
    "one",
-   1.2,
-   1.52
+   1.44,
+   1.76
   ],
   [
-   "sentence",
-   1.52,
-   2.48
+   "sentence.",
+   1.76,
+   2.56
   ],
   [
-   "eleven",
-   2.48,
-   2.96
+   "Eleven",
+   2.56,
+   3.04
   ],
   [
    "seconds",
-   2.96,
-   3.36
+   3.04,
+   3.44
   ],
   [
    "of",
-   3.36,
-   3.52
+   3.44,
+   3.6
   ],
   [
    "sport",
-   3.52,
-   4.0
-  ],
-  [
-   "and",
-   4.0,
-   4.16
-  ],
-  [
-   "then",
-   4.16,
-   4.4
-  ],
-  [
-   "a",
-   4.4,
+   3.6,
    4.48
   ],
   [
-   "meeting.",
+   "and",
    4.48,
-   5.12
+   4.64
+  ],
+  [
+   "then",
+   4.64,
+   4.88
+  ],
+  [
+   "a",
+   4.88,
+   4.96
+  ],
+  [
+   "meeting.",
+   4.96,
+   5.6
   ],
   [
    "And",
-   5.12,
-   5.28
+   5.6,
+   5.92
   ],
   [
    "after",
-   5.28,
-   5.52
+   5.92,
+   6.16
   ],
   [
    "the",
-   5.52,
-   5.68
-  ],
-  [
-   "meeting?",
-   5.68,
+   6.16,
    6.32
   ],
   [
-   "Another",
+   "meeting?",
    6.32,
-   6.64
+   6.96
+  ],
+  [
+   "A",
+   6.96,
+   7.12
+  ],
+  [
+   "meeting",
+   7.12,
+   7.52
+  ],
+  [
+   "about",
+   7.52,
+   7.84
+  ],
+  [
+   "the",
+   7.84,
+   7.92
   ],
   [
    "meeting.",
-   6.64,
-   7.13
+   7.92,
+   8.37
   ]
  ],
- "text": "American football, one sentence 11 seconds of sport and then a meeting And after the meeting? Another meeting"
+ "text": "American football, one sentence 11 seconds of sport and then a meeting and after the meeting? A meeting about the meeting"
 }

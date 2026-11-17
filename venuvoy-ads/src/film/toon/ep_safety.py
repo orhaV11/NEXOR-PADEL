@@ -224,13 +224,13 @@ v.eyes(("start", "shut"),
        ("narrow.end", "lens"))
 
 # ---- the words on screen
-CAP_A, CAP_B, CAP_C = (420, 1425), (420, 1430), (420, 1430)     # left of the flag
+CAP_A, CAP_B, CAP_C = (420, 1425), (395, 1430), (420, 1430)     # left of the flag
 v.captions(
     text={"L1": "Motor racing!\nI've picked a driver!", "L3": "Lights on the roof.\nHe's winning!",
           "L7": "Then why is nobody\npassing him?", "T10": "…Come on,\nsafety car."},
-    on={"T2": "T2-0.12", "T4": "T4-0.06"},
-    place={"L1": CAP_A, "T2": CAP_A, "L3": CAP_A, "T4": CAP_B, "L5": CAP_B, "T6": CAP_B, "L9": CAP_C, "T10": (330, 1420)},
-    off={"T10": "plate-0.05"})
+    on={"T2": "T2-0.12", "T4": "cut1+0.04"},                         # his short lines up a moment early (time to read them),
+    off={"L1": "T2-0.12", "L3": "cut1+0.04", "T10": "plate-0.05"},   # and never two captions at once (a caption shows until off-0.04)
+    place={"L1": CAP_A, "T2": CAP_A, "L3": CAP_A, "T4": CAP_B, "L5": CAP_B, "T6": CAP_B, "L9": CAP_C, "T10": (330, 1420)})
 v.plate(x=352, y=285, size=0.68)          # he is standing at the end: the plate beside his head, above hers
 
 if __name__ == "__main__":

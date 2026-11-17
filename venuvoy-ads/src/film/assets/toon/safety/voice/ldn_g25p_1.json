@@ -1,0 +1,302 @@
+{
+ "model": "gemini-2-5-pro-tts",
+ "cast": {
+  "L": {
+   "voice_name": "Laomedeia",
+   "accent": "British (Brixton)",
+   "style": "Vocal Smile",
+   "pace": "Rapid Fire",
+   "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; calling over the wind and the engines at a race track; natural and unpolished, like a friend filming a vlog."
+  },
+  "T": {
+   "voice_name": "Zubenelgenubi",
+   "accent": "British (Brixton)",
+   "style": "Deadpan",
+   "pace": "Natural",
+   "audio_profile": "A tall man of 30 with a low, dry, casual voice; slow, proud, patient and deadpan; he never raises his voice."
+  }
+ },
+ "payload": {
+  "speakers": [
+   {
+    "speaker_id": "Speaker 1",
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; calling over the wind and the engines at a race track; natural and unpolished, like a friend filming a vlog."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall man of 30 with a low, dry, casual voice; slow, proud, patient and deadpan; he never raises his voice."
+   }
+  ],
+  "dialogue_turns": [
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[shouting over a passing engine, delighted] Motor racing! I've picked a driver!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat, already suspicious] Which one?"
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[proud, to the camera] Lights on the roof. He's winning!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[dry, patient] That's the safety car."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[unbothered, cheerful] He's in front."
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[slow and kind, as to a friend he likes] He's not in the race."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[honestly puzzled] Then why's nobody passing him?"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[flat] They're not allowed."
+   },
+   {
+    "speaker_id": "Speaker 1",
+    "text": "[amazed, as if it explains everything] So he can't lose!"
+   },
+   {
+    "speaker_id": "Speaker 2",
+    "text": "[after a long pause, flat and deadpan, a cheer with no cheer in it] Come on, safety car."
+   }
+  ],
+  "scene": "A phone vlog in the front row of a grandstand at a motor racing circuit on a windy, overcast day; behind a tall wire fence the racing cars scream past now and then. Luna holds the phone at arm's length and talks to it over the wind and the engines, a small flag in her other hand; Timo stands just behind her.",
+  "sample_context": "A twenty-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and loud over the engines; she is delighted with the car she has picked to cheer for, she is innocent and never sarcastic, and every answer of his only makes her surer. TIMO, about 30, knows the sport; he is slow, dry, patient and fond of her; he never raises his voice, and at the end he gives in with a flat, deadpan cheer. They answer each other fast, with no gaps between the lines.",
+  "temperature": 1
+ },
+ "words": [
+  [
+   "Motor",
+   0.32,
+   0.8
+  ],
+  [
+   "racing",
+   0.8,
+   1.52
+  ],
+  [
+   "I've",
+   1.52,
+   1.76
+  ],
+  [
+   "picked",
+   1.76,
+   2.0
+  ],
+  [
+   "a",
+   2.0,
+   2.16
+  ],
+  [
+   "driver.",
+   2.16,
+   2.96
+  ],
+  [
+   "Which",
+   2.96,
+   3.28
+  ],
+  [
+   "one?",
+   3.28,
+   4.0
+  ],
+  [
+   "Lights",
+   4.0,
+   4.4
+  ],
+  [
+   "on",
+   4.4,
+   4.48
+  ],
+  [
+   "the",
+   4.48,
+   4.56
+  ],
+  [
+   "roof.",
+   4.56,
+   5.12
+  ],
+  [
+   "He's",
+   5.12,
+   5.44
+  ],
+  [
+   "winning.",
+   5.44,
+   6.32
+  ],
+  [
+   "That's",
+   6.32,
+   6.64
+  ],
+  [
+   "the",
+   6.64,
+   6.88
+  ],
+  [
+   "safety",
+   6.88,
+   7.36
+  ],
+  [
+   "car",
+   7.36,
+   7.92
+  ],
+  [
+   "He's",
+   7.92,
+   8.16
+  ],
+  [
+   "in",
+   8.16,
+   8.4
+  ],
+  [
+   "front.",
+   8.4,
+   9.28
+  ],
+  [
+   "He's",
+   9.28,
+   9.68
+  ],
+  [
+   "not",
+   9.68,
+   9.92
+  ],
+  [
+   "in",
+   9.92,
+   10.08
+  ],
+  [
+   "the",
+   10.08,
+   10.24
+  ],
+  [
+   "race.",
+   10.24,
+   11.04
+  ],
+  [
+   "Then",
+   11.04,
+   11.28
+  ],
+  [
+   "why",
+   11.28,
+   11.44
+  ],
+  [
+   "is",
+   11.44,
+   11.68
+  ],
+  [
+   "nobody",
+   11.68,
+   12.08
+  ],
+  [
+   "passing",
+   12.08,
+   12.56
+  ],
+  [
+   "him?",
+   12.56,
+   13.2
+  ],
+  [
+   "They're",
+   13.2,
+   13.52
+  ],
+  [
+   "not",
+   13.52,
+   13.76
+  ],
+  [
+   "allowed.",
+   13.76,
+   14.72
+  ],
+  [
+   "So",
+   14.72,
+   14.96
+  ],
+  [
+   "he",
+   14.96,
+   15.2
+  ],
+  [
+   "can't",
+   15.2,
+   15.68
+  ],
+  [
+   "lose.",
+   15.68,
+   16.72
+  ],
+  [
+   "Come",
+   16.72,
+   16.96
+  ],
+  [
+   "on,",
+   16.96,
+   17.2
+  ],
+  [
+   "safety",
+   17.2,
+   17.6
+  ],
+  [
+   "car",
+   17.6,
+   18.13
+  ]
+ ],
+ "text": "Motor racing! I've picked a driver. Which one? Lights on the roof! He's winning! That's the safety car. He's in front! He's not in the race. Then why is nobody passing him? They're not allowed. So he can't lose! Come on, safety car."
+}

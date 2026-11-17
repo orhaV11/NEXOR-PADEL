@@ -37,7 +37,7 @@ for take in sys.argv[2:]:
         for w in want:
             j = next((i for i in range(k, min(k + 4, len(words))) if words[i][0][:3] == w[:3]), None)
             if j is not None:
-                got.append(words[j])
+                got.append(words[j] + (w,))     # the word heard, its times, and the word of the script it stands for
                 k = j + 1
         starts.append((got, len(want)))
     out, prev_end = [], 0.0
@@ -80,10 +80,13 @@ for take in sys.argv[2:]:
         seg[:f] *= np.linspace(0, 1, f)
         seg[-f:] *= np.linspace(1, 0, f)
         sf.write(V / "lines" / f"{take}_{n:02d}.wav", seg, sr)
+        wrong = [f'"{h}" for "{w}"' for h, _, _, w in got if h != w]
+        ws = [[w, round(a_ - t0, 3), round(min(b_, t1 - 0.05) - t0, 3)] for w, a_, b_, _ in got]   # the recogniser stretches a last word through the silence after it
         out.append({"n": n, "who": who, "text": re.sub(r"\[.*?\]\s*", "", text), "t0": round(t0, 3), "t1": round(t1, 3), "dur": round(t1 - t0, 3),
-                    "words": [[w, round(a_ - t0, 3), round(b_ - t0, 3)] for w, a_, b_ in got], "matched": f"{len(got)}/{nwant}",
+                    "words": ws, "matched": f"{len(got)}/{nwant}", "heard": " ".join(g[0] for g in got), "wrong": wrong,
                     "peak_db": round(float(20 * np.log10(np.abs(seg).max() + 1e-9)), 1)})
     (V / "lines" / f"{take}.json").write_text(json.dumps(out, indent=1))
     print(take)
     for o in out:
-        print("  ", o["n"], o["who"], "MISSING" if o.get("missing") else f'{o["t0"]:6.2f}-{o["t1"]:6.2f} ({o["dur"]:.2f} s) {o["matched"]} peak {o["peak_db"]} dB  {o["text"]}')
+        print("  ", o["n"], o["who"], "MISSING" if o.get("missing") else f'{o["t0"]:6.2f}-{o["t1"]:6.2f} ({o["dur"]:.2f} s) {o["matched"]} peak {o["peak_db"]} dB  {o["text"]}'
+              + (f'   WRONG WORD HEARD: {", ".join(o["wrong"])}' if o.get("wrong") else ""))

@@ -1,0 +1,47 @@
+{
+ "work": "work/us",
+ "cap": 3.0,
+ "temperature": 1,
+ "scene": "A phone vlog on a windy hill above a small city. Luna holds the phone at arm's length and introduces herself and her friend to people who have never seen them. Timo is just out of the picture at first, then stands behind her.",
+ "context": "A ten-second introduction played as comedy by two close friends. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful, quick and proud of herself; to her everything is good news. TIMO, about 30, is slow, dry and proud; he never raises his voice. They answer each other fast.",
+ "lines": [
+  [
+   "L",
+   "[bright, to the camera, like the start of a vlog] Hi! I'm Luna, and that's Timo."
+  ],
+  [
+   "L",
+   "[proud, simple] We go on sports trips."
+  ],
+  [
+   "T",
+   "[flat, a plain fact] She plans them."
+  ],
+  [
+   "L",
+   "[turning to him, delighted, as if praised] I plan them!"
+  ],
+  [
+   "T",
+   "[to the camera, dry, slow] That was a warning."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; natural and unpolished, like a friend filming a vlog outdoors; a little wind in her face."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, dry man of 30 with a low, casual voice; slow, proud, deadpan; he never raises his voice."
+   }
+  }
+ }
+}

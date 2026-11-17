@@ -29,7 +29,8 @@ One arm holds the phone we look through; the other is free.
   pleased; her eyes move along the line), **looking down** (eyes down beside her, mouth shut), **oh** (eyes down, a
   small round mouth of surprise), **turned to him** (her whole head turns to Timo and looks up at him). She blinks on
   every one of them.
-- She talks on all of them (four mouth shapes; three on the turned head).
+- She talks on all of them (four mouth shapes; three on the turned head). When she is turned to him and silent she
+  has a small closed smile: do not leave her turned through a line she would not smile at.
 - Her head tilts into her lines, dips on stressed words, ducks when caught, bows to her phone.
 - Her free hand can come up from below with: **her phone** (she reads something off it) or **an open hand**
   ("what do you want from me"). A new thing in that hand is one new drawing (a ticket, a cup, a foam finger, a map,

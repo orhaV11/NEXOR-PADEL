@@ -26,7 +26,7 @@ the middle of his chest there. The first sketch used luna (362, 1545, 0.92) wide
 (345, 1490, 1.16) close; timo (872, 935, 1.0) and (890, 830, 1.16). His mouth must stay above her flying hair:
 timo y < luna y - 487 * size - 90.  bg=(drawing, a point in the drawing, where that point lands in the frame, size).
 
-Run:  python3 <film>.py --stills 1.0 "L7.end+0.2" ...   frames into work/<film>/stills/ (half size)
+Run:  python3 <film>.py --stills 1.0 "L7.end+0.2" ...   frames into work/<film>/stills/ (half size; add --full for 1080 x 1920)
       python3 <film>.py --sheet                          a contact sheet of the whole film, two frames a second
       python3 <film>.py --draft                          half size with sound
       python3 <film>.py                                  the film, its 4:5 version, and frames for checking
@@ -86,7 +86,7 @@ class Vlog:
         self._pieces, self._fingers, self._moves, self._shakes, self._bg, self._imgs = [], [], [], [], {}, {}
         self._tilt = {}
         self._blinks = {"L": None, "T": None}
-        self.caps, self.plate_y, self._finger_img = None, 352, None
+        self.caps, self.plate_y, self.plate_x, self.plate_size, self._finger_img = None, 352, None, 1.0, None
         self.film_ = Film(self.work, self.out)
 
     # ------------------------------------------------------------ times
@@ -208,8 +208,11 @@ class Vlog:
                 caps.append([i + ("" if len(parts) == 1 else "abcdef"[n]), l["who"], words, None, times[n], times[n + 1], place.get(i), True])
         self.caps = caps
 
-    def plate(self, y=352):
-        self.plate_y = y
+    def plate(self, y=352, x=None, size=1.0):
+        """Where the brand plate lands at the end (its middle), and how big. It must not cover a face: when Timo is
+        still standing at the end, either stand him low enough in the last shot that the sky above him is free, or
+        make the plate smaller and put it beside his head, e.g. plate(x=350, y=300, size=0.74)."""
+        self.plate_y, self.plate_x, self.plate_size = y, x, size
 
     # ------------------------------------------------------------ helpers a film may use in behind= / front=
     def lay(self, st, name, src, at, k, depth=0.45):
@@ -491,7 +494,7 @@ class Vlog:
         P = self.EV["plate"]
         if T >= P:
             k = ease(T, P, P + 0.22, 0.6, 1.0, "back")
-            st.put(self.plate_pic.get(), W / 2, self.plate_y, scale=k * 1.04, alpha=clamp((T - P) / 0.08), depth=0.0)
+            st.put(self.plate_pic.get(), self.plate_x or W / 2, self.plate_y, scale=k * 1.04 * self.plate_size, alpha=clamp((T - P) / 0.08), depth=0.0)
 
     def _camera(self, shot):
         def cam(t, T):
@@ -559,7 +562,7 @@ class Vlog:
                 if a.startswith("--"):
                     break
                 T = self.t(float(a) if re.fullmatch(r"[\d.]+", a) else a)
-                film.still(T, out / f"t{T:05.2f}.jpg", (540, 960))
+                film.still(T, out / f"t{T:05.2f}.jpg", None if "--full" in sys.argv else (540, 960))
                 print(f"{a} = {T:.2f} s -> {out / f't{T:05.2f}.jpg'}")
         elif "--sheet" in sys.argv:
             self.sheet(self.work / "sheet.jpg")

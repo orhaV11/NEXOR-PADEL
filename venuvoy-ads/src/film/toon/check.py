@@ -30,7 +30,7 @@ else:
 lines = json.loads((work / "sound" / "timeline.json").read_text())["lines"]
 script = "\n".join(f'{"WOMAN" if l["who"] == "L" else "MAN"}: {l["text"]}' for l in lines)
 Q = {
-    "STORY": "Watch this short vertical video with its sound. Without guessing beyond what you see and hear: (1) describe what happens, shot by shot, with times; (2) write every spoken line, "
+    "STORY": "The woman wears a yellow coat (a hand in a yellow sleeve is hers); the man wears a teal jacket (a hand in a teal sleeve is his). Watch this short vertical video with its sound. Without guessing beyond what you see and hear: (1) describe what happens, shot by shot, with times; (2) write every spoken line, "
              "word for word, with who says it; (3) explain the joke in two sentences; (4) what is being advertised and when did you first realise it; (5) describe the very first second: who and "
              "what is in the picture; (6) name everything that comes into the picture or leaves it (a hand, an object, a person) and say exactly how it comes or goes; (7) what is the last picture.",
     "VIEWER": "Watch this short vertical video with its sound, as an ordinary person scrolling a feed would. Answer plainly and briefly: (1) In one sentence, what kind of video is this and how "

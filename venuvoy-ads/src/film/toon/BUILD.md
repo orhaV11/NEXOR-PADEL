@@ -39,6 +39,8 @@ dash and the next line starts fast. No stage directions outside the brackets.
     python3 src/film/toon/pick.py   src/film/toon/ep_<name>_voices.json ldn_g25p_1 ldn_g25p_2 ldn_g25p_3
 
 Three readings cost about 3 cents; if the first three give no usable take of some line, read three more.
+`lines.py` now also prints `WRONG WORD HEARD` when a word came back as another word ("fronts" for "front"): such a
+line is out, whatever `pick.py` says. A line shown as `MISSING` was not found: use another reading.
 `voices.py` prints the words heard back in each reading: a reading in which a direction was read aloud, a word is
 missing or the speakers are swapped is out. `lines.py` cuts each reading into its lines and prints `matched n/n` per
 line: use only lines that matched fully. `pick.py` lets the listening model name the best take of each line
@@ -57,6 +59,9 @@ inside a line (not inside a punchline). `"ground": True` for a line spoken from 
   `python3 src/film/toon/sfx.py <name> air "the murmur of a big crowd in an indoor arena before a game, no music, no announcer, no whistle" 10`,
   read what the listening model says it really is, and pass `ambience={"file": "air", "db": -32, "gusts": False}`.
 - One effect at most (a thud exists: `"file": "thud_a"`). A bought effect must be heard back as what it should be.
+  A HIT (a thud, a smack) is laid from just before its loudest moment; a SOFT sound (a groan, a coo, a crinkle) needs
+  `"whole": True` with `"start"` and `"len"` (see the docstring of `build`). `"at"` may name a line: `("L3", 1, 0.2)`
+  is 0.2 s after L3 ends. `pack.py` keeps only the sounds the plan names (the air and the `fx` files).
 - The music: `bed={"stop": "<line id>"}` plays the vlog music from the start and stops it dead as that line ends:
   put the stop on the line before a look into the camera. A piece with no such moment: `bed={"stop": "PLATE"}`.
 - A sketch ends `ending="sung"` (the sung name, plate 2.4 s, the default). A short ends
@@ -73,13 +78,17 @@ Run it; it prints every line's times and the events. Listen with your eyes: read
 - **A background** (9:16): "A background painting for a 2D animated comedy, with NO characters and no people.
   Vertical 9:16. <the place, plainly: what is near, what is far, where the light is>. The horizon is tilted two or
   three degrees. Painted softly by hand in the manner of the background of the reference picture: gentle muted
-  colours, soft edges, far less detail and contrast than a character would have, no black outlines. No text, no
-  signs, no letters, no logos." Ask for the interesting thing (the court, the track, the pitch) to sit in the UPPER
+  colours, soft edges, far less detail and contrast than a character would have, no black outlines. Take only the
+  painting manner from the reference picture and nothing of what it shows. No text, no signs, no letters, no logos." Ask for the interesting thing (the court, the track, the pitch) to sit in the UPPER
   LEFT third: Luna covers the lower left, Timo the right. Distant people only as soft shapes.
 - **A thing in her free hand** (3:4, from `work/switch/art/luna_w1.png`): copy the wording of the shrugging hand in
   `work/switch/art/index.json` (key `luna_shrug`): ONE change, the forearm in the yellow sleeve comes up from the
   bottom right, the hand with the thing at chest height to the RIGHT of her body over the magenta background, clear
-  of her scarf and hair; change NOTHING else. Use it with `v.piece("<drawing>", up=..., down=..., lift=110)`.
+  of her scarf and hair, the sleeve outlined on both sides, a strip of magenta between her body and the forearm;
+  change NOTHING else. Use it with `v.piece("<drawing>", up=..., down=..., lift=...)`. The piece is whatever the
+  redraw shows where the base drawing has only background, so it works on the calm look too. `lift` raises it
+  (the sleeve runs on below): up to about 110 is safe; ask for the hand at the height you want rather than lifting
+  far. A caption in the middle may collide with a raised hand: look, and move the caption with `place=`.
 - **Something Timo wears or carries** (9:16, from `work/duo/art/timo_clean.png`): "Redraw the reference picture ...
   with ONE change only. THE CHANGE: he now wears <thing>, <where exactly>. His face, eyes, brows, mouth, head,
   scarf, jacket and pose do not change or move. Change NOTHING else ..." The thing must leave his brows, eyes and
@@ -111,11 +120,16 @@ Write `ep_<name>.py` after `example_film.py`. Order of work:
    sound plan). With her windy hair his mouth must stay above it: timo y < luna y - 487 x size - 90.
    The background's own point of interest goes top left: `bg=(drawing, point in the drawing, where it lands, size)`;
    the picture must cover the whole frame with 60 px to spare (look at the corners of the frames).
+   THE PLATE at the end is about 900 px wide and sits at the top (y 207 to 497): it must not land on Timo. If he is
+   still standing at the end, either stand him low in the last shot (his y at least 480 + 682 x size: possible with
+   the calm look, where no flying hair has to stay under his mouth) or shrink and move the plate beside his head:
+   `v.plate(x=352, y=300, size=0.74)`.
 2. `--sheet` (a contact sheet of the whole film, two frames a second) and LOOK at it. Then her faces, his eyes, the
    hands, the finger, the sink, the captions; `--sheet` again; `--stills` at every moment something changes.
 3. The kit prints a warning for every caption outside the safe area (x 40 to 955, y 190 to 1510) or up too briefly:
    move it with `place=`, split it with `split=`, or shorten the words with `text=` (the meaning must stay).
-4. The whole film: `python3 src/film/toon/ep_<name>.py` (about seven minutes). It also writes the 4:5 version and,
+4. The whole film: `python3 src/film/toon/ep_<name>.py` (about four minutes for a short, seven or more for a
+   sketch, longer when other films render at the same time). It also writes the 4:5 version and,
    in `work/<name>/qc/`, four frames a second and a contact sheet.
 
 ### What a film may add in its own picture file
@@ -134,7 +148,7 @@ Whatever you add must still look drawn by the same hand: flat colours, a dark ou
 
 ## 5. Check it yourself before you say it is done
 
-Look at `work/<name>/qc/sheet.jpg` and at full-size frames (`--stills`, or ffmpeg from the film) of: the first
+Look at `work/<name>/qc/sheet.jpg` and at full-size frames (`--stills ... --full`, or ffmpeg from the film) of: the first
 frame, both sides of every cut, every moment a hand, a thing or Timo enters or leaves, the last frame.
 
 - The first second: her face close and something odd behind her; it must make sense with the sound off.

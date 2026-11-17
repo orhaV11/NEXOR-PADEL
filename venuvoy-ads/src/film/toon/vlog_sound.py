@@ -119,7 +119,9 @@ def build(film, plan, bed=None, ending="sung", plate_hold=2.4, ambience=None, fx
     """bed: None, or {"stop": "<line id>"} (the vlog music from the start; it stops dead as that line ends) or
     {"stop": "PLATE"}. ending: "sung" (the sung name on the plate), "beat" (a bar of the series' track, for a short)
     or None. ambience: {"file": "wind_a", "db": -33, "gusts": True} (default) - a file in the film's or the rig's
-    sound/raw. fx: [{"name", "file", "at": ("<event>", index, offset) or seconds, "db", "push": bool}]."""
+    sound/raw. fx: [{"name", "file", "at": ("<event>", index, offset) or seconds, "db", "push": bool}] lays a HIT from
+    just before its loudest moment (0.7 s); add "whole": True (with "start", "len", "fade_in", "fade_out") to lay a
+    soft sound as recorded. An "at" may also name a line: ("L3", 1, 0.2) is 0.2 s after line L3 ends, ("L3", 0, 0) its start."""
     work, keep = ROOT / "work" / film, ASSETS / film
     lines_dir = keep / "voice" / "lines" if (keep / "voice" / "lines").exists() else work / "voice" / "lines"
     raws = [d for d in (keep / "sound" / "raw", work / "sound" / "raw", ASSETS / RIG / "sound" / "raw", ROOT / "work" / RIG / "sound" / "raw") if d.exists()]
@@ -208,16 +210,21 @@ def build(film, plan, bed=None, ending="sung", plate_hold=2.4, ambience=None, fx
         if isinstance(at, (int, float)):
             return float(at)
         name, idx, off = (list(at) + [0, 0.0])[:3] if not isinstance(at, str) else (at, 0, 0.0)
-        v = events[name]
+        line = next((l for l in timeline if l["id"] == name), None)
+        v = [line["t0"], line["t1"]] if line else events[name]
         return (v[idx] if isinstance(v, list) else v) + off
 
     eff = np.zeros(N)
     for f in fx:
         used_raw.add(f["file"])
         x = _mono(raw(f["file"]))
-        pk = int(np.argmax(np.abs(x)))
-        x = x[max(0, pk - int(0.05 * SR)):pk + int(f.get("len", 0.7) * SR)]
-        x = fade(x / (np.abs(x).max() + 1e-9) * db(f.get("db", -7)), 0.004, min(0.25, len(x) / SR / 3))
+        if f.get("whole"):   # a soft sound (a coo, a groan, a crinkle): from "start" for "len" seconds as recorded, faded in and out
+            x = x[int(f.get("start", 0.0) * SR):int((f.get("start", 0.0) + f.get("len", len(x) / SR)) * SR)]
+            x = fade(x / (np.abs(x).max() + 1e-9) * db(f.get("db", -10)), f.get("fade_in", 0.03), min(f.get("fade_out", 0.2), len(x) / SR / 2))
+        else:                # a hit (a thud): from just before its loudest moment
+            pk = int(np.argmax(np.abs(x)))
+            x = x[max(0, pk - int(0.05 * SR)):pk + int(f.get("len", 0.7) * SR)]
+            x = fade(x / (np.abs(x).max() + 1e-9) * db(f.get("db", -7)), 0.004, min(0.25, len(x) / SR / 3))
         t = when(f["at"])
         events[f.get("name", f["file"])] = round(t, 3)
         i = int(t * SR)

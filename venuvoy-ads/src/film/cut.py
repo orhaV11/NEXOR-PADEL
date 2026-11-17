@@ -954,7 +954,7 @@ for name, ps in parts.items():
         bus[i0: i0 + len(a)] += a[: len(bus) - i0]
         if "foley" in p:
             fol = p["foley"] * g * db(p["foley_db"])
-            ff = max(edge, int(0.04 * SR))
+            ff = max(edge, int(p.get("foley_fade", 0.12) * SR))
             fol[:ff] *= np.linspace(0, 1, ff)[:, None]
             fol[-ff:] *= np.linspace(1, 0, ff)[:, None]
             ambient[i0: i0 + len(fol)] += fol[: len(ambient) - i0]

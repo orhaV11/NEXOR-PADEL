@@ -86,7 +86,11 @@ def main():
     subprocess.run(["node", str(HERE / "cards.mjs"), str(WORK / "spec.json")], check=True, stdout=subprocess.DEVNULL)
     OUT.mkdir(parents=True, exist_ok=True)
     for k, (title, t) in todo.items():
-        img = frame(str(ROOT / (k + "-en_9x16_1080x1920.mp4")), t).astype(np.float32) / 255
+        try:
+            img = frame(str(ROOT / (k + "-en_9x16_1080x1920.mp4")), t).astype(np.float32) / 255
+        except subprocess.CalledProcessError:       # a film being written just now: its cover comes next time
+            print("  skipped (being rendered):", k)
+            continue
         pic = cv2.imread(str(WORK / "text" / f"{Path(k).name}.png"), cv2.IMREAD_UNCHANGED).astype(np.float32) / 255   # BGRA, straight alpha
         ys = np.where(pic[..., 3].max(axis=1) > 0.3)[0]
         xs = np.where(pic[..., 3].max(axis=0) > 0.3)[0]

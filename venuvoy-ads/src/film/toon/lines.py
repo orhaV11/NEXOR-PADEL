@@ -55,15 +55,25 @@ for take in sys.argv[2:]:
         i0 = lo + idx[0]
         after = int((got[-1][1] + 0.1) * 100) if got else i0
         gap = 25 if got else 60
-        i1, quiet = after, 0
-        for i in range(after, len(voiced)):
+        # A retort can come sooner than a quarter second after this line: then there is no such gap before the next
+        # line's first word, and the line is cut at the longest silence before that word instead.
+        limit = min(len(voiced), int(nxt * 100) + 4) if got and nxt < len(x) / sr else len(voiced)
+        i1, quiet, longest = after, 0, (0, None)
+        for i in range(after, limit):
             if voiced[i]:
+                if quiet > longest[0]:
+                    longest = (quiet, i - quiet)
                 i1, quiet = i, 0
             else:
                 quiet += 1
                 if quiet >= gap:
                     break
-        t0, t1 = max(prev_end, i0 / 100 - 0.03), min(i1 / 100 + 0.06, len(x) / sr)
+        else:
+            if got and limit < len(voiced):
+                if quiet > longest[0]:
+                    longest = (quiet, limit - quiet)
+                i1 = (longest[1] - 1) if longest[1] is not None and longest[0] >= 3 else min(i1, int(nxt * 100) - 3)
+        t0, t1 = max(prev_end, i0 / 100 - 0.03), min(i1 / 100 + 0.06, len(x) / sr, max(i1 / 100 + 0.02, nxt - 0.02) if got else len(x) / sr)
         prev_end = t1
         seg = x[int(t0 * sr):int(t1 * sr)].copy()
         f = int(0.008 * sr)

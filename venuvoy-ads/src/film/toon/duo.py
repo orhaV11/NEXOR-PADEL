@@ -92,21 +92,26 @@ def luna(art, scale, look="wind", extra_faces=None):
     return s
 
 
-def arm(art, file, scale, box=ARM_BOX, base="luna_w1", keep_scarf=True):
+def arm(art, file, scale, box=ARM_BOX, base="luna_w1"):
     """Her free arm with something in its hand, taken from a drawing in which it comes up beside her (a redraw of
     luna_w1 with that one change): a piece on Luna's own canvas, laid over her with the very same placing, so that it
-    can come up from below the frame and drop again."""
+    can come up from below the frame and drop again.
+    The piece is what the redraw shows where the base drawing has only background: the arm stands beside her body.
+    Thin slivers along the edge of her coat and scarf (a redraw moves them by a pixel) are dropped."""
     b = read(art / base)[..., :3]
     other, _ = align(b, read(art / file)[..., :3], None)
-    m = patch_mask(b, other, box, thr=0.07, grow=9, feather=3)
-    m[-14:] = m[-15]            # the mask fades out at the edge of its box; at the bottom the sleeve must run on whole
-    if keep_scarf:
-        m[:1575, :1325] = 0     # the end of her scarf lies here and every redraw shifts it a little: it is not part of the arm
-    n, lab, stats, _ = cv2.connectedComponentsWithStats((m > 0.25).astype(np.uint8))
-    if n > 1:                   # the arm only: the largest piece
-        big = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
-        m = m * cv2.dilate((lab == big).astype(np.uint8), np.ones((9, 9), np.uint8))
-    piece = key_out(other)
+    ka, ko = key_out(b), key_out(other)
+    x0, y0, x1, y1 = box
+    raw = np.zeros(b.shape[:2], np.uint8)
+    raw[y0:y1, x0:x1] = ((ka[y0:y1, x0:x1, 3] < 0.5) & (ko[y0:y1, x0:x1, 3] > 0.5))
+    core = cv2.morphologyEx(raw, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11)))
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(core)
+    if n > 1:                   # the arm only: the largest solid piece
+        core = (lab == 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))).astype(np.uint8)
+    m = cv2.dilate(core, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))).astype(np.float32)   # with its outline
+    m[-3:] = m[-4]              # at the bottom the sleeve runs on whole
+    m = cv2.GaussianBlur(m, (0, 0), 1.2)
+    piece = ko.copy()
     piece[..., 3] *= m
     piece = np.concatenate([piece, np.repeat(piece[-1:], L_PAD, axis=0)], axis=0)   # the same canvas as Luna's
     return premul(cv2.resize(piece, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA))

@@ -1,0 +1,43 @@
+{
+ "work": "work/queue",
+ "cap": 2.0,
+ "temperature": 1,
+ "scene": "A phone vlog on the empty paving in front of the shut gates of a stadium at one in the afternoon, four hours before the gates open. A still, quiet day; nobody else is there. Luna holds the phone at arm's length and talks to it in a low voice; Timo stands upright just behind her.",
+ "context": "An eight-second comedy sketch played by two close friends who bicker. It must sound like two real people talking, quick and natural, never like an advert or a narrator. LUNA, about 25, is cheerful and quick, but right now she is quietly asking her viewers for help: he has made them come four hours early; she is reasonable, never sarcastic. TIMO, about 30, is slow, dry and proud; he is completely content to be first, he never raises his voice, and to him his logic is obvious. They answer each other fast, with no gaps between the lines.",
+ "lines": [
+  [
+   "L",
+   "[low and quick, to the camera, a quiet cry for help so that he does not hear] Gates open at five. It's one."
+  ],
+  [
+   "T",
+   "[proud, flat, satisfied] Front of the queue."
+  ],
+  [
+   "L",
+   "[turning to him, reasonable, plain] There's no queue."
+  ],
+  [
+   "T",
+   "[at once, patient, as if it is obvious] Because we're the front."
+  ]
+ ],
+ "casts": {
+  "ldn": {
+   "L": {
+    "voice_name": "Laomedeia",
+    "accent": "British (Brixton)",
+    "style": "Vocal Smile",
+    "pace": "Rapid Fire",
+    "audio_profile": "A cheerful woman of 25 with a bright, warm, quick voice; standing still, speaking low and close to her phone on a quiet empty forecourt; natural and unpolished, like a friend filming a vlog."
+   },
+   "T": {
+    "voice_name": "Zubenelgenubi",
+    "accent": "British (Brixton)",
+    "style": "Deadpan",
+    "pace": "Natural",
+    "audio_profile": "A tall, calm man of 30 with a low, dry, casual voice; slow, proud, deadpan, quietly pleased with himself; he never raises his voice."
+   }
+  }
+ }
+}

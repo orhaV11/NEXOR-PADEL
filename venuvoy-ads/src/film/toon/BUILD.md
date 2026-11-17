@@ -38,6 +38,7 @@ dash and the next line starts fast. No stage directions outside the brackets.
     python3 src/film/toon/lines.py  src/film/toon/ep_<name>_voices.json ldn_g25p_1 ldn_g25p_2 ldn_g25p_3
     python3 src/film/toon/pick.py   src/film/toon/ep_<name>_voices.json ldn_g25p_1 ldn_g25p_2 ldn_g25p_3
 
+Three readings cost about 3 cents; if the first three give no usable take of some line, read three more.
 `voices.py` prints the words heard back in each reading: a reading in which a direction was read aloud, a word is
 missing or the speakers are swapped is out. `lines.py` cuts each reading into its lines and prints `matched n/n` per
 line: use only lines that matched fully. `pick.py` lets the listening model name the best take of each line
@@ -116,6 +117,20 @@ Write `ep_<name>.py` after `example_film.py`. Order of work:
    move it with `place=`, split it with `split=`, or shorten the words with `text=` (the meaning must stay).
 4. The whole film: `python3 src/film/toon/ep_<name>.py` (about seven minutes). It also writes the 4:5 version and,
    in `work/<name>/qc/`, four frames a second and a contact sheet.
+
+### What a film may add in its own picture file
+
+`v.shot(..., behind=f, mid=f, front=f, grade=g)`: `f(st, t, T)` draws more with `st.put(picture, x, y, scale=, turn=,
+anchor=, depth=)` (pictures are premultiplied RGBA; see `toon.py`): `behind` the two of them (a car that streaks
+past: a blurred bar of colour moved across; a far crowd that ripples), `mid` between Timo and Luna (something he
+holds up, a thing that lands on his hair), `front` in front of both and under the captions (rain, a pillar close to
+the lens). `g(frame, T)` changes the finished picture of the shot (a cold grade for night, a jolt of light).
+`v.timo_xy(T, point)` and `v.luna_xy(T, point)` say where a point of their drawings is in the frame now, so a
+cut-out can sit on a head or beside a hand and move with it. `v.t("L3.end+0.2")` reads a time; `v.accent(T, "L")`
+is how hard a voice hits now (0 to 1); `from vlog import held` gives a pose that rises before one time and falls
+after another. A thing that is not part of a character is its own small drawing on flat magenta (from words, with
+the style reference), cut out with `toon.key_out` and `toon.premul`; look at `duo.finger` for the pattern.
+Whatever you add must still look drawn by the same hand: flat colours, a dark outline, no photographs, no glow.
 
 ## 5. Check it yourself before you say it is done
 

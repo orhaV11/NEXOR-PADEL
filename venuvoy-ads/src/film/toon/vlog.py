@@ -118,14 +118,16 @@ class Vlog:
         return base + (float(off) * (1 if sign == "+" else -1) if off else 0.0)
 
     # ------------------------------------------------------------ what a film says
-    def shot(self, start, bg, luna, timo=None, whip=None, seed=None, cap_y=None, behind=None, front=None):
-        """A shot from `start` until the next one. behind(st, t, T) and front(st, t, T) may draw more (behind the two
-        of them; in front of them and under the captions)."""
+    def shot(self, start, bg, luna, timo=None, whip=None, seed=None, cap_y=None, behind=None, mid=None, front=None, grade=None):
+        """A shot from `start` until the next one. behind(st, t, T), mid(st, t, T) and front(st, t, T) may draw more:
+        behind the two of them; between Timo and Luna (something he holds, a thing that lands on him); in front of
+        them and under the captions. grade(frame, T) may change the finished picture of this shot before the captions
+        are laid (night, rain light): it gets and returns the frame as float RGB 0..1."""
         t0 = self.t(start)
         if whip is None:
             whip = any(abs(t0 - w) < 0.02 for w in self.EV.get("whips", []))
         self.shots.append({"t0": t0, "bg": bg, "luna": luna, "timo": timo, "whip": whip, "seed": seed if seed is not None else 3.3 * len(self.shots) + self.seed,
-                           "cap_y": cap_y, "behind": behind, "front": front})
+                           "cap_y": cap_y, "behind": behind, "mid": mid, "front": front, "grade": grade})
 
     def faces(self, *pairs):
         """Luna's face from each time on: None (sunny), "guilty", "defend" (caught), "read", "read_b" (eyes down, mouth
@@ -430,6 +432,29 @@ class Vlog:
         st.put(img, x0 - lean * 7, y0 + drop + lean * 4, scale=k, turn=wobble(t, 7.0, 0.8) * 0.3 - lean * 1.3, sx=1 / stretch ** 0.5, sy=stretch * breathe,
                anchor=duo.T_ANCHOR, depth=0.82)
 
+    def timo_xy(self, T, point, shot=None):
+        """Where a point of Timo's drawing is in the frame now, e.g. the top of his hair (560, 175), his chest
+        (614, 1514), his far shoulder (1250, 1330) (pixels of his base drawing, 1536 wide): for laying a thing ON him
+        in mid= (put it with depth=0.82, his depth, and scale by the size returned). Returns (x, y, size, seen)."""
+        shot = shot or self.shot_at(T)
+        x0, y0, k = shot["timo"]
+        drop, stretch, seen = self._timo_drop(T)
+        ang, hx, hy, lean = self.timo_head(T)
+        ax, ay = duo.T_ANCHOR[0] * duo.T_SIZE[0], duo.T_ANCHOR[1] * duo.T_SIZE[1]
+        head = hy * k if point[1] < duo.T_FULL else 0.0
+        return x0 - lean * 7 + (point[0] - ax) * self.s_timo * k, y0 + drop + lean * 4 + (point[1] - ay) * self.s_timo * k * stretch + head, self.s_timo * k, seen
+
+    def luna_xy(self, T, point, shot=None):
+        """Where a point of Luna's drawing is in the frame now, e.g. the top of her head (665, 440), her chin
+        (665, 1325) (pixels of her base drawing, 1792 wide): for laying a thing on or beside her in front=
+        (depth=1.0). Returns (x, y, size)."""
+        shot = shot or self.shot_at(T)
+        x0, y0, k, _ = shot["luna"]
+        dx, dy, turn, sx, sy = self.luna_move(T)
+        ang, hx, hy = self.luna_head(T)
+        head = (hx * k, hy * k) if point[1] < duo.L_FULL else (0.0, 0.0)
+        return x0 + dx + (point[0] - 663) * self.s_luna * k + head[0], y0 + dy + (point[1] - 1680) * self.s_luna * k + head[1], self.s_luna * k
+
     def cap_place(self, shot):
         if shot["cap_y"]:
             return (W / 2, shot["cap_y"])
@@ -444,9 +469,13 @@ class Vlog:
             shot["behind"](st, t, T)
         if shot["timo"] and self.timo is not None:
             self.draw_timo(st, T, shot["timo"])
+        if shot["mid"]:
+            shot["mid"](st, t, T)
         self.draw_luna(st, T, shot["luna"])
         if shot["front"]:
             shot["front"](st, t, T)
+        if shot["grade"]:
+            st.frame = np.clip(shot["grade"](st.frame, T), 0, 1).astype(np.float32)
         for name, who, text, hid, on, off, place, pops in self.caps:
             if on - 0.04 <= T < off - 0.04:
                 x, y = place or self.cap_place(self.shot_at(on + 0.02))

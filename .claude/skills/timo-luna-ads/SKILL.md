@@ -5,6 +5,33 @@ description: Make an animated Venuvoy ad or episode with Timo and Luna, the two 
 
 # Timo and Luna: the faces of Venuvoy
 
+## STOP: read this first (the reset of 17 Nov 2026)
+
+The founder rejected everything made so far ("it all feels dumb", "start over on everything", "pretty bad and far too
+expensive") and asked that nothing be sent to him until it is finished. Read `venuvoy-ads/src/film/reset/RESET.md`
+before anything else. Everything BELOW this section describes the old films and the old method; it is kept as a
+record of the tools and of the product facts, not as a way to make new films.
+
+What he asked for, in his words: a comic duo who are the faces of the brand, like the Israeli ad duos he named
+(Bisli, "the pigeons", Toto): international, humorous, nice, at eye level; authentic, funny, really fun to watch, not
+feeling machine-made, speaking to today's audience. In practice:
+
+- One situation, one joke, 15 to 22 seconds. The joke must be funny read aloud before anything is drawn.
+- Two friends who bicker in everyday adult speech and interrupt each other; both can be the fool. A moment every
+  sports traveller knows; a new sport each time; it works for someone who has seen nothing before.
+- NO labels that explain the story, NO product card with ticks, NO typed sentence on screen, NO episode numbers,
+  at most one text on screen at a time. The brand is the last two seconds, and now and then the joke itself.
+- No glossy 3D toy look, no nursery materials, no slow simple sentences from smiling figures.
+- Voices carry it. Nobody here can hear: a person must judge them (the founder, on the finished film).
+
+Money, checked on 17 Nov: season 2 episode 1 cost 47 dollars because 44 clips were filmed at about 1 dollar each for
+a film that uses 14. Rules: a cap of 5 dollars a film, checked before every paid call; script, then voices, then
+stills (0.022), and a moving clip only where nothing else will do (Veo 3.1 lite: 0.30 a clip); ONE take per shot; a
+retake only for a named defect after the start picture or the text was changed; report dollars and the share of paid
+seconds on screen with every delivery. The `--takes 2` habit written further down is cancelled.
+
+Do not start a new film until the founder has agreed to a direction in words. Words cost nothing; show him the script.
+
 Everything lives in `venuvoy-ads/`. Read first `venuvoy-ads/src/film/s2/docs/venuvoy_facts.md` (what Venuvoy really
 is and what an ad may say), then `venuvoy-ads/src/film/s2/docs/season_1.md` (the serial, the canon, what was learned),
 then this file. The client is the founder: answer him in Hebrew, short and plain, result first.

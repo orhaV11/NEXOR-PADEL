@@ -324,9 +324,25 @@
      "pick": 2,
      "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna says, sly and bright: \"My turn. Golf.\" She drops her eyes to the phone and taps on it with her thumb for a second, then looks straight into the camera with a big easy grin and says, bright and proud: \"Done.\" The folder stays under her arm and the screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: her voice, soft thumb taps.",
      "rid": "8b5728f6-121d-4a09-bfe8-d9d1d6403fbe"
+    },
+    {
+     "take": 3,
+     "url": "https://cdn.muapi.ai/outputs/generated/2b5d65ef-9c80-4ddf-bba2-2a3f97a8f52a_2b1f9a58.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a10_t3.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna says, bright, playful and teasing, in her usual high lively voice, full of energy: \"My turn. Golf!\" She drops her eyes to the phone and taps on it with her thumb for a second, then looks straight into the camera with a big easy grin and says, bright, high and proud: \"Done!\" The folder stays under her arm and the screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: only her voice and soft thumb taps; the phone makes no chime, no beep and no notification sound.",
+     "rid": "2b5d65ef-9c80-4ddf-bba2-2a3f97a8f52a"
+    },
+    {
+     "take": 4,
+     "url": "https://cdn.muapi.ai/outputs/generated/ebcaa7c2-ff66-48a9-8f1e-77e32d3dca50_09cb1d19.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a10_t4.mp4",
+     "pick": 2,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna says, bright, playful and teasing, in her usual high lively voice, full of energy: \"My turn. Golf!\" She drops her eyes to the phone and taps on it with her thumb for a second, then looks straight into the camera with a big easy grin and says, bright, high and proud: \"Done!\" The folder stays under her arm and the screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: only her voice and soft thumb taps; the phone makes no chime, no beep and no notification sound.",
+     "rid": "ebcaa7c2-ff66-48a9-8f1e-77e32d3dca50"
     }
    ],
-   "file": "src/film/assets/s2/s2e1/clips/a10_t2.mp4"
+   "file": "src/film/assets/s2/s2e1/clips/a10_t4.mp4"
   },
   "a11": {
    "takes": [
@@ -348,6 +364,27 @@
     }
    ],
    "file": "src/film/assets/s2/s2e1/clips/a11_t2.mp4"
+  },
+  "a3b": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/57d9672b-6458-462b-b06a-f5951c3a9255_3e1df6fe.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a3b_t1.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna points to the RIGHT edge of the frame with her whole open hand, looking that way, and says, outraged and delighted at once, loud and lively: \"Done? That's MY word!\" Her outrage breaks into a wide grin. She keeps looking to the right. The basketball stays against her chest; the cat behind her does not move. One continuous shot. Nobody else appears. Sound: her voice.",
+     "rid": "57d9672b-6458-462b-b06a-f5951c3a9255"
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/a8885527-5605-4120-ab37-61a32eed6055_e2a1f78e.mp4",
+     "file": "src/film/assets/s2/s2e1/clips/a3b_t2.mp4",
+     "pick": 3,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna points to the RIGHT edge of the frame with her whole open hand, looking that way, and says, outraged and delighted at once, loud and lively: \"Done? That's MY word!\" Her outrage breaks into a wide grin. She keeps looking to the right. The basketball stays against her chest; the cat behind her does not move. One continuous shot. Nobody else appears. Sound: her voice.",
+     "rid": "a8885527-5605-4120-ab37-61a32eed6055"
+    }
+   ],
+   "file": "src/film/assets/s2/s2e1/clips/a3b_t1.mp4"
   }
  },
  "uploads": {
@@ -361,6 +398,7 @@
   "a8_2": "https://cdn.muapi.ai/outputs/generated/f90d6c2c71fe41379e1db96c80d23886.jpg",
   "a9_2": "https://cdn.muapi.ai/outputs/generated/dd0a384f25864cedbfc52f8ade7b5a8c.jpg",
   "a10_2": "https://cdn.muapi.ai/outputs/generated/49a4d972aae24e288b355df7adcd390b.jpg",
-  "a11_2": "https://cdn.muapi.ai/outputs/generated/4098040b212c47a4a3a023ace1747a39.jpg"
+  "a11_2": "https://cdn.muapi.ai/outputs/generated/4098040b212c47a4a3a023ace1747a39.jpg",
+  "a3b_3": "https://cdn.muapi.ai/outputs/generated/9ad9618ae5704fd9856effbe7d0a76c9.jpg"
  }
 }

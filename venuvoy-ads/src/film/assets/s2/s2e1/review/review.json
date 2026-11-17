@@ -116,6 +116,264 @@
   "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01** \n  * **Action:** A 3D-animated man in a jacket and scarf stands pointing forward while a woman sits on a beanbag holding a basketball. \n  * **Dialogue (Man):** *\"No notes.\"*\n\n* **00:01 – 00:02** \n  * **Action:** The man pivots his right arm to point toward a blank piece of paper attached to the wall. \n  * **Dialogue (Man):** *\"No folder.\"*\n\n* **00:02 – 00:03** \n  * **Action:** The man points directly at the paper on the wall while smiling. \n  * **Dialogue (Man):** *\"One sentence.\"*\n\n---\n\n### **Visual Anomalies**\n* **Morphing / Rigid Hands:** The man’s pointing hand and fingers look slightly stiff and morph unnaturally as he moves his arm.\n* **Paper Attachment:** The paper on the wall floats slightly without a visible pin, tape, or fastener.\n* **AI Jitter:** Subtle texture drifting and micro-jitters typical of AI-generated video.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The male voice sounds slightly artificial/robotic with a uniform, computer-generated cadence."
  },
  {
+  "shot": "a10",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a10_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "My",
+    0.24,
+    0.56
+   ],
+   [
+    "turn.",
+    0.56,
+    1.28
+   ],
+   [
+    "Golf.",
+    1.28,
+    3.92
+   ],
+   [
+    "Done.",
+    3.92,
+    4.52
+   ]
+  ],
+  "text": "My turn. Golf. Done.",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.0,
+   0.0,
+   0.06,
+   0.06,
+   0.05,
+   0.05
+  ],
+  "pitch": 163,
+  "quiet": -47,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a10_t1.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### Second-by-Second & Transcript\n\n* **00:00**: A 3D animated character with pink hair and a scarf holds up a red phone while holding a blue book. She says: *\"My turn.\"*\n* **00:01**: She looks at the phone screen and says: *\"Golf.\"*\n* **00:02**: She smiles brightly and begins lowering her hand holding the phone.\n* **00:03 – 00:04**: She looks directly at the camera, holding the phone down by her hip, and says: *\"Done.\"*\n\n---\n\n### Visual Anomalies\n* **Hand/Object Morphing**: Between 00:02 and 00:03, as she lowers her left hand, her fingers unnaturally morph and blend into the edge of the red phone case rather than adjusting her grip realistically.\n\n---\n\n### Audio Anomalies\n* **Synthetic Voice**: The voice lines sound slightly digital/robotic (synthetic text-to-speech quality)."
+ },
+ {
+  "shot": "a10",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a10_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "My",
+    0.48,
+    0.88
+   ],
+   [
+    "turn.",
+    0.88,
+    1.44
+   ],
+   [
+    "Golf.",
+    1.44,
+    3.92
+   ],
+   [
+    "Done.",
+    3.92,
+    4.52
+   ]
+  ],
+  "text": "My turn, golf. Done!",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.0,
+   0.0,
+   0.01,
+   0.0,
+   0.05,
+   0.05
+  ],
+  "pitch": 193,
+  "quiet": -63,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a10_t2.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01**: A 3D-animated character with pink hair, wearing a scarf and peach shirt, stands outdoors holding books under one arm and a red smartphone in the other. \n  * **Speaker (Woman)**: \"My turn.\"\n* **00:01 – 00:02**: She looks at her phone screen while speaking.\n  * **Speaker (Woman)**: \"Golf.\"\n* **00:02 – 00:03**: A phone chime/notification sound effect plays as she finishes on her phone.\n* **00:03 – 00:04**: She looks up directly at the camera, smiles broadly, and lowers her phone to her side.\n  * **Speaker (Woman)**: \"Done.\"\n\n---\n\n### **Visual & Audio Anomalies**\n\n* **Visuals**:\n  * **Morphing Hand/Object**: At 00:03–00:04, as she lowers her left hand, the phone and her fingers morph unnaturally and blend into her waist/hip.\n* **Audio**:\n  * The voice has a slightly synthetic/robotic text-to-speech tone."
+ },
+ {
+  "shot": "a10",
+  "take": 3,
+  "file": "src/film/assets/s2/s2e1/clips/a10_t3.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "My",
+    0.32,
+    0.56
+   ],
+   [
+    "turn.",
+    0.56,
+    1.44
+   ],
+   [
+    "Golf.",
+    1.44,
+    3.92
+   ],
+   [
+    "Done.",
+    3.92,
+    4.52
+   ]
+  ],
+  "text": "My turn Golf Done!",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.03,
+   0.04,
+   0.04,
+   0.04,
+   0.03,
+   0.03
+  ],
+  "pitch": 221,
+  "quiet": -70,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a10_t3.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01:** A 3D animated girl with pink hair, wearing a scarf and holding a book and phone, looks up and says: \n  * **Girl:** \"My turn.\"\n* **00:01 – 00:02:** She looks down at her phone with a surprised expression and says:\n  * **Girl:** \"Gulp.\"\n* **00:02 – 00:03:** She taps her phone screen, accompanied by a digital click sound effect.\n* **00:03 – 00:04:** She lowers her phone to her side, looks back at the camera with a wide smile, and says:\n  * **Girl:** \"Done!\"\n\n---\n\n### **Visual Anomalies**\n* **Stiff/Unnatural Hands:** The fingers holding both the phone and the book remain stiff, frozen, and blocky throughout the movement.\n* **Robotic Facial Animation:** Mouth movements and facial transitions are rigid and slightly mismatched with the speech.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The voice has a clear text-to-speech/AI-generated cadence.\n* **Literal Sound Effect:** The character literally speaks the word *\"Gulp\"* out loud instead of making an actual swallowing sound."
+ },
+ {
+  "shot": "a10",
+  "take": 4,
+  "file": "src/film/assets/s2/s2e1/clips/a10_t4.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "My",
+    0.48,
+    0.96
+   ],
+   [
+    "turn,",
+    0.96,
+    1.68
+   ],
+   [
+    "golf.",
+    1.68,
+    4.16
+   ],
+   [
+    "Done!",
+    4.16,
+    4.76
+   ]
+  ],
+  "text": "My turn, golf Done!",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   -1,
+   1
+  ],
+  "change": [
+   0.0,
+   0.01,
+   0.01,
+   0.02,
+   0.05,
+   0.05
+  ],
+  "pitch": 262,
+  "quiet": -65,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a10_t4.jpg",
+  "watch": "Here is the second-by-second breakdown, transcript, and list of anomalies for the clip:\n\n### **Second-by-Second Description & Transcript**\n\n* **00:00 – 00:01**: A 3D animated girl with pink hair, wearing a blue scarf and holding books, looks toward the camera/phone and says: *\"My turn!\"*\n* **00:01 – 00:02**: She looks down at her phone, smiles, and says: *\"Golf!\"*\n* **00:02 – 00:03**: Rapid tapping sound effects play as she holds her phone. Her expression relaxes slightly while looking at the screen.\n* **00:03 – 00:04**: She lowers her arm holding the phone, looks directly at the camera with a wide smile, and says: *\"Done!\"*\n\n---\n\n### **Visual Anomalies / Unnatural Elements**\n* **Hand & Phone Clipping**: Around 00:02–00:03, her thumb clips through the body of the smartphone while \"tapping.\"\n* **Lowering Motion**: At 00:03–00:04, as she lowers her right hand to her hip, the phone briefly clips into her hand/pants and her fingers stiffly morph positions.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice**: The voice has a slightly synthetic/AI-generated tone.\n* **Sound Mismatch**: Tapping sound effects play continuously at 00:02–00:03 even when her thumb is static."
+ },
+ {
+  "shot": "a11",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a11_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Golf?",
+    0.32,
+    0.92
+   ]
+  ],
+  "text": "Golf?",
+  "cuts": [],
+  "zoom": 1.016,
+  "shift": [
+   -2,
+   2
+  ],
+  "change": [
+   0.01,
+   0.14,
+   0.22,
+   0.29,
+   0.32,
+   0.34
+  ],
+  "pitch": 208,
+  "quiet": -64,
+  "loud": -18,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a11_t1.jpg",
+  "watch": "Here is a brief breakdown of the clip:\n\n### **Second-by-Second Description & Transcript**\n\n* **00:00 – 00:01**: A animated boy wearing a blue jacket and scarf stands outdoors. In the background, a girl with books, a cat on a yellow suitcase, and a basketball suspended in mid-air are visible. \n  * **Transcript**: \n    * **Boy**: \"Golf?\"\n* **00:01 – 00:02**: The boy turns his head forward with a wide-eyed, confused expression.\n* **00:02 – 00:03**: He remains frozen in place looking at the camera.\n* **00:03 – 00:04**: He gasps softly as the clip ends.\n  * **Transcript**:\n    * **Boy**: *(Gasps)*\n\n---\n\n### **Visual Anomalies**\n* **Floating Object**: The basketball in the upper-left background hovers frozen in mid-air without falling or moving.\n* **Frozen Characters**: The girl and the cat in the background remain completely motionless like statues while the main character moves.\n* **Rigid/AI Animation**: Character motion and lighting exhibit stiff, AI-generated characteristics (e.g., rigid facial turn).\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice**: The word \"Golf?\" sounds flat and artificially synthesized. \n* **Abrupt Audio Cutoff**: The final gasp cuts off abruptly at the end of the video."
+ },
+ {
+  "shot": "a11",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a11_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Golf?",
+    0.32,
+    0.92
+   ]
+  ],
+  "text": "Golf?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.08,
+   0.09,
+   0.09,
+   0.09,
+   0.11,
+   0.11
+  ],
+  "pitch": 138,
+  "quiet": -69,
+  "loud": -12,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a11_t2.jpg",
+  "watch": "Here is the second-by-second breakdown, transcription, and list of anomalies for the clip:\n\n### Second-by-Second Description & Transcription\n\n* **00:00 – 00:01**: A 3D animated young man in a teal jacket stands in the foreground, facing right in profile. In the background, a young girl with pink hair stands next to a yellow suitcase with an orange cat on top, and a basketball hangs frozen in the air. \n  * **Spoken (Young Man)**: \"Golf\"\n* **00:01 – 00:02**: The young man turns his head to face forward toward the camera. A colorful scarf instantly morphs into existence around his neck as he turns.\n* **00:02 – 00:03**: The young man stares at the camera with a neutral expression and blinks.\n* **00:03 – 00:04**: The young man sighs with a slightly disappointed expression.\n  * **Spoken (Young Man)**: *(Exhales/Sighs)*\n\n---\n\n### Visual Anomalies\n* **Floating Object**: The basketball floating in the upper-left background remains completely suspended in mid-air without falling.\n* **Object Morphing/Appearing**: A scarf instantly materializes around the main character’s neck out of nowhere as he turns his head (00:01).\n* **Frozen Characters**: The girl and cat in the background remain completely frozen without any idle animation or breathing movement.\n\n### Audio Anomalies\n* **Unnatural Voice**: The spoken word \"Golf\" sounds flat and synthetically generated/robotic, disconnected from the scene context."
+ },
+ {
   "shot": "a2",
   "take": 1,
   "file": "src/film/assets/s2/s2e1/clips/a2_t1.mp4",
@@ -316,6 +574,102 @@
   "loud": -6,
   "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a3_t2.jpg",
   "watch": "Here is the second-by-second breakdown, transcript, and list of unnatural elements:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01:** An animated pink-haired girl sitting on a purple beanbag holding a basketball points angrily to the left while shouting. A sleeping cat sits behind her on a yellow suitcase.\n  * **Girl:** *\"Don't...\"*\n* **00:01 – 00:02:** She continues pointing aggressively while yelling.\n  * **Girl:** *\"...that's my word!\"*\n* **00:02 – 00:03:** Her face abruptly shifts from an angry glare into a happy, smiling expression while she giggles.\n  * **Girl:** *(Giggles/laughs)*\n\n---\n\n### **Visual Issues & Artifacts**\n* **Sudden Facial Morphing:** The transition from anger (00:01) to joy (00:02) occurs instantly and unnaturally, typical of AI frame interpolation.\n* **Frozen Background Cat:** The cat on the suitcase remains completely motionless and static like a rigid 3D prop throughout the entire clip.\n* **Stiff Arm/Hand:** The pointing hand and arm move with stiff, artificial animation dynamics.\n\n---\n\n### **Audio Issues**\n* **Synthetic Voice:** The voice has an AI-generated quality.\n* **Unnatural Emotional Shift:** The vocal tone instantly flips from intense screaming to light giggling without any natural pause or transition."
+ },
+ {
+  "shot": "a3b",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a3b_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Done?",
+    0.4,
+    1.36
+   ],
+   [
+    "That's",
+    1.36,
+    1.92
+   ],
+   [
+    "my",
+    1.92,
+    2.48
+   ],
+   [
+    "word.",
+    2.48,
+    3.08
+   ]
+  ],
+  "text": "Done? That's my word!",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   -1,
+   1
+  ],
+  "change": [
+   0.05,
+   0.09,
+   0.03,
+   0.02,
+   0.02,
+   0.02
+  ],
+  "pitch": 286,
+  "quiet": -58,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a3b_t1.jpg",
+  "watch": "Here is the second-by-second breakdown, transcript, and list of visual/audio anomalies for the clip:\n\n### Second-by-Second Description & Transcript\n\n* **00:00 – 00:01:** A 3D-animated girl with peach-pink hair sitting on a purple beanbag holding a basketball smiles with her eyes closed, raises her left fist excitedly, and opens her eyes as she says: \n  * **Girl:** *\"Done!\"*\n* **00:01 – 00:02:** Her expression shifts briefly to surprise/confusion with raised eyebrows as she begins her next sentence:\n  * **Girl:** *\"That's\"*\n* **00:02 – 00:03:** She smiles brightly, opens her raised left hand, and finishes her sentence:\n  * **Girl:** *\"my word!\"*\n\n---\n\n### Visual Anomalies\n* **Hand Morphing:** Her left hand turns from a fist into an open palm with stiff, slightly distorted finger movements between 00:01 and 00:03.\n* **Static Character/Pet:** The orange cat sleeping on the yellow suitcase in the background remains completely frozen throughout the clip.\n\n---\n\n### Audio Anomalies\n* None detected. The voice is clear, continuous, and matches the character's lip movements smoothly."
+ },
+ {
+  "shot": "a3b",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a3b_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Done?",
+    0.24,
+    1.04
+   ],
+   [
+    "That's",
+    1.04,
+    1.68
+   ],
+   [
+    "my",
+    1.68,
+    2.16
+   ],
+   [
+    "word.",
+    2.16,
+    2.76
+   ]
+  ],
+  "text": "Done? That's my word!",
+  "cuts": [],
+  "zoom": 1.023,
+  "shift": [
+   9,
+   -16
+  ],
+  "change": [
+   0.01,
+   0.05,
+   0.07,
+   0.07,
+   0.08,
+   0.08
+  ],
+  "pitch": 281,
+  "quiet": -73,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a3b_t2.jpg",
+  "watch": "Here is the second-by-second description, transcription, and list of anomalies:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01**: The 3D animated girl sitting on a purple beanbag holds a basketball, points her left index finger upward, and says:  \n  **Girl**: *\"Done!\"*\n* **00:01 – 00:03**: She shifts her pointing finger outward toward the right side of the frame while holding the ball with her other hand and says:  \n  **Girl**: *\"That's my word!\"*\n* **00:03 – 00:04**: She tilts her head back and laughs joyfully while maintaining her pose:  \n  **Girl**: *[Laughs]*\n\n---\n\n### **Visual Anomalies**\n* **Background Wall**: Pushpins/tacks appear floating or stuck directly into a blank wall without any board or paper attached.\n* **Hands/Basketball**: The hand resting on the basketball has slightly stiff, unnatural finger embedding into the surface of the ball as she shifts positions.\n* **Cat**: The orange cat in the background remains completely frozen and static throughout the clip.\n\n---\n\n### **Audio Anomalies**\n* **Voice**: The voice quality sounds synthetically generated (AI-voiced) with a slightly unnatural pitch cadence."
  },
  {
   "shot": "a4",
@@ -804,5 +1158,121 @@
   "loud": -6,
   "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a8_t2.jpg",
   "watch": "Here is the breakdown of the video clip:\n\n### **Second-by-Second Breakdown & Transcription**\n\n* **00:00 – 00:01:** A 3D animated girl with pink hair stands on a rooftop holding a blue book, looks up, and smiles while speaking.\n  * **Girl:** *\"Step 1: Say done.\"*\n* **00:01 – 00:02:** She gasps with wide eyes and turns her head slightly to her right.\n  * **Girl:** *\"[gasps] Step 2:\"*\n* **00:02 – 00:04:** She holds the book open and speaks excitedly while looking off-camera.\n  * **Girl:** *\"Luna pushes big yellow—\"*\n\n---\n\n### **Visual Anomalies / Unnatural Elements**\n* **Facial Morphing:** The mouth, tongue, and eyebrows exhibit typical AI video morphing/stretching rather than clean geometric animation.\n* **Hand Distortion:** The fingers gripping the edges of the book subtly shift and deform shape as the character moves.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The voice has a synthetic/AI-generated cadence and texture.\n* **Abrupt Cutoff:** The final word (\"yellow\") is cut off mid-sentence at the end of the clip."
+ },
+ {
+  "shot": "a9",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a9_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Step",
+    0.32,
+    0.96
+   ],
+   [
+    "3.",
+    1.12,
+    1.84
+   ],
+   [
+    "Luna",
+    1.84,
+    2.64
+   ],
+   [
+    "carries",
+    2.64,
+    3.04
+   ],
+   [
+    "the",
+    3.04,
+    3.2
+   ],
+   [
+    "folder.",
+    3.2,
+    3.8
+   ]
+  ],
+  "text": "Step 3. Luna carries the folder.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.06,
+   0.06,
+   0.07,
+   0.11,
+   0.1,
+   0.1
+  ],
+  "pitch": 133,
+  "quiet": -83,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a9_t1.jpg",
+  "watch": "Here is the second-by-second description, transcription, and list of anomalies:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01**  \n  A 3D animated man stands on a city street holding his hands open in front of him.  \n  * **Speaker:** Male animated character  \n  * **Dialogue:** \"Step\"\n\n* **00:01 – 00:02**  \n  He shifts his posture slightly while continuing his gesture.  \n  * **Speaker:** Male animated character  \n  * **Dialogue:** \"three,\"\n\n* **00:02 – 00:03**  \n  He turns slightly to his right, gesturing with extended hands toward the side of the frame.  \n  * **Speaker:** Male animated character  \n  * **Dialogue:** \"Luna carries the folder.\"\n\n---\n\n### **Visual Anomalies**\n* **Hands:** The fingers are blobby and morph unnaturally into distorted shapes during hand gestures (00:01–00:03).\n* **Animation:** Lip sync and facial movements are stiff and artificially generated.\n\n---\n\n### **Audio Anomalies**\n* **Voice:** The voice sounds synthetic/AI-generated with an unnatural cadence."
+ },
+ {
+  "shot": "a9",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a9_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Step",
+    0.64,
+    1.28
+   ],
+   [
+    "3.",
+    1.52,
+    2.24
+   ],
+   [
+    "Luna",
+    2.24,
+    2.88
+   ],
+   [
+    "carries",
+    2.88,
+    3.2
+   ],
+   [
+    "the",
+    3.2,
+    3.36
+   ],
+   [
+    "folder.",
+    3.36,
+    3.96
+   ]
+  ],
+  "text": "Step 3. Luna carries the folder.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.03,
+   0.08,
+   0.08,
+   0.09,
+   0.09,
+   0.09
+  ],
+  "pitch": 127,
+  "quiet": -71,
+  "loud": -8,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a9_t2.jpg",
+  "watch": "Here is a breakdown of the clip:\n\n### Second-by-Second Description\n* **00:00 – 00:01:** A stylized 3D animated young man with a scarf and backpack stands outdoors on a city street, opening his mouth to speak with palms open.\n* **00:01 – 00:02:** He looks forward and speaks the phrase \"Step 3.\"\n* **00:02 – 00:03:** He continues speaking the phrase \"Luna carries the folder\" while maintaining his posture with open hands.\n\n### Transcription\n* **Man:** \"Step 3. Luna carries the folder.\"\n\n### Visual Anomalies & Unnatural Elements\n* None detected. The 3D animation, facial movements, hands, lighting, and camera position remain consistent and free of visual artifacts or morphing.\n\n### Audio Anomalies & Issues\n* **Synthetic Voice:** The voice has a noticeably robotic, text-to-speech quality with flat intonation.\n* **Lack of Ambient Sound:** There is complete silence in the background despite the outdoor urban setting."
  }
 ]

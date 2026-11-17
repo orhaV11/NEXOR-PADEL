@@ -215,6 +215,24 @@
    "still": "THE PICTURE: the same New York street as the FIRST reference picture: the same pale stone pavement, the same low cream wall, the same hoop with the plain white backboard, the same toy brownstone houses and golden morning light from the left, all soft behind. A close shot of TIMO from the chest up on the RIGHT half of the frame, his face in the UPPER half, turned in three-quarter view toward the left: his proud smile is gone, eyes wide, mouth a small flat line. The two straps of his tiny teal backpack on his shoulders, teal-and-coral scarf, yellow watch on his LEFT wrist. Behind him on the LEFT, smaller and soft: BIG YELLOW closed and standing upright, the fat ginger CAT on its top, and LUNA standing beside it hugging a thick closed blue folder with both arms, grinning. The lower third of the frame is his teal jacket and plain pale pavement. Only Timo, Luna, the suitcase and the cat.",
    "video": "@Timo says one word in a small worried voice: \"Golf?\" Then he slowly turns his head to the camera and stares straight into it, stunned, without another word, and blinks once, slowly. Behind him @Luna keeps grinning; the cat does not move. One continuous shot. Nobody else appears. Sound: his small voice, quiet street air.",
    "pick": 2
+  },
+  {
+   "id": "a3b",
+   "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set INDOORS, in Timo's small hand-built model room in the same sunny model town. Morning: low golden light pours in through one window on the LEFT and lies warm on the wall, with long soft violet shadows. Timo wears his tiny teal backpack as always: its two straps show on his shoulders. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own long knitted scarf in ONE plain teal colour, with no coral, no stripe and no pattern anywhere on it), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, words, signs, logos or clock faces anywhere: every paper is blank or carries only a simple little drawing.",
+   "refs": [
+    "https://cdn.muapi.ai/outputs/generated/ce8cc15e-78a6-45d0-8c30-7a439b8343ef_cc58ce95.jpg",
+    "luna_face",
+    "luna_34"
+   ],
+   "elements": [
+    "Luna",
+    "BigYellow",
+    "Cat"
+   ],
+   "duration": 4,
+   "still": "THE PICTURE: the same room, the same violet bean bag and window light as the FIRST reference picture, now a closer shot of LUNA alone on the violet bean bag, seen from the front: she has sat bolt upright, her head and shoulders fill the middle of the frame, the plain orange basketball hugged against her chest with her LEFT arm. Her face is turned toward the RIGHT edge of the frame and her eyes look to the RIGHT (Timo stands there, out of frame): eyebrows high, eyes wide, mouth open in happy outrage. Her RIGHT arm is half raised, about to point to the RIGHT edge of the frame. Behind her on the LEFT side of the frame, soft, the yellow side of BIG YELLOW (a closed hard-shell suitcase with one short fixed handle, no long handle) with the fat ginger CAT loafed on top, eyes shut, and the bright window. Coral football shirt, long plain teal scarf with no coral on it. Only Luna, the suitcase and the cat: no Timo.",
+   "video": "@Luna points to the RIGHT edge of the frame with her whole open hand, looking that way, and says, outraged and delighted at once, loud and lively: \"Done? That's MY word!\" Her outrage breaks into a wide grin. She keeps looking to the right. The basketball stays against her chest; the cat behind her does not move. One continuous shot. Nobody else appears. Sound: her voice.",
+   "pick": 3
   }
  ]
 }

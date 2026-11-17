@@ -1,0 +1,808 @@
+[
+ {
+  "shot": "a1",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a1_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "No",
+    0.24,
+    0.64
+   ],
+   [
+    "notes.",
+    0.64,
+    1.52
+   ],
+   [
+    "No",
+    1.52,
+    1.76
+   ],
+   [
+    "folder.",
+    1.76,
+    2.88
+   ],
+   [
+    "One",
+    2.88,
+    3.28
+   ],
+   [
+    "sentence.",
+    3.28,
+    3.88
+   ]
+  ],
+  "text": "No Notes, No Folder, One Sentence.",
+  "cuts": [],
+  "zoom": 0.998,
+  "shift": [
+   -1,
+   1
+  ],
+  "change": [
+   0.09,
+   0.05,
+   0.05,
+   0.03,
+   0.03,
+   0.03
+  ],
+  "pitch": 106,
+  "quiet": -75,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a1_t1.jpg",
+  "watch": "Here is a breakdown of the video clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01**: \n  * **Visual**: A standing male character wearing a jacket and scarf gestures with his right hand toward a white paper pinned on the wall. A female character sits on a purple beanbag holding a basketball, next to a cat resting on a yellow suitcase.\n  * **Speech (Male)**: \"No notes,\"\n\n* **00:01 – 00:02**: \n  * **Visual**: The male character lowers and moves his hand slightly. The white paper on the wall fades and morphs away.\n  * **Speech (Male)**: \"no folder,\"\n\n* **00:02 – 00:03**: \n  * **Visual**: The male character points his right index finger upward.\n  * **Speech (Male)**: \"one sentence.\"\n\n---\n\n### **Visual Anomalies**\n* **Morphing/Disappearing Object**: The white paper pinned to the wall behind the male character distorts and disappears completely around 00:01–00:02.\n* **Unnatural Hand/Arm Movements**: The male character's right hand and fingers morph unnaturally while gesturing, particularly when pointing up at 00:02.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice**: The voice has a slightly flat, AI-generated cadence, though there are no extra words, background music, or audio glitches."
+ },
+ {
+  "shot": "a1",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a1_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "No",
+    0.32,
+    0.64
+   ],
+   [
+    "notes.",
+    0.64,
+    1.44
+   ],
+   [
+    "No",
+    1.44,
+    1.68
+   ],
+   [
+    "folder.",
+    1.68,
+    2.8
+   ],
+   [
+    "One",
+    2.8,
+    3.2
+   ],
+   [
+    "sentence.",
+    3.2,
+    3.8
+   ]
+  ],
+  "text": "No notes, no folder, one sentence.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   -1,
+   0
+  ],
+  "change": [
+   0.06,
+   0.03,
+   0.04,
+   0.04,
+   0.05,
+   0.05
+  ],
+  "pitch": 137,
+  "quiet": -68,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a1_t2.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01** \n  * **Action:** A 3D-animated man in a jacket and scarf stands pointing forward while a woman sits on a beanbag holding a basketball. \n  * **Dialogue (Man):** *\"No notes.\"*\n\n* **00:01 – 00:02** \n  * **Action:** The man pivots his right arm to point toward a blank piece of paper attached to the wall. \n  * **Dialogue (Man):** *\"No folder.\"*\n\n* **00:02 – 00:03** \n  * **Action:** The man points directly at the paper on the wall while smiling. \n  * **Dialogue (Man):** *\"One sentence.\"*\n\n---\n\n### **Visual Anomalies**\n* **Morphing / Rigid Hands:** The man’s pointing hand and fingers look slightly stiff and morph unnaturally as he moves his arm.\n* **Paper Attachment:** The paper on the wall floats slightly without a visible pin, tape, or fastener.\n* **AI Jitter:** Subtle texture drifting and micro-jitters typical of AI-generated video.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The male voice sounds slightly artificial/robotic with a uniform, computer-generated cadence."
+ },
+ {
+  "shot": "a2",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a2_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Nine",
+    0.56,
+    1.12
+   ],
+   [
+    "words.",
+    1.12,
+    1.92
+   ],
+   [
+    "I",
+    1.92,
+    2.16
+   ],
+   [
+    "counted.",
+    2.16,
+    3.44
+   ],
+   [
+    "Done.",
+    3.44,
+    4.04
+   ]
+  ],
+  "text": "Nine words, I counted. Done.",
+  "cuts": [],
+  "zoom": 1.004,
+  "shift": [
+   -8,
+   22
+  ],
+  "change": [
+   0.0,
+   0.0,
+   0.0,
+   0.03,
+   0.0,
+   0.0
+  ],
+  "pitch": 110,
+  "quiet": -66,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a2_t1.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description**\n* **00:00 – 00:01:** A 3D animated character holding a smartphone stands indoors, looking directly at the camera.\n* **00:01 – 00:02:** The character blinks and begins speaking while maintaining a neutral expression.\n* **00:02 – 00:03:** He smiles brightly as he speaks, narrowing his eyes slightly.\n* **00:03 – 00:04:** He finishes speaking while holding his smile and looking forward.\n\n---\n\n### **Transcription**\n* **00:00 – 00:04:** \n  * **Animated Character:** \"Nine words. I counted. Done.\"\n\n---\n\n### **Visual Anomalies / Unnatural Elements**\n* **Fingers/Hand:** The right hand holding the phone has rigid, somewhat merged fingers that do not adjust naturally while speaking.\n* **Facial Morphing:** Lip movements and eye blinks are stiff and lack natural micro-expressions.\n* **Watch:** The watch on his wrist has a static, featureless face with no moving hands.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The voice has a slightly robotic, AI-generated cadence and lacks natural breathing pauses."
+ },
+ {
+  "shot": "a2",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a2_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Nine",
+    0.8,
+    1.52
+   ],
+   [
+    "words.",
+    1.52,
+    2.4
+   ],
+   [
+    "I",
+    2.4,
+    2.64
+   ],
+   [
+    "counted.",
+    2.64,
+    3.76
+   ],
+   [
+    "Done.",
+    3.76,
+    4.36
+   ]
+  ],
+  "text": "Nine words, I counted. Done.",
+  "cuts": [],
+  "zoom": 0.993,
+  "shift": [
+   0,
+   6
+  ],
+  "change": [
+   0.0,
+   0.0,
+   0.03,
+   0.03,
+   0.02,
+   0.0
+  ],
+  "pitch": 115,
+  "quiet": -77,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a2_t2.jpg",
+  "watch": "Here is the second-by-second breakdown, transcription, and list of anomalies for the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01**: An animated young man holding a smartphone looks forward with a wide, rounded mouth expression.\n  * **Animated Character**: *\"Nine words.\"*\n* **00:01 – 00:03**: He changes his expression to a slight smile and blinks while looking at the camera.\n  * **Animated Character**: *\"I counted.\"*\n* **00:03 – 00:04**: He maintains his posture holding the phone and finishes speaking.\n  * **Animated Character**: *\"Done.\"*\n\n---\n\n### **Visual Anomalies**\n* **Morphing Mouth**: The mouth movements (especially during \"Nine words\") morph into exaggerated shapes unnaturally typical of AI lip-syncing.\n* **Static/Unnatural Hands**: The fingers holding the phone remain completely frozen and stiff throughout the clip.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice**: The voice sounds distinctly artificial and AI-generated (text-to-speech style)."
+ },
+ {
+  "shot": "a3",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a3_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Done?",
+    0.32,
+    1.12
+   ],
+   [
+    "That's",
+    1.12,
+    1.68
+   ],
+   [
+    "my",
+    1.68,
+    2.24
+   ],
+   [
+    "word.",
+    2.24,
+    2.84
+   ]
+  ],
+  "text": "Done? That's my word!",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   0,
+   1
+  ],
+  "change": [
+   0.07,
+   0.07,
+   0.11,
+   0.11,
+   0.09,
+   0.09
+  ],
+  "pitch": 291,
+  "quiet": -61,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a3_t1.jpg",
+  "watch": "Here is a breakdown of the clip:\n\n### Second-by-Second Description\n* **00:00 – 00:01**: An animated girl sitting with a basketball points forward to the left with an angry facial expression and says, *\"Duh!\"*\n* **00:01 – 00:02**: Her face quickly transitions into a smile, and she turns her hand around to point at her chest while saying, *\"That's my\"*.\n* **00:02 – 00:03**: Her mouth opens wide and her eyes widen in surprise as she says, *\"word!\"*\n* **00:03 – 00:04**: She closes her eyes, opens her mouth wide, and laughs.\n\n---\n\n### Transcription\n* **Girl**: \"Duh! That's my word! [laughs]\"\n\n---\n\n### Visual Anomalies\n* **Hand Morphing**: Her right hand and fingers liquefy and morph unnaturally between 00:00 and 00:01 as she turns her hand to point at herself.\n* **Cat Morphing**: The orange cat sitting on the yellow suitcase morphs its shape and facial features unnaturally between 00:00 and 00:02.\n* **Facial Transitions**: The facial expressions (brows, eyes, mouth) blend smoothly in an AI-generated, morph-like fashion rather than natural keyframe animation.\n* **Basketball**: The seams/lines on the basketball warp slightly as she holds it.\n\n---\n\n### Audio Anomalies\n* The voice and laugh sound synthetic/AI-generated with abrupt tone and pitch shifts between phrases."
+ },
+ {
+  "shot": "a3",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a3_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Done?",
+    0.32,
+    1.28
+   ],
+   [
+    "That's",
+    1.28,
+    1.76
+   ],
+   [
+    "my",
+    1.76,
+    2.16
+   ],
+   [
+    "word!",
+    2.16,
+    2.76
+   ]
+  ],
+  "text": "Done? That's my word!",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   1,
+   0
+  ],
+  "change": [
+   0.08,
+   0.08,
+   0.09,
+   0.09,
+   0.01,
+   0.01
+  ],
+  "pitch": 281,
+  "quiet": -54,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a3_t2.jpg",
+  "watch": "Here is the second-by-second breakdown, transcript, and list of unnatural elements:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01:** An animated pink-haired girl sitting on a purple beanbag holding a basketball points angrily to the left while shouting. A sleeping cat sits behind her on a yellow suitcase.\n  * **Girl:** *\"Don't...\"*\n* **00:01 – 00:02:** She continues pointing aggressively while yelling.\n  * **Girl:** *\"...that's my word!\"*\n* **00:02 – 00:03:** Her face abruptly shifts from an angry glare into a happy, smiling expression while she giggles.\n  * **Girl:** *(Giggles/laughs)*\n\n---\n\n### **Visual Issues & Artifacts**\n* **Sudden Facial Morphing:** The transition from anger (00:01) to joy (00:02) occurs instantly and unnaturally, typical of AI frame interpolation.\n* **Frozen Background Cat:** The cat on the suitcase remains completely motionless and static like a rigid 3D prop throughout the entire clip.\n* **Stiff Arm/Hand:** The pointing hand and arm move with stiff, artificial animation dynamics.\n\n---\n\n### **Audio Issues**\n* **Synthetic Voice:** The voice has an AI-generated quality.\n* **Unnatural Emotional Shift:** The vocal tone instantly flips from intense screaming to light giggling without any natural pause or transition."
+ },
+ {
+  "shot": "a4",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a4_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "I",
+    0.24,
+    0.48
+   ],
+   [
+    "carry",
+    0.48,
+    0.88
+   ],
+   [
+    "one",
+    0.88,
+    1.2
+   ],
+   [
+    "sentence.",
+    1.2,
+    1.8
+   ]
+  ],
+  "text": "I carry one sentence.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.07,
+   0.15,
+   0.2,
+   0.19,
+   0.19,
+   0.2
+  ],
+  "pitch": 158,
+  "quiet": -56,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a4_t1.jpg",
+  "watch": "**Second-by-second breakdown & Transcription:**\n\n* **00:00 – 00:01:** A 3D-animated scene displays a male character walking left with his hands near his head, a cat sitting atop a yellow suitcase, and a pink-haired female character standing behind it. A giant basketball floats in mid-air on the left. \n  * **Off-screen Male Voice:** \"I carry one sentence.\"\n* **00:01 – 00:02:** The male character walks off-screen to the left while the female character gets ready to move the suitcase.\n* **00:02 – 00:04:** The female character pushes the yellow suitcase with the cat on it across the ground to the left.\n  * **Female Character:** *(soft giggling)* \"Hmm-hm-hm.\"\n\n---\n\n**Visual Issues:**\n* The basketball floats frozen in mid-air without any support or motion.\n* The characters' feet slide unrealistically across the ground surface while walking (foot-sliding artifact).\n* The cat remains unnaturally rigid on top of the moving suitcase.\n\n**Audio Issues:**\n* The voiceover line (\"I carry one sentence\") is completely unrelated to the visual action."
+ },
+ {
+  "shot": "a4",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a4_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "I",
+    1.2,
+    1.76
+   ],
+   [
+    "carry",
+    1.76,
+    2.48
+   ],
+   [
+    "one",
+    2.48,
+    2.72
+   ],
+   [
+    "sentence.",
+    2.72,
+    3.32
+   ]
+  ],
+  "text": "I carry one sentence.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.04,
+   0.1,
+   0.14,
+   0.15,
+   0.16,
+   0.15
+  ],
+  "pitch": 123,
+  "quiet": -68,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a4_t2.jpg",
+  "watch": "Here is a second-by-second breakdown of the clip, a transcription, and a list of anomalies:\n\n### **Second-by-Second Description**\n* **00:00 – 00:01:** On the left, a young man walks while keeping his hands locked behind his head, next to a basketball suspended in mid-air. On the right, a girl with pink hair pushes a bright yellow suitcase with a static orange cat sitting on top.\n* **00:01 – 00:02:** The man walks off-screen to the left while maintaining his static hand pose. The basketball remains frozen hovering in the air. The girl continues to roll the suitcase forward.\n* **00:02 – 00:03:** The girl continues pushing the yellow suitcase forward toward the foreground as the scene comes to an end.\n\n---\n\n### **Transcript**\n* **Voiceover:** \"I carry one sentence.\"\n\n---\n\n### **Visual Anomalies**\n* **Floating Basketball:** The basketball hovers statically in mid-air without falling or bouncing.\n* **Rigid Male Character:** The male character’s hands stay unnaturally stuck behind his head while his lower body walks.\n* **Frozen Cat:** The cat sitting on the suitcase is completely rigid and unmoving like a figurine.\n* **AI Sliding/Stiffness:** The character walking animations exhibit foot-sliding and rigid AI-generated movements.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The voiceover sounds monotone and AI-generated.\n* **Contextual Mismatch:** The spoken phrase (\"I carry one sentence\") has no logical connection to the visual scene."
+ },
+ {
+  "shot": "a5",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "What",
+    2.56,
+    2.8
+   ],
+   [
+    "did",
+    2.8,
+    3.04
+   ],
+   [
+    "I",
+    3.04,
+    3.28
+   ],
+   [
+    "pack?",
+    3.28,
+    3.88
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.01,
+   0.01,
+   0.01,
+   0.02,
+   0.01,
+   0.01
+  ],
+  "pitch": 333,
+  "quiet": -63,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t1.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:02:** A 3D-animated girl with pink hair leans against a large yellow suitcase, crying and sniffling. An orange cat sits motionless on top of the suitcase.  \n  * **Girl:** *(gasping/sniffling)*\n* **00:02 – 00:03:** The girl's eyes pop open wide in shock and her mouth opens in realization as she speaks.  \n  * **Girl:** \"What did I pack?!\"\n\n---\n\n### **Visual Artifacts & Unnatural Elements**\n* **Frozen Cat:** The cat on the luggage is completely static throughout the entire clip (no breathing, blinking, or tail movement).\n* **Unnatural Facial Morphing:** The transition at 00:02 from closed-eye crying to wide-eyed shock snaps abruptly and morphs unnaturally.\n* **Hand Positioning:** The girl's hand resting on the suitcase handle lacks natural finger joints or fine movement.\n\n---\n\n### **Audio Artifacts**\n* **Synthetic Voice:** The gasping/sniffling sounds and the spoken line sound slightly synthetic and artificially generated."
+ },
+ {
+  "shot": "a5",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a5_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "What",
+    2.4,
+    2.64
+   ],
+   [
+    "did",
+    2.64,
+    2.88
+   ],
+   [
+    "I",
+    2.88,
+    3.04
+   ],
+   [
+    "pack?",
+    3.04,
+    3.64
+   ]
+  ],
+  "text": "What did I pack?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.01,
+   0.01,
+   0.0,
+   0.01,
+   0.01,
+   0.01
+  ],
+  "pitch": 286,
+  "quiet": -66,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a5_t2.jpg",
+  "watch": "Here is the second-by-second breakdown, transcription, and list of anomalies for the clip:\n\n### **Second-by-Second Breakdown & Transcription**\n\n* **00:00 – 00:01**: A 3D animated girl with pink hair rests her head sadly on a large yellow suitcase next to an orange cat sitting on top. \n  * **Girl**: *(sighs)* \"Huh...\"\n* **00:01 – 00:02**: The girl suddenly gasps as her eyes open wide in shock.\n  * **Girl**: *(gasps)* \"Huh!\"\n* **00:02 – 00:04**: She looks at the suitcase with a panicked expression.\n  * **Girl**: \"What did I pack?\"\n\n---\n\n### **Visual Anomalies (Broken / Morphing / Unnatural)**\n* **Floating Basketball**: A oversized basketball floats frozen in mid-air in the left background.\n* **Frozen Cat**: The orange cat resting on the luggage is completely static and unmoving, looking like a rigid model or toy.\n* **Frozen Taxi**: The yellow car in the background is completely static and miniature.\n* **Stiff/Clipping Hands**: The girl's hands holding the suitcase handle appear rigid and slightly clip into the handle texture.\n\n---\n\n### **Audio Anomalies**\n* **AI-Generated Voice**: The voice has a slightly synthetic quality typical of AI speech generation."
+ },
+ {
+  "shot": "a6",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a6_t1.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Maybe",
+    0.96,
+    3.04
+   ],
+   [
+    "the",
+    3.04,
+    3.28
+   ],
+   [
+    "cat?",
+    3.28,
+    3.88
+   ]
+  ],
+  "text": "Maybe... the cat?",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.14,
+   0.14,
+   0.16,
+   0.16,
+   0.14,
+   0.14
+  ],
+  "pitch": 144,
+  "quiet": -59,
+  "loud": -10,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a6_t1.jpg",
+  "watch": "**Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01:** A 3D animated young man lowers his raised hands to his sides and starts speaking.\n  * **Male Character:** \"Maybe...\"\n* **00:01 – 00:02:** He pauses and looks slightly off-camera.\n* **00:02 – 00:04:** He smiles wide and finishes his sentence.\n  * **Male Character:** \"...the cat?\"\n\n---\n\n**Visual Anomalies**\n* **Movement & Lip Sync:** The animation is stiff and synthetic; mouth shapes are rigid and do not fully match natural speech articulation.\n* **Hands/Watch:** The hands lower unnaturally, and the oversized yellow watch appears blocky and stiff on the wrist.\n\n**Audio Anomalies**\n* The voice sounds AI-generated with an unnatural, slightly robotic cadence and pause."
+ },
+ {
+  "shot": "a6",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a6_t2.mp4",
+  "dur": 4.04,
+  "words": [
+   [
+    "Maybe",
+    1.2,
+    2.8
+   ],
+   [
+    "the",
+    2.8,
+    3.04
+   ],
+   [
+    "cat?",
+    3.04,
+    3.64
+   ]
+  ],
+  "text": "Maybe the cat?",
+  "cuts": [],
+  "zoom": 1.001,
+  "shift": [
+   0,
+   1
+  ],
+  "change": [
+   0.0,
+   0.01,
+   0.01,
+   0.02,
+   0.0,
+   0.0
+  ],
+  "pitch": 99,
+  "quiet": -71,
+  "loud": -9,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a6_t2.jpg",
+  "watch": "Here is the breakdown of the video:\n\n### Second-by-Second Description & Transcription\n\n* **00:00 – 00:01**: An animated young man stands outdoors with his hands resting behind his head against a background of colorful city buildings. He opens his mouth and begins speaking.\n  * **Speaker (Animated Character)**: \"Maybe...\"\n* **00:01 – 00:03**: He smiles slightly, blinks, and finishes his sentence while remaining in the same pose.\n  * **Speaker (Animated Character)**: \"...the cat?\"\n\n---\n\n### Visual Anomalies\n* **Stiff Pose**: The character’s hands and arms remain unnaturally frozen behind his neck throughout the clip while only his mouth and eyes move.\n* **Simplistic Animation**: The mouth motion is slightly loose and stiff, characteristic of basic 3D render or AI-generated animation.\n\n---\n\n### Audio Anomalies\n* **None**: The dialogue is clear, natural-sounding, and free of background noise, music, or robotic artifacts."
+ },
+ {
+  "shot": "a7",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a7_t1.mp4",
+  "dur": 4.04,
+  "words": [],
+  "text": "(camera shutter clicks)",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.01,
+   0.03,
+   0.03,
+   0.03,
+   0.03,
+   0.03
+  ],
+  "pitch": null,
+  "quiet": -86,
+  "loud": -24,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a7_t1.jpg",
+  "watch": "**Second-by-Second Description:**\n* **00:00 – 00:01:** An animated orange tabby cat stands on top of a blue binder inside an open yellow suitcase on a sidewalk in front of pastel townhouses. It looks down at the items packed in the suitcase.\n* **00:01 – 00:02:** The cat lowers itself into a sitting position on the blue binder and turns its head to look directly at the camera.\n* **00:02 – 00:03:** The cat remains seated and slowly blinks its eyes.\n\n**Transcription:**\n* No speech in the clip.\n\n---\n\n**Visual Anomalies:**\n* **Morphing / Clipping:** At 00:01, as the cat sits down, its front right leg and paw clip through the blue binder/papers unnaturally. The cat's torso also morphs and shifts shape slightly unnaturally during the sit movement.\n\n**Audio Anomalies:**\n* A brief isolated popping/clicking sound effect plays around 00:01, but there is no speech, music, or background ambience."
+ },
+ {
+  "shot": "a7",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a7_t2.mp4",
+  "dur": 4.04,
+  "words": [],
+  "text": "[Music]",
+  "cuts": [],
+  "zoom": 1.049,
+  "shift": [
+   -14,
+   -4
+  ],
+  "change": [
+   0.02,
+   0.13,
+   0.33,
+   0.45,
+   0.49,
+   0.52
+  ],
+  "pitch": null,
+  "quiet": -59,
+  "loud": -29,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a7_t2.jpg",
+  "watch": "Here is a brief, concrete breakdown of the video clip:\n\n### **Second-by-Second Breakdown**\n* **00:00 – 00:01**: An orange tabby cat steps onto a stack of books inside an open yellow suitcase sitting on a sidewalk in front of townhouses, then turns around to face forward.\n* **00:01 – 00:02**: The cat settles into a sitting position on top of the books and looks directly at the camera.\n* **00:02 – 00:04**: The cat closes its eyes peacefully and breathes softly while sitting upright.\n\n---\n\n### **Transcription**\n* *No speech occurs in this video.*\n\n---\n\n### **Visual Anomalies**\n* **Cat Movement & Morphing**: When the cat turns to sit (00:00–00:01), its paws slightly clip into and morph with the surface of the top blue book/folder.\n* **AI Artifacts**: The clothes, basketball, and background buildings have slightly rigid, AI-generated texture characteristics.\n\n---\n\n### **Audio Anomalies**\n* No speech or audio distortions present; only a brief, quiet ambient sound effect play at the beginning."
+ },
+ {
+  "shot": "a8",
+  "take": 1,
+  "file": "src/film/assets/s2/s2e1/clips/a8_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Step",
+    0.16,
+    0.56
+   ],
+   [
+    "1,",
+    0.72,
+    1.12
+   ],
+   [
+    "say",
+    1.12,
+    1.52
+   ],
+   [
+    "done.",
+    1.52,
+    2.56
+   ],
+   [
+    "Step",
+    2.56,
+    2.96
+   ],
+   [
+    "2,",
+    3.12,
+    3.44
+   ],
+   [
+    "Luna",
+    3.44,
+    3.92
+   ],
+   [
+    "pushes",
+    3.92,
+    4.32
+   ],
+   [
+    "big",
+    4.32,
+    4.56
+   ],
+   [
+    "yellow?",
+    4.56,
+    5.04
+   ]
+  ],
+  "text": "Step 1. Say \"done\". Step 2. Luna pushes big yellow?",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.03,
+   0.05,
+   0.06,
+   0.08,
+   0.13,
+   0.14
+  ],
+  "pitch": 258,
+  "quiet": -73,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a8_t1.jpg",
+  "watch": "Here is the breakdown of the clip:\n\n### **Second-by-Second Description & Transcription**\n\n* **00:00 – 00:01:** The animated pink-haired character holds a blue book, initially looking down thoughtfully, then smiles.  \n  * **Voiceover:** \"Step one: say done.\"\n* **00:01 – 00:02:** Her eyes widen, and her mouth opens in shock as she gasps.  \n  * **Character:** *(Gasps)*\n* **00:02 – 00:04:** Her facial expression rapidly shifts to a determined, angry glare with clenched teeth while holding the book open.  \n  * **Voiceover:** \"Step two: Luna pushes big yellow...\"\n\n---\n\n### **Visual Anomalies**\n* **Morphing Facial Expressions:** The facial transitions (from happy to shocked to angry grin) snap instantly between keyframes in an unnatural AI-generated fashion.\n* **Hands/Book Clipping:** The hands holding the sides of the book appear rigidly static and slightly clip into the book cover edge without realistic finger movement.\n* **Static Props:** The pages of the book remain completely rigid and blank/flat despite the dramatic reaction.\n\n---\n\n### **Audio Anomalies**\n* **Robotic Voiceover:** The narrator's voice has a clear synthetic/AI text-to-speech cadence.\n* **Cut-off Sentence:** The clip ends abruptly mid-sentence on \"...pushes big yellow\"."
+ },
+ {
+  "shot": "a8",
+  "take": 2,
+  "file": "src/film/assets/s2/s2e1/clips/a8_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Step",
+    0.24,
+    0.72
+   ],
+   [
+    "one,",
+    0.72,
+    1.2
+   ],
+   [
+    "say",
+    1.2,
+    1.52
+   ],
+   [
+    "done.",
+    1.52,
+    2.32
+   ],
+   [
+    "Step",
+    2.32,
+    2.64
+   ],
+   [
+    "two,",
+    2.64,
+    3.2
+   ],
+   [
+    "Luna",
+    3.2,
+    3.68
+   ],
+   [
+    "pushes",
+    3.68,
+    4.08
+   ],
+   [
+    "big",
+    4.08,
+    4.32
+   ],
+   [
+    "yellow?",
+    4.32,
+    4.92
+   ]
+  ],
+  "text": "Step 1, say done. Step 2, Luna pushes big yellow?",
+  "cuts": [],
+  "zoom": 0.998,
+  "shift": [
+   0,
+   1
+  ],
+  "change": [
+   0.0,
+   0.02,
+   0.03,
+   0.14,
+   0.14,
+   0.14
+  ],
+  "pitch": 296,
+  "quiet": -60,
+  "loud": -6,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/s2e1/review/_a8_t2.jpg",
+  "watch": "Here is the breakdown of the video clip:\n\n### **Second-by-Second Breakdown & Transcription**\n\n* **00:00 – 00:01:** A 3D animated girl with pink hair stands on a rooftop holding a blue book, looks up, and smiles while speaking.\n  * **Girl:** *\"Step 1: Say done.\"*\n* **00:01 – 00:02:** She gasps with wide eyes and turns her head slightly to her right.\n  * **Girl:** *\"[gasps] Step 2:\"*\n* **00:02 – 00:04:** She holds the book open and speaks excitedly while looking off-camera.\n  * **Girl:** *\"Luna pushes big yellow—\"*\n\n---\n\n### **Visual Anomalies / Unnatural Elements**\n* **Facial Morphing:** The mouth, tongue, and eyebrows exhibit typical AI video morphing/stretching rather than clean geometric animation.\n* **Hand Distortion:** The fingers gripping the edges of the book subtly shift and deform shape as the character moves.\n\n---\n\n### **Audio Anomalies**\n* **Synthetic Voice:** The voice has a synthetic/AI-generated cadence and texture.\n* **Abrupt Cutoff:** The final word (\"yellow\") is cut off mid-sentence at the end of the clip."
+ }
+]

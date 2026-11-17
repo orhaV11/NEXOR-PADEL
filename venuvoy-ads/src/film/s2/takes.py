@@ -10,6 +10,8 @@ For each take of each shot (clips/<id>_t<k>.mp4 in the plan's "out" folder) this
   zoom      how much the camera moved in or out between the first and the last frame, measured on the background
             (1.00 = locked off; under 0.93 or over 1.07 the model pulled the camera, whatever the text asked)
   shift     how far the background slid sideways or up and down, in pixels of a 1080 x 1920 frame
+  change    the share of the picture that differs from the first frame at six moments; a quarter or more in a
+            talking shot means the figure jumped to another size or framing (seen with a background that did not move)
   pitch     the middle pitch of the voice in Hz (Timo speaks around 130-180, Luna around 205-335: a take far outside
             is another voice)
   level     how loud the quiet parts and the loud parts are (dBFS)
@@ -52,27 +54,58 @@ def duration(path):
 
 
 def camera(path, dur):
-    """Scale and shift of the background between the first and the last frame (ORB points, a similarity fit)."""
-    a, b = frame(path, 0.08), frame(path, max(0.1, dur - 0.12))
-    if a is None or b is None:
+    """How far the camera strays from its first frame, measured on the background at six moments of the clip (ORB
+    points, a similarity fit): the scale that differs most from 1 and the largest shift. A model that jumps to a wide
+    shot in the middle and comes back is caught here although its first and last frames agree."""
+    a = frame(path, 0.08)
+    if a is None:
         return None, None
     orb = cv2.ORB_create(3000)
     ka, da = orb.detectAndCompute(a, None)
-    kb, db_ = orb.detectAndCompute(b, None)
-    if da is None or db_ is None:
+    if da is None:
         return None, None
-    m = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(da, db_)
-    if len(m) < 30:
-        return None, None
-    pa = np.float32([ka[x.queryIdx].pt for x in m])
-    pb = np.float32([kb[x.trainIdx].pt for x in m])
-    M, inl = cv2.estimateAffinePartial2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=3.0)
-    if M is None:
-        return None, None
-    scale = float(np.hypot(M[0, 0], M[1, 0]))
-    centre = np.float32([270, 480])
-    moved = M[:, :2] @ centre + M[:, 2] - centre
-    return round(scale, 3), [round(float(moved[0]) * 2), round(float(moved[1]) * 2)]
+    worst, shift = 1.0, [0, 0]
+    for q in (0.2, 0.4, 0.55, 0.7, 0.85, 0.98):
+        b = frame(path, max(0.1, dur * q - 0.05))
+        if b is None:
+            continue
+        kb, db_ = orb.detectAndCompute(b, None)
+        if db_ is None:
+            continue
+        m = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(da, db_)
+        if len(m) < 30:
+            worst = 0.0  # the picture no longer shares its points with the first frame: a different shot
+            continue
+        pa = np.float32([ka[x.queryIdx].pt for x in m])
+        pb = np.float32([kb[x.trainIdx].pt for x in m])
+        M, _ = cv2.estimateAffinePartial2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=3.0)
+        if M is None:
+            continue
+        scale = float(np.hypot(M[0, 0], M[1, 0]))
+        centre = np.float32([270, 480])
+        moved = M[:, :2] @ centre + M[:, 2] - centre
+        if abs(scale - 1) > abs(worst - 1):
+            worst = scale
+        if abs(moved[0]) + abs(moved[1]) > abs(shift[0]) + abs(shift[1]):
+            shift = [round(float(moved[0]) * 2), round(float(moved[1]) * 2)]
+    return round(worst, 3), shift
+
+
+def change(path, dur):
+    """The share of the picture that differs from the first frame, at six moments (0 to 1). Acting changes a few
+    hundredths; a figure that suddenly stands far away, a jump to another framing or a cut changes a quarter or more
+    even when the background has not moved. (An action shot changes a lot by nature: look at its strip.)"""
+    def small(t):
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.3f}", "-i", str(path), "-frames:v", "1", "-vf", "scale=135:240",
+                              "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True).stdout
+        return cv2.GaussianBlur(np.frombuffer(raw, np.uint8).reshape(240, 135).astype(np.float32), (5, 5), 0) if len(raw) == 135 * 240 else None
+    a = small(0.08)
+    out = []
+    for q in (0.2, 0.4, 0.55, 0.7, 0.85, 0.98):
+        b = small(max(0.1, dur * q - 0.05))
+        if a is not None and b is not None:
+            out.append(round(float((np.abs(a - b) > 30).mean()), 2))
+    return out
 
 
 def cuts(path):
@@ -120,7 +153,8 @@ def review(job):
     scale, shift = camera(path, dur)
     pitch, quiet, loud = sound(path)
     r = {"shot": sid, "take": k, "file": str(path.relative_to(ROOT)), "dur": round(dur, 2), "words": words, "text": text,
-         "cuts": cuts(path), "zoom": scale, "shift": shift, "pitch": pitch, "quiet": quiet, "loud": loud, "strip": str(tmp)}
+         "cuts": cuts(path), "zoom": scale, "shift": shift, "change": change(path, dur), "pitch": pitch, "quiet": quiet, "loud": loud,
+         "strip": str(tmp)}
     if WATCH:
         import watch
         r["watch"] = watch.ask(str(path), "Describe second by second what happens in this clip and transcribe exactly what is said and by whom. "
@@ -157,6 +191,8 @@ for sid in dict.fromkeys(r["shot"] for r in out):
             flag.append(f"CUT at {r['cuts']}")
         if r["zoom"] is not None and not 0.93 <= r["zoom"] <= 1.07:
             flag.append("CAMERA MOVED")
+        if r["change"] and max(r["change"]) >= 0.2:
+            flag.append(f"PICTURE CHANGES A LOT {r['change']}")
         said = " ".join(w for w, _, _ in r["words"])
         t0 = r["words"][0][1] if r["words"] else None
         t1 = r["words"][-1][2] if r["words"] else None

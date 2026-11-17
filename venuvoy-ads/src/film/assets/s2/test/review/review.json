@@ -1,0 +1,184 @@
+[
+ {
+  "shot": "lock",
+  "take": 1,
+  "file": "src/film/assets/s2/test/clips/lock_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "One",
+    0.64,
+    1.04
+   ],
+   [
+    "sentence.",
+    1.04,
+    4.0
+   ],
+   [
+    "Done!",
+    4.0,
+    4.6
+   ]
+  ],
+  "text": "One sentence. Done!",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.0,
+   0.02,
+   0.03,
+   0.03,
+   0.02,
+   0.02
+  ],
+  "pitch": 235,
+  "quiet": -78,
+  "loud": -5,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/test/review/_lock_t1.jpg"
+ },
+ {
+  "shot": "lock",
+  "take": 2,
+  "file": "src/film/assets/s2/test/clips/lock_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "One",
+    0.8,
+    1.36
+   ],
+   [
+    "sentence",
+    1.36,
+    4.24
+   ],
+   [
+    "done.",
+    4.24,
+    4.84
+   ]
+  ],
+  "text": "One sentence. Done!",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "change": [
+   0.02,
+   0.01,
+   0.26,
+   0.26,
+   0.03,
+   0.03
+  ],
+  "pitch": 364,
+  "quiet": -73,
+  "loud": -8,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/test/review/_lock_t2.jpg"
+ },
+ {
+  "shot": "two",
+  "take": 1,
+  "file": "src/film/assets/s2/test/clips/two_t1.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Three",
+    0.32,
+    0.8
+   ],
+   [
+    "weeks",
+    0.8,
+    1.12
+   ],
+   [
+    "of",
+    1.12,
+    1.36
+   ],
+   [
+    "planning.",
+    1.36,
+    2.4
+   ],
+   [
+    "One",
+    2.4,
+    2.8
+   ],
+   [
+    "sentence.",
+    2.8,
+    3.4
+   ]
+  ],
+  "text": "Three weeks of planning. One sentence.",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "pitch": 188,
+  "quiet": -61,
+  "loud": -7,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/test/review/_two_t1.jpg"
+ },
+ {
+  "shot": "two",
+  "take": 2,
+  "file": "src/film/assets/s2/test/clips/two_t2.mp4",
+  "dur": 5.04,
+  "words": [
+   [
+    "Three",
+    0.72,
+    1.28
+   ],
+   [
+    "weeks",
+    1.28,
+    1.68
+   ],
+   [
+    "of",
+    1.68,
+    1.92
+   ],
+   [
+    "planning.",
+    1.92,
+    3.12
+   ],
+   [
+    "One",
+    3.12,
+    3.52
+   ],
+   [
+    "sentence.",
+    3.52,
+    4.12
+   ]
+  ],
+  "text": "three weeks of planning one sentence",
+  "cuts": [],
+  "zoom": 1.0,
+  "shift": [
+   0,
+   0
+  ],
+  "pitch": 185,
+  "quiet": -70,
+  "loud": -8,
+  "strip": "/home/user/NEXOR-PADEL/venuvoy-ads/src/film/assets/s2/test/review/_two_t2.jpg"
+ }
+]

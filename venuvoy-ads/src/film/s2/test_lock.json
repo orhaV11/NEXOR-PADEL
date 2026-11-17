@@ -1,0 +1,32 @@
+{
+ "cast": "src/film/assets/s2/cast/cast.json",
+ "out": "src/film/assets/s2/test",
+ "look": "Stylised 3D still in exactly the designer art-toy style of the reference pictures (vinyl-and-felt figures, matte skin, hair as one solid sculpted shape, real fabric clothes with a coarse soft weave), set in a sunny hand-built model town: painted houses in cream, terracotta, mint and sky blue, cobbled streets, plain cream bunting, lemon trees in terracotta pots. Low golden late-afternoon sun coming from the LEFT, long warm violet shadows. The characters are exactly those of the reference pictures, unchanged: TIMO (tall and thin, black flat-top, dark brown skin, teal track jacket with a cream sleeve stripe, navy trousers, tiny teal backpack, big yellow watch on his left wrist, teal-and-coral scarf knotted short at the throat), LUNA (short, coral bob with a full fringe, freckles, coral football shirt with a cream collar, light-blue denim shorts, cream socks, chunky cream trainers, her own long knitted scarf in ONE plain teal colour, with no coral, no stripe and no pattern anywhere on it), BIG YELLOW (the giant sunflower-yellow hard-shell suitcase with dark-violet wheels and one short fixed handle; standing upright its flat top reaches Luna's chest) and the fat ginger CAT with the cream belly and half-closed eyes. Vertical 9:16 film frame, eye-level camera, 28mm lens, soft background. No letters, numbers, signs, logos or clock faces anywhere.",
+ "film": "Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters.",
+ "shots": [
+  {
+   "id": "lock",
+   "refs": [],
+   "pick": 1,
+   "elements": [
+    "Luna"
+   ],
+   "duration": 5,
+   "still": "-",
+   "video": "@Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: her voice, soft thumb taps."
+  },
+  {
+   "id": "two",
+   "refs": [],
+   "pick": 1,
+   "elements": [
+    "Timo",
+    "Luna",
+    "BigYellow"
+   ],
+   "duration": 5,
+   "still": "-",
+   "video": "@Timo, proud, holds the top of the long plan paper, looks at @Luna and says, in a lively acted voice: \"Three weeks of planning.\" @Luna looks up from her phone at him, grins and answers, dry and warm: \"One sentence.\" He blinks. One continuous shot. Nobody else appears. Sound: their two voices, a soft breeze."
+  }
+ ]
+}

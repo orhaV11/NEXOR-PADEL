@@ -1,0 +1,47 @@
+{
+ "stills": {},
+ "clips": {
+  "lock": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/e7b31b31-13be-4070-b4f6-202425eee8e2_5bb66ff2.mp4",
+     "file": "src/film/assets/s2/test/clips/lock_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: her voice, soft thumb taps."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/14d57a24-7061-4abb-a9a0-4f54f7efc905_fc0a3194.mp4",
+     "file": "src/film/assets/s2/test/clips/lock_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Luna looks straight into the camera, raises one eyebrow and says, sly, warm and lively: \"One sentence.\" Then she looks down and types fast with both thumbs for about a second and a half, taps once, looks back up into the camera with a big grin and says, bright: \"Done.\" The screen of the phone is never seen. One continuous shot. Nobody else appears. Sound: her voice, soft thumb taps."
+    }
+   ],
+   "file": "src/film/assets/s2/test/clips/lock_t2.mp4"
+  },
+  "two": {
+   "takes": [
+    {
+     "take": 1,
+     "url": "https://cdn.muapi.ai/outputs/generated/4431b6b7-9466-4a48-94e5-d922ece26a27_2ad13709.mp4",
+     "file": "src/film/assets/s2/test/clips/two_t1.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, proud, holds the top of the long plan paper, looks at @Luna and says, in a lively acted voice: \"Three weeks of planning.\" @Luna looks up from her phone at him, grins and answers, dry and warm: \"One sentence.\" He blinks. One continuous shot. Nobody else appears. Sound: their two voices, a soft breeze."
+    },
+    {
+     "take": 2,
+     "url": "https://cdn.muapi.ai/outputs/generated/e901d647-9b8c-44d1-9548-feeb6996fd0e_43f03a45.mp4",
+     "file": "src/film/assets/s2/test/clips/two_t2.mp4",
+     "pick": 1,
+     "prompt": "Start exactly from @image_1 as the first frame. Polished stylised 3D animation of designer art-toy figures, like a frame-by-frame animated short: they act like living people, with expressive eyebrows and mouths, clear poses, clean arcs and real weight; snappy, never floaty. Nothing morphs, bends, melts or changes shape, colour or size; clothes, scarves, props and the background stay exactly as in the first frame. THE CAMERA IS LOCKED OFF ON A TRIPOD: it does not move, pan, tilt, zoom, push in or pull back; the framing of the first frame is the framing of the last frame. Golden late-afternoon light from the left. No music. No subtitles, no captions, no on-screen text, no letters. @Timo, proud, holds the top of the long plan paper, looks at @Luna and says, in a lively acted voice: \"Three weeks of planning.\" @Luna looks up from her phone at him, grins and answers, dry and warm: \"One sentence.\" He blinks. One continuous shot. Nobody else appears. Sound: their two voices, a soft breeze."
+    }
+   ],
+   "file": "src/film/assets/s2/test/clips/two_t2.mp4"
+  }
+ },
+ "uploads": {
+  "lock_1": "https://cdn.muapi.ai/outputs/generated/c877fe8f2cec4bfc9ede674a620f5c1b.jpg",
+  "two_1": "https://cdn.muapi.ai/outputs/generated/2c849aaf8e8346e0993e9880291320e9.jpg"
+ }
+}
